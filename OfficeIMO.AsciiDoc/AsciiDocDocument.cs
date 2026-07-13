@@ -3,7 +3,7 @@ namespace OfficeIMO.AsciiDoc;
 /// <summary>
 /// Parsed AsciiDoc document with a lossless syntax tree and typed editable top-level blocks.
 /// </summary>
-public sealed class AsciiDocDocument {
+public sealed partial class AsciiDocDocument {
     private readonly IReadOnlyList<AsciiDocBlock> _blocks;
     private readonly IReadOnlyList<AsciiDocDiagnostic> _diagnostics;
 
@@ -41,9 +41,9 @@ public sealed class AsciiDocDocument {
     /// Loads and parses an AsciiDoc file using the runtime's UTF-8 BOM detection.
     /// Retains decoded characters and line endings, not original encoding or BOM bytes.
     /// </summary>
-    public static AsciiDocParseResult Load(string path, AsciiDocParseOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        return Parse(File.ReadAllText(path), options);
+    public static AsciiDocParseResult Load(string path, AsciiDocParseOptions? options = null, Encoding? encoding = null) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        return Parse(File.ReadAllText(path, encoding ?? Utf8WithoutBom), options);
     }
 
     /// <summary>Enumerates blocks of a requested semantic type.</summary>
@@ -72,12 +72,4 @@ public sealed class AsciiDocDocument {
     /// <summary>Writes this document with explicit options.</summary>
     public string ToAsciiDoc(AsciiDocWriterOptions? options) => AsciiDocWriter.Write(this, options);
 
-    /// <summary>
-    /// Saves the current document text using the runtime's default UTF-8 behavior.
-    /// This does not reproduce an original file encoding or BOM.
-    /// </summary>
-    public void Save(string path, AsciiDocWriterOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        File.WriteAllText(path, ToAsciiDoc(options));
-    }
 }

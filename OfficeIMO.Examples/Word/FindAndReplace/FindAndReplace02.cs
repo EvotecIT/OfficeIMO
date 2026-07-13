@@ -43,7 +43,8 @@ namespace OfficeIMO.Examples.Word {
                 var replacedCount = document.FindAndReplace("Test Section", "Production Section");
                 Console.WriteLine("Replaced (should be 5): " + replacedCount);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

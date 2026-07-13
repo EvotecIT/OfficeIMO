@@ -1,8 +1,8 @@
-﻿<svg width="1670.4" height="883.2" viewBox="0 0 1670.4 883.2" role="img" aria-label="Premium Technical Topology" xmlns="http://www.w3.org/2000/svg">
+<svg width="1670.4" height="883.2" viewBox="0 0 1670.4 883.2" role="img" aria-label="Premium Technical Topology" xmlns="http://www.w3.org/2000/svg">
   <rect x="0" y="0" width="1670.4" height="883.2" fill="#FFFFFF" />
   <g data-officeimo-visio-page="Premium Technical Topology">
     <g data-visio-shape-id="edge-zone" data-visio-nameu="Rectangle">
-      <path d="M 38.4 657.12 L 662.4 657.12 L 662.4 162.72 L 38.4 162.72 Z" data-officeimo-preserved-geometry="true" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.92" />
+      <path d="M 38.4 657.12 L 662.4 657.12 L 662.4 162.72 L 38.4 162.72 Z" data-officeimo-preserved-geometry="true" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.152" />
     </g>
     <g data-visio-shape-id="edge-zone-label" data-visio-nameu="Text Box">
       <path d="M 52.8 161.76 L 648 161.76 L 648 132.96 L 52.8 132.96 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
@@ -11,7 +11,7 @@
       </text>
     </g>
     <g data-visio-shape-id="runtime-zone" data-visio-nameu="Rectangle">
-      <path d="M 700.8 657.12 L 1324.8 657.12 L 1324.8 162.72 L 700.8 162.72 Z" data-officeimo-preserved-geometry="true" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.92" />
+      <path d="M 700.8 657.12 L 1324.8 657.12 L 1324.8 162.72 L 700.8 162.72 Z" data-officeimo-preserved-geometry="true" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.152" />
     </g>
     <g data-visio-shape-id="runtime-zone-label" data-visio-nameu="Text Box">
       <path d="M 715.2 161.76 L 1310.4 161.76 L 1310.4 132.96 L 715.2 132.96 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
@@ -20,7 +20,7 @@
       </text>
     </g>
     <g data-visio-shape-id="data-zone" data-visio-nameu="Rectangle">
-      <path d="M 1363.2 657.12 L 1656 657.12 L 1656 162.72 L 1363.2 162.72 Z" data-officeimo-preserved-geometry="true" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.92" />
+      <path d="M 1363.2 657.12 L 1656 657.12 L 1656 162.72 L 1363.2 162.72 Z" data-officeimo-preserved-geometry="true" fill="#F1F5F9" stroke="#94A3B8" stroke-width="1.152" />
     </g>
     <g data-visio-shape-id="data-zone-label" data-visio-nameu="Text Box">
       <path d="M 1377.6 161.76 L 1641.6 161.76 L 1641.6 132.96 L 1377.6 132.96 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
@@ -101,7 +101,7 @@
     </g>
     <g data-visio-shape-id="title" data-visio-nameu="Text Box">
       <path d="M 76.8 115.2 L 1593.6 115.2 L 1593.6 72 L 76.8 72 Z" data-officeimo-preserved-geometry="true" fill="none" stroke="none" />
-      <text x="835.2" y="93.6" font-family="Aptos Display" font-size="32" text-anchor="middle" dominant-baseline="middle" fill="#00496C" font-weight="700">
+      <text x="835.2" y="93.6" font-family="Aptos Display" font-size="29.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="835.2" dy="0">Zero Trust Runtime - Technical Topology</tspan>
       </text>
     </g>
@@ -109,7 +109,7 @@
       <path d="M 297.6 409.92 L 297.6 409.92 L 403.2 409.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 403.2 409.92 L 395.992 413.391 L 395.992 406.449 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="330.24" y="384.64" width="40.32" height="16" fill="#FFFFFF" fill-opacity="0.902" />
-      <text x="350.4" y="392.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
+      <text x="350.4" y="392.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#3730A3">
         <tspan x="350.4" dy="0">mTLS</tspan>
       </text>
     </g>
@@ -117,7 +117,7 @@
       <path d="M 628.8 409.92 L 628.8 409.92 L 734.4 409.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 734.4 409.92 L 727.192 413.391 L 727.192 406.449 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="665.34" y="384.64" width="32.52" height="16" fill="#FFFFFF" fill-opacity="0.902" />
-      <text x="681.6" y="392.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
+      <text x="681.6" y="392.64" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#3730A3">
         <tspan x="681.6" dy="0">route</tspan>
       </text>
     </g>
@@ -125,7 +125,7 @@
       <path d="M 960 409.92 L 960 237.12 L 1065.6 237.12" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 1065.6 237.12 L 1058.392 240.591 L 1058.392 233.649 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="932.16" y="245.44" width="55.68" height="16" fill="#FFFFFF" fill-opacity="0.902" />
-      <text x="960" y="253.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
+      <text x="960" y="253.44" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#3730A3">
         <tspan x="960" dy="0">authorize</tspan>
       </text>
     </g>
@@ -133,7 +133,7 @@
       <path d="M 1178.4 297.12 L 1178.4 361.92 L 1178.4 361.92" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 1178.4 361.92 L 1174.929 354.712 L 1181.871 354.712 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="1160.52" y="304.24" width="35.76" height="16" fill="#FFFFFF" fill-opacity="0.902" />
-      <text x="1178.4" y="312.24" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
+      <text x="1178.4" y="312.24" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#3730A3">
         <tspan x="1178.4" dy="0">allow</tspan>
       </text>
     </g>
@@ -141,7 +141,7 @@
       <path d="M 1291.2 237.12 L 1291.2 237.12 L 1396.8 237.12" fill="none" stroke="#4F46E5" stroke-width="1.92" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="7.68 3.84" />
       <path data-officeimo-connector-arrow="end" d="M 1396.8 237.12 L 1389.592 240.591 L 1389.592 233.649 Z" fill="#4F46E5" stroke="none" />
       <rect data-officeimo-text-background="true" data-officeimo-connector-label-background="true" x="1324.44" y="211.84" width="39.12" height="16" fill="#FFFFFF" fill-opacity="0.902" />
-      <text x="1344" y="219.84" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#0C4A6E">
+      <text x="1344" y="219.84" font-family="Aptos" font-size="12" text-anchor="middle" dominant-baseline="middle" fill="#3730A3">
         <tspan x="1344" dy="0">secret</tspan>
       </text>
     </g>

@@ -7,7 +7,7 @@ namespace OfficeIMO.Examples.Word.Converters {
     internal static class Markdown01_LoadFromMarkdown {
         public static void Example(string folderPath, bool openWord) {
             Console.WriteLine("[*] Loading Markdown and converting to Word");
-            
+
             string imagePath = Path.Combine(AppContext.BaseDirectory, "..", "Assets", "OfficeIMO.png");
             string markdown = $@"# Main Title
 
@@ -35,18 +35,18 @@ var example = ""Hello World"";
 
 ![Logo]({imagePath})
 ";
-            
-            var doc = markdown.LoadFromMarkdown();
+
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument();
             string outputPath = Path.Combine(folderPath, "LoadFromMarkdown.docx");
             doc.Save(outputPath);
-            
+
             Console.WriteLine($"✓ Created: {outputPath}");
             Console.WriteLine($"✓ Paragraphs: {doc.Paragraphs.Count}");
             Console.WriteLine($"✓ Tables: {doc.Tables.Count}");
-            
+
             if (openWord) {
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(outputPath) { UseShellExecute = true });
             }
         }
     }
-}
+}

@@ -37,7 +37,7 @@ var options = new GoogleSheetsSaveOptions {
     Title = "Quarterly revenue"
 };
 
-var plan = workbook.CreateGoogleSheetsTranslationPlan(options);
+var plan = workbook.BuildGoogleSheetsPlan(options);
 var result = await workbook.ExportToGoogleSheetsAsync(session, options);
 
 Console.WriteLine(result.SpreadsheetId);

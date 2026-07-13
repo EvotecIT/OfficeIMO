@@ -26,7 +26,7 @@ public sealed partial class OfficeDocumentReader {
         _handlers = handlers ?? throw new ArgumentNullException(nameof(handlers));
         ProcessorPipeline = processorPipeline ?? throw new ArgumentNullException(nameof(processorPipeline));
         _processingOptions = processingOptions ?? throw new ArgumentNullException(nameof(processingOptions));
-        if (maxConcurrentReads < 1 || maxConcurrentReads > DocumentReader.MaximumConcurrentReads) {
+        if (maxConcurrentReads < 1 || maxConcurrentReads > DocumentReaderEngine.MaximumConcurrentReads) {
             throw new ArgumentOutOfRangeException(nameof(maxConcurrentReads));
         }
         MaxConcurrentReads = maxConcurrentReads;
@@ -51,12 +51,12 @@ public sealed partial class OfficeDocumentReader {
 
     /// <summary>Gets the built-in and modular capabilities configured for this reader.</summary>
     public IReadOnlyList<ReaderHandlerCapability> GetCapabilities() {
-        return DocumentReader.GetCapabilities(_handlers);
+        return DocumentReaderEngine.GetCapabilities(_handlers);
     }
 
     /// <summary>Gets a machine-readable capability manifest for this reader.</summary>
     public ReaderCapabilityManifest GetCapabilityManifest() {
-        return DocumentReader.GetCapabilityManifest(_handlers);
+        return DocumentReaderEngine.GetCapabilityManifest(_handlers);
     }
 
     /// <summary>Gets the capability manifest for this reader as JSON.</summary>
@@ -71,7 +71,7 @@ public sealed partial class OfficeDocumentReader {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (ProcessorPipeline.Count == 0) return Scope(DocumentReader.Read(path, options, cancellationToken));
+        if (ProcessorPipeline.Count == 0) return Scope(DocumentReaderEngine.Read(path, options, cancellationToken));
         return ReadDocument(path, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
     }
 
@@ -83,7 +83,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (ProcessorPipeline.Count == 0) return Scope(DocumentReader.Read(stream, sourceName, options, cancellationToken));
+        if (ProcessorPipeline.Count == 0) return Scope(DocumentReaderEngine.Read(stream, sourceName, options, cancellationToken));
         return ReadDocument(stream, sourceName, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
     }
 
@@ -95,7 +95,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        if (ProcessorPipeline.Count == 0) return Scope(DocumentReader.Read(bytes, sourceName, options, cancellationToken));
+        if (ProcessorPipeline.Count == 0) return Scope(DocumentReaderEngine.Read(bytes, sourceName, options, cancellationToken));
         return ReadDocument(bytes, sourceName, options, cancellationToken).Chunks ?? Array.Empty<ReaderChunk>();
     }
 
@@ -107,10 +107,10 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (ProcessorPipeline.Count == 0) {
-            return ExecuteAsync(() => DocumentReader.ReadAsync(path, options, cancellationToken), cancellationToken);
+            return ExecuteAsync(() => DocumentReaderEngine.ReadAsync(path, options, cancellationToken), cancellationToken);
         }
         return ExecuteProcessedChunksAsync(
-            () => DocumentReader.ReadDocumentAsync(path, options, cancellationToken),
+            () => DocumentReaderEngine.ReadDocumentAsync(path, options, cancellationToken),
             options?.ComputeHashes ?? true,
             cancellationToken);
     }
@@ -124,10 +124,10 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (ProcessorPipeline.Count == 0) {
-            return ExecuteAsync(() => DocumentReader.ReadAsync(stream, sourceName, options, cancellationToken), cancellationToken);
+            return ExecuteAsync(() => DocumentReaderEngine.ReadAsync(stream, sourceName, options, cancellationToken), cancellationToken);
         }
         return ExecuteProcessedChunksAsync(
-            () => DocumentReader.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
+            () => DocumentReaderEngine.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
             options?.ComputeHashes ?? true,
             cancellationToken);
     }
@@ -141,10 +141,10 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (ProcessorPipeline.Count == 0) {
-            return ExecuteAsync(() => DocumentReader.ReadAsync(bytes, sourceName, options, cancellationToken), cancellationToken);
+            return ExecuteAsync(() => DocumentReaderEngine.ReadAsync(bytes, sourceName, options, cancellationToken), cancellationToken);
         }
         return ExecuteProcessedChunksAsync(
-            () => DocumentReader.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
+            () => DocumentReaderEngine.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
             options?.ComputeHashes ?? true,
             cancellationToken);
     }
@@ -156,9 +156,9 @@ public sealed partial class OfficeDocumentReader {
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             return ProcessDocumentResult(
-                DocumentReader.ReadDocument(path, options, cancellationToken),
+                DocumentReaderEngine.ReadDocument(path, options, cancellationToken),
                 options?.ComputeHashes ?? true,
                 cancellationToken);
         }
@@ -172,9 +172,9 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             return ProcessDocumentResult(
-                DocumentReader.ReadDocument(stream, sourceName, options, cancellationToken),
+                DocumentReaderEngine.ReadDocument(stream, sourceName, options, cancellationToken),
                 options?.ComputeHashes ?? true,
                 cancellationToken);
         }
@@ -188,9 +188,9 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             return ProcessDocumentResult(
-                DocumentReader.ReadDocument(bytes, sourceName, options, cancellationToken),
+                DocumentReaderEngine.ReadDocument(bytes, sourceName, options, cancellationToken),
                 options?.ComputeHashes ?? true,
                 cancellationToken);
         }
@@ -204,7 +204,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         return ExecuteProcessedDocumentAsync(
-            () => DocumentReader.ReadDocumentAsync(path, options, cancellationToken),
+            () => DocumentReaderEngine.ReadDocumentAsync(path, options, cancellationToken),
             options?.ComputeHashes ?? true,
             cancellationToken);
     }
@@ -218,7 +218,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         return ExecuteProcessedDocumentAsync(
-            () => DocumentReader.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
+            () => DocumentReaderEngine.ReadDocumentAsync(stream, sourceName, options, cancellationToken),
             options?.ComputeHashes ?? true,
             cancellationToken);
     }
@@ -232,7 +232,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         return ExecuteProcessedDocumentAsync(
-            () => DocumentReader.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
+            () => DocumentReaderEngine.ReadDocumentAsync(bytes, sourceName, options, cancellationToken),
             options?.ComputeHashes ?? true,
             cancellationToken);
     }
@@ -302,7 +302,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        return Scope(DocumentReader.ReadFolder(folderPath, folderOptions, options, onProgress, cancellationToken));
+        return Scope(DocumentReaderEngine.ReadFolder(folderPath, folderOptions, options, onProgress, cancellationToken));
     }
 
     /// <summary>
@@ -314,7 +314,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        return Scope(DocumentReader.ReadFolderDocuments(folderPath, folderOptions, options, onProgress, cancellationToken));
+        return Scope(DocumentReaderEngine.ReadFolderDocuments(folderPath, folderOptions, options, onProgress, cancellationToken));
     }
 
     /// <summary>
@@ -327,8 +327,8 @@ public sealed partial class OfficeDocumentReader {
         bool includeChunks = true,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.ReadFolderDetailed(folderPath, folderOptions, options, includeChunks, onProgress, cancellationToken);
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return DocumentReaderEngine.ReadFolderDetailed(folderPath, folderOptions, options, includeChunks, onProgress, cancellationToken);
         }
     }
 
@@ -343,8 +343,8 @@ public sealed partial class OfficeDocumentReader {
         int? maxReturnedChunks = null,
         Action<ReaderProgress>? onProgress = null,
         CancellationToken cancellationToken = default) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.ReadPathDocumentsDetailed(
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return DocumentReaderEngine.ReadPathDocumentsDetailed(
                 path,
                 folderOptions,
                 options,
@@ -359,8 +359,8 @@ public sealed partial class OfficeDocumentReader {
     /// Detects a reader input kind using this reader's handler configuration.
     /// </summary>
     public ReaderInputKind DetectKind(string path) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.DetectKind(path);
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return DocumentReaderEngine.DetectKind(path);
         }
     }
 
@@ -368,8 +368,8 @@ public sealed partial class OfficeDocumentReader {
     /// Detects a file kind from extension and bounded content evidence using this reader's handlers.
     /// </summary>
     public ReaderDetectionResult Detect(string path, ReaderDetectionOptions? options = null) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.Detect(path, options);
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return DocumentReaderEngine.Detect(path, options);
         }
     }
 
@@ -380,8 +380,8 @@ public sealed partial class OfficeDocumentReader {
         Stream stream,
         string? sourceName = null,
         ReaderDetectionOptions? options = null) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.Detect(stream, sourceName, options);
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return DocumentReaderEngine.Detect(stream, sourceName, options);
         }
     }
 
@@ -392,8 +392,8 @@ public sealed partial class OfficeDocumentReader {
         byte[] bytes,
         string? sourceName = null,
         ReaderDetectionOptions? options = null) {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
-            return DocumentReader.Detect(bytes, sourceName, options);
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
+            return DocumentReaderEngine.Detect(bytes, sourceName, options);
         }
     }
 
@@ -404,7 +404,7 @@ public sealed partial class OfficeDocumentReader {
         string path,
         ReaderDetectionOptions? options = null,
         CancellationToken cancellationToken = default) {
-        return ExecuteAsync(() => DocumentReader.DetectAsync(path, options, cancellationToken), cancellationToken);
+        return ExecuteAsync(() => DocumentReaderEngine.DetectAsync(path, options, cancellationToken), cancellationToken);
     }
 
     /// <summary>
@@ -416,7 +416,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderDetectionOptions? options = null,
         CancellationToken cancellationToken = default) {
         return ExecuteAsync(
-            () => DocumentReader.DetectAsync(stream, sourceName, options, cancellationToken),
+            () => DocumentReaderEngine.DetectAsync(stream, sourceName, options, cancellationToken),
             cancellationToken);
     }
 
@@ -429,7 +429,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderDetectionOptions? options = null,
         CancellationToken cancellationToken = default) {
         return ExecuteAsync(
-            () => DocumentReader.DetectAsync(bytes, sourceName, options, cancellationToken),
+            () => DocumentReaderEngine.DetectAsync(bytes, sourceName, options, cancellationToken),
             cancellationToken);
     }
 
@@ -440,7 +440,7 @@ public sealed partial class OfficeDocumentReader {
     private async Task<T> ExecuteAsync<T>(Func<Task<T>> action, CancellationToken cancellationToken) {
         await _asyncGate.WaitAsync(cancellationToken).ConfigureAwait(false);
         try {
-            using (DocumentReader.UseHandlerRegistry(_handlers)) {
+            using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
                 return await action().ConfigureAwait(false);
             }
         } finally {

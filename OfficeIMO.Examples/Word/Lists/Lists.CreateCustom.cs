@@ -163,7 +163,8 @@ namespace OfficeIMO.Examples.Word {
                 wordList3.AddItem("Text 8 - DecimalDot", 7);
                 wordList3.AddItem("Text 9 - Decimal", 8);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

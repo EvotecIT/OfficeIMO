@@ -47,9 +47,11 @@ namespace OfficeIMO.Word {
     /// Represents a picture content-control value that can be extracted from or supplied to a form map.
     /// </summary>
     public sealed class WordContentControlPictureValue {
+        private readonly byte[]? _bytes;
+
         private WordContentControlPictureValue(string? filePath, byte[]? bytes, string fileName, Uri? externalUri, string? relationshipId) {
             FilePath = filePath;
-            Bytes = bytes;
+            _bytes = bytes?.ToArray();
             FileName = string.IsNullOrWhiteSpace(fileName) ? "image.bin" : fileName;
             ExternalUri = externalUri;
             RelationshipId = relationshipId;
@@ -59,7 +61,7 @@ namespace OfficeIMO.Word {
         public string? FilePath { get; }
 
         /// <summary>Embedded image bytes, when the value was extracted from package content or supplied from memory.</summary>
-        public byte[]? Bytes { get; }
+        public byte[]? Bytes => _bytes?.ToArray();
 
         /// <summary>File name used to infer image type for byte-backed replacements.</summary>
         public string FileName { get; }

@@ -17,7 +17,8 @@ namespace OfficeIMO.Examples.Word {
             var image = Guard.NotNull(paragraph1.Image, "Source paragraph is expected to contain an image to clone.");
             image.Clone(paragraph2);
 
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

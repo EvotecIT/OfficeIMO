@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_DefinitionListLine_RendersStrongDefinitionWithoutLiteralMarkers() {
             const string markdown = "Short answer: **no — nothing is failed** ✅";
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
             var paragraph = document.Paragraphs.First(p => p.Text.Contains("Short answer", StringComparison.Ordinal));
             var runs = paragraph.GetRuns();
             var combinedRunText = string.Concat(runs.Select(run => run.Text));
@@ -25,9 +25,8 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_PreferNarrativeSingleLineDefinitions_KeepsPlainNarrativeLineReadable() {
             const string markdown = "Interpretation: topology looks clean in this sample.";
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
-                PreferNarrativeSingleLineDefinitions = true
-            });
+            var options = new MarkdownToWordOptions { PreferNarrativeSingleLineDefinitions = true };
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions()).ToWordDocument(options);
             var bodyText = string.Join("\n", document.Paragraphs.Select(p => p.Text));
 
             Assert.Contains("Interpretation: topology looks clean in this sample.", bodyText, StringComparison.Ordinal);
@@ -38,9 +37,8 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_PreferNarrativeSingleLineDefinitions_PreservesFormattedDefinitionRuns() {
             const string markdown = "Short answer: **no — nothing is failed** ✅";
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
-                PreferNarrativeSingleLineDefinitions = true
-            });
+            var options = new MarkdownToWordOptions { PreferNarrativeSingleLineDefinitions = true };
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions()).ToWordDocument(options);
             var paragraph = document.Paragraphs.First(p => p.Text.Contains("Short answer", StringComparison.Ordinal));
             var runs = paragraph.GetRuns();
             var combinedRunText = string.Concat(runs.Select(run => run.Text));
@@ -57,9 +55,8 @@ namespace OfficeIMO.Tests {
                 Impact: none
                 """;
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
-                PreferNarrativeSingleLineDefinitions = true
-            });
+            var options = new MarkdownToWordOptions { PreferNarrativeSingleLineDefinitions = true };
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions()).ToWordDocument(options);
             var paragraphRunText = document.Paragraphs
                 .Select(p => string.Concat(p.GetRuns().Select(run => run.Text)))
                 .ToList();
@@ -75,15 +72,16 @@ namespace OfficeIMO.Tests {
                 > Still ordinary quoted text.
                 """;
 
-            using var officeDocument = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var officeDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
             var officeText = string.Join("\n", officeDocument.Paragraphs.Select(p => p.Text));
 
             Assert.Contains("Portable title", officeText, StringComparison.Ordinal);
             Assert.DoesNotContain("[!NOTE]", officeText, StringComparison.Ordinal);
 
-            using var commonMarkDocument = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+            var commonMarkOptions = new MarkdownToWordOptions {
                 ReaderOptions = OfficeIMO.Markdown.MarkdownReaderOptions.CreateCommonMarkProfile()
-            });
+            };
+            using var commonMarkDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, commonMarkOptions.CreateReaderOptions()).ToWordDocument(commonMarkOptions);
             var commonMarkText = string.Join("\n", commonMarkDocument.Paragraphs.Select(p => p.Text));
 
             Assert.Contains("[!NOTE]", commonMarkText, StringComparison.Ordinal);
@@ -136,7 +134,7 @@ namespace OfficeIMO.Tests {
                 """;
 
             var options = MarkdownToWordPresets.CreateIntelligenceXTranscript();
-            var document = MarkdownReader.Parse(markdown, options.ReaderOptions);
+            var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.ReaderOptions);
 
             Assert.Collection(document.Blocks,
                 block => {
@@ -149,26 +147,5 @@ namespace OfficeIMO.Tests {
                 });
         }
 
-        [Fact]
-        public void MarkdownToWordCapabilities_DetectNarrativeSingleLineDefinitionSupport() {
-            const string markdown = """
-                Status: healthy
-                Impact: none
-                """;
-
-            using var document = markdown.LoadFromMarkdown(
-                MarkdownToWordPresets.CreateIntelligenceXTranscript());
-            var bodyParagraphs = document.Paragraphs
-                .Select(p => string.Concat(p.GetRuns().Select(run => run.Text)))
-                .Where(text => !string.IsNullOrWhiteSpace(text))
-                .ToList();
-
-            var actualSupport = bodyParagraphs.Contains("Status: healthy", StringComparer.Ordinal)
-                                && bodyParagraphs.Contains("Impact: none", StringComparer.Ordinal);
-
-            Assert.Equal(
-                actualSupport,
-                MarkdownToWordCapabilities.PreservesNarrativeSingleLineDefinitionsAsSeparateParagraphs());
-        }
     }
 }

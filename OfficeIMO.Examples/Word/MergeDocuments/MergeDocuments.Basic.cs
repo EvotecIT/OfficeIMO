@@ -43,7 +43,8 @@ namespace OfficeIMO.Examples.Word {
             using (var destination = WordDocument.Load(destinationPath))
             using (var source = WordDocument.Load(sourcePath)) {
                 destination.AppendDocument(source);
-                destination.SaveCopy(mergedPath, new WordSaveOptions { OpenAfterSave = openWord });
+                destination.SaveCopy(mergedPath);
+                if (openWord) destination.OpenInApplication(mergedPath);
             }
         }
     }

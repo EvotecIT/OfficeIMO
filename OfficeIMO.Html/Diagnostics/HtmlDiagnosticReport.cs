@@ -5,11 +5,17 @@ namespace OfficeIMO.Html;
 /// </summary>
 public sealed class HtmlDiagnosticReport : IReadOnlyList<HtmlDiagnostic> {
     private readonly List<HtmlDiagnostic> _diagnostics = new List<HtmlDiagnostic>();
+    private readonly IReadOnlyList<HtmlDiagnostic> _readOnlyDiagnostics;
+
+    /// <summary>Creates an empty diagnostic report.</summary>
+    public HtmlDiagnosticReport() {
+        _readOnlyDiagnostics = _diagnostics.AsReadOnly();
+    }
 
     /// <summary>
     /// Diagnostics captured by the report in emission order.
     /// </summary>
-    public IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnostics;
+    public IReadOnlyList<HtmlDiagnostic> Diagnostics => _readOnlyDiagnostics;
 
     /// <summary>
     /// Number of diagnostics currently captured.

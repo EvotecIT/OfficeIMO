@@ -3,7 +3,6 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.Shared;
 using OfficeIMO.Excel.Utilities;
 using System.IO.Packaging;
 using System.Threading;

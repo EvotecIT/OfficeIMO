@@ -17,7 +17,7 @@ public sealed class ReaderJsonModularTests {
             "}";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json), writable: false);
 
-        var chunks = DocumentReaderJsonExtensions.ReadJson(
+        var chunks = JsonReaderAdapter.Read(
             stream,
             sourceName: "agent.json",
             jsonOptions: new JsonReadOptions {
@@ -56,7 +56,7 @@ public sealed class ReaderJsonModularTests {
             "}";
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(json));
 
-        var ex = Assert.Throws<IOException>(() => DocumentReaderJsonExtensions.ReadJson(
+        var ex = Assert.Throws<IOException>(() => JsonReaderAdapter.Read(
             stream,
             sourceName: "agent.json",
             readerOptions: new ReaderOptions { MaxInputBytes = 16 },
@@ -75,7 +75,7 @@ public sealed class ReaderJsonModularTests {
             File.WriteAllText(path, "{ bad json ");
 
             var warningChunk = Assert.Single(
-                DocumentReaderJsonExtensions.ReadJson(path, new ReaderOptions { ComputeHashes = true }),
+                JsonReaderAdapter.Read(path, new ReaderOptions { ComputeHashes = true }),
                 c => c.Kind == ReaderInputKind.Json &&
                      (c.Warnings?.Any(w => w.Contains("JSON parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
 
@@ -95,7 +95,7 @@ public sealed class ReaderJsonModularTests {
         const string json = "{\"service.name\":{\"port[0]\":443}}";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json), writable: false);
 
-        var chunks = DocumentReaderJsonExtensions.ReadJson(
+        var chunks = JsonReaderAdapter.Read(
             stream,
             sourceName: "agent.json",
             jsonOptions: new JsonReadOptions {
@@ -113,7 +113,7 @@ public sealed class ReaderJsonModularTests {
         const string json = "{\"agent\":{\"name\":\"OfficeIMO\"}}";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(json), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderJsonExtensions.ReadJson(
+        var chunk = Assert.Single(JsonReaderAdapter.Read(
             stream,
             sourceName: " agent.json ",
             jsonOptions: new JsonReadOptions {

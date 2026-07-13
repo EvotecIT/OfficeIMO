@@ -35,9 +35,10 @@ namespace OfficeIMO.Examples.Html {
             string pngPath = Path.Combine(folderPath, "Html11_DirectOutputs.png");
             string svgPath = Path.Combine(folderPath, "Html11_DirectOutputs.svg");
 
-            html.SaveAsPdf(pdfPath, options);
-            html.SaveAsPng(pngPath, options);
-            html.SaveAsSvg(svgPath, options);
+            HtmlConversionDocument document = HtmlConversionDocument.Parse(html);
+            document.SaveAsPdf(pdfPath, options);
+            document.SaveAsPng(pngPath, options);
+            document.SaveAsSvg(svgPath, options);
 
             Console.WriteLine($"✓ Created: {pdfPath}");
             Console.WriteLine($"✓ Created: {pngPath}");

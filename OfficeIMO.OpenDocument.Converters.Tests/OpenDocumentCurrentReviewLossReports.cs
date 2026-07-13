@@ -27,7 +27,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         list.AddItem("Child", 1);
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
-        using OdtDocument target = conversion.Value;
+        OdtDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "list-levels" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
@@ -35,7 +35,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void OdtToWordReportsHeaderAndFooterImagesAsSkipped() {
-        using OdtDocument source = OdtDocument.Create();
+        OdtDocument source = OdtDocument.Create();
         source.PageLayout.Header.AddParagraph("Logo").AddImage(TinyPng, "header.png",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
@@ -48,7 +48,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void OdpToPowerPointReportsFlattenedListsAndMixedRuns() {
-        using OdpPresentation source = OdpPresentation.Create();
+        OdpPresentation source = OdpPresentation.Create();
         OdpTextBox textBox = source.AddSlide("Text").AddTextBox(
             OdfRect.FromCentimeters(1, 1, 8, 4), null, "Content");
         OdpParagraph mixed = textBox.AddParagraph("Plain ");
@@ -67,11 +67,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void OdtToWordToleratesMissingStylesAndReportsTableCellImages() {
-        using OdtDocument template = OdtDocument.Create();
+        OdtDocument template = OdtDocument.Create();
         template.AddParagraph("Minimal");
         template.AddTable(1, 1, "Media").Cell(0, 0).Paragraphs[0].AddImage(TinyPng, "cell.png",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
-        using OdtDocument source = OdtDocument.Open(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
+        OdtDocument source = OdtDocument.Load(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
         OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
         using WordDocument target = conversion.Value;
@@ -93,7 +93,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         sheet.CellAt(1, 3).SetFormula("SUM('Other, Sheet'!A1,A1)");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
-        using OdsDocument target = conversion.Value;
+        OdsDocument target = conversion.Value;
         OdsSheet converted = target.GetSheet("Data")!;
 
         Assert.Equal(OdsCellValueKind.Number, converted.GetValue(0, 0).Kind);
@@ -105,7 +105,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void OdsToExcelCreatesInternalLinksWithoutLosingTypedValues() {
-        using OdsDocument source = OdsDocument.Create();
+        OdsDocument source = OdsDocument.Create();
         source.AddSheet("Target").Cell(0, 0).SetString("Destination");
         OdsCell linked = source.AddSheet("Links").Cell(0, 0);
         linked.SetNumber(42D);
@@ -131,7 +131,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         source.SetNamedRange("A1_total", "'Data'!$A$1", save: false);
         sheet.CellAt(1, 3).SetFormula("SUM(A1_total,a1)");
 
-        using OdsDocument target = source.ToOpenDocument();
+        OdsDocument target = source.ToOpenDocument();
 
         Assert.Equal("of:=sum([.a1];[$'Data'.a1])", target.GetSheet("Data")!.GetFormula(0, 1));
         Assert.Equal("of:=SUM(A1_total;[.a1])", target.GetSheet("Data")!.GetFormula(0, 2));
@@ -139,11 +139,11 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void OdsToExcelPreservesRelativeExternalLinksAndMissingStyles() {
-        using OdsDocument template = OdsDocument.Create();
+        OdsDocument template = OdsDocument.Create();
         OdsCell linked = template.AddSheet("Links").Cell(0, 0);
         linked.SetString("Docs");
         linked.SetHyperlink("Docs", "docs/page.html");
-        using OdsDocument source = OdsDocument.Open(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
+        OdsDocument source = OdsDocument.Load(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
         using ExcelDocument target = source.ToExcelDocument();
         ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
@@ -155,7 +155,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void OdpToPowerPointPreservesStyledParagraphsNormalizedImagesAndMasterBackground() {
-        using OdpPresentation template = OdpPresentation.Create();
+        OdpPresentation template = OdpPresentation.Create();
         OdpMasterPage master = template.AddMasterPage("Brand");
         master.BackgroundColor = OdfColor.Parse("#445566");
         OdpSlide slide = template.AddSlide("Slide");
@@ -168,7 +168,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         byte[] package = RewriteXmlEntry(template.ToBytes(), "content.xml", document =>
             document.Descendants().Single(element => element.Name.LocalName == "image")
                 .SetAttributeValue(XName.Get("href", "http://www.w3.org/1999/xlink"), escapedHref));
-        using OdpPresentation source = OdpPresentation.Open(new MemoryStream(package));
+        OdpPresentation source = OdpPresentation.Load(new MemoryStream(package));
 
         using PowerPointPresentation target = source.ToPowerPointPresentation();
         PowerPointSlide converted = Assert.Single(target.Slides);
@@ -180,9 +180,9 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void OdpToPowerPointToleratesMissingStylesPart() {
-        using OdpPresentation template = OdpPresentation.Create();
+        OdpPresentation template = OdpPresentation.Create();
         template.AddSlide("Minimal").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "Text");
-        using OdpPresentation source = OdpPresentation.Open(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
+        OdpPresentation source = OdpPresentation.Load(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
         using PowerPointPresentation target = source.ToPowerPointPresentation();
 
@@ -192,7 +192,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void OdsToExcelPrefersContentScopedDuplicateDataStyle() {
-        using OdsDocument template = OdsDocument.Create();
+        OdsDocument template = OdsDocument.Create();
         template.AddNumberStyle("Amount", 2);
         template.AddSheet("Data").Cell(0, 0).SetNumber(12.5);
         byte[] package = RewriteXmlEntry(template.ToBytes(), "styles.xml", document => {
@@ -202,7 +202,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             document.Root!.Element(office + "styles")!.Add(
                 new XElement(number + "percentage-style", new XAttribute(style + "name", "Amount")));
         });
-        using OdsDocument source = OdsDocument.Open(new MemoryStream(package));
+        OdsDocument source = OdsDocument.Load(new MemoryStream(package));
 
         using ExcelDocument target = source.ToExcelDocument();
 
@@ -221,7 +221,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
             IncludeHeadersAndFooters = true
         });
-        using OdtDocument target = conversion.Value;
+        OdtDocument target = conversion.Value;
         OdfConversionReport report = conversion.Report;
 
         Assert.Contains(report.Mappings, mapping => mapping.Feature == "header-footer-tables" &&

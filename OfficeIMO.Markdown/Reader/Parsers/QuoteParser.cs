@@ -117,7 +117,7 @@ public static partial class MarkdownReader {
             quoteState.SuppressBlockGenericAttributes = true;
             var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(innerSourceLines, options, quoteState);
             var qb = new QuoteBlock();
-            foreach (var b in childBlocks) qb.Children.Add(b);
+            foreach (var b in childBlocks) qb.ChildBlocks.Add(b);
             qb.ReplaceMarkerSourceSpans(markerSourceSpans);
             qb.SyntaxChildren = syntaxChildren;
             doc.Add(qb); i = j; return true;

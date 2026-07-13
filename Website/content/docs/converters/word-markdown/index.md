@@ -30,11 +30,7 @@ string markdown = document.ToMarkdown();
 Console.WriteLine(markdown);
 ```
 
-### Async Conversion
-
-```csharp
-string markdown = await document.ToMarkdownAsync();
-```
+Markdown generation is an in-memory conversion and is synchronous. Use the Markdown document save APIs when the destination requires asynchronous I/O.
 
 ### Convert to Markdown AST
 

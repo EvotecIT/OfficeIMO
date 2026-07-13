@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
             WordParagraphStyle.RegisterCustomStyle("Quote", style);
 
             string html = "<blockquote>Quoted text</blockquote>";
-            using WordDocument document = html.ToWordDocument(new HtmlToWordOptions());
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             string docPath = Path.Combine(folderPath, "BlockquoteWithQuoteStyle.docx");
             document.Save(docPath);
             Console.WriteLine($"✓ Created: {docPath}");

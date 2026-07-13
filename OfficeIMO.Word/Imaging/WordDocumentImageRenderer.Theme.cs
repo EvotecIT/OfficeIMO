@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Word {

@@ -45,15 +45,6 @@
 
   <ItemGroup>
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\**\*.cs" Link="TestStreams\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFile.cs" Link="Shared\Compound\OfficeCompoundFile.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileEntry.cs" Link="Shared\Compound\OfficeCompoundFileEntry.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileReader.cs" Link="Shared\Compound\OfficeCompoundFileReader.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileWriter.cs" Link="Shared\Compound\OfficeCompoundFileWriter.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundWriterLayout.cs" Link="Shared\Compound\OfficeCompoundWriterLayout.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySection.cs" Link="Shared\Ole\OfficeOlePropertySection.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetReader.cs" Link="Shared\Ole\OfficeOlePropertySetReader.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetWriter.cs" Link="Shared\Ole\OfficeOlePropertySetWriter.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertyValue.cs" Link="Shared\Ole\OfficeOlePropertyValue.cs" />
     <Compile Include="..\OfficeIMO.Pdf.Tests\Pdf\PdfPngTestImages.cs" Link="Pdf\PdfPngTestImages.cs" />
   </ItemGroup>
 

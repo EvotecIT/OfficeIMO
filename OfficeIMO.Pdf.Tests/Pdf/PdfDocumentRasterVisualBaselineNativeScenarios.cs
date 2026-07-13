@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -383,17 +384,18 @@ _Figure 1. Relative local image resolved from the Markdown file directory._
 | Images | Local JPEG/PNG image blocks | Native |
 
 ```csharp
-"README.md".SaveAsPdfFromMarkdownFile("README.pdf");
+OfficeIMO.Markdown.MarkdownDoc.Load("README.md").SaveAsPdf("README.pdf");
 ```
 """, new UTF8Encoding(false));
 
             var options = new MarkdownPdfSaveOptions {
                 DefaultImageWidth = 104,
                 DefaultImageHeight = 36,
-                IncludeLocalImages = true
+                IncludeLocalImages = true,
+                BaseDirectory = workDir
             };
 
-            byte[] pdf = markdownPath.ToPdfFromMarkdownFile(options);
+            byte[] pdf = OfficeIMO.Markdown.MarkdownDoc.Load(markdownPath).ToPdf(options);
             if (options.Warnings.Count != 0) {
                 throw new InvalidOperationException("Markdown raster fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
             }
@@ -404,13 +406,13 @@ _Figure 1. Relative local image resolved from the Markdown file directory._
         }
     }
 
-    private static byte[] CreateMarkdownThemeGallery(MarkdownPdfThemeKind themeKind) {
+    private static byte[] CreateMarkdownThemeGallery(OfficeVisualThemeKind themeKind) {
         string markdown = CreateMarkdownThemeGallerySource(themeKind);
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.Create(themeKind)
+            Style = MarkdownPdfStyle.Create(themeKind)
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         if (options.Warnings.Count != 0) {
             throw new InvalidOperationException("Markdown theme gallery fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
         }
@@ -418,7 +420,7 @@ _Figure 1. Relative local image resolved from the Markdown file directory._
         return pdf;
     }
 
-    private static string CreateMarkdownThemeGallerySource(MarkdownPdfThemeKind themeKind) {
+    private static string CreateMarkdownThemeGallerySource(OfficeVisualThemeKind themeKind) {
         string themeName = themeKind.ToString();
         return """
 # Markdown Theme Gallery

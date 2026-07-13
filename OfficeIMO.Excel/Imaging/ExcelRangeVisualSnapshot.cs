@@ -931,6 +931,8 @@ namespace OfficeIMO.Excel {
     /// Positioned worksheet image metadata in an Excel range snapshot.
     /// </summary>
     public sealed class ExcelVisualImage {
+        private readonly byte[] _bytes;
+
         internal ExcelVisualImage(
             string name,
             int order,
@@ -955,7 +957,7 @@ namespace OfficeIMO.Excel {
             Order = order;
             ContentType = contentType ?? string.Empty;
             DetectedFormat = detectedFormat;
-            Bytes = bytes ?? Array.Empty<byte>();
+            _bytes = bytes == null ? Array.Empty<byte>() : (byte[])bytes.Clone();
             SourceWidth = sourceWidth;
             SourceHeight = sourceHeight;
             X = x;
@@ -982,7 +984,7 @@ namespace OfficeIMO.Excel {
         public OfficeImageFormat DetectedFormat { get; }
 
         /// <summary>Image bytes.</summary>
-        public byte[] Bytes { get; }
+        public byte[] Bytes => (byte[])_bytes.Clone();
 
         /// <summary>Intrinsic source image width in pixels, when it could be identified.</summary>
         public double SourceWidth { get; }

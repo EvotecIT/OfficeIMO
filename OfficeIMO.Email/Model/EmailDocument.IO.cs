@@ -21,7 +21,8 @@ public sealed partial class EmailDocument {
             .Read(data, cancellationToken));
 
     /// <summary>
-    /// Loads one EML, MSG, or TNEF artifact from the stream's current position without closing it.
+    /// Loads one EML, MSG, or TNEF artifact without closing the stream. Seekable streams are read from the beginning
+    /// and restored to their original position; non-seekable streams are read forward from their current position.
     /// Use <see cref="EmailDocumentReader"/> when the caller also needs structured diagnostics.
     /// </summary>
     public static EmailDocument Load(Stream stream, EmailReaderOptions? options = null,
@@ -37,7 +38,10 @@ public sealed partial class EmailDocument {
         return GetDocumentOrThrow(result);
     }
 
-    /// <summary>Asynchronously loads an artifact from the stream's current position without closing it.</summary>
+    /// <summary>
+    /// Asynchronously loads an artifact without closing the stream. Seekable streams are read from the beginning
+    /// and restored to their original position; non-seekable streams are read forward.
+    /// </summary>
     public static async Task<EmailDocument> LoadAsync(Stream stream, EmailReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         EmailReadResult result = await new EmailDocumentReader(options ?? EmailReaderOptions.Default)
@@ -53,7 +57,7 @@ public sealed partial class EmailDocument {
     public EmailWriteResult Save(string filePath, EmailFileFormat format, EmailWriterOptions? options = null) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
+        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
         OfficeFileCommit.WriteAllBytes(filePath, data);
         return result;
@@ -63,7 +67,7 @@ public sealed partial class EmailDocument {
     public EmailWriteResult Save(Stream stream, EmailFileFormat format = EmailFileFormat.Eml,
         EmailWriterOptions? options = null) {
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
+        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
         OfficeStreamWriter.WriteAllBytes(stream, data);
         return result;
@@ -80,7 +84,7 @@ public sealed partial class EmailDocument {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         cancellationToken.ThrowIfCancellationRequested();
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
+        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
         await OfficeFileCommit.WriteAllBytesAsync(filePath, data, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
@@ -92,7 +96,7 @@ public sealed partial class EmailDocument {
         EmailWriterOptions? options = null, CancellationToken cancellationToken = default) {
         cancellationToken.ThrowIfCancellationRequested();
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
+        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
         cancellationToken.ThrowIfCancellationRequested();
         await OfficeStreamWriter.WriteAllBytesAsync(stream, data, cancellationToken).ConfigureAwait(false);
@@ -102,10 +106,14 @@ public sealed partial class EmailDocument {
     /// <summary>Serializes the document to memory.</summary>
     public byte[] ToBytes(EmailFileFormat format = EmailFileFormat.Eml, EmailWriterOptions? options = null) {
         EmailDocumentWriter writer = new EmailDocumentWriter(options ?? EmailWriterOptions.Default);
-        byte[] data = writer.WriteToBytes(this, format, out EmailWriteResult result);
+        byte[] data = writer.ToBytes(this, format, out EmailWriteResult result);
         EnsureWriteSucceeded(result);
         return data;
     }
+
+    /// <summary>Serializes the document to a new writable memory stream positioned at the beginning.</summary>
+    public MemoryStream ToStream(EmailFileFormat format = EmailFileFormat.Eml, EmailWriterOptions? options = null) =>
+        new MemoryStream(ToBytes(format, options));
 
     private static EmailDocument GetDocumentOrThrow(EmailReadResult result) {
         if (!result.HasErrors) return result.Document;

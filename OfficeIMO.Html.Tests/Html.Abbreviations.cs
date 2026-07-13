@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AbbrBecomesFootnoteAndRoundsTrip() {
             const string html = "<abbr title=\"desc\">text</abbr>";
-            using var doc = html.ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
             Assert.True(doc.Paragraphs.Count >= 1);
             Assert.Equal("text", doc.Paragraphs[0].Text);
             var footNotes = doc.FootNotes;
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AbbrTitleLinksProtocolRelativeUrl() {
             const string html = "<abbr title=\"//example.com/source\">text</abbr>";
-            using var doc = html.ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
             var footNotes = doc.FootNotes;
             Assert.NotNull(footNotes);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         public void AbbrCanUseEndnotes() {
             const string html = "<abbr title=\"desc\">text</abbr>";
             var options = new HtmlToWordOptions { NoteReferenceType = NoteReferenceType.Endnote };
-            using var doc = html.ToWordDocument(options);
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
             Assert.True(doc.Paragraphs.Count >= 1);
             Assert.Equal("text", doc.Paragraphs[0].Text);
             var endNotes = doc.EndNotes;
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         public void AbbrEndnoteRoundTripsAsAbbrTitle() {
             const string html = "<abbr title=\"desc\">text</abbr>";
             var options = new HtmlToWordOptions { NoteReferenceType = NoteReferenceType.Endnote };
-            using var doc = html.ToWordDocument(options);
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
 
             string roundTrip = doc.ToHtml(new WordToHtmlOptions { ExportEndnotes = true });
 

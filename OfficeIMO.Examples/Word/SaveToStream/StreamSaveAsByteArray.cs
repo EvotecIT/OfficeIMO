@@ -46,17 +46,17 @@ namespace OfficeIMO.Examples.Word {
         }
 
         /// <summary>
-        /// Clones a document into a provided <see cref="Stream"/> instance.
+        /// Saves a document into a provided <see cref="Stream"/> instance.
         /// </summary>
         /// <param name="folderPath">Directory to store the file.</param>
         /// <param name="openWord">Opens Word when <c>true</c>.</param>
         public static void Example_SaveAsStream(string folderPath, bool openWord) {
-            Console.WriteLine("[*] Cloning document into a provided stream");
+            Console.WriteLine("[*] Saving document into a provided stream");
             using var document = WordDocument.Create();
             document.AddParagraph("Cloned into stream");
 
             using var stream = new MemoryStream();
-            using var cloned = document.SaveCopy(stream);
+            document.Save(stream);
 
             string filePath = Path.Combine(folderPath, "SaveAsStream.docx");
             using (var file = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {

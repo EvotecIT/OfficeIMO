@@ -6,6 +6,8 @@ namespace OfficeIMO.Pdf;
 /// Describes a simple image rendered in a page header or footer.
 /// </summary>
 public sealed class PdfHeaderFooterImage {
+    private readonly byte[] _data;
+
     /// <summary>Creates a header/footer image.</summary>
     public PdfHeaderFooterImage(byte[] data, double width, double height, PdfAlign align = PdfAlign.Left, OfficeImageFit fit = OfficeImageFit.Stretch)
         : this(data, width, height, align, fit, alternativeText: null) {
@@ -30,7 +32,7 @@ public sealed class PdfHeaderFooterImage {
         OfficeImageInfo imageInfo = PdfDocument.ValidateImageBytes(data);
         PdfDocument.ValidateImageFitDimensions(imageInfo, fit, nameof(fit));
 
-        Data = (byte[])data.Clone();
+        _data = (byte[])data.Clone();
         Width = width;
         Height = height;
         Align = align;
@@ -40,7 +42,7 @@ public sealed class PdfHeaderFooterImage {
     }
 
     /// <summary>Image payload.</summary>
-    public byte[] Data { get; }
+    public byte[] Data => (byte[])_data.Clone();
 
     /// <summary>Requested image box width in PDF points.</summary>
     public double Width { get; }
@@ -60,9 +62,9 @@ public sealed class PdfHeaderFooterImage {
     /// <summary>Optional alternate text for meaningful header/footer images.</summary>
     public string? AlternativeText { get; }
 
-    internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(Data, Width, Height, Align, Fit, AlternativeText);
+    internal PdfHeaderFooterImage Clone() => new PdfHeaderFooterImage(_data, Width, Height, Align, Fit, AlternativeText);
 
-    internal ImageBlock ToImageBlock() => new ImageBlock(Data, Width, Height, Info, new PdfImageStyle {
+    internal ImageBlock ToImageBlock() => new ImageBlock(_data, Width, Height, Info, new PdfImageStyle {
         Align = Align,
         Fit = Fit,
         AlternativeText = AlternativeText

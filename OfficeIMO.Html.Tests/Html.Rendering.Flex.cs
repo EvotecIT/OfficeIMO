@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, second.Y, 3);
         Assert.Equal(70D, second.Width, 3);
         Assert.Equal(40D, second.Height, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, FindFlexShape(rendered, "div#inner-a").X, 3);
         Assert.Equal(80D, FindFlexShape(rendered, "div#inner-b").X, 3);
         Assert.Equal(120D, FindFlexShape(rendered, "div#right").X, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     [Fact]
@@ -150,13 +150,13 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#page-a" || shape.Source == "div#page-b");
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#page-a");
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#page-b");
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
@@ -182,7 +182,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, b.Y, 3);
         Assert.Equal(0D, c.X, 3);
         Assert.Equal(35D, c.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     [Fact]
@@ -210,7 +210,7 @@ public sealed partial class HtmlRenderingTests {
             """;
 
         HtmlRenderDocument rendered = RenderFlex(html, 120D);
-        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics.Diagnostics
+        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics
             .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported)
             .ToList();
 
@@ -237,13 +237,13 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#line-one");
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#line-two");
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#line-two");
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
@@ -269,7 +269,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(230D, b.Y, 3);
         Assert.Equal(40D, b.Width, 3);
         Assert.Equal(70D, b.Height, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     [Fact]
@@ -290,11 +290,11 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(3, rendered.Pages.Count);
         Assert.All(rendered.Pages, page => Assert.True(page.Visuals.Count > 1));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
@@ -375,13 +375,13 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#column-page-one");
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#column-page-two");
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#column-page-two");
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
@@ -400,12 +400,12 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(10, 40));
@@ -413,7 +413,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"8\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("<rect x=\"8\" y=\"38\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("ColumnFlexPdfMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -437,7 +437,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, FindFlexShape(rendered, "div#column-wrap-c").Y, 3);
         Assert.Equal(170D, FindFlexShape(rendered, "div#column-wrap-d").X, 3);
         Assert.Equal(60D, FindFlexShape(rendered, "div#column-wrap-d").Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     [Fact]
@@ -509,8 +509,8 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderDocument rendered = RenderFlex(html, 220D);
 
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Item");
-        Assert.Equal(3, rendered.Diagnostics.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+        Assert.Equal(3, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     [Fact]
@@ -527,12 +527,12 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 10));
@@ -540,7 +540,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"8\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("<rect x=\"38\" y=\"8\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("FlexPdfMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -570,7 +570,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(middle.X < after.X);
         Assert.Equal(60D, FindFlexShape(rendered, "div#flex::before").Width, 3);
         Assert.Equal("https://example.com/path", linked.LinkUri);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     [Fact]
@@ -634,11 +634,11 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(after.X > b.X);
         Assert.Equal(a.Y, b.Y, 3);
         Assert.Contains(rendered.Pages[0].Visuals, visual => visual.Source == "span#inline" && visual.LinkUri == "https://example.com/inline");
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
     }
 
     private static HtmlRenderDocument RenderFlex(string html, double viewportWidth) =>
-        HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = viewportWidth,
             Margins = HtmlRenderMargins.All(0D)
         });

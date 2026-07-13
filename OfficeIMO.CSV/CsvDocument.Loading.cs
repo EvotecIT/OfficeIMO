@@ -1,6 +1,9 @@
 #nullable enable
 
+using OfficeIMO.Drawing.Internal;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.CSV;
 
@@ -264,8 +267,7 @@ public sealed partial class CsvDocument
     /// </summary>
     /// <param name="stream">Source stream.</param>
     /// <param name="options">Load options.</param>
-    /// <param name="leaveOpen">Whether to leave the source stream open after loading.</param>
-    public static CsvDocument Load(Stream stream, CsvLoadOptions? options = null, bool leaveOpen = true)
+    public static CsvDocument Load(Stream stream, CsvLoadOptions? options = null)
     {
         if (stream == null)
         {
@@ -279,32 +281,64 @@ public sealed partial class CsvDocument
 
         options = options?.Clone() ?? new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-
-        if (options.Mode == CsvLoadMode.Stream || options.DetectDelimiter)
-        {
-            // Streaming mode and delimiter detection require a re-openable source for subsequent enumerations.
-            // For arbitrary streams (including non-seekable), snapshot once into memory.
-            var snapshot = ReadAllBytes(stream, leaveOpen);
-            return LoadInternal(
-                () => new StreamReader(
-                    new MemoryStream(snapshot, writable: false),
-                    encoding,
-                    detectEncodingFromByteOrderMarks: true,
-                    bufferSize: FileBufferSize,
-                    leaveOpen: false),
-                options,
-                encoding);
-        }
-
+        byte[] snapshot = OfficeStreamReader.ReadAllBytes(stream);
         return LoadInternal(
-            () => new StreamReader(
-                stream,
-                encoding,
-                detectEncodingFromByteOrderMarks: true,
-                bufferSize: FileBufferSize,
-                leaveOpen: leaveOpen),
+            () => CsvFile.OpenTextReader(
+                new MemoryStream(snapshot, writable: false),
+                options,
+                leaveOpen: false,
+                FileBufferSize),
             options,
             encoding);
+    }
+
+    /// <summary>Asynchronously loads a CSV document from disk.</summary>
+    public static async Task<CsvDocument> LoadAsync(string path, CsvLoadOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        CsvLoadOptions resolved = options?.Clone() ?? new CsvLoadOptions();
+        Encoding encoding = resolved.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        using TextReader reader = CsvFile.OpenTextReaderForAsyncRead(path, resolved, FileBufferSize);
+        string text = await ReadAllTextAsync(reader, cancellationToken).ConfigureAwait(false);
+        return LoadInternal(() => new StringReader(text), resolved, encoding, text);
+    }
+
+    /// <summary>Asynchronously loads a CSV document from a caller-owned stream.</summary>
+    public static async Task<CsvDocument> LoadAsync(Stream stream, CsvLoadOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+        CsvLoadOptions resolved = options?.Clone() ?? new CsvLoadOptions();
+        Encoding encoding = resolved.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        byte[] snapshot = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        return LoadInternal(
+            () => CsvFile.OpenTextReader(
+                new MemoryStream(snapshot, writable: false),
+                resolved,
+                leaveOpen: false,
+                FileBufferSize),
+            resolved,
+            encoding);
+    }
+
+    private static async Task<string> ReadAllTextAsync(TextReader reader, CancellationToken cancellationToken)
+    {
+        var text = new StringBuilder();
+        var buffer = new char[FileBufferSize];
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+            if (count == 0)
+            {
+                break;
+            }
+
+            text.Append(buffer, 0, count);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return text.ToString();
     }
 
     /// <summary>
@@ -405,23 +439,6 @@ public sealed partial class CsvDocument
         }
 
         return document;
-    }
-
-    private static byte[] ReadAllBytes(Stream stream, bool leaveOpen)
-    {
-        try
-        {
-            using var ms = new MemoryStream();
-            stream.CopyTo(ms);
-            return ms.ToArray();
-        }
-        finally
-        {
-            if (!leaveOpen)
-            {
-                stream.Dispose();
-            }
-        }
     }
 
     private static void InvokeRowAction(

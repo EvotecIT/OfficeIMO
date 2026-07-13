@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             VisioDocument document = VisioDocument.Create(filePath);
             document.Title = "Inspection sample";
             document.Author = "OfficeIMO";
-            document.Theme = new VisioTheme { Name = "Premium Blue" };
+            document.PackageTheme = new VisioPackageTheme { Name = "Premium Blue" };
             document.UseMastersByDefault = true;
             VisioPage page = document.AddPage("Topology", 8, 5);
             VisioShape gateway = page.AddRectangle(1.5, 3.5, 1.4, 0.7, "Gateway");

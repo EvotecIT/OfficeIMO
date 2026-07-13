@@ -132,7 +132,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddPageBreak();
                 section3.AddParagraph("Test Last Section - 3");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
 
                 Console.WriteLine("IsValid: " + document.DocumentIsValid);
 

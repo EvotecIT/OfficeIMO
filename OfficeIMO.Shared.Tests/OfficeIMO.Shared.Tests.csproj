@@ -30,6 +30,7 @@
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
     <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Excel.Pdf\OfficeIMO.Excel.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />
     <ProjectReference Include="..\OfficeIMO.Html.Pdf\OfficeIMO.Html.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj" />
@@ -67,15 +68,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFile.cs" Link="Shared\Compound\OfficeCompoundFile.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileEntry.cs" Link="Shared\Compound\OfficeCompoundFileEntry.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileReader.cs" Link="Shared\Compound\OfficeCompoundFileReader.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileWriter.cs" Link="Shared\Compound\OfficeCompoundFileWriter.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundWriterLayout.cs" Link="Shared\Compound\OfficeCompoundWriterLayout.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySection.cs" Link="Shared\Ole\OfficeOlePropertySection.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetReader.cs" Link="Shared\Ole\OfficeOlePropertySetReader.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetWriter.cs" Link="Shared\Ole\OfficeOlePropertySetWriter.cs" />
-    <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertyValue.cs" Link="Shared\Ole\OfficeOlePropertyValue.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

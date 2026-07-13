@@ -174,10 +174,10 @@ internal static class MarkdownListRendering {
     }
 
     private static void AppendChildrenMarkdown(System.Text.StringBuilder sb, ListItem item, string baseIndent, string contPrefix) {
-        if (item.Children.Count == 0) return;
+        if (item.NestedBlocks.Count == 0) return;
 
-        for (int c = 0; c < item.Children.Count; c++) {
-            var child = item.Children[c];
+        for (int c = 0; c < item.NestedBlocks.Count; c++) {
+            var child = item.NestedBlocks[c];
             var childMd = MarkdownBlockRenderDispatcher.RenderMarkdown(child);
             if (string.IsNullOrWhiteSpace(childMd)) continue;
 
@@ -193,7 +193,7 @@ internal static class MarkdownListRendering {
                 else sb.Append(contPrefix).AppendLine(line);
             }
 
-            if (!renderAsTightChildContinuation || c + 1 < item.Children.Count) {
+            if (!renderAsTightChildContinuation || c + 1 < item.NestedBlocks.Count) {
                 sb.Append(baseIndent).AppendLine();
             }
         }

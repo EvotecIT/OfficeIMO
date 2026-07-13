@@ -24,13 +24,12 @@ public sealed class EmailPackagingContractTests {
                 "../OfficeIMO.Rtf/OfficeIMO.Rtf.csproj"
             },
             projectReferences);
-        string[] sharedSources = project.Descendants(ns + "Compile")
+        string[] linkedSources = project.Descendants(ns + "Compile")
             .Select(element => (string?)element.Attribute("Include"))
             .Where(value => !string.IsNullOrWhiteSpace(value))
             .Select(value => value!.Replace('\\', '/'))
             .ToArray();
-        Assert.NotEmpty(sharedSources);
-        Assert.All(sharedSources, value => Assert.StartsWith("../OfficeIMO.Shared/Compound/", value, StringComparison.Ordinal));
+        Assert.Empty(linkedSources);
 
         string[] references = typeof(EmailDocumentReader).Assembly.GetReferencedAssemblies()
             .Select(reference => reference.Name ?? string.Empty)
@@ -43,6 +42,7 @@ public sealed class EmailPackagingContractTests {
         Assert.DoesNotContain(references, name => string.Equals(name, "MailKit", StringComparison.OrdinalIgnoreCase));
         Assert.DoesNotContain(references, name => string.Equals(name, "Microsoft.Maui.Graphics", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Rtf", StringComparison.OrdinalIgnoreCase));
+        Assert.Contains(references, name => string.Equals(name, "OfficeIMO.Drawing", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(references, name => string.Equals(name, "System.Text.Encoding.CodePages", StringComparison.OrdinalIgnoreCase));
     }
 

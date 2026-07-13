@@ -59,7 +59,7 @@ public sealed class EmailMimeCompatibilityTests {
             Length = 4
         });
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source);
         using var stream = new MemoryStream(bytes, writable: false);
         MimeMessage parsed = MimeMessage.Load(stream);
 

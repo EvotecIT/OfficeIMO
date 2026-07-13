@@ -74,8 +74,19 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessLinkedStylesheetElement(IElement element) {
-            ProcessStylesheetLinkElementAsync(element, baseUri: null, _cancellationToken).GetAwaiter().GetResult();
+        private async Task LoadBodyStylesheetsAsync(IDocument document, CancellationToken cancellationToken) {
+            if (document.Body == null) {
+                return;
+            }
+
+            foreach (IElement element in document.Body.QuerySelectorAll("style, link")) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (element is IHtmlStyleElement styleElement) {
+                    ParseCss(styleElement.TextContent);
+                } else {
+                    await ProcessStylesheetLinkElementAsync(element, baseUri: null, cancellationToken).ConfigureAwait(false);
+                }
+            }
         }
 
         private async Task ProcessStylesheetLinkElementAsync(IElement element, Uri? baseUri, CancellationToken cancellationToken) {

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
             string content = "# Title\r\n\r\nCaf\u00e9";
             File.WriteAllText(mdPath, content, Encoding.Unicode);
 
-            using var doc = WordMarkdownConverterExtensions.LoadFromMarkdown(mdPath, encoding: null);
+            using var doc = OfficeIMO.Markdown.MarkdownDoc.Load(mdPath).ToWordDocument();
             string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
             Assert.Contains("Caf\u00e9", text);
 
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
             Encoding latin1 = Encoding.GetEncoding("iso-8859-1");
             File.WriteAllText(mdPath, content, latin1);
 
-            using var doc = WordMarkdownConverterExtensions.LoadFromMarkdown(mdPath, encoding: latin1);
+            using var doc = OfficeIMO.Markdown.MarkdownDoc.Load(mdPath, encoding: latin1).ToWordDocument();
             string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
             Assert.Contains("ol\u00e9", text);
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
             string content = "# Title\r\n\r\nCaf\u00e9";
             File.WriteAllText(mdPath, content, Encoding.Unicode);
 
-            using var doc = await WordMarkdownConverterExtensions.LoadFromMarkdownAsync(mdPath);
+            using var doc = (await OfficeIMO.Markdown.MarkdownDoc.LoadAsync(mdPath)).ToWordDocument();
             string text = string.Join("\n", doc.Paragraphs.Select(p => p.Text));
             Assert.Contains("Caf\u00e9", text);
 

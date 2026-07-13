@@ -53,6 +53,27 @@ public static class HtmlActiveMediaFilter {
         return FilterDocument(document, mediaContext);
     }
 
+    /// <summary>
+    /// Removes picture source formats that OfficeIMO converters cannot consume while preserving
+    /// art-direction sources for structural adapters such as Markdown.
+    /// </summary>
+    internal static bool FilterUnsupportedPictureSources(IHtmlDocument document) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        bool changed = false;
+        foreach (IElement sourceElement in document.QuerySelectorAll("picture > source")) {
+            bool hasLazySourceSet = !string.IsNullOrWhiteSpace(sourceElement.GetAttribute("data-srcset"))
+                || !string.IsNullOrWhiteSpace(sourceElement.GetAttribute("data-original-srcset"))
+                || !string.IsNullOrWhiteSpace(sourceElement.GetAttribute("data-lazy-srcset"));
+            if (!hasLazySourceSet
+                && !HtmlPictureSourceSupport.IsSupportedConversionContentType(sourceElement.GetAttribute("type"))) {
+                sourceElement.Remove();
+                changed = true;
+            }
+        }
+
+        return changed;
+    }
+
     private static bool FilterDocument(IHtmlDocument parsed, HtmlCssMediaContext mediaContext) {
         bool changed = false;
         foreach (IHtmlLinkElement linkElement in parsed.QuerySelectorAll("link").OfType<IHtmlLinkElement>()) {

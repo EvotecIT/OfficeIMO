@@ -107,7 +107,8 @@ namespace OfficeIMO.Examples.Word {
                 var section1DefaultHeaderAfterLoad = document.Sections[1].GetOrCreateHeader(HeaderFooterValues.Default);
                 section1DefaultHeaderAfterLoad.AddParagraph().SetText("Test Section 1 - Header-Par1");
                 Console.WriteLine("Section 1 - Text 1: " + section1DefaultHeaderAfterLoad.Paragraphs[1].Text);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

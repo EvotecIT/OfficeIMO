@@ -33,7 +33,7 @@ code
 
 ![Alt]({imagePath})
 ";
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { FontFamily = "Calibri" });
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
 
             Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
             var quoteParagraph = doc.Paragraphs.First(p => p.Text.Contains("Quote line"));
@@ -57,7 +57,7 @@ code
         [Fact]
         public void Markdown_BlockQuote_Nesting_RoundTrip() {
             string md = @"> Level 1\n> > Level 2";
-            var doc = md.LoadFromMarkdown();
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
 
             string markdown = doc.ToMarkdown();
             Assert.Contains("> Level 1", markdown);
@@ -74,7 +74,7 @@ code
                 </details>
                 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var summaryIndex = doc.Paragraphs.FindIndex(p => string.Equals(p.Text.Trim(), "More info", StringComparison.Ordinal));
             var bodyIndex = doc.Paragraphs.FindIndex(p => string.Equals(p.Text.Trim(), "Hidden text", StringComparison.Ordinal));
@@ -97,7 +97,7 @@ code
                 Body text
                 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var paragraphs = doc.Paragraphs
                 .Select(p => p.Text.Trim())
@@ -124,7 +124,7 @@ code
                 ### Pipeline
                 """;
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
 
             Assert.NotNull(document.TableOfContent);
             Assert.Equal(2, document.TableOfContent!.MinLevel);
@@ -143,7 +143,7 @@ code
                 ## Region
                 """;
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
 
             Assert.NotNull(document.TableOfContent);
             Assert.Equal(2, document.TableOfContent!.MinLevel);
@@ -174,7 +174,7 @@ code
                 ####### Deep region
                 """;
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
 
             Assert.NotNull(document.TableOfContent);
             Assert.Equal(7, document.TableOfContent!.MinLevel);
@@ -193,7 +193,7 @@ code
 
             string markdown = ((OfficeIMO.Markdown.IMarkdownBlock)marker).RenderMarkdown();
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
 
             Assert.Contains("title=\"A \\\"quoted\\\" \\\\ title\"", markdown, StringComparison.Ordinal);
             Assert.NotNull(document.TableOfContent);

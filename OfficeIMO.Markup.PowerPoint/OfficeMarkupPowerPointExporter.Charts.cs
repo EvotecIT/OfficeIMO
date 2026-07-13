@@ -6,7 +6,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
-public sealed partial class OfficeMarkupPowerPointExporter {
+internal sealed partial class OfficeMarkupPowerPointExporter {
     private static bool ShouldAddChartPanel(OfficeMarkupChartBlock chart) =>
         !chart.Attributes.TryGetValue("panel", out var value) || !TryParseBool(value, out var parsed) || parsed;
 
@@ -285,7 +285,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupChartBlock chart,
         LayoutCursor cursor,
-        OfficeMarkupPowerPointExportOptions options,
+        MarkupToPowerPointOptions options,
         SlideCanvasMetrics metrics) {
         if (!TryCreateChartData(chart, out var data)) {
             if (options.IncludeUnsupportedBlocksAsText) {

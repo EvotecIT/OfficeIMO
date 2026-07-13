@@ -10,7 +10,7 @@ public sealed class PowerPointHtmlSaveOptions {
     public OfficeHtmlConversionProfile Profile { get; set; } = OfficeHtmlConversionProfile.PowerPointSemanticSlides;
 
     /// <summary>Theme used by the shared OfficeIMO HTML shell.</summary>
-    public OfficeHtmlDocumentThemeKind Theme { get; set; } = OfficeHtmlDocumentThemeKind.WordLike;
+    public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.WordLike;
 
     /// <summary>When true, emits the shared OfficeIMO CSS shell.</summary>
     public bool IncludeDefaultStyles { get; set; } = true;

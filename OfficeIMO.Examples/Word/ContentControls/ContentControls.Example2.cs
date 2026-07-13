@@ -12,14 +12,16 @@ namespace OfficeIMO.Examples.Word {
                 document.AddStructuredDocumentTag("Second", "Alias2", "Tag2");
                 document.AddStructuredDocumentTag("Third", "Alias3", "Tag3");
                 Console.WriteLine("Controls: " + document.StructuredDocumentTags.Count);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 foreach (var control in document.StructuredDocumentTags) {
                     Console.WriteLine(control.Tag + ": " + control.Text);
                 }
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

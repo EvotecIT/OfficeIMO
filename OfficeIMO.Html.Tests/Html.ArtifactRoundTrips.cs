@@ -18,7 +18,7 @@ public class HtmlArtifactRoundTrips {
 
     [Fact]
     public void GenericHtml_ProducesReadableWordRtfMarkdownPdfAndSvgArtifactsFromOnePreparedDocument() {
-        HtmlConversionDocument source = HtmlConversionDocumentBuilder.Build(
+        HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<h1>Conversion proof</h1><p>" + Marker + "</p><ul><li>First</li><li>Second</li></ul>");
 
         HtmlToWordResult wordResult = source.ToWordDocumentResult();
@@ -52,7 +52,7 @@ public class HtmlArtifactRoundTrips {
         sourceSheet.CellValue(1, 1, "Label");
         sourceSheet.CellValue(2, 1, Marker);
         sourceSheet.MergeRange("A2:B2");
-        HtmlToExcelResult excelResult = sourceWorkbook.ToHtml().ToExcelDocumentResult();
+        HtmlToExcelResult excelResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceWorkbook.ToHtml()).ToExcelDocumentResult();
         using var xlsx = new MemoryStream();
         excelResult.Value.Save(xlsx);
         using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
@@ -62,7 +62,7 @@ public class HtmlArtifactRoundTrips {
         PowerPointTable sourceTable = sourceSlide.AddTablePoints(2, 2, 40, 60, 300, 120);
         sourceTable.GetCell(0, 0).Text = Marker;
         sourceTable.MergeCells(0, 0, 0, 1);
-        HtmlToPowerPointResult powerPointResult = sourcePresentation.ToHtml().ToPowerPointPresentationResult();
+        HtmlToPowerPointResult powerPointResult = OfficeIMO.Html.HtmlConversionDocument.Parse(sourcePresentation.ToHtml()).ToPowerPointPresentationResult();
         using var pptx = new MemoryStream();
         powerPointResult.Value.Save(pptx);
         using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Load(

@@ -21,6 +21,14 @@ public sealed class OdfConversionReport {
     /// <summary>True when at least one feature was approximated, skipped, or unsupported.</summary>
     public bool HasLoss => _mappings.Any(mapping => mapping.Status != OdfConversionMappingStatus.Converted);
 
+    /// <summary>Throws when any feature was approximated, skipped, or unsupported.</summary>
+    public void RequireNoLoss() {
+        if (HasLoss) {
+            throw new InvalidOperationException(
+                $"Conversion from {SourceFormat} to {TargetFormat} was lossy. Inspect the conversion report for details.");
+        }
+    }
+
     /// <summary>Adds one feature-level result and returns this report.</summary>
     public OdfConversionReport Add(string feature, OdfConversionMappingStatus status, int count = 1, string? message = null) {
         _mappings.Add(new OdfConversionMapping(feature, status, count, message));

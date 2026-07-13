@@ -332,7 +332,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Provides positioning information for the table within the document.
         /// </summary>
-        public WordTablePosition Position;
+        public WordTablePosition Position { get; }
 
         /// <summary>
         /// Gets the table style details. WIP

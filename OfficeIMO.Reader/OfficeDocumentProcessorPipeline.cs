@@ -42,7 +42,11 @@ public sealed class OfficeDocumentProcessorPipeline {
             IOfficeDocumentProcessor processor = _processors[index];
             var context = new OfficeDocumentProcessorContext(processor.Id, index, _processors.Length, cancellationToken);
             try {
-                current = processor.Process(current, context)
+                if (!(processor is ISynchronousOfficeDocumentProcessor synchronousProcessor)) {
+                    throw new InvalidOperationException(
+                        $"Document processor '{processor.Id}' is asynchronous-only. Use ProcessAsync(...).");
+                }
+                current = synchronousProcessor.Process(current, context)
                     ?? throw new InvalidOperationException("Processor returned a null document result.");
                 AppendDiagnostics(current, retainedFailureDiagnostics);
                 steps[index] = Completed(processor, index);
@@ -82,10 +86,18 @@ public sealed class OfficeDocumentProcessorPipeline {
             IOfficeDocumentProcessor processor = _processors[index];
             var context = new OfficeDocumentProcessorContext(processor.Id, index, _processors.Length, cancellationToken);
             try {
-                Task<OfficeDocumentReadResult> task = processor.ProcessAsync(current, context)
-                    ?? throw new InvalidOperationException("Processor returned a null asynchronous operation.");
-                current = await task.ConfigureAwait(false)
-                    ?? throw new InvalidOperationException("Processor returned a null document result.");
+                if (processor is IAsyncOfficeDocumentProcessor asynchronousProcessor) {
+                    Task<OfficeDocumentReadResult> task = asynchronousProcessor.ProcessAsync(current, context)
+                        ?? throw new InvalidOperationException("Processor returned a null asynchronous operation.");
+                    current = await task.ConfigureAwait(false)
+                        ?? throw new InvalidOperationException("Processor returned a null document result.");
+                } else if (processor is ISynchronousOfficeDocumentProcessor synchronousProcessor) {
+                    current = synchronousProcessor.Process(current, context)
+                        ?? throw new InvalidOperationException("Processor returned a null document result.");
+                } else {
+                    throw new InvalidOperationException(
+                        $"Document processor '{processor.Id}' implements neither the synchronous nor asynchronous processing contract.");
+                }
                 AppendDiagnostics(current, retainedFailureDiagnostics);
                 steps[index] = Completed(processor, index);
             } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {

@@ -4,6 +4,8 @@ namespace OfficeIMO.Rtf.Syntax;
 /// Represents one lexical token from an RTF stream.
 /// </summary>
 public sealed class RtfToken {
+    private readonly byte[]? _binaryData;
+
     internal RtfToken(
         RtfTokenKind kind,
         int position,
@@ -22,7 +24,7 @@ public sealed class RtfToken {
         ControlSymbol = controlSymbol;
         Parameter = parameter;
         HasParameter = hasParameter;
-        BinaryData = binaryData;
+        _binaryData = binaryData == null ? null : (byte[])binaryData.Clone();
     }
 
     /// <summary>Token kind.</summary>
@@ -50,7 +52,7 @@ public sealed class RtfToken {
     public bool HasParameter { get; }
 
     /// <summary>Binary payload following a <c>\binN</c> control word.</summary>
-    public byte[]? BinaryData { get; }
+    public byte[]? BinaryData => _binaryData == null ? null : (byte[])_binaryData.Clone();
 
     /// <inheritdoc />
     public override string ToString() {

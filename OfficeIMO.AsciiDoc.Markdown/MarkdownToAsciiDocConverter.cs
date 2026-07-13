@@ -1,9 +1,9 @@
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Canonical, loss-aware Markdown-to-AsciiDoc conversion.</summary>
-public static class MarkdownToAsciiDocConverter {
+internal static class MarkdownToAsciiDocConverter {
     /// <summary>Converts the OfficeIMO Markdown semantic model to dependency-free AsciiDoc.</summary>
-    public static MarkdownToAsciiDocResult Convert(
+    internal static MarkdownToAsciiDocResult Convert(
         MarkdownDoc document,
         MarkdownToAsciiDocOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -89,9 +89,9 @@ public static class MarkdownToAsciiDocConverter {
             output.Append(marker).Append(' ');
             if (item.IsTask) output.Append(item.Checked ? "[x] " : "[ ] ");
             output.Append(MarkdownInlineToAsciiDocConverter.Convert(item.Content, diagnostics, item));
-            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
+            for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
                 output.Append(options.LineEnding).Append('+').Append(options.LineEnding);
-                output.Append(ConvertBlock(item.Children[childIndex], options, diagnostics, ref documentTitleWritten));
+                output.Append(ConvertBlock(item.NestedBlocks[childIndex], options, diagnostics, ref documentTitleWritten));
             }
         }
         return output.ToString();
@@ -168,12 +168,12 @@ public static class MarkdownToAsciiDocConverter {
         MarkdownToAsciiDocOptions options,
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
-        if (cell.Blocks.Count == 1 && cell.Blocks[0] is ParagraphBlock paragraph) {
+        if (cell.ChildBlocks.Count == 1 && cell.ChildBlocks[0] is ParagraphBlock paragraph) {
             return MarkdownInlineToAsciiDocConverter.Convert(paragraph.Inlines, diagnostics, paragraph);
         }
         var blocks = new List<string>();
-        for (int index = 0; index < cell.Blocks.Count; index++) {
-            blocks.Add(ConvertBlock(cell.Blocks[index], options, diagnostics, ref documentTitleWritten));
+        for (int index = 0; index < cell.ChildBlocks.Count; index++) {
+            blocks.Add(ConvertBlock(cell.ChildBlocks[index], options, diagnostics, ref documentTitleWritten));
         }
         return string.Join(options.LineEnding + options.LineEnding, blocks);
     }
@@ -187,7 +187,7 @@ public static class MarkdownToAsciiDocConverter {
         }
         if (cell.Bold) output.Append('s');
         else if (cell.Italic) output.Append('e');
-        else if (cell.Blocks.Count > 1) output.Append('a');
+        else if (cell.ChildBlocks.Count > 1) output.Append('a');
         return output.ToString();
     }
 
@@ -218,10 +218,10 @@ public static class MarkdownToAsciiDocConverter {
         List<MarkdownAsciiDocConversionDiagnostic> diagnostics,
         ref bool documentTitleWritten) {
         string body;
-        if (source.Children.Count > 0) {
+        if (source.ChildBlocks.Count > 0) {
             var blocks = new List<string>();
-            for (int index = 0; index < source.Children.Count; index++) {
-                blocks.Add(ConvertBlock(source.Children[index], options, diagnostics, ref documentTitleWritten));
+            for (int index = 0; index < source.ChildBlocks.Count; index++) {
+                blocks.Add(ConvertBlock(source.ChildBlocks[index], options, diagnostics, ref documentTitleWritten));
             }
             body = string.Join(options.LineEnding + options.LineEnding, blocks);
         } else {

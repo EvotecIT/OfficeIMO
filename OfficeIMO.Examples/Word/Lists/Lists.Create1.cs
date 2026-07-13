@@ -62,7 +62,8 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("List count: " + document.Lists.Count); // "List count: 2
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

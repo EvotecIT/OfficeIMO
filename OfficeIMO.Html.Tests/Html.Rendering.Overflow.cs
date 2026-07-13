@@ -18,9 +18,9 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderClipGroup viewport = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(), group => group.Source == "html:viewport-overflow");
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.True(viewport.ClipHorizontal);
@@ -38,15 +38,15 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(30D, viewport.ClipHeight, 3);
         Assert.Contains("clipPath", svg, StringComparison.Ordinal);
         Assert.Contains("RootPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlViewportOverflow_UsesBodyWhenDocumentRootRemainsVisible() {
         const string html = "<style>html{overflow:visible}body{overflow-x:clip;overflow-y:visible}</style><div style='width:80px;height:10px;margin:0'>Body overflow</div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 25D,
             Margins = HtmlRenderMargins.All(0D),
@@ -69,10 +69,10 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderClipGroup group = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#clip");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -80,7 +80,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.True(group.ClipHorizontal);
         Assert.True(group.ClipVertical);
@@ -92,7 +92,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("clipPath", svg, StringComparison.Ordinal);
         Assert.Contains("ClippedPdfMarker", string.Concat(rendered.Text.Where(character => !char.IsWhiteSpace(character))), StringComparison.Ordinal);
         Assert.Contains("ClippedPdfMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -105,7 +105,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(45, 15));
@@ -117,7 +117,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlOverflowHidden_PreservesClipOriginAwayFromPageOrigin() {
         const string html = "<div id='offset-clip' style='position:relative;width:40px;height:30px;margin:0 0 0 20px;overflow:hidden'>"
             + "<div style='position:absolute;left:20px;top:0;width:40px;height:30px;background:#ff0000'></div></div>";
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D)
@@ -145,7 +145,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderClipGroup group = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#clip-x");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
 
@@ -163,7 +163,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<body style='margin:0'><div id='clip-margin' style='position:relative;width:20px;height:20px;margin:10px;padding:3px;border:2px solid black;overflow:clip;overflow-clip-margin:"
             + visualBox + " 4px'>X</div></body>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 60D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D)
@@ -174,7 +174,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(expectedX, group.ClipX, 3);
         Assert.Equal(expectedWidth, group.ClipWidth, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported);
     }
 
     [Fact]
@@ -188,12 +188,12 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument clipped = HtmlRenderEngine.Render(clipHtml, options);
-        HtmlRenderDocument hidden = HtmlRenderEngine.Render(hiddenHtml, options);
+        HtmlRenderDocument clipped = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(clipHtml), options);
+        HtmlRenderDocument hidden = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(hiddenHtml), options);
         HtmlRenderClipGroup clippedGroup = Assert.Single(EnumerateRenderVisuals(clipped.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#expanded");
         HtmlRenderClipGroup hiddenGroup = Assert.Single(EnumerateRenderVisuals(hidden.Pages[0].Visuals).OfType<HtmlRenderClipGroup>(), item => item.Source == "div#hidden");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(clipped.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(clipHtml.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(clipHtml).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -201,7 +201,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = clipHtml.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(clipHtml).ToPdf(pdfOptions);
 
         Assert.Equal(5D, clippedGroup.ClipX, 3);
         Assert.Equal(30D, clippedGroup.ClipWidth, 3);
@@ -210,7 +210,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(7, 15));
         Assert.Contains("clipPath", svg, StringComparison.Ordinal);
         Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
-        Assert.DoesNotContain(clipHtml.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(clipHtml).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -224,25 +224,25 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument overflowing = HtmlRenderEngine.Render(overflowingHtml, options);
-        HtmlRenderDocument fitting = HtmlRenderEngine.Render(fittingHtml, options);
+        HtmlRenderDocument overflowing = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(overflowingHtml), options);
+        HtmlRenderDocument fitting = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(fittingHtml), options);
 
-        HtmlDiagnostic diagnostic = Assert.Single(overflowing.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
+        HtmlDiagnostic diagnostic = Assert.Single(overflowing.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
         Assert.Equal("div#auto-overflow", diagnostic.Source);
-        Assert.DoesNotContain(fitting.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
+        Assert.DoesNotContain(fitting.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot);
     }
 
     [Fact]
     public void HtmlOverflowScroll_ReportsInitialSnapshotEvenWhenContentFits() {
         const string html = "<div id='scroll-box' style='width:40px;height:30px;margin:0;overflow:scroll'></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 80D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.Single(rendered.Diagnostics.Diagnostics, item =>
+        Assert.Single(rendered.Diagnostics, item =>
             item.Code == HtmlRenderDiagnosticCodes.OverflowScrollSnapshot
             && item.Source == "div#scroll-box");
     }
@@ -258,9 +258,9 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, new HtmlRenderOptions {
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, new HtmlRenderOptions {
             ViewportWidth = 80D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -279,7 +279,7 @@ public sealed partial class HtmlRenderingTests {
             "<div id='layout-clip' style='display:grid;grid-template-columns:60px;width:40px;height:20px;margin:0;overflow:hidden'><div style='height:20px;background:#ff0000'></div></div>"
         };
         foreach (string html in documents) {
-            HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
                 ViewportWidth = 80D,
                 ViewportHeight = 40D,
                 Margins = HtmlRenderMargins.All(0D)
@@ -304,26 +304,26 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.All(rendered.Pages, page => {
             Assert.Contains(EnumerateRenderVisuals(page.Visuals).OfType<HtmlRenderClipGroup>(), group => group.Source == "div#paged-clip");
             Assert.Equal(OfficeColor.Blue, OfficeDrawingRasterRenderer.Render(page.CreateDrawing()).GetPixel(10, 10));
         });
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
 
     [Fact]
     public void HtmlOverflow_InvalidValuesUseCatalogedDiagnosticsAndSupportsTruth() {
         const string html = "<div id='invalid-overflow' style='overflow:sideways banana'>Text</div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowValueUnsupported);
         Assert.Equal("div#invalid-overflow", diagnostic.Source);
         Assert.Contains("overflow-x=sideways", diagnostic.Detail);
         Assert.Contains("overflow-y=banana", diagnostic.Detail);
@@ -339,11 +339,11 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlOverflowClipMargin_InvalidValuesUseInitialFallbackAndCatalogedDiagnostics() {
         const string html = "<div id='invalid-clip-margin' style='overflow:clip;overflow-clip-margin:border-box -2px'>Text</div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(0D)
         });
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OverflowClipMarginValueUnsupported);
 
         Assert.Equal("div#invalid-clip-margin", diagnostic.Source);
         Assert.Contains("overflow-clip-margin=border-box -2px", diagnostic.Detail, StringComparison.Ordinal);

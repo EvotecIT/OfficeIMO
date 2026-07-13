@@ -1,7 +1,7 @@
 namespace OfficeIMO.Latex;
 
 /// <summary>Lossless, non-executing LaTeX parser.</summary>
-public static class LatexParser {
+internal static class LatexParser {
     /// <summary>Parses tokens, nested syntax, and the bounded OfficeIMO profile.</summary>
     public static LatexParseResult Parse(string source, LatexParseOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));

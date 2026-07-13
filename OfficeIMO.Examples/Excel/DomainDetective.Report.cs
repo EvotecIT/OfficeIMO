@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
+using OfficeIMO.Drawing;
 using System.Linq;
 
 namespace OfficeIMO.Examples.Excel {
@@ -170,7 +171,7 @@ namespace OfficeIMO.Examples.Excel {
                           "Status",
                           $"Status: {d.Status}; Findings: {d.WarningCount} warning(s), {d.ErrorCount} error(s).")
                       .SectionWithAnchor("Overview")
-                      .DefinitionList(new (string, object?)[] {
+                      .PropertiesGrid(new (string, object?)[] {
                           ("Domain", d.Domain),
                           ("Classification", d.Classification),
                           ("Confidence", d.Confidence),

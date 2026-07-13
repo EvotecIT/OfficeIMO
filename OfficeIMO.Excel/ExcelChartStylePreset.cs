@@ -39,8 +39,8 @@ namespace OfficeIMO.Excel {
             : this(styleId, colorStyleId) {
             if (styleXmlBytes == null) throw new ArgumentNullException(nameof(styleXmlBytes));
             if (colorStyleXmlBytes == null) throw new ArgumentNullException(nameof(colorStyleXmlBytes));
-            StyleXmlBytes = styleXmlBytes;
-            ColorXmlBytes = colorStyleXmlBytes;
+            StyleXmlBytes = (byte[])styleXmlBytes.Clone();
+            ColorXmlBytes = (byte[])colorStyleXmlBytes.Clone();
         }
 
         /// <summary>

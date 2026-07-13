@@ -20,7 +20,8 @@ namespace OfficeIMO.Examples.Word {
                 defaultHeader.AddShape(ShapeType.RoundedRectangle, 25, 15, Color.Green, Color.Black, 1, arcSize: 0.3);
                 defaultHeader.AddShapeDrawing(ShapeType.Ellipse, 20, 20);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

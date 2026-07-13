@@ -1,4 +1,3 @@
-using PdfCore = OfficeIMO.Pdf;
 using PptCore = OfficeIMO.PowerPoint;
 
 namespace OfficeIMO.PowerPoint.Pdf;
@@ -7,16 +6,6 @@ namespace OfficeIMO.PowerPoint.Pdf;
 /// Options for extracting logical PDF tables into a PowerPoint presentation.
 /// </summary>
 public sealed class PdfPowerPointTableImportOptions {
-    /// <summary>
-    /// PDF text layout options used when a path, stream, or byte array is loaded directly.
-    /// </summary>
-    public PdfCore.PdfTextLayoutOptions? LayoutOptions { get; set; }
-
-    /// <summary>
-    /// Optional inclusive one-based source page ranges used by direct PDF loading overloads.
-    /// </summary>
-    public IReadOnlyList<PdfCore.PdfPageRange>? PageRanges { get; set; }
-
     /// <summary>
     /// Maximum body rows to import per detected table. Values less than or equal to zero import all rows.
     /// </summary>

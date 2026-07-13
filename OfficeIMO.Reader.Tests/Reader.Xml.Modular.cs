@@ -14,7 +14,7 @@ public sealed class ReaderXmlModularTests {
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                 "<catalog><book id=\"b1\"><title>One</title></book><book id=\"b2\"><title>Two</title></book></catalog>");
 
-            var chunks = DocumentReaderXmlExtensions.ReadXml(
+            var chunks = XmlReaderAdapter.Read(
                 path,
                 xmlOptions: new XmlReadOptions {
                     ChunkRows = 2,
@@ -51,7 +51,7 @@ public sealed class ReaderXmlModularTests {
             "<catalog><book id=\"b1\"><title>One</title></book><book id=\"b2\"><title>Two</title></book></catalog>";
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(xml));
 
-        var ex = Assert.Throws<IOException>(() => DocumentReaderXmlExtensions.ReadXml(
+        var ex = Assert.Throws<IOException>(() => XmlReaderAdapter.Read(
             stream,
             sourceName: "books.xml",
             readerOptions: new ReaderOptions { MaxInputBytes = 16 },
@@ -69,7 +69,7 @@ public sealed class ReaderXmlModularTests {
         try {
             File.WriteAllText(path, "<root><broken></root>");
 
-            var chunks = DocumentReaderXmlExtensions.ReadXml(path).ToList();
+            var chunks = XmlReaderAdapter.Read(path).ToList();
 
             Assert.NotEmpty(chunks);
             Assert.Contains(chunks, c =>
@@ -88,7 +88,7 @@ public sealed class ReaderXmlModularTests {
                 "<?xml version=\"1.0\" encoding=\"utf-8\"?>" +
                 "<catalog><book><summary><![CDATA[Line <b>One</b> & more]]></summary></book></catalog>");
 
-            var chunk = Assert.Single(DocumentReaderXmlExtensions.ReadXml(
+            var chunk = Assert.Single(XmlReaderAdapter.Read(
                 path,
                 xmlOptions: new XmlReadOptions {
                     ChunkRows = 10,
@@ -113,7 +113,7 @@ public sealed class ReaderXmlModularTests {
                 "<b:item b:code=\"B1\">Two</b:item>" +
                 "</root>");
 
-            var chunk = Assert.Single(DocumentReaderXmlExtensions.ReadXml(
+            var chunk = Assert.Single(XmlReaderAdapter.Read(
                 path,
                 xmlOptions: new XmlReadOptions {
                     ChunkRows = 20,

@@ -6,21 +6,19 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
-        public async Task WordToHtmlConverter_Convert_EqualsAsync() {
+        public void WordToHtml_UsesDocumentConversionSurface() {
             using var doc = WordDocument.Create();
             doc.AddParagraph("Test");
-            var converter = new WordToHtmlConverter();
-            string sync = converter.Convert(doc, new WordToHtmlOptions());
-            string asyncResult = await converter.ConvertAsync(doc, new WordToHtmlOptions());
-            Assert.Equal(sync, asyncResult);
+            string html = doc.ToHtml(new WordToHtmlOptions());
+            Assert.Contains("Test", html, StringComparison.Ordinal);
         }
 
         [Fact]
         public async Task HtmlToWordConverter_Convert_EqualsAsync() {
             string html = "<p>Test</p>";
-            var converter = new HtmlToWordConverter();
-            using var syncDoc = converter.Convert(html, new HtmlToWordOptions());
-            using var asyncDoc = await converter.ConvertAsync(html, new HtmlToWordOptions());
+            OfficeIMO.Html.HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(html);
+            using var syncDoc = source.ToWordDocument(new HtmlToWordOptions());
+            using var asyncDoc = await source.ToWordDocumentAsync(new HtmlToWordOptions());
             Assert.Equal(syncDoc.Paragraphs.Count, asyncDoc.Paragraphs.Count);
             Assert.Equal(syncDoc.Paragraphs[0].Text, asyncDoc.Paragraphs[0].Text);
         }

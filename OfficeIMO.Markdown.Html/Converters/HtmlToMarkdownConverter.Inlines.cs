@@ -2,7 +2,7 @@ using AngleSharp.Dom;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     internal static InlineSequence ConvertInlineNodesToInlineSequence(IEnumerable<INode> nodes, ConversionContext? context) {
         var sequence = new InlineSequence { AutoSpacing = false };
         var materializedNodes = nodes as IList<INode> ?? nodes.ToList();

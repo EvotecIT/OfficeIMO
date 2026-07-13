@@ -6,6 +6,8 @@ namespace OfficeIMO.Pdf;
 /// Represents an image XObject extracted from a parsed PDF page.
 /// </summary>
 public sealed class PdfExtractedImage {
+    private readonly byte[] _bytes;
+
     internal PdfExtractedImage(
         int pageNumber,
         string resourceName,
@@ -32,7 +34,7 @@ public sealed class PdfExtractedImage {
         BitsPerComponent = bitsPerComponent;
         ColorSpace = colorSpace;
         Filter = filter;
-        Bytes = bytes;
+        _bytes = (byte[])bytes.Clone();
         FileExtension = fileExtension;
         MimeType = mimeType;
         IsImageFile = isImageFile;
@@ -75,7 +77,7 @@ public sealed class PdfExtractedImage {
     /// images, supported ImageMask stencil streams, color-key masked simple and Indexed streams, Decode-aware simple 8-bit DeviceGray/DeviceRGB/basic-converted DeviceCMYK streams, basic ICCBased N=1/3/4 streams, and Decode-aware Indexed palette streams are returned as PNG files when their filters are supported.
     /// JPEG images with PDF transparency masks can expose unresolved mask metadata when the JPEG payload is passed through without alpha conversion. Other supported image streams return their original encoded bytes.
     /// </summary>
-    public byte[] Bytes { get; }
+    public byte[] Bytes => (byte[])_bytes.Clone();
 
     /// <summary>Suggested file extension, such as jpg or png, when the bytes are a complete image file.</summary>
     public string? FileExtension { get; }

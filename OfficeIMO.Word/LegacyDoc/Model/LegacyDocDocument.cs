@@ -1,4 +1,4 @@
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 

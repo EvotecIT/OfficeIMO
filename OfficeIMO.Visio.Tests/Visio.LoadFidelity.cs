@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
                 """);
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            loaded.Theme!.Name = "Renamed Theme";
+            loaded.PackageTheme!.Name = "Renamed Theme";
 
             string savedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             loaded.Save(savedPath);
@@ -1301,7 +1301,7 @@ namespace OfficeIMO.Tests {
         private static string CreateThemedDocument() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             VisioDocument document = VisioDocument.Create(filePath);
-            document.Theme = new VisioTheme { Name = "Office Theme" };
+            document.PackageTheme = new VisioPackageTheme { Name = "Office Theme" };
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, string.Empty));
             document.Save();

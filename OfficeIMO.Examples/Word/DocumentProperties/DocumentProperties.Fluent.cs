@@ -23,7 +23,8 @@ namespace OfficeIMO.Examples.Word {
                         .Revision("1.0"))
                     .Paragraph(p => p.Text("Test"));
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

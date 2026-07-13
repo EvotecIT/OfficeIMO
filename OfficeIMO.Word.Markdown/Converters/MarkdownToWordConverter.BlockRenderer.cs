@@ -291,7 +291,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             protected override void VisitQuoteBlock(Omd.QuoteBlock block) {
-                foreach (var child in block.Children) {
+                foreach (var child in block.ChildBlocks) {
                     RenderNested(child, quoteDepth: _quoteDepth + 1);
                 }
             }

@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Html {
   <span style='letter-spacing: 2px'>spaced</span>
 </p>";
 
-            using var doc = html.ToWordDocument(new HtmlToWordOptions { FontFamily = "Calibri" });
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { FontFamily = "Calibri" });
             string docxPath = Path.Combine(folderPath, "Html03_TextFormatting.docx");
             doc.Save(docxPath);
 

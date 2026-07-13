@@ -2,6 +2,9 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Exact signed bytes and signature container supplied to an optional cryptography provider.</summary>
 public sealed class PdfSignatureCryptographyInput {
+    private readonly byte[] _signedContent;
+    private readonly byte[] _signatureContents;
+
     internal PdfSignatureCryptographyInput(
         PdfSignatureInfo signature,
         byte[] signedContent,
@@ -9,8 +12,8 @@ public sealed class PdfSignatureCryptographyInput {
         long documentLength,
         PdfDocumentDssInfo documentSecurityStore) {
         Signature = signature;
-        SignedContent = signedContent;
-        SignatureContents = signatureContents;
+        _signedContent = (byte[])signedContent.Clone();
+        _signatureContents = (byte[])signatureContents.Clone();
         DocumentLength = documentLength;
         DocumentSecurityStore = documentSecurityStore;
     }
@@ -19,10 +22,10 @@ public sealed class PdfSignatureCryptographyInput {
     public PdfSignatureInfo Signature { get; }
 
     /// <summary>Exact concatenation of every byte segment covered by the signature `/ByteRange`.</summary>
-    public byte[] SignedContent { get; }
+    public byte[] SignedContent => (byte[])_signedContent.Clone();
 
     /// <summary>Decoded signature `/Contents` bytes, including any reserved trailing padding.</summary>
-    public byte[] SignatureContents { get; }
+    public byte[] SignatureContents => (byte[])_signatureContents.Clone();
 
     /// <summary>Complete PDF byte length used to validate the byte ranges.</summary>
     public long DocumentLength { get; }

@@ -524,7 +524,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             BodyClass = null
         };
 
-        var office = MarkdownReader.Parse(markdown).ToHtmlFragment(htmlOptions);
+        var office = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown);
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -539,7 +539,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
             BodyClass = null
         };
 
-        var office = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+        var office = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown);
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
@@ -1106,7 +1106,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.CustomContainers = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(result.Document.Blocks));
         var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(outer.ChildBlocks));
         var html = result.Document.ToHtmlFragment(new HtmlOptions {
@@ -1128,7 +1128,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.CustomContainers = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(result.Document.Blocks));
         var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(outer.ChildBlocks));
@@ -1151,9 +1151,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
         officeOptions.CustomContainers = true;
 
-        var parsed = MarkdownReader.Parse(markdown, officeOptions);
+        var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, officeOptions);
         var written = parsed.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd();
-        var reparsed = MarkdownReader.Parse(written, officeOptions).ToHtmlFragment(htmlOptions);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, officeOptions).ToHtmlFragment(htmlOptions);
 
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseCustomContainers(builder);
@@ -1191,7 +1191,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     [Fact]
     public void MarkdownReader_ListExtras_Are_OptIn() {
         const string markdown = "a. alpha\nb. beta\n";
-        var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
 
         Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
     }
@@ -1203,7 +1203,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         options.ListExtras = true;
         options.PreserveTrivia = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);

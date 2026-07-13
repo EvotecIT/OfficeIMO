@@ -11,7 +11,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(documentPath)) {
                 document.AddParagraph("Signed package metadata preflight").Style = WordParagraphStyles.Heading1;
                 document.AddParagraph("OfficeIMO can inspect signature package metadata and block accidental saves by default.");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
 
             PremiumWorkflowExampleUtilities.AddSyntheticSignatureMetadata(documentPath);

@@ -55,6 +55,8 @@ public sealed class PdfPageRenderOptions {
 
 /// <summary>Per-page managed render result.</summary>
 public sealed class PdfPageRenderResult {
+    private readonly byte[]? _bytes;
+
     internal PdfPageRenderResult(
         int pageNumber,
         PdfPageRenderFormat format,
@@ -66,11 +68,11 @@ public sealed class PdfPageRenderResult {
         IReadOnlyList<string>? errors = null) {
         PageNumber = pageNumber;
         Format = format;
-        Bytes = bytes;
+        _bytes = bytes == null ? null : (byte[])bytes.Clone();
         Width = width;
         Height = height;
         Elapsed = elapsed;
-        CapabilityDiagnostics = capabilityDiagnostics;
+        CapabilityDiagnostics = capabilityDiagnostics.ToArray();
         var diagnostics = new List<string>(capabilityDiagnostics.Count + (errors?.Count ?? 0));
         for (int i = 0; i < capabilityDiagnostics.Count; i++) diagnostics.Add(capabilityDiagnostics[i].Code + ": " + capabilityDiagnostics[i].Message);
         if (errors != null) diagnostics.AddRange(errors);
@@ -82,7 +84,7 @@ public sealed class PdfPageRenderResult {
     /// <summary>Requested output format.</summary>
     public PdfPageRenderFormat Format { get; }
     /// <summary>Rendered bytes, or null when the page failed.</summary>
-    public byte[]? Bytes { get; }
+    public byte[]? Bytes => _bytes == null ? null : (byte[])_bytes.Clone();
     /// <summary>Output width in pixels or SVG user units.</summary>
     public int Width { get; }
     /// <summary>Output height in pixels or SVG user units.</summary>
@@ -94,5 +96,5 @@ public sealed class PdfPageRenderResult {
     /// <summary>Typed skipped or simplified operator/resource diagnostics backed by the generated capability manifest.</summary>
     public IReadOnlyList<PdfRenderCapabilityDiagnostic> CapabilityDiagnostics { get; }
     /// <summary>True when output bytes were produced.</summary>
-    public bool Succeeded => Bytes is not null;
+    public bool Succeeded => _bytes is not null;
 }

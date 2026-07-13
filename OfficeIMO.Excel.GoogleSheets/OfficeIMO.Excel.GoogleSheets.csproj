@@ -4,7 +4,7 @@
         <Description>Google Sheets planning and export scaffolding for OfficeIMO.Excel.</Description>
         <AssemblyName>OfficeIMO.Excel.GoogleSheets</AssemblyName>
         <AssemblyTitle>OfficeIMO.Excel.GoogleSheets</AssemblyTitle>
-        <VersionPrefix>0.1.15</VersionPrefix>
+        <VersionPrefix>2.0.0</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472</TargetFrameworks>
@@ -27,7 +27,6 @@
         <NoWarn>$(NoWarn);CS1591</NoWarn>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
-        <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
     </PropertyGroup>
 
     <ItemGroup>

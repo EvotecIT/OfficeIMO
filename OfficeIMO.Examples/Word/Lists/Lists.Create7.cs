@@ -149,7 +149,8 @@ namespace OfficeIMO.Examples.Word {
 
                 listInFooter.AddItem("Test Footer 2");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

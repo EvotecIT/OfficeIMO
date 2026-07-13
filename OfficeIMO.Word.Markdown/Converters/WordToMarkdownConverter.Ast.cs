@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using OfficeIMO.Drawing.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using M = DocumentFormat.OpenXml.Math;
@@ -263,7 +264,7 @@ namespace OfficeIMO.Word.Markdown {
                         parentFrame.AddItem(placeholder);
                     }
 
-                    parentFrame.LastItem!.Children.Add((IMarkdownBlock)block);
+                    parentFrame.LastItem!.NestedBlocks.Add((IMarkdownBlock)block);
                 }
 
                 listStack.Add(new PendingListFrame(listStack.Count, ordered, block));
@@ -285,7 +286,7 @@ namespace OfficeIMO.Word.Markdown {
                     if (paragraphBlocks[i] is ParagraphBlock additionalParagraph) {
                         item.AdditionalParagraphs.Add(additionalParagraph.Inlines);
                     } else {
-                        item.Children.Add(paragraphBlocks[i]);
+                        item.NestedBlocks.Add(paragraphBlocks[i]);
                     }
                 }
             } else {
@@ -294,7 +295,7 @@ namespace OfficeIMO.Word.Markdown {
                     : new OmdListItem(new InlineSequence());
 
                 for (int i = 0; i < paragraphBlocks.Count; i++) {
-                    item.Children.Add(paragraphBlocks[i]);
+                    item.NestedBlocks.Add(paragraphBlocks[i]);
                 }
             }
 
@@ -989,7 +990,7 @@ namespace OfficeIMO.Word.Markdown {
 
             string fileName = index.ToString("00", System.Globalization.CultureInfo.InvariantCulture) + "-" + slug + ".svg";
             string targetPath = Path.Combine(directory, fileName);
-            File.WriteAllBytes(targetPath, svgBytes);
+            OfficeFileCommit.WriteAllBytes(targetPath, svgBytes);
 
             string prefix = NormalizeMarkdownPath(options.VisualFallbackPathPrefix);
             return string.IsNullOrEmpty(prefix) ? fileName : prefix + "/" + fileName;
@@ -1367,7 +1368,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
                     File.Copy(image.FilePath, targetPath, true);
                 } else {
-                    File.WriteAllBytes(targetPath, image.ToBytes());
+                    OfficeFileCommit.WriteAllBytes(targetPath, image.ToBytes());
                 }
 
                 return fileName;
@@ -1474,7 +1475,7 @@ namespace OfficeIMO.Word.Markdown {
             IMarkdownBlock current = block;
             for (int i = 0; i < depth; i++) {
                 var quote = new QuoteBlock();
-                quote.Children.Add(current);
+                quote.ChildBlocks.Add(current);
                 current = quote;
             }
 

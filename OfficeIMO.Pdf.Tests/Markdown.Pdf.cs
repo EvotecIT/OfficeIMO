@@ -36,7 +36,7 @@ Console.WriteLine("OfficeIMO");
 ```
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
 
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
@@ -58,7 +58,7 @@ Console.WriteLine("OfficeIMO");
 >   - Beta
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(new MarkdownPdfSaveOptions());
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions());
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Equal(1, CountOccurrences(text, "Alpha"));
@@ -81,7 +81,7 @@ Console.WriteLine("OfficeIMO");
             }
         };
 
-        byte[] pdfBytes = markdown.ToPdfFromMarkdown(options);
+        byte[] pdfBytes = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
 
         using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
         string text = PdfCore.PdfReadDocument.Load(pdfBytes).ExtractText();
@@ -105,7 +105,7 @@ Console.WriteLine("OfficeIMO");
         var options = new MarkdownPdfSaveOptions();
         string markdown = "> Status " + symbol + " marker";
 
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
@@ -140,7 +140,7 @@ Console.WriteLine("OfficeIMO");
 | Service | 77 | 88 |
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(new MarkdownPdfSaveOptions {
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions {
             PdfOptions = new PdfCore.PdfOptions {
                 PageWidth = 420,
                 PageHeight = 260,
@@ -205,7 +205,7 @@ Console.WriteLine("OfficeIMO");
 ![OfficeIMO logo](https://example.com/logo.png)
 """;
 
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
@@ -224,7 +224,7 @@ Console.WriteLine("OfficeIMO");
 ![OfficeIMO logo](https://example.com/logo.png)
 """;
 
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         PdfCore.PdfDocument processed = result.Value.AppendMetadataRevision(title: "Processed Markdown PDF");
 
         PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "UnsupportedImage");
@@ -247,7 +247,7 @@ Console.WriteLine("OfficeIMO");
             };
             string markdown = "![Local pixel](pixel.png){width=24 height=24}";
 
-            PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
+            PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
             byte[] pdf = result.ToBytes();
             string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
             IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
@@ -278,7 +278,7 @@ Console.WriteLine("OfficeIMO");
 ![OfficeIMO logo](https://example.com/logo.png){width=24 height=24}
 """;
 
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
@@ -303,7 +303,7 @@ Console.WriteLine("OfficeIMO");
 ![OfficeIMO logo](https://example.com/logo.png)
 """;
 
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
@@ -331,9 +331,10 @@ _Figure 1. Embedded from a relative Markdown path._
 """);
 
             var options = new MarkdownPdfSaveOptions {
-                IncludeLocalImages = true
+                IncludeLocalImages = true,
+                BaseDirectory = directory
             };
-            PdfCore.PdfDocumentConversionResult result = markdownPath.ToPdfDocumentFromMarkdownFileResult(options);
+            PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownDoc.Load(markdownPath).ToPdfDocumentResult(options);
             result.Save(pdfPath);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
@@ -342,7 +343,7 @@ _Figure 1. Embedded from a relative Markdown path._
 
             Assert.True(pdf.Length > 0);
             Assert.Empty(options.Warnings);
-            Assert.Null(options.BaseDirectory);
+            Assert.Equal(directory, options.BaseDirectory);
             Assert.Contains("Asset Report", text);
             Assert.Contains("Figure 1", text);
             Assert.Single(images);
@@ -373,9 +374,10 @@ _Figure 1. Embedded from a relative Markdown path._
 """);
 
             var options = new MarkdownPdfSaveOptions {
-                IncludeLocalImages = true
+                IncludeLocalImages = true,
+                BaseDirectory = markdownDirectory
             };
-            PdfCore.PdfDocumentConversionResult result = markdownPath.ToPdfDocumentFromMarkdownFileResult(options);
+            PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownDoc.Load(markdownPath).ToPdfDocumentResult(options);
             result.Save(pdfPath);
 
             byte[] pdf = File.ReadAllBytes(pdfPath);
@@ -384,7 +386,7 @@ _Figure 1. Embedded from a relative Markdown path._
 
             PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings);
             Assert.Equal("LocalImageOutsideBaseDirectory", warning.Code);
-            Assert.Null(options.BaseDirectory);
+            Assert.Equal(markdownDirectory, options.BaseDirectory);
             Assert.Contains("[Image unavailable:", text, StringComparison.Ordinal);
             Assert.Empty(images);
         } finally {
@@ -417,7 +419,7 @@ _Figure 1. Embedded from a relative Markdown path._
             };
             string markdown = "![Wide local image](pixel.png){width=360 height=180}";
 
-            byte[] pdf = markdown.ToPdfFromMarkdown(options);
+            byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
             string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
             Assert.Empty(options.Warnings);
@@ -434,7 +436,7 @@ _Figure 1. Embedded from a relative Markdown path._
         string markdown = "# Result Adapter\n\nPDF output should report bytes and diagnostics.";
         using var stream = new MemoryStream();
 
-        PdfCore.PdfSaveResult streamResult = markdown.TrySaveAsPdfFromMarkdown(stream);
+        PdfCore.PdfSaveResult streamResult = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).TrySaveAsPdf(stream);
 
         Assert.True(streamResult.Succeeded);
         Assert.Null(streamResult.OutputPath);
@@ -446,13 +448,13 @@ _Figure 1. Embedded from a relative Markdown path._
         Directory.CreateDirectory(directory);
         string pdfPath = Path.Combine(directory, "result.pdf");
         try {
-            PdfCore.PdfSaveResult pathResult = markdown.TrySaveAsPdfFromMarkdown(pdfPath);
+            PdfCore.PdfSaveResult pathResult = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).TrySaveAsPdf(pdfPath);
 
             Assert.True(pathResult.Succeeded);
             Assert.Equal(Path.GetFullPath(pdfPath), pathResult.OutputPath);
             Assert.Equal(File.ReadAllBytes(pdfPath).LongLength, pathResult.BytesWritten);
 
-            PdfCore.PdfSaveResult directoryResult = markdown.TrySaveAsPdfFromMarkdown(directory);
+            PdfCore.PdfSaveResult directoryResult = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).TrySaveAsPdf(directory);
 
             Assert.False(directoryResult.Succeeded);
             Assert.NotEmpty(directoryResult.Diagnostics);
@@ -463,10 +465,7 @@ _Figure 1. Embedded from a relative Markdown path._
             }
         }
 
-        PdfCore.PdfSaveResult conversionFailure = ((string)null!).TrySaveAsPdfFromMarkdown(new MemoryStream());
-
-        Assert.False(conversionFailure.Succeeded);
-        Assert.NotEmpty(conversionFailure.Diagnostics);
+        Assert.Throws<ArgumentNullException>(() => OfficeIMO.Markdown.MarkdownReader.Parse((string)null!));
     }
 
     [Fact]
@@ -476,7 +475,7 @@ _Figure 1. Embedded from a relative Markdown path._
             "# Inline Asset\n\n" +
             "![Inline pixel](" + CreateMinimalRgbPngDataUri() + "){width=24 height=24}\n";
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         IReadOnlyList<PdfCore.PdfExtractedImage> images = PdfCore.PdfImageExtractor.ExtractImages(pdf);
 
@@ -492,7 +491,7 @@ _Figure 1. Embedded from a relative Markdown path._
     [Fact]
     public void Markdown_SaveAsPdf_RendersTaskListsAsCheckboxes() {
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.GitHubLike()
+            Style = MarkdownPdfStyle.GitHubLike()
         };
         string markdown = """
 # Checklist
@@ -501,7 +500,7 @@ _Figure 1. Embedded from a relative Markdown path._
 - [ ] Add multi-block panel primitive
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
@@ -519,7 +518,7 @@ _Figure 1. Embedded from a relative Markdown path._
 
     [Fact]
     public void Markdown_SaveAsPdf_AppliesChecklistThemeColors() {
-        MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.Plain();
+        MarkdownPdfStyle theme = MarkdownPdfStyle.Plain();
         theme.ChecklistCheckedIconColor = PdfCore.PdfColor.FromRgb(255, 0, 0);
         theme.ChecklistUncheckedIconColor = PdfCore.PdfColor.FromRgb(0, 0, 255);
         theme.ChecklistCheckedTextColor = PdfCore.PdfColor.FromRgb(0, 128, 0);
@@ -527,7 +526,7 @@ _Figure 1. Embedded from a relative Markdown path._
         theme.ChecklistCheckedFillColor = PdfCore.PdfColor.FromRgb(255, 255, 204);
         theme.ChecklistUncheckedFillColor = PdfCore.PdfColor.FromRgb(204, 238, 255);
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = theme
+            Style = theme
         };
         string markdown = """
 # Checklist Theme
@@ -536,7 +535,7 @@ _Figure 1. Embedded from a relative Markdown path._
 - [ ] Open item
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Empty(options.Warnings);
@@ -549,7 +548,7 @@ _Figure 1. Embedded from a relative Markdown path._
     }
 
     [Fact]
-    public void MarkdownPdfVisualTheme_Maps_SharedMarkdownTheme() {
+    public void MarkdownPdfStyle_Maps_SharedMarkdownTheme() {
         MarkdownVisualTheme sharedTheme = MarkdownVisualTheme.Report()
             .WithColors(
                 accent: "#ff0000",
@@ -564,7 +563,7 @@ _Figure 1. Embedded from a relative Markdown path._
                 table.CellPaddingY = 7;
             });
 
-        MarkdownPdfVisualTheme pdfTheme = MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+        MarkdownPdfStyle pdfTheme = MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
 
         Assert.Equal("Report", pdfTheme.Name);
         Assert.Equal(0, pdfTheme.DocumentHeaderTitleColor!.Value.R, 3);
@@ -599,7 +598,7 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
             Theme = theme
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.True(pdf.Length > 0);
@@ -610,11 +609,11 @@ Markdown PDF should accept the same visual theme object as HTML and Word.
 
     [Fact]
     public void Markdown_SaveAsPdf_AppliesVisualThemeLinkStyleAcrossInlineSurfaces() {
-        MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.TechnicalDocument();
+        MarkdownPdfStyle theme = MarkdownPdfStyle.TechnicalDocument();
         theme.LinkColor = PdfCore.PdfColor.FromRgb(128, 0, 128);
         theme.UnderlineLinks = false;
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = theme
+            Style = theme
         };
         string markdown = """
 # Link Theme
@@ -628,7 +627,7 @@ Paragraph [paragraph link](https://example.com/paragraph).
 | Table | [table link](https://example.com/table) |
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
@@ -658,7 +657,7 @@ description: Dependency-free export
 Content.
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown();
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal("PDF Roadmap", info.Metadata.Title);
@@ -683,9 +682,9 @@ Content.
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument()
         };
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -714,7 +713,7 @@ author: OfficeIMO
         var options = new MarkdownPdfSaveOptions {
             FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.Table
         };
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Empty(options.Warnings);
@@ -784,7 +783,7 @@ author: OfficeIMO
             .P("Validation notes.");
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument()
         };
 
         byte[] pdf = document.ToPdf(options);
@@ -818,10 +817,10 @@ Validation notes.
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument()
         };
 
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
 
@@ -845,10 +844,10 @@ Validation notes.
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument()
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -859,8 +858,8 @@ Validation notes.
     }
 
     [Fact]
-    public void MarkdownPdfVisualThemes_UseDocumentRhythmForTables() {
-        MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.TechnicalDocument();
+    public void MarkdownPdfStyles_UseDocumentRhythmForTables() {
+        MarkdownPdfStyle theme = MarkdownPdfStyle.TechnicalDocument();
 
         PdfCore.PdfTableStyle tableStyle = theme.TableStyle!;
         PdfCore.PdfTableStyle frontMatterStyle = theme.FrontMatterTableStyle!;
@@ -875,12 +874,12 @@ Validation notes.
     }
 
     [Fact]
-    public void MarkdownPdfVisualThemes_CloneLinkStyleOptions() {
-        MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.Report();
+    public void MarkdownPdfStyles_CloneLinkStyleOptions() {
+        MarkdownPdfStyle theme = MarkdownPdfStyle.Report();
         theme.LinkColor = PdfCore.PdfColor.FromRgb(12, 34, 56);
         theme.UnderlineLinks = false;
 
-        MarkdownPdfVisualTheme clone = theme.Clone();
+        MarkdownPdfStyle clone = theme.Clone();
         theme.LinkColor = PdfCore.PdfColor.FromRgb(90, 90, 90);
         theme.UnderlineLinks = true;
 
@@ -899,10 +898,10 @@ The body paragraph must not touch the front matter table.
 
         var options = new MarkdownPdfSaveOptions {
             FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.Table,
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument()
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         IReadOnlyList<PdfLineProbe> lines = ExtractPdfLines(pdf);
 
         Assert.Empty(options.Warnings);
@@ -918,10 +917,10 @@ Use `OfficeIMO.Pdf` inside normal prose.
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument()
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -960,10 +959,10 @@ Console.WriteLine("Rhythm");
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument()
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         IReadOnlyList<PdfLineProbe> lines = ExtractPdfLines(pdf);
 
         Assert.Empty(options.Warnings);
@@ -985,17 +984,17 @@ Console.WriteLine("OfficeIMO");
 ```
 """;
 
-        MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.Plain();
+        MarkdownPdfStyle theme = MarkdownPdfStyle.Plain();
         theme.CodeBlockLabelFontSize = 7;
         theme.CodeBlockFontSize = 11;
         theme.CodeBlockLabelColor = PdfCore.PdfColor.FromRgb(255, 0, 0);
         theme.CodeBlockTextColor = PdfCore.PdfColor.FromRgb(0, 128, 0);
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = theme
+            Style = theme
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1028,10 +1027,10 @@ Console.WriteLine("OfficeIMO");
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+            Style = MarkdownPdfStyle.TechnicalDocument()
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1067,10 +1066,10 @@ Console.WriteLine("OfficeIMO");
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.Report()
+            Style = MarkdownPdfStyle.Report()
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Empty(options.Warnings);
@@ -1098,11 +1097,11 @@ pdfTheme: report
 """;
 
         var options = new MarkdownPdfSaveOptions();
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Empty(options.Warnings);
-        Assert.Contains("0.118 0.251 0.686 rg", rawPdf, StringComparison.Ordinal);
+        Assert.Contains("0.859 0.918 0.996 rg", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1119,7 +1118,7 @@ The report profile should feel intentionally designed without the Markdown sourc
 """;
 
         var options = new MarkdownPdfSaveOptions();
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
@@ -1140,8 +1139,8 @@ The report profile should feel intentionally designed without the Markdown sourc
 The technical profile should remain quiet while still giving the page a deliberate document frame.
 """;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions {
+            Style = MarkdownPdfStyle.TechnicalDocument()
         });
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1160,7 +1159,7 @@ The technical profile should remain quiet while still giving the page a delibera
 Markdown should stay semantic while the visual theme controls the page treatment.
 """;
 
-        MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.WordLike();
+        MarkdownPdfStyle theme = MarkdownPdfStyle.WordLike();
         var decoration = new MarkdownPdfPageDecoration {
             BackgroundColor = PdfCore.PdfColor.White,
             PageBorder = new PdfCore.PdfPageBorder {
@@ -1180,8 +1179,8 @@ Markdown should stay semantic while the visual theme controls the page treatment
         theme.PageDecoration = decoration;
         decoration.PageBorder = new PdfCore.PdfPageBorder { Inset = 80 };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(new MarkdownPdfSaveOptions {
-            PdfTheme = theme
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions {
+            Style = theme
         });
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1203,11 +1202,11 @@ The report colors can remain while page decoration is disabled.
 | Visuals | Quiet |
 """;
 
-        MarkdownPdfVisualTheme theme = MarkdownPdfVisualTheme.Report();
+        MarkdownPdfStyle theme = MarkdownPdfStyle.Report();
         theme.PageDecoration = null;
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(new MarkdownPdfSaveOptions {
-            PdfTheme = theme
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(new MarkdownPdfSaveOptions {
+            Style = theme
         });
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
@@ -1225,7 +1224,7 @@ Explicit low-level PDF options should win over theme page decoration.
 """;
 
         var options = new MarkdownPdfSaveOptions {
-            PdfTheme = MarkdownPdfVisualTheme.Report(),
+            Style = MarkdownPdfStyle.Report(),
             PdfOptions = new PdfCore.PdfOptions {
                 BackgroundColor = PdfCore.PdfColor.White,
                 PageBorder = new PdfCore.PdfPageBorder {
@@ -1245,7 +1244,7 @@ Explicit low-level PDF options should win over theme page decoration.
             }
         };
 
-        byte[] pdf = markdown.ToPdfFromMarkdown(options);
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdf(options);
         string rawPdf = System.Text.Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("12 12 30 30 re", rawPdf, StringComparison.Ordinal);
@@ -1266,7 +1265,7 @@ Content.
 """;
 
         var options = new MarkdownPdfSaveOptions();
-        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentFromMarkdownResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 

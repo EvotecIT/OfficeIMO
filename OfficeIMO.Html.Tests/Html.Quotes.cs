@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void QuotesRoundTrip() {
             const string html = "<p>Before <q>quoted</q> after</p>";
-            using var doc = html.ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
             Assert.Equal("HtmlQuote", runs[1].CharacterStyleId);
             Assert.Equal("HtmlQuote", runs[3].CharacterStyleId);

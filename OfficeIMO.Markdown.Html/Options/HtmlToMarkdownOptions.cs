@@ -154,7 +154,7 @@ public sealed class HtmlToMarkdownOptions {
     /// options.DocumentTransforms.Add(
     ///     new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
     ///
-    /// var document = html.ToMarkdownDocument(options);
+    /// var document = HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
     /// </code>
     /// </example>
     public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
@@ -242,26 +242,6 @@ public sealed class HtmlToMarkdownOptions {
 
         return _appliedFeaturePackIds.Contains(featurePackId.Trim());
     }
-
-    /// <summary>
-    /// Compatibility wrapper for older visual round-trip tracking.
-    /// </summary>
-    public bool TryMarkVisualRoundTripPluginApplied(string pluginId) => TryMarkPluginApplied(pluginId);
-
-    /// <summary>
-    /// Compatibility wrapper for older visual round-trip tracking.
-    /// </summary>
-    public bool HasVisualRoundTripPluginId(string pluginId) => HasPluginId(pluginId);
-
-    /// <summary>
-    /// Compatibility wrapper for older visual round-trip tracking.
-    /// </summary>
-    public bool TryMarkVisualRoundTripFeaturePackApplied(string featurePackId) => TryMarkFeaturePackApplied(featurePackId);
-
-    /// <summary>
-    /// Compatibility wrapper for older visual round-trip tracking.
-    /// </summary>
-    public bool HasVisualRoundTripFeaturePackId(string featurePackId) => HasFeaturePackId(featurePackId);
 
     /// <summary>
     /// Creates a copy of the current options instance so callers can reuse option templates safely.

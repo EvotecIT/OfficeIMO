@@ -8,6 +8,35 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Renderer_OfflineAssets_Tests {
     [Fact]
+    public void MarkdownRenderer_Shell_UsesExplicitResolverForRemoteOfflineAssets() {
+        var options = new MarkdownRendererOptions {
+            HtmlOptions = new HtmlOptions {
+                Kind = HtmlKind.Fragment,
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                AssetMode = AssetMode.Offline
+            }
+        };
+        options.Mermaid.Enabled = true;
+        options.Mermaid.ScriptUrl = "https://assets.example.test/mermaid.js";
+
+        string withoutResolver = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", options);
+        Assert.Contains(options.Mermaid.ScriptUrl, withoutResolver, StringComparison.Ordinal);
+        Assert.DoesNotContain("data:application/javascript;base64,", withoutResolver, StringComparison.Ordinal);
+
+        Uri? resolvedUri = null;
+        options.HtmlOptions.ExternalTextResolver = uri => {
+            resolvedUri = uri;
+            return "window.mermaid = { initialize: function(){} };";
+        };
+
+        string withResolver = MarkdownRenderer.MarkdownRenderer.BuildShellHtml("Chat", options);
+        Assert.Equal(new Uri(options.Mermaid.ScriptUrl), resolvedUri);
+        Assert.Contains("data:application/javascript;base64,", withResolver, StringComparison.Ordinal);
+        Assert.DoesNotContain(options.Mermaid.ScriptUrl, withResolver, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_Shell_Bundles_Mermaid_Chart_And_Math_Assets_When_Offline_And_Local_Paths_Are_Provided() {
         string tempDir = Path.Combine(Path.GetTempPath(), "OfficeIMO.MarkdownRenderer.Tests", Guid.NewGuid().ToString("n"));
         Directory.CreateDirectory(tempDir);
@@ -67,4 +96,3 @@ public class Markdown_Renderer_OfflineAssets_Tests {
         }
     }
 }
-

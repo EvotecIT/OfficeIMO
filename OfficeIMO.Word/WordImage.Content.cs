@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using Anchor = DocumentFormat.OpenXml.Drawing.Wordprocessing.Anchor;
 using ShapeProperties = DocumentFormat.OpenXml.Drawing.Pictures.ShapeProperties;
+using OfficeIMO.Drawing.Internal;
+using System.Threading;
+using System.Threading.Tasks;
 using V = DocumentFormat.OpenXml.Vml;
 
 #nullable enable annotations
@@ -145,13 +148,28 @@ namespace OfficeIMO.Word {
             }
 
             try {
-                using (FileStream outputFileStream = new FileStream(fileToSave, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                    using var stream = _imagePart.GetStream(FileMode.Open, FileAccess.Read);
-                    stream.CopyTo(outputFileStream);
-                }
+                OfficeFileCommit.WriteAllBytes(fileToSave, ToBytes());
             } catch (UnauthorizedAccessException ex) {
                 throw new IOException($"Failed to save to '{fileToSave}'. Access denied or path is read-only.", ex);
             }
+        }
+
+        /// <summary>Saves the image to a caller-owned stream.</summary>
+        public void Save(Stream stream) => OfficeStreamWriter.WriteAllBytes(stream, ToBytes());
+
+        /// <summary>Saves the image to a file asynchronously.</summary>
+        public async Task SaveAsync(string path, CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
+            using Stream source = OpenRead();
+            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
+            await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Saves the image to a caller-owned stream asynchronously.</summary>
+        public async Task SaveAsync(Stream stream, CancellationToken cancellationToken = default) {
+            using Stream source = OpenRead();
+            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
+            await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -176,6 +194,9 @@ namespace OfficeIMO.Word {
             stream.CopyTo(ms);
             return ms.ToArray();
         }
+
+        /// <summary>Returns the image bytes in a new stream positioned at the beginning.</summary>
+        public MemoryStream ToStream() => new MemoryStream(ToBytes());
 
         /// <summary>
         /// Remove image from a Word Document

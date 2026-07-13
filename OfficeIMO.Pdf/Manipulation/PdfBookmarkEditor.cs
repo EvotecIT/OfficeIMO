@@ -22,7 +22,7 @@ public sealed class PdfBookmarkEditResult {
     /// <summary>Returns edited PDF bytes.</summary>
     public byte[] ToBytes() => (byte[])_pdf.Clone();
     /// <summary>Opens the edited artifact.</summary>
-    public PdfDocument OpenDocument() => PdfDocument.Open(_pdf);
+    public PdfDocument ToDocument() => PdfDocument.Load(_pdf);
 }
 
 /// <summary>Adds, removes, renames, moves, nests, retargets, and rebuilds existing-document bookmarks.</summary>

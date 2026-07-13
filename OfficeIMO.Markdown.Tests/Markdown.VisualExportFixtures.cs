@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             string markdown = File.ReadAllText(fixturePath).Replace("{{LOCAL_IMAGE}}", imagePath);
 
-            using var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+            var options = new MarkdownToWordOptions {
                 AllowLocalImages = true,
                 PreferNarrativeSingleLineDefinitions = true,
                 FitImagesToPageContentWidth = true,
@@ -29,7 +29,8 @@ namespace OfficeIMO.Tests {
                 ImageLayout = {
                     AllowUpscale = true
                 }
-            });
+            };
+            using var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions()).ToWordDocument(options);
 
             Assert.Single(document.Images);
             Assert.InRange(document.Images[0].Width ?? 0, 1, 625);

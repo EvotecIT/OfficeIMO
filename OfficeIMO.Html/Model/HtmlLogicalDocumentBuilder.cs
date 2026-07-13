@@ -6,7 +6,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Builds the shared OfficeIMO HTML logical document model from parsed or raw HTML.
 /// </summary>
-public static class HtmlLogicalDocumentBuilder {
+internal static class HtmlLogicalDocumentBuilder {
     private static readonly char[] WhitespaceSeparators = { ' ', '\t', '\r', '\n', '\f' };
 
     /// <summary>

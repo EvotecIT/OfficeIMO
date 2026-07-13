@@ -1,47 +1,43 @@
 using OfficeIMO.Drawing.Internal;
-using OfficeIMO.Shared;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        /// <summary>Saves an independent copy and returns the workbook loaded from that copy.</summary>
+        /// <summary>Saves an independent copy without changing this workbook's associated destination.</summary>
         /// <param name="filePath">Destination XLSX or XLS path.</param>
-        /// <param name="options">Optional save settings, including <see cref="ExcelSaveOptions.OpenAfterSave"/>.</param>
-        /// <returns>A new workbook associated with <paramref name="filePath"/>. This instance keeps its current path.</returns>
-        public ExcelDocument SaveCopy(string filePath, ExcelSaveOptions? options = null) {
+        /// <param name="options">Optional save policy settings.</param>
+        public void SaveCopy(string filePath, ExcelSaveOptions? options = null) {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
 
-            string extension = Path.GetExtension(filePath);
-            ExcelFileFormat format;
-            if (string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase)) {
-                format = ExcelFileFormat.Xlsx;
-            } else if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase)) {
-                format = ExcelFileFormat.Xls;
-            } else {
-                throw new NotSupportedException("SaveCopy supports .xlsx and .xls destinations. Use Save for macro-enabled or template formats.");
-            }
+            ExcelFileFormat format = GetSaveCopyFormat(filePath);
 
             EnsureDestinationFileWritable(filePath);
             EnsureDirectoryWritable(filePath);
             byte[] bytes = ToBytes(format, options);
             OfficeFileCommit.WriteAllBytes(filePath, bytes);
-            if (options?.OpenAfterSave == true) OpenInApplication(filePath);
-            return Load(filePath);
         }
 
-        /// <summary>Saves an independent stream copy and returns a workbook loaded from it.</summary>
-        /// <param name="outputStream">Readable, writable, seekable destination stream.</param>
-        /// <param name="format">Physical XLSX or XLS format.</param>
-        /// <param name="options">Optional save settings.</param>
-        /// <returns>A new workbook backed by <paramref name="outputStream"/>.</returns>
-        public ExcelDocument SaveCopy(Stream outputStream, ExcelFileFormat format = ExcelFileFormat.Xlsx, ExcelSaveOptions? options = null) {
-            if (outputStream == null) throw new ArgumentNullException(nameof(outputStream));
-            if (!outputStream.CanRead || !outputStream.CanWrite || !outputStream.CanSeek) {
-                throw new ArgumentException("Stream must support reading, writing, and seeking.", nameof(outputStream));
-            }
+        /// <summary>Asynchronously saves an independent copy without changing this workbook's associated destination.</summary>
+        public async Task SaveCopyAsync(
+            string filePath,
+            ExcelSaveOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ExcelFileFormat format = GetSaveCopyFormat(filePath);
+            EnsureDestinationFileWritable(filePath);
+            EnsureDirectoryWritable(filePath);
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] bytes = ToBytes(format, options);
+            await OfficeFileCommit.WriteAllBytesAsync(filePath, bytes, cancellationToken: cancellationToken)
+                .ConfigureAwait(false);
+        }
 
-            Save(outputStream, format, options);
-            outputStream.Seek(0, SeekOrigin.Begin);
-            return Load(outputStream);
+        private static ExcelFileFormat GetSaveCopyFormat(string filePath) {
+            string extension = Path.GetExtension(filePath);
+            if (string.Equals(extension, ".xlsx", StringComparison.OrdinalIgnoreCase)) return ExcelFileFormat.Xlsx;
+            if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase)) return ExcelFileFormat.Xls;
+            throw new NotSupportedException("SaveCopy supports .xlsx and .xls destinations. Use Save for macro-enabled or template formats.");
         }
     }
 }

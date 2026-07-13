@@ -2274,7 +2274,7 @@ Next paragraph.
 
     [Fact]
     public void Source_Edit_Helpers_Reject_Spans_When_Backing_Source_Is_Missing() {
-        var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Editable");
+        var parseResult = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Editable");
         var withoutSource = new MarkdownParseResult(
             parseResult.Document,
             parseResult.SyntaxTree,
@@ -2506,8 +2506,8 @@ beta
                 return document;
             }
 
-            definition.Blocks.Clear();
-            definition.Blocks.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            definition.ChildBlocks.Clear();
+            definition.ChildBlocks.Add(new ParagraphBlock(new InlineSequence().Text(text)));
             return document;
         }
     }

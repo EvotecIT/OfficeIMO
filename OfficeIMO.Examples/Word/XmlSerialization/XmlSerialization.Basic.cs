@@ -20,7 +20,8 @@ namespace OfficeIMO.Examples.Word {
                 string xml = paragraph.ToXml();
 
                 document.AddParagraphFromXml(xml);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

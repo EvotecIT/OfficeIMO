@@ -13,7 +13,7 @@ namespace OfficeIMO.Html.Pdf;
 ///     Margins = HtmlRenderMargins.All(32),
 ///     DefaultFontFamily = "Arial"
 /// };
-/// byte[] pdf = html.ToPdf(options);
+/// byte[] pdf = HtmlConversionDocument.Parse(html).ToPdf(options);
 /// </code>
 /// </example>
 public sealed class HtmlPdfSaveOptions : HtmlRenderOptions {

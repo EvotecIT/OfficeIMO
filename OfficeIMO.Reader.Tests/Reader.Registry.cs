@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests;
 public sealed partial class ReaderRegistryTests {
     [Fact]
     public void DocumentReader_ExposesOnlyBuiltInCapabilities() {
-        IReadOnlyList<ReaderHandlerCapability> capabilities = DocumentReader.GetCapabilities();
+        IReadOnlyList<ReaderHandlerCapability> capabilities = OfficeDocumentReader.Default.GetCapabilities();
 
         Assert.NotEmpty(capabilities);
         Assert.All(capabilities, capability => {
@@ -26,12 +26,12 @@ public sealed partial class ReaderRegistryTests {
 
     [Fact]
     public void DocumentReader_CapabilityManifestJson_IsDeterministicAndValid() {
-        string first = DocumentReader.GetCapabilityManifestJson();
-        string second = DocumentReader.GetCapabilityManifestJson();
+        string first = OfficeDocumentReader.Default.GetCapabilityManifestJson();
+        string second = OfficeDocumentReader.Default.GetCapabilityManifestJson();
 
         Assert.Equal(first, second);
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(first));
-        ReaderChunk[] chunks = DocumentReaderJsonExtensions.ReadJson(
+        ReaderChunk[] chunks = JsonReaderAdapter.Read(
             stream,
             sourceName: "capability-manifest.json",
             jsonOptions: new JsonReadOptions { ChunkRows = 128, IncludeMarkdown = false })
@@ -65,9 +65,9 @@ public sealed partial class ReaderRegistryTests {
                 .Build();
 
             Assert.Equal("builder-output", Assert.Single(reader.Read(path)).Text);
-            Assert.Equal(ReaderInputKind.Unknown, DocumentReader.DetectKind(path));
+            Assert.Equal(ReaderInputKind.Unknown, OfficeDocumentReader.Default.DetectKind(path));
             Assert.Contains(reader.GetCapabilities(), capability => capability.Id == handlerId && !capability.IsBuiltIn);
-            Assert.DoesNotContain(DocumentReader.GetCapabilities(), capability => capability.Id == handlerId);
+            Assert.DoesNotContain(OfficeDocumentReader.Default.GetCapabilities(), capability => capability.Id == handlerId);
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }

@@ -20,7 +20,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("Hello RTF at OfficeIMO", rtfParagraph.ToPlainText());
@@ -42,7 +42,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         Assert.Collection(rtfDocument.RevisionAuthors,
             author => Assert.Equal("Alice", author.Name),
@@ -65,7 +65,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfRun run = Assert.Single(Assert.Single(rtfDocument.Paragraphs).Runs);
         Assert.NotNull(run.Note);
@@ -152,7 +152,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal("Name\tAmount", rtfParagraph.ToPlainText());
@@ -191,7 +191,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Contains(rtfParagraph.Inlines, inline => inline is RtfBreak { Kind: RtfBreakKind.Line });

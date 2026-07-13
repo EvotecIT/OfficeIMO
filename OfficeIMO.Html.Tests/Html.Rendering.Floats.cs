@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='left-float' style='float:left;width:30px;height:20px;background:#ff0000'></span>"
             + "One two three four five six seven eight nine ten eleven twelve thirteen fourteen</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -25,7 +25,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, floating.Y, 3);
         Assert.All(lines.Where(line => line.Y < floating.Y + floating.Height - 0.001D), line => Assert.True(line.X >= floating.X + floating.Width - 0.001D));
         Assert.Contains(lines, line => line.Y >= floating.Y + floating.Height - 0.001D && line.X < 0.001D);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
     }
 
     [Fact]
@@ -34,7 +34,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='right-float' style='float:inline-start;width:25px;height:20px;background:#0000ff'></span>"
             + "One two three four five six seven eight nine ten</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -53,7 +53,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='second-float' style='float:left;width:25px;height:20px;background:#00ff00'></span>"
             + "One two three four five six seven eight</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -75,7 +75,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='clear-right' style='float:right;clear:right;width:15px;height:10px;background:#00ff00'></span>"
             + "One two three four five six seven eight</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -94,7 +94,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='nested-float' style='float:left;width:30px;height:20px;background:#ff0000'></span>"
             + "Nested float text wraps around the measured box and continues below it.</span></p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -112,7 +112,7 @@ public sealed partial class HtmlRenderingTests {
             + "<img id='float-image' src='data:image/png;base64," + png + "' style='float:left;height:20px'>"
             + "Image text wraps beside the intrinsic image and then returns to full width.</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -135,10 +135,10 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -146,13 +146,13 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 5));
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("<rect x=\"0\" y=\"0\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("FloatPdfMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.True(rendered.Pages.Count >= 2);
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "span#paged-float");
@@ -175,7 +175,7 @@ public sealed partial class HtmlRenderingTests {
             rendered.Pages.Skip(1),
             page => Assert.DoesNotContain(page.Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "span#paged-float"));
         Assert.Contains(rendered.Pages.Skip(1).SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.Length > 0);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
@@ -184,12 +184,12 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlFloat_InvalidValuesUseCatalogedDiagnostics() {
         const string html = "<p style='margin:0'><span id='invalid-float' style='float:up;clear:around'>Text</span></p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.FloatValueUnsupported);
         Assert.Equal("span#invalid-float", diagnostic.Source);
         Assert.Contains("float=up", diagnostic.Detail);
         Assert.Contains("clear=around", diagnostic.Detail);

@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests.Rtf;
 
 public class RtfBridgeStreamTests {
     [Fact]
-    public void SaveAsHtml_Writes_To_Current_Stream_Position_Without_Rewinding() {
+    public void SaveAsHtml_Overwrites_And_Rewinds_Seekable_Stream() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph("Clinical note");
 
@@ -19,9 +19,8 @@ public class RtfBridgeStreamTests {
         document.SaveAsHtml(stream);
 
         byte[] bytes = stream.ToArray();
-        Assert.Equal(bytes.Length, stream.Position);
-        Assert.Equal(0x2A, bytes[0]);
-        Assert.Contains("<p>Clinical note</p>", Encoding.UTF8.GetString(bytes, 1, bytes.Length - 1), StringComparison.Ordinal);
+        Assert.Equal(0, stream.Position);
+        Assert.Contains("<p>Clinical note</p>", Encoding.UTF8.GetString(bytes), StringComparison.Ordinal);
     }
 
     [Fact]

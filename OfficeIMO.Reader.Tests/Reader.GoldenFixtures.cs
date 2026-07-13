@@ -17,7 +17,7 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Csv_Path() {
         var inputPath = GetInputPath("sample.csv");
-        var chunks = DocumentReaderCsvExtensions.ReadCsv(
+        var chunks = CsvReaderAdapter.Read(
             inputPath,
             csvOptions: new CsvReadOptions {
                 ChunkRows = 2,
@@ -30,7 +30,7 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Json_Path() {
         var inputPath = GetInputPath("sample.json");
-        var chunks = DocumentReaderJsonExtensions.ReadJson(
+        var chunks = JsonReaderAdapter.Read(
             inputPath,
             jsonOptions: new JsonReadOptions {
                 ChunkRows = 4,
@@ -44,7 +44,7 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Xml_Path() {
         var inputPath = GetInputPath("sample.xml");
-        var chunks = DocumentReaderXmlExtensions.ReadXml(
+        var chunks = XmlReaderAdapter.Read(
             inputPath,
             xmlOptions: new XmlReadOptions {
                 ChunkRows = 4,
@@ -57,7 +57,7 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Html_Path() {
         var inputPath = GetInputPath("sample.html");
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlFile(
+        var chunks = HtmlReaderAdapter.Read(
             inputPath,
             readerOptions: new ReaderOptions {
                 MaxChars = 8_000
@@ -69,7 +69,7 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Zip_Stream() {
         using var zipStream = BuildZipFixtureStream();
-        var chunks = DocumentReaderZipExtensions.ReadZip(
+        var chunks = ZipReaderAdapter.Read(
             zipStream,
             sourceName: "golden.zip",
             readerOptions: new ReaderOptions {
@@ -88,7 +88,7 @@ public sealed class ReaderGoldenFixtureTests {
     [Fact]
     public void ReaderGolden_Epub_Stream() {
         using var epubStream = BuildEpubFixtureStream();
-        var chunks = DocumentReaderEpubExtensions.ReadEpub(
+        var chunks = EpubReaderAdapter.Read(
             epubStream,
             sourceName: "golden.epub",
             readerOptions: new ReaderOptions {

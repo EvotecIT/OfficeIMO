@@ -58,7 +58,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 
 using var stream = File.OpenRead("large-note.rtf");
 RtfConversionResult<IReadOnlyList<ReaderChunk>> result =
-    DocumentReaderRtfExtensions.ReadRtfResult(stream, "large-note.rtf", new ReaderOptions {
+    RtfReaderAdapter.ReadResult(stream, "large-note.rtf", new ReaderOptions {
     MaxChars = 12_000,
     MaxInputBytes = 100L * 1024L * 1024L
 }, rtfOptions);

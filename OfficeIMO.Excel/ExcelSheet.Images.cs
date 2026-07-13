@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
@@ -141,33 +143,35 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Downloads an image from URL (with timeout and size limits) and anchors it to the specified cell.
+        /// Asynchronously downloads an image from a URL and anchors it to the specified cell.
         /// </summary>
         /// <param name="row">1-based row index where the top edge of the image will be anchored.</param>
         /// <param name="column">1-based column index where the left edge of the image will be anchored.</param>
-        /// <param name="url">Remote image URL to download. Requests timeout after 5 seconds and must be smaller than 2 MB.</param>
+        /// <param name="url">Remote HTTP or HTTPS image URL.</param>
         /// <param name="widthPixels">Desired image width in pixels. Defaults to 96 px, converted to English Metric Units (EMUs) for OpenXML positioning.</param>
         /// <param name="heightPixels">Desired image height in pixels. Defaults to 32 px, converted to EMUs.</param>
         /// <param name="offsetXPixels">Optional horizontal offset in pixels from the cell's left boundary. Positive values move the image right; defaults to 0 px.</param>
         /// <param name="offsetYPixels">Optional vertical offset in pixels from the cell's top boundary. Positive values move the image down; defaults to 0 px.</param>
-        public void AddImageFromUrlAt(int row, int column, string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0) {
-            AddImageFromUrl(row, column, url, widthPixels, heightPixels, offsetXPixels, offsetYPixels);
-        }
+        /// <param name="cancellationToken">Token used to cancel the remote request.</param>
+        public Task<ExcelImage> AddImageFromUrlAtAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32,
+            int offsetXPixels = 0, int offsetYPixels = 0, CancellationToken cancellationToken = default)
+            => AddImageFromUrlAsync(row, column, url, widthPixels, heightPixels, offsetXPixels, offsetYPixels,
+                cancellationToken: cancellationToken);
 
         /// <summary>
-        /// Downloads an image from URL and returns a wrapper for setting metadata and sizing. Returns null when the image cannot be fetched.
+        /// Asynchronously downloads an image from a URL and returns a wrapper for setting metadata and sizing.
         /// </summary>
-        public ExcelImage? AddImageFromUrl(int row, int column, string url, int widthPixels = 96, int heightPixels = 32,
-            int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
-            if (string.IsNullOrWhiteSpace(url)) return null;
-            if (ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var ct) && bytes != null) {
-                OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info);
-                return AddImage(row, column, bytes, contentType: ResolveImageContentType(ct, info), widthPixels: widthPixels,
-                    heightPixels: heightPixels, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels, name: name, altText: altText,
-                    lockAspectRatio: lockAspectRatio);
-            }
-
-            return null;
+        public async Task<ExcelImage> AddImageFromUrlAsync(int row, int column, string url, int widthPixels = 96, int heightPixels = 32,
+            int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true,
+            CancellationToken cancellationToken = default) {
+            OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
+                url,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            byte[] bytes = remote.ToBytes();
+            OfficeImageReader.TryIdentify(bytes, remote.FileName, out OfficeImageInfo info);
+            return AddImage(row, column, bytes, contentType: ResolveImageContentType(remote.ContentType, info), widthPixels: widthPixels,
+                heightPixels: heightPixels, offsetXPixels: offsetXPixels, offsetYPixels: offsetYPixels, name: name, altText: altText,
+                lockAspectRatio: lockAspectRatio);
         }
 
         private static long PxToEmu(int px) => (long)Math.Round(px * 9525.0);

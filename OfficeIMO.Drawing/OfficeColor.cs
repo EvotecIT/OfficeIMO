@@ -263,6 +263,11 @@ public readonly struct OfficeColor : IEquatable<OfficeColor> {
     /// <summary>Returns AARRGGBB.</summary>
     public string ToArgbHex() => $"{A:X2}{R:X2}{G:X2}{B:X2}";
 
+    /// <summary>Returns a CSS hexadecimal color using #RRGGBB or #RRGGBBAA notation.</summary>
+    public string ToCssColor() => A == 255
+        ? "#" + ToRgbHex().ToLowerInvariant()
+        : "#" + ToHex().ToLowerInvariant();
+
     /// <inheritdoc />
     public override string ToString() => A == 255 ? $"#{ToRgbHex()}" : $"#{ToHex()}";
 

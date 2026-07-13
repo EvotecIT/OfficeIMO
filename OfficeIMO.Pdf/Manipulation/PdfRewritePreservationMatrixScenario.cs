@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 /// </summary>
 public sealed class PdfRewritePreservationMatrixScenario {
     private readonly List<string> _sourceFeatures = new List<string>();
+    private readonly byte[] _sourcePdf;
 
     /// <summary>
     /// Creates a rewrite-preservation matrix scenario.
@@ -23,7 +24,7 @@ public sealed class PdfRewritePreservationMatrixScenario {
 
         Id = id;
         Operation = operation;
-        SourcePdf = (byte[])sourcePdf.Clone();
+        _sourcePdf = (byte[])sourcePdf.Clone();
         Rewrite = rewrite;
     }
 
@@ -34,7 +35,7 @@ public sealed class PdfRewritePreservationMatrixScenario {
     public string Operation { get; }
 
     /// <summary>Original PDF bytes used by the scenario.</summary>
-    public byte[] SourcePdf { get; }
+    public byte[] SourcePdf => (byte[])_sourcePdf.Clone();
 
     /// <summary>Rewrite operation to execute against <see cref="SourcePdf"/>.</summary>
     public Func<byte[], byte[]> Rewrite { get; }

@@ -1,4 +1,4 @@
-using OfficeIMO.Shared.Packaging;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.OpenDocument;
 
@@ -7,13 +7,13 @@ internal sealed class OdfPackage {
     private readonly List<OdfPackageEntry> _entries = new List<OdfPackageEntry>();
     private readonly Dictionary<string, OdfPackageEntry> _entriesByName = new Dictionary<string, OdfPackageEntry>(StringComparer.Ordinal);
     private readonly List<OdfDiagnostic> _diagnostics = new List<OdfDiagnostic>();
-    private readonly OdfOpenOptions _openOptions;
+    private readonly OdfLoadOptions _loadOptions;
     private bool _entryGraphChanged;
 
-    private OdfPackage(OdfDocumentKind kind, OdfVersion version, OdfOpenOptions openOptions) {
+    private OdfPackage(OdfDocumentKind kind, OdfVersion version, OdfLoadOptions loadOptions) {
         Kind = kind;
         Version = version;
-        _openOptions = openOptions;
+        _loadOptions = loadOptions;
     }
 
     internal OdfDocumentKind Kind { get; }
@@ -24,7 +24,7 @@ internal sealed class OdfPackage {
     internal bool IsSigned => _entries.Any(entry => !entry.IsRemoved && IsSignaturePath(entry.Name));
 
     internal static OdfPackage Create(OdfDocumentKind kind, OdfVersion version = OdfVersion.V1_4) {
-        var package = new OdfPackage(kind, version, new OdfOpenOptions().Normalize());
+        var package = new OdfPackage(kind, version, new OdfLoadOptions().Normalize());
         package.AddInitialEntry("mimetype", Encoding.ASCII.GetBytes(OdfMediaTypes.ForKind(kind)), OdfMediaTypes.ForKind(kind));
         package.AddInitialXml("content.xml", OdfPackageTemplates.CreateContent(kind, version), "text/xml");
         package.AddInitialXml("styles.xml", OdfPackageTemplates.CreateStyles(version), "text/xml");
@@ -35,39 +35,44 @@ internal sealed class OdfPackage {
         return package;
     }
 
-    internal static OdfPackage Open(string path, OdfOpenOptions? options, out string fullPath) {
+    internal static OdfPackage Load(string path, OdfLoadOptions? options, out string fullPath) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath)) throw new FileNotFoundException($"OpenDocument file '{fullPath}' does not exist.", fullPath);
-        OdfOpenOptions effective = (options ?? new OdfOpenOptions()).Normalize();
+        OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         var info = new FileInfo(fullPath);
         if (info.Length > effective.MaxPackageBytes) {
             throw new InvalidDataException($"OpenDocument package size {info.Length} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
         }
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return OpenSeekable(stream, effective);
+        return LoadSeekable(stream, effective);
     }
 
-    internal static OdfPackage Open(Stream stream, OdfOpenOptions? options = null) {
+    internal static OdfPackage Load(Stream stream, OdfLoadOptions? options = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("OpenDocument stream must be readable.", nameof(stream));
-        OdfOpenOptions effective = (options ?? new OdfOpenOptions()).Normalize();
-        if (stream.CanSeek && stream.Position == 0) return OpenSeekable(stream, effective);
-        byte[] bytes = ReadAllBytesBounded(stream, effective.MaxPackageBytes);
-        return Open(bytes, effective);
+        OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
+        try {
+            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, effective.MaxPackageBytes);
+            return Load(bytes, effective);
+        } catch (InvalidDataException ex) when (ex.Message.IndexOf("configured maximum size", StringComparison.Ordinal) >= 0) {
+            throw new InvalidDataException(
+                $"OpenDocument stream exceeds MaxPackageBytes ({effective.MaxPackageBytes}).",
+                ex);
+        }
     }
 
-    internal static OdfPackage Open(byte[] packageBytes, OdfOpenOptions? options = null) {
+    internal static OdfPackage Load(byte[] packageBytes, OdfLoadOptions? options = null) {
         if (packageBytes == null) throw new ArgumentNullException(nameof(packageBytes));
-        OdfOpenOptions effective = (options ?? new OdfOpenOptions()).Normalize();
+        OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
         if (packageBytes.LongLength > effective.MaxPackageBytes) {
             throw new InvalidDataException($"OpenDocument package size {packageBytes.LongLength} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
         }
         using var stream = new MemoryStream(packageBytes, writable: false);
-        return OpenSeekable(stream, effective);
+        return LoadSeekable(stream, effective);
     }
 
-    private static OdfPackage OpenSeekable(Stream packageStream, OdfOpenOptions effective) {
+    private static OdfPackage LoadSeekable(Stream packageStream, OdfLoadOptions effective) {
         long packageLength = packageStream.Length - packageStream.Position;
         if (packageLength > effective.MaxPackageBytes) {
             throw new InvalidDataException($"OpenDocument package size {packageLength} exceeds MaxPackageBytes ({effective.MaxPackageBytes}).");
@@ -169,7 +174,7 @@ internal sealed class OdfPackage {
         return package;
     }
 
-    private static bool TryReadPartVersion(IEnumerable<OdfPackageEntry> entries, OdfOpenOptions options,
+    private static bool TryReadPartVersion(IEnumerable<OdfPackageEntry> entries, OdfLoadOptions options,
         out OdfVersion version, out string? versionToken) {
         foreach (string path in new[] { "content.xml", "styles.xml" }) {
             OdfPackageEntry? entry = entries.FirstOrDefault(candidate => candidate.Name == path);
@@ -192,7 +197,7 @@ internal sealed class OdfPackage {
         return entry;
     }
 
-    internal XDocument GetXml(string name) => GetRequiredEntry(name).GetXml(_openOptions.MaxXmlCharacters, _openOptions.MaxXmlDepth);
+    internal XDocument GetXml(string name) => GetRequiredEntry(name).GetXml(_loadOptions.MaxXmlCharacters, _loadOptions.MaxXmlDepth);
 
     internal XDocument EnsureXml(string name, XDocument template, string mediaType) {
         if (!ContainsEntry(name)) {
@@ -293,7 +298,7 @@ internal sealed class OdfPackage {
 
     private void AddInitialXml(string name, XDocument document, string mediaType) {
         AddInitialEntry(name, OdfXmlCodec.Save(document), mediaType);
-        GetRequiredEntry(name).GetXml(_openOptions.MaxXmlCharacters, _openOptions.MaxXmlDepth);
+        GetRequiredEntry(name).GetXml(_loadOptions.MaxXmlCharacters, _loadOptions.MaxXmlDepth);
     }
 
     private void AddLoadedEntry(OdfPackageEntry entry) {
@@ -313,7 +318,7 @@ internal sealed class OdfPackage {
 
     private void RebuildManifest(OdfVersion outputVersion) {
         OdfPackageEntry manifestEntry = GetRequiredEntry("META-INF/manifest.xml");
-        XDocument manifest = manifestEntry.GetXml(_openOptions.MaxXmlCharacters, _openOptions.MaxXmlDepth);
+        XDocument manifest = manifestEntry.GetXml(_loadOptions.MaxXmlCharacters, _loadOptions.MaxXmlDepth);
         XElement root = manifest.Root ?? throw new InvalidDataException("OpenDocument manifest has no root element.");
         root.SetAttributeValue(OdfNamespaces.Manifest + "version", outputVersion.ToToken());
 
@@ -371,23 +376,6 @@ internal sealed class OdfPackage {
             case OdfCompatibilityProfile.PreserveSource: return Version;
             default: return OdfVersion.V1_4;
         }
-    }
-
-    private static byte[] ReadAllBytesBounded(Stream stream, long maxBytes) {
-        if (stream.CanSeek) {
-            long remaining = stream.Length - stream.Position;
-            if (remaining > maxBytes) throw new InvalidDataException($"OpenDocument stream exceeds MaxPackageBytes ({maxBytes}).");
-        }
-        using var output = new MemoryStream();
-        var buffer = new byte[81920];
-        long total = 0;
-        int read;
-        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
-            total += read;
-            if (total > maxBytes) throw new InvalidDataException($"OpenDocument stream exceeds MaxPackageBytes ({maxBytes}).");
-            output.Write(buffer, 0, read);
-        }
-        return output.ToArray();
     }
 
     private static byte[] ReadEntryBytes(ZipArchiveEntry entry, long length, long maxBytes) {

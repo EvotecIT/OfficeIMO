@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -64,9 +66,10 @@ namespace OfficeIMO.Excel {
     /// Image value that can be bound to a whole-cell template marker.
     /// </summary>
     public sealed class ExcelTemplateImage {
-        private ExcelTemplateImage(byte[]? bytes, string? url, string contentType, int widthPixels, int heightPixels, int offsetXPixels, int offsetYPixels, string? name, string? altText, bool lockAspectRatio) {
-            Bytes = bytes;
-            Url = url;
+        private readonly byte[] _bytes;
+
+        private ExcelTemplateImage(byte[] bytes, string contentType, int widthPixels, int heightPixels, int offsetXPixels, int offsetYPixels, string? name, string? altText, bool lockAspectRatio) {
+            _bytes = bytes.ToArray();
             ContentType = contentType;
             WidthPixels = widthPixels;
             HeightPixels = heightPixels;
@@ -78,10 +81,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Image bytes when the image is supplied directly.</summary>
-        public byte[]? Bytes { get; }
-
-        /// <summary>Remote image URL when the image should be downloaded during binding.</summary>
-        public string? Url { get; }
+        public byte[] Bytes => _bytes.ToArray();
 
         /// <summary>Image content type, such as image/png or image/jpeg.</summary>
         public string ContentType { get; }
@@ -112,7 +112,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static ExcelTemplateImage FromBytes(byte[] bytes, string contentType = "image/png", int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
             if (bytes == null || bytes.Length == 0) throw new ArgumentException("Image bytes are required.", nameof(bytes));
-            return new ExcelTemplateImage(bytes.ToArray(), null, NormalizeContentType(contentType), widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+            return new ExcelTemplateImage(bytes.ToArray(), NormalizeContentType(contentType), widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
         }
 
         /// <summary>
@@ -126,27 +126,21 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Creates a template image from a remote URL. The image is downloaded when the template is applied.
+        /// Asynchronously creates a template image from a remote URL.
         /// </summary>
-        public static ExcelTemplateImage FromUrl(string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
-            if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
-            return new ExcelTemplateImage(null, url.Trim(), OfficeImageInfo.GetMimeType(OfficeImageFormat.Png), widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+        public static async Task<ExcelTemplateImage> FromUrlAsync(string url, int widthPixels = 96, int heightPixels = 32,
+            int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
+            bool lockAspectRatio = true, CancellationToken cancellationToken = default) {
+            OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
+                url,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            return FromBytes(remote.ToBytes(), remote.ContentType, widthPixels, heightPixels, offsetXPixels, offsetYPixels,
+                name, altText, lockAspectRatio);
         }
 
         internal bool TryAddToSheet(ExcelSheet sheet, int row, int column) {
-            if (Bytes != null) {
-                sheet.AddImage(row, column, Bytes, ContentType, WidthPixels, HeightPixels, OffsetXPixels, OffsetYPixels, Name, AltText, LockAspectRatio);
-                return true;
-            }
-
-            if (!string.IsNullOrWhiteSpace(Url)
-                && ImageDownloader.TryFetch(Url!, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var contentType)
-                && bytes != null) {
-                sheet.AddImage(row, column, bytes, string.IsNullOrWhiteSpace(contentType) ? ContentType : contentType!, WidthPixels, HeightPixels, OffsetXPixels, OffsetYPixels, Name, AltText, LockAspectRatio);
-                return true;
-            }
-
-            return false;
+            sheet.AddImage(row, column, _bytes, ContentType, WidthPixels, HeightPixels, OffsetXPixels, OffsetYPixels, Name, AltText, LockAspectRatio);
+            return true;
         }
 
         private static string NormalizeContentType(string? contentType) {

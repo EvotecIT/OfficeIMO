@@ -6,6 +6,7 @@ using System.Linq;
 using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.Drawing.Internal;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.PowerPoint {
@@ -93,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Saves the current chart's plain-text data summary as a UTF-8 sidecar.</summary>
         public PowerPointChart SaveDataSummary(string filePath) {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
-            File.WriteAllText(filePath, CreateDataSummary(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            OfficeFileCommit.WriteAllBytes(filePath, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(CreateDataSummary()));
             return this;
         }
 

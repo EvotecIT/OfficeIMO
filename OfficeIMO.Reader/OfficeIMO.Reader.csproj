@@ -3,7 +3,7 @@
     <Description>Unified, read-only document extraction facade for OfficeIMO (Word/Excel/PowerPoint/Markdown/PDF) intended for AI ingestion.</Description>
     <AssemblyName>OfficeIMO.Reader</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader</AssemblyTitle>
-    <VersionPrefix>0.1.50</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
     <PackageValidationBaselineVersion>0.1.50</PackageValidationBaselineVersion>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -62,5 +62,17 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.AsciiDoc" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.OpenDocument" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Rtf" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Visio" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Xml" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Zip" />
   </ItemGroup>
 </Project>

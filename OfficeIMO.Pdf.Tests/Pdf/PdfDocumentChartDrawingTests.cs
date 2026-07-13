@@ -1140,9 +1140,7 @@ public class PdfDocumentChartDrawingTests {
                 }),
             widthPoints: 260D,
             heightPoints: 180D,
-            layout: new OfficeChartLayout {
-                HiddenCategoryLegendIndexes = new[] { 1 }
-            }));
+            layout: new OfficeChartLayout(hiddenCategoryLegendIndexes: new[] { 1 })));
 
         IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
 
@@ -1172,9 +1170,8 @@ public class PdfDocumentChartDrawingTests {
             heightPoints: 200D,
             layout: new OfficeChartLayout(
                 showLegend: true,
-                legendPosition: OfficeChartLegendPosition.Top) {
-                HiddenCategoryLegendIndexes = hiddenIndexes
-            }));
+                legendPosition: OfficeChartLegendPosition.Top,
+                hiddenCategoryLegendIndexes: hiddenIndexes)));
 
         IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
 
@@ -1200,9 +1197,8 @@ public class PdfDocumentChartDrawingTests {
             style: style,
             layout: new OfficeChartLayout(
                 showLegend: true,
-                legendPosition: OfficeChartLegendPosition.Top) {
-                HiddenCategoryLegendIndexes = new[] { 0 }
-            }));
+                legendPosition: OfficeChartLegendPosition.Top,
+                hiddenCategoryLegendIndexes: new[] { 0 })));
 
         var topLegendSwatches = drawing.Shapes
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.StrokeWidth == 0D && shape.Y < 30D)
@@ -1259,9 +1255,8 @@ public class PdfDocumentChartDrawingTests {
             layout: new OfficeChartLayout(
                 showLegend: false,
                 showDataLabels: true,
-                showDataLabelValues: true) {
-                DataLabelSeriesIndexes = new[] { 1 }
-            }));
+                showDataLabelValues: true,
+                dataLabelSeriesIndexes: new[] { 1 })));
 
         IReadOnlyList<string> labels = drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
 
@@ -1603,9 +1598,7 @@ public class PdfDocumentChartDrawingTests {
 
     [Fact]
     public void FlowDrawing_CanSuppressChartBorder() {
-        var style = new OfficeChartStyle {
-            ShowBorder = false
-        };
+        var style = new OfficeChartStyle(showBorder: false);
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Borderless chart",
@@ -1631,11 +1624,10 @@ public class PdfDocumentChartDrawingTests {
         var layout = new OfficeChartLayout(
             showLegend: false,
             showDataLabels: true,
-            showDataLabelCategoryNames: true) {
-            DataLabelPointIndexes = new Dictionary<int, IReadOnlyCollection<int>> {
+            showDataLabelCategoryNames: true,
+            dataLabelPointIndexes: new Dictionary<int, IReadOnlyCollection<int>> {
                 [0] = new[] { 1 }
-            }
-        };
+            });
 
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
             "Scoped labels",

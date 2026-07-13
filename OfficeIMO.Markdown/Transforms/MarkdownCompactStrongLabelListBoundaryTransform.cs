@@ -118,7 +118,7 @@ public sealed class MarkdownCompactStrongLabelListBoundaryTransform : IMarkdownD
     private static bool TryRewriteSimpleListItem(
         ListItem item,
         out IReadOnlyList<ListItem> items) {
-        if (item.IsTask || item.AdditionalParagraphs.Count > 0 || item.Children.Count > 0) {
+        if (item.IsTask || item.AdditionalParagraphs.Count > 0 || item.NestedBlocks.Count > 0) {
             items = Array.Empty<ListItem>();
             return false;
         }

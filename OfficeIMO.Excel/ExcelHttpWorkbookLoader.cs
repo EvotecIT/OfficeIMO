@@ -11,10 +11,6 @@ namespace OfficeIMO.Excel {
         private const int BufferSize = 81920;
         private const int MaxRedirects = 10;
 
-        internal static byte[] Download(Uri uri, ExcelHttpLoadOptions? options, CancellationToken cancellationToken = default) {
-            return DownloadAsync(uri, options, cancellationToken).GetAwaiter().GetResult();
-        }
-
         internal static async Task<byte[]> DownloadAsync(Uri uri, ExcelHttpLoadOptions? options, CancellationToken cancellationToken = default) {
             if (uri == null) throw new ArgumentNullException(nameof(uri));
 

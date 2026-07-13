@@ -111,8 +111,8 @@ internal static class MarkdownObjectTreeBinder {
                 yield break;
 
             case TableCell cell:
-                for (int i = 0; i < cell.Blocks.Count; i++) {
-                    if (cell.Blocks[i] is MarkdownObject cellBlock) {
+                for (int i = 0; i < cell.ChildBlocks.Count; i++) {
+                    if (cell.ChildBlocks[i] is MarkdownObject cellBlock) {
                         yield return cellBlock;
                     }
                 }
@@ -144,8 +144,8 @@ internal static class MarkdownObjectTreeBinder {
                 yield break;
 
             case DefinitionListDefinition definition:
-                for (int i = 0; i < definition.Blocks.Count; i++) {
-                    if (definition.Blocks[i] is MarkdownObject definitionBlock) {
+                for (int i = 0; i < definition.ChildBlocks.Count; i++) {
+                    if (definition.ChildBlocks[i] is MarkdownObject definitionBlock) {
                         yield return definitionBlock;
                     }
                 }

@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Google {
             document.AddParagraph("This example builds a translation plan before any network calls happen.");
             document.Save();
 
-            var plan = document.CreateGoogleDocsTranslationPlan(new GoogleDocsSaveOptions {
+            var plan = document.BuildGoogleDocsPlan(new GoogleDocsSaveOptions {
                 Title = "OfficeIMO Google Docs plan"
             });
 

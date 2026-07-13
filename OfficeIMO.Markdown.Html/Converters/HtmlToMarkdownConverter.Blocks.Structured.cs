@@ -3,7 +3,7 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     private static DetailsBlock ConvertDetailsElement(IElement element, ConversionContext context) {
         SummaryBlock? summary = null;
         var summaryElement = element.Children.FirstOrDefault(child => HasEffectiveTagName(child, context, "SUMMARY"));
@@ -18,7 +18,7 @@ public sealed partial class HtmlToMarkdownConverter {
             }
 
             foreach (var block in ConvertNodesToBlocks(new[] { child }, context)) {
-                details.Children.Add(block);
+                details.ChildBlocks.Add(block);
             }
         }
 

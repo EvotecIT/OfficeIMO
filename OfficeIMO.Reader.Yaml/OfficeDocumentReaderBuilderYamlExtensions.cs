@@ -29,12 +29,12 @@ public static class OfficeDocumentReaderBuilderYamlExtensions {
             Description = "Modular YAML parser with path/type/value chunk output.",
             Kind = ReaderInputKind.Yaml,
             Extensions = new[] { ".yaml", ".yml" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderYamlExtensions.ReadYaml(
+            ReadPath = (path, readerOptions, ct) => YamlReaderAdapter.Read(
                 path: path,
                 readerOptions: readerOptions,
                 yamlOptions: Clone(registered),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderYamlExtensions.ReadYaml(
+            ReadStream = (stream, sourceName, readerOptions, ct) => YamlReaderAdapter.Read(
                 stream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

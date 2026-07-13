@@ -16,7 +16,7 @@ public sealed class OpenDocumentValidationContractTests {
     [InlineData("microsoft-powerpoint-basic.odp")]
     public void AuthoredCompatibilityFixturesPassProductionValidation(string fixtureName) {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", fixtureName);
-        using OdfDocument document = OdfDocument.OpenAny(path);
+        OdfDocument document = OdfDocument.Load(path);
 
         OdfValidationResult result = document.Validate();
 
@@ -25,7 +25,7 @@ public sealed class OpenDocumentValidationContractTests {
 
     [Fact]
     public void ReportsMissingManifestTargetsAndIncorrectMediaTypes() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         XDocument manifest = document.Package.GetXml("META-INF/manifest.xml");
         XNamespace ns = "urn:oasis:names:tc:opendocument:xmlns:manifest:1.0";
         manifest.Root!.Add(new XElement(ns + "file-entry",
@@ -41,7 +41,7 @@ public sealed class OpenDocumentValidationContractTests {
 
     [Fact]
     public void ReportsMissingStyleParentsAndPackageReferencesAcrossDocumentKinds() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.Styles.CreateNamed("Child", OdfStyleFamily.Paragraph, "MissingParent");
         XDocument content = document.Package.GetXml("content.xml");
         XNamespace draw = "urn:oasis:names:tc:opendocument:xmlns:drawing:1.0";
@@ -59,7 +59,7 @@ public sealed class OpenDocumentValidationContractTests {
 
     [Fact]
     public void ReportsInvalidSpreadsheetValuesFormulasAndMergeCoverage() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         sheet.Merge(0, 0, 1, 2);
         XDocument content = document.Package.GetXml("content.xml");
@@ -81,7 +81,7 @@ public sealed class OpenDocumentValidationContractTests {
 
     [Fact]
     public void FeatureInspectionReportsExternalLinksAndEditableTrackedChanges() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddTrackedParagraphInsertion("Inserted", "Author");
         document.AddParagraph().AddHyperlink("External", "https://example.com");
 

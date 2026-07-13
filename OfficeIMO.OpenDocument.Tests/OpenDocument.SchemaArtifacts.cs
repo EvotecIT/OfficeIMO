@@ -17,7 +17,8 @@ public class OpenDocumentSchemaArtifactTests {
         string output = keep ? Path.GetFullPath(requestedOutput!) : Path.Combine(Path.GetTempPath(), "OfficeIMO-ODF-Schema-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(output);
         try {
-            using (OdtDocument text = OdtDocument.Create()) {
+            {
+                OdtDocument text = OdtDocument.Create();
                 text.AddHeading("Schema proof", 1);
                 text.AddParagraph("Native ODT").AddSpan(" with formatting").Bold = true;
                 text.AddList().AddItem("One");
@@ -30,7 +31,8 @@ public class OpenDocumentSchemaArtifactTests {
                 text.Save(Path.Combine(output, "schema-proof-1.3.odt"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
                 Assert.True(text.Validate().IsValid);
             }
-            using (OdsDocument spreadsheet = OdsDocument.Create()) {
+            {
+                OdsDocument spreadsheet = OdsDocument.Create();
                 OdsSheet sheet = spreadsheet.AddSheet("Data");
                 sheet.Cell(0, 0).SetString("Value");
                 OdsCell formula = sheet.Cell(1, 0);
@@ -42,7 +44,8 @@ public class OpenDocumentSchemaArtifactTests {
                 spreadsheet.Save(Path.Combine(output, "schema-proof-1.3.ods"), new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
                 Assert.True(spreadsheet.Validate().IsValid);
             }
-            using (OdpPresentation presentation = OdpPresentation.Create()) {
+            {
+                OdpPresentation presentation = OdpPresentation.Create();
                 OdpSlide slide = presentation.AddSlide("Schema proof");
                 slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 2), "Native ODP");
                 OdpRectangle rectangle = slide.AddRectangle(OdfRect.FromCentimeters(1, 4, 4, 2));
@@ -75,7 +78,7 @@ public class OpenDocumentSchemaArtifactTests {
         Assert.Equal(6, files.Length);
 
         foreach (string path in files) {
-            using OdfDocument document = OdfDocument.OpenAny(path);
+            OdfDocument document = OdfDocument.Load(path);
             OdfValidationResult validation = document.Validate();
             Assert.True(validation.IsValid, string.Join(Environment.NewLine, validation.Diagnostics.Select(item => item.Id + ": " + item.Message)));
             if (document is OdtDocument text) {

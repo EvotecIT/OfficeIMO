@@ -4,7 +4,7 @@
     <Description>Shared HTML parsing, resource policy, layout, diagnostics, and direct PNG/SVG rendering for OfficeIMO converters.</Description>
     <AssemblyName>OfficeIMO.Html</AssemblyName>
     <AssemblyTitle>OfficeIMO.Html</AssemblyTitle>
-    <VersionPrefix>0.1.11</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
@@ -50,6 +50,13 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.Benchmarks" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
   </ItemGroup>
 
   <ItemGroup>
@@ -62,6 +69,7 @@
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
     <Using Include="AngleSharp.Dom" />
+    <Using Include="OfficeIMO.Drawing" />
     <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
 

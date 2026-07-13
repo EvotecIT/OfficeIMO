@@ -699,8 +699,8 @@ internal static class MarkdownToRtfConverter {
     }
 
     private static void AddFootnoteDefinitionContent(RtfNote note, FootnoteDefinitionBlock definition, RtfDocument document, MarkdownToRtfConversionContext context, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string> activeFootnotes) {
-        IReadOnlyList<IMarkdownBlock> blocks = definition.Blocks.Count > 0
-            ? definition.Blocks
+        IReadOnlyList<IMarkdownBlock> blocks = definition.ChildBlocks.Count > 0
+            ? definition.ChildBlocks
             : new IMarkdownBlock[] { new ParagraphBlock(MarkdownReader.ParseInlineText(definition.Text, context.ReaderOptions)) };
 
         for (int i = 0; i < blocks.Count; i++) {

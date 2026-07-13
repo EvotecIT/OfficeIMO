@@ -63,7 +63,7 @@ public sealed class QuoteBuilder {
         foreach (var entry in _entries) {
             if (entry.Block != null) {
                 FlushBuffer(buffer, quote);
-                quote.Children.Add(entry.Block);
+                quote.ChildBlocks.Add(entry.Block);
             } else {
                 foreach (var part in SplitLines(entry.Line)) buffer.Add(part);
             }
@@ -87,7 +87,7 @@ public sealed class QuoteBuilder {
 
     private static void FlushBuffer(System.Collections.Generic.List<string> buffer, QuoteBlock quote) {
         if (buffer.Count == 0) return;
-        foreach (var paragraph in BuildParagraphs(buffer)) quote.Children.Add(paragraph);
+        foreach (var paragraph in BuildParagraphs(buffer)) quote.ChildBlocks.Add(paragraph);
         buffer.Clear();
     }
 

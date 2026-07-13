@@ -15,9 +15,11 @@ dotnet add package OfficeIMO.Word.Html
 
 ```csharp
 using OfficeIMO.Word;
+using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
 
-WordDocument document = "<h1>Hello</h1><p>Body</p>".ToWordDocument(new HtmlToWordOptions());
+HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>Body</p>");
+using WordDocument document = source.ToWordDocument(new HtmlToWordOptions());
 
 string html = document.ToHtml(new WordToHtmlOptions {
     IncludeDefaultCss = true,
@@ -32,15 +34,16 @@ HTML can also be appended to an existing body, header, or footer with `AddHtmlTo
 Use the result API when conversion evidence matters:
 
 ```csharp
-HtmlToWordResult result = html.ToWordDocumentResult(options);
-using WordDocument document = result.GetArtifactOrThrow();
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+HtmlToWordResult result = source.ToWordDocumentResult(options);
+using WordDocument document = result.RequireValue();
 
-foreach (HtmlDiagnostic diagnostic in result.Diagnostics) {
+foreach (HtmlDiagnostic diagnostic in result.Report.Diagnostics) {
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.LossKind}");
 }
 ```
 
-String, stream, async, and prepared `HtmlConversionDocument` overloads expose the same result shape. A prepared document reuses the shared adapter DOM. `HtmlToWordOptions.StyleMissingHandler` scopes custom class mapping to one conversion; the static `StyleMissing` event remains a compatibility fallback.
+`HtmlConversionDocument` is the required source model. It keeps parsing, base-URI handling, resource policy, and source diagnostics in one owner. `HtmlToWordOptions.StyleMissingHandler` scopes custom class mapping to one conversion.
 
 ## What it maps
 
@@ -57,7 +60,15 @@ safeOptions.MaxHtmlNodes = 5000;
 safeOptions.DiagnosticHandler = diagnostic =>
     Console.WriteLine($"{diagnostic.Code}: {diagnostic.Source}");
 
-WordDocument safeDocument = html.ToWordDocument(safeOptions);
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+using WordDocument safeDocument = source.ToWordDocument(safeOptions);
+```
+
+Remote images and stylesheets require the async API:
+
+```csharp
+HtmlToWordResult remote = await source.ToWordDocumentResultAsync(options, cancellationToken);
+using WordDocument remoteDocument = remote.RequireValue();
 ```
 
 - `CreateOfficeIMOProfile()` keeps the compatibility-oriented defaults.

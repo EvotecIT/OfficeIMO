@@ -49,7 +49,8 @@ namespace OfficeIMO.Examples.Excel
                 s.AutoFitColumns();
                 s.AutoFitRows();
 
-                doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                doc.Save();
+                if (openExcel) doc.OpenInApplication();
             }
         }
     }

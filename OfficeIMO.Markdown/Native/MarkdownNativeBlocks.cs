@@ -608,7 +608,7 @@ public sealed class MarkdownNativeTableCell {
         ColumnIndex = columnIndex;
         Text = ExtractText(sourceCell, RawText);
         Markdown = sourceCell?.Markdown ?? RawText;
-        Blocks = sourceCell != null ? sourceCell.Blocks : Array.Empty<IMarkdownBlock>();
+        Blocks = sourceCell != null ? sourceCell.ChildBlocks : Array.Empty<IMarkdownBlock>();
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         Alignment = alignment;
         InlineRuns = MarkdownNativeInlineProjection.FromTableCellDirectContent(syntaxNode);
@@ -654,11 +654,11 @@ public sealed class MarkdownNativeTableCell {
     public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 
     private static string ExtractText(TableCell? sourceCell, string rawText) {
-        if (sourceCell == null || sourceCell.Blocks.Count == 0) {
+        if (sourceCell == null || sourceCell.ChildBlocks.Count == 0) {
             return rawText ?? string.Empty;
         }
 
-        if (sourceCell.Blocks.Count == 1 && sourceCell.Blocks[0] is ParagraphBlock paragraph) {
+        if (sourceCell.ChildBlocks.Count == 1 && sourceCell.ChildBlocks[0] is ParagraphBlock paragraph) {
             return InlinePlainText.Extract(paragraph.Inlines);
         }
 

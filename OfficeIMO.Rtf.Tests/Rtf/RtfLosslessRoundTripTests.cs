@@ -79,7 +79,7 @@ public class RtfLosslessRoundTripTests {
     }
 
     [Fact]
-    public async Task LoadAsync_And_SaveLosslessAsync_Preserve_Stream_Position_And_Raw_Bytes() {
+    public async Task LoadAsync_RestoresInputAndSaveLosslessAsync_OverwritesAndRewindsOutput() {
         byte[] bytes = new byte[] {
             123, 92, 114, 116, 102, 49, 92, 97, 110, 115, 105, 92, 98, 105, 110, 49, 32, 0x80, 125
         };
@@ -92,14 +92,13 @@ public class RtfLosslessRoundTripTests {
         await result.SaveLosslessAsync(output);
         byte[] saved = output.ToArray();
 
-        Assert.Equal(input.Length, input.Position);
-        Assert.Equal(saved.Length, output.Position);
-        Assert.Equal(0x2A, saved[0]);
-        Assert.Equal(bytes, saved.Skip(1).ToArray());
+        Assert.Equal(0, input.Position);
+        Assert.Equal(0, output.Position);
+        Assert.Equal(bytes, saved);
     }
 
     [Fact]
-    public async Task LosslessEditor_SaveLosslessAsync_Preserves_Untouched_Syntax_And_Stream_Position() {
+    public async Task LosslessEditor_SaveLosslessAsync_PreservesSyntaxAndOverwritesAndRewindsOutput() {
         const string rtf = @"{\rtf1\ansi{\*\unknown Keep}{\pict\pngblip\bin3 abc}\pard Existing\par}";
         RtfLosslessEditor editor = RtfDocument.Read(rtf).EditLossless();
         editor.AppendParagraph("Next");
@@ -109,9 +108,8 @@ public class RtfLosslessRoundTripTests {
         await editor.SaveLosslessAsync(output);
         byte[] saved = output.ToArray();
 
-        Assert.Equal(saved.Length, output.Position);
-        Assert.Equal(0x2A, saved[0]);
-        Assert.Equal(editor.ToBytesLossless(), saved.Skip(1).ToArray());
+        Assert.Equal(0, output.Position);
+        Assert.Equal(editor.ToBytesLossless(), saved);
         Assert.Contains(@"{\*\unknown Keep}", editor.ToRtf(), StringComparison.Ordinal);
         Assert.Contains(@"{\pict\pngblip\bin3 abc}", editor.ToRtf(), StringComparison.Ordinal);
 

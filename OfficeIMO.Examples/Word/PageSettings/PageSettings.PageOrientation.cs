@@ -26,7 +26,8 @@ internal static partial class PageSettings {
 
             document.AddParagraph("Test");
 
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 

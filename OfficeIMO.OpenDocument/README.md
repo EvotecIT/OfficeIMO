@@ -72,7 +72,7 @@ Typed objects remain backed by the source XML. A targeted edit rewrites its owni
 ```csharp
 using OdtDocument document = OdtDocument.Open("input.odt");
 document.Paragraphs[0].Text = "Updated text";
-OdfSaveResult result = document.SaveResult("output.odt", new OdfSaveOptions {
+OdfSaveResult result = document.Save("output.odt", new OdfSaveOptions {
     CompatibilityProfile = OdfCompatibilityProfile.PreserveSource
 });
 

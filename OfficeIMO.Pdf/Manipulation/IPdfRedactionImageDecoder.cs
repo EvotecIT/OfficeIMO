@@ -10,6 +10,8 @@ public interface IPdfRedactionImageDecoder {
 
 /// <summary>Describes an encoded PDF image passed to an optional redaction image decoder.</summary>
 public sealed class PdfRedactionImageDecodeRequest {
+    private readonly byte[] _encodedBytes;
+
     internal PdfRedactionImageDecodeRequest(PdfExtractedImage image) {
         ResourceName = image.ResourceName;
         ObjectNumber = image.ObjectNumber;
@@ -18,7 +20,7 @@ public sealed class PdfRedactionImageDecodeRequest {
         BitsPerComponent = image.BitsPerComponent;
         ColorSpace = image.ColorSpace;
         Filter = image.Filter;
-        EncodedBytes = (byte[])image.Bytes.Clone();
+        _encodedBytes = image.Bytes;
     }
 
     /// <summary>PDF resource name used by the image placement.</summary>
@@ -42,8 +44,8 @@ public sealed class PdfRedactionImageDecodeRequest {
     /// <summary>PDF stream filter chain.</summary>
     public string Filter { get; }
 
-    /// <summary>Encoded image-file bytes. Callers must not mutate this buffer.</summary>
-    public byte[] EncodedBytes { get; }
+    /// <summary>Returns a snapshot of the encoded image-file bytes.</summary>
+    public byte[] EncodedBytes => (byte[])_encodedBytes.Clone();
 }
 
 /// <summary>Validated 8-bit RGBA output returned by an optional redaction image decoder.</summary>

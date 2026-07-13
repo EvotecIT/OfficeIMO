@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -83,6 +85,20 @@ namespace OfficeIMO.Visio.Stencils {
             return VisioStencilCatalogManifest.Load(stream, options);
         }
 
+        /// <summary>Loads an OfficeIMO-native stencil catalog manifest asynchronously.</summary>
+        public static Task<VisioStencilCatalog> LoadAsync(
+            string path,
+            VisioStencilCatalogManifestLoadOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            VisioStencilCatalogManifest.LoadAsync(path, options, cancellationToken);
+
+        /// <summary>Loads an OfficeIMO-native stencil catalog manifest from a caller-owned stream asynchronously.</summary>
+        public static Task<VisioStencilCatalog> LoadAsync(
+            Stream stream,
+            VisioStencilCatalogManifestLoadOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            VisioStencilCatalogManifest.LoadAsync(stream, options, cancellationToken);
+
         /// <summary>
         /// Gets the catalog name.
         /// </summary>
@@ -111,6 +127,20 @@ namespace OfficeIMO.Visio.Stencils {
         public void Save(Stream stream) {
             VisioStencilCatalogManifest.Save(this, stream);
         }
+
+        /// <summary>Serializes this catalog as an OfficeIMO-native stencil catalog manifest.</summary>
+        public byte[] ToBytes() => VisioStencilCatalogManifest.ToBytes(this);
+
+        /// <summary>Serializes this catalog to a new memory stream positioned at the beginning.</summary>
+        public MemoryStream ToStream() => new MemoryStream(ToBytes());
+
+        /// <summary>Saves this catalog manifest asynchronously.</summary>
+        public Task SaveAsync(string path, CancellationToken cancellationToken = default) =>
+            VisioStencilCatalogManifest.SaveAsync(this, path, cancellationToken);
+
+        /// <summary>Saves this catalog manifest to a caller-owned stream asynchronously.</summary>
+        public Task SaveAsync(Stream stream, CancellationToken cancellationToken = default) =>
+            VisioStencilCatalogManifest.SaveAsync(this, stream, cancellationToken);
 
         /// <summary>
         /// Attempts to find a stencil shape by id, name, master name, keyword, alias, or tag.

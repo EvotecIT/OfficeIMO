@@ -7,7 +7,7 @@ using System.Threading;
 namespace OfficeIMO.Reader;
 
 /// <summary>
-/// Options controlling extraction behavior for <see cref="DocumentReader"/>.
+/// Options controlling extraction behavior for <see cref="OfficeDocumentReader"/>.
 /// </summary>
 public sealed class ReaderOptions {
     internal const long DefaultOpenXmlMaxCharactersInPart = 10_000_000L;
@@ -21,7 +21,7 @@ public sealed class ReaderOptions {
     internal const long DefaultMaxOpenXmlImageTotalAssetBytes = 128L * 1024L * 1024L;
 
     /// <summary>
-    /// Optional maximum input size in bytes enforced by <see cref="DocumentReader"/> when reading from a file or seekable stream.
+    /// Optional maximum input size in bytes enforced by <see cref="OfficeDocumentReader"/> when reading from a file or seekable stream.
     /// When null, no size limit is enforced.
     /// </summary>
     public long? MaxInputBytes { get; set; }
@@ -135,7 +135,7 @@ public sealed class ReaderOptions {
 }
 
 /// <summary>
-/// Options controlling folder enumeration for <see cref="DocumentReader.ReadFolder(string, ReaderFolderOptions?, ReaderOptions?, System.Threading.CancellationToken)"/>.
+/// Options controlling folder enumeration for <see cref="OfficeDocumentReader.ReadFolder"/>.
 /// </summary>
 public sealed class ReaderFolderOptions {
     /// <summary>

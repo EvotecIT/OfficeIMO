@@ -3,7 +3,6 @@ using System;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
-using OfficeIMO.Shared;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -46,6 +45,21 @@ namespace OfficeIMO.Visio {
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
             ThrowIfInvalidForSave();
             SaveInternal(stream);
+        }
+
+        /// <summary>Saves an independent copy without changing the document's associated destination.</summary>
+        public void SaveCopy(string filePath) {
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            ThrowIfInvalidForSave();
+            OfficeFileCommit.WriteAllBytes(filePath, ToBytes());
+        }
+
+        /// <summary>Asynchronously saves an independent copy without changing the document's associated destination.</summary>
+        public Task SaveCopyAsync(string filePath, CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            cancellationToken.ThrowIfCancellationRequested();
+            ThrowIfInvalidForSave();
+            return OfficeFileCommit.WriteAllBytesAsync(filePath, ToBytes(), cancellationToken: cancellationToken);
         }
 
         /// <summary>Encodes the document as a VSDX package.</summary>

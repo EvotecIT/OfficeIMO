@@ -10,7 +10,7 @@ namespace OfficeIMO.Markup.Tests;
 
 public class OfficeMarkupPowerPointPreflightTests {
     [Fact]
-    public void ExportWithReport_UsesSharedPowerPointPreflightAndWritesJson() {
+    public void SaveAsPowerPoint_ReturnsSharedPreflightThatCanBePersistedSeparately() {
         const string markup = """
 ---
 profile: presentation
@@ -30,16 +30,17 @@ title: Report Demo
         string reportPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".json");
         try {
             OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
-            PowerPointDeckPreflightReport report = new OfficeMarkupPowerPointExporter().ExportWithReport(
-                parsed.Document, new OfficeMarkupPowerPointExportOptions {
-                    OutputPath = presentationPath,
+            OfficeMarkupPowerPointConversionReport conversion = parsed.Document.SaveAsPowerPoint(
+                presentationPath,
+                new MarkupToPowerPointOptions {
                     RenderMermaidDiagrams = false,
-                    PreflightReportPath = reportPath,
                     PreflightOptions = new PowerPointDeckPreflightOptions {
                         DetectShapeCollisions = false,
                         IncludeVisualSnapshotDiagnostics = false
                     }
                 });
+            PowerPointDeckPreflightReport report = conversion.Preflight;
+            report.SaveJson(reportPath);
 
             Assert.True(File.Exists(presentationPath));
             Assert.True(File.Exists(reportPath));
@@ -54,7 +55,7 @@ title: Report Demo
     }
 
     [Fact]
-    public void ExportWithReport_DoesNotReplaceOutputWhenPreflightRejectsDeck() {
+    public void SaveAsPowerPoint_DoesNotReplaceOutputWhenPreflightRejectsDeck() {
         const string markup = """
 ---
 profile: presentation
@@ -76,9 +77,8 @@ A deliberately long paragraph that cannot fit inside the very short slide used b
             OfficeMarkupParseResult parsed = OfficeMarkupParser.Parse(markup);
 
             Assert.Throws<PowerPointDeckPreflightException>(() =>
-                new OfficeMarkupPowerPointExporter().ExportWithReport(parsed.Document,
-                    new OfficeMarkupPowerPointExportOptions {
-                        OutputPath = presentationPath,
+                parsed.Document.SaveAsPowerPoint(presentationPath,
+                    new MarkupToPowerPointOptions {
                         RenderMermaidDiagrams = false,
                         SlideHeightInches = 1D,
                         FailOnPreflightFindings = true,

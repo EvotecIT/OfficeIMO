@@ -1,6 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {

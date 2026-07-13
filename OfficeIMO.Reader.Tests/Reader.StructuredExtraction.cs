@@ -319,8 +319,8 @@ public sealed class ReaderStructuredExtractionTests {
     public async Task StaticStructuredReadSupportsSyncAndAsyncByteSurfaces() {
         byte[] markdown = Encoding.UTF8.GetBytes("# Overview\n\nUseful body");
 
-        OfficeDocumentStructuredExtractionResult sync = DocumentReader.ReadStructured(markdown, "note.md");
-        OfficeDocumentStructuredExtractionResult asyncResult = await DocumentReader.ReadStructuredAsync(markdown, "note.md");
+        OfficeDocumentStructuredExtractionResult sync = OfficeDocumentReader.Default.ReadStructured(markdown, "note.md");
+        OfficeDocumentStructuredExtractionResult asyncResult = await OfficeDocumentReader.Default.ReadStructuredAsync(markdown, "note.md");
 
         Assert.NotEmpty(sync.Sections);
         Assert.Contains("Overview", sync.Sections[0].Heading ?? sync.Sections[0].Text, StringComparison.Ordinal);

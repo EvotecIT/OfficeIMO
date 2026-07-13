@@ -26,7 +26,8 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.ParagraphAlignment = JustificationValues.Center;
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

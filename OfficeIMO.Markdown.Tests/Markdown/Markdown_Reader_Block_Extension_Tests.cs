@@ -15,7 +15,7 @@ Paragraph line
 :::
 """;
 
-        var document = MarkdownReader.Parse(markdown, CreateOptions());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateOptions());
 
         var panel = Assert.IsType<PanelBlock>(Assert.Single(document.Blocks));
         Assert.Equal("Ops Notes", panel.Title);
@@ -38,7 +38,7 @@ Paragraph line
 :::
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
 
         var panelSyntax = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Unknown, panelSyntax.Kind);
@@ -62,7 +62,7 @@ Paragraph line
     public void Block_Parser_Context_Creates_SourceSpans_For_Custom_Syntax_Children() {
         const string markdown = ":::panel **Ops** Notes\r\nParagraph line\r\n:::\r\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
 
         var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
         var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
@@ -80,7 +80,7 @@ Paragraph line
     public void Block_Parser_Context_SourceSpans_Use_Absolute_Lines_In_Nested_Parses() {
         const string markdown = "> :::panel Ops\r\n> Body\r\n> :::\r\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
 
         var panel = Assert.Single(result.Document.DescendantsOfType<PanelBlock>());
         Assert.NotNull(panel.ParserSourceSpan);
@@ -110,7 +110,7 @@ Paragraph line
                 return true;
             })));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("claimed", InlinePlainText.Extract(paragraph.Inlines));
@@ -143,7 +143,7 @@ Paragraph line
                 return true;
             })));
 
-        MarkdownDoc parsed = MarkdownReader.Parse(markdown, options);
+        MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         Assert.True(observedBoundDocument);
         Assert.Equal(2, parsed.Blocks.Count);
@@ -158,7 +158,7 @@ Paragraph line
 :::
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
 
         var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
         var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
@@ -180,7 +180,7 @@ Paragraph line
 :::
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
 
         var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
         var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
@@ -209,7 +209,7 @@ Paragraph line
 ### Deep
 """;
 
-        var document = MarkdownReader.Parse(markdown, CreateOptions());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateOptions());
         var html = document.ToHtmlFragment(new HtmlOptions {
             Kind = HtmlKind.Fragment,
             Title = "panel-title"
@@ -234,7 +234,7 @@ Paragraph line
 ## Child
 """;
 
-        var document = MarkdownReader.Parse(markdown, CreateOptions());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateOptions());
         var htmlOptions = new HtmlOptions {
             Kind = HtmlKind.Fragment,
             Title = "override-title"
@@ -271,7 +271,7 @@ Paragraph line
         const string markdown = "# Intro\r\n\r\n:::panel Ops Notes\r\nParagraph line\r\n:::\r\n";
         var readerOptions = CreateOptions();
         readerOptions.PreserveTrivia = true;
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
         MarkdownSyntaxNode? seenSyntax = null;
         MarkdownSourceSlice normalizedSlice = default;
         MarkdownSourceSlice originalSlice = default;
@@ -318,7 +318,7 @@ Paragraph line
 :::
 """;
 
-        var document = MarkdownReader.Parse(markdown, CreateOptions());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateOptions());
         var htmlOptions = new HtmlOptions {
             Kind = HtmlKind.Fragment,
             Title = "legacy-title"
@@ -367,7 +367,7 @@ Paragraph line
                 return true;
             })));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("first extension", InlinePlainText.Extract(paragraph.Inlines));
@@ -392,7 +392,7 @@ Paragraph line
             }),
             isEnabled: _ => false));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("::disabled", InlinePlainText.Extract(paragraph.Inlines));
@@ -412,7 +412,7 @@ Paragraph line
                 () => calls++,
                 context => context.CurrentLine.StartsWith("[hero]:", StringComparison.Ordinal))));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         Assert.Equal(2, document.Blocks.Count);
         var claimed = Assert.IsType<ParagraphBlock>(document.Blocks[0]);
@@ -435,7 +435,7 @@ Paragraph line
             MarkdownBlockParserPlacement.BeforeParagraphs,
             CreateClaimingParser("late extension", () => calls++)));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         Assert.Equal(0, calls);
@@ -457,7 +457,7 @@ Paragraph line
                 () => calls++,
                 context => context.CurrentLine.StartsWith("> [!", StringComparison.Ordinal))));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
         Assert.Equal(0, calls);
@@ -482,7 +482,7 @@ Paragraph line
                 consumedLineCount: 2)));
         MarkdownReaderBuiltInExtensions.AddCallouts(options);
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.Equal("custom before callout", InlinePlainText.Extract(paragraph.Inlines));

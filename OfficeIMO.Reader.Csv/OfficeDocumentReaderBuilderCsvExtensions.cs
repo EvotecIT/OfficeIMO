@@ -29,12 +29,12 @@ public static class OfficeDocumentReaderBuilderCsvExtensions {
             Description = "Modular CSV/TSV parser with table-aware chunk output.",
             Kind = ReaderInputKind.Csv,
             Extensions = new[] { ".csv", ".tsv" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderCsvExtensions.ReadCsv(
+            ReadPath = (path, readerOptions, ct) => CsvReaderAdapter.Read(
                 path: path,
                 readerOptions: readerOptions,
                 csvOptions: Clone(registered),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderCsvExtensions.ReadCsv(
+            ReadStream = (stream, sourceName, readerOptions, ct) => CsvReaderAdapter.Read(
                 stream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

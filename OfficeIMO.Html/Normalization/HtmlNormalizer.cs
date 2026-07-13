@@ -97,7 +97,15 @@ public static class HtmlNormalizer {
 
     private static void AppendElement(StringBuilder builder, IElement element, HtmlNormalizationOptions options, int srcDocDepth, bool preserveWhitespace = false) {
         string name = element.TagName.ToLowerInvariant();
-        if (SkippedElements.Contains(name) || (name == "style" && !options.PreserveStyleElements)) {
+        if (SkippedElements.Contains(name)) {
+            if (options.PreserveSkippedElementMarkers) {
+                builder.Append('<').Append(name).Append("></").Append(name).Append('>');
+            }
+
+            return;
+        }
+
+        if (name == "style" && !options.PreserveStyleElements) {
             return;
         }
 
@@ -215,6 +223,7 @@ public static class HtmlNormalizer {
             UrlPolicy = options.UrlPolicy,
             UseBodyContentsOnly = options.UseBodyContentsOnly,
             PreserveComments = options.PreserveComments,
+            PreserveSkippedElementMarkers = options.PreserveSkippedElementMarkers,
             PreserveStyleElements = options.PreserveStyleElements,
             RemoveEventHandlerAttributes = options.RemoveEventHandlerAttributes,
             CollapseTextWhitespace = options.CollapseTextWhitespace

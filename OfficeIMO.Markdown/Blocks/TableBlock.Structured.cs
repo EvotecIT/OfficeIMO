@@ -154,7 +154,7 @@ public sealed partial class TableBlock {
             return new TableCell();
         }
 
-        return new TableCell(cell.Blocks) {
+        return new TableCell(cell.ChildBlocks) {
             IsHeader = cell.IsHeader,
             RowIndex = cell.RowIndex,
             ColumnIndex = cell.ColumnIndex,

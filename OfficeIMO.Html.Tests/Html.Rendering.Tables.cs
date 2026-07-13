@@ -24,11 +24,11 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.True(rendered.Pages.Count >= 2);
         Assert.All(rendered.Pages, page => Assert.True(page.Visuals.Count > 1));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
@@ -47,11 +47,11 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderText caption = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "CaptionPdf");
         HtmlRenderText cell = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "CellPdf");
         HtmlRenderShape captionBackground = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "caption#caption" && shape.Shape.FillColor == OfficeColor.Red);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -60,7 +60,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(80D, captionBackground.Width, 3);
@@ -70,15 +70,15 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("CellPdf", svg, StringComparison.Ordinal);
         Assert.Contains("CaptionPdf", pdfText, StringComparison.Ordinal);
         Assert.Contains("CellPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
     public void HtmlTables_EmptyGridRetainsItsCaption() {
         const string html = "<table style='width:60px;margin:0'><caption id='caption'>CaptionOnly</caption></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 80D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -88,7 +88,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderSemanticGroup table = Assert.Single(rendered.Pages[0].Scene.OfType<HtmlRenderSemanticGroup>());
         Assert.Equal(HtmlRenderSemanticGroupRole.Table, table.Role);
         Assert.Contains(table.Visuals.OfType<HtmlRenderSemanticGroup>(), group => group.Role == HtmlRenderSemanticGroupRole.Caption);
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.EmptyTable);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.EmptyTable);
     }
 
     [Fact]
@@ -96,7 +96,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<table style='width:100px;margin:0;table-layout:auto;font-size:8px;line-height:10px'><tr>"
             + "<td id='wide' style='background:red'>WWWWWWWWWW</td><td id='narrow' style='background:blue'>i</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -116,7 +116,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td id='image-cell' style='background:red'><img src='data:image/png;base64," + imageData + "'></td>"
             + "<td id='text-cell' style='background:blue'>i</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -134,7 +134,7 @@ public sealed partial class HtmlRenderingTests {
             + "<colgroup><col style='width:70px'><col></colgroup><tr>"
             + "<td id='first' style='background:red'>A</td><td id='second' style='background:blue'>Long content does not resize this column</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D)
@@ -153,7 +153,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tr><td id='first' style='background:red'>A</td><td id='second' style='background:blue'>B</td></tr>"
             + "<tr><td id='third' style='background:lime'>C</td><td>D</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             ViewportHeight = 50D,
             Margins = HtmlRenderMargins.All(0D)
@@ -172,7 +172,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<table style='width:100px;margin:0;table-layout:fixed;border-collapse:collapse;border-spacing:10px;font-size:8px;line-height:10px'>"
             + "<tr><td id='first' style='background:red'>A</td><td id='second' style='background:blue'>B</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -195,9 +195,9 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderShape shared = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "table#conflict:collapsed-border-v-1-0");
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -205,7 +205,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, shared.Shape.StrokeColor);
@@ -213,7 +213,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("stroke=\"#FF0000\"", svg, StringComparison.Ordinal);
         Assert.Contains("LeftPdf", pdfText, StringComparison.Ordinal);
         Assert.Contains("RightPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -222,7 +222,7 @@ public sealed partial class HtmlRenderingTests {
             + "<td style='border:1px solid black;border-right:5px solid red'>Left</td>"
             + "<td style='border:1px solid black;border-left:1px hidden blue'>Right</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 110D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -240,7 +240,7 @@ public sealed partial class HtmlRenderingTests {
             + "<tr style='border:none'><td style='border:none'>C</td><td style='border:none'>D</td></tr>"
             + "</tbody></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 110D,
             ViewportHeight = 100D,
             Margins = HtmlRenderMargins.All(0D)
@@ -258,7 +258,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<table id='outer' style='width:100px;margin:0;table-layout:fixed;border-collapse:collapse;border:3px solid purple'>"
             + "<tr style='border:none;border-top:1px solid blue'><td style='border:none'>A</td><td style='border:none'>B</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 110D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
@@ -281,12 +281,12 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTables_InvalidCaptionSideUsesCatalogedTopFallbackAndSupportsTruth() {
         const string html = "<table id='table' style='caption-side:left;table-layout:balanced;border-collapse:merge;border-spacing:-2px;width:60px;margin:0'><caption>Caption</caption><tr><td>Cell</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 80D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
         });
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TableValueUnsupported);
         HtmlRenderText caption = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Caption");
         HtmlRenderText cell = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "Cell");
 

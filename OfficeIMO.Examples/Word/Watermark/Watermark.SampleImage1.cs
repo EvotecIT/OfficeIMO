@@ -39,7 +39,8 @@ namespace OfficeIMO.Examples.Word {
                 //Console.WriteLine("Images in document: " + document.Images.Count);
                 //Console.WriteLine("Watermarks in header: " + document.Header!.Default.Watermarks.Count);
                 //Console.WriteLine("Images in header: " + document.Header!.Default.Images.Count);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

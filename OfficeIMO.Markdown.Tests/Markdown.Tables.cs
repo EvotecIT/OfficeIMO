@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void MarkdownToWord_TableCellAlignmentAndFormatting() {
             string md = "| Left | Center | Right |\n| :--- | :---: | ---: |\n| **Bold** | *Italic* | Normal |";
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { FontFamily = "Calibri" });
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
             var table = doc.Tables[0];
 
             var leftParagraph = table.Rows[1].Cells[0].Paragraphs[0];
@@ -53,7 +53,7 @@ Narrative body text.
 | Second | 2 |
 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var heading = doc.Paragraphs.First(p => p.Text == "Report Theme");
             Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "064e3b", System.StringComparison.OrdinalIgnoreCase));
@@ -78,7 +78,7 @@ Narrative body text.
                 .WithColors(heading: "#064e3b", accent: "#dc2626");
             string md = "# [Documentation](https://example.com/docs)";
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var linkRuns = doc.Paragraphs.SelectMany(p => p.GetRuns())
                 .Where(run => run.IsHyperLink && run.Text == "Documentation")
@@ -95,7 +95,7 @@ Narrative body text.
 Narrative body text.
 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
             Assert.Contains(heading.GetRuns(), run => string.Equals(run.ColorHex, "111827", System.StringComparison.OrdinalIgnoreCase));
@@ -111,7 +111,7 @@ Narrative body text.
 Narrative body text.
 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { ApplyDefaultTheme = false });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { ApplyDefaultTheme = false });
 
             var heading = doc.Paragraphs.First(p => p.Text == "Heading");
             Assert.DoesNotContain(heading.GetRuns(), run => !string.IsNullOrWhiteSpace(run.ColorHex));
@@ -129,7 +129,7 @@ Narrative body text.
 | First | 1 |
 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(BorderValues.None, cell.Borders.TopStyle);
@@ -149,7 +149,7 @@ Narrative body text.
 | First | 1 |
 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var cell = doc.Tables[0].Rows[0].Cells[0];
             Assert.Equal(BorderValues.None, cell.Borders.TopStyle);
@@ -170,7 +170,7 @@ Console.WriteLine("ready");
 ```
 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var codeParagraph = doc.Paragraphs.First(p => p.Text.Contains("Console.WriteLine", System.StringComparison.Ordinal));
             Assert.True(string.IsNullOrEmpty(codeParagraph.ShadingFillColorHex));
@@ -191,7 +191,7 @@ Console.WriteLine("ready");
 | Second | 2 |
 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var table = doc.Tables[0];
             Assert.True(string.IsNullOrEmpty(table.Rows[0].Cells[0].ShadingFillColorHex));
@@ -208,7 +208,7 @@ Console.WriteLine("ready");
 > Body text.
 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var title = doc.Paragraphs.First(p => p.Text == "Heads up");
             Assert.True(string.IsNullOrEmpty(title.ShadingFillColorHex));
@@ -258,7 +258,7 @@ Console.WriteLine("ready");
                 </table>
                 """;
 
-            var markdown = html.ToMarkdownDocument();
+            var markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
             using var doc = markdown.ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
             var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
@@ -287,8 +287,8 @@ Console.WriteLine("ready");
                 </table>
                 """;
 
-            using var doc = html.ToWordDocumentViaMarkdown(
-                wordOptions: new MarkdownToWordOptions { FontFamily = "Calibri" });
+            MarkdownDoc markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+            using var doc = markdown.ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
             var cellParagraphs = doc.Tables[0].Rows[1].Cells[0].Paragraphs
                 .Select(p => p.Text)
                 .Where(text => !string.IsNullOrWhiteSpace(text))
@@ -317,8 +317,8 @@ Console.WriteLine("ready");
                 </table>
                 """;
 
-            var markdown = html.ToMarkdownDocument();
-            var rawCellBlock = Assert.IsType<OfficeIMO.Markdown.HtmlRawBlock>(Assert.Single(Assert.Single(markdown.Blocks.OfType<OfficeIMO.Markdown.TableBlock>()).RowCells[0][0].Blocks));
+            var markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+            var rawCellBlock = Assert.IsType<OfficeIMO.Markdown.HtmlRawBlock>(Assert.Single(Assert.Single(markdown.Blocks.OfType<OfficeIMO.Markdown.TableBlock>()).RowCells[0][0].ChildBlocks));
 
             Assert.Contains("<custom-card>", rawCellBlock.Html);
 

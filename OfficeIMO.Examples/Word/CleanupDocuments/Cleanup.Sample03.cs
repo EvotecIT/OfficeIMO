@@ -19,7 +19,8 @@ internal static partial class CleanupDocuments {
             p.SetBold();
             p.AddText(" World").SetBold();
             document.CleanupDocument();
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

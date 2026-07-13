@@ -239,7 +239,7 @@ internal static class RtfToMarkdownConverter {
         }
 
         IMarkdownListBlock childList = CreateMarkdownListBlock(document, paragraph);
-        last.LastItem.Children.Add((IMarkdownBlock)childList);
+        last.LastItem.NestedBlocks.Add((IMarkdownBlock)childList);
         var childFrame = CreateListFrame(document, paragraph, level, kind, childList);
         frames.Add(childFrame);
         return childFrame;

@@ -95,7 +95,7 @@ namespace OfficeIMO.Word {
             ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             AppendInPlaceFeatureAndReviewFindings(document, result, options);
 
-            document.Save(document.FilePath,
+            document.Save(document.FilePath!,
                 new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
         }
 

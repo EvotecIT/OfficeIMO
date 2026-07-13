@@ -43,9 +43,8 @@ public sealed class ReaderProcessorPipelineTests {
     [Fact]
     public async Task Pipeline_UsesExplicitAsyncProcessorsInOrder() {
         var observed = new List<string>();
-        var processor = new DelegateOfficeDocumentProcessor(
+        var processor = new DelegateAsyncOfficeDocumentProcessor(
             "async",
-            (document, _) => throw new InvalidOperationException("Sync path should not run."),
             async (document, context) => {
                 await Task.Yield();
                 observed.Add(context.ProcessorId);
@@ -533,13 +532,5 @@ public sealed class ReaderProcessorPipelineTests {
 
     private sealed class InvalidIdProcessor : IOfficeDocumentProcessor {
         public string Id => " invalid ";
-
-        public OfficeDocumentReadResult Process(
-            OfficeDocumentReadResult document,
-            OfficeDocumentProcessorContext context) => document;
-
-        public Task<OfficeDocumentReadResult> ProcessAsync(
-            OfficeDocumentReadResult document,
-            OfficeDocumentProcessorContext context) => Task.FromResult(document);
     }
 }

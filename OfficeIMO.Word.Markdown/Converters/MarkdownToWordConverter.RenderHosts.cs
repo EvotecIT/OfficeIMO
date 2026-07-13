@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Html;
 using System.Collections.Generic;
@@ -40,7 +41,7 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             public bool SupportsHtmlInsertion => true;
-            public void InsertHtml(string html) => _document.AddHtmlToBody(html);
+            public void InsertHtml(string html) => _document.AddHtmlToBody(HtmlConversionDocument.Parse(html));
             public bool SupportsHorizontalRule => true;
             public void InsertHorizontalRule() => _document.AddHorizontalLine();
             public void NotifyListRendered(WordList list) { }

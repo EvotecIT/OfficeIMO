@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     /// <summary>
     /// Detects a file kind from extension and bounded content evidence.
     /// </summary>

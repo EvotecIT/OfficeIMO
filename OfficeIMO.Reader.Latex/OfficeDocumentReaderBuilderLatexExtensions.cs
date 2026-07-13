@@ -18,9 +18,9 @@ public static class OfficeDocumentReaderBuilderLatexExtensions {
             Description = "Modular adapter backed by the non-executing OfficeIMO LaTeX profile.",
             Kind = ReaderInputKind.Latex,
             Extensions = new[] { ".tex" },
-            ReadPath = (path, readerOptions, cancellationToken) => DocumentReaderLatexExtensions.ReadLatexFile(
+            ReadPath = (path, readerOptions, cancellationToken) => LatexReaderAdapter.Read(
                 path, readerOptions, ReaderLatexOptionsCloner.Clone(registered), cancellationToken),
-            ReadStream = (stream, sourceName, readerOptions, cancellationToken) => DocumentReaderLatexExtensions.ReadLatex(
+            ReadStream = (stream, sourceName, readerOptions, cancellationToken) => LatexReaderAdapter.Read(
                 stream, sourceName, readerOptions, ReaderLatexOptionsCloner.Clone(registered), cancellationToken),
             WarningBehavior = ReaderWarningBehavior.WarningChunksOnly,
             DeterministicOutput = true

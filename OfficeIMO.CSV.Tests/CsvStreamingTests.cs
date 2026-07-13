@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.CSV;
 using Xunit;
 
@@ -10,6 +12,117 @@ namespace OfficeIMO.CSV.Tests;
 
 public class CsvStreamingTests
 {
+    [Fact]
+    public async Task LoadAsync_PathHonorsCompressionFromExtension()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Async." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Id", "Name")
+                .AddRow(1, "Alice")
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            CsvDocument document = await CsvDocument.LoadAsync(path);
+
+            Assert.Equal("Alice", Assert.Single(document.AsEnumerable()).AsString("Name"));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_PathHonorsExplicitCompression()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Async." + Guid.NewGuid().ToString("N") + ".data");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Id", "Name")
+                .AddRow(1, "Alice")
+                .Save(path, new CsvSaveOptions { CompressionType = CsvCompressionType.GZip, NewLine = "\n" });
+
+            CsvDocument document = await CsvDocument.LoadAsync(
+                path,
+                new CsvLoadOptions { CompressionType = CsvCompressionType.GZip });
+
+            Assert.Equal("Alice", Assert.Single(document.AsEnumerable()).AsString("Name"));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_PathEnforcesMaxDecompressedBytes()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.AsyncBounded." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Id", "Name")
+                .AddRow(1, "Alice")
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                CsvDocument.LoadAsync(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_SnapshotsCompleteCallerStreamAndRestoresPosition()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n"));
+        stream.Position = 5;
+
+        CsvDocument document = await CsvDocument.LoadAsync(stream);
+
+        Assert.Equal(5, stream.Position);
+        Assert.Equal("Alice", Assert.Single(document.AsEnumerable()).AsString("Name"));
+        stream.ReadByte();
+    }
+
+    [Fact]
+    public async Task LoadAsync_HonorsPreCanceledTokenAndRestoresPosition()
+    {
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id\n1\n"));
+        stream.Position = 2;
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            CsvDocument.LoadAsync(stream, cancellationToken: cancellation.Token));
+
+        Assert.Equal(2, stream.Position);
+    }
+
+    [Fact]
+    public void LoadOptionsClone_PreservesCallerErrorSinkWithoutMutatingMissingSink()
+    {
+        var originalError = new CsvParseError(1, "original", new FormatException("original"));
+        var options = new CsvLoadOptions {
+            CollectParseErrors = true,
+            ParseErrors = new List<CsvParseError> { originalError }
+        };
+
+        CsvLoadOptions clone = options.Clone();
+        Assert.Same(options.ParseErrors, clone.ParseErrors);
+        Assert.Same(originalError, Assert.Single(options.ParseErrors!));
+
+        var withoutErrorCollection = new CsvLoadOptions { CollectParseErrors = true };
+        CsvLoadOptions emptyClone = withoutErrorCollection.Clone();
+
+        Assert.Null(withoutErrorCollection.ParseErrors);
+        Assert.Empty(emptyClone.ParseErrors!);
+    }
+
     [Fact]
     public void StreamingMode_ReadsLazily()
     {
@@ -916,7 +1029,7 @@ public class CsvStreamingTests
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.InMemory }, leaveOpen: true);
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
         var rows = doc.AsEnumerable().ToList();
 
         Assert.Equal(2, rows.Count);
@@ -929,7 +1042,7 @@ public class CsvStreamingTests
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
         using var stream = new MemoryStream(bytes, writable: false);
 
-        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream }, leaveOpen: true);
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         var firstPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
         var secondPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
 
@@ -939,16 +1052,19 @@ public class CsvStreamingTests
     }
 
     [Fact]
-    public void LoadFromStream_StreamMode_WithLeaveOpenFalse_DisposesSource()
+    public void LoadFromStream_LeavesSourceOpenAndRestoresSeekablePosition()
     {
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n");
         var stream = new MemoryStream(bytes, writable: false);
+        stream.Position = stream.Length;
 
-        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream }, leaveOpen: false);
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         var rows = doc.AsEnumerable().ToList();
 
         Assert.Single(rows);
-        Assert.Throws<ObjectDisposedException>(() => stream.ReadByte());
+        Assert.True(stream.CanRead);
+        Assert.Equal(stream.Length, stream.Position);
+        stream.Dispose();
     }
 
     [Fact]
@@ -957,7 +1073,7 @@ public class CsvStreamingTests
         var bytes = Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n2,Bob\n");
         using var stream = new NonSeekableReadStream(bytes);
 
-        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream }, leaveOpen: true);
+        var doc = CsvDocument.Load(stream, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         var firstPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
         var secondPass = doc.AsEnumerable().Select(r => r.AsString("Name")).ToArray();
 

@@ -15,7 +15,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.SetDocumentVariable("Author", "OfficeIMO");
                 document.SetDocumentVariable("Year", DateTime.Now.Year.ToString());
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Author: {document.GetDocumentVariable("Author")}");

@@ -179,8 +179,7 @@ namespace OfficeIMO.PowerPoint {
             var items = data.ToList();
             var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
             if (options.Columns != null) {
-                paths = ObjectFlattener.ApplySelection(paths, options);
-                paths = ObjectFlattener.ApplyOrdering(paths, options);
+                paths = flattener.ResolvePaths(paths, options);
             }
 
             if (paths.Count == 0) {

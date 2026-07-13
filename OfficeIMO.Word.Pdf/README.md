@@ -89,7 +89,7 @@ foreach (var warning in result.Warnings) {
 ```csharp
 using OfficeIMO.Word.Pdf;
 
-var imported = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
+var imported = PdfWordTableConverterExtensions.SaveTablesAsWordDocument(
     "statement.pdf",
     "statement-tables.docx");
 

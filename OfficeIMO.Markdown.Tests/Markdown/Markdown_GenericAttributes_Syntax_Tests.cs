@@ -12,7 +12,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -46,7 +46,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             GenericAttributes = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("  ", paragraph.GenericAttributeConsumedWhitespace);
@@ -69,14 +69,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("intro", headingBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, headingBlock.Attributes.Classes);
         Assert.Equal("# Heading {#intro .wide}", ((IMarkdownBlock)headingBlock).RenderMarkdown());
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -116,7 +116,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("inner", headingBlock.Attributes.ElementId);
@@ -152,7 +152,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(1, headingBlock.Level);
@@ -160,7 +160,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("intro", headingBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, headingBlock.Attributes.Classes);
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -201,7 +201,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("Heading", headingBlock.Text);
@@ -209,7 +209,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new[] { "wide" }, headingBlock.Attributes.Classes);
         Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 11), headingBlock.ClosingMarkerSourceSpan);
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -252,7 +252,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var headingBlock = Assert.IsType<HeadingBlock>(document.Blocks[0]);
         var paragraphBlock = Assert.IsType<ParagraphBlock>(document.Blocks[1]);
 
@@ -271,7 +271,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -293,7 +293,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Empty(result.ReferenceLinkDefinitions);
@@ -331,7 +331,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("list", listBlock.Attributes.ElementId);
@@ -340,7 +340,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             "{#list .wide}\n- item",
             ((IMarkdownBlock)listBlock).RenderMarkdown().Replace("\r\n", "\n"));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -379,9 +379,9 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
-        var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(quoteBlock.Children));
+        var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(quoteBlock.ChildBlocks));
 
         Assert.Equal("list", listBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, listBlock.Attributes.Classes);
@@ -394,7 +394,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -439,7 +439,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             TaskLists = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -475,7 +475,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var tableBlock = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("tbl", tableBlock.Attributes.ElementId);
@@ -492,7 +492,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -534,14 +534,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
-        var tableBlock = Assert.IsType<TableBlock>(Assert.Single(quote.Children));
+        var tableBlock = Assert.IsType<TableBlock>(Assert.Single(quote.ChildBlocks));
 
         Assert.Equal("tbl", tableBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, tableBlock.Attributes.Classes);
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -577,14 +577,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
-        var tableBlock = Assert.IsType<TableBlock>(Assert.Single(list.Items[0].Children));
+        var tableBlock = Assert.IsType<TableBlock>(Assert.Single(list.Items[0].NestedBlocks));
 
         Assert.Equal("tbl", tableBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, tableBlock.Attributes.Classes);
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -621,14 +621,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
-        var nestedList = Assert.IsType<UnorderedListBlock>(Assert.Single(list.Items[0].Children));
+        var nestedList = Assert.IsType<UnorderedListBlock>(Assert.Single(list.Items[0].NestedBlocks));
 
         Assert.Equal("tasks", nestedList.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, nestedList.Attributes.Classes);
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -665,13 +665,13 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var block = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.True(block.Attributes.IsEmpty);
         Assert.Equal("| A | |---| | B |", InlinePlainText.Extract(block.Inlines));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -698,7 +698,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("code", codeBlock.Attributes.ElementId);
@@ -715,7 +715,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -761,10 +761,10 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(listBlock.Items);
-        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(item.Children));
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(item.NestedBlocks));
 
         Assert.Equal("code", codeBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, codeBlock.Attributes.Classes);
@@ -777,7 +777,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -827,9 +827,9 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
-        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(quoteBlock.Children));
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(quoteBlock.ChildBlocks));
 
         Assert.Equal("code", codeBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, codeBlock.Attributes.Classes);
@@ -842,7 +842,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -892,7 +892,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(string.Empty, codeBlock.Language);
@@ -911,7 +911,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -972,7 +972,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(string.Empty, codeBlock.Language);
@@ -990,7 +990,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -1034,7 +1034,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("cs", codeBlock.Language);
@@ -1086,7 +1086,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("cs", codeBlock.Language);
@@ -1145,7 +1145,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var imageBlock = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("img", imageBlock.Attributes.ElementId);
@@ -1160,7 +1160,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 EscapeNonAsciiText = false
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -1202,14 +1202,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("auto", paragraphBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, paragraphBlock.Attributes.Classes);
         Assert.Equal("https://example.com{#auto .wide}", ((IMarkdownBlock)paragraphBlock).RenderMarkdown());
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -1246,7 +1246,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -1273,14 +1273,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("plain", paragraphBlock.Attributes.ElementId);
         Assert.Equal(new[] { "wide" }, paragraphBlock.Attributes.Classes);
         Assert.Equal("word{#plain .wide}", document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd('\n'));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -1322,7 +1322,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1361,7 +1361,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1398,13 +1398,13 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var block = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.True(block.Attributes.IsEmpty);
         Assert.Equal(expectedText, InlinePlainText.Extract(block.Inlines));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1433,13 +1433,13 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var block = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.True(block.Attributes.IsEmpty);
         Assert.Equal(expectedText, InlinePlainText.Extract(block.Inlines));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1464,7 +1464,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1497,7 +1497,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1536,7 +1536,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1579,7 +1579,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1623,7 +1623,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1667,7 +1667,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             Subscript = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1707,7 +1707,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1751,7 +1751,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1784,7 +1784,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1827,7 +1827,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1880,7 +1880,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1932,7 +1932,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1976,7 +1976,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2008,7 +2008,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2041,7 +2041,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2079,7 +2079,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             HtmlBlocks = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2114,7 +2114,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2159,7 +2159,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             IndentedCodeBlocks = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2200,7 +2200,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2225,7 +2225,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
@@ -2246,7 +2246,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2299,7 +2299,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2345,7 +2345,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -2372,7 +2372,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);

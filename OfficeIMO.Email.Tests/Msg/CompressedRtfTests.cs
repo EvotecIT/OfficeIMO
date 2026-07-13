@@ -98,7 +98,7 @@ public sealed class CompressedRtfTests {
         };
         source.Body.Rtf = rtf;
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailReadResult result = new EmailDocumentReader().Read(bytes);
 
         Assert.Equal(rtf, result.Document.Body.Rtf);
@@ -123,7 +123,7 @@ public sealed class CompressedRtfTests {
         source.Body.Rtf = rtf;
 
         EmailReadResult result = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg));
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg));
 
         Assert.Equal(rtf, result.Document.Body.Rtf);
         Assert.Equal("<p><b>Rich</b> message</p>", result.Document.Body.Html);

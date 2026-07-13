@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableBorderCollapse_Collapse() {
             string html = "<table style=\"border-collapse:collapse;border:2px solid #ff0000\"><tr><td>A1</td><td>B1</td></tr></table>";
-            using var doc = html.ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             var insideH = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.InsideHorizontal);
             Assert.Equal(BorderValues.Single, insideH.Style);
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_TableBorderCollapse_Separate() {
             string html = "<table style=\"border-collapse:separate;border:2px solid #ff0000\"><tr><td>A1</td><td>B1</td></tr></table>";
-            using var doc = html.ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var table = doc.Tables[0];
             var insideH = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.InsideHorizontal);
             Assert.Null(insideH.Style);

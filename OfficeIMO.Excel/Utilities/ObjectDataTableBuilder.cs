@@ -2,7 +2,7 @@ using System.Collections.Concurrent;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Excel {
     /// <summary>

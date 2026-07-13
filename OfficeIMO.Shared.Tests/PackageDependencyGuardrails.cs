@@ -56,7 +56,6 @@ public sealed class PackageDependencyGuardrailTests {
         "OfficeIMO.Pdf",
         "OfficeIMO.PowerPoint",
         "OfficeIMO.PowerPoint.Pdf",
-        "OfficeIMO.Shared",
         "OfficeIMO.Visio",
         "OfficeIMO.Word",
         "OfficeIMO.Word.Pdf"
@@ -471,12 +470,13 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
 
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(projectBuildPath));
+        string? expectedVersion = document.RootElement.GetProperty("ExpectedVersion").GetString();
         JsonElement expectedVersionMap = document.RootElement.GetProperty("ExpectedVersionMap");
 
-        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Rtf").GetString());
-        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Word.Rtf").GetString());
-        Assert.Equal("0.1.X", expectedVersionMap.GetProperty("OfficeIMO.Rtf.Pdf").GetString());
-        Assert.Equal("0.0.X", expectedVersionMap.GetProperty("OfficeIMO.Reader.Rtf").GetString());
+        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty("OfficeIMO.Rtf").GetString());
+        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty("OfficeIMO.Word.Rtf").GetString());
+        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty("OfficeIMO.Rtf.Pdf").GetString());
+        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty("OfficeIMO.Reader.Rtf").GetString());
     }
 
     [Theory]
@@ -487,9 +487,10 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.True(File.Exists(projectBuildPath), "Project build file is missing: " + projectBuildPath);
 
         using JsonDocument document = JsonDocument.Parse(File.ReadAllText(projectBuildPath));
+        string? expectedVersion = document.RootElement.GetProperty("ExpectedVersion").GetString();
         JsonElement expectedVersionMap = document.RootElement.GetProperty("ExpectedVersionMap");
 
-        Assert.Equal("0.0.X", expectedVersionMap.GetProperty(packageId).GetString());
+        Assert.Equal(expectedVersion, expectedVersionMap.GetProperty(packageId).GetString());
     }
 
     [Fact]
@@ -497,9 +498,59 @@ public sealed class PackageDependencyGuardrailTests {
         string projectPath = GetRepositoryPath("OfficeIMO.Drawing/OfficeIMO.Drawing.csproj");
         var document = XDocument.Load(projectPath);
         XNamespace ns = document.Root?.Name.Namespace ?? XNamespace.None;
-        string? version = document.Descendants(ns + "VersionPrefix").Select(static element => element.Value).SingleOrDefault();
+        string? packageId = document.Descendants(ns + "PackageId").Select(static element => element.Value).SingleOrDefault();
 
-        Assert.Equal("1.0.30", version);
+        Assert.Equal("OfficeIMO.Drawing", packageId);
+    }
+
+    [Fact]
+    public void FoundationKernels_AreCompiledOnceByDrawing() {
+        Assert.False(Directory.Exists(GetRepositoryPath("OfficeIMO.Shared")));
+
+        string[] expectedDrawingOwnedFiles = [
+            "ObjectDataHelpers.cs",
+            "OfficeEncryption.cs",
+            "OfficeFileConversion.cs",
+            "Compound/OfficeCompoundFileReader.cs",
+            "Ole/OfficeOlePropertySetReader.cs",
+            "Packaging/OfficeArchiveSafety.cs",
+            "Streams/NonDisposingMemoryStream.cs"
+        ];
+        Assert.All(expectedDrawingOwnedFiles, relativePath =>
+            Assert.True(
+                File.Exists(GetRepositoryPath("OfficeIMO.Drawing/Internal/" + relativePath)),
+                "Drawing-owned foundation file is missing: " + relativePath));
+
+        string[] linkedFoundationSources = EnumerateProjectFiles()
+            .SelectMany(projectPath => XDocument.Load(projectPath)
+                .Descendants()
+                .Where(static element => element.Name.LocalName == "Compile")
+                .Select(element => new {
+                    Project = GetRepositoryRelativePath(projectPath),
+                    Include = NormalizeProjectPath((string?)element.Attribute("Include"))
+                }))
+            .Where(static item => item.Include.Contains("OfficeIMO.Drawing/Internal", StringComparison.OrdinalIgnoreCase)
+                || item.Include.Contains("OfficeIMO.Shared/", StringComparison.OrdinalIgnoreCase))
+            .Select(static item => item.Project + " -> " + item.Include)
+            .ToArray();
+
+        Assert.Empty(linkedFoundationSources);
+    }
+
+    [Fact]
+    public void SharedSource_IsLimitedToDependencySpecificAdaptersAndPolyfills() {
+        string sharedSourceRoot = GetRepositoryPath("OfficeIMO.SharedSource");
+        string[] files = Directory.EnumerateFiles(sharedSourceRoot, "*.cs", SearchOption.AllDirectories)
+            .Select(GetRepositoryRelativePath)
+            .OrderBy(static path => path, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        Assert.Equal(
+            new[] {
+                "OfficeIMO.SharedSource/Compatibility/TrimmingAttributes.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs"
+            },
+            files);
     }
 
     [Theory]
@@ -514,6 +565,7 @@ public sealed class PackageDependencyGuardrailTests {
     [InlineData("OfficeIMO.PowerPoint.Pdf/OfficeIMO.PowerPoint.Pdf.csproj")]
     [InlineData("OfficeIMO.Word.Html/OfficeIMO.Word.Html.csproj")]
     [InlineData("OfficeIMO.Word.Markdown/OfficeIMO.Word.Markdown.csproj")]
+    [InlineData("OfficeIMO.Zip/OfficeIMO.Zip.csproj")]
     public void SharedFoundationConsumers_ReferenceOfficeImoDrawing(string relativeProjectPath) {
         var projectPath = GetRepositoryPath(relativeProjectPath);
         Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
@@ -576,7 +628,7 @@ public sealed class PackageDependencyGuardrailTests {
 
         string[] sourceRoots = [
             "OfficeIMO.Word/LegacyDoc",
-            "OfficeIMO.Shared/Compound"
+            "OfficeIMO.Drawing/Internal/Compound"
         ];
         string[] sourceFiles = sourceRoots
             .Select(GetRepositoryPath)

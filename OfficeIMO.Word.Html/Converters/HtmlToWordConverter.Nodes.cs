@@ -83,9 +83,6 @@ namespace OfficeIMO.Word.Html {
         private void ProcessNode(INode node, WordDocument doc, WordSection section, HtmlToWordOptions options,
             WordParagraph? currentParagraph, Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter = null, WordList? headingList = null) {
             if (node is IElement element) {
-                if (string.Equals(element.TagName, "body", StringComparison.OrdinalIgnoreCase)) {
-                    ParseLeadingStylesheetChildren(element);
-                }
                 ApplyCssToElement(element);
                 ReportAccessibilityDiagnostics(element);
                 switch (element.TagName.ToLowerInvariant()) {
@@ -837,11 +834,9 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "style": {
-                            ParseCss(element.TextContent);
                             break;
                         }
                     case "link": {
-                            ProcessLinkedStylesheetElement(element);
                             break;
                         }
                     default: {

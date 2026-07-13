@@ -22,7 +22,8 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.ValidationTextLength("E1:E10", DataValidationOperatorValues.LessThanOrEqual, 20);
                 sheet.ValidationCustomFormula("F1:F10", "SUM(A1:B1)>10");
 
-                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                document.Save();
+                if (openExcel) document.OpenInApplication();
             }
         }
     }

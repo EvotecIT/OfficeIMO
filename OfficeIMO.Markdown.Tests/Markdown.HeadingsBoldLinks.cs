@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_ParsesHeadingBoldAndLink() {
             string md = "# Heading 1\n\nThis is **bold** with a [link](https://example.com).";
 
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs.First(p => p.Style == WordParagraphStyles.Heading1).Style);
             var bodyParagraph = doc.Paragraphs.First(p => p.Text.Contains("bold"));
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_PreservesFormattingInsideLinkLabels() {
             string md = "This is [**bold link**](https://example.com) and [==highlighted==](https://example.org).";
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
 
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
                 .WithColors(accent: "#aa5500");
             string md = "See [plain](https://example.com) and [**bold** link](https://example.org).";
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions { Theme = theme });
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions { Theme = theme });
 
             var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
 
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_MixedHyperlinkRuns_UsePerRunFormatting() {
             string md = "See [**bold** plain ==highlight==](https://example.com).";
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
             var boldRun = Assert.Single(hyperlinkRuns, r => string.Equals(r.Text, "bold", StringComparison.Ordinal));
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_PreservesHtmlTagFormattingInsideLinkLabels() {
             string md = "See [<q>quoted</q> H<sup>2</sup>O and H<sub>2</sub>O](https://example.com).";
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var hyperlinkRuns = doc.Paragraphs[0].GetRuns().Where(r => r.IsHyperLink).ToList();
 
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_PreservesHeadingInlineFormatting() {
             const string md = "# **Bold** [link](https://example.com)";
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var heading = doc.Paragraphs.First();
             Assert.Equal(WordParagraphStyles.Heading1, heading.Style);

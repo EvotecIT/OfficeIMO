@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static readonly AsyncLocal<ReaderHandlerRegistrySnapshot?> ActiveHandlerRegistry = new AsyncLocal<ReaderHandlerRegistrySnapshot?>();
 
     internal static IDisposable UseHandlerRegistry(ReaderHandlerRegistrySnapshot snapshot) {

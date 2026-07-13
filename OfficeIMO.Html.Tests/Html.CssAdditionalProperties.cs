@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_Css_MarginShorthand() {
             string html = "<p style=\"margin:10pt 20pt\">Test</p>";
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
             Assert.Equal(10d, paragraph.LineSpacingBeforePoints);
             Assert.Equal(10d, paragraph.LineSpacingAfterPoints);
@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_Css_LineHeight() {
             string html = "<p style=\"line-height:1.5\">Line</p>";
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
             Assert.Equal(360, paragraph.LineSpacing);
             Assert.Equal(LineSpacingRuleValues.Auto, paragraph.LineSpacingRule);
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_Css_BackgroundColor() {
             string html = "<p style=\"background-color:#ffff00\">Mark</p>";
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
             Assert.Equal(HighlightColorValues.Yellow, paragraph.Highlight);
         }
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_Css_TextDecoration() {
             string html = "<p><span style=\"text-decoration:underline line-through\">styled</span></p>";
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal(UnderlineValues.Single, run.Underline);
             Assert.True(run.Strike);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_Css_TextDecorationStyle_MapsUnderlineVariants() {
             string html = "<p><span style=\"text-decoration:underline dotted\">dotted</span><span style=\"text-decoration-line:underline;text-decoration-style:wavy\">wavy</span></p>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
 
             Assert.Equal(UnderlineValues.Dotted, runs[0].Underline);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_Css_TextDecorationNone_ClearsInheritedDecoration() {
             string html = "<p style=\"text-decoration-line:underline;text-decoration-style:double\">under <span style=\"text-decoration:none\">plain</span></p>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
 
             Assert.Equal(UnderlineValues.Double, runs[0].Underline);

@@ -14,7 +14,7 @@ internal sealed class ReaderHandlerScopedEnumerable<T> : IEnumerable<T> {
     }
 
     public IEnumerator<T> GetEnumerator() {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             return new ReaderHandlerScopedEnumerator<T>(_handlers, _source.GetEnumerator());
         }
     }
@@ -35,7 +35,7 @@ internal sealed class ReaderHandlerScopedEnumerator<T> : IEnumerator<T> {
 
     public T Current {
         get {
-            using (DocumentReader.UseHandlerRegistry(_handlers)) {
+            using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
                 return _inner.Current;
             }
         }
@@ -44,19 +44,19 @@ internal sealed class ReaderHandlerScopedEnumerator<T> : IEnumerator<T> {
     object IEnumerator.Current => Current!;
 
     public bool MoveNext() {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             return _inner.MoveNext();
         }
     }
 
     public void Reset() {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             _inner.Reset();
         }
     }
 
     public void Dispose() {
-        using (DocumentReader.UseHandlerRegistry(_handlers)) {
+        using (DocumentReaderEngine.UseHandlerRegistry(_handlers)) {
             _inner.Dispose();
         }
     }

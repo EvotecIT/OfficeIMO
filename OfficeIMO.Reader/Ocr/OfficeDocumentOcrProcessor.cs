@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Reader;
 
 /// <summary>Runs a configured OCR engine as an ordered rich-document processor step.</summary>
-public sealed class OfficeDocumentOcrProcessor : IOfficeDocumentProcessor {
+public sealed class OfficeDocumentOcrProcessor : IAsyncOfficeDocumentProcessor {
     private readonly IOfficeOcrEngine _engine;
     private readonly OfficeDocumentOcrExecutionOptions _options;
 
@@ -21,15 +21,6 @@ public sealed class OfficeDocumentOcrProcessor : IOfficeDocumentProcessor {
 
     /// <inheritdoc />
     public string Id { get; }
-
-    /// <inheritdoc />
-    public OfficeDocumentReadResult Process(OfficeDocumentReadResult document, OfficeDocumentProcessorContext context) {
-        if (document == null) throw new ArgumentNullException(nameof(document));
-        if (context == null) throw new ArgumentNullException(nameof(context));
-        return Task.Run(
-            async () => (await document.ApplyOcrAsync(_engine, _options, context.CancellationToken).ConfigureAwait(false)).Document,
-            context.CancellationToken).GetAwaiter().GetResult();
-    }
 
     /// <inheritdoc />
     public async Task<OfficeDocumentReadResult> ProcessAsync(OfficeDocumentReadResult document, OfficeDocumentProcessorContext context) {

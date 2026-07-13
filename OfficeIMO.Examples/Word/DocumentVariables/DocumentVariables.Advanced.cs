@@ -24,7 +24,8 @@ namespace OfficeIMO.Examples.Word {
                 if (document.HasDocumentVariables) {
                     document.RemoveDocumentVariableAt(0);
                 }
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

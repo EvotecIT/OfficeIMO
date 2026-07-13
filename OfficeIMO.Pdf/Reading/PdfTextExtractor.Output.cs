@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Pdf;
 
@@ -9,7 +10,7 @@ public static partial class PdfTextExtractor {
         var paths = new List<string>(pages.Count);
         for (int i = 0; i < pages.Count; i++) {
             string outputPath = Path.Combine(fullOutputDirectory, safeBaseName + "-page-" + (i + 1).ToString("0000", System.Globalization.CultureInfo.InvariantCulture) + ".txt");
-            File.WriteAllText(outputPath, pages[i], Encoding.UTF8);
+            OfficeFileCommit.WriteAllBytes(outputPath, Encoding.UTF8.GetBytes(pages[i]));
             paths.Add(outputPath);
         }
     
@@ -22,7 +23,7 @@ public static partial class PdfTextExtractor {
         var paths = new List<string>(pages.Count);
         for (int i = 0; i < pages.Count; i++) {
             string outputPath = Path.Combine(fullOutputDirectory, safeBaseName + "-page-" + (i + 1).ToString("0000", System.Globalization.CultureInfo.InvariantCulture) + ".md");
-            File.WriteAllText(outputPath, pages[i], new UTF8Encoding(false));
+            OfficeFileCommit.WriteAllBytes(outputPath, new UTF8Encoding(false).GetBytes(pages[i]));
             paths.Add(outputPath);
         }
     
@@ -42,7 +43,7 @@ public static partial class PdfTextExtractor {
                 "-page-" + pages[i].PageNumber.ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
                 BuildOccurrenceSuffix(occurrence) +
                 ".md");
-            File.WriteAllText(outputPath, pages[i].Text, new UTF8Encoding(false));
+            OfficeFileCommit.WriteAllBytes(outputPath, new UTF8Encoding(false).GetBytes(pages[i].Text));
             paths.Add(outputPath);
         }
     
@@ -62,7 +63,7 @@ public static partial class PdfTextExtractor {
                 "-page-" + pages[i].PageNumber.ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
                 BuildOccurrenceSuffix(occurrence) +
                 ".txt");
-            File.WriteAllText(outputPath, pages[i].Text, Encoding.UTF8);
+            OfficeFileCommit.WriteAllBytes(outputPath, Encoding.UTF8.GetBytes(pages[i].Text));
             paths.Add(outputPath);
         }
     
@@ -85,7 +86,7 @@ public static partial class PdfTextExtractor {
                     "-table-" + (tableIndex + 1).ToString("0000", System.Globalization.CultureInfo.InvariantCulture) +
                     ".csv");
     
-                File.WriteAllText(outputPath, BuildCsv(page.Tables[tableIndex]), Encoding.UTF8);
+                OfficeFileCommit.WriteAllBytes(outputPath, Encoding.UTF8.GetBytes(BuildCsv(page.Tables[tableIndex])));
                 paths.Add(outputPath);
             }
         }
@@ -169,7 +170,7 @@ public static partial class PdfTextExtractor {
     private static void WriteTextOutput(Stream outputStream, string text) {
         ValidateWritableOutputStream(outputStream);
         byte[] bytes = new UTF8Encoding(false).GetBytes(text);
-        outputStream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.WriteAllBytes(outputStream, bytes);
     }
     
     private static void WriteTextOutput(string outputPath, string text) {
@@ -179,7 +180,7 @@ public static partial class PdfTextExtractor {
             Directory.CreateDirectory(directory);
         }
     
-        File.WriteAllText(fullPath, text, new UTF8Encoding(false));
+        OfficeFileCommit.WriteAllBytes(fullPath, new UTF8Encoding(false).GetBytes(text));
     }
     
     private static void ValidateWritableOutputStream(Stream outputStream) {

@@ -75,7 +75,7 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
 
                 // 4) Export to styled HTML (via Markdown) with TOC at top using simple options
                 string htmlPath = Path.Combine(outDir, "EndToEnd.html");
-                doc.SaveAsHtmlViaMarkdown(htmlPath, new HtmlOptions {
+                doc.ToMarkdownDocument().SaveAsHtml(htmlPath, new HtmlOptions {
                     Kind = HtmlKind.Document,
                     Style = HtmlStyle.Word,
                     Title = "End-to-End Demo",
@@ -95,7 +95,7 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
             // 5) Load the generated Markdown back into Word
             string mdIn = Path.Combine(outDir, "EndToEnd.md");
             string fromMdDocx = Path.Combine(outDir, "EndToEnd.FromMarkdown.docx");
-            using (var fromMarkdown = File.ReadAllText(mdIn).LoadFromMarkdown(new MarkdownToWordOptions { FontFamily = "Calibri" })) {
+            using (var fromMarkdown = OfficeIMO.Markdown.MarkdownDoc.Load(mdIn).ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" })) {
                 fromMarkdown.Save(fromMdDocx);
                 Console.WriteLine($"✓ Markdown → Word: {fromMdDocx}");
             }
@@ -105,7 +105,7 @@ namespace OfficeIMO.Examples.Word.EndToEnd {
                 string md2 = round.ToMarkdown();
                 File.WriteAllText(Path.Combine(outDir, "EndToEnd.RoundTrip.md"), md2);
                 string rtHtmlPath = Path.Combine(outDir, "EndToEnd.RoundTrip.html");
-                round.SaveAsHtmlViaMarkdown(rtHtmlPath, new HtmlOptions {
+                round.ToMarkdownDocument().SaveAsHtml(rtHtmlPath, new HtmlOptions {
                     Kind = HtmlKind.Document,
                     Style = HtmlStyle.Word,
                     Title = "End-to-End Demo (Round-Trip)",

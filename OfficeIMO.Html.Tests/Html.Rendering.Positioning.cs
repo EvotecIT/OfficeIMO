@@ -20,8 +20,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument baseline = HtmlRenderEngine.Render(baselineHtml, options);
-        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedHtml, options);
+        HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(baselineHtml), options);
+        HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(positionedHtml), options);
         HtmlRenderText baselineMoved = FindText(baseline, "Moved");
         HtmlRenderText positionedMoved = FindText(positioned, "Moved");
         HtmlRenderText baselineNext = FindText(baseline, "Next");
@@ -32,7 +32,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(baselineNext.X, positionedNext.X, 3);
         Assert.Equal(baselineNext.Y, positionedNext.Y, 3);
         Assert.Equal(baseline.Pages[0].Height, positioned.Pages[0].Height, 3);
-        Assert.DoesNotContain(positioned.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(positioned.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.PositionInsetUnsupported
             || diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
     }
@@ -47,8 +47,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument baseline = HtmlRenderEngine.Render(baselineHtml, options);
-        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedHtml, options);
+        HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(baselineHtml), options);
+        HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(positionedHtml), options);
 
         AssertPaintOffset(baseline, positioned, "Outer", 7D, 3D);
         AssertPaintOffset(baseline, positioned, "Inner", 12D, 5D);
@@ -69,8 +69,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument baseline = HtmlRenderEngine.Render(baselineHtml, options);
-        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedHtml, options);
+        HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(baselineHtml), options);
+        HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(positionedHtml), options);
 
         Assert.Equal(baseline.Pages.Count, positioned.Pages.Count);
         for (int index = 1; index <= 6; index++) {
@@ -97,8 +97,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(16D)
         };
 
-        HtmlRenderDocument baseline = HtmlRenderEngine.Render(table, options);
-        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedTable, options);
+        HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(table, options);
+        HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(positionedTable, options);
 
         Assert.True(baseline.Pages.Count >= 3);
         Assert.Equal(baseline.Pages.Count, positioned.Pages.Count);
@@ -115,7 +115,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(baselineFooter.Y + 8D, positionedFooter.Y, 3);
         }
 
-        Assert.DoesNotContain(positioned.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(positioned.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.TableHeaderRepeatSuppressed
             || diagnostic.Code == HtmlRenderDiagnosticCodes.TableFooterRepeatSuppressed);
     }
@@ -131,10 +131,10 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -142,7 +142,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(15, 15));
@@ -150,7 +150,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"10\" y=\"10\" width=\"20\" height=\"20\"", svg, StringComparison.Ordinal);
         string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("PositionPdfMarker", searchablePdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -164,10 +164,10 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -175,7 +175,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
 
         Assert.Equal(OfficeColor.White, raster.GetPixel(5, 5));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(85, 45));
@@ -183,7 +183,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"10\" y=\"10\" width=\"80\" height=\"40\"", svg, StringComparison.Ordinal);
         string searchablePdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         Assert.Contains("AbsolutePdfMarker", searchablePdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -193,15 +193,15 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='position:sticky'>Sticky</div>"
             + "<div style='position:relative;left:calc(5px + 2px);top:10%;z-index:3'>Relative</div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
-        Assert.Equal(2, rendered.Diagnostics.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionInsetUnsupported));
-        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStickyStatic);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+        Assert.Equal(2, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionInsetUnsupported));
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStickyStatic);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
         Assert.All(
             new[] {
                 HtmlRenderDiagnosticCodes.PositionInsetUnsupported,
@@ -219,7 +219,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='flow' style='width:30px;height:20px;margin:0;background:#0000ff'>Flow</div></section>"
             + "<div id='after' style='width:30px;height:10px;margin:0;background:#00ff00'>After</div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -233,7 +233,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(20D, absolute.Height, 3);
         Assert.InRange(flow.Y, 0D, 0.02D);
         Assert.Equal(100D, after.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
     }
 
     [Fact]
@@ -241,7 +241,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div style='position:relative;width:200px;height:100px;margin:0'>"
             + "<div id='stretched' style='position:absolute;left:10px;right:20px;top:10px;bottom:20px;margin:0;background:#ff0000'></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -262,7 +262,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='grid-flow' style='height:20px;background:#00ff00'></div>"
             + "<div id='grid-absolute' style='position:absolute;left:100px;top:10px;width:20px;height:20px;background:#ffff00'></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -273,7 +273,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(10D, flexAbsolute.Y, 3);
         Assert.Equal(100D, gridAbsolute.X, 3);
         Assert.Equal(60D, gridAbsolute.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending
             || diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending
             || diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
@@ -291,7 +291,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.True(rendered.Pages.Count >= 4);
         foreach (HtmlRenderPage page in rendered.Pages) {
@@ -299,7 +299,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(5D, fixedShape.X, 3);
             Assert.Equal(5D, fixedShape.Y, 3);
         }
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
     }
 
     [Fact]
@@ -307,16 +307,16 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='sticky' style='position:sticky;z-index:2;top:0;width:20px;height:20px;margin:0;background:#ff0000'>Sticky</div>"
             + "<div id='after-sticky' style='width:20px;height:20px;margin:0;background:#0000ff'>After</div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
 
         Assert.Equal(0D, FindPositionedShape(rendered, "div#sticky").Y, 3);
         Assert.Equal(20D, FindPositionedShape(rendered, "div#after-sticky").Y, 3);
-        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStickyStatic);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStickyStatic);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
     }
 
     [Fact]
@@ -329,8 +329,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument baseline = HtmlRenderEngine.Render(baselineHtml, options);
-        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedHtml, options);
+        HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(baselineHtml), options);
+        HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(positionedHtml), options);
 
         HtmlRenderText baselineAfter = FindText(baseline, "After");
         HtmlRenderText positionedAfter = FindText(positioned, "After");
@@ -339,7 +339,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(baselineAfter.Y, positionedAfter.Y, 3);
         Assert.Equal(5D, overlay.X, 3);
         Assert.Equal(5D, overlay.Y, 3);
-        Assert.DoesNotContain(positioned.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(positioned.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
             || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
@@ -353,7 +353,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='positive-two' style='position:absolute;z-index:2;left:0;top:0;width:40px;height:40px;background:#ffff00'></div>"
             + "<div id='positive-one' style='position:absolute;z-index:1;left:0;top:0;width:40px;height:40px;background:#ff00ff'></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -371,7 +371,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "div#stack", "div#negative", "div#flow-layer", "div#auto-layer", "div#positive-one", "div#positive-two" }, paintSources);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.Yellow, raster.GetPixel(20, 20));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
     }
 
     [Fact]
@@ -381,7 +381,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='parent-context' style='position:absolute;z-index:10;left:0;top:0;width:40px;height:40px;background:#ff0000'>"
             + "<div id='nested-negative' style='position:absolute;z-index:-100;left:0;top:0;width:40px;height:40px;background:#00ff00'></div></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -403,7 +403,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='root-negative' style='position:absolute;z-index:-1;left:0;top:0;width:40px;height:40px;background:#ff0000'></div>"
             + "<div id='document-flow' style='width:40px;height:40px;margin:0;background:#00ff00'></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -419,7 +419,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "div#root-negative", "div#document-flow", "div#fixed-one", "div#root-positive" }, paintSources);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.Yellow, raster.GetPixel(20, 20));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
     }
 
     [Fact]
@@ -428,7 +428,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='auto-positioned' style='position:absolute;width:20px;height:20px;margin:0;background:#ff0000'></div>"
             + "<div id='after-auto' style='height:20px;margin:0;background:#00ff00'></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -437,7 +437,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, positioned.X, 3);
         Assert.Equal(30D, positioned.Y, 3);
         Assert.Equal(30D, FindPositionedShape(rendered, "div#after-auto").Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
@@ -447,7 +447,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='height:20px;margin:0'></div>"
             + "<div id='nested-auto' style='position:absolute;width:10px;height:10px;margin:0;background:#ff0000'></div></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -455,14 +455,14 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderShape positioned = FindPositionedShape(rendered, "div#nested-auto");
         Assert.Equal(20D, positioned.X, 3);
         Assert.Equal(42D, positioned.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
     public void HtmlAbsolutePosition_UsesInlineStaticAnchor() {
         const string html = "<p style='margin:0'>Before<span id='inline-auto' style='position:absolute;background:#ff0000'>Auto</span>After</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -471,7 +471,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderText after = FindText(rendered, "After");
         Assert.Equal(after.X, automatic.X, 3);
         Assert.Equal(after.Y, automatic.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
@@ -479,7 +479,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<p style='width:70px;margin:0'><span style='position:relative'>Alpha Beta Gamma"
             + "<span id='inline-below' style='position:absolute;left:0;top:100%;width:10px;height:10px;background:#ff0000'></span></span></p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -489,7 +489,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.NotEmpty(sourceText);
         Assert.Equal(sourceText.Min(text => text.X), positioned.X, 3);
         Assert.Equal(sourceText.Max(text => text.Y + text.Height), positioned.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
             || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
@@ -501,7 +501,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='display:grid;width:200px;height:100px;justify-items:end;align-items:center;margin:0'>"
             + "<div id='grid-auto' style='position:absolute;width:20px;height:20px;background:#0000ff'></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -512,7 +512,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(80D, flex.Y, 3);
         Assert.Equal(180D, grid.X, 3);
         Assert.Equal(140D, grid.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
@@ -527,7 +527,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(10D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.True(rendered.Pages.Count >= 2);
         foreach (HtmlRenderPage page in rendered.Pages) {
@@ -535,7 +535,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(10D, fixedShape.X, 3);
             Assert.Equal(40D, fixedShape.Y, 3);
         }
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
@@ -550,7 +550,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div style='grid-column:2;padding:5px'><div style='height:10px'></div>"
             + "<div id='grid-nested-auto' style='position:absolute;width:10px;height:10px;background:#0000ff'></div></div></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -561,7 +561,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(15D, flex.Y, 3);
         Assert.Equal(105D, grid.X, 3);
         Assert.Equal(65D, grid.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
@@ -570,7 +570,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='grid-area-auto' style='position:absolute;grid-column:2;grid-row:2;justify-self:end;align-self:center;width:20px;height:20px;background:#ff0000'></div>"
             + "<div id='grid-area-inset' style='position:absolute;grid-column:2;grid-row:2;left:10%;top:10%;width:20px;height:20px;background:#0000ff'></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 220D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -581,7 +581,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(65D, automatic.Y, 3);
         Assert.Equal(110D, inset.X, 3);
         Assert.Equal(55D, inset.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported
             || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
@@ -593,7 +593,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='root-absolute-one' style='position:absolute;z-index:1;left:0;top:0;width:40px;height:40px;background:#0000ff'></div>"
             + "<div id='root-relative-two' style='position:relative;z-index:2;top:-80px;width:40px;height:40px;margin:0;background:#ffff00'></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 80D,
             Margins = HtmlRenderMargins.All(0D)
@@ -606,7 +606,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "div#root-relative-negative", "div#root-normal", "div#root-absolute-one", "div#root-relative-two" }, paintSources);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.Yellow, raster.GetPixel(20, 20));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
     }
 
     [Fact]
@@ -621,7 +621,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='grid-normal-z' style='grid-area:1/1;width:40px;height:40px;background:#00ff00'></div>"
             + "<div id='grid-negative-z' style='position:relative;z-index:-1;grid-area:1/1;width:40px;height:40px;background:#ff0000'></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -641,7 +641,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='relative-parent-ten' style='position:relative;z-index:10;top:-40px;width:40px;height:40px;background:#ff0000'>"
             + "<div id='relative-nested-negative' style='position:relative;z-index:-100;width:40px;height:40px;background:#00ff00'></div></div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -660,7 +660,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span style='display:inline-flex;position:relative;z-index:-1;left:-40px;width:40px;height:40px'><span id='inline-negative-box' style='width:40px;height:40px;background:#ff0000'></span></span>"
             + "</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -672,7 +672,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(new[] { "span#inline-negative-box", "span#inline-normal-box" }, paintSources);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.FromRgb(0x00, 0xFF, 0x00), raster.GetPixel(20, 20));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
     }
 
     [Fact]
@@ -684,7 +684,7 @@ public sealed partial class HtmlRenderingTests {
             + "<span id='inline-nested-negative' style='position:absolute;z-index:-100;left:0;top:0;width:40px;height:40px;background:#00ff00'></span></span>"
             + "</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 80D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D)
@@ -700,7 +700,7 @@ public sealed partial class HtmlRenderingTests {
             shape => Assert.True(shape.X >= 0D, shape.Source + ":" + shape.X.ToString(System.Globalization.CultureInfo.InvariantCulture)));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
         Assert.Equal(OfficeColor.Red, raster.GetPixel(20, 20));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.PositioningModeUnsupported
             || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback
             || diagnostic.Code == HtmlRenderDiagnosticCodes.PositionZIndexPending);
@@ -718,8 +718,8 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument baseline = HtmlRenderEngine.Render(baselineHtml, options);
-        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedHtml, options);
+        HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(baselineHtml), options);
+        HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(positionedHtml), options);
         HtmlRenderText baselineText = Assert.Single(baseline.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "BeforeAfter");
         IReadOnlyList<HtmlRenderText> positionedText = positioned.Pages[0].Visuals.OfType<HtmlRenderText>()
             .Where(text => text.Text == "Before" || text.Text == "After")
@@ -734,7 +734,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(expectedX, fixedShape.X, 3);
             Assert.Equal(baselineText.Y, fixedShape.Y, 3);
         }
-        Assert.DoesNotContain(positioned.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
+        Assert.DoesNotContain(positioned.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionStaticAnchorFallback);
     }
 
     [Fact]
@@ -748,7 +748,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#negative-page-one");
@@ -765,11 +765,11 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument baseline = HtmlRenderEngine.Render(baselineHtml, options);
-        HtmlRenderDocument positioned = HtmlRenderEngine.Render(positionedHtml, options);
+        HtmlRenderDocument baseline = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(baselineHtml), options);
+        HtmlRenderDocument positioned = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(positionedHtml), options);
 
         AssertPaintOffset(baseline, positioned, "Marker", -5D, -10D);
-        Assert.DoesNotContain(positioned.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionInsetUnsupported);
+        Assert.DoesNotContain(positioned.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.PositionInsetUnsupported);
     }
 
     private static void AssertPaintOffset(HtmlRenderDocument baseline, HtmlRenderDocument positioned, string marker, double offsetX, double offsetY) {

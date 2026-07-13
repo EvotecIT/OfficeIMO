@@ -8,7 +8,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "SmartArtBasic.docx");
             using WordDocument document = WordDocument.Create(filePath);
             document.AddSmartArt(SmartArtType.BasicProcess);
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
             OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
         }
     }

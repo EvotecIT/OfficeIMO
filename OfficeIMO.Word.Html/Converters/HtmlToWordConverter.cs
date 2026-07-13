@@ -47,6 +47,7 @@ namespace OfficeIMO.Word.Html {
         private CancellationToken _cancellationToken = CancellationToken.None;
         private TimeSpan? _resourceTimeout;
         private long _imageBytesUsed;
+        private long _remoteImageBytesFetched;
         private long _cssBytesUsed;
         private HtmlToWordOptions _options = new HtmlToWordOptions();
         private static readonly Regex _classRegex = new(@"\.([a-zA-Z0-9_-]+)", RegexOptions.Compiled);
@@ -56,18 +57,6 @@ namespace OfficeIMO.Word.Html {
             "ul", "ol", "li", "pre", "code", "blockquote", "figure", "figcaption",
             "h1", "h2", "h3", "h4", "h5", "h6", "address", "hr", "dd", "dt"
         };
-        public WordDocument Convert(string html, HtmlToWordOptions options) {
-            return ConvertAsync(html, options, CancellationToken.None).GetAwaiter().GetResult();
-        }
-
-        public async Task<WordDocument> ConvertAsync(string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
-            if (html == null) throw new ArgumentNullException(nameof(html));
-            var config = Configuration.Default.WithDefaultLoader();
-            var context = BrowsingContext.New(config);
-            IDocument parsed = await context.OpenAsync(request => request.Content(html), cancellationToken).ConfigureAwait(false);
-            return await ConvertAsync((IHtmlDocument)parsed, options, cancellationToken).ConfigureAwait(false);
-        }
-
         internal async Task<WordDocument> ConvertAsync(IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new HtmlToWordOptions();
@@ -99,11 +88,14 @@ namespace OfficeIMO.Word.Html {
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
+            _remoteImageBytesFetched = 0;
             _cssBytesUsed = 0;
             ResetAccessibilityDiagnosticsState();
 
             await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
             await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
+            await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
+            await PrefetchRemoteImagesAsync(document, options, cancellationToken).ConfigureAwait(false);
 
             CaptureNoteSections(document);
             CaptureCommentSections(document);
@@ -128,8 +120,8 @@ namespace OfficeIMO.Word.Html {
             return wordDoc;
         }
 
-        internal async Task AddHtmlToBodyAsync(WordDocument doc, WordSection section, string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
-            if (html == null) throw new ArgumentNullException(nameof(html));
+        internal async Task AddHtmlToBodyAsync(WordDocument doc, WordSection section, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new HtmlToWordOptions();
             cancellationToken.ThrowIfCancellationRequested();
             _cancellationToken = cancellationToken;
@@ -137,10 +129,7 @@ namespace OfficeIMO.Word.Html {
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
 
-            var config = Configuration.Default.WithDefaultLoader();
-            var context = BrowsingContext.New(config);
-            _context = context;
-            var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
+            _context = document.Context;
             ValidateDocumentLimits(document, options);
             ApplyDocumentMetadata(doc, document);
 
@@ -156,11 +145,14 @@ namespace OfficeIMO.Word.Html {
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
+            _remoteImageBytesFetched = 0;
             _cssBytesUsed = 0;
             ResetAccessibilityDiagnosticsState();
 
             await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
             await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
+            await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
+            await PrefetchRemoteImagesAsync(document, options, cancellationToken).ConfigureAwait(false);
 
             CaptureNoteSections(document, cancellationToken);
             CaptureCommentSections(document, cancellationToken);
@@ -174,16 +166,16 @@ namespace OfficeIMO.Word.Html {
             InsertTopBookmarkIfNeeded(doc);
         }
 
-        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordHeader header, string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
-            await AddHtmlToHeaderFooterAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
+        internal async Task AddHtmlToHeaderAsync(WordDocument doc, WordHeader header, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            await AddHtmlToHeaderFooterAsync(doc, header, document, options, cancellationToken).ConfigureAwait(false);
         }
 
-        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordFooter footer, string html, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
-            await AddHtmlToHeaderFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);
+        internal async Task AddHtmlToFooterAsync(WordDocument doc, WordFooter footer, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken = default) {
+            await AddHtmlToHeaderFooterAsync(doc, footer, document, options, cancellationToken).ConfigureAwait(false);
         }
 
-        private async Task AddHtmlToHeaderFooterAsync(WordDocument doc, WordHeaderFooter headerFooter, string html, HtmlToWordOptions options, CancellationToken cancellationToken) {
-            if (html == null) throw new ArgumentNullException(nameof(html));
+        private async Task AddHtmlToHeaderFooterAsync(WordDocument doc, WordHeaderFooter headerFooter, IHtmlDocument document, HtmlToWordOptions options, CancellationToken cancellationToken) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new HtmlToWordOptions();
             cancellationToken.ThrowIfCancellationRequested();
             _cancellationToken = cancellationToken;
@@ -191,10 +183,7 @@ namespace OfficeIMO.Word.Html {
             _resourceTimeout = options.ResourceTimeout;
             _options = options;
 
-            var config = Configuration.Default.WithDefaultLoader();
-            var context = BrowsingContext.New(config);
-            _context = context;
-            var document = await context.OpenAsync(req => req.Content(html), cancellationToken).ConfigureAwait(false);
+            _context = document.Context;
             ValidateDocumentLimits(document, options);
             ApplyDocumentMetadata(doc, document);
 
@@ -210,11 +199,14 @@ namespace OfficeIMO.Word.Html {
             _cssClassStyles.Clear();
             _pendingTopBookmark = false;
             _imageBytesUsed = 0;
+            _remoteImageBytesFetched = 0;
             _cssBytesUsed = 0;
             ResetAccessibilityDiagnosticsState();
 
             await LoadConfiguredStylesheetsAsync(document, options, cancellationToken).ConfigureAwait(false);
             await LoadHeadStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
+            await LoadBodyStylesheetsAsync(document, cancellationToken).ConfigureAwait(false);
+            await PrefetchRemoteImagesAsync(document, options, cancellationToken).ConfigureAwait(false);
 
             CaptureNoteSections(document, cancellationToken);
             CaptureCommentSections(document, cancellationToken);

@@ -6,8 +6,8 @@ namespace OfficeIMO.Pdf;
 /// <summary>Rendered visual and structural comparison report for two PDFs.</summary>
 public sealed class PdfVisualComparisonReport {
     internal PdfVisualComparisonReport(IReadOnlyList<PdfVisualPageComparison> pages, IReadOnlyList<string> structuralDifferences) {
-        Pages = pages;
-        StructuralDifferences = structuralDifferences;
+        Pages = pages.ToArray();
+        StructuralDifferences = structuralDifferences.ToArray();
     }
 
     /// <summary>Per-page comparisons.</summary>
@@ -42,9 +42,14 @@ public sealed class PdfVisualComparisonReport {
 
 /// <summary>One rendered page comparison and its human-review artifacts.</summary>
 public sealed class PdfVisualPageComparison {
+    private readonly byte[] _expectedPng;
+    private readonly byte[] _actualPng;
+    private readonly byte[] _diffPng;
+
     internal PdfVisualPageComparison(int pageNumber, bool isMatch, int width, int height, long comparedPixels, long differentPixels, int maximumChannelDifference, double meanChannelDifference, byte[] expectedPng, byte[] actualPng, byte[] diffPng) {
         PageNumber = pageNumber; IsMatch = isMatch; Width = width; Height = height; ComparedPixels = comparedPixels; DifferentPixels = differentPixels;
-        MaximumChannelDifference = maximumChannelDifference; MeanChannelDifference = meanChannelDifference; ExpectedPng = expectedPng; ActualPng = actualPng; DiffPng = diffPng;
+        MaximumChannelDifference = maximumChannelDifference; MeanChannelDifference = meanChannelDifference;
+        _expectedPng = (byte[])expectedPng.Clone(); _actualPng = (byte[])actualPng.Clone(); _diffPng = (byte[])diffPng.Clone();
     }
     /// <summary>One-based page number.</summary>
     public int PageNumber { get; }
@@ -65,9 +70,9 @@ public sealed class PdfVisualPageComparison {
     /// <summary>Changed-pixel ratio.</summary>
     public double DifferenceRatio => ComparedPixels == 0 ? 0D : DifferentPixels / (double)ComparedPixels;
     /// <summary>Expected page PNG.</summary>
-    public byte[] ExpectedPng { get; }
+    public byte[] ExpectedPng => (byte[])_expectedPng.Clone();
     /// <summary>Actual page PNG.</summary>
-    public byte[] ActualPng { get; }
+    public byte[] ActualPng => (byte[])_actualPng.Clone();
     /// <summary>Highlighted diff PNG.</summary>
-    public byte[] DiffPng { get; }
+    public byte[] DiffPng => (byte[])_diffPng.Clone();
 }

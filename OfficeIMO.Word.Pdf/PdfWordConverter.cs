@@ -506,6 +506,18 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddTable(WordDocument document, PdfCore.PdfLogicalTableExtraction extraction, PdfWordReadOptions options) {
             PdfCore.PdfLogicalTableData data = extraction.Data;
+            if (data.Truncated) {
+                AddWarning(
+                    options,
+                    "PdfTableTruncated",
+                    "Page " + extraction.PageNumber.ToString(CultureInfo.InvariantCulture) + "/Table " + (extraction.TableIndex + 1).ToString(CultureInfo.InvariantCulture),
+                    "PDF table rows were truncated by MaxTableRows.",
+                    PdfCore.PdfConversionWarningSeverity.Warning,
+                    new Dictionary<string, string> {
+                        ["ImportedRowCount"] = data.Rows.Count.ToString(CultureInfo.InvariantCulture),
+                        ["TotalRowCount"] = data.TotalRowCount.ToString(CultureInfo.InvariantCulture)
+                    });
+            }
             bool headerRowIncluded = HasHeaderRow(data);
             int columnCount = data.Columns.Count;
             int rowCount = data.Rows.Count + (headerRowIncluded ? 1 : 0);

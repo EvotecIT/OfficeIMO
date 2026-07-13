@@ -27,36 +27,19 @@ internal static class RtfBytePreservingEncoding {
     }
 
     public static byte[] ReadBytesToEnd(Stream stream, long? maxBytes, CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        using var memory = CreateInputBuffer(stream, maxBytes);
-        var buffer = new byte[81920];
-        long total = 0;
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            int read = stream.Read(buffer, 0, buffer.Length);
-            if (read == 0) break;
-            total += read;
-            EnforceInputByteLimit(total, maxBytes);
-            memory.Write(buffer, 0, read);
+        try {
+            return OfficeStreamReader.ReadAllBytes(stream, cancellationToken, maxBytes);
+        } catch (InvalidDataException) when (maxBytes.HasValue) {
+            throw CreateInputLimitException(stream, maxBytes.Value);
         }
-
-        return memory.ToArray();
     }
 
     public static async Task<byte[]> ReadBytesToEndAsync(Stream stream, long? maxBytes, CancellationToken cancellationToken) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        using var memory = CreateInputBuffer(stream, maxBytes);
-        var buffer = new byte[81920];
-        long total = 0;
-        while (true) {
-            int read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
-            total += read;
-            EnforceInputByteLimit(total, maxBytes);
-            await memory.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
+        try {
+            return await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken, maxBytes).ConfigureAwait(false);
+        } catch (InvalidDataException) when (maxBytes.HasValue) {
+            throw CreateInputLimitException(stream, maxBytes.Value);
         }
-
-        return memory.ToArray();
     }
 
     public static void WriteAllText(string path, string rtf) {
@@ -66,19 +49,18 @@ internal static class RtfBytePreservingEncoding {
     public static async Task WriteAllTextAsync(string path, string rtf, CancellationToken cancellationToken) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         byte[] bytes = ToBytes(rtf);
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true);
-        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     public static void WriteTo(Stream stream, string rtf) {
         byte[] bytes = ToBytes(rtf);
-        stream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.WriteAllBytes(stream, bytes);
     }
 
     public static async Task WriteToAsync(Stream stream, string rtf, CancellationToken cancellationToken) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         byte[] bytes = ToBytes(rtf);
-        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
     }
 
     private static string FromBytes(byte[] bytes) {
@@ -90,22 +72,14 @@ internal static class RtfBytePreservingEncoding {
         return new string(chars);
     }
 
-    private static MemoryStream CreateInputBuffer(Stream stream, long? maxBytes) {
-        if (!stream.CanSeek) return new MemoryStream();
-        long remaining = Math.Max(0, stream.Length - stream.Position);
-        EnforceInputByteLimit(remaining, maxBytes);
-        return remaining <= int.MaxValue ? new MemoryStream((int)remaining) : new MemoryStream();
-    }
-
-    private static void EnforceInputByteLimit(long actual, long? limit) {
-        if (limit.HasValue && actual > limit.Value) {
-            throw new RtfReadLimitException(
-                "RtfInputByteLimitExceeded",
-                $"RTF input exceeded {nameof(RtfReadOptions.MaxInputBytes)} ({actual} > {limit.Value}).",
-                nameof(RtfReadOptions.MaxInputBytes),
-                actual,
-                limit.Value);
-        }
+    private static RtfReadLimitException CreateInputLimitException(Stream stream, long limit) {
+        long actual = stream.CanSeek ? stream.Length : checked(limit + 1);
+        return new RtfReadLimitException(
+            "RtfInputByteLimitExceeded",
+            $"RTF input exceeded {nameof(RtfReadOptions.MaxInputBytes)} ({actual} > {limit}).",
+            nameof(RtfReadOptions.MaxInputBytes),
+            actual,
+            limit);
     }
 
     internal static byte[] ToBytes(string rtf) {

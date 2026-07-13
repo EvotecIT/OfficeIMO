@@ -652,7 +652,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertNoTempArtifact(WordDocument document) {
-            Assert.Equal(string.Empty, document.FilePath);
+            Assert.Null(document.FilePath);
         }
     }
 }

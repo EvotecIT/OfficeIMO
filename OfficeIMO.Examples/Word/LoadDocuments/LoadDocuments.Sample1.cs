@@ -31,7 +31,8 @@ namespace OfficeIMO.Examples.Word {
                 // changing books from 1 to 5
                 document.Tables[0].Rows[1].Cells[1].Paragraphs[0].Text = "5";
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

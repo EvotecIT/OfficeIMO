@@ -20,10 +20,7 @@ public sealed class OdfConversionResult<TDocument> where TDocument : class {
 
     /// <summary>Returns the converted document or throws when the conversion was lossy.</summary>
     public TDocument RequireNoLoss() {
-        if (HasLoss) {
-            throw new InvalidOperationException(
-                $"Conversion from {Report.SourceFormat} to {Report.TargetFormat} was lossy. Inspect the conversion report for details.");
-        }
+        Report.RequireNoLoss();
         return Value;
     }
 }

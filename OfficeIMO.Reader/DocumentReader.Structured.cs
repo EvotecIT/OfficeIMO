@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     /// <summary>Extracts a bounded structured view from an already-read document.</summary>
     public static OfficeDocumentStructuredExtractionResult ExtractStructured(
         OfficeDocumentReadResult document,

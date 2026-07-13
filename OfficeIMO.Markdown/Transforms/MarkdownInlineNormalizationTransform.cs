@@ -90,14 +90,14 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
             case CalloutBlock callout:
                 return NormalizeCallout(callout);
             case QuoteBlock quote:
-                NormalizeMutableBlockList(quote.Children);
+                NormalizeMutableBlockList(quote.ChildBlocks);
                 quote.ClearSyntaxCache();
                 return quote;
             case DetailsBlock details:
                 if (details.Summary != null) {
                     NormalizeBlock(details.Summary);
                 }
-                NormalizeMutableBlockList(details.Children);
+                NormalizeMutableBlockList(details.ChildBlocks);
                 details.ClearSyntaxCache();
                 return details;
             case OrderedListBlock ordered:
@@ -145,7 +145,7 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
                 MarkdownReader.NormalizeInlineSequenceInPlace(item.AdditionalParagraphs[paragraphIndex], Options);
             }
 
-            NormalizeMutableBlockList(item.Children);
+            NormalizeMutableBlockList(item.NestedBlocks);
         }
     }
 
@@ -162,7 +162,7 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
             }
 
             for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
-                NormalizeMutableBlockList(group.Definitions[definitionIndex].Blocks);
+                NormalizeMutableBlockList(group.Definitions[definitionIndex].ChildBlocks);
                 changed = true;
             }
         }
@@ -173,11 +173,11 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
     }
 
     private IMarkdownBlock NormalizeFootnote(FootnoteDefinitionBlock footnote) {
-        if (footnote.Blocks.Count == 0) {
+        if (footnote.ChildBlocks.Count == 0) {
             return footnote;
         }
 
-        var rewrittenBlocks = RewriteChildBlocks(footnote.Blocks, out bool changed);
+        var rewrittenBlocks = RewriteChildBlocks(footnote.ChildBlocks, out bool changed);
         return changed
             ? new FootnoteDefinitionBlock(footnote.Label, footnote.Text, rewrittenBlocks, syntaxChildren: null)
             : footnote;
@@ -211,7 +211,7 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
                 continue;
             }
 
-            NormalizeMutableBlockList(cell.Blocks);
+            NormalizeMutableBlockList(cell.ChildBlocks);
         }
     }
 

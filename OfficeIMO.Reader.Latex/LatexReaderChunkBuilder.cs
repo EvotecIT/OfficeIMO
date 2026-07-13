@@ -91,7 +91,7 @@ internal static class LatexReaderChunkBuilder {
                 Text = parts[index],
                 Markdown = parts.Count == 1 ? markdown : parts[index],
                 Diagnostics = new ReaderChunkDiagnostics { SourceKind = "latex" },
-                Warnings = options.IncludeDiagnostics ? BuildWarnings(result, conversion.Diagnostics, result.Document.SyntaxTree.Root.Span, parts.Count > 1) : null
+                Warnings = options.IncludeDiagnostics ? BuildWarnings(result, conversion.Report.Diagnostics, result.Document.SyntaxTree.Root.Span, parts.Count > 1) : null
             };
         }
     }

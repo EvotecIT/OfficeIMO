@@ -7,7 +7,7 @@ namespace OfficeIMO.Rtf;
 public sealed partial class RtfDocument {
     /// <summary>Loads RTF from a file.</summary>
     public static async Task<RtfReadResult> LoadAsync(string path, RtfReadOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize: 4096, useAsync: true);
         return await LoadAsync(stream, options, encoding, cancellationToken).ConfigureAwait(false);
     }
@@ -23,7 +23,7 @@ public sealed partial class RtfDocument {
 
     /// <summary>Saves the document to an RTF file.</summary>
     public async Task SaveAsync(string path, RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
         byte[] bytes = ToFileBytes(options, encoding);
         await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }

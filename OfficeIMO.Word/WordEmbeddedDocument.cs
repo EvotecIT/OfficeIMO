@@ -1,5 +1,8 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing.Internal;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -32,17 +35,56 @@ namespace OfficeIMO.Word {
             }
         }
 
+        /// <summary>Asynchronously retrieves the HTML markup of the embedded document when available.</summary>
+        public async Task<string?> GetHtmlAsync(CancellationToken cancellationToken = default) {
+            if (!string.Equals(ContentType, "text/html", StringComparison.OrdinalIgnoreCase)) {
+                return null;
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            using var stream = OpenRead();
+            using var reader = new StreamReader(stream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
+            string html = await reader.ReadToEndAsync().ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            return html;
+        }
+
+        /// <summary>Opens a readable stream for the embedded document payload.</summary>
+        public Stream OpenRead() => _altContent.GetStream(FileMode.Open, FileAccess.Read);
+
+        /// <summary>Returns a copy of the embedded document payload.</summary>
+        public byte[] ToBytes() {
+            using Stream stream = OpenRead();
+            return OfficeStreamReader.ReadAllBytes(stream);
+        }
+
+        /// <summary>Returns the embedded document payload in a new stream positioned at the beginning.</summary>
+        public MemoryStream ToStream() => new MemoryStream(ToBytes());
+
 
         /// <summary>
         /// Saves the embedded document to the specified file.
         /// </summary>
         /// <param name="fileName">Target file path.</param>
         public void Save(string fileName) {
-            using (FileStream stream = new FileStream(fileName, FileMode.Create)) {
-                using (var altStream = _altContent.GetStream()) {
-                    altStream.CopyTo(stream);
-                }
-            }
+            OfficeFileCommit.WriteAllBytes(fileName, ToBytes());
+        }
+
+        /// <summary>Saves the embedded document to a caller-owned stream.</summary>
+        public void Save(Stream stream) => OfficeStreamWriter.WriteAllBytes(stream, ToBytes());
+
+        /// <summary>Saves the embedded document to the specified file asynchronously.</summary>
+        public async Task SaveAsync(string fileName, CancellationToken cancellationToken = default) {
+            using Stream source = OpenRead();
+            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
+            await OfficeFileCommit.WriteAllBytesAsync(fileName, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Saves the embedded document to a caller-owned stream asynchronously.</summary>
+        public async Task SaveAsync(Stream stream, CancellationToken cancellationToken = default) {
+            using Stream source = OpenRead();
+            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
+            await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>

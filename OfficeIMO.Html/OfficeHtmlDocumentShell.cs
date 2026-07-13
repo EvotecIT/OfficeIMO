@@ -40,7 +40,7 @@ public static class OfficeHtmlDocumentShell {
     /// <summary>
     /// Gets the shared CSS for an OfficeIMO HTML document theme.
     /// </summary>
-    public static string GetThemeCss(OfficeHtmlDocumentThemeKind theme, string newLine = "\n") {
+    public static string GetThemeCss(OfficeVisualThemeKind theme, string newLine = "\n") {
         string accent;
         string accentDark;
         string surface;
@@ -50,7 +50,7 @@ public static class OfficeHtmlDocumentShell {
         double fontSize;
 
         switch (theme) {
-            case OfficeHtmlDocumentThemeKind.Compact:
+            case OfficeVisualThemeKind.Compact:
                 accent = "#0F766E";
                 accentDark = "#115E59";
                 surface = "#F8FAFC";
@@ -59,7 +59,7 @@ public static class OfficeHtmlDocumentShell {
                 muted = "#475569";
                 fontSize = 13D;
                 break;
-            case OfficeHtmlDocumentThemeKind.Report:
+            case OfficeVisualThemeKind.Report:
                 accent = "#1D4ED8";
                 accentDark = "#1E3A8A";
                 surface = "#F9FAFB";
@@ -68,7 +68,7 @@ public static class OfficeHtmlDocumentShell {
                 muted = "#475569";
                 fontSize = 14D;
                 break;
-            case OfficeHtmlDocumentThemeKind.Technical:
+            case OfficeVisualThemeKind.TechnicalDocument:
                 accent = "#047857";
                 accentDark = "#065F46";
                 surface = "#F8FAFC";

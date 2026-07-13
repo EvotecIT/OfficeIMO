@@ -18,7 +18,7 @@ public sealed class LatexConversionRegressionTests {
         Assert.Equal("tab:values", table.Attributes.ElementId);
         Assert.Equal("Important values", table.Attributes.GetAttribute("caption"));
         Assert.Contains("A", result.Value.ToMarkdown(), StringComparison.Ordinal);
-        Assert.Contains(result.Diagnostics, static diagnostic =>
+        Assert.Contains(result.Report.Diagnostics, static diagnostic =>
             diagnostic.Feature == "table-header" && diagnostic.Outcome == LatexMarkdownConversionOutcome.Simplified);
     }
 
@@ -66,7 +66,7 @@ public sealed class LatexConversionRegressionTests {
 
         Assert.Contains("https://example.test/a\\%20b?q=x\\#part\\&v=1", result.Source, StringComparison.Ordinal);
         Assert.Contains("\\label{section_0025_231}", result.Source, StringComparison.Ordinal);
-        Assert.Contains(result.Diagnostics, static diagnostic => diagnostic.Feature == "label");
+        Assert.Contains(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "label");
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public sealed class LatexConversionRegressionTests {
 
         Assert.Single(result.Value.Blocks.OfType<ImageBlock>());
         Assert.Single(result.Value.Blocks.OfType<TableBlock>());
-        Assert.Equal(2, result.Diagnostics.Count(static diagnostic =>
+        Assert.Equal(2, result.Report.Diagnostics.Count(static diagnostic =>
             diagnostic.Code == "LATEXMD298" && diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback));
         Assert.Equal(2, result.Value.Blocks.OfType<CodeBlock>().Count(static block =>
             block.Content.Contains("\\centering", StringComparison.Ordinal)));
@@ -131,7 +131,7 @@ public sealed class LatexConversionRegressionTests {
         Assert.Single(paragraph.Inlines.Nodes.OfType<SubscriptSequenceInline>());
         Assert.Single(paragraph.Inlines.Nodes.OfType<StrikethroughSequenceInline>());
         Assert.Equal(2, paragraph.Inlines.Nodes.OfType<HardBreakInline>().Count());
-        Assert.DoesNotContain(result.Diagnostics, static diagnostic =>
+        Assert.DoesNotContain(result.Report.Diagnostics, static diagnostic =>
             diagnostic.Outcome == LatexMarkdownConversionOutcome.SourceFallback);
     }
 

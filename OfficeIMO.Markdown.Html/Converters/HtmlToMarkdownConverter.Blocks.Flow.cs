@@ -3,7 +3,7 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     private static IEnumerable<IMarkdownBlock> ConvertParagraphElement(IElement element, ConversionContext context) {
         if (TryConvertParagraphAsStandaloneMediaBlock(element, context, out var mediaBlocks)) {
             return mediaBlocks;
@@ -119,11 +119,11 @@ public sealed partial class HtmlToMarkdownConverter {
                 if (!encounteredNonParagraphBlock) {
                     item.AdditionalParagraphs.Add(paragraph.Inlines);
                 } else {
-                    item.Children.Add(paragraph);
+                    item.NestedBlocks.Add(paragraph);
                 }
             } else {
                 encounteredNonParagraphBlock = true;
-                item.Children.Add(blocks[index]);
+                item.NestedBlocks.Add(blocks[index]);
             }
         }
 
@@ -137,10 +137,10 @@ public sealed partial class HtmlToMarkdownConverter {
 
         var quote = new QuoteBlock();
         foreach (var block in ConvertNodesToBlocks(element.ChildNodes, context)) {
-            quote.Children.Add(block);
+            quote.ChildBlocks.Add(block);
         }
 
-        if (quote.Children.Count == 0) {
+        if (quote.ChildBlocks.Count == 0) {
             string text = NormalizeBlockText(element.TextContent);
             if (text.Length > 0) {
                 quote.Lines.Add(text);

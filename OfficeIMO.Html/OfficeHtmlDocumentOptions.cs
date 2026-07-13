@@ -8,7 +8,7 @@ public sealed class OfficeHtmlDocumentOptions {
     public string Title { get; set; } = "OfficeIMO HTML";
 
     /// <summary>Theme applied when default shell styles are included.</summary>
-    public OfficeHtmlDocumentThemeKind Theme { get; set; } = OfficeHtmlDocumentThemeKind.WordLike;
+    public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.WordLike;
 
     /// <summary>When true, emits the shared OfficeIMO CSS shell.</summary>
     public bool IncludeDefaultStyles { get; set; } = true;

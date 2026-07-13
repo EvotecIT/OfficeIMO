@@ -3,6 +3,8 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 
 namespace OfficeIMO.Excel {
@@ -73,9 +75,11 @@ namespace OfficeIMO.Excel {
         /// Snapshot of an Excel header/footer image.
         /// </summary>
         public sealed class HeaderFooterImageSnapshot {
+            private readonly byte[] _bytes;
+
             internal HeaderFooterImageSnapshot(HeaderFooterPosition position, byte[] bytes, string contentType, double widthPoints, double heightPoints) {
                 Position = position;
-                Bytes = bytes;
+                _bytes = (byte[])bytes.Clone();
                 ContentType = contentType;
                 WidthPoints = widthPoints;
                 HeightPoints = heightPoints;
@@ -84,7 +88,7 @@ namespace OfficeIMO.Excel {
             /// <summary>Header/footer section position.</summary>
             public HeaderFooterPosition Position { get; }
             /// <summary>Image bytes.</summary>
-            public byte[] Bytes { get; }
+            public byte[] Bytes => (byte[])_bytes.Clone();
             /// <summary>Image content type, such as image/png or image/jpeg.</summary>
             public string ContentType { get; }
             /// <summary>Image width in points.</summary>
@@ -535,14 +539,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Downloads an image from URL and sets it in the header at the given position (convenience wrapper).
+        /// Asynchronously downloads an image from a URL and sets it in the header at the given position.
         /// </summary>
-        public void SetHeaderImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null) {
-            if (string.IsNullOrWhiteSpace(url)) return;
-            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var ct) && bytes != null) {
-                var contentType = NormalizeImageContentType(ct, nameof(ct));
-                SetHeaderImage(position, bytes, contentType, widthPoints, heightPoints);
-            }
+        public async Task SetHeaderImageFromUrlAsync(HeaderFooterPosition position, string url, double? widthPoints = null,
+            double? heightPoints = null, CancellationToken cancellationToken = default) {
+            OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
+                url,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            SetHeaderImage(position, remote.ToBytes(), remote.ContentType, widthPoints, heightPoints);
         }
 
         /// <summary>
@@ -559,14 +563,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Downloads an image from URL and sets it in the footer at the given position (convenience wrapper).
+        /// Asynchronously downloads an image from a URL and sets it in the footer at the given position.
         /// </summary>
-        public void SetFooterImageUrl(HeaderFooterPosition position, string url, double? widthPoints = null, double? heightPoints = null) {
-            if (string.IsNullOrWhiteSpace(url)) return;
-            if (OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var ct) && bytes != null) {
-                var contentType = NormalizeImageContentType(ct, nameof(ct));
-                SetFooterImage(position, bytes, contentType, widthPoints, heightPoints);
-            }
+        public async Task SetFooterImageFromUrlAsync(HeaderFooterPosition position, string url, double? widthPoints = null,
+            double? heightPoints = null, CancellationToken cancellationToken = default) {
+            OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
+                url,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            SetFooterImage(position, remote.ToBytes(), remote.ContentType, widthPoints, heightPoints);
         }
 
         private static string EscapeHeaderFooter(string? text) {

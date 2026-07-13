@@ -1,4 +1,5 @@
 using System.Text;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Html;
 
@@ -45,7 +46,7 @@ public static class HtmlSupportMatrixWriter {
     /// <summary>Writes the generated Markdown support matrix to a file, replacing any existing file.</summary>
     public static void WriteMarkdown(string path) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("A support-matrix path is required.", nameof(path));
-        File.WriteAllText(path, ToMarkdown(), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+        OfficeFileCommit.WriteAllBytes(path, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(ToMarkdown()));
     }
 
     private static void AppendList(StringBuilder builder, string label, IReadOnlyList<string> values) {

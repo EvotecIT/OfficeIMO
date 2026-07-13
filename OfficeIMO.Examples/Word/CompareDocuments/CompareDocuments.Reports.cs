@@ -110,7 +110,8 @@ namespace OfficeIMO.Examples.Word {
 
             if (openWord) {
                 using WordDocument inPlaceRedline = WordDocument.Load(inPlaceRedlinePath);
-                inPlaceRedline.Save(new WordSaveOptions { OpenAfterSave = true });
+                inPlaceRedline.Save();
+                inPlaceRedline.OpenInApplication();
             }
         }
 

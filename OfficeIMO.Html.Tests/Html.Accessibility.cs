@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
     public class HtmlAccessibility {
         [Fact]
         public void HtmlToWord_DocumentLanguage_UsesHtmlLangAttribute() {
-            using var document = "<html lang=\"pl-PL\"><body><p>Tekst</p></body></html>".ToWordDocument();
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse("<html lang=\"pl-PL\"><body><p>Tekst</p></body></html>").ToWordDocument();
 
             Assert.Equal("pl-PL", document.Settings.Language);
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "Tekst", StringComparison.Ordinal));
@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_DocumentLanguage_FallsBackToBodyLangAttribute() {
-            using var document = "<body lang=\"fr-FR\"><p>Texte</p></body>".ToWordDocument();
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse("<body lang=\"fr-FR\"><p>Texte</p></body>").ToWordDocument();
 
             Assert.Equal("fr-FR", document.Settings.Language);
         }
@@ -38,9 +38,9 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_ElementLanguage_MapsToRunLanguage() {
-            using var document = """
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse("""
                 <p>English <span lang="fr-FR">Bonjour</span> <span xml:lang="pl-PL">Czesc</span></p>
-                """.ToWordDocument();
+                """).ToWordDocument();
 
             var runs = document.Paragraphs.Single(paragraph => paragraph.Text.Contains("Bonjour", StringComparison.Ordinal)).GetRuns().ToList();
 
@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void HtmlToWord_ElementLanguage_InheritsFromContainer() {
-            using var document = "<div lang=\"de-DE\">Hallo</div>".ToWordDocument();
+            using var document = OfficeIMO.Html.HtmlConversionDocument.Parse("<div lang=\"de-DE\">Hallo</div>").ToWordDocument();
 
             var run = document.Paragraphs.Single(paragraph => paragraph.Text.Contains("Hallo", StringComparison.Ordinal)).GetRuns().Single(run => run.Text == "Hallo");
 
@@ -61,10 +61,10 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_AccessibilityDiagnostics_AreOptIn() {
             var options = new HtmlToWordOptions();
 
-            HtmlToWordResult conversion = "<h1>Title</h1><h3>Skipped</h3><p><img src=\"missing.png\"></p>".ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("<h1>Title</h1><h3>Skipped</h3><p><img src=\"missing.png\"></p>").ToWordDocumentResult(options);
             using var document = conversion.Value;
 
-            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
                 ImageProcessing = ImageProcessingMode.EmbedDataUriOnly
             };
 
-            HtmlToWordResult conversion = """
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("""
                 <p>
                   <img src="missing.png">
                   <img src="decorative.png" alt="">
@@ -82,11 +82,11 @@ namespace OfficeIMO.Tests {
                   <a href="https://example.com/empty"><img src="icon.png" alt=""></a>
                   <a href="https://example.com/named" aria-label="Quarterly report"></a>
                 </p>
-                """.ToWordDocumentResult(options);
+                """).ToWordDocumentResult(options);
 
             using var document = conversion.Value;
 
-            var accessibilityDiagnostics = conversion.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
+            var accessibilityDiagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityImageMissingAlt" && diagnostic.Source == "missing.png");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityLinkTextWeak" && diagnostic.Source == "https://example.com/report");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityLinkTextMissing" && diagnostic.Source == "https://example.com/empty");
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
                 EnableAccessibilityDiagnostics = true
             };
 
-            HtmlToWordResult conversion = """
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse("""
                 <h1>Title</h1>
                 <h3>Skipped</h3>
                 <table id="data">
@@ -111,11 +111,11 @@ namespace OfficeIMO.Tests {
                   <thead><tr><th>Name</th><th>Total</th></tr></thead>
                   <tbody><tr><td>Ada</td><td>42</td></tr></tbody>
                 </table>
-                """.ToWordDocumentResult(options);
+                """).ToWordDocumentResult(options);
 
             using var document = conversion.Value;
 
-            var accessibilityDiagnostics = conversion.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
+            var accessibilityDiagnostics = conversion.Report.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityHeadingLevelSkipped" && diagnostic.Source == "h3");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityTableMissingHeader" && diagnostic.Source == "table#data");
             Assert.DoesNotContain(accessibilityDiagnostics, diagnostic => diagnostic.Source == "table#headed");
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
                 EnableAccessibilityDiagnostics = true
             };
 
-            HtmlToWordResult conversion = $"""
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse($"""
                 <html lang="en-US">
                   <body>
                     <main>
@@ -156,11 +156,11 @@ namespace OfficeIMO.Tests {
                     </main>
                   </body>
                 </html>
-                """.ToWordDocumentResult(options);
+                """).ToWordDocumentResult(options);
 
             using var document = conversion.Value;
 
-            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
 
             using MemoryStream stream = document.ToStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);

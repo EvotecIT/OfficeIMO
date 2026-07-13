@@ -9,7 +9,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = Path.Combine(folderPath, "DocumentWithRepeatingSection.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph().AddRepeatingSection("Section", "RS", "RSTag");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

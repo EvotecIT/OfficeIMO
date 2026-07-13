@@ -32,7 +32,10 @@ public sealed class EmailMailboxReader {
         return Parse(data, cancellationToken);
     }
 
-    /// <summary>Reads from the stream's current position without closing it.</summary>
+    /// <summary>
+    /// Reads without closing the stream. Seekable streams are read from the beginning and restored to their
+    /// original position; non-seekable streams are read forward from their current position.
+    /// </summary>
     public EmailMailboxReadResult Read(Stream stream, CancellationToken cancellationToken = default) {
         return Parse(EmailByteReader.ReadAll(stream, _options.MessageOptions.MaxInputBytes, cancellationToken), cancellationToken);
     }
@@ -46,7 +49,10 @@ public sealed class EmailMailboxReader {
         }
     }
 
-    /// <summary>Asynchronously reads from the stream's current position without closing it.</summary>
+    /// <summary>
+    /// Asynchronously reads without closing the stream. Seekable streams are read from the beginning and restored
+    /// to their original position; non-seekable streams are read forward.
+    /// </summary>
     public async Task<EmailMailboxReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
         byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MessageOptions.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         return Parse(data, cancellationToken);

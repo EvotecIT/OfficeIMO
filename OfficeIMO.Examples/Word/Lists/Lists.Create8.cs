@@ -38,7 +38,8 @@ namespace OfficeIMO.Examples.Word {
                 wordList3.AddItem("Text 3.3");
                 wordList3.AddItem("Text 3.4");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

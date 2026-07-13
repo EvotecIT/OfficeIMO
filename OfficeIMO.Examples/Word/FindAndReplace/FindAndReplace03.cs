@@ -20,7 +20,8 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Reloaded paragraph text: {document.Paragraphs[0].Text.Replace(Environment.NewLine, "\\n")}");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

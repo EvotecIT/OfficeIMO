@@ -27,7 +27,7 @@ public class RtfHtmlDocumentDataTests {
         Assert.Contains("<meta name=\"officeimo-rtf-user-properties\" content=\"", html, StringComparison.Ordinal);
         Assert.Contains("<meta name=\"officeimo-rtf-document-variables\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
 
         Assert.Collection(roundTrip.UserProperties,
             property => {

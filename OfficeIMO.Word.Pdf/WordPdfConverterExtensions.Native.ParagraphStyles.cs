@@ -557,18 +557,18 @@ namespace OfficeIMO.Word.Pdf {
                 size = PdfCore.PageSizes.A4;
             }
 
-            PdfPageOrientation orientation;
+            PdfCore.PdfPageOrientation orientation;
             if (options?.Orientation != null) {
                 orientation = options.Orientation.Value;
             } else if (section.PageSettings.Orientation == W.PageOrientationValues.Landscape) {
-                orientation = PdfPageOrientation.Landscape;
+                orientation = PdfCore.PdfPageOrientation.Landscape;
             } else if (options?.DefaultOrientation != null) {
-                orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfPageOrientation.Landscape : PdfPageOrientation.Portrait;
+                orientation = options.DefaultOrientation == W.PageOrientationValues.Landscape ? PdfCore.PdfPageOrientation.Landscape : PdfCore.PdfPageOrientation.Portrait;
             } else {
-                orientation = PdfPageOrientation.Portrait;
+                orientation = PdfCore.PdfPageOrientation.Portrait;
             }
 
-            return orientation == PdfPageOrientation.Landscape ? size.Landscape() : size.Portrait();
+            return orientation == PdfCore.PdfPageOrientation.Landscape ? size.Landscape() : size.Portrait();
         }
 
         private static PdfCore.PageSize MapNativePageSize(WordPageSize pageSize) =>

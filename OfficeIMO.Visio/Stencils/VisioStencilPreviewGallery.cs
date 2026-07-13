@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using OfficeIMO.Drawing;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -257,7 +258,7 @@ namespace OfficeIMO.Visio.Stencils {
             builder.AppendLine("  </main>");
             builder.AppendLine("</body>");
             builder.AppendLine("</html>");
-            File.WriteAllText(indexPath, builder.ToString(), new UTF8Encoding(false));
+            OfficeFileCommit.WriteAllBytes(indexPath, new UTF8Encoding(false).GetBytes(builder.ToString()));
         }
 
         private static void AppendEntry(StringBuilder builder, VisioStencilPreviewGalleryEntry entry) {
@@ -301,7 +302,7 @@ namespace OfficeIMO.Visio.Stencils {
             string contentType = string.IsNullOrWhiteSpace(image.PreviewImage.ContentType)
                 ? OfficeImageInfo.GetMimeTypeFromExtension(image.PreviewImage.Extension)
                 : image.PreviewImage.ContentType!;
-            string dataUri = OfficeSvgImageRenderer.CreateDataUri(contentType, image.Data);
+            string dataUri = OfficeSvgImageRenderer.CreateDataUri(contentType, image.ToBytes());
             string width = options.ThumbnailWidth.ToString(CultureInfo.InvariantCulture);
             string height = options.ThumbnailHeight.ToString(CultureInfo.InvariantCulture);
             double imageWidth = Math.Max(1, options.ThumbnailWidth - 28);
@@ -330,7 +331,7 @@ namespace OfficeIMO.Visio.Stencils {
                 12D,
                 OfficeTextAlignment.Left).AppendLine();
             builder.AppendLine("</svg>");
-            File.WriteAllText(path, builder.ToString(), new UTF8Encoding(false));
+            OfficeFileCommit.WriteAllBytes(path, new UTF8Encoding(false).GetBytes(builder.ToString()));
             return path;
         }
 

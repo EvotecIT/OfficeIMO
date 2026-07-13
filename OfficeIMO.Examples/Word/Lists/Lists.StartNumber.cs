@@ -11,7 +11,8 @@ namespace OfficeIMO.Examples.Word {
                 list.Numbering.AddLevel(level);
                 list.AddItem("Starts at three");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

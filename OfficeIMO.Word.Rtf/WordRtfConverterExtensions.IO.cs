@@ -29,27 +29,4 @@ public static partial class WordRtfConverterExtensions {
         document.ToRtfDocument().Save(stream, options, encoding);
     }
 
-    /// <summary>Creates a Word document from RTF text.</summary>
-    public static WordDocument LoadFromRtf(this string rtf, RtfReadOptions? readOptions = null) {
-        RtfReadResult result = RtfDocument.Read(rtf, readOptions);
-        return result.Document.ToWordDocument();
-    }
-
-    /// <summary>Creates a Word document from source RTF bytes using the core byte-preserving RTF reader.</summary>
-    public static WordDocument LoadFromRtf(this byte[] rtfBytes, RtfReadOptions? readOptions = null) {
-        RtfReadResult result = RtfDocument.Load(rtfBytes, readOptions);
-        return result.Document.ToWordDocument();
-    }
-
-    /// <summary>Creates a Word document from an RTF stream, reading from the stream's current position.</summary>
-    public static WordDocument LoadFromRtf(this Stream rtfStream, RtfReadOptions? readOptions = null, Encoding? encoding = null) {
-        RtfReadResult result = RtfDocument.Load(rtfStream, readOptions, encoding);
-        return result.Document.ToWordDocument();
-    }
-
-    /// <summary>Loads an RTF file and converts it to a Word document.</summary>
-    public static WordDocument LoadFromRtfFile(string path, RtfReadOptions? readOptions = null, Encoding? encoding = null) {
-        RtfReadResult result = RtfDocument.Load(path, readOptions, encoding);
-        return result.Document.ToWordDocument();
-    }
 }

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static string BuildRichTableText(ReaderTable table) {
         IEnumerable<IReadOnlyList<string>> rows = table.Columns.Count == 0
             ? table.Rows

@@ -79,10 +79,6 @@ namespace OfficeIMO.Excel.Fluent {
             return Spacer();
         }
 
-        /// <summary>Alias for <see cref="PropertiesGrid"/>.</summary>
-        public SheetComposer DefinitionList(IEnumerable<(string Key, object? Value)> items, int columns = 2)
-            => PropertiesGrid(items, columns);
-
         /// <summary>Renders a compact grid of key/value pairs.</summary>
         public SheetComposer PropertiesGrid(IEnumerable<(string Key, object? Value)> properties, int columns = 2) {
             if (properties == null) return this;

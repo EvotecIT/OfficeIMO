@@ -32,7 +32,7 @@ public sealed class ReaderRtfModularTests {
         RtfImage image = document.AddImage(RtfImageFormat.Png, new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
         image.Description = "Tiny image";
 
-        OfficeDocumentReadResult result = DocumentReaderRtfExtensions.ReadRtfDocumentResult(document, "rich.rtf");
+        OfficeDocumentReadResult result = RtfReaderAdapter.ReadDocument(document, "rich.rtf");
 
         Assert.Equal("Rich RTF", result.Source.Title);
         Assert.Equal("OfficeIMO", result.Source.Author);
@@ -56,7 +56,7 @@ public sealed class ReaderRtfModularTests {
         Assert.Equal(header.Id, header.Location.BlockAnchor);
         Assert.Equal(note.Id, note.Location.BlockAnchor);
         OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(
-            DocumentReaderRtfExtensions.ReadRtfDocumentResultJson(document, "rich.rtf"));
+            RtfReaderAdapter.ReadDocumentJson(document, "rich.rtf"));
         Assert.Equal(ReaderInputKind.Rtf, jsonResult.Kind);
         Assert.Contains("officeimo.reader.rtf.rich-v5", result.CapabilitiesUsed);
     }
@@ -69,7 +69,7 @@ public sealed class ReaderRtfModularTests {
         table.Rows[1].Cells[0].AddParagraph("Row 2");
         table.Rows[2].Cells[0].AddParagraph("Row 3");
 
-        OfficeDocumentReadResult result = DocumentReaderRtfExtensions.ReadRtfDocumentResult(
+        OfficeDocumentReadResult result = RtfReaderAdapter.ReadDocument(
             document,
             "bounded.rtf",
             new ReaderOptions { MaxTableRows = 1 });
@@ -89,7 +89,7 @@ public sealed class ReaderRtfModularTests {
         document.AddParagraph("Hello RTF reader.");
         document.AddParagraph("Second paragraph.");
 
-        var chunks = DocumentReaderRtfExtensions.ReadRtfDocument(
+        var chunks = RtfReaderAdapter.Read(
             document,
             sourceName: "inline.rtf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
@@ -116,7 +116,7 @@ public sealed class ReaderRtfModularTests {
         table.Rows[1].Cells[0].AddParagraph("Bandage");
         table.Rows[1].Cells[1].AddParagraph("4");
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderRtfExtensions.ReadRtfDocument(
+        ReaderChunk chunk = Assert.Single(RtfReaderAdapter.Read(
             document,
             sourceName: "table.rtf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }));
@@ -145,7 +145,7 @@ public sealed class ReaderRtfModularTests {
             data.Name = "Patient";
         });
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderRtfExtensions.ReadRtfDocument(
+        ReaderChunk chunk = Assert.Single(RtfReaderAdapter.Read(
             document,
             sourceName: "nested.rtf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }));
@@ -179,7 +179,7 @@ public sealed class ReaderRtfModularTests {
         string rtf = CreateSampleRtf("Too much RTF content for this limit.");
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(rtf));
 
-        var ex = Assert.Throws<IOException>(() => DocumentReaderRtfExtensions.ReadRtf(
+        var ex = Assert.Throws<IOException>(() => RtfReaderAdapter.Read(
             stream,
             sourceName: "limited.rtf",
             readerOptions: new ReaderOptions { MaxInputBytes = 16 }).ToList());
@@ -237,7 +237,7 @@ public sealed class ReaderRtfModularTests {
         document.AddShape().AddTextBoxParagraph("Shape text");
         var options = ReaderRtfOptions.CreateTrustedProfile();
 
-        RtfConversionResult<IReadOnlyList<ReaderChunk>> conversion = DocumentReaderRtfExtensions.ReadRtfChunksResult(document, rtfOptions: options);
+        RtfConversionResult<IReadOnlyList<ReaderChunk>> conversion = RtfReaderAdapter.ReadResult(document, rtfOptions: options);
         IReadOnlyList<ReaderChunk> chunks = conversion.Value;
 
         Assert.Contains(chunks, chunk => chunk.Text.Contains("Object text", StringComparison.Ordinal));
@@ -245,14 +245,14 @@ public sealed class ReaderRtfModularTests {
         Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
         Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
         Assert.Contains(chunks[0].Warnings!, warning => warning.StartsWith("ReaderRtfObjectFlattened:", StringComparison.Ordinal));
-        OfficeDocumentReadResult rich = DocumentReaderRtfExtensions.ReadRtfDocumentResult(document, rtfOptions: options);
+        OfficeDocumentReadResult rich = RtfReaderAdapter.ReadDocument(document, rtfOptions: options);
         Assert.Contains(rich.Diagnostics, diagnostic =>
             diagnostic.Code == "ReaderRtfObjectFlattened" &&
             diagnostic.Category == OfficeDocumentDiagnosticCategory.Content);
 
         RtfDocument cleanDocument = RtfDocument.Create();
         cleanDocument.AddParagraph("Clean RTF reader operation.");
-        RtfConversionResult<IReadOnlyList<ReaderChunk>> clean = DocumentReaderRtfExtensions.ReadRtfChunksResult(cleanDocument, rtfOptions: options);
+        RtfConversionResult<IReadOnlyList<ReaderChunk>> clean = RtfReaderAdapter.ReadResult(cleanDocument, rtfOptions: options);
 
         Assert.DoesNotContain(clean.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened");
         Assert.Contains(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "ReaderRtfObjectFlattened");

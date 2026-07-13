@@ -10,10 +10,8 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     private int _columnSpan = 1;
     private int _rowSpan = 1;
 
-    /// <summary>Structured cell content.</summary>
-    public List<IMarkdownBlock> Blocks { get; } = new List<IMarkdownBlock>();
     /// <summary>Structured child blocks owned by this table cell.</summary>
-    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Blocks;
+    public List<IMarkdownBlock> ChildBlocks { get; } = new List<IMarkdownBlock>();
     /// <summary>Owned syntax nodes for the structured cell body.</summary>
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
     /// <summary>Whether this cell belongs to the header row.</summary>
@@ -66,7 +64,7 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
 
         foreach (var block in blocks) {
             if (block != null) {
-                Blocks.Add(block);
+                ChildBlocks.Add(block);
             }
         }
     }
@@ -75,17 +73,17 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     public string Markdown => RenderMarkdown();
 
     internal string RenderMarkdown() {
-        if (Blocks.Count == 0) {
+        if (ChildBlocks.Count == 0) {
             return string.Empty;
         }
 
-        if (Blocks.Count == 1 && Blocks[0] is ParagraphBlock paragraph) {
+        if (ChildBlocks.Count == 1 && ChildBlocks[0] is ParagraphBlock paragraph) {
             return paragraph.Inlines.RenderMarkdown();
         }
 
         var sb = new StringBuilder();
-        for (int i = 0; i < Blocks.Count; i++) {
-            var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(Blocks[i]);
+        for (int i = 0; i < ChildBlocks.Count; i++) {
+            var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(ChildBlocks[i]);
             if (string.IsNullOrEmpty(rendered)) {
                 continue;
             }
@@ -101,23 +99,24 @@ public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, IS
     }
 
     internal string RenderHtml() {
-        if (Blocks.Count == 0) {
+        if (ChildBlocks.Count == 0) {
             return string.Empty;
         }
 
-        if (Blocks.Count == 1 && Blocks[0] is ParagraphBlock paragraph) {
+        if (ChildBlocks.Count == 1 && ChildBlocks[0] is ParagraphBlock paragraph) {
             var rendered = paragraph.Inlines.RenderHtml();
             return rendered.Contains('\n') ? rendered.Replace("\n", "<br/>") : rendered;
         }
 
         var sb = new StringBuilder();
-        for (int i = 0; i < Blocks.Count; i++) {
-            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(Blocks[i]));
+        for (int i = 0; i < ChildBlocks.Count; i++) {
+            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
         }
 
         return sb.ToString();
     }
 
+    IReadOnlyList<IMarkdownBlock> IChildMarkdownBlockContainer.ChildBlocks => ChildBlocks;
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {

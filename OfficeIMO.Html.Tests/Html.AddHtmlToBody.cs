@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AddHtmlToBody_InsertsAtBeginning() {
             using WordDocument document = WordDocument.Create();
-            document.AddHtmlToBody("<p>First</p>");
+            document.AddHtmlToBody(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>First</p>"));
             document.AddParagraph("Second");
 
             Assert.Equal("First", document.Paragraphs[0].Text);
@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
         public void AddHtmlToBody_InsertsInMiddle() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Start");
-            document.AddHtmlToBody("<p>Middle</p>");
+            document.AddHtmlToBody(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Middle</p>"));
             document.AddParagraph("End");
 
             Assert.Equal("Start", document.Paragraphs[0].Text);
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Start");
             document.AddParagraph("Middle");
-            document.AddHtmlToBody("<p>End</p>");
+            document.AddHtmlToBody(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>End</p>"));
 
             Assert.Equal("Start", document.Paragraphs[0].Text);
             Assert.Equal("Middle", document.Paragraphs[1].Text);

@@ -4,7 +4,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Consistent UTF-8 text I/O for OfficeIMO HTML adapters. The default encoding is UTF-8 without a byte-order mark.
 /// </summary>
-public static class HtmlTextIO {
+internal static class HtmlTextIO {
     private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
 
     /// <summary>Reads HTML text while detecting a byte-order mark and leaving the source stream open.</summary>
@@ -38,22 +38,21 @@ public static class HtmlTextIO {
     public static void Write(Stream stream, string html) {
         ValidateWritable(stream);
         byte[] bytes = Utf8NoBom.GetBytes(html ?? throw new ArgumentNullException(nameof(html)));
-        stream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.WriteAllBytes(stream, bytes);
     }
 
     /// <summary>Asynchronously writes HTML text to a file as UTF-8 without a byte-order mark.</summary>
     public static async Task WriteAsync(string path, string html, CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An HTML output path is required.", nameof(path));
         byte[] bytes = Utf8NoBom.GetBytes(html ?? throw new ArgumentNullException(nameof(html)));
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None, 81920, true);
-        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>Asynchronously writes HTML text to a stream as UTF-8 without a byte-order mark and leaves it open.</summary>
     public static async Task WriteAsync(Stream stream, string html, CancellationToken cancellationToken = default) {
         ValidateWritable(stream);
         byte[] bytes = Utf8NoBom.GetBytes(html ?? throw new ArgumentNullException(nameof(html)));
-        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
     }
 
     private static void ValidateReadable(Stream stream) {

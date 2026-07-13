@@ -15,7 +15,7 @@ public sealed partial class HtmlRenderingTests {
             + "</div>"
             + "<div id='after-parent' style='width:40px;height:10px;margin:15px 0 0;background:#0000ff'></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 55D,
             ViewportHeight = 60D,
             Margins = HtmlRenderMargins.All(0D),
@@ -37,7 +37,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='padded-child' style='width:40px;height:10px;margin:10px 0 12px;background:#ff0000'></div>"
             + "</div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 55D,
             ViewportHeight = 40D,
             Margins = HtmlRenderMargins.All(0D),
@@ -58,7 +58,7 @@ public sealed partial class HtmlRenderingTests {
             + "<div id='after-empty' style='width:20px;height:10px;margin:15px 0 0;background:#0000ff'></div>"
             + "<div id='tail' style='width:20px;height:10px;margin:0;background:#00ff00'></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 30D,
             ViewportHeight = 55D,
             Margins = HtmlRenderMargins.All(0D),
@@ -87,12 +87,12 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderShape first = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#first");
         HtmlRenderShape second = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#second");
         HtmlRenderShape third = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#third");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -101,7 +101,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(0D, first.Y, 3);
@@ -112,6 +112,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("y=\"25\"", svg, StringComparison.Ordinal);
         Assert.Contains("GapPdf", pdfText, StringComparison.Ordinal);
         Assert.Single(PdfCore.PdfReadDocument.Load(pdf).Pages);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 }

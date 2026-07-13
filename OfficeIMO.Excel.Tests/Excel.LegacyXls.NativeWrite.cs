@@ -18,7 +18,7 @@ using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Write;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using System.Globalization;
 using System.Threading.Tasks;
 using Xunit;

@@ -25,7 +25,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Section 1 P0: " + document.Sections[1].Paragraphs[0].Text);
                 Console.WriteLine("Section 2 P0: " + document.Sections[2].Paragraphs[0].Text);
                 Console.WriteLine("+ Sections: " + document.Sections.Count);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

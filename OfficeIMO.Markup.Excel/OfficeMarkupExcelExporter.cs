@@ -3,8 +3,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.Excel;
 
-public sealed class OfficeMarkupExcelExporter {
-    public void Export(OfficeMarkupDocument document, OfficeMarkupExcelExportOptions options) {
+internal sealed class OfficeMarkupExcelExporter {
+    public ExcelDocument Convert(OfficeMarkupDocument document, MarkupToExcelOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -17,29 +17,21 @@ public sealed class OfficeMarkupExcelExporter {
             throw new InvalidOperationException("Excel export requires the Workbook OfficeIMO markup profile.");
         }
 
-        if (string.IsNullOrWhiteSpace(options.OutputPath)) {
-            throw new InvalidOperationException("Excel export requires an output path.");
+        ExcelDocument workbook = ExcelDocument.Create();
+        try {
+            var context = new WorkbookExportContext(workbook, options);
+
+            foreach (var block in document.Blocks) {
+                ExportBlock(context, block);
+            }
+
+            context.EnsureCurrentSheet();
+            FinalizeWorkbook(context);
+            return workbook;
+        } catch {
+            workbook.Dispose();
+            throw;
         }
-
-        var directory = Path.GetDirectoryName(Path.GetFullPath(options.OutputPath));
-        if (!string.IsNullOrEmpty(directory)) {
-            Directory.CreateDirectory(directory);
-        }
-
-        using var workbook = ExcelDocument.Create(options.OutputPath);
-        var context = new WorkbookExportContext(workbook, options);
-
-        foreach (var block in document.Blocks) {
-            ExportBlock(context, block);
-        }
-
-        context.EnsureCurrentSheet();
-        FinalizeWorkbook(context);
-        workbook.Save(options.OutputPath, new ExcelSaveOptions {
-            SafePreflight = options.SafePreflight,
-            ValidateOpenXml = options.ValidateOpenXml,
-            SafeRepairDefinedNames = options.SafeRepairDefinedNames
-        });
     }
 
     private static void ExportBlock(WorkbookExportContext context, OfficeMarkupBlock block) {
@@ -499,7 +491,7 @@ public sealed class OfficeMarkupExcelExporter {
         return (cell.Row, cell.Col);
     }
 
-    private static (int Row, int Column, int Width, int Height) ResolveChartPlacement(OfficeMarkupExcelExportOptions options, OfficeMarkupChartBlock chart, string? placementCell) {
+    private static (int Row, int Column, int Width, int Height) ResolveChartPlacement(MarkupToExcelOptions options, OfficeMarkupChartBlock chart, string? placementCell) {
         var row = GetInt(chart.Attributes, "row")
             ?? GetInt(chart.Attributes, "y")
             ?? options.DefaultChartRow;
@@ -798,12 +790,12 @@ public sealed class OfficeMarkupExcelExporter {
         private readonly Dictionary<string, int> _freezeRows = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
         private ExcelSheet? _currentSheet;
 
-        public WorkbookExportContext(ExcelDocument workbook, OfficeMarkupExcelExportOptions options) {
+        public WorkbookExportContext(ExcelDocument workbook, MarkupToExcelOptions options) {
             _workbook = workbook;
             Options = options;
         }
 
-        public OfficeMarkupExcelExportOptions Options { get; }
+        public MarkupToExcelOptions Options { get; }
 
         public IEnumerable<ExcelSheet> Sheets => _sheets.Values.Distinct();
 

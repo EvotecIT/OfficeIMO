@@ -45,8 +45,7 @@ Q4,320,150
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
-                OutputPath = path
+            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
             });
 
             var workbookSheetCount = OpenWorkbookViaExcelCom(path);

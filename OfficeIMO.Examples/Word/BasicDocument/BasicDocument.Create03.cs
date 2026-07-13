@@ -22,7 +22,8 @@ namespace OfficeIMO.Examples.Word {
                 paragraph2.FontSize = 15;
                 paragraph2.FontFamily = "Courier New";
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
         public static void Example_BasicWordWithDefaultFontChange(string folderPath, bool openWord) {
@@ -51,7 +52,8 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph(title).SetBold().ParagraphAlignment = JustificationValues.Center;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

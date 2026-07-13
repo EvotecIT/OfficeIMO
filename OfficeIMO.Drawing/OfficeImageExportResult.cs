@@ -6,6 +6,8 @@ namespace OfficeIMO.Drawing;
 /// Result returned by dependency-free image export operations.
 /// </summary>
 public sealed class OfficeImageExportResult {
+    private readonly byte[] _bytes;
+
     /// <summary>
     /// Creates an image export result.
     /// </summary>
@@ -20,10 +22,12 @@ public sealed class OfficeImageExportResult {
         Format = format;
         Width = width;
         Height = height;
-        Bytes = bytes ?? System.Array.Empty<byte>();
+        _bytes = bytes == null ? System.Array.Empty<byte>() : (byte[])bytes.Clone();
         Name = name;
         Source = source;
-        Diagnostics = diagnostics ?? System.Array.Empty<OfficeImageExportDiagnostic>();
+        Diagnostics = diagnostics == null
+            ? System.Array.Empty<OfficeImageExportDiagnostic>()
+            : new List<OfficeImageExportDiagnostic>(diagnostics).AsReadOnly();
     }
 
     /// <summary>Output image format.</summary>
@@ -36,7 +40,7 @@ public sealed class OfficeImageExportResult {
     public int Height { get; }
 
     /// <summary>Encoded image bytes.</summary>
-    public byte[] Bytes { get; }
+    public byte[] Bytes => (byte[])_bytes.Clone();
 
     /// <summary>Optional result name, such as a sheet or page name.</summary>
     public string? Name { get; }

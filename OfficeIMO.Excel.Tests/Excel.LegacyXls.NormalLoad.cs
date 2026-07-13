@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = ExcelDocument.LoadEncrypted(sourcePath, "openpass");
 
                 Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
-                Assert.Equal(string.Empty, document.FilePath);
+                Assert.Null(document.FilePath);
                 Assert.Equal("Rc4Sheet", document.Sheets.Single().Name);
                 Assert.Throws<InvalidOperationException>(() => document.Save());
             } finally {
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = await ExcelDocument.LoadEncryptedAsync(sourcePath, "openpass");
 
                 Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
-                Assert.Equal(string.Empty, document.FilePath);
+                Assert.Null(document.FilePath);
                 Assert.Equal("Rc4Sheet", document.Sheets.Single().Name);
                 Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? value));
                 Assert.Equal("RC4 secret", value);

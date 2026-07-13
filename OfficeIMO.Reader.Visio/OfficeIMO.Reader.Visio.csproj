@@ -3,7 +3,7 @@
     <Description>Visio adapter for OfficeIMO.Reader using OfficeIMO.Visio inspection snapshots.</Description>
     <AssemblyName>OfficeIMO.Reader.Visio</AssemblyName>
     <AssemblyTitle>OfficeIMO.Reader.Visio</AssemblyTitle>
-    <VersionPrefix>0.0.14</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
     <PackageValidationBaselineVersion>0.0.14</PackageValidationBaselineVersion>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
@@ -46,5 +46,8 @@
     <Using Include="System.Security.Cryptography" />
     <Using Include="System.Text" />
     <Using Include="System.Threading" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
   </ItemGroup>
 </Project>

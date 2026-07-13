@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void Markdown_Strikethrough_RoundTrip() {
             string md = "This is ~~strike~~ text";
 
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
             var paragraph = doc.Paragraphs[0];
             var run = paragraph.GetRuns().First(r => r.Strike);
 

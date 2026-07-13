@@ -29,7 +29,8 @@ namespace OfficeIMO.Examples.Word {
                 t.Rows[1].Cells[0].AddParagraph("Example", true);
                 t.Rows[1].Cells[1].AddParagraph("Data", true);
 
-                doc.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                doc.Save();
+                if (openWord) doc.OpenInApplication();
             }
         }
 
@@ -52,7 +53,8 @@ namespace OfficeIMO.Examples.Word {
             t.Rows[0].Cells[1].AddParagraph("90%", true);
             t.Rows[1].Cells[0].AddParagraph("10%", true);
             t.Rows[1].Cells[1].AddParagraph("90%", true);
-            doc.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            doc.Save();
+            if (openWord) doc.OpenInApplication();
         }
     }
 }

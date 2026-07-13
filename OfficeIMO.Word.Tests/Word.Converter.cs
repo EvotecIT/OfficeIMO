@@ -45,7 +45,7 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Load(templatePath)) {
             if (useSaveAs) {
-                using WordDocument savedDocument = document.SaveCopy(outFilePath);
+                document.SaveCopy(outFilePath);
             } else {
                 document.Save(outFilePath);
             }

@@ -99,7 +99,7 @@ Lead[^1]
     [Theory]
     [MemberData(nameof(RepresentativeMarkdownDocuments))]
     public void ParseWithSyntaxTree_RepresentativeDocuments_Satisfy_TreeInvariants(string markdown) {
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
@@ -112,7 +112,7 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.SyntaxTree);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
@@ -144,7 +144,7 @@ Lead[^1]
         options.DocumentTransforms.Add(new AppendParagraphTransform());
         options.DocumentTransforms.Add(probe);
 
-        MarkdownReader.Parse("First paragraph", options);
+        OfficeIMO.Markdown.MarkdownReader.Parse("First paragraph", options);
 
         Assert.True(probe.ObservedCurrentBindings);
     }

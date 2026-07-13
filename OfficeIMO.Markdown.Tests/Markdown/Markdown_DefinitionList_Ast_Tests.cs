@@ -9,7 +9,7 @@ public sealed class Markdown_DefinitionList_Ast_Tests {
     [InlineData("Term\n:   Definition\n")]
     [InlineData("Term\n:\tDefinition\n")]
     public void DefinitionList_MarkdigMarkerSyntax_Matches_MarkdigHtml(string markdown) {
-        var office = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
@@ -98,7 +98,7 @@ Term
     [Theory]
     [MemberData(nameof(MarkdigDefinitionListContinuationCases))]
     public void DefinitionList_MarkdigContinuationSyntax_Matches_MarkdigHtml(string markdown) {
-        var office = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
@@ -113,7 +113,7 @@ Term 2
 :   Second
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
@@ -153,7 +153,7 @@ Term 2
 :   Definition
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[1]);
@@ -161,13 +161,13 @@ Term 2
         var syntaxList = result.SyntaxTree.Children[1];
         var syntaxGroup = Assert.Single(syntaxList.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
         Assert.Equal("Term 1", paragraph.Inlines.RenderMarkdown());
         Assert.Equal("Term 2", Assert.Single(group.TermItems).Markdown);
-        Assert.Equal("Definition", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.Single(group.Definitions).Blocks)).Inlines.RenderMarkdown());
+        Assert.Equal("Definition", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.Single(group.Definitions).ChildBlocks)).Inlines.RenderMarkdown());
         Assert.Equal(
             new[] {
                 MarkdownSyntaxKind.DefinitionTerm,
@@ -191,16 +191,16 @@ Term
 lazy continuation
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -241,15 +241,15 @@ lazy one
 lazy two
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -287,12 +287,12 @@ Term
 # Heading
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var heading = Assert.IsType<HeadingBlock>(definition.Blocks[1]);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var heading = Assert.IsType<HeadingBlock>(definition.ChildBlocks[1]);
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
 
@@ -319,11 +319,11 @@ Term
 ---
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.Blocks));
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var headingSyntax = Assert.Single(definitionValue.Children);
@@ -348,11 +348,11 @@ lazy title
 {marker}
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.Blocks));
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var headingSyntax = Assert.Single(definitionValue.Children);
@@ -398,11 +398,11 @@ Term
     ---
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var heading = Assert.IsType<HeadingBlock>(definition.Blocks[1]);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var heading = Assert.IsType<HeadingBlock>(definition.ChildBlocks[1]);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -426,18 +426,18 @@ Term
 text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.Blocks));
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var headingSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -468,19 +468,19 @@ Term
 text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var rule = Assert.IsType<HorizontalRuleBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var rule = Assert.IsType<HorizontalRuleBlock>(definition.ChildBlocks[1]);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -513,11 +513,11 @@ text
     public void DefinitionList_EmptyMarkdigMarkerContinuation_Strips_FirstContinuationIndent_Source() {
         const string markdown = "Term\n:   \n    code\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
@@ -535,17 +535,17 @@ text
     public void DefinitionList_EmptyMarkdigMarker_BlankSeparatedBody_Writes_LooseMarkerSyntax_ForReparse() {
         const string markdown = "Term\n:   \n\n    code";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var marker = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionMarker);
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -574,16 +574,16 @@ Term
     | B |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -607,16 +607,16 @@ Term
 | B |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var paragraphSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -647,16 +647,16 @@ Term
 
         var readerOptions = CreateMarkdigDefinitionListReaderOptions();
         readerOptions.Tables = true;
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var table = Assert.IsType<TableBlock>(Assert.Single(definition.Blocks));
+        var table = Assert.IsType<TableBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var tableSyntax = Assert.Single(definitionValue.Children);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, readerOptions);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, readerOptions);
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
 
@@ -673,7 +673,7 @@ Term
     [InlineData("Term\n: Definition\n")]
     [InlineData("Term\n:  Definition\n")]
     public void DefinitionList_MarkdigMarkerSyntax_Requires_MarkdigMarkerSpacing(string markdown) {
-        var doc = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var html = doc.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -720,7 +720,7 @@ Term
             }));
         var document = MarkdownDoc.Create().Add(definitionList);
 
-        var syntaxTree = MarkdownReader.BuildSyntaxTree(document);
+        var syntaxTree = OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(document);
         var syntaxGroup = Assert.Single(Assert.Single(syntaxTree.Children).Children);
         var markers = syntaxGroup.Children
             .Where(child => child.Kind == MarkdownSyntaxKind.DefinitionMarker)
@@ -751,17 +751,17 @@ Term
 :   Definition
 """;
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written);
 
         Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
         var reparsedDefinitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(reparsed.Blocks));
         var group = Assert.Single(reparsedDefinitionList.Groups);
         Assert.Equal("Term", Assert.Single(group.TermItems).Markdown);
-        Assert.Equal("Definition", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.Single(group.Definitions).Blocks)).Inlines.RenderMarkdown());
+        Assert.Equal("Definition", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.Single(group.Definitions).ChildBlocks)).Inlines.RenderMarkdown());
     }
 
     [Fact]
@@ -773,10 +773,10 @@ Term 2
 :   Second
 """;
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written);
 
         Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
@@ -786,7 +786,7 @@ Term 2
         Assert.Equal(
             new[] { "First", "Second" },
             group.Definitions
-                .Select(definition => Assert.IsType<ParagraphBlock>(Assert.Single(definition.Blocks)).Inlines.RenderMarkdown())
+                .Select(definition => Assert.IsType<ParagraphBlock>(Assert.Single(definition.ChildBlocks)).Inlines.RenderMarkdown())
                 .ToArray());
         Assert.Equal(4, definitionList.Entries.Count);
     }
@@ -800,9 +800,9 @@ Term
 :   Second paragraph
 """;
 
-        var document = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -820,9 +820,9 @@ Term 2
 :   Second
 """;
 
-        var document = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var reparsedDefinitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(reparsed.Blocks));
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -841,9 +841,9 @@ Term
     - item
 """;
 
-        var document = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -860,17 +860,17 @@ Term
 - sibling item
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var list = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var list = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var listSyntax = Assert.IsType<MarkdownSyntaxNode>(definitionValue.Children[1]);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -899,17 +899,17 @@ Term
 2. sibling item
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var list = Assert.IsType<OrderedListBlock>(definition.Blocks[1]);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var list = Assert.IsType<OrderedListBlock>(definition.ChildBlocks[1]);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var listSyntax = definitionValue.Children[1];
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -938,17 +938,17 @@ Term
 * sibling item
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var firstList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
-        var secondList = Assert.IsType<UnorderedListBlock>(definition.Blocks[2]);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var firstList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
+        var secondList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[2]);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -975,19 +975,19 @@ Term
 1. sibling item
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var unordered = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
-        var ordered = Assert.IsType<OrderedListBlock>(definition.Blocks[2]);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var unordered = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
+        var ordered = Assert.IsType<OrderedListBlock>(definition.ChildBlocks[2]);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var unorderedSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.UnorderedList);
         var orderedSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.OrderedList);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1030,15 +1030,15 @@ Term
 lazy
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var html = Assert.IsType<HtmlRawBlock>(Assert.Single(definition.Blocks));
+        var html = Assert.IsType<HtmlRawBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1060,15 +1060,15 @@ lazy
     public void DefinitionList_EmptyMarkerHtmlBlockBody_LazyContinuation_MatchesMarkdigHtml_AndWriterReparse() {
         const string markdown = "Term\n:   \n    <div>\n    html\n    </div>\nlazy\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var html = Assert.IsType<HtmlRawBlock>(Assert.Single(definition.Blocks));
+        var html = Assert.IsType<HtmlRawBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1096,17 +1096,17 @@ Term
 lazy
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(definition.Blocks));
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1130,17 +1130,17 @@ lazy
     public void DefinitionList_EmptyMarkerFencedCodeBody_StopsLazyContinuationAfterClosedFence_AndWriterReparses() {
         const string markdown = "Term\n:   \n    ~~~\n    code\n    ~~~\nlazy\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(definition.Blocks));
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(definition.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1170,17 +1170,17 @@ lazy
 - item
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var codeBlock = Assert.IsType<CodeBlock>(definition.Blocks[1]);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var codeBlock = Assert.IsType<CodeBlock>(definition.ChildBlocks[1]);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var codeSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.CodeBlock);
         var codeContentSyntax = codeSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.CodeContent);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1230,13 +1230,13 @@ Term
 | B |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var item = Assert.Single(nestedList.Items);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
@@ -1244,7 +1244,7 @@ Term
         var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1285,15 +1285,15 @@ Term
 
         var readerOptions = CreateMarkdigDefinitionListReaderOptions();
         readerOptions.Tables = true;
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var item = Assert.Single(nestedList.Items);
-        var table = Assert.IsType<TableBlock>(Assert.Single(item.Children));
+        var table = Assert.IsType<TableBlock>(Assert.Single(item.NestedBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var listSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.UnorderedList);
@@ -1301,7 +1301,7 @@ Term
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var tableSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Table);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, readerOptions);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, readerOptions);
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
@@ -1310,7 +1310,7 @@ Term
         Assert.Equal("item", item.Content.RenderMarkdown());
         Assert.Equal("A", Assert.Single(table.Headers));
         Assert.Equal("B", Assert.Single(Assert.Single(table.Rows)));
-        Assert.DoesNotContain(definition.Blocks, block => block is TableBlock);
+        Assert.DoesNotContain(definition.ChildBlocks, block => block is TableBlock);
         Assert.Equal(
             new[] {
                 MarkdownSyntaxKind.Paragraph,
@@ -1356,19 +1356,19 @@ Term
 > quote
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingQuote = Assert.IsType<QuoteBlock>(result.Document.Blocks[1]);
         var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(trailingQuote.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -1403,19 +1403,19 @@ Term
 # Heading
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingHeading = Assert.IsType<HeadingBlock>(result.Document.Blocks[1]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -1451,20 +1451,20 @@ Term
 text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(3, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingRule = Assert.IsType<HorizontalRuleBlock>(result.Document.Blocks[1]);
         var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[2]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -1497,16 +1497,16 @@ lazy title
 text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(3, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingRule = Assert.IsType<HorizontalRuleBlock>(result.Document.Blocks[1]);
         var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[2]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var item = Assert.Single(nestedList.Items);
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
@@ -1514,7 +1514,7 @@ text
         var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1558,13 +1558,13 @@ lazy title
 text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var item = Assert.Single(nestedList.Items);
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
@@ -1572,7 +1572,7 @@ text
         var listItemSyntax = listSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.ListItem);
         var itemParagraphSyntax = listItemSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1610,20 +1610,20 @@ Term
 # Heading
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingHeading = Assert.IsType<HeadingBlock>(result.Document.Blocks[1]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -1659,21 +1659,21 @@ Term
 text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(3, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingRule = Assert.IsType<HorizontalRuleBlock>(result.Document.Blocks[1]);
         var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[2]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -1703,20 +1703,20 @@ Term
 - tail
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingList = Assert.IsType<UnorderedListBlock>(result.Document.Blocks[1]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1762,22 +1762,22 @@ lazy two
 - tail
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(2, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingList = Assert.IsType<UnorderedListBlock>(result.Document.Blocks[1]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1826,23 +1826,23 @@ lazy title
 text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         Assert.Equal(3, result.Document.Blocks.Count);
         var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
         var trailingRule = Assert.IsType<HorizontalRuleBlock>(result.Document.Blocks[1]);
         var trailingParagraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[2]);
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1885,20 +1885,20 @@ lazy title
 text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntaxGroup = Assert.Single(result.SyntaxTree.Children).Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1935,20 +1935,20 @@ Term
 lazy
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -1999,20 +1999,20 @@ Term
 | B |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
         var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
         var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var quoteSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.Quote);
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
@@ -2052,13 +2052,13 @@ Term
 
         var readerOptions = CreateMarkdigDefinitionListReaderOptions();
         readerOptions.Tables = true;
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        Assert.Equal(2, definition.Blocks.Count);
-        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        Assert.Equal(2, definition.ChildBlocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.ChildBlocks[1]);
         Assert.Equal(2, quote.ChildBlocks.Count);
         var quoteParagraph = Assert.IsType<ParagraphBlock>(quote.ChildBlocks[0]);
         var table = Assert.IsType<TableBlock>(quote.ChildBlocks[1]);
@@ -2068,7 +2068,7 @@ Term
         var quoteParagraphSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Paragraph);
         var tableSyntax = quoteSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.Table);
         var written = NormalizeMarkdown(result.Document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, readerOptions);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, readerOptions);
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
@@ -2113,9 +2113,9 @@ Term
 ---
 """;
 
-        var document = MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
         var written = NormalizeMarkdown(document.ToMarkdown());
-        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
@@ -2127,7 +2127,7 @@ Term
     public void DefinitionList_SimpleInlineSyntax_Still_Writes_Simple_Inline_Syntax() {
         const string markdown = "Term: Definition";
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
@@ -2136,7 +2136,7 @@ Term
 
     [Fact]
     public void DefinitionList_EntryTermMutation_Clears_Parsed_SyntaxCache() {
-        var result = MarkdownReader.ParseWithSyntaxTree("Original: first");
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("Original: first");
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
 
         Assert.NotEmpty(definitionList.SyntaxItems);
@@ -2145,7 +2145,7 @@ Term
 
         Assert.Empty(definitionList.SyntaxItems);
 
-        var syntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var syntaxTree = OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(result.Document);
         var definitionTerm = syntaxTree.Children[0].Children[0].Children[0];
 
         Assert.Equal(MarkdownSyntaxKind.DefinitionTerm, definitionTerm.Kind);
@@ -2154,7 +2154,7 @@ Term
 
     [Fact]
     public void DefinitionList_Parsed_Term_Syntax_Maps_To_Semantic_Term_Node() {
-        var result = MarkdownReader.ParseWithSyntaxTree("**Term**: first");
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("**Term**: first");
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var term = Assert.Single(group.TermItems);
@@ -2174,7 +2174,7 @@ Term
 
     [Fact]
     public void DefinitionList_DefinitionBlockMutation_Rebuilds_Stale_Parsed_SyntaxProjection() {
-        var result = MarkdownReader.ParseWithSyntaxTree("Term: first");
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("Term: first");
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var providedGroup = Assert.Single(definitionList.SyntaxItems);
         var entry = Assert.Single(definitionList.Entries);
@@ -2183,7 +2183,7 @@ Term
         entry.DefinitionBlocks.Add(new ParagraphBlock(new InlineSequence().Text("second")));
 
         var ownedGroup = Assert.Single(((IOwnedSyntaxChildrenMarkdownBlock)definitionList).BuildOwnedSyntaxChildren());
-        var syntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var syntaxTree = OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(result.Document);
         var rebuiltGroup = Assert.Single(Assert.Single(syntaxTree.Children).Children);
         var definitionMarker = rebuiltGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionMarker);
         var definitionValue = rebuiltGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);

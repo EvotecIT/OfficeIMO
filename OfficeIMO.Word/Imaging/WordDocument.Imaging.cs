@@ -1,6 +1,8 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
@@ -36,26 +38,62 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Saves the requested document page as a PNG file.
         /// </summary>
-        public void SaveAsPng(string path, WordImageExportOptions? options = null) =>
+        public OfficeImageExportResult SaveAsPng(string path, WordImageExportOptions? options = null) =>
             new WordDocumentImageExportBuilder(this, options).AsPng().Save(path);
 
         /// <summary>
         /// Saves the requested document page as an SVG file.
         /// </summary>
-        public void SaveAsSvg(string path, WordImageExportOptions? options = null) =>
+        public OfficeImageExportResult SaveAsSvg(string path, WordImageExportOptions? options = null) =>
             new WordDocumentImageExportBuilder(this, options).AsSvg().Save(path);
 
         /// <summary>
         /// Writes the requested document page as PNG to a stream.
         /// </summary>
-        public void SaveAsPng(Stream stream, WordImageExportOptions? options = null) =>
+        public OfficeImageExportResult SaveAsPng(Stream stream, WordImageExportOptions? options = null) =>
             new WordDocumentImageExportBuilder(this, options).AsPng().Save(stream);
 
         /// <summary>
         /// Writes the requested document page as SVG to a stream.
         /// </summary>
-        public void SaveAsSvg(Stream stream, WordImageExportOptions? options = null) =>
+        public OfficeImageExportResult SaveAsSvg(Stream stream, WordImageExportOptions? options = null) =>
             new WordDocumentImageExportBuilder(this, options).AsSvg().Save(stream);
+
+        /// <summary>
+        /// Asynchronously saves the requested document page as a PNG file.
+        /// </summary>
+        public Task<OfficeImageExportResult> SaveAsPngAsync(
+            string path,
+            WordImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new WordDocumentImageExportBuilder(this, options).AsPng().SaveAsync(path, cancellationToken);
+
+        /// <summary>
+        /// Asynchronously saves the requested document page as an SVG file.
+        /// </summary>
+        public Task<OfficeImageExportResult> SaveAsSvgAsync(
+            string path,
+            WordImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new WordDocumentImageExportBuilder(this, options).AsSvg().SaveAsync(path, cancellationToken);
+
+        /// <summary>
+        /// Asynchronously writes the requested document page as PNG to a stream.
+        /// </summary>
+        public Task<OfficeImageExportResult> SaveAsPngAsync(
+            Stream stream,
+            WordImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new WordDocumentImageExportBuilder(this, options).AsPng().SaveAsync(stream, cancellationToken);
+
+        /// <summary>
+        /// Asynchronously writes the requested document page as SVG to a stream.
+        /// </summary>
+        public Task<OfficeImageExportResult> SaveAsSvgAsync(
+            Stream stream,
+            WordImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new WordDocumentImageExportBuilder(this, options).AsSvg().SaveAsync(stream, cancellationToken);
 
         private static WordImageExportOptions NormalizeImageExportOptions(WordImageExportOptions? options) {
             WordImageExportOptions resolved = options?.Clone() ?? new WordImageExportOptions();

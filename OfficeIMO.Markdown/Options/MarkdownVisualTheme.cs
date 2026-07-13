@@ -6,37 +6,37 @@ namespace OfficeIMO.Markdown;
 public sealed class MarkdownVisualTheme {
     private static readonly IReadOnlyList<MarkdownVisualThemePreset> BuiltInPresets = Array.AsReadOnly(new[] {
         new MarkdownVisualThemePreset(
-            MarkdownVisualThemeKind.Plain,
+            OfficeVisualThemeKind.Plain,
             "Plain",
             "Minimal styling that leaves renderers close to their plain defaults.",
             HtmlStyle.Clean,
             "none"),
         new MarkdownVisualThemePreset(
-            MarkdownVisualThemeKind.WordLike,
+            OfficeVisualThemeKind.WordLike,
             "WordLike",
             "Clean document styling for general Word, HTML, and PDF exports.",
             HtmlStyle.Word,
             "word", "word-document"),
         new MarkdownVisualThemePreset(
-            MarkdownVisualThemeKind.TechnicalDocument,
+            OfficeVisualThemeKind.TechnicalDocument,
             "TechnicalDocument",
             "Polished technical-document styling for guides, READMEs, and specifications.",
             HtmlStyle.GithubAuto,
             "technical", "docs", "documentation"),
         new MarkdownVisualThemePreset(
-            MarkdownVisualThemeKind.GitHubLike,
+            OfficeVisualThemeKind.GitHubLike,
             "GitHubLike",
             "GitHub-inspired Markdown styling for README-style exports.",
             HtmlStyle.GithubAuto,
             "github"),
         new MarkdownVisualThemePreset(
-            MarkdownVisualThemeKind.Compact,
+            OfficeVisualThemeKind.Compact,
             "Compact",
             "Dense document styling for technical notes and command output.",
             HtmlStyle.Clean,
             "dense"),
         new MarkdownVisualThemePreset(
-            MarkdownVisualThemeKind.Report,
+            OfficeVisualThemeKind.Report,
             "Report",
             "Report-oriented styling with stronger tables and section hierarchy.",
             HtmlStyle.Word,
@@ -60,14 +60,14 @@ public sealed class MarkdownVisualTheme {
     public MarkdownVisualTheme() {
     }
 
-    private MarkdownVisualTheme(MarkdownVisualThemeKind kind, string name, HtmlStyle htmlStyle) {
+    private MarkdownVisualTheme(OfficeVisualThemeKind kind, string name, HtmlStyle htmlStyle) {
         Kind = kind;
         Name = name;
         HtmlStyle = htmlStyle;
     }
 
     /// <summary>Theme kind used for diagnostics and renderer mapping.</summary>
-    public MarkdownVisualThemeKind Kind { get; set; } = MarkdownVisualThemeKind.WordLike;
+    public OfficeVisualThemeKind Kind { get; set; } = OfficeVisualThemeKind.WordLike;
 
     /// <summary>Human-readable theme name.</summary>
     public string Name { get; set; } = "Custom";
@@ -98,19 +98,19 @@ public sealed class MarkdownVisualTheme {
     public static IReadOnlyList<MarkdownColorSchemeKind> ColorSchemes => BuiltInColorSchemes;
 
     /// <summary>Creates one of the built-in shared visual themes.</summary>
-    public static MarkdownVisualTheme Create(MarkdownVisualThemeKind kind) {
+    public static MarkdownVisualTheme Create(OfficeVisualThemeKind kind) {
         switch (kind) {
-            case MarkdownVisualThemeKind.Plain:
+            case OfficeVisualThemeKind.Plain:
                 return Plain();
-            case MarkdownVisualThemeKind.WordLike:
+            case OfficeVisualThemeKind.WordLike:
                 return WordLike();
-            case MarkdownVisualThemeKind.TechnicalDocument:
+            case OfficeVisualThemeKind.TechnicalDocument:
                 return TechnicalDocument();
-            case MarkdownVisualThemeKind.GitHubLike:
+            case OfficeVisualThemeKind.GitHubLike:
                 return GitHubLike();
-            case MarkdownVisualThemeKind.Compact:
+            case OfficeVisualThemeKind.Compact:
                 return Compact();
-            case MarkdownVisualThemeKind.Report:
+            case OfficeVisualThemeKind.Report:
                 return Report();
             default:
                 throw new ArgumentOutOfRangeException(nameof(kind), kind, "Unsupported Markdown visual theme kind.");
@@ -118,7 +118,7 @@ public sealed class MarkdownVisualTheme {
     }
 
     /// <summary>Creates one of the built-in shared visual themes and applies a built-in color scheme.</summary>
-    public static MarkdownVisualTheme Create(MarkdownVisualThemeKind kind, MarkdownColorSchemeKind colorScheme) {
+    public static MarkdownVisualTheme Create(OfficeVisualThemeKind kind, MarkdownColorSchemeKind colorScheme) {
         MarkdownVisualTheme theme = Create(kind);
         return colorScheme == MarkdownColorSchemeKind.Default ? theme : theme.WithColorScheme(colorScheme);
     }
@@ -137,7 +137,7 @@ public sealed class MarkdownVisualTheme {
     /// <summary>Tries to create a built-in shared visual theme from an API or front-matter name and applies a built-in color scheme.</summary>
     public static bool TryCreate(string? name, MarkdownColorSchemeKind colorScheme, out MarkdownVisualTheme? theme) {
         theme = null;
-        if (!TryResolveThemeKind(name, out MarkdownVisualThemeKind kind)) {
+        if (!TryResolveThemeKind(name, out OfficeVisualThemeKind kind)) {
             return false;
         }
 
@@ -146,90 +146,90 @@ public sealed class MarkdownVisualTheme {
     }
 
     /// <summary>Plain profile with minimal visual opinions.</summary>
-    public static MarkdownVisualTheme Plain() => new MarkdownVisualTheme(MarkdownVisualThemeKind.Plain, "Plain", HtmlStyle.Clean) {
+    public static MarkdownVisualTheme Plain() => new MarkdownVisualTheme(OfficeVisualThemeKind.Plain, "Plain", HtmlStyle.Clean) {
         _palette = new MarkdownVisualPalette(),
         _table = new MarkdownTableVisualStyle { BorderWidth = 0.5, CellPaddingX = 5, CellPaddingY = 4 }
     };
 
     /// <summary>Neutral Word-like profile for general documents.</summary>
-    public static MarkdownVisualTheme WordLike() => new MarkdownVisualTheme(MarkdownVisualThemeKind.WordLike, "WordLike", HtmlStyle.Word) {
+    public static MarkdownVisualTheme WordLike() => new MarkdownVisualTheme(OfficeVisualThemeKind.WordLike, "WordLike", HtmlStyle.Word) {
         _palette = new MarkdownVisualPalette {
-            Accent = MarkdownColor.Parse("#2563EB"),
-            Heading = MarkdownColor.Parse("#111827"),
-            Text = MarkdownColor.Parse("#1F2937"),
-            MutedText = MarkdownColor.Parse("#64748B"),
-            Surface = MarkdownColor.Parse("#F8FAFC"),
-            Border = MarkdownColor.Parse("#CBD5E1"),
-            CodeBackground = MarkdownColor.Parse("#F6F8FA"),
-            TableHeaderBackground = MarkdownColor.Parse("#EFF6FF"),
-            TableHeaderText = MarkdownColor.Parse("#0F172A"),
-            TableStripeBackground = MarkdownColor.Parse("#F8FAFC")
+            Accent = OfficeColor.Parse("#2563EB"),
+            Heading = OfficeColor.Parse("#111827"),
+            Text = OfficeColor.Parse("#1F2937"),
+            MutedText = OfficeColor.Parse("#64748B"),
+            Surface = OfficeColor.Parse("#F8FAFC"),
+            Border = OfficeColor.Parse("#CBD5E1"),
+            CodeBackground = OfficeColor.Parse("#F6F8FA"),
+            TableHeaderBackground = OfficeColor.Parse("#EFF6FF"),
+            TableHeaderText = OfficeColor.Parse("#0F172A"),
+            TableStripeBackground = OfficeColor.Parse("#F8FAFC")
         }
     };
 
     /// <summary>Polished profile for technical guides, specs, and READMEs.</summary>
-    public static MarkdownVisualTheme TechnicalDocument() => new MarkdownVisualTheme(MarkdownVisualThemeKind.TechnicalDocument, "TechnicalDocument", HtmlStyle.GithubAuto) {
+    public static MarkdownVisualTheme TechnicalDocument() => new MarkdownVisualTheme(OfficeVisualThemeKind.TechnicalDocument, "TechnicalDocument", HtmlStyle.GithubAuto) {
         _palette = new MarkdownVisualPalette {
-            Accent = MarkdownColor.Parse("#0969DA"),
-            Heading = MarkdownColor.Parse("#0F172A"),
-            Text = MarkdownColor.Parse("#0F172A"),
-            MutedText = MarkdownColor.Parse("#64748B"),
-            Surface = MarkdownColor.Parse("#F8FAFC"),
-            Border = MarkdownColor.Parse("#CBD5E1"),
-            CodeBackground = MarkdownColor.Parse("#F6F8FA"),
-            TableHeaderBackground = MarkdownColor.Parse("#E0F2FE"),
-            TableHeaderText = MarkdownColor.Parse("#0F172A"),
-            TableStripeBackground = MarkdownColor.Parse("#F8FAFC")
+            Accent = OfficeColor.Parse("#0969DA"),
+            Heading = OfficeColor.Parse("#0F172A"),
+            Text = OfficeColor.Parse("#0F172A"),
+            MutedText = OfficeColor.Parse("#64748B"),
+            Surface = OfficeColor.Parse("#F8FAFC"),
+            Border = OfficeColor.Parse("#CBD5E1"),
+            CodeBackground = OfficeColor.Parse("#F6F8FA"),
+            TableHeaderBackground = OfficeColor.Parse("#E0F2FE"),
+            TableHeaderText = OfficeColor.Parse("#0F172A"),
+            TableStripeBackground = OfficeColor.Parse("#F8FAFC")
         },
         _table = new MarkdownTableVisualStyle { BorderWidth = 0.5, CellPaddingX = 6, CellPaddingY = 5 }
     };
 
     /// <summary>GitHub-inspired profile for README-style exports.</summary>
-    public static MarkdownVisualTheme GitHubLike() => new MarkdownVisualTheme(MarkdownVisualThemeKind.GitHubLike, "GitHubLike", HtmlStyle.GithubAuto) {
+    public static MarkdownVisualTheme GitHubLike() => new MarkdownVisualTheme(OfficeVisualThemeKind.GitHubLike, "GitHubLike", HtmlStyle.GithubAuto) {
         _palette = new MarkdownVisualPalette {
-            Accent = MarkdownColor.Parse("#0969DA"),
-            Heading = MarkdownColor.Parse("#24292F"),
-            Text = MarkdownColor.Parse("#24292F"),
-            MutedText = MarkdownColor.Parse("#57606A"),
-            Surface = MarkdownColor.Parse("#F6F8FA"),
-            Border = MarkdownColor.Parse("#D0D7DE"),
-            CodeBackground = MarkdownColor.Parse("#F6F8FA"),
-            TableHeaderBackground = MarkdownColor.Parse("#F6F8FA"),
-            TableHeaderText = MarkdownColor.Parse("#24292F"),
-            TableStripeBackground = MarkdownColor.Parse("#F6F8FA")
+            Accent = OfficeColor.Parse("#0969DA"),
+            Heading = OfficeColor.Parse("#24292F"),
+            Text = OfficeColor.Parse("#24292F"),
+            MutedText = OfficeColor.Parse("#57606A"),
+            Surface = OfficeColor.Parse("#F6F8FA"),
+            Border = OfficeColor.Parse("#D0D7DE"),
+            CodeBackground = OfficeColor.Parse("#F6F8FA"),
+            TableHeaderBackground = OfficeColor.Parse("#F6F8FA"),
+            TableHeaderText = OfficeColor.Parse("#24292F"),
+            TableStripeBackground = OfficeColor.Parse("#F6F8FA")
         }
     };
 
     /// <summary>Compact profile for dense technical notes.</summary>
-    public static MarkdownVisualTheme Compact() => new MarkdownVisualTheme(MarkdownVisualThemeKind.Compact, "Compact", HtmlStyle.Clean) {
+    public static MarkdownVisualTheme Compact() => new MarkdownVisualTheme(OfficeVisualThemeKind.Compact, "Compact", HtmlStyle.Clean) {
         _palette = new MarkdownVisualPalette {
-            Accent = MarkdownColor.Parse("#2563EB"),
-            Heading = MarkdownColor.Parse("#1F2937"),
-            Text = MarkdownColor.Parse("#1F2937"),
-            MutedText = MarkdownColor.Parse("#64748B"),
-            Surface = MarkdownColor.Parse("#F8FAFC"),
-            Border = MarkdownColor.Parse("#E2E8F0"),
-            CodeBackground = MarkdownColor.Parse("#F8FAFC"),
-            TableHeaderBackground = MarkdownColor.Parse("#F1F5F9"),
-            TableHeaderText = MarkdownColor.Parse("#1F2937"),
-            TableStripeBackground = MarkdownColor.Parse("#F8FAFC")
+            Accent = OfficeColor.Parse("#2563EB"),
+            Heading = OfficeColor.Parse("#1F2937"),
+            Text = OfficeColor.Parse("#1F2937"),
+            MutedText = OfficeColor.Parse("#64748B"),
+            Surface = OfficeColor.Parse("#F8FAFC"),
+            Border = OfficeColor.Parse("#E2E8F0"),
+            CodeBackground = OfficeColor.Parse("#F8FAFC"),
+            TableHeaderBackground = OfficeColor.Parse("#F1F5F9"),
+            TableHeaderText = OfficeColor.Parse("#1F2937"),
+            TableStripeBackground = OfficeColor.Parse("#F8FAFC")
         },
         _table = new MarkdownTableVisualStyle { BorderWidth = 0.4, CellPaddingX = 4, CellPaddingY = 3 }
     };
 
     /// <summary>Report-oriented profile with stronger hierarchy and tables.</summary>
-    public static MarkdownVisualTheme Report() => new MarkdownVisualTheme(MarkdownVisualThemeKind.Report, "Report", HtmlStyle.Word) {
+    public static MarkdownVisualTheme Report() => new MarkdownVisualTheme(OfficeVisualThemeKind.Report, "Report", HtmlStyle.Word) {
         _palette = new MarkdownVisualPalette {
-            Accent = MarkdownColor.Parse("#1E40AF"),
-            Heading = MarkdownColor.Parse("#1E293B"),
-            Text = MarkdownColor.Parse("#1E293B"),
-            MutedText = MarkdownColor.Parse("#475569"),
-            Surface = MarkdownColor.Parse("#EFF6FF"),
-            Border = MarkdownColor.Parse("#BFDBFE"),
-            CodeBackground = MarkdownColor.Parse("#F8FAFC"),
-            TableHeaderBackground = MarkdownColor.Parse("#DBEAFE"),
-            TableHeaderText = MarkdownColor.Parse("#172554"),
-            TableStripeBackground = MarkdownColor.Parse("#EFF6FF")
+            Accent = OfficeColor.Parse("#1E40AF"),
+            Heading = OfficeColor.Parse("#1E293B"),
+            Text = OfficeColor.Parse("#1E293B"),
+            MutedText = OfficeColor.Parse("#475569"),
+            Surface = OfficeColor.Parse("#EFF6FF"),
+            Border = OfficeColor.Parse("#BFDBFE"),
+            CodeBackground = OfficeColor.Parse("#F8FAFC"),
+            TableHeaderBackground = OfficeColor.Parse("#DBEAFE"),
+            TableHeaderText = OfficeColor.Parse("#172554"),
+            TableStripeBackground = OfficeColor.Parse("#EFF6FF")
         },
         _table = new MarkdownTableVisualStyle { BorderWidth = 0.7, CellPaddingX = 6, CellPaddingY = 5 }
     };
@@ -256,17 +256,17 @@ public sealed class MarkdownVisualTheme {
         string? tableStripeBackground = null) {
         MarkdownVisualTheme clone = Clone();
         MarkdownVisualPalette palette = clone._palette;
-        if (accent != null) palette.Accent = MarkdownColor.Parse(accent);
-        if (heading != null) palette.Heading = MarkdownColor.Parse(heading);
-        if (text != null) palette.Text = MarkdownColor.Parse(text);
-        if (mutedText != null) palette.MutedText = MarkdownColor.Parse(mutedText);
-        if (background != null) palette.Background = MarkdownColor.Parse(background);
-        if (surface != null) palette.Surface = MarkdownColor.Parse(surface);
-        if (border != null) palette.Border = MarkdownColor.Parse(border);
-        if (codeBackground != null) palette.CodeBackground = MarkdownColor.Parse(codeBackground);
-        if (tableHeaderBackground != null) palette.TableHeaderBackground = MarkdownColor.Parse(tableHeaderBackground);
-        if (tableHeaderText != null) palette.TableHeaderText = MarkdownColor.Parse(tableHeaderText);
-        if (tableStripeBackground != null) palette.TableStripeBackground = MarkdownColor.Parse(tableStripeBackground);
+        if (accent != null) palette.Accent = OfficeColor.Parse(accent);
+        if (heading != null) palette.Heading = OfficeColor.Parse(heading);
+        if (text != null) palette.Text = OfficeColor.Parse(text);
+        if (mutedText != null) palette.MutedText = OfficeColor.Parse(mutedText);
+        if (background != null) palette.Background = OfficeColor.Parse(background);
+        if (surface != null) palette.Surface = OfficeColor.Parse(surface);
+        if (border != null) palette.Border = OfficeColor.Parse(border);
+        if (codeBackground != null) palette.CodeBackground = OfficeColor.Parse(codeBackground);
+        if (tableHeaderBackground != null) palette.TableHeaderBackground = OfficeColor.Parse(tableHeaderBackground);
+        if (tableHeaderText != null) palette.TableHeaderText = OfficeColor.Parse(tableHeaderText);
+        if (tableStripeBackground != null) palette.TableStripeBackground = OfficeColor.Parse(tableStripeBackground);
         return clone;
     }
 
@@ -318,12 +318,12 @@ public sealed class MarkdownVisualTheme {
     }
 
     private void ApplyScheme(string accent, string heading, string surface, string border, string tableHeader) {
-        _palette.Accent = MarkdownColor.Parse(accent);
-        _palette.Heading = MarkdownColor.Parse(heading);
-        _palette.Surface = MarkdownColor.Parse(surface);
-        _palette.Border = MarkdownColor.Parse(border);
-        _palette.TableHeaderBackground = MarkdownColor.Parse(tableHeader);
-        _palette.TableStripeBackground = MarkdownColor.Parse(surface);
+        _palette.Accent = OfficeColor.Parse(accent);
+        _palette.Heading = OfficeColor.Parse(heading);
+        _palette.Surface = OfficeColor.Parse(surface);
+        _palette.Border = OfficeColor.Parse(border);
+        _palette.TableHeaderBackground = OfficeColor.Parse(tableHeader);
+        _palette.TableStripeBackground = OfficeColor.Parse(surface);
     }
 
     private static string NormalizeName(string? name) {
@@ -343,7 +343,7 @@ public sealed class MarkdownVisualTheme {
         return builder.ToString();
     }
 
-    private static bool TryResolveThemeKind(string? name, out MarkdownVisualThemeKind kind) {
+    private static bool TryResolveThemeKind(string? name, out OfficeVisualThemeKind kind) {
         kind = default;
         string normalized = NormalizeName(name);
         if (normalized.Length == 0) {

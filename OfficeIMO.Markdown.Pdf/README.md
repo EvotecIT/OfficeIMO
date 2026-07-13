@@ -94,7 +94,7 @@ var options = new MarkdownPdfSaveOptions {
     IncludeLocalImages = true,
     DefaultImageWidth = 420,
     DefaultImageHeight = 240,
-    PdfTheme = MarkdownPdfVisualTheme.Report()
+    PdfTheme = MarkdownPdfStyle.Report()
 };
 
 "Docs/status.md".SaveAsPdfFromMarkdownFile("Artifacts/status.pdf", options);
@@ -179,7 +179,7 @@ result.Report.RequireNoErrorWarnings();
 
 ```csharp
 var options = new MarkdownPdfSaveOptions {
-    PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+    PdfTheme = MarkdownPdfStyle.TechnicalDocument()
 };
 
 "README.md".SaveAsPdfFromMarkdownFile("README.pdf", options);
@@ -187,7 +187,7 @@ var options = new MarkdownPdfSaveOptions {
 
 Built-in themes include `Plain`, `WordLike`, `TechnicalDocument`, `GitHubLike`, `Compact`, and `Report`. Front matter can select a theme with `pdfTheme` or `pdf-theme`.
 
-`MarkdownVisualTheme` is the shared cross-format theme object. It accepts color schemes plus individual color overrides using either hex values such as `#064e3b` or OfficeIMO-style named colors such as `SeaGreen` and `CornflowerBlue`. `MarkdownPdfVisualTheme` remains available when PDF-only details such as page decoration or low-level panel styles need to diverge.
+`MarkdownVisualTheme` is the shared cross-format theme object. It accepts color schemes plus individual color overrides using either hex values such as `#064e3b` or OfficeIMO-style named colors such as `SeaGreen` and `CornflowerBlue`. `MarkdownPdfStyle` remains available when PDF-only details such as page decoration or low-level panel styles need to diverge.
 
 ## Boundaries
 

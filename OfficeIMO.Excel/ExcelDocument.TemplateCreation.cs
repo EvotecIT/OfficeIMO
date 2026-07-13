@@ -1,6 +1,7 @@
 using System.IO.Compression;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -86,19 +87,10 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(destinationPath)) throw new ArgumentNullException(nameof(destinationPath));
 
             string targetPath = Path.GetFullPath(destinationPath);
-            if (File.Exists(targetPath)) {
-                if (!overwrite) {
-                    throw new IOException($"Destination workbook '{targetPath}' already exists.");
-                }
-
-                File.Delete(targetPath);
-            }
-
-            EnsureDestinationDirectory(targetPath);
-
-            using (var targetStream = new FileStream(targetPath, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                sourceStream.CopyTo(targetStream);
-            }
+            OfficeFileCommit.WriteAllBytes(
+                targetPath,
+                OfficeStreamReader.ReadAllBytes(sourceStream),
+                overwrite ? OfficeFileCommit.ConflictPolicy.Replace : OfficeFileCommit.ConflictPolicy.FailIfExists);
 
             try {
                 EnsureMacroCompatibleCopy(targetPath, targetPath);

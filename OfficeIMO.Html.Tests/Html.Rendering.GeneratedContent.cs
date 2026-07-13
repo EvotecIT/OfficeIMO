@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
             <p class="note" data-suffix="After" style="margin:0">Body</p>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -34,7 +34,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(OfficeColor.FromRgb(0x65, 0x43, 0x21), after.Color);
         Assert.Equal(4D, before.X, 3);
         Assert.True(before.X < body.X);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed partial class HtmlRenderingTests {
             <p id="target" class="label" style="margin:0">Body</p>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -75,7 +75,7 @@ public sealed partial class HtmlRenderingTests {
             <section><h2>Second</h2></section>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 300D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -103,7 +103,7 @@ public sealed partial class HtmlRenderingTests {
             <article><div>ChildBlock</div></article>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -131,7 +131,7 @@ public sealed partial class HtmlRenderingTests {
             <table><tr><td data-label="Total">42</td></tr></table>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 240D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -154,16 +154,16 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, imageOptions);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, imageOptions);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, imageOptions).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, png.Bytes.Take(8));
         Assert.Contains("Generated", svg, StringComparison.Ordinal);
         Assert.Contains("BackendMarker", svg, StringComparison.Ordinal);
         Assert.Contains("GeneratedBackendMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -177,8 +177,8 @@ public sealed partial class HtmlRenderingTests {
             <p class="image">ImageFallback</p><p class="quote">QuoteFallback</p><p class="flex">FlexHost</p>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
-        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics.Diagnostics
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
+        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics
             .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported)
             .ToList();
 
@@ -186,7 +186,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "p.image::before" && diagnostic.Detail!.Contains("url", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "p.quote::after" && diagnostic.Detail!.Contains("open-quote", StringComparison.OrdinalIgnoreCase));
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.flex::before" && text.Text == "FlexFallback");
-        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending && diagnostic.Source == "p.flex::before");
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending && diagnostic.Source == "p.flex::before");
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text =>
             text.Source == "p.image::before" || text.Source == "p.quote::after");
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.GeneratedContentUnsupported, out _));
@@ -204,10 +204,10 @@ public sealed partial class HtmlRenderingTests {
             <p class="declaration">DeclarationFallback</p><p class="style">StyleFallback</p>
             """;
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
 
-        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported);
-        Assert.Single(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported);
+        Assert.Single(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GeneratedContentUnsupported);
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.declaration::before" && text.Text == "0 ");
         Assert.DoesNotContain(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Source == "p.style::before");
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.GeneratedCounterUnsupported, out _));
@@ -221,7 +221,7 @@ public sealed partial class HtmlRenderingTests {
             + string.Concat(Enumerable.Repeat("</div>", 8));
 
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
-            HtmlRenderEngine.Render(html, new HtmlRenderOptions { MaxLayoutDepth = 3 }));
+            HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { MaxLayoutDepth = 3 }));
 
         Assert.Equal(HtmlRenderDiagnosticCodes.DepthLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlRenderOptions.MaxLayoutDepth), exception.LimitSource);

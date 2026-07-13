@@ -1,4 +1,4 @@
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelDocumentLoadRouting {

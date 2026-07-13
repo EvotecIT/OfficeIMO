@@ -14,7 +14,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var field = document.Fields[0];
                 Console.WriteLine("Format switches: " + String.Join(", ", field.FieldFormat));
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

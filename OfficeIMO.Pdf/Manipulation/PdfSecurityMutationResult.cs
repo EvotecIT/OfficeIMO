@@ -2,6 +2,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Output and proof produced by an existing-document encryption mutation.</summary>
 public sealed class PdfSecurityMutationResult {
+    private readonly byte[] _pdf;
+
     internal PdfSecurityMutationResult(
         PdfSecurityMutationKind kind,
         byte[] pdf,
@@ -11,7 +13,7 @@ public sealed class PdfSecurityMutationResult {
         PdfDocumentSecurityInfo outputSecurity,
         PdfReadOptions? outputReadOptions) {
         Kind = kind;
-        Pdf = pdf;
+        _pdf = (byte[])pdf.Clone();
         MutationPlan = mutationPlan;
         PreservationReport = preservationReport;
         SourceSecurity = sourceSecurity;
@@ -23,7 +25,7 @@ public sealed class PdfSecurityMutationResult {
     public PdfSecurityMutationKind Kind { get; }
 
     /// <summary>Rewritten PDF bytes.</summary>
-    public byte[] Pdf { get; }
+    public byte[] Pdf => (byte[])_pdf.Clone();
 
     /// <summary>Full-rewrite decision and required proof.</summary>
     public PdfMutationPlan MutationPlan { get; }
@@ -43,5 +45,5 @@ public sealed class PdfSecurityMutationResult {
     internal PdfReadOptions? OutputReadOptions { get; }
 
     /// <summary>Opens the rewritten bytes through the normal fluent document API.</summary>
-    public PdfDocument OpenDocument() => PdfDocument.Open(Pdf, OutputReadOptions);
+    public PdfDocument ToDocument() => PdfDocument.Load(_pdf, OutputReadOptions);
 }

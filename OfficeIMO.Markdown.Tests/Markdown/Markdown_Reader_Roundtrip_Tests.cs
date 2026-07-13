@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .Dl(d => d.Item("Term", "Definition"));
 
             var text = md.ToMarkdown();
-            var parsed = MarkdownReader.Parse(text);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(text);
 
             // Basic block shape assertions
             Assert.True(parsed.Blocks.Count >= 7);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Contains("- [x] Done", markdown, StringComparison.Ordinal);
             Assert.Contains("- Plain", markdown, StringComparison.Ordinal);
 
-            var parsed = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
             var list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
 
             Assert.Collection(
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                                     "| Only first cell |  |";
             Assert.Equal(expected, markdown.TrimEnd());
 
-            var parsed = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
             var parsedTable = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
 
             Assert.Equal(new[] { "Name|Title", "Path \\ Server" }, parsedTable.Headers);
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .Caption("Our linked logo");
 
             var text = md.ToMarkdown();
-            var parsed = MarkdownReader.Parse(text);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(text);
 
             var img = Assert.IsType<ImageBlock>(Assert.Single(parsed.Blocks));
             Assert.Equal("https://example.com/logo.png", img.Path);
@@ -174,7 +174,7 @@ tags: [a, b]
 # Heading
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader!);
 
             Assert.Equal(frontMatter.Entries, parsed.FrontMatterEntries);
@@ -260,7 +260,7 @@ layout:
     draft: false
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader);
 
             Assert.Equal(NormalizeMarkdown(expectedRawYaml), NormalizeMarkdown(frontMatter.RawYaml));
@@ -289,7 +289,7 @@ title: Doc
 Paragraph
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
 
             Assert.Collection(
                 parsed.TopLevelBlocks,
@@ -333,7 +333,7 @@ title: Doc
 Paragraph
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var kinds = parsed.DescendantsAndSelf().Select(block => block.GetType()).ToArray();
 
             Assert.Equal(
@@ -371,7 +371,7 @@ Paragraph
 > - quoted
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var items = parsed.DescendantListItems().ToArray();
 
             Assert.Equal(3, items.Length);
@@ -380,10 +380,10 @@ Paragraph
             Assert.Equal("quoted", items[2].Content.RenderMarkdown());
 
             var topList = Assert.IsType<UnorderedListBlock>(parsed.Blocks[0]);
-            Assert.Equal(topList.Items, topList.ListItems);
+            Assert.Equal(topList.Items, ((IMarkdownListBlock)topList).ListItems);
 
             var quotedList = Assert.IsType<UnorderedListBlock>(Assert.IsType<QuoteBlock>(parsed.Blocks[1]).ChildBlocks[0]);
-            Assert.Equal(quotedList.Items, quotedList.ListItems);
+            Assert.Equal(quotedList.Items, ((IMarkdownListBlock)quotedList).ListItems);
         }
 
         [Fact]
@@ -394,7 +394,7 @@ Paragraph
 | A | B |
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var kinds = parsed.DescendantsAndSelf().Select(block => block.GetType()).ToArray();
 
             Assert.Equal(
@@ -422,9 +422,9 @@ Paragraph
 | Alpha | Intro<br><br>> Quoted<br><br>- first<br>- second |
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
-            Assert.Collection(table.RowCells[0][1].Blocks,
+            Assert.Collection(table.RowCells[0][1].ChildBlocks,
                 block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.IsType<QuoteBlock>(block),
                 block => {
@@ -435,9 +435,9 @@ Paragraph
             var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("Intro<br><br>> Quoted<br><br>- first<br>- second", roundtrip, StringComparison.Ordinal);
 
-            var reparsed = MarkdownReader.Parse(roundtrip);
+            var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip);
             var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
-            Assert.Collection(reparsedTable.RowCells[0][1].Blocks,
+            Assert.Collection(reparsedTable.RowCells[0][1].ChildBlocks,
                 block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.IsType<QuoteBlock>(block),
                 block => {
@@ -454,9 +454,9 @@ Paragraph
 | Alpha | Intro<br><br>```text<br>code line 1<br>code line 2<br>``` |
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
-            Assert.Collection(table.RowCells[0][1].Blocks,
+            Assert.Collection(table.RowCells[0][1].ChildBlocks,
                 block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => {
                     var code = Assert.IsType<CodeBlock>(block);
@@ -468,9 +468,9 @@ Paragraph
             var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("```text<br>code line 1<br>code line 2<br>```", roundtrip, StringComparison.Ordinal);
 
-            var reparsed = MarkdownReader.Parse(roundtrip);
+            var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip);
             var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
-            Assert.Collection(reparsedTable.RowCells[0][1].Blocks,
+            Assert.Collection(reparsedTable.RowCells[0][1].ChildBlocks,
                 block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => {
                     var code = Assert.IsType<CodeBlock>(block);
@@ -488,18 +488,18 @@ Paragraph
 | ## Important | - first |
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var table = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
-            Assert.IsType<HeadingBlock>(Assert.Single(table.RowCells[0][0].Blocks));
-            Assert.IsType<UnorderedListBlock>(Assert.Single(table.RowCells[0][1].Blocks));
+            Assert.IsType<HeadingBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
+            Assert.IsType<UnorderedListBlock>(Assert.Single(table.RowCells[0][1].ChildBlocks));
 
             var roundtrip = parsed.ToMarkdown().Replace("\r\n", "\n");
             Assert.Contains("| ## Important | - first |", roundtrip, StringComparison.Ordinal);
 
-            var reparsed = MarkdownReader.Parse(roundtrip);
+            var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip);
             var reparsedTable = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
-            Assert.IsType<HeadingBlock>(Assert.Single(reparsedTable.RowCells[0][0].Blocks));
-            Assert.IsType<UnorderedListBlock>(Assert.Single(reparsedTable.RowCells[0][1].Blocks));
+            Assert.IsType<HeadingBlock>(Assert.Single(reparsedTable.RowCells[0][0].ChildBlocks));
+            Assert.IsType<UnorderedListBlock>(Assert.Single(reparsedTable.RowCells[0][1].ChildBlocks));
         }
 
         [Fact]
@@ -509,7 +509,7 @@ Paragraph
                 PreserveTrivia = true
             };
 
-            var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
             var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
 
@@ -521,7 +521,7 @@ Paragraph
         [Fact]
         public void MarkdownRoundtripWriter_Reports_Fallback_When_OriginalMarkdown_Was_Not_Preserved() {
             const string markdown = "# Title\r\n";
-            var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
             var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
 
@@ -539,7 +539,7 @@ Paragraph
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
 
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
 
             var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
 
@@ -557,7 +557,7 @@ Paragraph
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new UppercaseParagraphsTransform());
 
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 alpha
 
 beta
@@ -581,7 +581,7 @@ beta
                 NormalizeTightStrongBoundaries = true
             }));
 
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Prefix **bold**suffix", options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Prefix **bold**suffix", options);
 
             var roundtrip = MarkdownRoundtripWriter.WriteUnchanged(result);
 
@@ -600,7 +600,7 @@ beta
                 NormalizeTightColonSpacing = true
             }));
 
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > [!NOTE] Why it matters
 > coverage:missing evidence
 """, options);
@@ -627,7 +627,7 @@ beta
             };
             options.DocumentTransforms.Add(new NoOpTransform());
 
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
 
             var transformDiagnostic = Assert.Single(result.TransformDiagnostics);
             Assert.False(transformDiagnostic.HasChangedBlocks);
@@ -644,7 +644,7 @@ beta
             var options = new MarkdownReaderOptions {
                 PreserveTrivia = true
             };
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
             var native = MarkdownNativeDocument.FromParseResult(result);
             var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
             var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title");
@@ -663,7 +663,7 @@ beta
                 PreserveTrivia = true
             };
             options.DocumentTransforms.Add(new NoOpTransform());
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
             var native = MarkdownNativeDocument.FromParseResult(result);
             var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
             var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title");
@@ -730,7 +730,7 @@ beta
         [Fact]
         public void MarkdownRoundtripWriter_Applies_SourceEdit_To_NormalizedMarkdown_When_OriginalMarkdown_Was_Not_Preserved() {
             const string markdown = "# Old **Title**\r\n\r\nBody\r\n";
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown);
             var native = MarkdownNativeDocument.FromParseResult(result);
             var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
             var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title");
@@ -750,7 +750,7 @@ beta
             var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
             var native = MarkdownNativeDocument.FromParseResult(result);
             var affectedSourceSpan = result.TransformDiagnostics[0].AffectedSourceSpan;
             Assert.True(affectedSourceSpan.HasValue);
@@ -770,7 +770,7 @@ beta
             var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
             options.PreserveTrivia = true;
             options.DocumentTransforms.Add(new UppercaseParagraphsTransform());
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 alpha
 
 beta
@@ -798,7 +798,7 @@ beta
                     NormalizeZeroWidthSpacingArtifacts = true
                 }
             };
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
             var native = MarkdownNativeDocument.FromParseResult(result);
             var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
             var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New");
@@ -819,7 +819,7 @@ beta
             var options = new MarkdownReaderOptions {
                 PreserveTrivia = true
             };
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
             var native = MarkdownNativeDocument.FromParseResult(result);
             var heading = Assert.IsType<MarkdownNativeHeadingBlock>(native.Blocks[0]);
             var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New Title");
@@ -862,7 +862,7 @@ beta
             var options = new MarkdownReaderOptions {
                 PreserveTrivia = true
             };
-            var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
             var native = MarkdownNativeDocument.FromParseResult(result);
             var strong = Assert.Single(native.EnumerateInlines(), inline => inline.Kind == MarkdownNativeInlineKind.Strong);
             var emphasis = Assert.Single(strong.Children, inline => inline.Kind == MarkdownNativeInlineKind.Emphasis);
@@ -886,7 +886,7 @@ beta
 ## Repeat
 """;
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var headings = parsed.DescendantHeadings().ToArray();
 
             Assert.Equal(new[] { "Title", "Repeat", "Repeat" }, headings.Select(h => h.Text).ToArray());

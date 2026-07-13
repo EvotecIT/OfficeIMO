@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static InlineStyle CreateInlineStyle(MarkdownPdfVisualTheme visualTheme) =>
+    private static InlineStyle CreateInlineStyle(MarkdownPdfStyle visualTheme) =>
         InlineStyle.Default.With(linkColor: visualTheme.LinkColorSnapshot, underlineLinks: visualTheme.UnderlineLinksSnapshot);
 
     private static void AppendInlines(PdfCore.PdfParagraphBuilder builder, InlineSequence sequence, InlineStyle style) {

@@ -5,14 +5,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
     public static class ExcelGoogleSheetsExtensions {
         private static readonly IGoogleSheetsExporter DefaultExporter = new GoogleSheetsExporter();
 
-        public static GoogleSheetsTranslationPlan CreateGoogleSheetsTranslationPlan(
+        public static GoogleSheetsTranslationPlan BuildGoogleSheetsPlan(
             this ExcelDocument document,
             GoogleSheetsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return DefaultExporter.BuildPlan(document, options);
         }
 
-        public static GoogleSheetsBatch CreateGoogleSheetsBatch(
+        public static GoogleSheetsBatch BuildGoogleSheetsBatch(
             this ExcelDocument document,
             GoogleSheetsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));

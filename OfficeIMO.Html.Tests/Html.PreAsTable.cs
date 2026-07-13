@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void PreDefaultRendersParagraphs() {
             string html = "<pre><code>var x = 1;\nvar y = 2;</code></pre>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
 
             Assert.Empty(doc.Tables);
             var codeParas = doc.Paragraphs.Where(p => p.StyleId == "HTMLPreformatted" && !string.IsNullOrEmpty(p.Text)).ToList();
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         public void PreAsTableRendersTable() {
             string html = "<pre><code>var x = 1;\nvar y = 2;</code></pre>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions { RenderPreAsTable = true });
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { RenderPreAsTable = true });
 
             Assert.Single(doc.Tables);
             var table = doc.Tables[0];

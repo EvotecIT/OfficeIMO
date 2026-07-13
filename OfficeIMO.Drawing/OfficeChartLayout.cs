@@ -1,6 +1,7 @@
 using System;
 
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 
 namespace OfficeIMO.Drawing;
 
@@ -87,6 +88,10 @@ public sealed class OfficeChartLayout {
     /// <param name="horizontalAxisMinorTickMark">Optional minor tick mark placement for the horizontal axis.</param>
     /// <param name="verticalAxisMinorTickMark">Optional minor tick mark placement for the vertical axis.</param>
     /// <param name="categoryAxisNumberFormat">Optional numeric format for numeric category-axis labels.</param>
+    /// <param name="dataLabelSeriesIndexes">Optional zero-based series indexes that should render data labels.</param>
+    /// <param name="dataLabelPointIndexes">Optional zero-based point indexes that should render data labels per series.</param>
+    /// <param name="hiddenDataLabelPointIndexes">Optional zero-based point indexes that should suppress data labels per series.</param>
+    /// <param name="hiddenCategoryLegendIndexes">Optional zero-based category or slice legend indexes that should be suppressed.</param>
     public OfficeChartLayout(
         double? seriesLegendWidthRatio = null,
         double? categoryLegendWidthRatio = null,
@@ -159,7 +164,11 @@ public sealed class OfficeChartLayout {
         OfficeChartAxisTickMark horizontalAxisMinorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None,
         string? categoryAxisNumberFormat = null,
-        bool categoryAxisOrientationSpecified = false)
+        bool categoryAxisOrientationSpecified = false,
+        IReadOnlyCollection<int>? dataLabelSeriesIndexes = null,
+        IReadOnlyDictionary<int, IReadOnlyCollection<int>>? dataLabelPointIndexes = null,
+        IReadOnlyDictionary<int, IReadOnlyCollection<int>>? hiddenDataLabelPointIndexes = null,
+        IReadOnlyCollection<int>? hiddenCategoryLegendIndexes = null)
         : this(
             overlayLegend: false,
             seriesLegendWidthRatio: seriesLegendWidthRatio,
@@ -233,7 +242,11 @@ public sealed class OfficeChartLayout {
             horizontalAxisMinorTickMark: horizontalAxisMinorTickMark,
             verticalAxisMinorTickMark: verticalAxisMinorTickMark,
             categoryAxisNumberFormat: categoryAxisNumberFormat,
-            categoryAxisOrientationSpecified: categoryAxisOrientationSpecified) {
+            categoryAxisOrientationSpecified: categoryAxisOrientationSpecified,
+            dataLabelSeriesIndexes: dataLabelSeriesIndexes,
+            dataLabelPointIndexes: dataLabelPointIndexes,
+            hiddenDataLabelPointIndexes: hiddenDataLabelPointIndexes,
+            hiddenCategoryLegendIndexes: hiddenCategoryLegendIndexes) {
     }
 
     /// <summary>
@@ -312,6 +325,10 @@ public sealed class OfficeChartLayout {
     /// <param name="horizontalAxisMinorTickMark">Optional minor tick mark placement for the horizontal axis.</param>
     /// <param name="verticalAxisMinorTickMark">Optional minor tick mark placement for the vertical axis.</param>
     /// <param name="categoryAxisNumberFormat">Optional numeric format for numeric category-axis labels.</param>
+    /// <param name="dataLabelSeriesIndexes">Optional zero-based series indexes that should render data labels.</param>
+    /// <param name="dataLabelPointIndexes">Optional zero-based point indexes that should render data labels per series.</param>
+    /// <param name="hiddenDataLabelPointIndexes">Optional zero-based point indexes that should suppress data labels per series.</param>
+    /// <param name="hiddenCategoryLegendIndexes">Optional zero-based category or slice legend indexes that should be suppressed.</param>
     public OfficeChartLayout(
         bool overlayLegend,
         double? seriesLegendWidthRatio = null,
@@ -385,7 +402,11 @@ public sealed class OfficeChartLayout {
         OfficeChartAxisTickMark horizontalAxisMinorTickMark = OfficeChartAxisTickMark.None,
         OfficeChartAxisTickMark verticalAxisMinorTickMark = OfficeChartAxisTickMark.None,
         string? categoryAxisNumberFormat = null,
-        bool categoryAxisOrientationSpecified = false) {
+        bool categoryAxisOrientationSpecified = false,
+        IReadOnlyCollection<int>? dataLabelSeriesIndexes = null,
+        IReadOnlyDictionary<int, IReadOnlyCollection<int>>? dataLabelPointIndexes = null,
+        IReadOnlyDictionary<int, IReadOnlyCollection<int>>? hiddenDataLabelPointIndexes = null,
+        IReadOnlyCollection<int>? hiddenCategoryLegendIndexes = null) {
         SeriesLegendWidthRatio = ValidateRatio(seriesLegendWidthRatio ?? 0.34D, nameof(seriesLegendWidthRatio));
         CategoryLegendWidthRatio = ValidateRatio(categoryLegendWidthRatio ?? 0.38D, nameof(categoryLegendWidthRatio));
         LegendRowHeight = ValidatePositiveFinite(legendRowHeight ?? 12D, nameof(legendRowHeight));
@@ -420,6 +441,10 @@ public sealed class OfficeChartLayout {
         DataLabelFontStyle = dataLabelFontStyle;
         DataLabelPosition = dataLabelPosition;
         DataLabelNumberFormat = NormalizeNumberFormat(dataLabelNumberFormat);
+        DataLabelSeriesIndexes = SnapshotIndexes(dataLabelSeriesIndexes);
+        DataLabelPointIndexes = SnapshotIndexesBySeries(dataLabelPointIndexes);
+        HiddenDataLabelPointIndexes = SnapshotIndexesBySeries(hiddenDataLabelPointIndexes);
+        HiddenCategoryLegendIndexes = SnapshotIndexes(hiddenCategoryLegendIndexes);
         ShowMarkers = showMarkers;
         AxisNumberFormat = NormalizeNumberFormat(axisNumberFormat);
         HorizontalAxisNumberFormat = string.IsNullOrWhiteSpace(horizontalAxisNumberFormat) ? AxisNumberFormat : NormalizeNumberFormat(horizontalAxisNumberFormat);
@@ -567,16 +592,16 @@ public sealed class OfficeChartLayout {
     public string? DataLabelNumberFormat { get; }
 
     /// <summary>Optional zero-based series indexes that should render data labels; null means every series may render labels.</summary>
-    public IReadOnlyCollection<int>? DataLabelSeriesIndexes { get; set; }
+    public IReadOnlyCollection<int>? DataLabelSeriesIndexes { get; }
 
     /// <summary>Optional zero-based point indexes that should render data labels per series; null means every point may render labels.</summary>
-    public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? DataLabelPointIndexes { get; set; }
+    public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? DataLabelPointIndexes { get; }
 
     /// <summary>Optional zero-based point indexes that should suppress data labels per series.</summary>
-    public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? HiddenDataLabelPointIndexes { get; set; }
+    public IReadOnlyDictionary<int, IReadOnlyCollection<int>>? HiddenDataLabelPointIndexes { get; }
 
     /// <summary>Optional zero-based category or slice legend indexes that should be suppressed for category legends.</summary>
-    public IReadOnlyCollection<int>? HiddenCategoryLegendIndexes { get; set; }
+    public IReadOnlyCollection<int>? HiddenCategoryLegendIndexes { get; }
 
     /// <summary>Whether point markers should be rendered for marker-capable chart families.</summary>
     public bool ShowMarkers { get; }
@@ -743,5 +768,33 @@ public sealed class OfficeChartLayout {
 
         string normalized = value!.Trim();
         return normalized.Length <= MaxNumberFormatLength ? normalized : null;
+    }
+
+    private static IReadOnlyCollection<int>? SnapshotIndexes(IReadOnlyCollection<int>? indexes) {
+        if (indexes == null) {
+            return null;
+        }
+
+        var snapshot = new int[indexes.Count];
+        int index = 0;
+        foreach (int value in indexes) {
+            snapshot[index++] = value;
+        }
+
+        return Array.AsReadOnly(snapshot);
+    }
+
+    private static IReadOnlyDictionary<int, IReadOnlyCollection<int>>? SnapshotIndexesBySeries(
+        IReadOnlyDictionary<int, IReadOnlyCollection<int>>? indexesBySeries) {
+        if (indexesBySeries == null) {
+            return null;
+        }
+
+        var snapshot = new Dictionary<int, IReadOnlyCollection<int>>(indexesBySeries.Count);
+        foreach (KeyValuePair<int, IReadOnlyCollection<int>> pair in indexesBySeries) {
+            snapshot[pair.Key] = SnapshotIndexes(pair.Value)!;
+        }
+
+        return new ReadOnlyDictionary<int, IReadOnlyCollection<int>>(snapshot);
     }
 }

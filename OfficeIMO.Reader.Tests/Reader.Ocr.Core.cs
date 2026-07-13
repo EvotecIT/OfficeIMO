@@ -328,7 +328,7 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
-    public async Task OfficeDocumentOcrProcessor_FreezesOptionsForReaderPipeline() {
+    public async Task OfficeDocumentOcrProcessor_FreezesOptionsForAsyncReaderPipeline() {
         var options = new OfficeDocumentOcrExecutionOptions { MaxCandidates = 1 };
         var processor = new OfficeDocumentOcrProcessor(new RecordingOcrEngine(), options);
         options.MaxCandidates = 2;
@@ -340,10 +340,6 @@ public sealed class ReaderOcrCoreTests {
         Assert.Equal(1, processing.Document.Blocks.Count(block => block.Kind == "ocr-text"));
         Assert.Single(processing.Document.OcrCandidates);
         Assert.Equal("1", Assert.Single(processing.Document.Metadata, item => item.Id == "reader-ocr-execution-attempted-count").Value);
-
-        OfficeDocumentProcessingResult synchronous = reader.ProcessDocument(CreateDocument(2));
-        Assert.True(synchronous.Succeeded);
-        Assert.Equal(1, synchronous.Document.Blocks.Count(block => block.Kind == "ocr-text"));
     }
 
     private static OfficeDocumentReadResult CreateDocument(int count) {

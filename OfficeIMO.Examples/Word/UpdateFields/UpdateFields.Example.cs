@@ -17,7 +17,8 @@ namespace OfficeIMO.Examples.Word {
 
                 // Option 2: update fields immediately in code
                 document.UpdateFields();
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

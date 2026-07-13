@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -203,7 +204,7 @@ namespace OfficeIMO.PowerPoint {
             string fullPath = Path.GetFullPath(path);
             string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory!);
-            File.WriteAllText(fullPath, ToJson(indented), new UTF8Encoding(false));
+            OfficeFileCommit.WriteAllBytes(fullPath, new UTF8Encoding(false).GetBytes(ToJson(indented)));
         }
 
         internal static string ComputeHash(byte[] content) {

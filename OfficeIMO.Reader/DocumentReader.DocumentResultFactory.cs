@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     /// <summary>
     /// Creates the shared v5 document envelope from adapter-produced chunks and optional source data.
     /// </summary>

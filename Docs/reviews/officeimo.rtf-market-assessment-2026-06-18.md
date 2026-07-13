@@ -36,7 +36,7 @@ Direct first-party routes:
 - RTF <=> HTML: `RtfDocument.ToHtml`, `html.ToRtfDocument`, `html.ToRtf`, file/stream/async variants.
 - RTF <=> Markdown: `RtfDocument.ToMarkdownDocument`, `RtfDocument.ToMarkdown`, Markdown string to `RtfDocument`, Markdown string to RTF.
 - RTF <=> PDF: `RtfDocument.ToPdfDocument`, RTF string/bytes/stream/file to PDF, PDF read/logical documents to RTF, file/stream/async variants.
-- RTF => Reader chunks: `OfficeDocumentReaderBuilder.AddRtfHandler`, `ReadRtfFile`, `ReadRtf`, `ReadRtfDocument`.
+- RTF => Reader chunks: `OfficeDocumentReaderBuilder.AddRtfHandler`, `Read`, `Read`, `Read`.
 
 Indirect routes that work only through another model today:
 

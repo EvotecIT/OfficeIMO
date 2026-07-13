@@ -28,8 +28,9 @@ string html = """
 </table>
 """;
 
-byte[] pdf = html.ToPdf();
-html.SaveAsPdf("quarterly-update.pdf");
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+byte[] pdf = source.ToPdf();
+source.SaveAsPdf("quarterly-update.pdf");
 ```
 
 Naming is consistent across the direct output APIs:
@@ -37,7 +38,7 @@ Naming is consistent across the direct output APIs:
 - `ToPdf()` returns encoded bytes.
 - `ToPdfDocument()` returns the first-party PDF model.
 - `ToPdfDocumentResult()` returns the PDF model plus diagnostics.
-- `ToPngResult()` and `ToSvgResult()` return image output, dimensions, and diagnostics; plural forms return every page.
+- `ExportImage()` and `ExportImages()` return image output, dimensions, and diagnostics.
 - `SaveAsPdf(path)` and `SaveAsPdf(stream)` write to a destination.
 - Async counterparts use the same names with `Async` appended.
 
@@ -58,9 +59,10 @@ var options = new HtmlPdfSaveOptions {
     Scale = 1.5
 };
 
-byte[] pdf = html.ToPdf(options);
-byte[] png = html.ToPng(options);
-string svg = html.ToSvg(options);
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+byte[] pdf = source.ToPdf(options);
+byte[] png = source.ToPng(options);
+string svg = source.ToSvg(options);
 ```
 
 PDF always uses paged layout. PNG and SVG honor the selected render mode and page index.
@@ -75,9 +77,10 @@ var options = new HtmlPdfSaveOptions {
         Task.FromResult<HtmlResolvedResource?>(null)
 };
 
-var result = await html.ToPdfDocumentResultAsync(options);
-var pngResult = await html.ToPngResultAsync(options);
-var svgResult = await html.ToSvgResultAsync(options);
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+var result = await source.ToPdfDocumentResultAsync(options);
+var pngResult = await source.ExportImageAsync(OfficeImageExportFormat.Png, options);
+var svgResult = await source.ExportImageAsync(OfficeImageExportFormat.Svg, options);
 await result.SaveAsync("report.pdf");
 
 foreach (var warning in result.Report.Warnings) {
@@ -105,9 +108,10 @@ using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Pdf;
 
-byte[] markdownPdf = html.ToMarkdownDocument().ToPdf();
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+byte[] markdownPdf = source.ToMarkdownDocument().ToPdf();
 
-using var word = html.ToWordDocument();
+using var word = source.ToWordDocument();
 byte[] wordPdf = word.ToPdf();
 ```
 
@@ -118,11 +122,11 @@ Those adapters remain separate packages and are not dependencies of `OfficeIMO.H
 ```csharp
 using OfficeIMO.Html.Pdf;
 
-string semantic = PdfHtmlConverter.ToHtml("quarterly-update.pdf", new PdfHtmlSaveOptions {
+string semantic = PdfHtmlConverterExtensions.ToHtml("quarterly-update.pdf", new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.Semantic
 });
 
-PdfHtmlConverter.SaveAsHtml("quarterly-update.pdf", "quarterly-review.html", new PdfHtmlSaveOptions {
+PdfHtmlConverterExtensions.SaveAsHtml("quarterly-update.pdf", "quarterly-review.html", new PdfHtmlSaveOptions {
     Profile = PdfHtmlProfile.PositionedReview,
     IncludeLinkAnnotations = true,
     IncludeFormWidgets = true,

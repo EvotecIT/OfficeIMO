@@ -29,23 +29,23 @@ public static class OfficeDocumentReaderBuilderVisioExtensions {
             Description = "Modular Visio adapter using OfficeIMO.Visio inspection snapshots.",
             Kind = ReaderInputKind.Visio,
             Extensions = new[] { ".vsdx", ".vsdm", ".vstx", ".vstm" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderVisioExtensions.ReadVisioFile(
+            ReadPath = (path, readerOptions, ct) => VisioReaderAdapter.Read(
                 visioPath: path,
                 readerOptions: readerOptions,
                 visioOptions: ReaderVisioOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderVisioExtensions.ReadVisio(
+            ReadStream = (stream, sourceName, readerOptions, ct) => VisioReaderAdapter.Read(
                 visioStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 visioOptions: ReaderVisioOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderVisioExtensions.ReadVisioDocument(
+            ReadDocumentPath = (path, readerOptions, ct) => VisioReaderAdapter.ReadDocument(
                 visioPath: path,
                 readerOptions: readerOptions,
                 visioOptions: ReaderVisioOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderVisioExtensions.ReadVisioDocument(
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => VisioReaderAdapter.ReadDocument(
                 visioStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

@@ -112,7 +112,8 @@ The parity API intentionally uses one vocabulary:
 | `WasLoadedFromLegacyDoc` | `SourceFormat == WordFileFormat.Doc` |
 | `MaxWordDocumentStreamBytes` | `MaxInputBytes` |
 | `ReportUnsupportedFeatures` | `ReportUnsupportedContent` |
-| positional overwrite/open conversion flags | `FileConflictPolicy` and `OpenAfterSave` |
+| positional overwrite conversion flag | `FileConflictPolicy` |
+| save-triggered application launch | Call `OpenInApplication(path)` explicitly after a successful save |
 | lossy conversion Boolean | `LossPolicy` |
 
 ## Validation

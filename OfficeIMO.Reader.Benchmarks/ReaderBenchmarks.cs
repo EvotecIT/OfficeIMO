@@ -72,7 +72,7 @@ public class ReaderDetectionBenchmarks {
 
     [Benchmark]
     public ReaderDetectionResult Detect() =>
-        DocumentReader.Detect(_input.Bytes, _input.SourceName, _options);
+        OfficeDocumentReader.Default.Detect(_input.Bytes, _input.SourceName, _options);
 }
 
 [MemoryDiagnoser]
@@ -168,9 +168,9 @@ public class ReaderMarkdownPipelineBenchmarks {
 
     [Benchmark]
     public ReaderChunk[] ReadHeadingAndTableChunks() =>
-        DocumentReader.Read(_bytes, "handbook.md", _headingOptions).ToArray();
+        OfficeDocumentReader.Default.Read(_bytes, "handbook.md", _headingOptions).ToArray();
 
     [Benchmark]
     public ReaderChunk[] ReadParagraphChunks() =>
-        DocumentReader.Read(_bytes, "handbook.md", _paragraphOptions).ToArray();
+        OfficeDocumentReader.Default.Read(_bytes, "handbook.md", _paragraphOptions).ToArray();
 }

@@ -26,19 +26,19 @@ namespace OfficeIMO.Tests {
 
                     PowerPointSlide slide = presentation.AddSlide(SlideLayoutValues.TitleOnly);
                     slide.AddTitle("Functional Smoke Test");
-                    PowerPointTextBox box = slide.AddTextBox("Agenda", PowerPointUnits.Cm(1), PowerPointUnits.Cm(3),
-                        PowerPointUnits.Cm(6), PowerPointUnits.Cm(3));
+                    PowerPointTextBox box = slide.AddTextBox("Agenda", PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(3),
+                        PowerPointUnits.FromCentimeters(6), PowerPointUnits.FromCentimeters(3));
                     box.AddBullets(new[] { "Shapes", "Images", "Tables", "Charts" });
 
-                    PowerPointAutoShape rect = slide.AddRectangle(PowerPointUnits.Cm(1), PowerPointUnits.Cm(7),
-                        PowerPointUnits.Cm(4), PowerPointUnits.Cm(2), "Card");
+                    PowerPointAutoShape rect = slide.AddRectangle(PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(7),
+                        PowerPointUnits.FromCentimeters(4), PowerPointUnits.FromCentimeters(2), "Card");
                     rect.FillColor = "E7F7FF";
                     rect.OutlineColor = "007ACC";
 
                     using (var imageStream = new MemoryStream(OnePixelPng)) {
                         slide.AddPicture(imageStream, PptImagePartType.Png,
-                            PowerPointUnits.Cm(8), PowerPointUnits.Cm(1),
-                            PowerPointUnits.Cm(2), PowerPointUnits.Cm(2));
+                            PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(1),
+                            PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(2));
                     }
 
                     PowerPointTableStyleInfo style = presentation.TableStyles
@@ -47,16 +47,16 @@ namespace OfficeIMO.Tests {
                     string styleName = string.IsNullOrWhiteSpace(style.Name) ? style.StyleId : style.Name;
 
                     PowerPointTable table = slide.AddTable(rows: 2, columns: 2, styleName: styleName,
-                        left: PowerPointUnits.Cm(8), top: PowerPointUnits.Cm(4),
-                        width: PowerPointUnits.Cm(6), height: PowerPointUnits.Cm(3),
+                        left: PowerPointUnits.FromCentimeters(8), top: PowerPointUnits.FromCentimeters(4),
+                        width: PowerPointUnits.FromCentimeters(6), height: PowerPointUnits.FromCentimeters(3),
                         firstRow: true, bandedRows: true);
                     table.GetCell(0, 0).Text = "Header";
                     table.GetCell(1, 0).Text = "Value";
                     table.GetCell(0, 0).SetTextAutoFit(PowerPointTextAutoFit.Normal,
                         new PowerPointTextAutoFitOptions(fontScalePercent: 80, lineSpaceReductionPercent: 10));
 
-                    PowerPointChart chart = slide.AddChart(PowerPointUnits.Cm(1), PowerPointUnits.Cm(10),
-                        PowerPointUnits.Cm(10), PowerPointUnits.Cm(5));
+                    PowerPointChart chart = slide.AddChart(PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(10),
+                        PowerPointUnits.FromCentimeters(10), PowerPointUnits.FromCentimeters(5));
                     chart.SetTitle("Sales");
 
                     presentation.Save();
@@ -123,8 +123,8 @@ namespace OfficeIMO.Tests {
                     cover.BackgroundColor = "F8F5EF";
                     cover.Transition = SlideTransition.Morph;
                     PowerPointTextBox title = cover.AddTitle("Commercial Snapshot",
-                        new PowerPointLayoutBox(PowerPointUnits.Cm(1.4), PowerPointUnits.Cm(1.0),
-                            PowerPointUnits.Cm(18.0), PowerPointUnits.Cm(1.2)));
+                        new PowerPointLayoutBox(PowerPointUnits.FromCentimeters(1.4), PowerPointUnits.FromCentimeters(1.0),
+                            PowerPointUnits.FromCentimeters(18.0), PowerPointUnits.FromCentimeters(1.2)));
                     title.FontSize = 32;
                     title.Color = "161411";
 
@@ -135,8 +135,8 @@ namespace OfficeIMO.Tests {
                     hero.SetShadow("000000", blurPoints: 10, distancePoints: 4, angleDegrees: 90, transparencyPercent: 70);
 
                     PowerPointTextBox insight = cover.AddTextBox("A clean, generated deck with theme colors, font scheme, background, effects, chart, and table.",
-                        new PowerPointLayoutBox(PowerPointUnits.Cm(2.0), PowerPointUnits.Cm(3.6),
-                            PowerPointUnits.Cm(14.8), PowerPointUnits.Cm(1.3)));
+                        new PowerPointLayoutBox(PowerPointUnits.FromCentimeters(2.0), PowerPointUnits.FromCentimeters(3.6),
+                            PowerPointUnits.FromCentimeters(14.8), PowerPointUnits.FromCentimeters(1.3)));
                     insight.FontSize = 18;
                     insight.Color = "FFFFFF";
 
@@ -173,8 +173,8 @@ namespace OfficeIMO.Tests {
 
                     PowerPointTable table = dashboard.AddTable(rows: 3, columns: 2,
                         styleName: presentation.TableStyles.First().Name,
-                        left: PowerPointUnits.Cm(16.8), top: PowerPointUnits.Cm(1.5),
-                        width: PowerPointUnits.Cm(7.0), height: PowerPointUnits.Cm(3.8),
+                        left: PowerPointUnits.FromCentimeters(16.8), top: PowerPointUnits.FromCentimeters(1.5),
+                        width: PowerPointUnits.FromCentimeters(7.0), height: PowerPointUnits.FromCentimeters(3.8),
                         firstRow: true, bandedRows: true);
                     table.GetCell(0, 0).Text = "Metric";
                     table.GetCell(0, 1).Text = "Value";
@@ -191,8 +191,8 @@ namespace OfficeIMO.Tests {
                     callout.SetReflection(blurPoints: 2, distancePoints: 1, startOpacityPercent: 20, endOpacityPercent: 0);
 
                     PowerPointTextBox calloutText = dashboard.AddTextBox("Observation\nThe revenue trend stays healthy through Q2.",
-                        new PowerPointLayoutBox(PowerPointUnits.Cm(17.3), PowerPointUnits.Cm(6.5),
-                            PowerPointUnits.Cm(6.0), PowerPointUnits.Cm(2.2)));
+                        new PowerPointLayoutBox(PowerPointUnits.FromCentimeters(17.3), PowerPointUnits.FromCentimeters(6.5),
+                            PowerPointUnits.FromCentimeters(6.0), PowerPointUnits.FromCentimeters(2.2)));
                     calloutText.FontSize = 16;
                     calloutText.Color = "161411";
 

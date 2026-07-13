@@ -1,6 +1,7 @@
-using OfficeIMO.Drawing.Internal;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Utilities;
@@ -55,26 +56,54 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Saves the worksheet used range as PNG.
         /// </summary>
-        public void SaveAsPng(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            WriteImageFile(path, ToPng(options));
+        public OfficeImageExportResult SaveAsPng(string path, ExcelWorksheetImageExportOptions? options = null) =>
+            new ExcelWorksheetImageExportBuilder(this, options).AsPng().Save(path);
 
         /// <summary>
         /// Saves the worksheet used range as SVG.
         /// </summary>
-        public void SaveAsSvg(string path, ExcelWorksheetImageExportOptions? options = null) =>
-            WriteImageFile(path, Encoding.UTF8.GetBytes(ToSvg(options)));
+        public OfficeImageExportResult SaveAsSvg(string path, ExcelWorksheetImageExportOptions? options = null) =>
+            new ExcelWorksheetImageExportBuilder(this, options).AsSvg().Save(path);
 
         /// <summary>
         /// Writes the worksheet used range as PNG to a stream.
         /// </summary>
-        public void SaveAsPng(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            WriteImageStream(stream, ToPng(options));
+        public OfficeImageExportResult SaveAsPng(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
+            new ExcelWorksheetImageExportBuilder(this, options).AsPng().Save(stream);
 
         /// <summary>
         /// Writes the worksheet used range as SVG to a stream.
         /// </summary>
-        public void SaveAsSvg(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
-            WriteImageStream(stream, Encoding.UTF8.GetBytes(ToSvg(options)));
+        public OfficeImageExportResult SaveAsSvg(Stream stream, ExcelWorksheetImageExportOptions? options = null) =>
+            new ExcelWorksheetImageExportBuilder(this, options).AsSvg().Save(stream);
+
+        /// <summary>Asynchronously saves the worksheet used range as PNG.</summary>
+        public Task<OfficeImageExportResult> SaveAsPngAsync(
+            string path,
+            ExcelWorksheetImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelWorksheetImageExportBuilder(this, options).AsPng().SaveAsync(path, cancellationToken);
+
+        /// <summary>Asynchronously saves the worksheet used range as SVG.</summary>
+        public Task<OfficeImageExportResult> SaveAsSvgAsync(
+            string path,
+            ExcelWorksheetImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelWorksheetImageExportBuilder(this, options).AsSvg().SaveAsync(path, cancellationToken);
+
+        /// <summary>Asynchronously writes the worksheet used range as PNG to a stream.</summary>
+        public Task<OfficeImageExportResult> SaveAsPngAsync(
+            Stream stream,
+            ExcelWorksheetImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelWorksheetImageExportBuilder(this, options).AsPng().SaveAsync(stream, cancellationToken);
+
+        /// <summary>Asynchronously writes the worksheet used range as SVG to a stream.</summary>
+        public Task<OfficeImageExportResult> SaveAsSvgAsync(
+            Stream stream,
+            ExcelWorksheetImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelWorksheetImageExportBuilder(this, options).AsSvg().SaveAsync(stream, cancellationToken);
 
         private static ExcelWorksheetImageExportOptions NormalizeWorksheetOptions(ExcelWorksheetImageExportOptions? options) {
             ExcelWorksheetImageExportOptions source = options ?? new ExcelWorksheetImageExportOptions();
@@ -592,28 +621,6 @@ namespace OfficeIMO.Excel {
             }
 
             return Math.Max(1D, Math.Round(definition.Height.Value * 96D / 72D, 2));
-        }
-
-        private static void WriteImageFile(string path, byte[] bytes) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
-            }
-
-            string fullPath = Path.GetFullPath(path);
-            string? directory = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrWhiteSpace(directory)) {
-                Directory.CreateDirectory(directory!);
-            }
-
-            OfficeFileCommit.WriteAllBytes(fullPath, bytes);
-        }
-
-        private static void WriteImageStream(Stream stream, byte[] bytes) {
-            if (stream == null) {
-                throw new ArgumentNullException(nameof(stream));
-            }
-
-            stream.Write(bytes, 0, bytes.Length);
         }
 
         private sealed class WorksheetImageRangeResolution {

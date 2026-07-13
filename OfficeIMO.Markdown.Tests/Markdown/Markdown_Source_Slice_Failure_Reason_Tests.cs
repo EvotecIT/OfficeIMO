@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public class Markdown_Source_Slice_Failure_Reason_Tests {
     [Fact]
     public void SourceMapping_Reports_Exact_Original_And_Normalized_Slices() {
-        var result = MarkdownReader.ParseWithSyntaxTree("# Title\n\nText\n", new MarkdownReaderOptions {
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\n\nText\n", new MarkdownReaderOptions {
             PreserveTrivia = true
         });
         var heading = result.SyntaxTree.Children[0];
@@ -24,7 +24,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void SourceMapping_Reports_LineEnding_Equivalent_Original_Slices_With_Original_Offsets() {
-        var result = MarkdownReader.ParseWithSyntaxTree("# Title\r\n\r\nText\r\n", new MarkdownReaderOptions {
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\r\n\r\nText\r\n", new MarkdownReaderOptions {
             PreserveTrivia = true
         });
         var paragraph = result.SyntaxTree.Children[1];
@@ -43,7 +43,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void SourceMapping_Keeps_Normalized_Slice_When_Original_Markdown_Was_Not_Preserved() {
-        var result = MarkdownReader.ParseWithSyntaxTree("# Title\n");
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\n");
         var heading = result.SyntaxTree.Children[0];
 
         var created = result.TryCreateSourceMapping(heading, out var mapping);
@@ -63,7 +63,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
                 NormalizeZeroWidthSpacingArtifacts = true
             }
         };
-        var result = MarkdownReader.ParseWithSyntaxTree("# Ti\u200Btle\n", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Ti\u200Btle\n", options);
         var heading = result.SyntaxTree.Children[0];
 
         var created = result.TryCreateSourceMapping(heading, out var mapping);
@@ -102,7 +102,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void OriginalSourceSlice_Returns_NotPreserved_Reason_When_Trivia_Is_Disabled() {
-        var result = MarkdownReader.ParseWithSyntaxTree("# Title\n");
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\n");
         var heading = result.SyntaxTree.Children[0];
 
         var created = result.TryCreateOriginalSourceSlice(heading, out _, out var failureReason);
@@ -119,7 +119,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
                 NormalizeZeroWidthSpacingArtifacts = true
             }
         };
-        var result = MarkdownReader.ParseWithSyntaxTree("# Ti\u200Btle\n", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Ti\u200Btle\n", options);
         var heading = result.SyntaxTree.Children[0];
 
         var created = result.TryCreateOriginalSourceSlice(heading, out _, out var failureReason);
@@ -130,7 +130,7 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
 
     [Fact]
     public void OriginalSourceSlice_Returns_AssociatedObjectNotFound_Reason_For_Untracked_Object() {
-        var result = MarkdownReader.ParseWithSyntaxTree("# Title\n", new MarkdownReaderOptions {
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Title\n", new MarkdownReaderOptions {
             PreserveTrivia = true
         });
 

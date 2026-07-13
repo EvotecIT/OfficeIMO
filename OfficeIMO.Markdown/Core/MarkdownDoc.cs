@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing.Internal;
+
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -587,12 +589,6 @@ public partial class MarkdownDoc : MarkdownObject {
             : NormalizeLineEndings(markdown, options.OutputLineEnding);
     }
 
-    /// <summary>
-    /// Renders HTML using default options. For backward compatibility, this returns an embeddable HTML fragment
-    /// (no html/head/body) containing just the rendered content. Use <see cref="ToHtmlDocument"/> for a full page.
-    /// </summary>
-    public string ToHtml() => ToHtmlFragment();
-
     /// <summary>Renders an embeddable HTML fragment. Wraps in &lt;article class="markdown-body"&gt; by default.</summary>
     public string ToHtmlFragment(HtmlOptions? options = null) {
         HtmlOptions operation = (options ?? new HtmlOptions()).CloneForRender(HtmlKind.Fragment);
@@ -645,11 +641,12 @@ public partial class MarkdownDoc : MarkdownObject {
             operation.ExternalCssOutputPath = cssPath;
         }
         var html = HtmlRenderer.Render(this, operation);
-        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) ?? ".");
-        System.IO.File.WriteAllText(path, html, System.Text.Encoding.UTF8);
+        OfficeFileCommit.WriteAllBytes(path, System.Text.Encoding.UTF8.GetBytes(html));
         // If renderer produced a sidecar css, ensure it's written
         if (!string.IsNullOrEmpty(operation.ExternalCssOutputPath) && operation._externalCssContentToWrite is not null) {
-            System.IO.File.WriteAllText(operation.ExternalCssOutputPath!, operation._externalCssContentToWrite, System.Text.Encoding.UTF8);
+            OfficeFileCommit.WriteAllBytes(
+                operation.ExternalCssOutputPath!,
+                System.Text.Encoding.UTF8.GetBytes(operation._externalCssContentToWrite));
         }
     }
 
@@ -666,10 +663,15 @@ public partial class MarkdownDoc : MarkdownObject {
         }
         cancellationToken.ThrowIfCancellationRequested();
         var html = HtmlRenderer.Render(this, operation);
-        System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path)) ?? ".");
-        await FileCompat.WriteAllTextAsync(path, html, System.Text.Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+        await OfficeFileCommit.WriteAllBytesAsync(
+            path,
+            System.Text.Encoding.UTF8.GetBytes(html),
+            cancellationToken: cancellationToken).ConfigureAwait(false);
         if (!string.IsNullOrEmpty(operation.ExternalCssOutputPath) && operation._externalCssContentToWrite is not null) {
-            await FileCompat.WriteAllTextAsync(operation.ExternalCssOutputPath!, operation._externalCssContentToWrite, System.Text.Encoding.UTF8, cancellationToken).ConfigureAwait(false);
+            await OfficeFileCommit.WriteAllBytesAsync(
+                operation.ExternalCssOutputPath!,
+                System.Text.Encoding.UTF8.GetBytes(operation._externalCssContentToWrite),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
     }
 

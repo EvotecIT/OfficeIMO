@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
@@ -85,9 +87,8 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Saves a PowerPoint presentation as a PDF file.
     /// </summary>
-    public static void SaveAsPdf(this PptCore.PowerPointPresentation presentation, string path, PowerPointPdfSaveOptions? options = null) {
-        presentation.ToPdfDocument(options).Save(path);
-    }
+    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this PptCore.PowerPointPresentation presentation, string path, PowerPointPdfSaveOptions? options = null) =>
+        presentation.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>
     /// Attempts to save a PowerPoint presentation as a PDF file and returns output diagnostics instead of throwing.
@@ -103,9 +104,8 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Writes a PowerPoint presentation as PDF to a stream.
     /// </summary>
-    public static void SaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointPdfSaveOptions? options = null) {
-        presentation.ToPdfDocument(options).Save(stream);
-    }
+    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointPdfSaveOptions? options = null) =>
+        presentation.ToPdfDocumentResult(options).Save(stream);
 
     /// <summary>
     /// Attempts to write a PowerPoint presentation as PDF to a stream and returns output diagnostics instead of throwing.
@@ -113,6 +113,56 @@ public static partial class PowerPointPdfConverterExtensions {
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointPdfSaveOptions? options = null) {
         try {
             return presentation.ToPdfDocumentResult(options).TrySave(stream);
+        } catch (Exception ex) {
+            return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
+        }
+    }
+
+    /// <summary>Asynchronously saves a PowerPoint presentation as PDF at the specified path.</summary>
+    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+        this PptCore.PowerPointPresentation presentation,
+        string path,
+        PowerPointPdfSaveOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        presentation.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+
+    /// <summary>Asynchronously saves a PowerPoint presentation as PDF to a caller-owned stream.</summary>
+    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+        this PptCore.PowerPointPresentation presentation,
+        Stream stream,
+        PowerPointPdfSaveOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        presentation.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+
+    /// <summary>Attempts to asynchronously save a PowerPoint presentation as PDF at the specified path.</summary>
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(
+        this PptCore.PowerPointPresentation presentation,
+        string path,
+        PowerPointPdfSaveOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        try {
+            return await presentation.ToPdfDocumentResult(options)
+                .TrySaveAsync(path, cancellationToken)
+                .ConfigureAwait(false);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        } catch (Exception ex) {
+            return PdfCore.PdfSaveResult.FromFailure(path, ex);
+        }
+    }
+
+    /// <summary>Attempts to asynchronously save a PowerPoint presentation as PDF to a caller-owned stream.</summary>
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(
+        this PptCore.PowerPointPresentation presentation,
+        Stream stream,
+        PowerPointPdfSaveOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        try {
+            return await presentation.ToPdfDocumentResult(options)
+                .TrySaveAsync(stream, cancellationToken)
+                .ConfigureAwait(false);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }

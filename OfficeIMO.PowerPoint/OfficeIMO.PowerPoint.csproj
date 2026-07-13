@@ -6,7 +6,7 @@
         <AssemblyName>OfficeIMO.PowerPoint</AssemblyName>
         <AssemblyTitle>OfficeIMO.PowerPoint</AssemblyTitle>
 
-        <VersionPrefix>1.0.50</VersionPrefix>
+        <VersionPrefix>2.0.0</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472
@@ -68,10 +68,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.cs" Link="Shared\OfficeEncryption.cs" />
-        <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.AgileDescriptor.cs" Link="Shared\OfficeEncryption.AgileDescriptor.cs" />
-        <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.CompoundFile.cs" Link="Shared\OfficeEncryption.CompoundFile.cs" />
-        <Compile Include="..\OfficeIMO.Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
     </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
@@ -87,7 +84,8 @@
         <Using Include="System.Collections" />
         <Using Include="System.Linq" />
         <Using Include="System.IO" />
-        <Using Include="OfficeIMO.Shared.OpenXml" />
+        <Using Include="OfficeIMO.Drawing" />
+        <Using Include="OfficeIMO.OpenXml.Internal" />
         <Using Include="DocumentFormat.OpenXml" />
     </ItemGroup>
 

@@ -20,7 +20,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     /// <summary>
     /// Reads a supported document from a stream and emits normalized extraction chunks.
     /// </summary>
@@ -35,17 +35,21 @@ public static partial class DocumentReader {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-        var opt = NormalizeOptions(options);
-        Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(stream, opt.MaxInputBytes, cancellationToken, out bool ownsReadStream);
         string? logicalSourceName = null;
-        try {
-            if (sourceName != null) {
-                var trimmedSourceName = sourceName.Trim();
-                if (trimmedSourceName.Length > 0) {
-                    logicalSourceName = trimmedSourceName;
-                }
+        var opt = NormalizeOptions(options);
+        if (sourceName != null) {
+            var trimmedSourceName = sourceName.Trim();
+            if (trimmedSourceName.Length > 0) {
+                logicalSourceName = trimmedSourceName;
             }
+        }
 
+        Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
+            stream,
+            ResolveInitialMaxInputBytes(logicalSourceName, opt),
+            cancellationToken,
+            out bool ownsReadStream);
+        try {
             var source = BuildSourceInfoFromStream(readStream, logicalSourceName, opt.ComputeHashes);
 
             IEnumerable<ReaderChunk> raw;

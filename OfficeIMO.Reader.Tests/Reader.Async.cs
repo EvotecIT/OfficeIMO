@@ -46,6 +46,42 @@ public sealed class ReaderAsyncTests {
     }
 
     [Fact]
+    public async Task OfficeDocumentReader_UsesBoundedFallbackForSynchronousPathHandler() {
+        const string extension = ".syncpathix";
+        string file = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
+        File.WriteAllText(file, "input");
+
+        try {
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .WithMaxConcurrentReads(1)
+                .AddHandler(new ReaderHandlerRegistration {
+                    Id = "officeimo.tests.sync.path",
+                    Kind = ReaderInputKind.Text,
+                    Extensions = new[] { extension },
+                    ReadDocumentPath = (path, options, cancellationToken) => {
+                        cancellationToken.ThrowIfCancellationRequested();
+                        return CreateResult(path, "bounded-sync-path");
+                    }
+                })
+                .Build();
+
+            OfficeDocumentReadResult result = await reader.ReadDocumentAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = await reader.ReadAsync(file);
+            ReaderHandlerCapability capability = Assert.Single(
+                reader.GetCapabilities(),
+                item => item.Id == "officeimo.tests.sync.path");
+
+            Assert.Equal("bounded-sync-path", Assert.Single(result.Chunks).Text);
+            Assert.Equal("bounded-sync-path", Assert.Single(chunks).Text);
+            Assert.True(capability.SupportsPath);
+            Assert.False(capability.SupportsAsyncPath);
+            Assert.Equal(1, reader.MaxConcurrentReads);
+        } finally {
+            File.Delete(file);
+        }
+    }
+
+    [Fact]
     public async Task OfficeDocumentReader_UsesAsyncBoundedSnapshotForNonSeekableStream() {
         const string extension = ".asyncstreamix";
         bool handlerInvoked = false;
@@ -174,7 +210,7 @@ public sealed class ReaderAsyncTests {
         File.WriteAllText(file, "built-in async fallback");
 
         try {
-            IReadOnlyList<ReaderChunk> chunks = await DocumentReader.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = await OfficeDocumentReader.Default.ReadAsync(file);
 
             Assert.Contains(chunks, chunk => chunk.Text.Contains("built-in async fallback", StringComparison.Ordinal));
         } finally {

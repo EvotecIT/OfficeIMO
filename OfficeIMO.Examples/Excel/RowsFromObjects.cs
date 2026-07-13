@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Examples.Excel {
     public static class RowsFromObjects {
@@ -70,7 +71,8 @@ namespace OfficeIMO.Examples.Excel {
                         .AutoFit(columns: true, rows: false))
                     .End();
 
-                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                document.Save();
+                if (openExcel) document.OpenInApplication();
             }
         }
     }

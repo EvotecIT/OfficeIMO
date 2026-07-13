@@ -34,8 +34,7 @@ namespace OfficeIMO.Excel.Fluent {
                             .OrderBy(s => s, System.StringComparer.Ordinal)
                             .ToList();
                 // Apply selection filters (Ignore/Exclude/Include) then ordering (Pinned/Priority)
-                paths = OfficeIMO.Excel.ObjectFlattener.ApplySelection(paths, opts);
-                paths = OfficeIMO.Excel.ObjectFlattener.ApplyOrdering(paths, opts);
+                paths = flattener.ResolvePaths(paths, opts);
             }
 
             // If we still have no columns (e.g., row type exposes fields but no public properties),
@@ -89,63 +88,61 @@ namespace OfficeIMO.Excel.Fluent {
             var viz = new TableVisualOptions();
             viz.FreezeHeaderRow = freezeHeaderRow; visuals?.Invoke(viz);
             Sheet.SetTableStyle(range, style, viz.ShowFirstColumn, viz.ShowLastColumn, viz.ShowRowStripes, viz.ShowColumnStripes);
-            if (viz.FreezeHeaderRow) { try { Sheet.Freeze(topRows: headerRow, leftCols: 0); } catch { } }
+            if (viz.FreezeHeaderRow) Sheet.Freeze(topRows: headerRow, leftCols: 0);
 
-            try {
-                var headers = headersT; int startCol = 1;
-                for (int i = 0; i < headers.Count; i++) {
-                    string hdr = headers[i];
-                    string colRange = $"{ColumnLetter(startCol + i)}{headerRow + 1}:{ColumnLetter(startCol + i)}{_row - 1}";
+            var headers = headersT; int startCol = 1;
+            for (int i = 0; i < headers.Count; i++) {
+                string hdr = headers[i];
+                string colRange = $"{ColumnLetter(startCol + i)}{headerRow + 1}:{ColumnLetter(startCol + i)}{_row - 1}";
 
-                    if (viz.NumericColumnFormats.TryGetValue(hdr, out var fmt)) {
-                        if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
-                            Sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt);
-                    } else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec)) {
-                        if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
-                            Sheet.ColumnStyleByHeader(hdr).Number(dec);
-                    }
-
-                    if (viz.DataBars.TryGetValue(hdr, out var color))
-                        try { Sheet.AddConditionalDataBar(colRange, color); } catch { }
-
-                    if (viz.IconSets.TryGetValue(hdr, out var iconOpts))
-                        try { Sheet.AddConditionalIconSet(colRange, iconOpts.IconSet, iconOpts.ShowValue, iconOpts.ReverseOrder, iconOpts.PercentThresholds, iconOpts.NumberThresholds); } catch { }
-                    else if (viz.IconSetColumns.Contains(hdr))
-                        try { Sheet.AddConditionalIconSet(colRange); } catch { }
-
-                    if (viz.TextBackgrounds.TryGetValue(hdr, out var map)) {
-                        if (Sheet.TryGetColumnIndexByHeader(hdr, out _)) {
-                            Sheet.ColumnStyleByHeader(hdr).BackgroundByTextMap(map);
-                        } else {
-                            for (int r = headerRow + 1; r <= _row - 1; r++)
-                                if (Sheet.TryGetCellText(r, startCol + i, out var t) && t != null && map.TryGetValue(t, out var colorHex))
-                                    Sheet.CellBackground(r, startCol + i, colorHex);
-                        }
-                    }
-                    if (viz.BoldByText.TryGetValue(hdr, out var boldSet)) {
-                        if (Sheet.TryGetColumnIndexByHeader(hdr, out _)) {
-                            Sheet.ColumnStyleByHeader(hdr).BoldByTextSet(boldSet);
-                        } else {
-                            var setCI = new System.Collections.Generic.HashSet<string>(boldSet, System.StringComparer.OrdinalIgnoreCase);
-                            for (int r = headerRow + 1; r <= _row - 1; r++)
-                                if (Sheet.TryGetCellText(r, startCol + i, out var t) && !string.IsNullOrEmpty(t) && setCI.Contains(t))
-                                    Sheet.CellBold(r, startCol + i, true);
-                        }
-                    }
+                if (viz.NumericColumnFormats.TryGetValue(hdr, out var fmt)) {
+                    if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
+                        Sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt);
+                } else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec)) {
+                    if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
+                        Sheet.ColumnStyleByHeader(hdr).Number(dec);
                 }
 
-                if (viz.AutoFormatDynamicCollections) {
-                    for (int i = 0; i < paths.Count; i++) {
-                        if (paths[i].Contains('.')) {
-                            var hdr = headers[i];
-                            if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
-                                Sheet.ColumnStyleByHeader(hdr).Number(viz.AutoFormatDecimals);
-                            string colRangeAuto = $"{ColumnLetter(startCol + i)}{headerRow + 1}:{ColumnLetter(startCol + i)}{_row - 1}";
-                            try { Sheet.AddConditionalDataBar(colRangeAuto, viz.AutoFormatDataBarColor); } catch { }
-                        }
+                if (viz.DataBars.TryGetValue(hdr, out var color))
+                    Sheet.AddConditionalDataBar(colRange, color);
+
+                if (viz.IconSets.TryGetValue(hdr, out var iconOpts))
+                    Sheet.AddConditionalIconSet(colRange, iconOpts.IconSet, iconOpts.ShowValue, iconOpts.ReverseOrder, iconOpts.PercentThresholds, iconOpts.NumberThresholds);
+                else if (viz.IconSetColumns.Contains(hdr))
+                    Sheet.AddConditionalIconSet(colRange);
+
+                if (viz.TextBackgrounds.TryGetValue(hdr, out var map)) {
+                    if (Sheet.TryGetColumnIndexByHeader(hdr, out _)) {
+                        Sheet.ColumnStyleByHeader(hdr).BackgroundByTextMap(map);
+                    } else {
+                        for (int r = headerRow + 1; r <= _row - 1; r++)
+                            if (Sheet.TryGetCellText(r, startCol + i, out var t) && t != null && map.TryGetValue(t, out var colorHex))
+                                Sheet.CellBackground(r, startCol + i, colorHex);
                     }
                 }
-            } catch { }
+                if (viz.BoldByText.TryGetValue(hdr, out var boldSet)) {
+                    if (Sheet.TryGetColumnIndexByHeader(hdr, out _)) {
+                        Sheet.ColumnStyleByHeader(hdr).BoldByTextSet(boldSet);
+                    } else {
+                        var setCI = new System.Collections.Generic.HashSet<string>(boldSet, System.StringComparer.OrdinalIgnoreCase);
+                        for (int r = headerRow + 1; r <= _row - 1; r++)
+                            if (Sheet.TryGetCellText(r, startCol + i, out var t) && !string.IsNullOrEmpty(t) && setCI.Contains(t))
+                                Sheet.CellBold(r, startCol + i, true);
+                    }
+                }
+            }
+
+            if (viz.AutoFormatDynamicCollections) {
+                for (int i = 0; i < paths.Count; i++) {
+                    if (paths[i].Contains('.')) {
+                        var hdr = headers[i];
+                        if (Sheet.TryGetColumnIndexByHeader(hdr, out _))
+                            Sheet.ColumnStyleByHeader(hdr).Number(viz.AutoFormatDecimals);
+                        string colRangeAuto = $"{ColumnLetter(startCol + i)}{headerRow + 1}:{ColumnLetter(startCol + i)}{_row - 1}";
+                        Sheet.AddConditionalDataBar(colRangeAuto, viz.AutoFormatDataBarColor);
+                    }
+                }
+            }
             Spacer();
             return range;
         }

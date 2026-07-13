@@ -9,14 +9,6 @@ namespace OfficeIMO.Excel.Html;
 /// </summary>
 public static partial class HtmlExcelConverterExtensions {
     /// <summary>
-    /// Imports semantic OfficeIMO Excel HTML into a native workbook.
-    /// </summary>
-    /// <example><code>using ExcelDocument workbook = html.ToExcelDocument();</code></example>
-    public static ExcelDocument ToExcelDocument(this string html, HtmlToExcelOptions? options = null) {
-        return GetWorkbookOrThrow(ToExcelDocumentResult(html, options));
-    }
-
-    /// <summary>
     /// Imports a prepared shared HTML conversion document into a native workbook without reparsing its adapter DOM.
     /// </summary>
     public static ExcelDocument ToExcelDocument(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
@@ -24,20 +16,11 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     /// <summary>
-    /// Imports semantic OfficeIMO Excel HTML into a native workbook and returns import evidence.
-    /// </summary>
-    /// <example><code>HtmlToExcelResult result = html.ToExcelDocumentResult();</code></example>
-    public static HtmlToExcelResult ToExcelDocumentResult(this string html, HtmlToExcelOptions? options = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        return ImportDocument(HtmlDocumentParser.ParseDocument(html), options ?? new HtmlToExcelOptions());
-    }
-
-    /// <summary>
     /// Imports a prepared shared HTML conversion document and returns the workbook plus structured evidence.
     /// </summary>
     public static HtmlToExcelResult ToExcelDocumentResult(this HtmlConversionDocument document, HtmlToExcelOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ImportDocument(document.DocumentForConversion, options ?? new HtmlToExcelOptions());
+        return ImportDocument(document.CreateDocumentForConversion(HtmlCssMediaContext.Screen), options ?? new HtmlToExcelOptions());
     }
 
     private static HtmlToExcelResult ImportDocument(IHtmlDocument document, HtmlToExcelOptions options) {
@@ -79,7 +62,7 @@ public static partial class HtmlExcelConverterExtensions {
         if (result.Succeeded) return result.Value;
 
         result.Value.Dispose();
-        throw new HtmlConversionException(result.Diagnostics);
+        throw new HtmlConversionException(result.Report.Diagnostics);
     }
 
     private static void ApplySheetVisibility(IElement section, ExcelSheet sheet) {

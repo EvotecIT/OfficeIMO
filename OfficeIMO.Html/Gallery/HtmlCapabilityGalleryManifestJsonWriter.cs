@@ -205,7 +205,7 @@ public static class HtmlCapabilityGalleryManifestJsonWriter {
         }
 
         if (manifest.ResourceManifest != null) {
-            foreach (HtmlDiagnostic diagnostic in manifest.ResourceManifest.Diagnostics.Diagnostics) {
+            foreach (HtmlDiagnostic diagnostic in manifest.ResourceManifest.Diagnostics) {
                 diagnostics.Add(new KeyValuePair<string, HtmlDiagnostic>("resource", diagnostic));
             }
         }

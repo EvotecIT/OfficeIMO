@@ -17,7 +17,7 @@ public sealed class Markdown_GitHubFlavoredMarkdown_Examples_Tests {
     [Theory]
     [MemberData(nameof(GfmSmokeExamples))]
     public void Gfm_Profile_Matches_Official_Smoke_Examples_And_Keeps_SyntaxTree_Invariants(string _, GfmExampleFixture example) {
-        var result = MarkdownReader.ParseWithSyntaxTree(example.Markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(example.Markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = result.Document.ToHtmlFragment(GfmHtmlComparison.CreatePlainHtmlOptions());
 
         Assert.Equal(GfmHtmlComparison.Normalize(example.Html), GfmHtmlComparison.Normalize(html));

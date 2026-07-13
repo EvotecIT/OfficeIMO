@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_NestedOrderedAndUnorderedLists() {
             string md = "1. First\n   - Second\n     1. Third\n2. Fourth";
 
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var paragraphs = doc.Paragraphs.Where(p => p.IsListItem && !string.IsNullOrWhiteSpace(p.Text)).ToArray();
             Assert.Equal(new[] {0, 1, 2, 0}, paragraphs.Select(p => p.ListItemLevel.GetValueOrDefault()).ToArray());
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         public void MarkdownToWord_TaskLists() {
             string md = "- [ ] Task1\n- [x] Task2\n  - [ ] Subtask";
 
-            var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             Assert.Equal(new[] {false, true, false}, doc.CheckBoxes.Select(cb => cb.IsChecked).ToArray());
 
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 - next item
                 """;
 
-            using var doc = md.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(new MarkdownToWordOptions());
 
             var listParagraphs = doc.Paragraphs
                 .Where(p => p.IsListItem && !string.IsNullOrWhiteSpace(p.Text))

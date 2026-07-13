@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_Address_ParsesLikeDiv() {
             string html = "<address style=\"text-align:right\"><p>Location</p></address>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal("Location", paragraph.Text);
@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_Article_ParsesLikeDiv() {
             string html = "<article style=\"text-align:center\"><p>Article text</p></article>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal("Article text", paragraph.Text);
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_Aside_ParsesLikeDiv() {
             string html = "<aside style=\"text-align:justify\"><p>Aside note</p></aside>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal("Aside note", paragraph.Text);
@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_Nav_ParsesLikeDiv() {
             string html = "<nav style=\"margin-left:20pt;padding-left:10pt\"><p>Menu</p></nav>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal("Menu", paragraph.Text);
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlStructuralTags_CreateBookmarks() {
             string html = "<section id=\"intro\"><p>Intro</p></section><article id=\"art\"><p>Article</p></article>";
-            using var doc = html.ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
             Assert.Contains(doc.Bookmarks, b => b.Name == "section:intro");
             Assert.Contains(doc.Bookmarks, b => b.Name == "article:art");
 

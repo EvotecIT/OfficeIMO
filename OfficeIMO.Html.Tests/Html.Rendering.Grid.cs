@@ -34,7 +34,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, d.X, 3);
         Assert.Equal(45D, d.Y, 3);
         Assert.All(new[] { a, b, c, d }, shape => Assert.Equal(40D, shape.Height, 3));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(texts, text => text.Text == "Middle");
         Assert.Single(texts, text => text.Text == "After");
         Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-items::before" && shape.Shape.FillColor.HasValue);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
     }
 
     [Fact]
@@ -136,7 +136,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(80D, main.X, 3);
         Assert.Equal(120D, main.Width, 3);
         Assert.Equal(30D, main.Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
     }
 
     [Fact]
@@ -157,7 +157,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(35D, FindGridShape(rendered, "div#flow-column-b").Y, 3);
         Assert.Equal(60D, FindGridShape(rendered, "div#flow-column-c").X, 3);
         Assert.Equal(0D, FindGridShape(rendered, "div#flow-column-c").Y, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(80D, FindGridShape(rendered, "div#named-side").Width, 3);
         Assert.Equal(80D, FindGridShape(rendered, "div#named-main").X, 3);
         Assert.Equal(120D, FindGridShape(rendered, "div#named-main").Width, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
     }
 
     [Fact]
@@ -195,7 +195,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(230D, FindGridShape(rendered, "div#auto-fit-b").X, 3);
         Assert.Equal(105D, FindGridShape(rendered, "div#auto-fill-a").Width, 3);
         Assert.Equal(115D, FindGridShape(rendered, "div#auto-fill-b").X, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported);
     }
 
     [Fact]
@@ -233,13 +233,13 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-page-one");
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-page-two");
         Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#grid-page-two");
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
 
     [Fact]
@@ -260,11 +260,11 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(3, rendered.Pages.Count);
         Assert.All(rendered.Pages, page => Assert.True(page.Visuals.Count > 1));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
@@ -280,12 +280,12 @@ public sealed partial class HtmlRenderingTests {
             """;
         var options = new HtmlRenderOptions { ViewportWidth = 80D, Margins = HtmlRenderMargins.All(8D) };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(40, 10));
@@ -314,7 +314,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(a.X + 30D, b.X, 3);
         Assert.True(after.X > b.X);
         Assert.Contains(rendered.Pages[0].Visuals, visual => visual.Source == "span#inline-grid" && visual.LinkUri == "https://example.com/grid");
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
     }
 
     [Fact]
@@ -326,17 +326,17 @@ public sealed partial class HtmlRenderingTests {
             """;
         HtmlRenderDocument rendered = RenderGrid(html, 220D);
 
-        Assert.Equal(3, rendered.Diagnostics.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
+        Assert.Equal(3, rendered.Diagnostics.Count(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridValueUnsupported));
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GridLayoutPending);
 
         var options = new HtmlRenderOptions { ViewportWidth = 220D, Margins = HtmlRenderMargins.All(0D), MaxGridTracks = 2 };
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
-            HtmlRenderEngine.Render("<div style='display:grid;grid-template-columns:repeat(3,1fr)'><span>A</span></div>", options));
+            HtmlRenderTestDriver.Render("<div style='display:grid;grid-template-columns:repeat(3,1fr)'><span>A</span></div>", options));
         Assert.Equal(HtmlRenderDiagnosticCodes.GridTrackLimitExceeded, exception.Code);
     }
 
     private static HtmlRenderDocument RenderGrid(string html, double viewportWidth) =>
-        HtmlRenderEngine.Render(html, new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
 
     private static HtmlRenderShape FindGridShape(HtmlRenderDocument rendered, string source) =>
         Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(), shape => shape.Source == source && shape.Shape.FillColor.HasValue);

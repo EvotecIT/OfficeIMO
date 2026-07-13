@@ -1,5 +1,7 @@
 using System.Collections.Generic;
 using System.Globalization;
+using System.Threading;
+using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
@@ -7,61 +9,44 @@ namespace OfficeIMO.Html.Pdf;
 /// <summary>
 /// First-party PDF to HTML conversion helpers for the bidirectional HTML/PDF bridge.
 /// </summary>
-public static partial class PdfHtmlConverter {
-    /// <summary>
-    /// Converts PDF bytes to HTML using the first-party logical PDF read model.
-    /// </summary>
-    public static string ToHtml(byte[] pdf, PdfHtmlSaveOptions? options = null) {
-        return ToHtmlResult(pdf, options).Value;
-    }
-
-    /// <summary>
-    /// Converts a PDF file to HTML using the first-party logical PDF read model.
-    /// </summary>
-    public static string ToHtml(string path, PdfHtmlSaveOptions? options = null) {
-        return ToHtmlResult(path, options).Value;
-    }
-
-    /// <summary>
-    /// Converts PDF stream content to HTML using the first-party logical PDF read model.
-    /// </summary>
-    public static string ToHtml(Stream stream, PdfHtmlSaveOptions? options = null) {
-        return ToHtmlResult(stream, options).Value;
-    }
-
-    /// <summary>
-    /// Saves PDF bytes as an HTML file.
-    /// </summary>
-    public static void SaveAsHtml(byte[] pdf, string path, PdfHtmlSaveOptions? options = null) {
-        File.WriteAllText(path, ToHtml(pdf, options), Encoding.UTF8);
-    }
-
-    /// <summary>
-    /// Saves a PDF file as an HTML file.
-    /// </summary>
-    public static void SaveAsHtml(string pdfPath, string htmlPath, PdfHtmlSaveOptions? options = null) {
-        File.WriteAllText(htmlPath, ToHtml(pdfPath, options), Encoding.UTF8);
-    }
-
-    /// <summary>
-    /// Saves PDF stream content as an HTML file.
-    /// </summary>
-    public static void SaveAsHtml(Stream stream, string path, PdfHtmlSaveOptions? options = null) {
-        File.WriteAllText(path, ToHtml(stream, options), Encoding.UTF8);
-    }
-
-    /// <summary>
-    /// Renders an already parsed PDF document as HTML.
-    /// </summary>
-    public static string ToHtml(this PdfCore.PdfReadDocument document, PdfHtmlSaveOptions? options = null) {
-        return document.ToHtmlResult(options).Value;
-    }
-
+public static partial class PdfHtmlConverterExtensions {
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML.
     /// </summary>
     public static string ToHtml(this PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions? options = null) {
         return document.ToHtmlResult(options).Value;
+    }
+
+    /// <summary>Renders a logical PDF document and saves the HTML as UTF-8 without a byte-order mark.</summary>
+    public static void SaveAsHtml(this PdfCore.PdfLogicalDocument document, string path, PdfHtmlSaveOptions? options = null) {
+        HtmlTextIO.Write(path, document.ToHtml(options));
+    }
+
+    /// <summary>Renders a logical PDF document and writes HTML to a caller-owned stream.</summary>
+    public static void SaveAsHtml(this PdfCore.PdfLogicalDocument document, Stream stream, PdfHtmlSaveOptions? options = null) {
+        HtmlTextIO.Write(stream, document.ToHtml(options));
+    }
+
+    /// <summary>Renders a logical PDF document and asynchronously saves the HTML.</summary>
+    public static async Task SaveAsHtmlAsync(
+        this PdfCore.PdfLogicalDocument document,
+        string path,
+        PdfHtmlSaveOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string html = document.ToHtml(options);
+        await HtmlTextIO.WriteAsync(path, html, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Renders a logical PDF document and asynchronously writes HTML to a caller-owned stream.</summary>
+    public static async Task SaveAsHtmlAsync(
+        this PdfCore.PdfLogicalDocument document,
+        Stream stream,
+        PdfHtmlSaveOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        string html = document.ToHtml(options);
+        await HtmlTextIO.WriteAsync(stream, html, cancellationToken).ConfigureAwait(false);
     }
 
     private static PdfCore.PdfPageRange[] CopyPageRanges(PdfHtmlSaveOptions options) {

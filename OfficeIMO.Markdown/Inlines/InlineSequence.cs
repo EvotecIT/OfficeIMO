@@ -5,20 +5,15 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, IPlainTextMarkdownInline {
     private readonly List<IMarkdownInline> _inlines = new List<IMarkdownInline>();
-    private readonly IReadOnlyList<object> _itemsView;
 
     /// <summary>Creates an empty inline sequence.</summary>
-    public InlineSequence() {
-        _itemsView = new InlineObjectReadOnlyList(_inlines);
-    }
+    public InlineSequence() { }
 
     // When composing via the fluent/builder APIs, auto-spacing between adjacent inline nodes is convenient.
     // When parsing Markdown source, spacing is already present in TextRun nodes, so auto-spacing would double spaces.
     internal bool AutoSpacing { get; set; } = true;
     /// <summary>Exposes the inline nodes for safe iteration.</summary>
     public IReadOnlyList<IMarkdownInline> Nodes => _inlines;
-    /// <summary>Legacy object-typed inline view retained for compatibility.</summary>
-    public IReadOnlyList<object> Items => _itemsView;
     /// <summary>Adds plain text.</summary>
     public InlineSequence Text(string text) { _inlines.Add(new TextRun(text)); return this; }
     /// <summary>Adds a hyperlink.</summary>
@@ -340,24 +335,4 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
 
         return null;
     }
-}
-
-internal sealed class InlineObjectReadOnlyList : IReadOnlyList<object> {
-    private readonly IReadOnlyList<IMarkdownInline> _nodes;
-
-    public InlineObjectReadOnlyList(IReadOnlyList<IMarkdownInline> nodes) {
-        _nodes = nodes ?? throw new ArgumentNullException(nameof(nodes));
-    }
-
-    public int Count => _nodes.Count;
-
-    public object this[int index] => _nodes[index];
-
-    public IEnumerator<object> GetEnumerator() {
-        for (int i = 0; i < _nodes.Count; i++) {
-            yield return _nodes[i];
-        }
-    }
-
-    System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
 }

@@ -4,7 +4,7 @@
     <Description>WebView-friendly Markdown rendering helpers (shell + incremental updates) built on OfficeIMO.Markdown.</Description>
     <AssemblyName>OfficeIMO.MarkdownRenderer</AssemblyName>
     <AssemblyTitle>OfficeIMO.MarkdownRenderer</AssemblyTitle>
-    <VersionPrefix>0.2.42</VersionPrefix>
+    <VersionPrefix>2.0.0</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
       $(TargetFrameworks);net472
@@ -46,11 +46,6 @@
     <Using Include="System.Text" />
     <Using Include="System.Collections.Generic" />
     <Using Include="System.Linq" />
-  </ItemGroup>
-
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <!-- Required for HttpClient usage in offline asset bundling helpers -->
-    <Reference Include="System.Net.Http" />
   </ItemGroup>
 
 </Project>

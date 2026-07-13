@@ -1,10 +1,14 @@
+using OfficeIMO.Drawing.Internal;
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
 /// Root PDF document container and fluent API for composing basic PDF files.
 /// Mirrors the OfficeIMO.Markdown style (H1/H2/H3, paragraph) but targets PDF output.
 /// </summary>
-public sealed partial class PdfDocument : IDisposable {
+public sealed partial class PdfDocument {
     private readonly System.Collections.Generic.List<IPdfBlock> _blocks = new();
     private readonly PdfOptions _options;
     private readonly System.Collections.Generic.Stack<System.Action<IPdfBlock>> _blockScopes;
@@ -43,63 +47,70 @@ public sealed partial class PdfDocument : IDisposable {
     public static PdfDocument Create(PdfOptions? options = null) => new PdfDocument(options);
 
     /// <summary>
-    /// Opens an existing PDF from bytes and snapshots the input.
+    /// Loads an existing PDF from bytes and snapshots the input.
     /// </summary>
-    public static PdfDocument Open(byte[] pdf) {
+    public static PdfDocument Load(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
         return new PdfDocument(pdf);
     }
 
     /// <summary>
-    /// Opens an existing PDF from bytes and snapshots the input.
+    /// Loads an existing PDF from bytes and snapshots the input.
     /// </summary>
-    public static PdfDocument Open(byte[] pdf, PdfReadOptions? readOptions) {
+    public static PdfDocument Load(byte[] pdf, PdfReadOptions? readOptions) {
         Guard.NotNull(pdf, nameof(pdf));
         return new PdfDocument(pdf, readOptions);
     }
 
     /// <summary>
-    /// Opens an existing PDF from a file path.
+    /// Loads an existing PDF from a file path.
     /// </summary>
-    public static PdfDocument Open(string path) {
+    public static PdfDocument Load(string path) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Open(File.ReadAllBytes(path));
+        return Load(File.ReadAllBytes(path));
     }
 
     /// <summary>
-    /// Opens an existing PDF from a file path.
+    /// Loads an existing PDF from a file path.
     /// </summary>
-    public static PdfDocument Open(string path, PdfReadOptions? readOptions) {
+    public static PdfDocument Load(string path, PdfReadOptions? readOptions) {
         Guard.NotNullOrWhiteSpace(path, nameof(path));
-        return Open(File.ReadAllBytes(path), readOptions);
+        return Load(File.ReadAllBytes(path), readOptions);
     }
 
     /// <summary>
-    /// Opens an existing PDF from the current position of a readable stream.
+    /// Loads a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
     /// </summary>
-    public static PdfDocument Open(Stream stream) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
-
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Open(buffer.ToArray());
+    public static PdfDocument Load(Stream stream) {
+        return Load(OfficeStreamReader.ReadAllBytes(stream));
     }
 
     /// <summary>
-    /// Opens an existing PDF from the current position of a readable stream.
+    /// Loads a complete PDF from a readable stream. Seekable streams are read from the beginning and restored.
     /// </summary>
-    public static PdfDocument Open(Stream stream, PdfReadOptions? readOptions) {
-        Guard.NotNull(stream, nameof(stream));
-        if (!stream.CanRead) {
-            throw new ArgumentException("Stream must be readable.", nameof(stream));
-        }
+    public static PdfDocument Load(Stream stream, PdfReadOptions? readOptions) {
+        return Load(OfficeStreamReader.ReadAllBytes(stream), readOptions);
+    }
 
-        using var buffer = new MemoryStream();
-        stream.CopyTo(buffer);
-        return Open(buffer.ToArray(), readOptions);
+    /// <summary>Asynchronously loads an existing PDF from a file path.</summary>
+    public static async Task<PdfDocument> LoadAsync(
+        string path,
+        PdfReadOptions? readOptions = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNullOrWhiteSpace(path, nameof(path));
+        string fullPath = System.IO.Path.GetFullPath(path);
+        using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 81920, useAsync: true);
+        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        return Load(bytes, readOptions);
+    }
+
+    /// <summary>Asynchronously loads a complete PDF from a readable caller-owned stream.</summary>
+    public static async Task<PdfDocument> LoadAsync(
+        Stream stream,
+        PdfReadOptions? readOptions = null,
+        CancellationToken cancellationToken = default) {
+        byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        return Load(bytes, readOptions);
     }
 
     /// <summary>
@@ -220,11 +231,6 @@ public sealed partial class PdfDocument : IDisposable {
         return new PdfDocument(pdf, readOptions);
     }
 
-    /// <inheritdoc />
-    public void Dispose() {
-        // No unmanaged resources are held. IDisposable keeps the document ergonomic beside stream-backed workflows.
-    }
-
     private sealed class Scope : System.IDisposable {
         private readonly PdfDocument _doc;
         private bool _disposed;
@@ -236,4 +242,3 @@ public sealed partial class PdfDocument : IDisposable {
         }
     }
 }
-

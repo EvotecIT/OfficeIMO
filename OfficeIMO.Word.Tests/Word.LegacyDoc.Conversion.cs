@@ -19,10 +19,10 @@ namespace OfficeIMO.Tests {
 
             WordDocumentConversionResult toDoc = WordDocument.Convert(docxPath, docPath);
 
-            Assert.True(toDoc.OutputCreated);
-            Assert.Equal(WordFileFormat.Docx, toDoc.SourceFormat);
-            Assert.Equal(WordFileFormat.Doc, toDoc.DestinationFormat);
-            Assert.False(toDoc.HasDataLoss);
+            Assert.Equal(docPath, toDoc.RequireNoLoss());
+            Assert.Equal(WordFileFormat.Docx, toDoc.Report.SourceFormat);
+            Assert.Equal(WordFileFormat.Doc, toDoc.Report.DestinationFormat);
+            Assert.False(toDoc.HasLoss);
 
             AssertOleCompoundFile(docPath);
             using (WordDocument legacy = WordDocument.Load(docPath)) {
@@ -34,8 +34,8 @@ namespace OfficeIMO.Tests {
 
             WordDocumentConversionResult toDocx = WordDocument.Convert(docPath, roundTripPath);
 
-            Assert.Equal(WordFileFormat.Doc, toDocx.SourceFormat);
-            Assert.Equal(WordFileFormat.Docx, toDocx.DestinationFormat);
+            Assert.Equal(WordFileFormat.Doc, toDocx.Report.SourceFormat);
+            Assert.Equal(WordFileFormat.Docx, toDocx.Report.DestinationFormat);
 
             using WordDocument roundTrip = WordDocument.Load(roundTripPath);
             Assert.False(roundTrip.SourceFormat == WordFileFormat.Doc);
@@ -53,16 +53,17 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() => WordDocument.Convert(docPath, blockedPath));
 
             Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
-            Assert.True(exception.Result.HasDataLoss);
-            Assert.Contains(exception.Result.Diagnostics, diagnostic => diagnostic.Category == WordConversionDiagnosticCategory.DataLoss);
+            Assert.True(exception.Result.HasLoss);
+            Assert.Contains(exception.Result.Report.Diagnostics, diagnostic => diagnostic.Category == WordConversionDiagnosticCategory.DataLoss);
             Assert.False(File.Exists(blockedPath));
 
             WordDocumentConversionResult result = WordDocument.Convert(docPath, allowedPath, new WordDocumentConversionOptions {
                 LossPolicy = WordConversionLossPolicy.Allow
             });
 
-            Assert.True(result.HasDataLoss);
-            Assert.True(result.OutputCreated);
+            Assert.True(result.HasLoss);
+            Assert.Equal(allowedPath, result.RequireValue());
+            Assert.Throws<InvalidOperationException>(() => result.RequireNoLoss());
 
             using WordDocument converted = WordDocument.Load(allowedPath);
             Assert.False(converted.SourceFormat == WordFileFormat.Doc);
@@ -97,7 +98,7 @@ namespace OfficeIMO.Tests {
                 }));
 
             Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
-            Assert.True(exception.Result.HasDataLoss);
+            Assert.True(exception.Result.HasLoss);
             Assert.False(File.Exists(destinationPath));
         }
 
@@ -121,7 +122,7 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionResult replaced = WordDocument.Convert(sourcePath, destinationPath, new WordDocumentConversionOptions {
                 FileConflictPolicy = WordConversionFileConflictPolicy.Replace
             });
-            Assert.True(replaced.ReplacedExistingFile);
+            Assert.True(replaced.Report.ReplacedExistingFile);
             AssertOleCompoundFile(destinationPath);
         }
 
@@ -198,7 +199,7 @@ namespace OfficeIMO.Tests {
             WordDocumentConversionException exception = Assert.Throws<WordDocumentConversionException>(() => WordDocument.Convert(docPath, blockedPath));
 
             Assert.Equal(WordDocumentConversionFailureReason.DataLossBlocked, exception.Reason);
-            Assert.True(exception.Result.HasDataLoss);
+            Assert.True(exception.Result.HasLoss);
             Assert.False(File.Exists(blockedPath));
 
             WordDocument.Convert(docPath, allowedPath, new WordDocumentConversionOptions {

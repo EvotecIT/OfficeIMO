@@ -174,7 +174,7 @@ public class RtfParagraphLayoutTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.True(rtfParagraph.PageBreakBefore);
@@ -297,7 +297,7 @@ public class RtfParagraphLayoutTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
         Assert.Equal(RtfTextDirection.RightToLeft, rtfParagraph.Direction);

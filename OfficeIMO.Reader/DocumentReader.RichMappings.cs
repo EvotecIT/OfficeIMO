@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static OfficeDocumentReadResult EnrichBuiltInDocumentResult(
         string path,
         ReaderInputKind kind,

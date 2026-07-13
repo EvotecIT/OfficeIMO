@@ -6,6 +6,8 @@ namespace OfficeIMO.Pdf;
 /// Represents an image rendered inside a table cell.
 /// </summary>
 public sealed class PdfTableCellImage {
+    private readonly byte[] _data;
+
     /// <summary>Creates a supported table-cell image. JPEG and simple PNG images, including Adam7 interlace, indexed-color palettes, and alpha soft masks, are supported.</summary>
     public PdfTableCellImage(byte[] data, double width, double height, PdfImageStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNullOrEmpty(data, nameof(data));
@@ -30,7 +32,7 @@ public sealed class PdfTableCellImage {
             PdfDocument.ValidateImageFitDimensions(info, imageStyle.Fit, nameof(style));
         }
 
-        Data = (byte[])data.Clone();
+        _data = (byte[])data.Clone();
         Width = width;
         Height = height;
         Info = info;
@@ -40,7 +42,7 @@ public sealed class PdfTableCellImage {
     }
 
     /// <summary>Image bytes.</summary>
-    public byte[] Data { get; }
+    public byte[] Data => (byte[])_data.Clone();
 
     /// <summary>Target image width in PDF points.</summary>
     public double Width { get; }
@@ -60,12 +62,12 @@ public sealed class PdfTableCellImage {
     /// <summary>Optional PDF annotation contents metadata for the image link.</summary>
     public string? LinkContents { get; }
 
-    internal PdfTableCellImage Clone() => new PdfTableCellImage(Data, Width, Height, Style, LinkUri, LinkContents);
+    internal PdfTableCellImage Clone() => new PdfTableCellImage(_data, Width, Height, Style, LinkUri, LinkContents);
 
     internal ImageBlock ToImageBlock(PdfAlign fallbackAlign) {
         PdfImageStyle style = Style?.Clone() ?? new PdfImageStyle {
             Align = fallbackAlign
         };
-        return new ImageBlock(Data, Width, Height, Info, style, LinkUri, LinkContents);
+        return new ImageBlock(_data, Width, Height, Info, style, LinkUri, LinkContents);
     }
 }

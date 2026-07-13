@@ -20,6 +20,8 @@ public interface IPdfTextShapingProvider {
 /// Describes a text run and embedded font passed to a PDF text shaping provider.
 /// </summary>
 public sealed class PdfTextShapingRequest {
+    private readonly byte[] _fontData;
+
     /// <summary>
     /// Creates a shaping request.
     /// </summary>
@@ -33,7 +35,7 @@ public sealed class PdfTextShapingRequest {
         Guard.NotNull(fontData, nameof(fontData));
         Text = text;
         FontName = fontName ?? string.Empty;
-        FontData = fontData.ToArray();
+        _fontData = fontData.ToArray();
         IsOpenTypeCff = isOpenTypeCff;
         FallbackMode = fallbackMode;
     }
@@ -45,7 +47,7 @@ public sealed class PdfTextShapingRequest {
     public string FontName { get; }
 
     /// <summary>Snapshot of the embedded font bytes.</summary>
-    public byte[] FontData { get; }
+    public byte[] FontData => (byte[])_fontData.Clone();
 
     /// <summary>True when the font uses OpenType/CFF outlines; false for TrueType outlines.</summary>
     public bool IsOpenTypeCff { get; }

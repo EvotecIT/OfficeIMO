@@ -46,7 +46,8 @@ namespace OfficeIMO.Examples.Excel
                 sheet.CellValue(3, 4, 5);
                 sheet.CellValue(3, 5, "Helpers demo");
 
-                doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                doc.Save();
+                if (openExcel) doc.OpenInApplication();
             }
 
             // 2) Use presets with the standard reader

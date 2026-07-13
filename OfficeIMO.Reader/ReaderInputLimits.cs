@@ -47,39 +47,30 @@ public static class ReaderInputLimits {
     }
 
     /// <summary>
-    /// Enforces <paramref name="maxBytes"/> against the unread portion of a seekable stream.
-    /// </summary>
-    public static void EnforceSeekableStreamRemainingSize(Stream stream, long? maxBytes) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        if (!maxBytes.HasValue) return;
-        if (!stream.CanSeek) return;
-
-        try {
-            long remainingBytes = Math.Max(0L, stream.Length - stream.Position);
-            if (remainingBytes > maxBytes.Value) {
-                throw new IOException(
-                    $"Input exceeds MaxInputBytes ({remainingBytes.ToString(CultureInfo.InvariantCulture)} > {maxBytes.Value.ToString(CultureInfo.InvariantCulture)}).");
-            }
-        } catch (NotSupportedException) {
-            // ignore
-        }
-    }
-
-    /// <summary>
-    /// Ensures a seekable stream for parsers that require rewind/index operations.
-    /// Non-seekable inputs are snapshotted into memory with <paramref name="maxInputBytes"/> enforcement.
+    /// Creates a seekable snapshot for parsers that require rewind/index operations.
+    /// Seekable inputs are read from the beginning and restored to their original position.
+    /// Non-seekable inputs are read from their current forward position.
     /// </summary>
     public static Stream EnsureSeekableReadStream(Stream stream, long? maxInputBytes, CancellationToken cancellationToken, out bool ownsStream) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-        if (stream.CanSeek) {
-            EnforceSeekableStreamRemainingSize(stream, maxInputBytes);
+        if (stream is ReaderSnapshotStream) {
+            EnforceSeekableStreamSize(stream, maxInputBytes);
+            stream.Position = 0;
             ownsStream = false;
             return stream;
         }
 
-        var buffer = new MemoryStream();
+        bool restorePosition = stream.CanSeek;
+        long originalPosition = 0;
+        if (restorePosition) {
+            EnforceSeekableStreamSize(stream, maxInputBytes);
+            originalPosition = stream.Position;
+            stream.Position = 0;
+        }
+
+        var buffer = new ReaderSnapshotStream();
         try {
             var chunk = new byte[64 * 1024];
             long totalBytes = 0;
@@ -98,6 +89,8 @@ public static class ReaderInputLimits {
         } catch {
             buffer.Dispose();
             throw;
+        } finally {
+            if (restorePosition) stream.Position = originalPosition;
         }
 
         buffer.Position = 0;
@@ -106,9 +99,9 @@ public static class ReaderInputLimits {
     }
 
     /// <summary>
-    /// Asynchronously ensures a seekable stream for parsers that require rewind/index operations.
-    /// The original stream is returned when it is seekable. Otherwise a bounded memory snapshot is returned
-    /// and must be disposed by the caller.
+    /// Asynchronously creates a seekable stream snapshot for parsers that require rewind/index operations.
+    /// Seekable inputs are read from the beginning and restored to their original position. Non-seekable inputs
+    /// are read from their current forward position. The returned snapshot must be disposed by the caller.
     /// </summary>
     public static async Task<Stream> EnsureSeekableReadStreamAsync(
         Stream stream,
@@ -118,12 +111,21 @@ public static class ReaderInputLimits {
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
         cancellationToken.ThrowIfCancellationRequested();
-        if (stream.CanSeek) {
-            EnforceSeekableStreamRemainingSize(stream, maxInputBytes);
+        if (stream is ReaderSnapshotStream) {
+            EnforceSeekableStreamSize(stream, maxInputBytes);
+            stream.Position = 0;
             return stream;
         }
 
-        var buffer = new MemoryStream();
+        bool restorePosition = stream.CanSeek;
+        long originalPosition = 0;
+        if (restorePosition) {
+            EnforceSeekableStreamSize(stream, maxInputBytes);
+            originalPosition = stream.Position;
+            stream.Position = 0;
+        }
+
+        var buffer = new ReaderSnapshotStream();
         try {
             var chunk = new byte[64 * 1024];
             long totalBytes = 0;
@@ -142,9 +144,14 @@ public static class ReaderInputLimits {
         } catch {
             buffer.Dispose();
             throw;
+        } finally {
+            if (restorePosition) stream.Position = originalPosition;
         }
 
         buffer.Position = 0;
         return buffer;
+    }
+
+    private sealed class ReaderSnapshotStream : MemoryStream {
     }
 }

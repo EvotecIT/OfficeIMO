@@ -157,7 +157,7 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
         ReaderChunk[] enrichedChunks = applied.Select(item => BuildOcrChunk(result, item)).ToArray();
         OfficeDocumentReadResult enriched = new OfficeDocumentReadResult {
             SchemaId = string.IsNullOrWhiteSpace(result.SchemaId) ? OfficeDocumentReadResultSchema.Id : result.SchemaId,
-            SchemaVersion = result.SchemaVersion == 0 ? OfficeDocumentReadResultSchema.Version : result.SchemaVersion,
+            SchemaVersion = result.SchemaVersion == 0 ? OfficeDocumentReadResultSchema.CurrentVersion : result.SchemaVersion,
             Kind = result.Kind,
             Source = result.Source ?? new OfficeDocumentSource(),
             CapabilitiesUsed = AppendCapability(result.CapabilitiesUsed, "officeimo.reader.ocr-enrichment"),

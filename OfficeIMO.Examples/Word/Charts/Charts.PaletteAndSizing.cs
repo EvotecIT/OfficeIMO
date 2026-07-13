@@ -58,7 +58,8 @@ namespace OfficeIMO.Examples.Word {
                 .SetWidthToPageContent(1.0, 320);
 
             // Save/Open
-            try { doc.Save(filePath, new WordSaveOptions { OpenAfterSave = openWord }); } catch { doc.Save(); }
+            try { doc.Save(filePath); } catch { doc.Save(); }
+            if (openWord) doc.OpenInApplication(filePath);
         }
     }
 }

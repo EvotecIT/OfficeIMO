@@ -58,7 +58,10 @@ public partial class Html {
         string manifestPath = Path.Combine(artifactDirectory, "quarterly-report.manifest.md");
         string manifestJsonPath = Path.Combine(artifactDirectory, "quarterly-report.manifest.json");
 
-        HtmlCapabilityGalleryManifest manifest = html.SaveHtmlCapabilityGallery(artifactDirectory, new WordHtmlCapabilityGalleryOptions {
+        HtmlCapabilityGalleryManifest manifest = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
+            Profile = HtmlConversionProfile.Document,
+            Trust = HtmlInputTrust.Trusted
+        }).SaveHtmlCapabilityGallery(artifactDirectory, new WordHtmlCapabilityGalleryOptions {
             ScenarioId = "quarterly-report",
             Title = "Quarterly Report"
         });

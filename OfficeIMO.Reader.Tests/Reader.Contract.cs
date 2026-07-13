@@ -7,10 +7,34 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderContractTests {
     [Fact]
+    public void ReaderPackages_ExposeFacadeExtensions_NotFormatAdapterBrains() {
+        Type[] publicPackageAnchors = {
+            typeof(OfficeIMO.Reader.AsciiDoc.OfficeDocumentReaderBuilderAsciiDocExtensions),
+            typeof(OfficeIMO.Reader.Csv.OfficeDocumentReaderBuilderCsvExtensions),
+            typeof(OfficeIMO.Reader.Epub.OfficeDocumentReaderBuilderEpubExtensions),
+            typeof(OfficeIMO.Reader.Html.OfficeDocumentReaderBuilderHtmlExtensions),
+            typeof(OfficeIMO.Reader.Json.OfficeDocumentReaderBuilderJsonExtensions),
+            typeof(OfficeIMO.Reader.Latex.OfficeDocumentReaderBuilderLatexExtensions),
+            typeof(OfficeIMO.Reader.OpenDocument.OfficeDocumentReaderBuilderOpenDocumentExtensions),
+            typeof(OfficeIMO.Reader.Pdf.OfficeDocumentReaderBuilderPdfExtensions),
+            typeof(OfficeIMO.Reader.Rtf.OfficeDocumentReaderBuilderRtfExtensions),
+            typeof(OfficeIMO.Reader.Visio.OfficeDocumentReaderBuilderVisioExtensions),
+            typeof(OfficeIMO.Reader.Xml.OfficeDocumentReaderBuilderXmlExtensions),
+            typeof(OfficeIMO.Reader.Yaml.OfficeDocumentReaderBuilderYamlExtensions),
+            typeof(OfficeIMO.Reader.Zip.OfficeDocumentReaderBuilderZipExtensions)
+        };
+
+        foreach (var assembly in publicPackageAnchors.Select(type => type.Assembly).Distinct()) {
+            Assert.DoesNotContain(
+                assembly.GetExportedTypes(),
+                type => type.Name.EndsWith("ReaderAdapter", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
     public void OfficeDocumentReadResultSchema_ExposesStableCurrentContract() {
         Assert.Equal(5, OfficeDocumentReadResultSchema.MinimumSupportedVersion);
         Assert.Equal(5, OfficeDocumentReadResultSchema.CurrentVersion);
-        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, OfficeDocumentReadResultSchema.Version);
         Assert.True(OfficeDocumentReadResultSchema.IsSupported(
             OfficeDocumentReadResultSchema.Id,
             OfficeDocumentReadResultSchema.CurrentVersion));

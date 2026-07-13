@@ -14,16 +14,6 @@ public sealed class PdfHtmlSaveOptions {
     public PdfHtmlProfile Profile { get; set; } = PdfHtmlProfile.Semantic;
 
     /// <summary>
-    /// Layout extraction options used when loading PDF bytes, paths, or streams into <see cref="PdfCore.PdfLogicalDocument"/>.
-    /// </summary>
-    public PdfCore.PdfTextLayoutOptions? LayoutOptions { get; set; }
-
-    /// <summary>
-    /// PDF read options used when loading bytes, paths, or streams, including password handling for encrypted PDFs.
-    /// </summary>
-    public PdfCore.PdfReadOptions? ReadOptions { get; set; }
-
-    /// <summary>
     /// Optional selected source page ranges. When omitted, all pages are exported.
     /// </summary>
     public IReadOnlyList<PdfCore.PdfPageRange>? PageRanges { get; set; }
@@ -82,8 +72,6 @@ public sealed class PdfHtmlSaveOptions {
 
     internal PdfHtmlSaveOptions CloneForConversion() => new() {
         Profile = Profile,
-        LayoutOptions = LayoutOptions,
-        ReadOptions = ReadOptions,
         PageRanges = PageRanges?.ToArray(),
         IncludeMetadata = IncludeMetadata,
         IncludeOutlines = IncludeOutlines,

@@ -38,6 +38,6 @@ public sealed partial class PdfDocumentReader {
         PdfStructuredExportFormat format,
         PdfTextLayoutOptions? layoutOptions,
         PdfReadOptions? readOptions) {
-        return PdfStructuredExporter.Export(_document.Snapshot(), format, layoutOptions, ResolveReadOptions(readOptions));
+        return PdfStructuredExportEngine.Export(_document.Snapshot(), format, layoutOptions, ResolveReadOptions(readOptions));
     }
 }

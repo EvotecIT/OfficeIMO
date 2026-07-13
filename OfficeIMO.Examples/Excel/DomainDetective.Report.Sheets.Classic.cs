@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
+using OfficeIMO.Drawing;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Examples.Excel {
     /// <summary>
@@ -30,7 +32,7 @@ namespace OfficeIMO.Examples.Excel {
             string[] References
         );
 
-        public static void Example(string folderPath, bool openExcel) {
+        public static async Task Example(string folderPath, bool openExcel) {
             Console.WriteLine("[*] Excel - Domain Detective Sheets (Classic) demo");
             string filePath = Path.Combine(folderPath, "DomainDetective.Report.Sheets.Classic.xlsx");
             var rows = GenerateFakeData(50, seed: 42);
@@ -65,12 +67,13 @@ namespace OfficeIMO.Examples.Excel {
 
             // Header/footer + logo (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
-            overview.HeaderFooter(h =>
-            {
-                h.Left("Domain Detective — Overview").Right("Page &P of &N");
-                h.RightImageUrl(logoUrl, widthPoints: 96, heightPoints: 32);
-            });
-            overview.ImageFromUrlAt(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
+            overview.HeaderFooter(h => h.Left("Domain Detective — Overview").Right("Page &P of &N"));
+            await overview.Sheet.SetHeaderImageFromUrlAsync(
+                HeaderFooterPosition.Right,
+                logoUrl,
+                widthPoints: 96,
+                heightPoints: 32);
+            await overview.ImageFromUrlAtAsync(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
 
             // Summary table
             var summaryRange = overview.TableFrom(rows, title: "Domains", configure: opts => {
@@ -133,7 +136,7 @@ namespace OfficeIMO.Examples.Excel {
                       "Status",
                       $"Status: {d.Status}; Findings: {d.WarningCount} warning(s), {d.ErrorCount} error(s).")
              .SectionWithAnchor("Overview")
-             .DefinitionList(new (string, object?)[] {
+             .PropertiesGrid(new (string, object?)[] {
                  ("Domain", d.Domain),
                  ("Classification", d.Classification),
                  ("Confidence", d.Confidence),

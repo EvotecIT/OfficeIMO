@@ -19,7 +19,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     /// <summary>
     /// Reads a supported document file and emits normalized extraction chunks.
     /// </summary>
@@ -35,7 +35,7 @@ public static partial class DocumentReader {
         if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
 
         var opt = NormalizeOptions(options);
-        EnforceFileSize(path, opt.MaxInputBytes);
+        EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
         var source = BuildSourceInfoFromPath(path, opt.ComputeHashes);
         foreach (var chunk in ReadPathCore(path, opt, source, cancellationToken)) {
             yield return chunk;

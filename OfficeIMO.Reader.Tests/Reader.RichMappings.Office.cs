@@ -33,7 +33,7 @@ public sealed class ReaderOfficeRichMappingTests {
         }
         stream.Position = 0;
 
-        OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "policy.docx");
+        OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(stream, "policy.docx");
 
         Assert.Equal("Rich policy", result.Source.Title);
         Assert.Equal("OfficeIMO", result.Source.Author);
@@ -50,7 +50,7 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Contains("officeimo.word.inspection-snapshot", result.CapabilitiesUsed);
 
         stream.Position = 0;
-        OfficeDocumentReadResult withoutNotes = DocumentReader.ReadDocument(
+        OfficeDocumentReadResult withoutNotes = OfficeDocumentReader.Default.ReadDocument(
             stream,
             "policy.docx",
             new ReaderOptions { IncludeWordFootnotes = false });
@@ -73,7 +73,7 @@ public sealed class ReaderOfficeRichMappingTests {
         }
         stream.Position = 0;
 
-        OfficeDocumentReadResult result = DocumentReader.ReadDocument(
+        OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(
             stream,
             "bounded.docx",
             new ReaderOptions { MaxTableRows = 1 });
@@ -99,7 +99,7 @@ public sealed class ReaderOfficeRichMappingTests {
         }
         stream.Position = 0;
 
-        ReaderTable mapped = Assert.Single(DocumentReader.ReadDocument(stream, "headerless.docx").Tables);
+        ReaderTable mapped = Assert.Single(OfficeDocumentReader.Default.ReadDocument(stream, "headerless.docx").Tables);
 
         Assert.Equal(new[] { "Column 1" }, mapped.Columns);
         Assert.Equal(2, mapped.TotalRowCount);
@@ -132,7 +132,7 @@ public sealed class ReaderOfficeRichMappingTests {
         }
         stream.Position = 0;
 
-        OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "inventory.xlsx");
+        OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(stream, "inventory.xlsx");
 
         Assert.Equal("Rich workbook", result.Source.Title);
         Assert.Equal("OfficeIMO", result.Source.Author);
@@ -174,7 +174,7 @@ public sealed class ReaderOfficeRichMappingTests {
         }
         stream.Position = 0;
 
-        OfficeDocumentReadResult result = DocumentReader.ReadDocument(
+        OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(
             stream,
             "inventory.xlsx",
             new ReaderOptions { ExcelA1Range = "A1:B2" });
@@ -213,7 +213,7 @@ public sealed class ReaderOfficeRichMappingTests {
         }
         stream.Position = 0;
 
-        OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "deck.pptx");
+        OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(stream, "deck.pptx");
 
         Assert.Equal("Rich deck", result.Source.Title);
         Assert.Equal("OfficeIMO", result.Source.Author);
@@ -234,7 +234,7 @@ public sealed class ReaderOfficeRichMappingTests {
         Assert.Contains("officeimo.powerpoint.chart-snapshot", result.CapabilitiesUsed);
 
         stream.Position = 0;
-        OfficeDocumentReadResult withoutNotes = DocumentReader.ReadDocument(
+        OfficeDocumentReadResult withoutNotes = OfficeDocumentReader.Default.ReadDocument(
             stream,
             "deck.pptx",
             new ReaderOptions { IncludePowerPointNotes = false });
@@ -254,7 +254,7 @@ public sealed class ReaderOfficeRichMappingTests {
         }
         stream.Position = 0;
 
-        ReaderTable mapped = Assert.Single(DocumentReader.ReadDocument(stream, "headerless.pptx").Tables);
+        ReaderTable mapped = Assert.Single(OfficeDocumentReader.Default.ReadDocument(stream, "headerless.pptx").Tables);
 
         Assert.Equal(new[] { "Column 1" }, mapped.Columns);
         Assert.Equal(2, mapped.TotalRowCount);

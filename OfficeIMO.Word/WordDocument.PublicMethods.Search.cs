@@ -217,7 +217,6 @@ namespace OfficeIMO.Word {
         }
 
         private List<WordParagraph> FindAndReplaceInternal(string textToFind, string textToReplace, ref int count, bool replace, StringComparison stringComparison = StringComparison.OrdinalIgnoreCase) {
-            WordFind wordFind = new WordFind();
             List<WordParagraph> list = new List<WordParagraph>();
             list.AddRange(FindAndReplaceNested(this.Paragraphs, textToFind, textToReplace, ref count, replace, stringComparison));
 

@@ -1,5 +1,6 @@
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 
 namespace OfficeIMO.Markdown.Benchmarks;
@@ -7,7 +8,7 @@ namespace OfficeIMO.Markdown.Benchmarks;
 [MemoryDiagnoser]
 [SimpleJob(RuntimeMoniker.Net80)]
 public class HtmlToMarkdownBenchmarks {
-    private HtmlToMarkdownConverter _officeConverter = null!;
+    private HtmlConversionDocument _document = null!;
     private HtmlToMarkdownOptions _officeOptions = null!;
     private HtmlToMarkdownOptions _githubOptions = null!;
     private HtmlToMarkdownOptions _commonMarkOptions = null!;
@@ -23,7 +24,6 @@ public class HtmlToMarkdownBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        _officeConverter = new HtmlToMarkdownConverter();
         _officeOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
         _githubOptions = HtmlToMarkdownOptions.CreateGitHubFlavoredMarkdownProfile();
         _commonMarkOptions = HtmlToMarkdownOptions.CreateCommonMarkProfile();
@@ -36,17 +36,18 @@ public class HtmlToMarkdownBenchmarks {
             Flavor = ReverseMarkdown.Config.MarkdownFlavor.CommonMark
         });
         _html = HtmlToMarkdownBenchmarkCorpus.Get(CorpusName);
+        _document = HtmlConversionDocument.Parse(_html);
         ValidateConverterOutputs(HtmlToMarkdownBenchmarkCorpus.GetExpectedFragment(CorpusName));
     }
 
     [Benchmark(Baseline = true)]
-    public string OfficeIMO_GitHub_Profile() => _officeConverter.Convert(_html, _githubOptions);
+    public string OfficeIMO_GitHub_Profile() => _document.ToMarkdown(_githubOptions);
 
     [Benchmark]
-    public string OfficeIMO_CommonMark_Profile() => _officeConverter.Convert(_html, _commonMarkOptions);
+    public string OfficeIMO_CommonMark_Profile() => _document.ToMarkdown(_commonMarkOptions);
 
     [Benchmark]
-    public string OfficeIMO_Default_Profile() => _officeConverter.Convert(_html, _officeOptions);
+    public string OfficeIMO_Default_Profile() => _document.ToMarkdown(_officeOptions);
 
     [Benchmark]
     public string ReverseMarkdown_GitHub_Profile() => _reverseGitHub.Convert(_html);

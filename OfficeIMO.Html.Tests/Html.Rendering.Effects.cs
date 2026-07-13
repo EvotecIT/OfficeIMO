@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderEffectGroup group = Assert.Single(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#translated");
         HtmlRenderShape following = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), item => item.Source == "div#following" && item.Shape.FillColor.HasValue);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlTransform_ComposesFunctionsAndOriginInCssOrder() {
         const string html = "<div id='composed' style='width:10px;height:10px;margin:0;background:#00ff00;transform-origin:0 0;transform:translate(10px,5px) scale(2,1.5)'></div>";
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -59,7 +59,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='opacity-group' style='position:relative;width:20px;height:20px;margin:0;opacity:.5'>"
             + "<div style='position:absolute;left:0;top:0;width:20px;height:20px;background:#ff0000'></div>"
             + "<div style='position:absolute;left:0;top:0;width:20px;height:20px;background:#ff0000'></div></div>";
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -79,7 +79,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlOpacity_AppliesOnceToGradientPaint() {
         const string html = "<div style='width:20px;height:20px;margin:0;background:linear-gradient(#ff0000,#ff0000);opacity:.5'></div>";
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -103,10 +103,10 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -115,7 +115,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
         PdfCore.PdfLogicalLinkAnnotation pdfLink = Assert.Single(PdfCore.PdfLogicalDocument.Load(pdf).GetLinksByUri(link));
 
@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("EffectPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("/Group << /S /Transparency /I true /K false >>", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.True(pdfLink.SourceLink.X1 >= 15D - 0.01D);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -144,13 +144,13 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, renderOptions);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), renderOptions);
         HtmlRenderEffectGroup outer = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#outer");
         HtmlRenderEffectGroup inner = Assert.Single(EnumerateRenderVisuals(outer.Visuals).OfType<HtmlRenderEffectGroup>(), item => item.Source == "div#inner");
         OfficeColor pixel = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing()).GetPixel(10, 10);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(renderOptions);
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string rawPdf = Encoding.ASCII.GetString(pdf);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("NestedEffectMarker", pdfText, StringComparison.Ordinal);
         Assert.True(rawPdf.Split(new[] { "/Group << /S /Transparency /I true /K false >>" }, StringSplitOptions.None).Length - 1 >= 2);
         Assert.DoesNotContain("OIMO_EFFECT_GROUP", rawPdf, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -175,7 +175,7 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.All(rendered.Pages, page => {
@@ -185,14 +185,14 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal((byte)255, pixel.B);
             Assert.InRange(pixel.A, (byte)190, (byte)192);
         });
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
 
     [Fact]
     public void HtmlEffects_InlineBlockUsesAnAtomicEffectGroup() {
         const string html = "<div style='width:60px;margin:0;font-size:10px;line-height:20px'>"
             + "<span id='atomic-effect' style='display:inline-block;width:10px;height:10px;margin:0;background:#ff0000;transform-origin:0 0;transform:translateX(10px);opacity:.5'></span>X</div>";
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 60D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D),
@@ -207,21 +207,21 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(10D, group.Width, 3);
         Assert.Equal((byte)255, pixel.R);
         Assert.InRange(pixel.A, (byte)127, (byte)128);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported);
     }
 
     [Fact]
     public void HtmlEffects_InvalidAndInlineValuesUseCatalogedDiagnosticsAndSupportsTruth() {
         const string html = "<div id='invalid-effect' style='transform:warp(2);opacity:opaque'>Block</div>"
             + "<p><span id='inline-effect' style='transform:rotate(10deg);opacity:.5'>Inline</span></p>";
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 120D,
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        Assert.Contains(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#invalid-effect");
-        Assert.Contains(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "div#invalid-effect");
-        Assert.Contains(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported && item.Source == "span#inline-effect");
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.TransformValueUnsupported && item.Source == "div#invalid-effect");
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.OpacityValueUnsupported && item.Source == "div#invalid-effect");
+        Assert.Contains(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.InlinePaintEffectUnsupported && item.Source == "span#inline-effect");
         Assert.Contains(HtmlRenderDiagnosticCodes.TransformValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.Contains(HtmlRenderDiagnosticCodes.OpacityValueUnsupported, HtmlRenderDiagnosticCodes.All);
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.TransformValueUnsupported, out _));

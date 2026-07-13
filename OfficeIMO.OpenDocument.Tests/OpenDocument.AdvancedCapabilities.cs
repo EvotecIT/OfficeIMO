@@ -12,7 +12,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
 
     [Fact]
     public void AuthorsInspectsAcceptsAndRejectsTrackedParagraphChanges() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtParagraph removed = document.AddParagraph("Restore me");
         OdtTrackedChange deletion = document.DeleteParagraphTracked(removed, "Reviewer", new DateTimeOffset(2026, 7, 10, 8, 0, 0, TimeSpan.Zero));
         OdtTrackedChange insertion = document.AddTrackedParagraphInsertion("Keep me", "Author", new DateTimeOffset(2026, 7, 10, 9, 0, 0, TimeSpan.Zero));
@@ -28,14 +28,14 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         Assert.Empty(document.TrackedChanges);
         Assert.Equal(new[] { "Restore me", "Keep me" }, document.ContentBlocks.Select(block => block.Paragraph!.Text));
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.Equal(new[] { "Restore me", "Keep me" }, reopened.ContentBlocks.Select(block => block.Paragraph!.Text));
         Assert.True(reopened.Validate().IsValid);
     }
 
     [Fact]
     public void AuthorsAndRoundTripsBasicPresentationAnimation() {
-        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpPresentation presentation = OdpPresentation.Create();
         OdpSlide slide = presentation.AddSlide("Animated");
         OdpRectangle shape = slide.AddRectangle(OdfRect.FromCentimeters(2, 2, 5, 3));
         OdpAnimation animation = slide.AddFadeInAnimation(shape, TimeSpan.FromSeconds(1.5));
@@ -49,7 +49,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         Assert.Contains(presentation.InspectFeatures().Findings,
             finding => finding.Name == "presentation-animations" && finding.Support == OdfFeatureSupport.Editable);
 
-        using OdpPresentation reopened = OdpPresentation.Open(new MemoryStream(presentation.ToBytes()));
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(presentation.ToBytes()));
         OdpAnimation actual = Assert.Single(Assert.Single(reopened.Slides).Animations);
         Assert.Equal("0", actual.From);
         Assert.Equal("1", actual.To);
@@ -58,7 +58,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
 
     [Fact]
     public void TrackedParagraphDeletionRejectsNestedTableContent() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtParagraph nested = document.AddTable(1, 1, "Nested").Cell(0, 0).Paragraphs[0];
 
         ArgumentException exception = Assert.Throws<ArgumentException>(() =>
@@ -71,7 +71,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
 
     [Fact]
     public void ProjectsPackageToFlatXmlAndBackWithEmbeddedImageBytes() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtParagraph paragraph = document.AddParagraph("Flat XML");
         paragraph.AddImage(TinyPng, "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
@@ -82,7 +82,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         using var stream = new MemoryStream();
         document.SaveFlatXml(stream);
         stream.Position = 0;
-        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
         Assert.Equal("Flat XML", reopened.ContentBlocks[0].Paragraph!.Text);
         Assert.Equal(TinyPng, Assert.Single(reopened.ContentBlocks[0].Paragraph!.Images).GetImageBytes());
         OdfValidationResult validation = reopened.Validate();
@@ -91,23 +91,23 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
 
     [Fact]
     public void FlatXmlRoundTripsHeaderImagesAndReportsThemAsRepresented() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtImage image = document.PageLayout.Header.AddParagraph("Logo").AddImage(TinyPng, "header.png",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
         using var stream = new MemoryStream();
 
-        OdfSaveResult save = document.SaveFlatXmlResult(stream);
+        OdfSaveResult save = document.SaveFlatXml(stream);
 
         Assert.DoesNotContain(image.Path, save.Report.LossyEntries);
         stream.Position = 0;
-        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
         Assert.Equal(TinyPng, reopened.PageLayout.Header.Paragraphs.Single().Images.Single().GetImageBytes());
         Assert.True(reopened.Validate().IsValid);
     }
 
     [Fact]
     public void FlatXmlExportToleratesMissingOptionalSettingsPart() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddParagraph("No settings");
         document.Package.RemoveEntry("settings.xml");
         using var stream = new MemoryStream();
@@ -115,23 +115,23 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         document.SaveFlatXml(stream);
 
         stream.Position = 0;
-        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
         Assert.Equal("No settings", reopened.Paragraphs.Single().Text);
         Assert.True(reopened.Validate().IsValid);
     }
 
     [Fact]
     public void FlatXmlRoundTripsAllThreeDocumentKinds() {
-        using OdtDocument text = OdtDocument.Create();
+        OdtDocument text = OdtDocument.Create();
         text.AddParagraph("Text");
-        using OdsDocument sheet = OdsDocument.Create();
+        OdsDocument sheet = OdsDocument.Create();
         sheet.AddSheet("Data").Cell(0, 0).SetNumber(7D);
-        using OdpPresentation slides = OdpPresentation.Create();
+        OdpPresentation slides = OdpPresentation.Create();
         slides.AddSlide("One").AddTextBox(OdfRect.FromCentimeters(1, 1, 5, 2), "Slide");
 
-        using OdfDocument reopenedText = ReopenFlat(text);
-        using OdfDocument reopenedSheet = ReopenFlat(sheet);
-        using OdfDocument reopenedSlides = ReopenFlat(slides);
+        OdfDocument reopenedText = ReopenFlat(text);
+        OdfDocument reopenedSheet = ReopenFlat(sheet);
+        OdfDocument reopenedSlides = ReopenFlat(slides);
 
         Assert.IsType<OdtDocument>(reopenedText);
         Assert.IsType<OdsDocument>(reopenedSheet);
@@ -143,7 +143,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
 
     [Fact]
     public void FlatXmlRestoresStylesScopedAutomaticStylesAndSourceVersion() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.PageLayout.MarginLeft = OdfLength.Centimeters(3.25);
         OdtParagraph header = document.PageLayout.Header.AddParagraph("Styled header");
         header.Bold = true;
@@ -153,7 +153,7 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         flat.Save(stream, SaveOptions.DisableFormatting);
         stream.Position = 0;
 
-        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
 
         Assert.Equal(OdfVersion.V1_3, reopened.Version);
         Assert.Equal(OdfLength.Centimeters(3.25), reopened.PageLayout.MarginLeft);
@@ -163,12 +163,12 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
 
     [Fact]
     public void FlatXmlSaveReportsPackageOnlyContentAsLossy() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddParagraph("Flat projection");
         document.Package.AddOrReplaceEntry("Thumbnails/thumbnail.png", TinyPng, "image/png");
         using var output = new MemoryStream();
 
-        OdfSaveResult save = document.SaveFlatXmlResult(output);
+        OdfSaveResult save = document.SaveFlatXml(output);
 
         Assert.True(save.HasLoss);
         Assert.Throws<InvalidOperationException>(() => save.RequireNoLoss());
@@ -188,6 +188,6 @@ public sealed class OpenDocumentAdvancedCapabilityTests {
         var stream = new MemoryStream();
         document.SaveFlatXml(stream);
         stream.Position = 0;
-        return OdfDocument.OpenFlatXml(stream);
+        return OdfDocument.LoadFlatXml(stream);
     }
 }

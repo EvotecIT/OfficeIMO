@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     /// <summary>
     /// Reads a supported document file and returns the shared OfficeIMO read result envelope.
     /// </summary>
@@ -22,7 +22,7 @@ public static partial class DocumentReader {
         if (!File.Exists(path)) throw new FileNotFoundException($"File '{path}' doesn't exist.", path);
 
         ReaderOptions opt = NormalizeOptions(options);
-        EnforceFileSize(path, opt.MaxInputBytes);
+        EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
         bool hasCustomPathHandler = TryResolvePathHandler(
             path,
             opt,
@@ -71,7 +71,7 @@ public static partial class DocumentReader {
         string logicalSourceName = NormalizeLogicalSourceName(sourceName, "memory");
         Stream readStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
-            opt.MaxInputBytes,
+            ResolveInitialMaxInputBytes(logicalSourceName, opt),
             cancellationToken,
             out bool ownsReadStream);
         try {

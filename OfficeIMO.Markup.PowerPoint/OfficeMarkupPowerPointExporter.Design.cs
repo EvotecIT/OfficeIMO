@@ -5,7 +5,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
-public sealed partial class OfficeMarkupPowerPointExporter {
+internal sealed partial class OfficeMarkupPowerPointExporter {
     private static bool ShouldRenderSlideTitle(OfficeMarkupSlideBlock slideBlock) {
         if (slideBlock == null || string.IsNullOrWhiteSpace(slideBlock.Title)) {
             return false;
@@ -324,7 +324,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         IReadOnlyList<OfficeMarkupBlock> blocks,
         OfficeMarkupStyleResolver styleResolver,
         int columnIndex) {
-        var textOnlyOptions = new OfficeMarkupPowerPointExportOptions {
+        var textOnlyOptions = new MarkupToPowerPointOptions {
             IncludeUnsupportedBlocksAsText = false,
             RenderMermaidDiagrams = false
         };

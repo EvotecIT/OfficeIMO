@@ -18,10 +18,10 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderShape carrier = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#shadow:box-shadow");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -30,7 +30,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string rawPdf = Encoding.ASCII.GetString(pdf);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
@@ -42,8 +42,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.Ordinal);
         Assert.Contains("/Type /ExtGState", rawPdf, StringComparison.Ordinal);
         Assert.Contains("ShadowPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -56,12 +56,12 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderShape[] shadows = rendered.Pages[0].Visuals
             .OfType<HtmlRenderShape>()
             .Where(shape => shape.Source?.StartsWith("div#shadow:box-shadow[", StringComparison.Ordinal) == true)
             .ToArray();
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
 
         Assert.Equal(2, shadows.Length);
         HtmlRenderShape red = Assert.Single(shadows, shape => shape.Source == "div#shadow:box-shadow[0]");
@@ -74,7 +74,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(4D, blue.Shape.Shadow!.OffsetX, 3);
         Assert.Contains("fill=\"#FF0000\"", svg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#0000FF\"", svg, StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
     }
 
     [Fact]
@@ -87,12 +87,12 @@ public sealed partial class HtmlRenderingTests {
             BackgroundColor = OfficeColor.Transparent
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderPathClipGroup group = Assert.Single(
             EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderPathClipGroup>(),
             item => item.Source == "div#inset-shadow:box-shadow[0]:inset");
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -101,7 +101,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D),
             BackgroundColor = OfficeColor.Transparent
         };
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
 
         Assert.Equal(5, group.Visuals.Count);
         Assert.True(raster.GetPixel(7, 15).R > raster.GetPixel(7, 15).G);
@@ -110,8 +110,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("clip-path=", svg, StringComparison.Ordinal);
         Assert.Equal(1, PdfCore.PdfInspector.Inspect(pdf).PageCount);
         Assert.Contains("/Type /ExtGState", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
     }
 
     [Fact]
@@ -124,8 +124,8 @@ public sealed partial class HtmlRenderingTests {
             MaxBoxShadowLayers = 2
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BoxShadowLayerLimit);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BoxShadowLayerLimit);
 
         Assert.Equal(2, rendered.Pages[0].Visuals.OfType<HtmlRenderShape>().Count(shape => shape.Source?.StartsWith("div#limited:box-shadow[", StringComparison.Ordinal) == true));
         Assert.Contains("layers=3;limit=2", diagnostic.Detail, StringComparison.Ordinal);
@@ -134,20 +134,20 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(HtmlDiagnosticCatalog.TryGet(HtmlRenderDiagnosticCodes.BoxShadowLayerLimit, out _));
 
         options.MaxBoxShadowLayers = 0;
-        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderEngine.Render(html, options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options));
     }
 
     [Fact]
     public void HtmlShadows_UnsupportedFormsUseCatalogedDiagnostics() {
         const string html = "<div id='invalid-shadow' style='width:20px;height:20px;box-shadow:0 1px -2px black'></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 30D,
             ViewportHeight = 30D,
             Margins = HtmlRenderMargins.All(0D)
         });
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.BoxShadowValueUnsupported);
 
         Assert.Equal("div#invalid-shadow", diagnostic.Source);
         Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#invalid-shadow:box-shadow");

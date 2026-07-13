@@ -1,4 +1,4 @@
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 
 namespace OfficeIMO.Word.LegacyDoc.Model {

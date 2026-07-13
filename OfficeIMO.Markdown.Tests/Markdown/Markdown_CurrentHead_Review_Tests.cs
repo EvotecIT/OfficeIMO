@@ -20,7 +20,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.PreserveTrivia = true;
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
 
-        var result = MarkdownReader.ParseWithSyntaxTree("previous shutdown was unexpected### Reason", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("previous shutdown was unexpected### Reason", options);
 
         var diagnostic = Assert.Single(result.TransformDiagnostics);
         Assert.Contains(nameof(MarkdownCompactHeadingBoundaryTransform), diagnostic.TransformName);
@@ -34,7 +34,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
               Continuation
             """;
 
-        var document = markdown.ToRtfDocumentFromMarkdown();
+        var document = MarkdownReader.Parse(markdown).ToRtfDocument();
 
         Assert.Equal(1, document.Paragraphs.Count(paragraph => paragraph.ToPlainText() == "Continuation"));
     }
@@ -45,7 +45,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             ReaderOptions = MarkdownReaderOptions.CreateOfficeIMOProfile()
         };
 
-        var document = "Formula ^2^ and H~2~O".ToRtfDocumentFromMarkdown(options);
+        var document = MarkdownReader.Parse("Formula ^2^ and H~2~O", options.ReaderOptions).ToRtfDocument(options);
         var paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Contains(paragraph.Runs, run => run.Text == "2" && run.VerticalPosition == RtfVerticalPosition.Superscript);
@@ -58,7 +58,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             ReaderOptions = MarkdownReaderOptions.CreateOfficeIMOProfile()
         };
 
-        var document = "Before ++new++ after".ToRtfDocumentFromMarkdown(options);
+        var document = MarkdownReader.Parse("Before ++new++ after", options.ReaderOptions).ToRtfDocument(options);
         var paragraph = Assert.Single(document.Paragraphs);
 
         Assert.Contains(paragraph.Runs, run => run.Text == "new" && run.UnderlineStyle != RtfUnderlineStyle.None);
@@ -89,9 +89,9 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         readerOptions.Superscript = true;
         readerOptions.Subscript = true;
 
-        using var document = "Before ++new++ and ^up^ plus H~down~O".LoadFromMarkdown(new MarkdownToWordOptions {
-            ReaderOptions = readerOptions
-        });
+        var options = new MarkdownToWordOptions { ReaderOptions = readerOptions };
+        MarkdownDoc source = OfficeIMO.Markdown.MarkdownReader.Parse("Before ++new++ and ^up^ plus H~down~O", options.CreateReaderOptions());
+        using var document = source.ToWordDocument(options);
 
         Assert.Contains(document.Paragraphs, run => run.Text == "new" && run.Underline == UnderlineValues.Single);
         Assert.Contains(document.Paragraphs, run => run.Text == "up" && run.VerticalTextAlignment == VerticalPositionValues.Superscript);
@@ -120,9 +120,9 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.Abbreviations = true;
 
-        using var parsed = "*[HTML]: Hyper Text Markup Language\n\nHTML and A &amp; B".LoadFromMarkdown(new MarkdownToWordOptions {
-            ReaderOptions = readerOptions
-        });
+        var options = new MarkdownToWordOptions { ReaderOptions = readerOptions };
+        MarkdownDoc source = OfficeIMO.Markdown.MarkdownReader.Parse("*[HTML]: Hyper Text Markup Language\n\nHTML and A &amp; B", options.CreateReaderOptions());
+        using var parsed = source.ToWordDocument(options);
 
         var parsedText = string.Concat(parsed.Paragraphs.Select(run => run.Text));
         Assert.Contains("HTML", parsedText);
@@ -145,9 +145,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         readerOptions.Superscript = true;
         readerOptions.Subscript = true;
 
-        var pdf = MarkdownReader.Parse("Before ++new++ ^up^ H~down~O", readerOptions).ToPdfDocument(new MarkdownPdfSaveOptions {
-            ReaderOptions = readerOptions
-        });
+        var pdf = OfficeIMO.Markdown.MarkdownReader.Parse("Before ++new++ ^up^ H~down~O", readerOptions).ToPdfDocument();
 
         var runs = GetTopLevelPdfTextRuns(pdf);
 
@@ -160,7 +158,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     public void Sequence_RenderMarkdown_Escapes_Own_Delimiters_In_Nested_Text() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
 
-        var document = MarkdownReader.Parse("++a\\+\\+b++\n\n^x\\^y^\n\n~h\\~i~", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("++a\\+\\+b++\n\n^x\\^y^\n\n~h\\~i~", options);
 
         Assert.Collection(
             document.Blocks.Cast<ParagraphBlock>(),
@@ -173,7 +171,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     public void Sequence_RenderMarkdown_Escapes_Own_Delimiters_In_Nested_Link_And_Image_Text() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
 
-        var document = MarkdownReader.Parse("++[a\\+\\+b](u)++\n\n^![a\\^b](i)^\n\n~[![a\\~b](i)](u)~", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("++[a\\+\\+b](u)++\n\n^![a\\^b](i)^\n\n~[![a\\~b](i)](u)~", options);
 
         Assert.Collection(
             document.Blocks.Cast<ParagraphBlock>(),
@@ -187,7 +185,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.Headings = false;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             | A |
             |---|
             # value
@@ -318,13 +316,13 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("Alpha {id=h}", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Alpha {id=h}", options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         var rendered = ((IMarkdownBlock)paragraph).RenderMarkdown();
         Assert.Equal("Alpha {id=\"h\"}", rendered);
 
-        var reparsed = MarkdownReader.Parse(rendered, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(rendered, options);
         var reparsedParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(reparsed.Blocks));
         Assert.Equal("h", reparsedParagraph.Attributes?.ElementId);
     }
@@ -334,14 +332,14 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("Alpha {title=\"a\\\"b\" data-path=\"c\\\\d\"}", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Alpha {title=\"a\\\"b\" data-path=\"c\\\\d\"}", options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("a\"b", paragraph.Attributes.Attributes["title"]);
         Assert.Equal("c\\d", paragraph.Attributes.Attributes["data-path"]);
 
         var rendered = ((IMarkdownBlock)paragraph).RenderMarkdown();
-        var reparsed = MarkdownReader.Parse(rendered, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(rendered, options);
         var reparsedParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(reparsed.Blocks));
 
         Assert.Equal("a\"b", reparsedParagraph.Attributes.Attributes["title"]);
@@ -354,7 +352,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.GenericAttributes = true;
         options.Inserted = true;
 
-        var document = MarkdownReader.Parse("++new++{#added .fresh}", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("++new++{#added .fresh}", options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var inserted = Assert.IsType<InsertedSequenceInline>(Assert.Single(paragraph.Inlines.Nodes));
 
@@ -419,7 +417,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             [site{#plain .wide}](https://example.com)
 
             [**site**{#after .wide}](https://example.com)
@@ -465,7 +463,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     public void Toc_Uses_Explicit_Heading_Id_And_Reserves_It_For_Generated_Anchors() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             [TOC]
 
             # Install {#setup}
@@ -487,7 +485,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
     [Fact]
     public void CodeBlock_Html_Renders_Bare_Fence_Id_And_Classes_Without_Opaque_Options() {
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             ```cs linenums #code .wide
             Console.WriteLine();
             ```
@@ -513,7 +511,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             HtmlBlocks = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -546,7 +544,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.RestrictUrlSchemes = true;
         options.AllowedUrlSchemes = new[] { "http", "https", "mailto" };
 
-        var document = MarkdownReader.Parse("Call tel:+123 now.", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Call tel:+123 now.", options);
         var html = document.ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
@@ -564,7 +562,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.Abbreviations = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             *[HTML]: Hyper Text Markup Language
 
             (HTML) [HTML] "HTML" xHTML
@@ -588,7 +586,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("Text {.}", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Text {.}", options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.True(paragraph.Attributes.IsEmpty);
@@ -610,7 +608,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
             {#note .wide}
             [^a]: note
 
@@ -634,7 +632,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.GenericAttributes = true;
         options.PreserveTrivia = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
             {#ref .wide}
 
             [id]: /url
@@ -666,7 +664,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.Abbreviations = true;
         options.RequireTableBodyRowPipes = false;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             | Name |
             | ---- |
             HTML
@@ -698,7 +696,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.AutolinkBareSchemeUrls = true;
         options.AutolinkEmails = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             *[https]: protocol
             *[user]: account
 
@@ -724,7 +722,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.Abbreviations = true;
         options.FencedCode = false;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             HTML
 
             ```
@@ -783,7 +781,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             - a
               {#para .lead}
               b
@@ -791,7 +789,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
-        var paragraph = Assert.Single(item.Children.OfType<ParagraphBlock>(), block => block.Attributes.ElementId == "para");
+        var paragraph = Assert.Single(item.NestedBlocks.OfType<ParagraphBlock>(), block => block.Attributes.ElementId == "para");
 
         Assert.Equal("para", paragraph.Attributes.ElementId);
         Assert.Equal("lead", Assert.Single(paragraph.Attributes.Classes));
@@ -814,7 +812,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.DefinitionLists = true;
         options.Headings = false;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             # term
             :   definition
             """, options);
@@ -832,7 +830,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.DefinitionLists = true;
         options.FencedCode = false;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             Term
             :   ```
                 code
@@ -871,7 +869,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.CustomContainers = true;
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             {#box .wide}
             ::: note
             hello
@@ -880,7 +878,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         var container = Assert.IsType<CustomContainerBlock>(Assert.Single(document.Blocks));
         var rendered = ((IMarkdownBlock)container).RenderMarkdown();
-        var reparsed = MarkdownReader.Parse(rendered, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(rendered, options);
         var reparsedContainer = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsed.Blocks));
 
         Assert.StartsWith("{#box .wide}", rendered, StringComparison.Ordinal);
@@ -894,7 +892,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.CustomContainers = true;
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             - item
               {#box .wide}
               ::: note
@@ -904,7 +902,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
-        var container = Assert.Single(item.Children.OfType<CustomContainerBlock>());
+        var container = Assert.Single(item.NestedBlocks.OfType<CustomContainerBlock>());
 
         Assert.Equal("box", container.Attributes.ElementId);
         Assert.Equal("wide", Assert.Single(container.Attributes.Classes));
@@ -916,7 +914,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             # Title {#x}
             Text {#p}
             """, options);
@@ -939,11 +937,11 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.UnorderedLists = false;
         options.OrderedLists = false;
 
-        var unordered = Assert.Single(MarkdownReader.Parse("""
+        var unordered = Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse("""
             - term
             :   unordered definition
             """, options).Blocks.OfType<DefinitionListBlock>());
-        var ordered = Assert.Single(MarkdownReader.Parse("""
+        var ordered = Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse("""
             1. term
             :   ordered definition
             """, options).Blocks.OfType<DefinitionListBlock>());
@@ -1046,7 +1044,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var image = Assert.IsType<ImageBlock>(Assert.Single(MarkdownReader.Parse(markdown, options).Blocks));
+        var image = Assert.IsType<ImageBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options).Blocks));
 
         Assert.Equal("hero", image.Attributes.ElementId);
         Assert.Contains("wide", image.Attributes.Classes);
@@ -1060,7 +1058,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.Abbreviations = true;
 
-        var roundTripped = MarkdownReader.Parse(markdown, options).ToMarkdown();
+        var roundTripped = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options).ToMarkdown();
 
         Assert.Contains("*[HTML]: Hyper Text Markup Language", roundTripped, StringComparison.Ordinal);
         Assert.Contains("HTML", roundTripped, StringComparison.Ordinal);
@@ -1072,7 +1070,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownReader.Parse(markdown, options).Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options).Blocks));
         var link = Assert.IsType<LinkInline>(Assert.Single(paragraph.Inlines.Nodes));
 
         Assert.Equal("a\"b", link.Attributes.GetAttribute("title"));
@@ -1084,7 +1082,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             10. item
                 {#p .lead}
                 text
@@ -1092,7 +1090,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         var list = Assert.IsType<OrderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
-        var paragraph = Assert.Single(item.Children.OfType<ParagraphBlock>(), block => block.Attributes.ElementId == "p");
+        var paragraph = Assert.Single(item.NestedBlocks.OfType<ParagraphBlock>(), block => block.Attributes.ElementId == "p");
         var html = document.ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
@@ -1116,10 +1114,10 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var code = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
         var rendered = ((IMarkdownBlock)code).RenderMarkdown().Replace("\r\n", "\n");
-        var reparsed = MarkdownReader.Parse(rendered, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(rendered, options);
         var reparsedCode = Assert.IsType<CodeBlock>(Assert.Single(reparsed.Blocks));
 
         Assert.Equal("inner", code.Attributes.ElementId);
@@ -1131,7 +1129,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
     [Fact]
     public void Table_CodeSpans_Normalize_Escaped_Pipes_In_Rendered_Code_Text() {
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             | Value |
             | --- |
             | `a\|b` |
@@ -1153,14 +1151,14 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
             {#glossary .wide}
             Term
             :   Definition
             """, options);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
         var rendered = ((IMarkdownBlock)definitionList).RenderMarkdown().Replace("\r\n", "\n");
-        var reparsed = Assert.IsType<DefinitionListBlock>(Assert.Single(MarkdownReader.Parse(rendered, options).Blocks));
+        var reparsed = Assert.IsType<DefinitionListBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse(rendered, options).Blocks));
 
         Assert.StartsWith("{#glossary .wide}\n", rendered, StringComparison.Ordinal);
         Assert.Equal("glossary", reparsed.Attributes.ElementId);
@@ -1172,7 +1170,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
 
-        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(MarkdownReader.Parse("""
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(OfficeIMO.Markdown.MarkdownReader.Parse("""
             Term
             :   Definition {#def .wide}
             """, options).Blocks));
@@ -1209,7 +1207,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         options.AutolinkAllowDomainWithoutPeriod = false;
         options.AutolinkRejectUserInfoAuthority = false;
 
-        var html = MarkdownReader.Parse("Go https://first.last@localhost/path and https://first.last@example.com/path", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Go https://first.last@localhost/path and https://first.last@example.com/path", options)
             .ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
                 CssDelivery = CssDelivery.None,

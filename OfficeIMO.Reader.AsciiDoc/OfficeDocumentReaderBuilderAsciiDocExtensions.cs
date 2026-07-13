@@ -18,12 +18,12 @@ public static class OfficeDocumentReaderBuilderAsciiDocExtensions {
             Description = "Modular AsciiDoc adapter backed by the lossless OfficeIMO.AsciiDoc engine.",
             Kind = ReaderInputKind.AsciiDoc,
             Extensions = new[] { ".adoc", ".asciidoc", ".asc" },
-            ReadPath = (path, readerOptions, cancellationToken) => DocumentReaderAsciiDocExtensions.ReadAsciiDocFile(
+            ReadPath = (path, readerOptions, cancellationToken) => AsciiDocReaderAdapter.Read(
                 path,
                 readerOptions,
                 ReaderAsciiDocOptionsCloner.Clone(registered),
                 cancellationToken),
-            ReadStream = (stream, sourceName, readerOptions, cancellationToken) => DocumentReaderAsciiDocExtensions.ReadAsciiDoc(
+            ReadStream = (stream, sourceName, readerOptions, cancellationToken) => AsciiDocReaderAdapter.Read(
                 stream,
                 sourceName,
                 readerOptions,

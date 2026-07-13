@@ -33,4 +33,57 @@ public sealed class EmailMailbox {
 
     /// <summary>Ordered mailbox messages.</summary>
     public IList<EmailMailboxEntry> Messages => _messages;
+
+    /// <summary>Loads an mbox mailbox from a file.</summary>
+    public static EmailMailbox Load(string path, EmailMailboxReaderOptions? options = null, CancellationToken cancellationToken = default) =>
+        RequireMailbox(new EmailMailboxReader(options ?? EmailMailboxReaderOptions.Default).Read(path, cancellationToken));
+
+    /// <summary>Loads an mbox mailbox from memory.</summary>
+    public static EmailMailbox Load(byte[] bytes, EmailMailboxReaderOptions? options = null, CancellationToken cancellationToken = default) =>
+        RequireMailbox(new EmailMailboxReader(options ?? EmailMailboxReaderOptions.Default).Read(bytes, cancellationToken));
+
+    /// <summary>Loads from the beginning of a seekable caller-owned stream and restores its position; non-seekable streams are read forward.</summary>
+    public static EmailMailbox Load(Stream stream, EmailMailboxReaderOptions? options = null, CancellationToken cancellationToken = default) =>
+        RequireMailbox(new EmailMailboxReader(options ?? EmailMailboxReaderOptions.Default).Read(stream, cancellationToken));
+
+    /// <summary>Asynchronously loads an mbox mailbox from a file.</summary>
+    public static async Task<EmailMailbox> LoadAsync(string path, EmailMailboxReaderOptions? options = null, CancellationToken cancellationToken = default) =>
+        RequireMailbox(await new EmailMailboxReader(options ?? EmailMailboxReaderOptions.Default).ReadAsync(path, cancellationToken).ConfigureAwait(false));
+
+    /// <summary>Asynchronously loads from the beginning of a seekable caller-owned stream and restores its position; non-seekable streams are read forward.</summary>
+    public static async Task<EmailMailbox> LoadAsync(Stream stream, EmailMailboxReaderOptions? options = null, CancellationToken cancellationToken = default) =>
+        RequireMailbox(await new EmailMailboxReader(options ?? EmailMailboxReaderOptions.Default).ReadAsync(stream, cancellationToken).ConfigureAwait(false));
+
+    /// <summary>Serializes this mailbox to mbox bytes.</summary>
+    public byte[] ToBytes(EmailMailboxWriterOptions? options = null) =>
+        new EmailMailboxWriter(options ?? EmailMailboxWriterOptions.Default).ToBytes(this);
+
+    /// <summary>Serializes the mailbox to a new writable memory stream positioned at the beginning.</summary>
+    public MemoryStream ToStream(EmailMailboxWriterOptions? options = null) =>
+        new MemoryStream(ToBytes(options));
+
+    /// <summary>Saves this mailbox to a file.</summary>
+    public EmailWriteResult Save(string path, EmailMailboxWriterOptions? options = null) =>
+        new EmailMailboxWriter(options ?? EmailMailboxWriterOptions.Default).Write(this, path);
+
+    /// <summary>Saves this mailbox to a caller-owned stream without closing it.</summary>
+    public EmailWriteResult Save(Stream stream, EmailMailboxWriterOptions? options = null) =>
+        new EmailMailboxWriter(options ?? EmailMailboxWriterOptions.Default).Write(this, stream);
+
+    /// <summary>Asynchronously saves this mailbox to a file.</summary>
+    public Task<EmailWriteResult> SaveAsync(string path, EmailMailboxWriterOptions? options = null, CancellationToken cancellationToken = default) =>
+        new EmailMailboxWriter(options ?? EmailMailboxWriterOptions.Default).WriteAsync(this, path, cancellationToken);
+
+    /// <summary>Asynchronously saves this mailbox to a caller-owned stream without closing it.</summary>
+    public Task<EmailWriteResult> SaveAsync(Stream stream, EmailMailboxWriterOptions? options = null, CancellationToken cancellationToken = default) =>
+        new EmailMailboxWriter(options ?? EmailMailboxWriterOptions.Default).WriteAsync(this, stream, cancellationToken);
+
+    private static EmailMailbox RequireMailbox(EmailMailboxReadResult result) {
+        EmailDiagnostic? error = result.Diagnostics.FirstOrDefault(static diagnostic =>
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
+        if (error != null) {
+            throw new InvalidDataException("The mailbox could not be loaded: " + error.Code + ": " + error.Message);
+        }
+        return result.Mailbox;
+    }
 }

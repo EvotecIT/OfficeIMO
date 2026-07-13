@@ -18,7 +18,7 @@ public sealed partial class HtmlRenderingTests {
         var options = new HtmlRenderOptions { MaxInputCharacters = 10 };
 
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
-            HtmlRenderEngine.Render("<p>12345</p>", options));
+            HtmlRenderTestDriver.Render("<p>12345</p>", options));
 
         Assert.Equal(HtmlRenderDiagnosticCodes.InputCharacterLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlRenderOptions.MaxInputCharacters), exception.LimitSource);
@@ -32,8 +32,8 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<main><p>one</p><p>two</p></main>";
         var options = new HtmlRenderOptions { MaxHtmlNodes = 4 };
 
-        HtmlDomLimitException syncException = Assert.Throws<HtmlDomLimitException>(() => HtmlRenderEngine.Render(html, options));
-        HtmlDomLimitException asyncException = await Assert.ThrowsAsync<HtmlDomLimitException>(() => HtmlRenderEngine.RenderAsync(html, options));
+        HtmlDomLimitException syncException = Assert.Throws<HtmlDomLimitException>(() => HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options));
+        HtmlDomLimitException asyncException = await Assert.ThrowsAsync<HtmlDomLimitException>(() => HtmlRenderTestDriver.RenderAsync(HtmlConversionDocument.Parse(html), options));
 
         Assert.Equal(HtmlRenderDiagnosticCodes.NodeLimitExceeded, syncException.Code);
         Assert.Equal(nameof(HtmlRenderOptions.MaxHtmlNodes), syncException.LimitSource);
@@ -52,7 +52,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Equal(1234, clone.MaxInputCharacters);
         Assert.Equal(4321, clone.MaxHtmlNodes);
-        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderEngine.Render("<p>x</p>", new HtmlRenderOptions { MaxInputCharacters = 0 }));
-        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderEngine.Render("<p>x</p>", new HtmlRenderOptions { MaxHtmlNodes = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<p>x</p>", new HtmlRenderOptions { MaxInputCharacters = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<p>x</p>", new HtmlRenderOptions { MaxHtmlNodes = 0 }));
     }
 }

@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Markdown {
             string markdown = "- Item 1\n- Item 2\n\n1. First\n1. Second";
 
             // Convert Markdown to Word document
-            var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
             
             // Save the Word document
             doc.Save(filePath);

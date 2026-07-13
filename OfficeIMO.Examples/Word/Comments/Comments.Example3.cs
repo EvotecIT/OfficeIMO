@@ -27,7 +27,8 @@ namespace OfficeIMO.Examples.Word {
                         Console.WriteLine($"  Reply: {rep.ParaId} -> {rep.Text}");
                     }
                 }
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

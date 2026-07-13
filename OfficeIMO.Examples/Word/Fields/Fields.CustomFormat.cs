@@ -9,7 +9,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "CustomFormattedDate.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Today is: ").AddField(WordFieldType.Date, customFormat: "dddd, MMMM dd, yyyy");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 
@@ -18,7 +19,8 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "CustomFormattedTime.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Current time: ").AddField(WordFieldType.Time, customFormat: "HH:mm:ss");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 
@@ -28,7 +30,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.HeaderDefaultOrCreate.AddField(WordFieldType.Date, customFormat: "yyyy-MM-dd", advanced: true);
                 document.AddParagraph("Body paragraph");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

@@ -79,7 +79,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ Paragraphs count: " + document.Paragraphs.Count);
                 Console.WriteLine("+ Lists count: " + document.Lists.Count);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

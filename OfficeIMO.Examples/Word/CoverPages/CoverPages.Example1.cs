@@ -51,7 +51,8 @@ namespace OfficeIMO.Examples.Word {
 
                 wordListToc.AddItem("More on the next page");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

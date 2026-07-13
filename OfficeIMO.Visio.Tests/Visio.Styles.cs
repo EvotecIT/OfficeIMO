@@ -112,33 +112,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PremiumThemePresetsConvertToBuilderThemes() {
+        public void DiagramBuildersUseOneStyleThemeAndLayoutOnlyOptions() {
             VisioStyleTheme enterprise = VisioStyleTheme.Enterprise();
             VisioStyleTheme technical = VisioStyleTheme.Technical();
-            VisioStyleTheme cloud = VisioStyleTheme.Cloud();
-            VisioStyleTheme process = VisioStyleTheme.Process();
-            VisioStyleTheme print = VisioStyleTheme.Print();
-            VisioStyleTheme darkSafe = VisioStyleTheme.DarkSafe();
+            var flowLayout = new VisioFlowchartLayoutOptions { ProcessWidth = 3.1D };
+            var blockLayout = new VisioBlockDiagramLayoutOptions { ColumnGap = 1.4D };
 
-            VisioFlowchartTheme enterpriseFlow = enterprise.ToFlowchartTheme();
-            VisioBlockDiagramTheme technicalBlock = technical.ToBlockDiagramTheme();
-            VisioBlockDiagramTheme cloudBlock = cloud.ToBlockDiagramTheme();
-            VisioFlowchartTheme processFlow = process.ToFlowchartTheme();
-            VisioFlowchartTheme printFlow = print.ToFlowchartTheme();
-            VisioBlockDiagramTheme darkSafeBlock = darkSafe.ToBlockDiagramTheme();
-
-            Assert.Equal(enterprise.Primary.FillColor, enterpriseFlow.ProcessFill);
-            Assert.Equal(enterprise.Decision.FillColor, enterpriseFlow.DecisionFill);
-            Assert.Equal(technical.Primary.FillColor, technicalBlock.BlockFill);
-            Assert.Equal(technical.ControlConnector.LineColor, technicalBlock.ControlFlowColor);
-            Assert.Equal(cloud.Container.FillColor, cloudBlock.RegionFill);
-            Assert.Equal(cloud.DataConnector.LineColor, cloudBlock.DataFlowColor);
-            Assert.Equal(process.Success.FillColor, processFlow.TerminatorFill);
-            Assert.Equal(process.Connector.TextStyle!.Color, processFlow.ConnectorTextStyle!.Color);
-            Assert.Equal(print.Decision.FillColor, printFlow.DecisionFill);
-            Assert.Equal(print.ControlConnector.TextStyle!.Color, printFlow.ConnectorTextStyle!.Color);
-            Assert.Equal(darkSafe.Emphasis.FillColor, darkSafeBlock.EmphasisFill);
-            Assert.Equal(2, darkSafe.ControlConnector.LinePattern);
+            Assert.All(typeof(VisioFlowchartLayoutOptions).GetProperties(), property => Assert.Equal(typeof(double), property.PropertyType));
+            Assert.All(typeof(VisioBlockDiagramLayoutOptions).GetProperties(), property => Assert.Equal(typeof(double), property.PropertyType));
+            Assert.Equal(3.1D, flowLayout.Clone().ProcessWidth);
+            Assert.Equal(1.4D, blockLayout.Clone().ColumnGap);
+            Assert.NotEqual(enterprise.Primary.FillColor, enterprise.Decision.FillColor);
+            Assert.NotEqual(technical.DataConnector.LinePattern, technical.ControlConnector.LinePattern);
+            Assert.NotNull(enterprise.TitleText);
+            Assert.NotNull(technical.LegendText);
         }
 
         [Fact]
@@ -249,7 +236,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(theme.Container.TextStyle!.Color, region.TextStyle!.Color);
             Assert.Equal(theme.Primary.TextStyle!.Color, input.TextStyle!.Color);
             Assert.Equal(theme.Emphasis.TextStyle!.Color, worker.TextStyle!.Color);
-            Assert.Equal(theme.Connector.TextStyle!.Color, connector.TextStyle!.Color);
+            Assert.Equal(theme.ControlConnector.TextStyle!.Color, connector.TextStyle!.Color);
         }
     }
 }

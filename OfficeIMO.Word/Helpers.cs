@@ -5,7 +5,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Provides various utility methods used throughout the library.
     /// </summary>
-    public static partial class Helpers {
+    internal static partial class Helpers {
         private const double PixelsPerInch = 96.0;
 
         internal static double ConvertPixelsToPoints(double pixels) {

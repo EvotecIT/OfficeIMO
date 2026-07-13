@@ -298,7 +298,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryGetWorkbookFileName(out string fileName) {
             fileName = string.Empty;
-            string path = _excelDocument.FilePath;
+            string? path = _excelDocument.FilePath;
             if (string.IsNullOrWhiteSpace(path)) {
                 return false;
             }
@@ -309,7 +309,7 @@ namespace OfficeIMO.Excel {
 
         private bool TryGetWorkbookPathPrefix(out string pathPrefix) {
             pathPrefix = string.Empty;
-            string path = _excelDocument.FilePath;
+            string? path = _excelDocument.FilePath;
             if (string.IsNullOrWhiteSpace(path)) {
                 return false;
             }

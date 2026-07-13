@@ -20,7 +20,8 @@ namespace OfficeIMO.Examples.Word {
             image.CropLeftCentimeters = 0.5;
             image.CropRightCentimeters = 0.5;
 
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

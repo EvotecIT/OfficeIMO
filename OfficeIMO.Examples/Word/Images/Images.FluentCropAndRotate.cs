@@ -16,7 +16,8 @@ namespace OfficeIMO.Examples.Word {
                     .Crop(1, 1, 1, 1)
                     .Rotate(45))
                 .End();
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

@@ -8,6 +8,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
@@ -68,13 +69,13 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     [Theory]
-    [InlineData(MarkdownPdfThemeKind.Plain, "markdown-theme-gallery-plain")]
-    [InlineData(MarkdownPdfThemeKind.WordLike, "markdown-theme-gallery-word-like")]
-    [InlineData(MarkdownPdfThemeKind.TechnicalDocument, "markdown-theme-gallery-technical-document")]
-    [InlineData(MarkdownPdfThemeKind.GitHubLike, "markdown-theme-gallery-github-like")]
-    [InlineData(MarkdownPdfThemeKind.Compact, "markdown-theme-gallery-compact")]
-    [InlineData(MarkdownPdfThemeKind.Report, "markdown-theme-gallery-report")]
-    public void MarkdownThemeGallery_MatchesPopplerRasterBaseline(MarkdownPdfThemeKind themeKind, string scenarioName) {
+    [InlineData(OfficeVisualThemeKind.Plain, "markdown-theme-gallery-plain")]
+    [InlineData(OfficeVisualThemeKind.WordLike, "markdown-theme-gallery-word-like")]
+    [InlineData(OfficeVisualThemeKind.TechnicalDocument, "markdown-theme-gallery-technical-document")]
+    [InlineData(OfficeVisualThemeKind.GitHubLike, "markdown-theme-gallery-github-like")]
+    [InlineData(OfficeVisualThemeKind.Compact, "markdown-theme-gallery-compact")]
+    [InlineData(OfficeVisualThemeKind.Report, "markdown-theme-gallery-report")]
+    public void MarkdownThemeGallery_MatchesPopplerRasterBaseline(OfficeVisualThemeKind themeKind, string scenarioName) {
         AssertScenarioRasterBaseline(scenarioName, () => CreateMarkdownThemeGallery(themeKind));
     }
 

@@ -8,11 +8,11 @@ namespace OfficeIMO.Word {
     /// Parses Word field codes and exposes their individual parts.
     /// </summary>
     internal class WordFieldParser {
-        private WordFieldType _wordFieldType;
+        private WordFieldType? _wordFieldType;
         /// <summary>
         /// Gets the type of field represented by the parsed code.
         /// </summary>
-        public WordFieldType WordFieldType {
+        public WordFieldType? WordFieldType {
             get { return _wordFieldType; }
         }
 
@@ -145,11 +145,16 @@ namespace OfficeIMO.Word {
             if (parsed) {
                 this._wordFieldType = wordFieldType;
                 fieldCodeDeclaration = fieldCodeDeclaration.Replace(match.ToString(), "").Trim();
+            } else if (match.Length > 0) {
+                this._wordFieldType = null;
+                this._diagnostics.Add($"The field type \"{match}\" couldn't be processed by the parser because it is not recognized by OfficeIMO.");
+                fieldCodeDeclaration = fieldCodeDeclaration.Substring(match.Length).Trim();
             }
 
-            // No more leftovers
+            // Preserve unrecognized content as a diagnostic. Field codes are user-authored input and
+            // newer Word versions or third-party producers may add constructs OfficeIMO does not know.
             if (fieldCodeDeclaration.Length > 0) {
-                throw new NotImplementedException("The parts \"" + fieldCodeDeclaration + "\" of the field code \"" + orgFieldCodeDeclaration + "\" couldn't be processed by the Parser");
+                this._diagnostics.Add("The parts \"" + fieldCodeDeclaration + "\" of the field code \"" + orgFieldCodeDeclaration + "\" were not recognized by OfficeIMO.");
             }
         }
     }

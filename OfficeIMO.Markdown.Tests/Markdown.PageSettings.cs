@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
                 DefaultPageSize = WordPageSize.A5
             };
             
-            var doc = md.LoadFromMarkdown(options);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument(options);
             
             Assert.Equal(PageOrientationValues.Landscape, doc.PageOrientation);
             Assert.Equal(WordPageSize.A5, doc.PageSettings.PageSize);

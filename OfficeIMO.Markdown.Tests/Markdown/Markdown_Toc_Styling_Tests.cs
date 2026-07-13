@@ -44,7 +44,7 @@ See note[^1].
 [^1]: Footnote text
 """;
 
-            var doc = MarkdownReader.Parse(markdown);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Clean });
 
             Assert.Contains("class=\"md-layout two-col right\"", html);

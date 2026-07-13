@@ -50,17 +50,18 @@ public static partial class MarkdownRenderer {
         }
 
         var assetMode = htmlOptions.AssetMode;
+        var externalTextResolver = htmlOptions.ExternalTextResolver;
 
         if (options.Math?.Enabled == true) {
-            sb.Append(BuildMathBootstrap(options.Math, assetMode));
+            sb.Append(BuildMathBootstrap(options.Math, assetMode, externalTextResolver));
         }
 
         if (options.Mermaid?.Enabled == true) {
-            sb.Append(BuildMermaidBootstrap(options.Mermaid, assetMode));
+            sb.Append(BuildMermaidBootstrap(options.Mermaid, assetMode, externalTextResolver));
         }
 
         if (options.Chart?.Enabled == true) {
-            sb.Append(BuildChartBootstrap(options.Chart, assetMode));
+            sb.Append(BuildChartBootstrap(options.Chart, assetMode, externalTextResolver));
         }
 
         AppendCustomShellHeadHtml(sb, options, assetMode);

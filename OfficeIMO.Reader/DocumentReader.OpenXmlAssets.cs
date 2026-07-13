@@ -16,7 +16,7 @@ using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static IReadOnlyList<OfficeDocumentAsset> ReadOpenXmlImageAssets(string path, ReaderInputKind kind, ReaderOptions opt, CancellationToken cancellationToken) {
         if (kind != ReaderInputKind.Word && kind != ReaderInputKind.PowerPoint && kind != ReaderInputKind.Excel) {
             return Array.Empty<OfficeDocumentAsset>();

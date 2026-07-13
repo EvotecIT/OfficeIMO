@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -77,7 +78,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
             }
 
-            File.WriteAllText(path, ToText(), new UTF8Encoding(false));
+            OfficeFileCommit.WriteAllBytes(path, new UTF8Encoding(false).GetBytes(ToText()));
         }
 
         /// <summary>

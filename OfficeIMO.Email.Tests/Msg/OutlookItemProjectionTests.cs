@@ -297,7 +297,7 @@ public sealed class OutlookItemProjectionTests {
     }
 
     private static byte[] Write(EmailDocument source) =>
-        new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
     private static EmailDocument Read(byte[] bytes) {
         EmailReadResult result = new EmailDocumentReader().Read(bytes);

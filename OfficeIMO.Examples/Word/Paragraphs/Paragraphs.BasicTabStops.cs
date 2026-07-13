@@ -47,7 +47,8 @@ internal static partial class Paragraphs {
 
         using (WordDocument document = WordDocument.Load(filePath)) {
 
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

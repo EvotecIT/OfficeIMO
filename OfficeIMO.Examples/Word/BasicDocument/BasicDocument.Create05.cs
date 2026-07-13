@@ -67,7 +67,8 @@ namespace OfficeIMO.Examples.Word {
                 par01.LineSpacingAfter = 0;
                 par01.LineSpacingBefore = 0;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

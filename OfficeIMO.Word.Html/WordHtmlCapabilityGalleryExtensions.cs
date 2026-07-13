@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Html;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word.Html {
     /// <summary>
@@ -12,12 +13,12 @@ namespace OfficeIMO.Word.Html {
         /// <summary>
         /// Saves source HTML, generated DOCX, roundtrip HTML, and shared manifest files for a Word HTML roundtrip scenario.
         /// </summary>
-        /// <param name="html">Source HTML to import into Word.</param>
+        /// <param name="source">Parsed source HTML to import into Word.</param>
         /// <param name="directoryPath">Directory where artifacts will be written.</param>
         /// <param name="options">Optional gallery options.</param>
         /// <returns>Shared gallery manifest describing the generated artifacts and roundtrip expectations.</returns>
-        public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this string html, string directoryPath, WordHtmlCapabilityGalleryOptions? options = null) {
-            if (html == null) throw new ArgumentNullException(nameof(html));
+        public static HtmlCapabilityGalleryManifest SaveHtmlCapabilityGallery(this HtmlConversionDocument source, string directoryPath, WordHtmlCapabilityGalleryOptions? options = null) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
             if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Artifact directory cannot be empty.", nameof(directoryPath));
 
             options ??= new WordHtmlCapabilityGalleryOptions();
@@ -32,13 +33,13 @@ namespace OfficeIMO.Word.Html {
 
             HtmlToWordOptions importOptions = CreateImportOptions(options.ImportOptions);
             WordToHtmlOptions exportOptions = CreateExportOptions(options.ExportOptions);
-            HtmlToWordResult importResult = html.ToWordDocumentResult(importOptions);
+            HtmlToWordResult importResult = source.ToWordDocumentResult(importOptions);
             using WordDocument document = importResult.RequireValue();
             using MemoryStream packageStream = document.ToStream();
             string roundTripHtml = document.ToHtml(exportOptions);
 
-            HtmlCapabilityGalleryArtifact sourceArtifact = HtmlCapabilityGalleryArtifact.WriteTextFile("source", "input-html", inputPath, "text/html", html);
-            File.WriteAllBytes(docxPath, packageStream.ToArray());
+            HtmlCapabilityGalleryArtifact sourceArtifact = HtmlCapabilityGalleryArtifact.WriteTextFile("source", "input-html", inputPath, "text/html", source.SourceHtml);
+            OfficeFileCommit.WriteAllBytes(docxPath, packageStream.ToArray());
             HtmlCapabilityGalleryArtifact docxArtifact = HtmlCapabilityGalleryArtifact.FromFile("docx", "docx", docxPath, WordDocumentMediaType);
             HtmlCapabilityGalleryArtifact roundTripArtifact = HtmlCapabilityGalleryArtifact.WriteTextFile("roundtrip", "roundtrip-html", roundTripPath, "text/html", roundTripHtml);
 
@@ -51,19 +52,19 @@ namespace OfficeIMO.Word.Html {
             result.AddArtifact(sourceArtifact);
             result.AddArtifact(docxArtifact);
             result.AddArtifact(roundTripArtifact);
-            result.Diagnostics.AddRange(importResult.Diagnostics);
+            result.Diagnostics.AddRange(importResult.Report.Diagnostics);
             AppendOpenXmlValidationDiagnostics(result, packageStream);
 
-            HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(html, roundTripHtml);
-            HtmlResourceManifest resourceManifest = HtmlResourcePipeline.BuildManifest(html, new HtmlResourcePipelineOptions {
+            HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(source.SourceHtml, roundTripHtml);
+            HtmlResourceManifest resourceManifest = HtmlResourcePipeline.BuildManifest(source.SourceHtml, new HtmlResourcePipelineOptions {
                 UrlPolicy = options.ResourceUrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()
             });
             var manifest = new HtmlCapabilityGalleryManifest(
                 result,
-                HtmlConversionProfile.Document,
+                source.ProfileContract.Profile,
                 score,
                 resourceManifest,
-                CreateExpectations(html),
+                CreateExpectations(source.SourceHtml),
                 new[] { OfficeHtmlConversionProfile.WordDocumentRoundTrip });
 
             string manifestMarkdown = HtmlCapabilityGalleryManifestWriter.ToMarkdown(manifest);

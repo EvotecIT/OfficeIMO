@@ -80,7 +80,8 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = ExcelDocument.Create(sourcePath);
                 document.AddWorksheet("CopyData").CellValue(1, 1, "Directory copy");
 
-                using ExcelDocument copy = document.SaveCopy(destinationPath);
+                document.SaveCopy(destinationPath);
+                using ExcelDocument copy = ExcelDocument.Load(destinationPath);
 
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
@@ -90,6 +91,27 @@ namespace OfficeIMO.Tests {
             } finally {
                 if (File.Exists(sourcePath)) File.Delete(sourcePath);
                 if (Directory.Exists(destinationDirectory)) Directory.Delete(destinationDirectory, recursive: true);
+            }
+        }
+
+        [Fact]
+        public async Task Test_SaveCopyAsync_PreservesAssociatedPath() {
+            string sourcePath = Path.Combine(_directoryWithFiles, $"AsyncCopySource_{Guid.NewGuid():N}.xlsx");
+            string destinationPath = Path.Combine(_directoryWithFiles, $"AsyncCopy_{Guid.NewGuid():N}.xlsx");
+            try {
+                await using ExcelDocument document = ExcelDocument.Create(sourcePath);
+                document.AddWorksheet("CopyData").CellValue(1, 1, "Async copy");
+                document.Save();
+
+                await document.SaveCopyAsync(destinationPath);
+
+                Assert.Equal(sourcePath, document.FilePath);
+                using ExcelDocument copy = ExcelDocument.Load(destinationPath);
+                Assert.True(copy.Sheets[0].TryGetCellText(1, 1, out string? value));
+                Assert.Equal("Async copy", value);
+            } finally {
+                if (File.Exists(sourcePath)) File.Delete(sourcePath);
+                if (File.Exists(destinationPath)) File.Delete(destinationPath);
             }
         }
 

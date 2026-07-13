@@ -31,8 +31,8 @@ public sealed class LatexMarkdownConversionTests {
         Assert.Single(result.Value.Blocks.OfType<TableBlock>());
         Assert.Single(result.Value.Blocks.OfType<CalloutBlock>());
         Assert.Single(result.Value.Blocks.OfType<SemanticFencedBlock>());
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD101");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "LATEXMD102");
         Assert.Equal(Source, LatexDocument.Parse(Source).Document.ToLatex());
     }
 
@@ -53,7 +53,7 @@ public sealed class LatexMarkdownConversionTests {
     public void LatexProjection_UsesExistingPdfBridge() {
         LatexToMarkdownResult conversion = LatexDocument.Parse(Source).Document.ToMarkdownDocumentResult();
 
-        using var pdf = conversion.Value.ToPdfDocument();
+        var pdf = conversion.Value.ToPdfDocument();
         byte[] bytes = pdf.ToBytes();
 
         Assert.True(bytes.Length > 100);
@@ -110,7 +110,7 @@ public sealed class LatexMarkdownConversionTests {
         MarkdownToLatexResult result = document.ToLatexDocumentResult();
 
         Assert.Contains("\\begin{verbatim}", result.Source, StringComparison.Ordinal);
-        Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Diagnostics).Outcome);
+        Assert.Equal(LatexMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Report.Diagnostics).Outcome);
     }
 
     [Fact]
@@ -122,6 +122,6 @@ public sealed class LatexMarkdownConversionTests {
         Assert.Contains("\\footnote{real \\textbf{text}}", result.Source, StringComparison.Ordinal);
         Assert.DoesNotContain("\\footnote{1}", result.Source, StringComparison.Ordinal);
         Assert.DoesNotContain("\\begin{verbatim}", result.Source, StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Feature == nameof(FootnoteDefinitionBlock));
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Feature == nameof(FootnoteDefinitionBlock));
     }
 }

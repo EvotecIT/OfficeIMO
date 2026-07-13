@@ -5,8 +5,8 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
-public sealed partial class OfficeMarkupPowerPointExporter {
-    private static void ApplyBackground(PowerPointSlide slide, string? background, PowerPointDesignTheme theme, OfficeMarkupPowerPointExportOptions options, SlideCanvasMetrics metrics) {
+internal sealed partial class OfficeMarkupPowerPointExporter {
+    private static void ApplyBackground(PowerPointSlide slide, string? background, PowerPointDesignTheme theme, MarkupToPowerPointOptions options, SlideCanvasMetrics metrics) {
         var spec = ParseBackground(background, theme, options);
         if (!string.IsNullOrWhiteSpace(spec.GradientStartColor) && !string.IsNullOrWhiteSpace(spec.GradientEndColor)) {
             slide.SetBackgroundGradient(
@@ -41,7 +41,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         return spec.Color ?? spec.GradientStartColor;
     }
 
-    private static OfficeMarkupBackgroundSpec ParseBackground(string? background, PowerPointDesignTheme? theme, OfficeMarkupPowerPointExportOptions? options) {
+    private static OfficeMarkupBackgroundSpec ParseBackground(string? background, PowerPointDesignTheme? theme, MarkupToPowerPointOptions? options) {
         if (string.IsNullOrWhiteSpace(background)) {
             return new OfficeMarkupBackgroundSpec();
         }

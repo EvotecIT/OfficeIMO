@@ -12,7 +12,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("**Status\nHEALTHY**", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("**Status\nHEALTHY**", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>Status HEALTHY</strong>", html, StringComparison.Ordinal);
@@ -26,7 +26,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("`a\nb`", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("`a\nb`", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<code>a b</code>", html, StringComparison.Ordinal);
@@ -41,7 +41,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("✅Healthy Item\u200BOne", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("✅Healthy Item\u200BOne", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("✅ Healthy ItemOne", html, StringComparison.Ordinal);
@@ -55,7 +55,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse(@"Use \`/act act_001\` now.", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(@"Use \`/act act_001\` now.", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<code>/act act_001</code>", html, StringComparison.Ordinal);
@@ -69,7 +69,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("Status **Healthy**next", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Status **Healthy**next", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>Healthy</strong> next", html, StringComparison.Ordinal);
@@ -83,7 +83,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var markdown = MarkdownReader.Parse("- Signal ->**Why it matters:** coverage is thin", options)
+        var markdown = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal ->**Why it matters:** coverage is thin", options)
             .ToMarkdown();
 
         Assert.Contains("-> **Why it matters:**", markdown, StringComparison.Ordinal);
@@ -97,7 +97,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("- Signal **No current failures -> **Why it matters:** transport/auth issues", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal **No current failures -> **Why it matters:** transport/auth issues", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>No current failures</strong> -&gt; <strong>Why it matters:</strong> transport/auth issues", html, StringComparison.Ordinal);
@@ -111,7 +111,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("- Signal **Point-in-time snapshot** -> Why it matters:missing evidence", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal **Point-in-time snapshot** -> Why it matters:missing evidence", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("Why it matters: missing evidence", html, StringComparison.Ordinal);
@@ -125,7 +125,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("- Signal -> Why it matters:missing coverage -> Next action:review defaults", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal -> Why it matters:missing coverage -> Next action:review defaults", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("Why it matters: missing coverage", html, StringComparison.Ordinal);
@@ -141,7 +141,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);
@@ -159,7 +159,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("✅`- **FSMO:**` tail", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("✅`- **FSMO:**` tail", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<code>- **FSMO:**</code>", html, StringComparison.Ordinal);
@@ -174,7 +174,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("## Summary `- **Replication:**` tail", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("## Summary `- **Replication:**` tail", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);
@@ -196,7 +196,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse(
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(
                 "1) **Privilege hygiene sweep(Domain Admins + other privileged groups, nested exposure) 2)** Delegation risk audit**(unconstrained / constrained / protocol transition)",
                 options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -214,7 +214,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("previous shutdown was unexpected### Reason", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("previous shutdown was unexpected### Reason", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<p>previous shutdown was unexpected</p>", html, StringComparison.Ordinal);
@@ -230,7 +230,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("Use `unexpected### Reason` as captured text.", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Use `unexpected### Reason` as captured text.", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<code>unexpected### Reason</code>", html, StringComparison.Ordinal);
@@ -245,7 +245,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("""
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("""
 | Check | Expected |
 | --- | --- |
 | Escaping behavior | Text shows symbols, not formatting ## Extra markdown stress tests
@@ -270,7 +270,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("""
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("""
 #
 
 ## Result
@@ -292,7 +292,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             }
         };
 
-        var html = MarkdownReader.Parse("""
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("""
 - Overall health ****healthy****
 - Overall health ✅ Healthy****
 - Overall health ******healthy**
@@ -314,7 +314,7 @@ public class Markdown_Reader_Input_Normalization_Tests {
             InputNormalization = MarkdownInputNormalizationPresets.CreateIntelligenceXTranscriptStrict()
         };
 
-        var html = MarkdownReader.Parse("""
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("""
 ## Wynik ogólny- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK
 
 previous shutdown was unexpected### Reason
@@ -347,7 +347,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
             }
         };
 
-        var html = MarkdownReader.Parse("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<p>Następny najlepszy krok:</p>", html, StringComparison.Ordinal);
@@ -363,7 +363,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
             }
         };
 
-        var html = MarkdownReader.Parse("Use `Next step:- **Item**` as captured text.", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Use `Next step:- **Item**` as captured text.", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<code>Next step:- **Item**</code>", html, StringComparison.Ordinal);
@@ -378,7 +378,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
             }
         };
 
-        var markdown = MarkdownReader.Parse("```mermaidflowchart LR A-->B\n```", options)
+        var markdown = OfficeIMO.Markdown.MarkdownReader.Parse("```mermaidflowchart LR A-->B\n```", options)
             .ToMarkdown()
             .Replace("\r\n", "\n");
 
@@ -393,7 +393,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
             }
         };
 
-        var html = MarkdownReader.Parse("Use `Why it matters:missing` in tests.", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Use `Why it matters:missing` in tests.", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<code>Why it matters:missing</code>", html, StringComparison.Ordinal);
@@ -407,7 +407,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
             }
         };
 
-        var html = MarkdownReader.Parse("check ** LDAP/Kerberos health on all DCs** next", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("check ** LDAP/Kerberos health on all DCs** next", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", html, StringComparison.Ordinal);
@@ -422,7 +422,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
             }
         };
 
-        var html = MarkdownReader.Parse("- Overall health ****healthy****", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Overall health ****healthy****", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>healthy</strong>", html, StringComparison.Ordinal);
@@ -438,7 +438,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
             }
         };
 
-        var html = MarkdownReader.Parse("> Use \\`/act act_001\\` and **Healthy**next", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("> Use \\`/act act_001\\` and **Healthy**next", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<code>/act act_001</code>", html, StringComparison.Ordinal);
@@ -461,7 +461,7 @@ Status **Healthy**next
 ```
 """;
 
-        var parsed = MarkdownReader.Parse(markdown, options).ToMarkdown().Replace("\r\n", "\n");
+        var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options).ToMarkdown().Replace("\r\n", "\n");
 
         Assert.Contains("Use \\`/act act_001\\`", parsed, StringComparison.Ordinal);
         Assert.Contains("Status **Healthy**next", parsed, StringComparison.Ordinal);
@@ -482,7 +482,7 @@ Status **Healthy**next
 3.** Replication + DC health snapshot** (stale links, failing partners)
 """;
 
-        var html = MarkdownReader.Parse(markdown, options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Equal(3, Count(html, "<li"));
@@ -504,7 +504,7 @@ Status **Healthy**next
 2.^ **Delegation risk audit**
 """;
 
-        var html = MarkdownReader.Parse(markdown, options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Equal(2, Count(html, "<li"));
@@ -520,7 +520,7 @@ Status **Healthy**next
             }
         };
 
-        var html = MarkdownReader.Parse("1. **Deleted object remnants**(SID left in ACL path)", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("1. **Deleted object remnants**(SID left in ACL path)", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", html, StringComparison.Ordinal);
@@ -534,7 +534,7 @@ Status **Healthy**next
             }
         };
 
-        var html = MarkdownReader.Parse("Use `Get-ADUser(SIDHistory)` and **Deleted object remnants**(SID left in ACL path)", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("Use `Get-ADUser(SIDHistory)` and **Deleted object remnants**(SID left in ACL path)", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<code>Get-ADUser(SIDHistory)</code>", html, StringComparison.Ordinal);
@@ -548,7 +548,7 @@ Status **Healthy**next
             MaxInputCharacters = 8
         };
 
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => MarkdownReader.Parse("123456789", options));
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => OfficeIMO.Markdown.MarkdownReader.Parse("123456789", options));
         Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
     }
 
@@ -560,7 +560,7 @@ Status **Healthy**next
             }
         };
 
-        var html = MarkdownReader.Parse("- Signal **Current comparison used **System** log only.**", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Signal **Current comparison used **System** log only.**", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>Current comparison used System log only.</strong>", html, StringComparison.Ordinal);
@@ -575,7 +575,7 @@ Status **Healthy**next
             }
         };
 
-        var html = MarkdownReader.Parse("- Why it matters **Current comparison used **System** log only.**", options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("- Why it matters **Current comparison used **System** log only.**", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("Why it matters <strong>Current comparison used System log only.</strong>", html, StringComparison.Ordinal);
@@ -597,7 +597,7 @@ Następny najlepszy krok:- **`ad_domain_controller_facts`**
 ```
 """;
 
-        var html = MarkdownReader.Parse(markdown, options)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<h2", html, StringComparison.Ordinal);

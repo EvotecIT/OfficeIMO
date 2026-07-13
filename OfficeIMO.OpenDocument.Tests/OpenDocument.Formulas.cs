@@ -6,7 +6,7 @@ namespace OfficeIMO.OpenDocument.Tests;
 public sealed class OpenDocumentFormulaTests {
     [Fact]
     public void FormulaMutationInvalidatesCachedValueAndAllowsExplicitReplacement() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsCell cell = document.AddSheet("Data").Cell(0, 0);
         cell.SetNumber(42D);
 
@@ -20,7 +20,7 @@ public sealed class OpenDocumentFormulaTests {
 
     [Fact]
     public void EvaluatesArithmeticRangesFunctionsAndCrossSheetReferences() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet data = document.AddSheet("Data");
         OdsSheet other = document.AddSheet("Other");
         data.Cell(0, 0).SetNumber(2D);
@@ -37,7 +37,7 @@ public sealed class OpenDocumentFormulaTests {
 
     [Fact]
     public void ReportsCyclesUnsupportedFunctionsAndRangeBoundsWithoutExecutingAnything() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         sheet.Cell(0, 0).Formula = "of:=[.B1]";
         sheet.Cell(0, 1).Formula = "of:=[.A1]";
@@ -57,7 +57,7 @@ public sealed class OpenDocumentFormulaTests {
 
     [Fact]
     public void RecalculationUpdatesSuccessfulCachedValuesAndLeavesFailuresReported() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         sheet.Cell(0, 0).SetNumber(4D);
         sheet.Cell(0, 1).Formula = "of:=[.A1]*3";
@@ -82,7 +82,7 @@ public sealed class OpenDocumentFormulaTests {
     [InlineData("of:=-2^2", -4D)]
     [InlineData("of:=2^-2", 0.25D)]
     public void FormulaEvaluationUsesSpreadsheetNumericSemantics(string formula, double expected) {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         document.AddSheet("Data");
 
         OdsFormulaEvaluationResult result = OdsFormulaEvaluator.EvaluateExpression(document, "Data", formula);

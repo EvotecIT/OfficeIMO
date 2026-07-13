@@ -2,10 +2,11 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
 using OfficeIMO.Drawing;
-using System.Net.Http;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -20,6 +21,28 @@ namespace OfficeIMO.Word {
         /// <returns>A <see cref="Run"/> containing the embedded image.</returns>
         public static Run CreateImageRun(MainDocumentPart mainPart, string src) {
             byte[] bytes = ResolveImageSource(src);
+            return CreateImageRun(mainPart, bytes);
+        }
+
+        /// <summary>
+        /// Creates a run element containing an image. HTTP and HTTPS sources are retrieved asynchronously;
+        /// local files and data URIs are resolved without network I/O.
+        /// </summary>
+        public static async Task<Run> CreateImageRunAsync(
+            MainDocumentPart mainPart,
+            string src,
+            CancellationToken cancellationToken = default) {
+            if (Uri.TryCreate(src, UriKind.Absolute, out Uri? uri)
+                && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps)) {
+                OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(src, cancellationToken: cancellationToken).ConfigureAwait(false);
+                return CreateImageRun(mainPart, image.ToBytes());
+            }
+
+            cancellationToken.ThrowIfCancellationRequested();
+            return CreateImageRun(mainPart, ResolveImageSource(src));
+        }
+
+        private static Run CreateImageRun(MainDocumentPart mainPart, byte[] bytes) {
             OfficeImageInfo image = OfficeImageReader.Identify(bytes);
             long cx = (long)(image.Width * 9525L);
             long cy = (long)(image.Height * 9525L);
@@ -76,8 +99,8 @@ namespace OfficeIMO.Word {
                         return File.ReadAllBytes(uri.LocalPath);
                     }
                     if (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps) {
-                        using HttpClient client = new HttpClient();
-                        return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
+                        throw new InvalidOperationException(
+                            "HTTP image sources require CreateImageRunAsync so network I/O is explicit and cancellable.");
                     }
                 }
             }

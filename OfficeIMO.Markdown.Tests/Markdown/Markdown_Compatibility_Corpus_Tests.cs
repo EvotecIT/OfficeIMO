@@ -14,8 +14,8 @@ public class Markdown_Compatibility_Corpus_Tests {
         string markdown = LoadCompatibilityFixture("portable-profile-boundary.md");
         var htmlOptions = CreatePlainHtmlOptions();
 
-        string officeHtml = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile()).ToHtmlFragment(htmlOptions);
-        string portableHtml = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+        string officeHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile()).ToHtmlFragment(htmlOptions);
+        string portableHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
 
         Assert.Contains("class=\"callout", officeHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("contains-task-list", officeHtml, StringComparison.Ordinal);
@@ -70,14 +70,14 @@ public class Markdown_Compatibility_Corpus_Tests {
     public void Compatibility_Fixture_Html_Ingestion_Preserves_Rich_Ast_Before_Serialization() {
         string html = LoadCompatibilityFixture("html-rich-ast.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument();
-        string portableMarkdown = html.ToMarkdown(HtmlToMarkdownOptions.CreatePortableProfile());
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlToMarkdownOptions.CreatePortableProfile());
         string renderedHtml = document.ToHtmlFragment(CreatePlainHtmlOptions());
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Level == 1 && heading.Text == "HTML Corpus");
 
         var table = Assert.Single(document.Blocks.OfType<TableBlock>());
-        Assert.Collection(table.RowCells[0][1].Blocks,
+        Assert.Collection(table.RowCells[0][1].ChildBlocks,
             block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
             block => Assert.IsType<QuoteBlock>(block));
 
@@ -100,7 +100,7 @@ public class Markdown_Compatibility_Corpus_Tests {
     public void Compatibility_Fixture_SharedVisualHosts_Html_Ingestion_Preserves_Generic_Semantic_Block_Recovery() {
         string html = LoadHtmlFixture("shared-visual-hosts.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html")
         });
         string markdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
@@ -135,7 +135,7 @@ public class Markdown_Compatibility_Corpus_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:30: 13)");
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
@@ -158,7 +158,7 @@ public class Markdown_Compatibility_Corpus_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:37: 49)");

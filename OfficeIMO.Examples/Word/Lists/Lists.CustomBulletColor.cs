@@ -16,7 +16,8 @@ namespace OfficeIMO.Examples.Word {
                 var second = document.AddCustomBulletList('o', "Calibri", "0000ff", fontSize: 12);
                 second.AddItem("Blue bullet item");
                 second.AddItem("Second blue item");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

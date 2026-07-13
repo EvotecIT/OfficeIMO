@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
                 }
 
                 finalResult = WordDocument.Load(resultPath);
-                finalResult.FilePath = string.Empty;
+                finalResult.FilePath = null;
             } finally {
                 if (File.Exists(resultPath)) {
                     try {

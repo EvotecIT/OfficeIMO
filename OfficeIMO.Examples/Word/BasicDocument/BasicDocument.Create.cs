@@ -15,7 +15,8 @@ namespace OfficeIMO.Examples.Word {
                 document.BuiltinDocumentProperties.Title = "This is my title";
                 document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
                 document.BuiltinDocumentProperties.Keywords = "word, docx, test";
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 
@@ -38,7 +39,8 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

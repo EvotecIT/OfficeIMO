@@ -621,9 +621,8 @@ namespace OfficeIMO.Word.Pdf {
                 titleColor: titleColor ?? OfficeColor.Black,
                 plotAreaBackgroundColor: plotAreaBackgroundColor,
                 plotAreaBorderColor: plotAreaBorderColor,
-                showGridLines: showGridLines) {
-                ShowBorder = showBorder
-            };
+                showGridLines: showGridLines,
+                showBorder: showBorder);
         }
 
         private static bool IsNativeWordChartSeriesRenderable(OpenXmlElement seriesElement, OfficeChartKind chartKind) {
@@ -896,6 +895,13 @@ namespace OfficeIMO.Word.Pdf {
             }
 
             string? separator = labels?.GetFirstChild<Separator>()?.InnerText;
+            HashSet<uint> hiddenLegendIndexes = GetNativeWordHiddenLegendIndexes(chart);
+            int[]? hiddenCategoryLegendIndexes = IsNativeWordPieLikeChart(chartKind) && hiddenLegendIndexes.Count > 0
+                ? hiddenLegendIndexes
+                    .Where(index => index <= int.MaxValue)
+                    .Select(index => (int)index)
+                    .ToArray()
+                : null;
             var layout = new OfficeChartLayout(
                 maximumCategoryAxisLabels: maximumCategoryAxisLabels,
                 maximumHorizontalCategoryAxisLabels: maximumHorizontalCategoryAxisLabels,
@@ -926,18 +932,11 @@ namespace OfficeIMO.Word.Pdf {
                 showCategoryAxisLabels: showCategoryAxisLabels,
                 showValueAxisLabels: showValueAxisLabels,
                 overlayTitle: overlayTitle,
-                titleTopPadding: titleTopPadding) {
-                DataLabelSeriesIndexes = dataLabels.SeriesIndexes,
-                DataLabelPointIndexes = dataLabels.PointIndexes,
-                HiddenDataLabelPointIndexes = dataLabels.HiddenPointIndexes
-            };
-            HashSet<uint> hiddenLegendIndexes = GetNativeWordHiddenLegendIndexes(chart);
-            if (IsNativeWordPieLikeChart(chartKind) && hiddenLegendIndexes.Count > 0) {
-                layout.HiddenCategoryLegendIndexes = hiddenLegendIndexes
-                    .Where(index => index <= int.MaxValue)
-                    .Select(index => (int)index)
-                    .ToArray();
-            }
+                titleTopPadding: titleTopPadding,
+                dataLabelSeriesIndexes: dataLabels.SeriesIndexes,
+                dataLabelPointIndexes: dataLabels.PointIndexes,
+                hiddenDataLabelPointIndexes: dataLabels.HiddenPointIndexes,
+                hiddenCategoryLegendIndexes: hiddenCategoryLegendIndexes);
 
             return layout;
         }

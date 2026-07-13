@@ -38,7 +38,8 @@ namespace OfficeIMO.Examples.Word {
                     matchTextFormat: p => p.SetBold(),
                     noMatchTextFormat: p => p.SetUnderline(UnderlineValues.Single));
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

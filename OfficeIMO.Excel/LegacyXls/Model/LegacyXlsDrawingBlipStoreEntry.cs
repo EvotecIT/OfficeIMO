@@ -3,6 +3,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     /// Describes an OfficeArt FBSE image-store entry discovered in a legacy XLS drawing group.
     /// </summary>
     public sealed class LegacyXlsDrawingBlipStoreEntry {
+        private readonly byte[] _embeddedBlipPayloadBytes;
+
         /// <summary>
         /// Creates preserve-only metadata for an OfficeArt FBSE image-store entry.
         /// </summary>
@@ -35,7 +37,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             EmbeddedBlipPayloadLength = embeddedBlipPayloadLength;
             EmbeddedBlipPayloadAvailableLength = embeddedBlipPayloadAvailableLength;
             EmbeddedBlipPayloadSha256 = embeddedBlipPayloadSha256;
-            EmbeddedBlipPayloadBytes = embeddedBlipPayloadBytes?.ToArray() ?? Array.Empty<byte>();
+            _embeddedBlipPayloadBytes = embeddedBlipPayloadBytes?.ToArray() ?? Array.Empty<byte>();
             EmbeddedBlipContentType = GetEmbeddedBlipContentType(embeddedBlipRecordType, RecordInstanceBlipTypeKind, Win32BlipTypeKind, MacOsBlipTypeKind);
         }
 
@@ -91,10 +93,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public string? EmbeddedBlipPayloadSha256 { get; }
 
         /// <summary>Gets a copy of importable embedded BLIP image bytes, when available.</summary>
-        public byte[] EmbeddedBlipPayloadBytes { get; }
+        public byte[] EmbeddedBlipPayloadBytes => _embeddedBlipPayloadBytes.ToArray();
 
         /// <summary>Gets whether this entry carries importable embedded BLIP image bytes.</summary>
-        public bool HasEmbeddedBlipPayloadBytes => EmbeddedBlipPayloadBytes.Length > 0;
+        public bool HasEmbeddedBlipPayloadBytes => _embeddedBlipPayloadBytes.Length > 0;
 
         /// <summary>Gets the image content type inferred from the embedded BLIP record and BLIP type.</summary>
         public string? EmbeddedBlipContentType { get; }

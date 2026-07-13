@@ -30,7 +30,8 @@ namespace OfficeIMO.Examples.Word {
                     Console.WriteLine($"{i + 1}. {prefix}{document.Paragraphs[i].Text}");
                 }
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
                 Console.WriteLine($"\nDocument saved to: {filePath}");
                 if (openWord) {
                     Console.WriteLine("Opening document in Word...");

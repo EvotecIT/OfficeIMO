@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     /// <summary>Token-chunks an already-read rich document and builds its hierarchy.</summary>
     public static ReaderChunkHierarchyResult ChunkDocument(
         OfficeDocumentReadResult document,

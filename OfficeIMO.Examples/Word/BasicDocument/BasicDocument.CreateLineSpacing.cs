@@ -24,7 +24,8 @@ namespace OfficeIMO.Examples.Word {
                 par02.LineSpacing = 360;
                 par02.LineSpacingRule = LineSpacingRuleValues.Exact;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

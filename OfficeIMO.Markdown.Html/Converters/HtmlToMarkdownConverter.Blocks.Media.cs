@@ -4,7 +4,7 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     private static IEnumerable<IMarkdownBlock> ConvertImageElement(IElement element, ConversionContext context) {
         if (!TryCreateImageBlock(element, context, out var image)) {
             return Array.Empty<IMarkdownBlock>();

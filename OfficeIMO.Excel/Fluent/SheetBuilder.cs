@@ -72,6 +72,9 @@ namespace OfficeIMO.Excel.Fluent {
             options ??= new ObjectFlattenerOptions();
             var flattener = new ObjectFlattener();
             var paths = options.Columns?.ToList() ?? flattener.GetPaths(typeof(T), options);
+            if (options.Columns != null) {
+                paths = flattener.ResolvePaths(paths, options);
+            }
             var headers = BuildTransformedHeaders(paths, options);
 
             var rowValues = new List<object?[]>(rows.Count);

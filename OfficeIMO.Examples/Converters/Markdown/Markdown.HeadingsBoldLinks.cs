@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Markdown {
             string filePath = Path.Combine(folderPath, "MarkdownHeadingsBoldLinks.docx");
             string markdown = "# Heading 1\n\nThis is **bold** text with a [link](https://example.com).";
 
-            var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
             doc.Save(filePath);
 
             if (openWord) {

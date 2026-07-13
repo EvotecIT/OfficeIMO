@@ -5,9 +5,6 @@ namespace OfficeIMO.Excel {
     /// robustness and CI validation.
     /// </summary>
     public sealed class ExcelSaveOptions {
-        /// <summary>Gets or sets whether to open the saved file after a successful file commit.</summary>
-        public bool OpenAfterSave { get; set; }
-
         /// <summary>
         /// When true, attempts to repair common defined-name issues (duplicates, out-of-range LocalSheetId, #REF!) before save.
         /// </summary>
@@ -58,14 +55,11 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public ExcelConversionLossPolicy LossPolicy { get; set; } = ExcelConversionLossPolicy.Block;
 
-        /// <summary>
-        /// Returns an options instance with all features disabled.
-        /// </summary>
-        public static ExcelSaveOptions None => new ExcelSaveOptions();
+        /// <summary>Returns a fresh options instance with the default save policy.</summary>
+        public static ExcelSaveOptions Default => new ExcelSaveOptions();
 
         internal ExcelSaveOptions WithLossPolicy(ExcelConversionLossPolicy lossPolicy) {
             return new ExcelSaveOptions {
-                OpenAfterSave = OpenAfterSave,
                 SafeRepairDefinedNames = SafeRepairDefinedNames,
                 ValidateOpenXml = ValidateOpenXml,
                 SafePreflight = SafePreflight,

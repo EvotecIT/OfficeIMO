@@ -103,7 +103,7 @@ public sealed class ReaderOcrProcessTests {
             Assert.True(File.Exists(childProcessPath), "The wrapper did not record its child process id.");
             childProcessId = int.Parse(File.ReadAllText(childProcessPath), CultureInfo.InvariantCulture);
             Assert.True(
-                await WaitForProcessExitAsync(childProcessId.Value, TimeSpan.FromSeconds(2)),
+                WaitForProcessExit(childProcessId.Value, TimeSpan.FromSeconds(2)),
                 "The process runner left a wrapper child alive after its timeout.");
         } finally {
             if (childProcessId.HasValue) TryKillProcess(childProcessId.Value);
@@ -157,16 +157,15 @@ public sealed class ReaderOcrProcessTests {
         }
     }
 
-    private static async Task<bool> WaitForProcessExitAsync(int processId, TimeSpan timeout) {
+    private static bool WaitForProcessExit(int processId, TimeSpan timeout) {
         var stopwatch = Stopwatch.StartNew();
         while (stopwatch.Elapsed < timeout) {
             try {
                 using System.Diagnostics.Process process = System.Diagnostics.Process.GetProcessById(processId);
-                if (process.HasExited) return true;
+                if (process.HasExited || process.WaitForExit(20)) return true;
             } catch (ArgumentException) {
                 return true;
             }
-            await Task.Delay(20);
         }
         return false;
     }

@@ -12,7 +12,8 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Paragraph with shapes");
                 WordShape.AddEllipse(paragraph, 80, 40, Color.Red);
                 WordShape.AddPolygon(paragraph, "0,0 40,0 40,40 0,40", Color.Lime, Color.Blue);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

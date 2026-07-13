@@ -314,7 +314,7 @@ namespace OfficeIMO.Tests {
                 ApplySheetDisplaySettings(filePath, "Summary", "FF336699", rightToLeft: true);
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "OfficeIMO Export"
                 });
 
@@ -442,7 +442,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(1, 1, "Value");
                 document.SetPrintArea(sheet, "A1:A5", save: false);
 
-                var batch = document.CreateGoogleSheetsBatch();
+                var batch = document.BuildGoogleSheetsBatch();
 
                 Assert.Empty(batch.Requests.OfType<GoogleSheetsAddNamedRangeRequest>());
                 Assert.Contains(batch.Report.Notices, n => n.Feature == "BuiltInNames");
@@ -493,7 +493,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Advanced Auto Filters"
                 });
 
@@ -581,7 +581,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Styled Table Export"
                 });
 
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("B2:B3", Assert.Single(validation.A1Ranges));
                 Assert.Equal("\"Open,Closed,Pending\"", validation.Formula1);
 
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Dropdown Export"
                 });
 
@@ -714,7 +714,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("list", validation.Type);
                 Assert.Equal("=StatusOptions", validation.Formula1);
 
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Named Dropdown Export"
                 });
 
@@ -772,7 +772,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("list", validation.Type);
                 Assert.Equal("='Options'!A1:A3", validation.Formula1);
 
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Range Dropdown Export"
                 });
 
@@ -829,7 +829,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("list", validation.Type);
                 Assert.Equal("=D2:D4", validation.Formula1);
 
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Local Range Dropdown Export"
                 });
 
@@ -891,7 +891,7 @@ namespace OfficeIMO.Tests {
                     && validation.Formula1 == "5.5"
                     && validation.A1Ranges.SequenceEqual(new[] { "B2:B3" }));
 
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Numeric Validation Export"
                 });
 
@@ -962,7 +962,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("between", validation.Operator);
                 Assert.Equal(new[] { "A2:A3" }, validation.A1Ranges);
 
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Date Validation Export"
                 });
 
@@ -1024,7 +1024,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("4", validation.Formula1);
                 Assert.Equal(new[] { "A2:A3" }, validation.A1Ranges);
 
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Text Length Validation Export"
                 });
 
@@ -1076,7 +1076,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Validation Only Empty Cells Export"
                 });
 
@@ -1146,7 +1146,7 @@ namespace OfficeIMO.Tests {
                 }
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "Worksheet List Validation Export"
                 });
 
@@ -1269,7 +1269,7 @@ namespace OfficeIMO.Tests {
                 ApplySheetDisplaySettings(filePath, "Summary", "FF336699", rightToLeft: true);
 
                 using var reloadedDocument = ExcelDocument.Load(filePath);
-                var batch = reloadedDocument.CreateGoogleSheetsBatch(new GoogleSheetsSaveOptions {
+                var batch = reloadedDocument.BuildGoogleSheetsBatch(new GoogleSheetsSaveOptions {
                     Title = "API Export"
                 });
 

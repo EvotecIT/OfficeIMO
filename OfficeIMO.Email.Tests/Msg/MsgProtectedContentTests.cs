@@ -22,7 +22,7 @@ public sealed class MsgProtectedContentTests {
             Length = cms.Length
         });
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailReadResult result = new EmailDocumentReader().Read(bytes);
 
         Assert.Equal(expectedKind, result.Document.Protection.Kind);
@@ -41,7 +41,7 @@ public sealed class MsgProtectedContentTests {
         };
 
         EmailReadResult result = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg));
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg));
 
         Assert.Equal(EmailProtectionKind.SmimeOpaque, result.Document.Protection.Kind);
         Assert.Null(result.Document.Protection.PayloadAttachment);
@@ -61,7 +61,7 @@ public sealed class MsgProtectedContentTests {
             Content = Encoding.UTF8.GetBytes("inside"),
             Length = 6
         });
-        byte[] winmail = new EmailDocumentWriter().WriteToBytes(tnef, EmailFileFormat.Tnef);
+        byte[] winmail = new EmailDocumentWriter().ToBytes(tnef, EmailFileFormat.Tnef);
         var source = new EmailDocument {
             Format = EmailFileFormat.OutlookMsg,
             Subject = "Outer"
@@ -75,7 +75,7 @@ public sealed class MsgProtectedContentTests {
         });
 
         EmailDocument result = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg)).Document;
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
 
         EmailAttachment original = Assert.Single(result.Attachments);
         Assert.Equal(winmail, original.Content);

@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
@@ -87,7 +86,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly List<CalloutItem> _callouts = new List<CalloutItem>();
         private readonly VisioDocument _document;
         private readonly string _pageName;
-        private VisioFlowchartTheme _theme = VisioFlowchartTheme.ModernBlueGreen();
+        private VisioStyleTheme _theme = VisioStyleTheme.Modern();
+        private VisioFlowchartLayoutOptions _layoutOptions = new VisioFlowchartLayoutOptions();
         private VisioFlowchartLayout _layout = VisioFlowchartLayout.Vertical;
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private double _pageWidth = 8.5;
@@ -118,19 +118,24 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
-        /// <summary>Sets the visual theme used for generated shapes and connectors.</summary>
-        public VisioFlowchartBuilder Theme(VisioFlowchartTheme theme) {
+        /// <summary>Sets the reusable visual theme used for generated shapes and connectors.</summary>
+        public VisioFlowchartBuilder Theme(VisioStyleTheme theme) {
             _theme = (theme ?? throw new ArgumentNullException(nameof(theme))).Clone();
             return this;
         }
 
-        /// <summary>Sets the visual theme from a reusable OfficeIMO Visio style theme.</summary>
-        public VisioFlowchartBuilder Theme(VisioStyleTheme theme) {
-            if (theme == null) {
-                throw new ArgumentNullException(nameof(theme));
-            }
-
-            return Theme(theme.ToFlowchartTheme());
+        /// <summary>Sets flowchart-specific node dimensions without introducing a second visual theme.</summary>
+        public VisioFlowchartBuilder LayoutOptions(VisioFlowchartLayoutOptions options) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            ValidatePositive(options.ProcessWidth, nameof(options));
+            ValidatePositive(options.ProcessHeight, nameof(options));
+            ValidatePositive(options.DecisionWidth, nameof(options));
+            ValidatePositive(options.DecisionHeight, nameof(options));
+            ValidatePositive(options.TerminatorWidth, nameof(options));
+            ValidatePositive(options.TerminatorHeight, nameof(options));
+            ValidatePositive(options.MarkerDiameter, nameof(options));
+            _layoutOptions = options.Clone();
+            return this;
         }
 
         /// <summary>Sets the deterministic layout strategy.</summary>
@@ -353,63 +358,44 @@ namespace OfficeIMO.Visio.Diagrams {
             double y = _pageHeight - _topMargin - (_titleHeight / 2D);
             double width = Math.Max(1D, _pageWidth - 1.2D);
             VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, width, _titleHeight, _titleText, _unit);
-            if (_theme.TitleTextStyle != null) {
-                title.TextStyle = _theme.TitleTextStyle.Clone();
-            }
+            title.TextStyle = _theme.TitleText.Clone();
             VisioSemanticUserCells.MarkGeneratedAdornment(title);
         }
 
         private VisioShape CreateShape(VisioPage page, Node node, double x, double y, double width, double height) {
             string nameU;
-            Color fill;
-            Color stroke;
-            VisioTextStyle? textStyle;
+            VisioShapeStyle style;
             switch (node.Kind) {
                 case VisioFlowchartNodeKind.Start:
                 case VisioFlowchartNodeKind.End:
                     nameU = "Ellipse";
-                    fill = _theme.TerminatorFill;
-                    stroke = _theme.TerminatorStroke;
-                    textStyle = _theme.TerminatorTextStyle;
+                    style = _theme.Success;
                     break;
                 case VisioFlowchartNodeKind.Decision:
                     nameU = "Decision";
-                    fill = _theme.DecisionFill;
-                    stroke = _theme.DecisionStroke;
-                    textStyle = _theme.DecisionTextStyle;
+                    style = _theme.Decision;
                     break;
                 case VisioFlowchartNodeKind.Data:
                     nameU = "Data";
-                    fill = _theme.ProcessFill;
-                    stroke = _theme.ProcessStroke;
-                    textStyle = _theme.ProcessTextStyle;
+                    style = _theme.Primary;
                     break;
                 case VisioFlowchartNodeKind.OffPageReference:
                     nameU = "Off-page reference";
-                    fill = _theme.MarkerFill;
-                    stroke = _theme.MarkerStroke;
-                    textStyle = _theme.MarkerTextStyle;
+                    style = _theme.Marker;
                     break;
                 case VisioFlowchartNodeKind.Continuation:
                     nameU = "Circle";
-                    fill = _theme.MarkerFill;
-                    stroke = _theme.MarkerStroke;
-                    textStyle = _theme.MarkerTextStyle;
+                    style = _theme.Marker;
                     break;
                 default:
                     nameU = "Process";
-                    fill = _theme.ProcessFill;
-                    stroke = _theme.ProcessStroke;
-                    textStyle = _theme.ProcessTextStyle;
+                    style = _theme.Primary;
                     break;
             }
 
             VisioShape shape = page.AddStencilShape(VisioStencils.Flowchart, GetNodeStencilId(node.Kind), node.Id, x, y, width, height, node.Text);
             shape.NameU = nameU;
-            ApplyStyle(shape, fill, stroke);
-            if (textStyle != null) {
-                shape.TextStyle = textStyle.Clone();
-            }
+            style.ApplyTo(shape);
 
             return shape;
         }
@@ -446,13 +432,9 @@ namespace OfficeIMO.Visio.Diagrams {
             bool routeBranch,
             int branchRouteIndex) {
             VisioConnector connector = page.AddConnector(from, to, ConnectorKind.RightAngle, fromSide, toSide);
-            connector.EndArrow = EndArrow.Triangle;
-            connector.LineColor = _theme.ConnectorColor;
-            connector.LineWeight = _theme.LineWeight;
             connector.Label = edge.Label;
-            if (_theme.ConnectorTextStyle != null) {
-                connector.TextStyle = _theme.ConnectorTextStyle.Clone();
-            }
+            _theme.Connector.ApplyTo(connector);
+            connector.EndArrow = EndArrow.Triangle;
 
             if (routeBranch) {
                 RouteBranchConnector(page, connector, branchRouteIndex);
@@ -481,12 +463,15 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioCalloutOptions CreateCalloutOptions() {
+            VisioConnectorStyle leaderStyle = _theme.Connector.Clone();
+            leaderStyle.Kind = ConnectorKind.RightAngle;
+            leaderStyle.EndArrow = EndArrow.None;
+            leaderStyle.LineWeight = Math.Max(0.012D, leaderStyle.LineWeight);
+            VisioShapeStyle shapeStyle = _theme.Marker.Clone();
+            shapeStyle.LineWeight = Math.Max(0.012D, shapeStyle.LineWeight);
             return new VisioCalloutOptions {
-                ShapeStyle = new VisioShapeStyle(_theme.MarkerFill, _theme.MarkerStroke, Math.Max(0.012D, _theme.LineWeight)),
-                LeaderStyle = new VisioConnectorStyle(_theme.ConnectorColor, Math.Max(0.012D, _theme.LineWeight), 2, EndArrow.None) {
-                    Kind = ConnectorKind.RightAngle,
-                    TextStyle = _theme.ConnectorTextStyle?.Clone()
-                },
+                ShapeStyle = shapeStyle,
+                LeaderStyle = leaderStyle,
                 RouteOffset = 0.08D
             };
         }
@@ -508,7 +493,7 @@ namespace OfficeIMO.Visio.Diagrams {
 
             if (from.Shape != null && to.Shape != null) {
                 double horizontalDistance = Math.Abs(to.Shape.PinX - from.Shape.PinX);
-                return horizontalDistance > Math.Max(_theme.ProcessWidth, _theme.DecisionWidth) * 0.9D;
+                return horizontalDistance > Math.Max(_layoutOptions.ProcessWidth, _layoutOptions.DecisionWidth) * 0.9D;
             }
 
             return false;
@@ -569,33 +554,27 @@ namespace OfficeIMO.Visio.Diagrams {
         private void GetNodeSize(VisioFlowchartNodeKind kind, out double width, out double height) {
             switch (kind) {
                 case VisioFlowchartNodeKind.Decision:
-                    width = _theme.DecisionWidth;
-                    height = _theme.DecisionHeight;
+                    width = _layoutOptions.DecisionWidth;
+                    height = _layoutOptions.DecisionHeight;
                     break;
                 case VisioFlowchartNodeKind.Start:
                 case VisioFlowchartNodeKind.End:
-                    width = _theme.TerminatorWidth;
-                    height = _theme.TerminatorHeight;
+                    width = _layoutOptions.TerminatorWidth;
+                    height = _layoutOptions.TerminatorHeight;
                     break;
                 case VisioFlowchartNodeKind.Continuation:
-                    width = _theme.MarkerDiameter;
-                    height = _theme.MarkerDiameter;
+                    width = _layoutOptions.MarkerDiameter;
+                    height = _layoutOptions.MarkerDiameter;
                     break;
                 case VisioFlowchartNodeKind.OffPageReference:
-                    width = _theme.MarkerDiameter * 1.35;
-                    height = _theme.MarkerDiameter * 1.35;
+                    width = _layoutOptions.MarkerDiameter * 1.35;
+                    height = _layoutOptions.MarkerDiameter * 1.35;
                     break;
                 default:
-                    width = _theme.ProcessWidth;
-                    height = _theme.ProcessHeight;
+                    width = _layoutOptions.ProcessWidth;
+                    height = _layoutOptions.ProcessHeight;
                     break;
             }
-        }
-
-        private void ApplyStyle(VisioShape shape, Color fill, Color stroke) {
-            shape.FillColor = fill;
-            shape.LineColor = stroke;
-            shape.LineWeight = _theme.LineWeight;
         }
 
         private static string GetNodeStencilId(VisioFlowchartNodeKind kind) {

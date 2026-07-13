@@ -2,6 +2,7 @@ using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Examples.PowerPoint {

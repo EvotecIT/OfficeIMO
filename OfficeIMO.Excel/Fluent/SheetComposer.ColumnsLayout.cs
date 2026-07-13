@@ -107,8 +107,7 @@ namespace OfficeIMO.Excel.Fluent {
                         .OrderBy(s => s, System.StringComparer.Ordinal)
                         .ToList();
                     // Respect selection (Ignore/Exclude/Include) and ordering (Pinned/Priority)
-                    paths = OfficeIMO.Excel.ObjectFlattener.ApplySelection(paths, opts);
-                    paths = OfficeIMO.Excel.ObjectFlattener.ApplyOrdering(paths, opts);
+                    paths = flattener.ResolvePaths(paths, opts);
                 }
                 if (paths.Count == 0) {
                     _sheet.Cell(_row, _baseCol, "(no tabular columns)");
@@ -127,7 +126,7 @@ namespace OfficeIMO.Excel.Fluent {
                         throw new InvalidOperationException($"Table has {paths.Count} columns but only {_maxTableColumns.Value} fit in the fixed grid. Increase columnWidth or use ColumnsAdaptive(...).");
                     if (_overflowMode == OverflowMode.Shrink) {
                         effPaths = paths.Take(_maxTableColumns.Value).ToList();
-                        try { _sheet.EffectiveExecution.ReportInfo($"[Columns Shrink] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={effPaths.Count}, dropped={paths.Count - effPaths.Count}"); } catch { }
+                        _sheet.EffectiveExecution.ReportInfo($"[Columns Shrink] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={effPaths.Count}, dropped={paths.Count - effPaths.Count}");
                     } else if (_overflowMode == OverflowMode.Summarize) {
                         int keep = Math.Max(1, _maxTableColumns.Value - 1);
                         if (keep <= 0) {
@@ -139,7 +138,7 @@ namespace OfficeIMO.Excel.Fluent {
                         summarize = true;
                         summarizedPaths = paths.Skip(keep).ToList();
                         summarizedLabels = BuildTransformedHeaders(summarizedPaths, opts);
-                        try { _sheet.EffectiveExecution.ReportInfo($"[Columns Summarize] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={(effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}, summarized={paths.Count - (effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}"); } catch { }
+                        _sheet.EffectiveExecution.ReportInfo($"[Columns Summarize] Sheet='{_sheet.Name}', baseCol={_baseCol}, kept={(effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}, summarized={paths.Count - (effPaths.Contains("__More__") ? effPaths.Count - 1 : effPaths.Count)}");
                     }
                 }
 
@@ -200,22 +199,20 @@ namespace OfficeIMO.Excel.Fluent {
 
                 var viz = new TableVisualOptions(); visuals?.Invoke(viz);
                 _sheet.SetTableStyle(range, style, viz.ShowFirstColumn, viz.ShowLastColumn, viz.ShowRowStripes, viz.ShowColumnStripes);
-                try {
-                    for (int i = 0; i < headersT.Count; i++) {
-                        string hdr = headersT[i];
-                        string colRange = $"{SheetComposer.ColumnLetter(_baseCol + i)}{headerRow + 1}:{SheetComposer.ColumnLetter(_baseCol + i)}{_row - 1}";
-                        if (viz.NumericColumnFormats.TryGetValue(hdr, out var fmt))
-                            _sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt);
-                        else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec))
-                            _sheet.ColumnStyleByHeader(hdr).Number(dec);
-                        if (viz.DataBars.TryGetValue(hdr, out var color))
-                            _sheet.AddConditionalDataBar(colRange, color);
-                        if (viz.IconSets.TryGetValue(hdr, out var icon))
-                            _sheet.AddConditionalIconSet(colRange, icon.IconSet, icon.ShowValue, icon.ReverseOrder, icon.PercentThresholds, icon.NumberThresholds);
-                        else if (viz.IconSetColumns.Contains(hdr))
-                            _sheet.AddConditionalIconSet(colRange);
-                    }
-                } catch { }
+                for (int i = 0; i < headersT.Count; i++) {
+                    string hdr = headersT[i];
+                    string colRange = $"{SheetComposer.ColumnLetter(_baseCol + i)}{headerRow + 1}:{SheetComposer.ColumnLetter(_baseCol + i)}{_row - 1}";
+                    if (viz.NumericColumnFormats.TryGetValue(hdr, out var fmt))
+                        _sheet.ColumnStyleByHeader(hdr).NumberFormat(fmt);
+                    else if (viz.NumericColumnDecimals.TryGetValue(hdr, out var dec))
+                        _sheet.ColumnStyleByHeader(hdr).Number(dec);
+                    if (viz.DataBars.TryGetValue(hdr, out var color))
+                        _sheet.AddConditionalDataBar(colRange, color);
+                    if (viz.IconSets.TryGetValue(hdr, out var icon))
+                        _sheet.AddConditionalIconSet(colRange, icon.IconSet, icon.ShowValue, icon.ReverseOrder, icon.PercentThresholds, icon.NumberThresholds);
+                    else if (viz.IconSetColumns.Contains(hdr))
+                        _sheet.AddConditionalIconSet(colRange);
+                }
 
                 // Track used width for adaptive column placement
                 int usedCols = Math.Max(1, headersT.Count);

@@ -5,7 +5,7 @@ using System.Text;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     private static string ResolveImageSource(IElement element, ConversionContext context) {
         return HtmlImageSourceResolver.ResolveImageSource(
             element,

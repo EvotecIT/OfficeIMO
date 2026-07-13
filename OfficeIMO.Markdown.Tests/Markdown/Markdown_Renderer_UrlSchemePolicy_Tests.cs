@@ -16,7 +16,7 @@ public class Markdown_Renderer_UrlSchemePolicy_Tests {
     [Fact]
     public void Reader_Can_Restrict_Unknown_Schemes_When_Enabled() {
         var opts = new MarkdownReaderOptions { RestrictUrlSchemes = true, AllowedUrlSchemes = new[] { "http", "https" } };
-        var doc = MarkdownReader.Parse("[x](mailto:user@example.com)", opts);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("[x](mailto:user@example.com)", opts);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.DoesNotContain("mailto:", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(">x<", html, StringComparison.Ordinal);
@@ -25,7 +25,7 @@ public class Markdown_Renderer_UrlSchemePolicy_Tests {
     [Fact]
     public void Reader_Applies_Scheme_Restrictions_To_Windows_Drive_Paths() {
         var opts = new MarkdownReaderOptions { RestrictUrlSchemes = true, AllowedUrlSchemes = new[] { "https" } };
-        var doc = MarkdownReader.Parse("[x](C:/secret/file.docx)", opts);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("[x](C:/secret/file.docx)", opts);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("C:/secret/file.docx", html, StringComparison.OrdinalIgnoreCase);

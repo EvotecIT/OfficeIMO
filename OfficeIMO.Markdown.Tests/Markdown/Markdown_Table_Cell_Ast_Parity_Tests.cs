@@ -149,14 +149,14 @@ public sealed class Markdown_Table_Cell_Ast_Parity_Tests {
     }
 
     private static void AssertTableCellAstParity(string markdown, string html, int rowIndex, int cellIndex, MarkdownReaderOptions? options = null) {
-        var markdownDocument = MarkdownReader.Parse(markdown, options);
-        var htmlDocument = html.ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var markdownTable = Assert.IsType<TableBlock>(Assert.Single(markdownDocument.Blocks));
         var htmlTable = Assert.IsType<TableBlock>(Assert.Single(htmlDocument.Blocks));
 
-        string markdownSummary = MarkdownAstParityFormatter.DescribeBlocks(markdownTable.RowCells[rowIndex][cellIndex].Blocks);
-        string htmlSummary = MarkdownAstParityFormatter.DescribeBlocks(htmlTable.RowCells[rowIndex][cellIndex].Blocks);
+        string markdownSummary = MarkdownAstParityFormatter.DescribeBlocks(markdownTable.RowCells[rowIndex][cellIndex].ChildBlocks);
+        string htmlSummary = MarkdownAstParityFormatter.DescribeBlocks(htmlTable.RowCells[rowIndex][cellIndex].ChildBlocks);
 
         Assert.Equal(markdownSummary, htmlSummary);
     }

@@ -10,7 +10,7 @@ public sealed class TnefResourceLimitTests {
         child.Body.Text = new string('x', 2048);
         var parent = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "parent" };
         parent.Attachments.Add(new EmailAttachment { FileName = "child.dat", EmbeddedDocument = child });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(parent, EmailFileFormat.Tnef);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(parent, EmailFileFormat.Tnef);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).Read(bytes));
@@ -146,7 +146,7 @@ public sealed class TnefResourceLimitTests {
         source.Body.Html = "<p>日本語の本文</p>";
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef)).Document;
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef)).Document;
 
         Assert.Equal(932, roundTrip.OutlookCodePage);
         Assert.Equal(source.Subject, roundTrip.Subject);

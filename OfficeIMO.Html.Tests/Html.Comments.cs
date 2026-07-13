@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { ExportComments = true });
 
-            using var roundTrip = html.ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
 
             Assert.DoesNotContain(roundTrip.Paragraphs.Select(paragraph => paragraph.Text), text => text.Contains("Review note", StringComparison.OrdinalIgnoreCase));
             var rootComment = Assert.Single(roundTrip.Comments, comment => string.IsNullOrEmpty(comment.ParentParaId));
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
 
             string html = doc.ToHtml(new WordToHtmlOptions { ExportComments = true });
 
-            using var roundTrip = html.ToWordDocument();
+            using var roundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
 
             var rootComment = Assert.Single(roundTrip.Comments, comment => string.IsNullOrEmpty(comment.ParentParaId));
             var rootReply = Assert.Single(rootComment.Replies);
@@ -94,12 +94,12 @@ namespace OfficeIMO.Tests {
             };
             string html = "<p>Visible <!-- reviewer note -->text.</p>";
 
-            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentResult(options);
 
             using var doc = conversion.Value;
 
             Assert.Equal("Visible text.", string.Concat(doc.Paragraphs.Select(paragraph => paragraph.Text)));
-            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code == "HtmlCommentSkipped");
+            Assert.DoesNotContain(conversion.Report.Diagnostics, diagnostic => diagnostic.Code == "HtmlCommentSkipped");
             var comment = Assert.Single(doc.Comments);
             Assert.Equal("HTML Reviewer", comment.Author);
             Assert.Equal("HR", comment.Initials);

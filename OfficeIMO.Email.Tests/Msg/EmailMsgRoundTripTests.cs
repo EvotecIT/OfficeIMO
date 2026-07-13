@@ -47,8 +47,8 @@ public sealed class EmailMsgRoundTripTests {
         structured.StructuredStorageStreams["Nested/Metadata"] = Encoding.UTF8.GetBytes("meta");
         source.Attachments.Add(structured);
 
-        byte[] first = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
-        byte[] second = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] first = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] second = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailReadResult result = new EmailDocumentReader().Read(first);
 
         Assert.Equal(first, second);
@@ -84,7 +84,7 @@ public sealed class EmailMsgRoundTripTests {
             Content = Encoding.UTF8.GetBytes("attachment"),
             Length = 10
         });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         using MemoryStream stream = new MemoryStream(bytes);
         using var oracle = new global::MsgReader.Outlook.Storage.Message(stream, FileAccess.Read, true);
@@ -102,7 +102,7 @@ public sealed class EmailMsgRoundTripTests {
             Subject = "MSG structure"
         };
         source.Body.Text = "MSG body";
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         using MemoryStream stream = new MemoryStream(bytes);
         using var oracle = OpenMcdf.RootStorage.Open(stream, OpenMcdf.StorageModeFlags.LeaveOpen);
@@ -149,7 +149,7 @@ public sealed class EmailMsgRoundTripTests {
     [Fact]
     public void StringPropertyStreamsContainAdvertisedTerminators() {
         var source = new EmailDocument { Subject = "Terminated subject" };
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         using MemoryStream stream = new MemoryStream(bytes);
         using var oracle = OpenMcdf.RootStorage.Open(stream, OpenMcdf.StorageModeFlags.LeaveOpen);
@@ -181,7 +181,7 @@ public sealed class EmailMsgRoundTripTests {
             name: new MapiNamedProperty(MsgProjection.PsetidTask, 0x8006)));
         source.MapiProperties.Add(new MapiProperty(0x8001, MapiPropertyType.Integer32, 2,
             name: new MapiNamedProperty(MsgProjection.PsetidTask, 0x8019)));
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         using MemoryStream stream = new MemoryStream(bytes);
         using var oracle = OpenMcdf.RootStorage.Open(stream, OpenMcdf.StorageModeFlags.LeaveOpen);
@@ -201,7 +201,7 @@ public sealed class EmailMsgRoundTripTests {
     public void ReaderCanSkipMsgAttachmentBytes() {
         EmailDocument source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "skip" };
         source.Attachments.Add(new EmailAttachment { FileName = "a.bin", Content = new byte[] { 1, 2, 3 }, Length = 3 });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailDocument parsed = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false)).Read(bytes).Document;
 
@@ -217,7 +217,7 @@ public sealed class EmailMsgRoundTripTests {
         var attachment = new EmailAttachment { FileName = "object.bin", MapiAttachMethod = 6 };
         attachment.StructuredStorageStreams["Contents"] = new byte[] { 1, 2, 3, 4 };
         source.Attachments.Add(attachment);
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailDocument parsed = new EmailDocumentReader(
             new EmailReaderOptions(includeAttachmentContent: false)).Read(bytes).Document;
@@ -238,7 +238,7 @@ public sealed class EmailMsgRoundTripTests {
             Length = opaque.Length
         });
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+        byte[] bytes = new EmailDocumentWriter().ToBytes(
             source, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
         EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(bytes).Document.Attachments);
 
@@ -261,7 +261,7 @@ public sealed class EmailMsgRoundTripTests {
             Length = opaque.Length
         });
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+        byte[] bytes = new EmailDocumentWriter().ToBytes(
             source, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
         EmailReadResult readResult = new EmailDocumentReader().Read(bytes);
         EmailAttachment roundTrip = Assert.Single(readResult.Document.Attachments);
@@ -300,7 +300,7 @@ public sealed class EmailMsgRoundTripTests {
         });
 
         EmailDocumentWriter writer = new EmailDocumentWriter();
-        writer.WriteToBytes(source, EmailFileFormat.OutlookMsg, out EmailWriteResult result);
+        writer.ToBytes(source, EmailFileFormat.OutlookMsg, out EmailWriteResult result);
 
         Assert.True(result.HasErrors);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
@@ -314,7 +314,7 @@ public sealed class EmailMsgRoundTripTests {
             MapiAttachMethod = 5
         });
 
-        new EmailDocumentWriter().WriteToBytes(
+        new EmailDocumentWriter().ToBytes(
             source, EmailFileFormat.OutlookMsg, out EmailWriteResult result);
 
         Assert.True(result.HasErrors);
@@ -332,7 +332,7 @@ public sealed class EmailMsgRoundTripTests {
         source.Attachments.Add(new EmailAttachment { FileName = "embedded.msg", EmbeddedDocument = embedded });
 
         EmailReadResult result = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg));
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg));
 
         EmailAttachment parentAttachment = Assert.Single(result.Document.Attachments);
         Assert.Equal(2, parentAttachment.EmbeddedDocument!.Attachments.Count);
@@ -345,7 +345,7 @@ public sealed class EmailMsgRoundTripTests {
         child.Body.Text = "inside";
         var parent = new EmailDocument { Subject = "parent" };
         parent.Attachments.Add(new EmailAttachment { FileName = "child.msg", EmbeddedDocument = child });
-        byte[] source = new EmailDocumentWriter().WriteToBytes(parent, EmailFileFormat.OutlookMsg);
+        byte[] source = new EmailDocumentWriter().ToBytes(parent, EmailFileFormat.OutlookMsg);
 
         EmailReadResult limited = new EmailDocumentReader(new EmailReaderOptions(maxNestedMessageDepth: 0)).Read(source);
         EmailAttachment opaque = Assert.Single(limited.Document.Attachments);
@@ -353,7 +353,7 @@ public sealed class EmailMsgRoundTripTests {
         Assert.NotEmpty(opaque.StructuredStorageStreams);
         Assert.Contains(limited.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MSG_NESTED_MESSAGE_LIMIT");
 
-        byte[] rewritten = new EmailDocumentWriter().WriteToBytes(
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(
             limited.Document, EmailFileFormat.OutlookMsg, out EmailWriteResult writeResult);
         EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
 

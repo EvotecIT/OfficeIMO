@@ -66,7 +66,7 @@ public sealed class EmailMimeReaderTests {
         Assert.Contains("inner report", Encoding.ASCII.GetString(Assert.IsType<byte[]>(attachment.Content)),
             StringComparison.Ordinal);
 
-        byte[] rewritten = new EmailDocumentWriter().WriteToBytes(document, EmailFileFormat.Eml,
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml,
             out EmailWriteResult writeResult);
         EmailAttachment rewrittenAttachment = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
         Assert.DoesNotContain(writeResult.Diagnostics,
@@ -267,7 +267,7 @@ public sealed class EmailMimeReaderTests {
         Assert.Equal("additional text", Encoding.UTF8.GetString(Assert.IsType<byte[]>(additional.Content)).Trim());
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(document)).Document;
+            new EmailDocumentWriter().ToBytes(document)).Document;
         Assert.Equal("primary body", roundTrip.Body.Text!.Trim());
         Assert.Equal("additional text", Encoding.UTF8.GetString(
             Assert.IsType<byte[]>(Assert.Single(roundTrip.Attachments).Content)).Trim());
@@ -308,7 +308,7 @@ public sealed class EmailMimeReaderTests {
 
         EmailDocument parsed = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
         EmailAttachment attachment = Assert.Single(parsed.Attachments);
-        byte[] rewritten = new EmailDocumentWriter().WriteToBytes(parsed);
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(parsed);
         EmailAttachment roundTrip = Assert.Single(new EmailDocumentReader().Read(rewritten).Document.Attachments);
 
         Assert.Equal("REQUEST", attachment.ContentTypeParameters["method"]);
@@ -382,7 +382,7 @@ public sealed class EmailMimeReaderTests {
         Assert.Equal("inline caption", Encoding.UTF8.GetString(Assert.IsType<byte[]>(attachment.Content)).Trim());
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(document)).Document;
+            new EmailDocumentWriter().ToBytes(document)).Document;
         EmailAttachment roundTripAttachment = Assert.Single(roundTrip.Attachments);
         Assert.Equal("caption.txt", roundTripAttachment.ContentLocation);
         Assert.True(roundTripAttachment.IsInline);

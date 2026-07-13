@@ -8,8 +8,8 @@ namespace OfficeIMO.PowerPoint {
     /// Fluent image-export builder for a PowerPoint slide.
     /// </summary>
     public sealed class PowerPointSlideImageExportBuilder : OfficeImageExportBuilder<PowerPointSlideImageExportBuilder, PowerPointImageExportOptions> {
-        internal PowerPointSlideImageExportBuilder(PowerPointSlide slide)
-            : base(new PowerPointImageExportOptions(), slide.ExportImage) {
+        internal PowerPointSlideImageExportBuilder(PowerPointSlide slide, PowerPointImageExportOptions? options = null)
+            : base(options?.Clone() ?? new PowerPointImageExportOptions(), slide.ExportImage) {
         }
 
         /// <summary>Includes or excludes the resolved slide background.</summary>

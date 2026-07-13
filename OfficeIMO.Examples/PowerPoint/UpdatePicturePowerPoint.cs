@@ -33,8 +33,8 @@ namespace OfficeIMO.Examples.PowerPoint {
             if (File.Exists(imagePath)) {
                 PowerPointPicture original = slide.AddPicture(imagePath, leftColumn.Left, leftColumn.Top, leftColumn.Width, leftColumn.Height);
                 original.FitToBox(1200, 800, crop: false);
-                slide.AddTextBox("Original", leftColumn.Left, leftColumn.Top + leftColumn.Height - PowerPointUnits.Cm(0.8),
-                    leftColumn.Width, PowerPointUnits.Cm(0.6));
+                slide.AddTextBox("Original", leftColumn.Left, leftColumn.Top + leftColumn.Height - PowerPointUnits.FromCentimeters(0.8),
+                    leftColumn.Width, PowerPointUnits.FromCentimeters(0.6));
 
                 PowerPointPicture updated = slide.AddPicture(imagePath, rightColumn.Left, rightColumn.Top, rightColumn.Width, rightColumn.Height);
                 if (File.Exists(newImagePath)) {
@@ -42,9 +42,9 @@ namespace OfficeIMO.Examples.PowerPoint {
                 }
                 updated.FitToBox(800, 800, crop: false);
                 slide.AddTextBox("Updated via UpdateImage()", rightColumn.Left,
-                    rightColumn.Top + rightColumn.Height - PowerPointUnits.Cm(0.8), rightColumn.Width, PowerPointUnits.Cm(0.6));
+                    rightColumn.Top + rightColumn.Height - PowerPointUnits.FromCentimeters(0.8), rightColumn.Width, PowerPointUnits.FromCentimeters(0.6));
             } else {
-                slide.AddTextBox("Image assets not found.", content.Left, bodyTop, content.Width, PowerPointUnits.Cm(1));
+                slide.AddTextBox("Image assets not found.", content.Left, bodyTop, content.Width, PowerPointUnits.FromCentimeters(1));
             }
 
             presentation.Save();

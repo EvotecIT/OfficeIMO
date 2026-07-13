@@ -37,11 +37,11 @@ public abstract class MarkdownRewriter {
 
         switch (current) {
             case QuoteBlock quote:
-                RewriteMutableBlockList(quote.Children);
+                RewriteMutableBlockList(quote.ChildBlocks);
                 quote.ClearSyntaxCache();
                 break;
             case DetailsBlock details:
-                RewriteMutableBlockList(details.Children);
+                RewriteMutableBlockList(details.ChildBlocks);
                 details.ClearSyntaxCache();
                 break;
             case OrderedListBlock ordered:
@@ -102,7 +102,7 @@ public abstract class MarkdownRewriter {
             }
 
             for (var definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
-                RewriteMutableBlockList(group.Definitions[definitionIndex].Blocks);
+                RewriteMutableBlockList(group.Definitions[definitionIndex].ChildBlocks);
             }
         }
 
@@ -130,16 +130,16 @@ public abstract class MarkdownRewriter {
                 continue;
             }
 
-            RewriteMutableBlockList(cell.Blocks);
+            RewriteMutableBlockList(cell.ChildBlocks);
         }
     }
 
     protected virtual FootnoteDefinitionBlock RewriteFootnote(FootnoteDefinitionBlock block) {
-        if (block.Blocks.Count == 0) {
+        if (block.ChildBlocks.Count == 0) {
             return block;
         }
 
-        var rewrittenBlocks = RewriteBlocks(block.Blocks);
+        var rewrittenBlocks = RewriteBlocks(block.ChildBlocks);
         return new FootnoteDefinitionBlock(block.Label, block.Text, rewrittenBlocks, syntaxChildren: null);
     }
 

@@ -1,9 +1,11 @@
+using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using System.Globalization;
 using System.Net.Http;
 using System.Threading;
+using System.Threading.Tasks;
 using Wp = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Word.Html {
@@ -444,9 +446,7 @@ namespace OfficeIMO.Word.Html {
                 return null;
             }
 
-            if (img.BaseUrl != null
-                && Uri.TryCreate(img.BaseUrl.Href, UriKind.Absolute, out var baseUri)
-                && !string.Equals(img.BaseUrl.Href, "http://localhost/", StringComparison.OrdinalIgnoreCase)) {
+            if (TryGetUsableDocumentBaseUri(img.BaseUrl?.Href, out var baseUri)) {
                 return baseUri;
             }
 
@@ -766,9 +766,7 @@ namespace OfficeIMO.Word.Html {
                 return Path.Combine(options.BasePath, source);
             }
 
-            if (img.BaseUrl != null
-                && Uri.TryCreate(img.BaseUrl.Href, UriKind.Absolute, out var baseUri)
-                && !string.Equals(img.BaseUrl.Href, "http://localhost/", StringComparison.OrdinalIgnoreCase)) {
+            if (TryGetUsableDocumentBaseUri(img.BaseUrl?.Href, out var baseUri)) {
                 return new Uri(baseUri, source).ToString();
             }
 
@@ -790,10 +788,96 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
+        private static bool TryGetUsableDocumentBaseUri(string? value, out Uri baseUri) {
+            baseUri = null!;
+            if (string.IsNullOrWhiteSpace(value)
+                || string.Equals(value, "http://localhost/", StringComparison.OrdinalIgnoreCase)
+                || !Uri.TryCreate(value, UriKind.Absolute, out Uri? candidate)
+                || string.Equals(candidate.Scheme, "about", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            baseUri = candidate;
+            return true;
+        }
+
         private static HtmlUrlPolicy CreateImageSourceResolutionPolicy() {
             var policy = HtmlUrlPolicy.CreateOfficeIMOProfile();
             policy.DisallowScriptUrls = false;
             return policy;
+        }
+
+        private async Task PrefetchRemoteImagesAsync(
+            IHtmlDocument document,
+            HtmlToWordOptions options,
+            CancellationToken cancellationToken) {
+            foreach (IElement element in document.QuerySelectorAll("img")) {
+                cancellationToken.ThrowIfCancellationRequested();
+                if (!(element is IHtmlImageElement image)) {
+                    continue;
+                }
+
+                int remoteCandidateProbeCount = 0;
+                foreach (string candidate in EnumerateWordImageSourceCandidates(image, options)) {
+                    string resolved = ResolveImageSourcePath(candidate, image, options);
+                    if (!IsRemoteEmbeddedImageSource(resolved, options)
+                        || !IsImageSourceAllowedForCurrentMode(resolved, image, options, out _)) {
+                        continue;
+                    }
+
+                    if (!CanProbeRemoteImageCandidate(options, remoteCandidateProbeCount)) {
+                        continue;
+                    }
+
+                    remoteCandidateProbeCount++;
+                    await PrefetchRemoteImageCandidateAsync(resolved, options, cancellationToken).ConfigureAwait(false);
+                }
+            }
+        }
+
+        private async Task PrefetchRemoteImageCandidateAsync(
+            string source,
+            HtmlToWordOptions options,
+            CancellationToken cancellationToken) {
+            if (!Uri.TryCreate(source, UriKind.Absolute, out Uri? uri)
+                || _remoteImageBytesCache.ContainsKey(uri.AbsoluteUri)
+                || _remoteImageFailureCache.ContainsKey(uri.AbsoluteUri)) {
+                return;
+            }
+
+            try {
+                using var cts = _resourceTimeout.HasValue
+                    ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)
+                    : null;
+                CancellationToken token = cts?.Token ?? cancellationToken;
+                if (cts != null && _resourceTimeout.HasValue) {
+                    cts.CancelAfter(_resourceTimeout.Value);
+                }
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var response = await _httpClient.SendAsync(
+                    request,
+                    HttpCompletionOption.ResponseHeadersRead,
+                    token).ConfigureAwait(false);
+                response.EnsureSuccessStatusCode();
+                EnsureImageContentTypeAllowed(response.Content.Headers.ContentType?.MediaType, options);
+                (long? limit, bool totalBudgetLimit) = GetRemoteImagePrefetchReadLimit(options);
+                byte[] bytes = await ReadContentWithLimitAsync(
+                    response.Content,
+                    limit,
+                    totalBudgetLimit,
+                    token).ConfigureAwait(false);
+                if (!IsEmbeddableImageData(bytes, out string detail)) {
+                    throw new InvalidDataException(detail);
+                }
+
+                _remoteImageBytesCache[uri.AbsoluteUri] = bytes;
+                _remoteImageBytesFetched += bytes.LongLength;
+            } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+                throw;
+            } catch (Exception ex) {
+                _remoteImageFailureCache[uri.AbsoluteUri] = ex;
+            }
         }
 
         private byte[] FetchBytes(Uri uri, HtmlToWordOptions options) {
@@ -807,21 +891,7 @@ namespace OfficeIMO.Word.Html {
                 throw cachedFailure;
             }
 
-            using var cts = _resourceTimeout.HasValue
-                ? CancellationTokenSource.CreateLinkedTokenSource(_cancellationToken)
-                : null;
-            var token = cts?.Token ?? _cancellationToken;
-            if (cts != null && _resourceTimeout.HasValue) {
-                cts.CancelAfter(_resourceTimeout.Value);
-            }
-            using var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            using var response = _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, token).GetAwaiter().GetResult();
-            response.EnsureSuccessStatusCode();
-            EnsureImageContentTypeAllowed(response.Content.Headers.ContentType?.MediaType, options);
-            var readLimit = GetRemoteImageReadLimit(options);
-            var bytes = ReadContentWithLimit(response.Content, readLimit.Limit, readLimit.LimitedByTotalBudget, token);
-            ReserveImageBytes(bytes.LongLength, options);
-            return bytes;
+            throw new InvalidOperationException("Remote image resources must be prepared by the asynchronous conversion pipeline before document projection.");
         }
 
         private bool TryFetchRemoteImageCandidate(string source, HtmlToWordOptions options) {
@@ -861,13 +931,13 @@ namespace OfficeIMO.Word.Html {
             return Encoding.UTF8.GetString(bytes);
         }
 
-        private (long? Limit, bool LimitedByTotalBudget) GetRemoteImageReadLimit(HtmlToWordOptions options) {
+        private (long? Limit, bool LimitedByTotalBudget) GetRemoteImagePrefetchReadLimit(HtmlToWordOptions options) {
             long? limit = options.MaxImageBytes;
-            var limitedByTotalBudget = false;
+            bool limitedByTotalBudget = false;
             if (options.MaxTotalImageBytes.HasValue) {
-                var remaining = options.MaxTotalImageBytes.Value - _imageBytesUsed;
+                long remaining = options.MaxTotalImageBytes.Value - _remoteImageBytesFetched;
                 if (remaining <= 0) {
-                    throw new HtmlResourceTotalLimitException($"Image resource budget is exhausted; limit is {options.MaxTotalImageBytes.Value} bytes.");
+                    throw new HtmlResourceTotalLimitException($"Remote image fetch budget is exhausted; limit is {options.MaxTotalImageBytes.Value} bytes.");
                 }
 
                 if (!limit.HasValue || remaining < limit.Value) {
@@ -879,7 +949,11 @@ namespace OfficeIMO.Word.Html {
             return (limit, limitedByTotalBudget);
         }
 
-        private static byte[] ReadContentWithLimit(HttpContent content, long? maxBytes, bool totalBudgetLimit, CancellationToken cancellationToken) {
+        private static async Task<byte[]> ReadContentWithLimitAsync(
+            HttpContent content,
+            long? maxBytes,
+            bool totalBudgetLimit,
+            CancellationToken cancellationToken) {
             if (maxBytes.HasValue && content.Headers.ContentLength.HasValue && content.Headers.ContentLength.Value > maxBytes.Value) {
                 if (totalBudgetLimit) {
                     throw new HtmlResourceTotalLimitException($"Resource length {content.Headers.ContentLength.Value} bytes exceeds remaining total image budget {maxBytes.Value} bytes.");
@@ -888,13 +962,13 @@ namespace OfficeIMO.Word.Html {
                 throw new HtmlResourceLimitException($"Resource length {content.Headers.ContentLength.Value} bytes exceeds limit {maxBytes.Value} bytes.");
             }
 
-            using var stream = content.ReadAsStreamAsync().GetAwaiter().GetResult();
+            using var stream = await content.ReadAsStreamAsync().ConfigureAwait(false);
             using var memory = new MemoryStream();
             var buffer = new byte[81920];
             long total = 0;
             while (true) {
                 cancellationToken.ThrowIfCancellationRequested();
-                var read = stream.Read(buffer, 0, buffer.Length);
+                int read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
                 if (read == 0) {
                     break;
                 }

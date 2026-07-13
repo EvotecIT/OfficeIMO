@@ -60,30 +60,6 @@ namespace OfficeIMO.Word.Html {
             ParseCss(ReadCssFileWithLimit(localPath), localPath);
         }
 
-        private void ParseLeadingStylesheetChildren(IElement element) {
-            foreach (var child in element.ChildNodes) {
-                if (child is IText text && string.IsNullOrWhiteSpace(text.Text)) {
-                    continue;
-                }
-
-                if (child is IHtmlStyleElement styleElement) {
-                    ParseCss(styleElement.TextContent);
-                    continue;
-                }
-
-                if (child is IHtmlLinkElement linkElement) {
-                    var rel = linkElement.GetAttribute("rel");
-                    if (!string.Equals(rel, "stylesheet", StringComparison.OrdinalIgnoreCase)) {
-                        break;
-                    }
-                    ProcessStylesheetLinkElementAsync(linkElement, baseUri: null, _cancellationToken).GetAwaiter().GetResult();
-                    continue;
-                }
-
-                break;
-            }
-        }
-
         private async Task<string?> FetchCssStringAsync(Uri uri, string source, CancellationToken cancellationToken) {
             using var cts = _resourceTimeout.HasValue
                 ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)

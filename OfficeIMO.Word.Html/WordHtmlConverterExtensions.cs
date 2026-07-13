@@ -21,7 +21,9 @@ namespace OfficeIMO.Word.Html {
         /// <param name="path">Destination file path.</param>
         /// <param name="options">Optional conversion options.</param>
         public static void SaveAsHtml(this WordDocument document, string path, WordToHtmlOptions? options = null) {
-            document.SaveAsHtmlAsync(path, options).GetAwaiter().GetResult();
+            if (document == null) throw new System.ArgumentNullException(nameof(document));
+            if (path == null) throw new System.ArgumentNullException(nameof(path));
+            HtmlTextIO.Write(path, document.ToHtml(options));
         }
 
         /// <summary>
@@ -31,7 +33,9 @@ namespace OfficeIMO.Word.Html {
         /// <param name="stream">Target stream.</param>
         /// <param name="options">Optional conversion options.</param>
         public static void SaveAsHtml(this WordDocument document, Stream stream, WordToHtmlOptions? options = null) {
-            document.SaveAsHtmlAsync(stream, options).GetAwaiter().GetResult();
+            if (document == null) throw new System.ArgumentNullException(nameof(document));
+            if (stream == null) throw new System.ArgumentNullException(nameof(stream));
+            HtmlTextIO.Write(stream, document.ToHtml(options));
         }
 
         /// <summary>
@@ -41,32 +45,9 @@ namespace OfficeIMO.Word.Html {
         /// <param name="options">Optional conversion options.</param>
         /// <returns>HTML representation of the document.</returns>
         public static string ToHtml(this WordDocument document, WordToHtmlOptions? options = null) {
-            return document.ToHtmlAsync(options).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Asynchronously converts the document to an HTML string.
-        /// </summary>
-        /// <param name="document">Document to convert.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        /// <returns>HTML representation of the document.</returns>
-        public static async Task<string> ToHtmlAsync(this WordDocument document, WordToHtmlOptions? options = null, CancellationToken cancellationToken = default) {
             if (document == null) throw new System.ArgumentNullException(nameof(document));
-            cancellationToken.ThrowIfCancellationRequested();
             var converter = new WordToHtmlConverter();
-            return await converter.ConvertAsync(document, options ?? new WordToHtmlOptions(), cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Creates a new document from an HTML string.
-        /// </summary>
-        /// <param name="html">HTML content to convert.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        /// <example><code>using WordDocument document = html.ToWordDocument();</code></example>
-        public static WordDocument ToWordDocument(this string html, HtmlToWordOptions? options = null) {
-            return html.ToWordDocumentResult(options).RequireValue();
+            return converter.Convert(document, options ?? new WordToHtmlOptions());
         }
 
         /// <summary>
@@ -91,77 +72,42 @@ namespace OfficeIMO.Word.Html {
             return result.RequireValue();
         }
 
-        internal static HtmlToWordOptions CreateWordOptionsForSharedDocument(
-            HtmlConversionProfile profile,
-            HtmlInputTrust trust = HtmlInputTrust.Untrusted) {
-            HtmlToWordOptions options = trust == HtmlInputTrust.Trusted
+        internal static HtmlToWordOptions CreateWordOptionsForSharedDocument(HtmlInputTrust trust = HtmlInputTrust.Untrusted) {
+            return trust == HtmlInputTrust.Trusted
                 ? HtmlToWordOptions.CreateTrustedDocumentProfile()
                 : HtmlToWordOptions.CreateUntrustedHtmlProfile();
-            options.ConversionProfile = profile;
-            return options;
-        }
-
-        /// <summary>
-        /// Asynchronously creates a new document from an HTML string.
-        /// </summary>
-        /// <param name="html">HTML content to convert.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static async Task<WordDocument> ToWordDocumentAsync(this string html, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
-            HtmlToWordResult result = await html.ToWordDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
-            return result.RequireValue();
-        }
-
-        /// <summary>
-        /// Creates a new document from an HTML stream.
-        /// </summary>
-        /// <param name="htmlStream">Stream containing HTML content.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument ToWordDocument(this Stream htmlStream, HtmlToWordOptions? options = null) {
-            return htmlStream.ToWordDocumentResult(options).RequireValue();
-        }
-
-        /// <summary>
-        /// Asynchronously creates a new document from an HTML stream.
-        /// </summary>
-        /// <param name="htmlStream">Stream containing HTML content.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static async Task<WordDocument> ToWordDocumentAsync(this Stream htmlStream, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
-            HtmlToWordResult result = await htmlStream.ToWordDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
-            return result.RequireValue();
         }
 
         /// <summary>
         /// Appends HTML content to the document's body.
         /// </summary>
         /// <param name="doc">Document to modify.</param>
-        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToBody(this WordDocument doc, string html, HtmlToWordOptions? options = null) {
-            doc.AddHtmlToBodyAsync(html, options).GetAwaiter().GetResult();
+        public static void AddHtmlToBody(this WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions? options = null) {
+            if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
+            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            EnsureOfflineSynchronousImport(htmlDocument, resolved);
+            doc.AddHtmlToBodyAsync(htmlDocument, resolved).GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// Asynchronously appends HTML content to the document's body.
         /// </summary>
         /// <param name="doc">Document to modify.</param>
-        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToBodyAsync(this WordDocument doc, string html, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task AddHtmlToBodyAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
-            if (html == null) throw new System.ArgumentNullException(nameof(html));
+            if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
-            options ??= new HtmlToWordOptions();
+            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
 
             var section = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the body.");
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToBodyAsync(doc, section, html, options, cancellationToken).ConfigureAwait(false);
+            await converter.AddHtmlToBodyAsync(doc, section, CreateWordSourceDocument(htmlDocument), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -169,27 +115,30 @@ namespace OfficeIMO.Word.Html {
         /// Appends HTML content to the document's header.
         /// </summary>
         /// <param name="doc">Document to modify.</param>
-        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="type">Header type to target.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToHeader(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
-            doc.AddHtmlToHeaderAsync(html, type, options).GetAwaiter().GetResult();
+        public static void AddHtmlToHeader(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
+            if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
+            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            EnsureOfflineSynchronousImport(htmlDocument, resolved);
+            doc.AddHtmlToHeaderAsync(htmlDocument, type, resolved).GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// Asynchronously appends HTML content to the document's header.
         /// </summary>
         /// <param name="doc">Document to modify.</param>
-        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="type">Header type to target.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToHeaderAsync(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task AddHtmlToHeaderAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
-            if (html == null) throw new System.ArgumentNullException(nameof(html));
+            if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
-            options ??= new HtmlToWordOptions();
+            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
             type ??= HeaderFooterValues.Default;
 
             // Prefer section-scoped headers to avoid multi-section warnings
@@ -199,7 +148,7 @@ namespace OfficeIMO.Word.Html {
             var header = GetOrCreateHeader(doc, targetSection, headers, type.Value);
 
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToHeaderAsync(doc, header, html, options, cancellationToken).ConfigureAwait(false);
+            await converter.AddHtmlToHeaderAsync(doc, header, CreateWordSourceDocument(htmlDocument), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -207,12 +156,15 @@ namespace OfficeIMO.Word.Html {
         /// Appends HTML content to the document's footer.
         /// </summary>
         /// <param name="doc">Document to modify.</param>
-        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="type">Footer type to target.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void AddHtmlToFooter(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
+        public static void AddHtmlToFooter(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
-            if (html == null) throw new System.ArgumentNullException(nameof(html));
+            if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
+
+            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
+            EnsureOfflineSynchronousImport(htmlDocument, resolved);
 
             var footerType = type ?? HeaderFooterValues.Default;
             var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the footer.");
@@ -220,23 +172,23 @@ namespace OfficeIMO.Word.Html {
             var footers = targetSection.Footer ?? throw new System.InvalidOperationException("The target section does not have any footers defined. Call AddHeadersAndFooters() before appending HTML to the footer.");
             GetOrCreateFooter(doc, targetSection, footers, footerType);
 
-            doc.AddHtmlToFooterAsync(html, footerType, options).GetAwaiter().GetResult();
+            doc.AddHtmlToFooterAsync(htmlDocument, footerType, resolved).GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// Asynchronously appends HTML content to the document's footer.
         /// </summary>
         /// <param name="doc">Document to modify.</param>
-        /// <param name="html">HTML fragment to insert.</param>
+        /// <param name="htmlDocument">Parsed HTML source to insert.</param>
         /// <param name="type">Footer type to target.</param>
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        public static async Task AddHtmlToFooterAsync(this WordDocument doc, string html, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task AddHtmlToFooterAsync(this WordDocument doc, HtmlConversionDocument htmlDocument, HeaderFooterValues? type = null, HtmlToWordOptions? options = null, CancellationToken cancellationToken = default) {
             if (doc == null) throw new System.ArgumentNullException(nameof(doc));
-            if (html == null) throw new System.ArgumentNullException(nameof(html));
+            if (htmlDocument == null) throw new System.ArgumentNullException(nameof(htmlDocument));
             cancellationToken.ThrowIfCancellationRequested();
 
-            options ??= new HtmlToWordOptions();
+            HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(htmlDocument.Trust)).Clone();
             var footerType = type ?? HeaderFooterValues.Default;
 
             var targetSection = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the footer.");
@@ -245,7 +197,7 @@ namespace OfficeIMO.Word.Html {
             var footer = GetOrCreateFooter(doc, targetSection, footers, footerType);
 
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToFooterAsync(doc, footer, html, options, cancellationToken).ConfigureAwait(false);
+            await converter.AddHtmlToFooterAsync(doc, footer, CreateWordSourceDocument(htmlDocument), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -298,7 +250,8 @@ namespace OfficeIMO.Word.Html {
             if (document == null) throw new System.ArgumentNullException(nameof(document));
             if (path == null) throw new System.ArgumentNullException(nameof(path));
             cancellationToken.ThrowIfCancellationRequested();
-            string html = await document.ToHtmlAsync(options, cancellationToken).ConfigureAwait(false);
+            string html = document.ToHtml(options);
+            cancellationToken.ThrowIfCancellationRequested();
             await HtmlTextIO.WriteAsync(path, html, cancellationToken).ConfigureAwait(false);
         }
 
@@ -313,7 +266,8 @@ namespace OfficeIMO.Word.Html {
             if (document == null) throw new System.ArgumentNullException(nameof(document));
             if (stream == null) throw new System.ArgumentNullException(nameof(stream));
             cancellationToken.ThrowIfCancellationRequested();
-            string html = await document.ToHtmlAsync(options, cancellationToken).ConfigureAwait(false);
+            string html = document.ToHtml(options);
+            cancellationToken.ThrowIfCancellationRequested();
             await HtmlTextIO.WriteAsync(stream, html, cancellationToken).ConfigureAwait(false);
         }
     }

@@ -16,7 +16,7 @@ public partial class PdfFormFillerTests {
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
         byte[] flattened = PdfDocument
-            .Open(BuildTextWidgetFormPdf())
+            .Load(BuildTextWidgetFormPdf())
             .Forms
             .FillAndFlatten(new Dictionary<string, string> {
                 ["Name"] = "office cafe\u0301"
@@ -43,7 +43,7 @@ public partial class PdfFormFillerTests {
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
         PdfOperationResult<PdfDocument> result = PdfDocument
-            .Open(BuildTextWidgetFormPdf())
+            .Load(BuildTextWidgetFormPdf())
             .Forms
             .TryFillAndFlatten(new Dictionary<string, string> {
                 ["Name"] = "office cafe\u0301"
@@ -78,7 +78,7 @@ public partial class PdfFormFillerTests {
             .ReportDiagnosticsTo(report, "OfficeIMO.Tests");
 
         byte[] flattened = PdfDocument
-            .Open(BuildTextWidgetFormPdf())
+            .Load(BuildTextWidgetFormPdf())
             .Forms
             .FillAndFlatten(new Dictionary<string, string> {
                 ["Name"] = "office cafe\u0301"

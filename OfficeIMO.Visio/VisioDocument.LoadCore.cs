@@ -126,7 +126,7 @@ namespace OfficeIMO.Visio {
                 Uri themeUri = PackUriHelper.ResolvePartUri(documentPart.Uri, themeRel.TargetUri);
                 PackagePart themePart = package.GetPart(themeUri);
                 XDocument themeDoc = LoadPackageXml(themePart, "Visio theme XML part");
-                document.Theme = new VisioTheme {
+                document.PackageTheme = new VisioPackageTheme {
                     Name = themeDoc.Root?.Attribute("name")?.Value,
                     TemplateXml = new XDocument(themeDoc)
                 };

@@ -34,15 +34,6 @@ internal static class PdfRtfConverter {
         return document;
     }
 
-    public static RtfDocument Convert(PdfCore.PdfReadDocument source, PdfRtfReadOptions? options) {
-        if (source == null) {
-            throw new ArgumentNullException(nameof(source));
-        }
-
-        PdfRtfReadOptions readOptions = options?.Clone() ?? new PdfRtfReadOptions();
-        return Convert(PdfCore.PdfLogicalDocument.From(source, readOptions.LayoutOptions), readOptions);
-    }
-
     private static void ImportPage(PdfCore.PdfLogicalPage page, RtfDocument document, PdfRtfReadOptions options, bool pageBreakBeforeFirstParagraph) {
         var consumed = new HashSet<PdfCore.PdfLogicalTextBlock>();
         bool emittedPageContent = false;

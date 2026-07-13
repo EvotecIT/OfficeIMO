@@ -16,7 +16,7 @@ public sealed class ReaderLatexModularTests {
 
     [Fact]
     public void ParsedDocument_EmitsSemanticChunksWithHierarchyAndMathDiagnostics() {
-        ReaderChunk[] chunks = DocumentReaderLatexExtensions.ReadLatexDocument(
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(
             LatexDocument.Parse(Source).Document,
             "guide.tex").ToArray();
 
@@ -51,7 +51,7 @@ public sealed class ReaderLatexModularTests {
     public void UnrecognizedPlainTexProfile_IsPreservedAndWarned() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Plain \\hbox{TeX}"), writable: false);
 
-        ReaderChunk[] chunks = DocumentReaderLatexExtensions.ReadLatex(stream, "plain.tex").ToArray();
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(stream, "plain.tex").ToArray();
 
         Assert.NotEmpty(chunks);
         Assert.Contains(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()), warning => warning.StartsWith("LATEXR001:", StringComparison.Ordinal));
@@ -61,7 +61,7 @@ public sealed class ReaderLatexModularTests {
     public void WholeDocumentPlainTex_EmitsFallbackChunk() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Plain \\hbox{TeX}"), writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderLatexExtensions.ReadLatex(
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(
             stream,
             "plain.tex",
             latexOptions: new ReaderLatexOptions { ChunkByBlock = false }));
@@ -74,7 +74,7 @@ public sealed class ReaderLatexModularTests {
     public void NonSeekableStream_EnforcesInputLimit() {
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(Source));
 
-        IOException exception = Assert.Throws<IOException>(() => DocumentReaderLatexExtensions.ReadLatex(
+        IOException exception = Assert.Throws<IOException>(() => LatexReaderAdapter.Read(
             stream,
             "limited.tex",
             new ReaderOptions { MaxInputBytes = 8 }).ToArray());
@@ -84,7 +84,7 @@ public sealed class ReaderLatexModularTests {
 
     [Fact]
     public void WholeDocumentChunk_TextIncludesAllProjectedSemanticBlocks() {
-        ReaderChunk chunk = Assert.Single(DocumentReaderLatexExtensions.ReadLatexDocument(
+        ReaderChunk chunk = Assert.Single(LatexReaderAdapter.Read(
             LatexDocument.Parse(Source).Document,
             "guide.tex",
             latexOptions: new ReaderLatexOptions { ChunkByBlock = false }));
@@ -106,7 +106,7 @@ public sealed class ReaderLatexModularTests {
             "\\begin{figure}\\includegraphics{plot.png}\\caption{Plot caption}\\end{figure}\n" +
             "\\end{document}\n";
 
-        ReaderChunk[] chunks = DocumentReaderLatexExtensions.ReadLatexDocument(LatexDocument.Parse(source).Document).ToArray();
+        ReaderChunk[] chunks = LatexReaderAdapter.Read(LatexDocument.Parse(source).Document).ToArray();
 
         ReaderChunk definitions = Assert.Single(chunks, static chunk => chunk.Location.SourceBlockKind == "list-description");
         Assert.Contains("Term: Definition", definitions.Text, StringComparison.Ordinal);
@@ -124,7 +124,7 @@ public sealed class ReaderLatexModularTests {
             "\\begin{tabular}{ll}A & B\\\\\\end{tabular}\\end{table}\n" +
             "\\end{document}\n";
 
-        ReaderChunk table = Assert.Single(DocumentReaderLatexExtensions.ReadLatexDocument(
+        ReaderChunk table = Assert.Single(LatexReaderAdapter.Read(
             LatexDocument.Parse(source).Document,
             "table.tex"), static chunk => chunk.Location.SourceBlockKind == "table");
 

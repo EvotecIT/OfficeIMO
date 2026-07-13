@@ -7,7 +7,7 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public class Markdown_Reader_Syntax_Tests {
     [Fact]
     public void Paragraph_RawInlineHtml_Preserves_Source_LineBreaks_Inside_Tag() {
-        var doc = MarkdownReader.Parse("<a href=\"foo  \nbar\">x</a>");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("<a href=\"foo  \nbar\">x</a>");
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
         Assert.Equal("<a href=\"foo  \nbar\">x</a>", paragraph.Inlines.RenderMarkdown());
@@ -17,7 +17,7 @@ public class Markdown_Reader_Syntax_Tests {
     public void Paragraph_Literal_Html_Uses_Soft_Line_Break_When_InlineHtml_Disabled() {
         var options = new MarkdownReaderOptions { InlineHtml = false };
 
-        var doc = MarkdownReader.Parse("<a\nhref=\"/\">x</a>", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("<a\nhref=\"/\">x</a>", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
         Assert.Equal("<a href=\"/\">x</a>", paragraph.Inlines.RenderMarkdown());
@@ -31,7 +31,7 @@ public class Markdown_Reader_Syntax_Tests {
 Paragraph text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(MarkdownSyntaxKind.Document, result.SyntaxTree.Kind);
         Assert.NotNull(result.SyntaxTree.SourceSpan);
@@ -62,7 +62,7 @@ Paragraph text
     public void ParseWithSyntaxTree_Handles_Mixed_Line_Endings_Without_Trailing_Newline() {
         const string markdown = "# Title\r\n\r\nParagraph one\r\rSecond para";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(3, result.SyntaxTree.Children.Count);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 5, 11), result.SyntaxTree.SourceSpan);
@@ -83,7 +83,7 @@ Paragraph text
     public void ParseWithSyntaxTree_Creates_Normalized_SourceSlices_For_SpanBacked_Nodes() {
         const string markdown = "# Title\r\n\r\nParagraph one\r\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var heading = result.SyntaxTree.Children[0];
         var paragraph = result.SyntaxTree.Children[1];
 
@@ -145,7 +145,7 @@ Paragraph text
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var heading = result.SyntaxTree.Children[0];
         var paragraph = result.SyntaxTree.Children[1];
 
@@ -174,7 +174,7 @@ Paragraph text
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var paragraph = result.SyntaxTree.Children[1];
 
         Assert.True(result.PreservesOriginalMarkdown);
@@ -195,7 +195,7 @@ Paragraph text
             PreserveTrivia = true
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var paragraph = result.SyntaxTree.Children[1];
 
         Assert.True(result.PreservesOriginalMarkdown);
@@ -217,7 +217,7 @@ Paragraph text
             }
         };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var heading = result.SyntaxTree.Children[0];
 
         Assert.True(result.PreservesOriginalMarkdown);
@@ -235,7 +235,7 @@ Paragraph text
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
         const string markdown = "previous shutdown was unexpected### Reason";
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
 
         Assert.Equal(2, result.Document.Blocks.Count);
         Assert.Single(result.SyntaxTree.Children);
@@ -266,7 +266,7 @@ Paragraph text
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
 
         Assert.Equal("hello", result.FindDeepestNodeAtLine(1)!.Literal);
         Assert.Equal("rewritten", result.FindDeepestFinalNodeAtLine(1)!.Literal);
@@ -280,7 +280,7 @@ Paragraph text
     public void ParseWithSyntaxTree_Final_AssociatedObject_Lookup_Finds_Nearest_Typed_Object() {
         const string markdown = "Lead [docs](https://example.com) tail";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
@@ -298,7 +298,7 @@ Paragraph text
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
 
@@ -313,7 +313,7 @@ Paragraph text
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteFirstParagraphTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
 
         Assert.Null(result.SyntaxTree.AssociatedObject);
         Assert.Null(Assert.Single(result.SyntaxTree.Children).AssociatedObject);
@@ -330,14 +330,14 @@ Paragraph text
     tail
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
         var semanticOuterList = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var semanticOuterItem = Assert.IsType<ListItem>(Assert.Single(semanticOuterList.Items));
         var semanticOuterParagraph = Assert.IsType<ParagraphBlock>(semanticOuterItem.ChildBlocks[0]);
-        var semanticNestedList = Assert.IsType<UnorderedListBlock>(Assert.Single(semanticOuterItem.Children));
+        var semanticNestedList = Assert.IsType<UnorderedListBlock>(Assert.Single(semanticOuterItem.NestedBlocks));
         var semanticNestedItem = Assert.IsType<ListItem>(Assert.Single(semanticNestedList.Items));
         var semanticNestedParagraphs = semanticNestedItem.ParagraphBlocks;
 
@@ -368,7 +368,7 @@ Paragraph text
 [hero]
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
 
         var diagnostic = Assert.Single(result.TransformDiagnostics);
         Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 6), diagnostic.AffectedSourceSpan);
@@ -388,7 +388,7 @@ beta
 gamma
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
 
         var diagnostic = Assert.Single(result.TransformDiagnostics);
         Assert.Equal(0, diagnostic.ChangedBlockStartBefore);
@@ -414,7 +414,7 @@ beta
 gamma
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
 
         var diagnostic = Assert.Single(result.TransformDiagnostics);
         Assert.Equal(0, diagnostic.ChangedBlockStartBefore);
@@ -441,7 +441,7 @@ beta
 gamma
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, options);
 
         Assert.Equal(2, result.TransformDiagnostics.Count);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), result.TransformDiagnostics[0].AffectedSourceSpan);
@@ -457,7 +457,7 @@ gamma
         options.DocumentTransforms.Add(new AppendParagraphTransform("tail"));
         options.DocumentTransforms.Add(new RewriteSecondParagraphTransform("tail rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("hello", options);
 
         Assert.Equal(2, result.TransformDiagnostics.Count);
         Assert.Null(result.TransformDiagnostics[0].AffectedSourceSpan);
@@ -474,7 +474,7 @@ Heading Title
 -------------
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var heading = Assert.Single(result.SyntaxTree.Children);
         var headingBlock = Assert.IsType<HeadingBlock>(heading.AssociatedObject);
@@ -510,7 +510,7 @@ baz*
 ====
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var heading = Assert.Single(result.SyntaxTree.Children);
         var headingBlock = Assert.IsType<HeadingBlock>(heading.AssociatedObject);
@@ -531,7 +531,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Atx_Heading_Level_And_Text_SourceSpans() {
         const string markdown = "  ###   Trimmed ###";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var heading = Assert.Single(result.SyntaxTree.Children);
         var headingBlock = Assert.IsType<HeadingBlock>(heading.AssociatedObject);
@@ -560,7 +560,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Atx_Heading_Closing_Marker_Token_Syntax() {
         const string markdown = "  ###   Trimmed ###   ";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var heading = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
@@ -599,7 +599,7 @@ baz*
     public void ParseWithSyntaxTree_Preserves_Heading_Inline_Markup_In_Literals() {
         const string markdown = "# **Heading** `Text`";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var heading = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
@@ -646,7 +646,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Paragraph_Inline_Syntax_Structure() {
         const string markdown = "Use **bold** [docs](https://example.com) and `code`.";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
@@ -724,7 +724,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Code_Span_Marker_And_Content_Tokens() {
         const string markdown = "Use ``code ` tick`` now";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var code = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineCodeSpan);
         var codeInline = Assert.IsType<CodeSpanInline>(code.AssociatedObject);
@@ -761,7 +761,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Escape_And_Decoded_Entity_Tokens() {
         const string markdown = "Use \\*literal\\* and &amp; now";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var escaped = paragraph.Children
             .Where(node => node.Kind == MarkdownSyntaxKind.InlineText && node.Children.Any(child => child.Kind == MarkdownSyntaxKind.InlineEscapeMarker))
@@ -826,7 +826,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Hard_Break_Marker_Tokens() {
         const string markdown = "two  \nslash\\\nhtml<br />next";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var hardBreaks = result.SyntaxTree.Descendants()
             .Where(node => node.Kind == MarkdownSyntaxKind.InlineHardBreak)
             .ToArray();
@@ -887,7 +887,7 @@ baz*
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.GenericAttributes = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var text = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineText);
@@ -901,7 +901,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Inline_Link_Metadata_Nodes() {
         const string markdown = "[docs](https://example.com \"Example title\")";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children);
         var linkInline = Assert.IsType<LinkInline>(link.AssociatedObject);
@@ -953,7 +953,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Autolink_Targets_And_Angle_Marker_Metadata() {
         const string markdown = "Go <https://example.com/docs> and mailto:user@example.com";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var links = paragraph.Children.Where(node => node.Kind == MarkdownSyntaxKind.InlineLink).ToArray();
 
@@ -1000,7 +1000,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Bare_Ftp_And_Tel_Autolink_Targets() {
         const string markdown = "See ftp://example.com/file.txt and tel:+123";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var links = paragraph.Children.Where(node => node.Kind == MarkdownSyntaxKind.InlineLink).ToArray();
 
@@ -1022,7 +1022,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Footnote_Reference_Label_Metadata_Node() {
         const string markdown = "A [^note]\n\n[^note]: Body";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var paragraph = result.SyntaxTree.Children[0];
         var footnoteRef = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineFootnoteRef);
 
@@ -1061,7 +1061,7 @@ baz*
         var options = new MarkdownReaderOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(new[] {
@@ -1095,7 +1095,7 @@ baz*
     public void ParseWithSyntaxTree_Captures_Inline_SourceSpans_And_Position_Lookups() {
         const string markdown = "Use **bold** [docs](https://example.com) and `code`.";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var paragraph = Assert.Single(result.SyntaxTree.Children);
 
         Assert.Equal(1, paragraph.SourceSpan!.Value.StartColumn);
@@ -1137,7 +1137,7 @@ baz*
     public void ParseWithSyntaxTree_Associates_SequenceInline_Syntax_To_Wrapper_Objects() {
         const string markdown = "Use **bold**, *emphasis*, ~~strike~~, and ==mark==.";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile());
         var paragraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var paragraphSyntax = Assert.Single(result.FinalSyntaxTree.Children);
         var boldInline = Assert.IsType<BoldSequenceInline>(paragraphBlock.Inlines.Nodes[1]);
@@ -1187,7 +1187,7 @@ baz*
         var options = new MarkdownReaderOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         var cellInlines = Assert.Single(Assert.Single(table.RowInlines));
@@ -1201,7 +1201,7 @@ baz*
         var options = new MarkdownReaderOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var html = document.ToHtmlFragment(new HtmlOptions {
             Kind = HtmlKind.Fragment,
             Title = "inline-title"
@@ -1218,7 +1218,7 @@ baz*
         var options = new MarkdownReaderOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var htmlOptions = new HtmlOptions {
             Kind = HtmlKind.Fragment,
             Title = "inline-extension-title"
@@ -1256,7 +1256,7 @@ Lead {{core}} tail
         var options = new MarkdownReaderOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options).Document;
         var htmlOptions = new HtmlOptions {
             Kind = HtmlKind.Fragment,
             Title = "inline-context-title"
@@ -1301,7 +1301,7 @@ Lead {{core}} tail
         var options = new MarkdownReaderOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var htmlOptions = new HtmlOptions {
             Kind = HtmlKind.Fragment
         };
@@ -1336,7 +1336,7 @@ Lead {{core}} tail
         var options = new MarkdownReaderOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var htmlOptions = new HtmlOptions {
             Kind = HtmlKind.Fragment,
             Title = "fallback-title"
@@ -1357,7 +1357,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_Assigns_Parent_Sibling_And_AssociatedObject_Metadata() {
         const string markdown = "Use **bold** [docs](https://example.com) and `code`.";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Same(result.Document, result.SyntaxTree.AssociatedObject);
         Assert.Null(result.SyntaxTree.Parent);
@@ -1390,7 +1390,7 @@ Lead {{core}} tail
 - second
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var document = result.Document;
         var heading = Assert.IsType<HeadingBlock>(document.Blocks[0]);
@@ -1472,7 +1472,7 @@ Lead {{core}} tail
 | One | 1 |
 """;
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var list = Assert.IsType<UnorderedListBlock>(document.Blocks[0]);
         var item = Assert.Single(list.Items);
         var table = Assert.IsType<TableBlock>(document.Blocks[1]);
@@ -1519,7 +1519,7 @@ Lead {{core}} tail
   > quoted
 """;
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
         var blockChildren = item.ChildBlocks;
@@ -1531,7 +1531,7 @@ Lead {{core}} tail
             block => Assert.Equal("quoted", Assert.IsType<ParagraphBlock>(Assert.Single(Assert.IsType<QuoteBlock>(block).ChildBlocks)).Inlines.RenderMarkdown()));
         Assert.Equal(blockChildren, item.ChildBlocks);
         Assert.Equal(blockChildren, ((IChildMarkdownBlockContainer)item).ChildBlocks);
-        Assert.Collection(item.Children, block => Assert.IsType<QuoteBlock>(block));
+        Assert.Collection(item.NestedBlocks, block => Assert.IsType<QuoteBlock>(block));
     }
 
     [Fact]
@@ -1544,7 +1544,7 @@ Lead {{core}} tail
   > quoted
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var item = Assert.Single(list.Items);
 
@@ -1559,7 +1559,7 @@ Lead {{core}} tail
         Assert.Equal(providedChildren.Count, ownedChildren.Count);
         Assert.Same(item.ParagraphBlocks[0], ownedChildren[0].AssociatedObject);
         Assert.Same(item.ParagraphBlocks[1], ownedChildren[1].AssociatedObject);
-        Assert.Same(item.Children[0], ownedChildren[2].AssociatedObject);
+        Assert.Same(item.NestedBlocks[0], ownedChildren[2].AssociatedObject);
         Assert.Equal(MarkdownSyntaxKind.ListMarker, finalItem.Children[0].Kind);
         Assert.Equal(ownedChildren.Select(child => child.Kind), finalItem.Children.Skip(1).Select(child => child.Kind));
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
@@ -1575,10 +1575,10 @@ Lead {{core}} tail
   > quoted
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var item = Assert.Single(list.Items);
-        var quote = Assert.IsType<QuoteBlock>(Assert.Single(item.Children));
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(item.NestedBlocks));
         var originalQuoteSyntax = Assert.Single(item.SyntaxChildren, child => child.Kind == MarkdownSyntaxKind.Quote);
 
         item.AdditionalParagraphs.Clear();
@@ -1600,7 +1600,7 @@ Lead {{core}} tail
   second paragraph
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var item = Assert.Single(list.Items);
         var listSyntax = Assert.Single(result.FinalSyntaxTree.Children);
@@ -1628,7 +1628,7 @@ Lead {{core}} tail
 10) Ordered
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var unorderedItem = Assert.Single(result.SyntaxTree.Children[0].Children);
         var orderedItem = Assert.Single(result.SyntaxTree.Children[1].Children);
 
@@ -1663,7 +1663,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_Captures_ThematicBreak_Marker_Token_Syntax() {
         const string markdown = "  * * *  \n\n---";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
         Assert.Equal(2, result.SyntaxTree.Children.Count);
 
         var spacedRule = result.SyntaxTree.Children[0];
@@ -1692,7 +1692,7 @@ Lead {{core}} tail
 > beta
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
         var quote = Assert.Single(result.SyntaxTree.Children);
 
         Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
@@ -1727,11 +1727,11 @@ Lead {{core}} tail
       gamma
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var item = Assert.Single(list.Items);
-        var quote = Assert.IsType<QuoteBlock>(item.Children[0]);
-        var ordered = Assert.IsType<OrderedListBlock>(item.Children[1]);
+        var quote = Assert.IsType<QuoteBlock>(item.NestedBlocks[0]);
+        var ordered = Assert.IsType<OrderedListBlock>(item.NestedBlocks[1]);
         var nestedItem = Assert.Single(ordered.Items);
         var listSyntax = Assert.Single(result.FinalSyntaxTree.Children);
         var itemSyntax = Assert.Single(listSyntax.Children);
@@ -1763,11 +1763,11 @@ Lead {{core}} tail
       gamma
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         var item = Assert.Single(list.Items);
-        var quote = Assert.IsType<QuoteBlock>(item.Children[0]);
-        var ordered = Assert.IsType<OrderedListBlock>(item.Children[1]);
+        var quote = Assert.IsType<QuoteBlock>(item.NestedBlocks[0]);
+        var ordered = Assert.IsType<OrderedListBlock>(item.NestedBlocks[1]);
         var nestedItem = Assert.Single(ordered.Items);
         var listSyntax = Assert.Single(result.FinalSyntaxTree.Children);
         var itemSyntax = Assert.Single(listSyntax.Children);
@@ -1801,7 +1801,7 @@ Lead {{core}} tail
 | One | 1 |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
 
         var header = table.GetHeaderCell(0);
@@ -1816,7 +1816,7 @@ Lead {{core}} tail
 
     [Fact]
     public void MarkdownVisitor_Walks_Public_ObjectTree_In_DepthFirst_Order() {
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 # Title
 
 - first
@@ -1863,7 +1863,7 @@ Lead {{core}} tail
 
     [Fact]
     public void MarkdownRewriter_Rewrites_Nested_Block_Content_And_Rebinds_Parents() {
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > before
 
 - item
@@ -1886,7 +1886,7 @@ Lead {{core}} tail
 
     [Fact]
     public void MarkdownRewriter_Keeps_ListItem_BlockProjection_Canonical_After_Rewriting_Loose_Items() {
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 - lead
 
   second
@@ -1918,7 +1918,7 @@ Lead {{core}} tail
 
     [Fact]
     public void MarkdownRewriter_Preserves_ListItem_SyntaxChildren_When_BlockProjection_Is_Unchanged() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 - lead
 
   second
@@ -1943,7 +1943,7 @@ Lead {{core}} tail
             Assert.Same(syntaxChildren[i], item.SyntaxChildren[i]);
         }
 
-        var finalTree = MarkdownReader.BuildFinalSyntaxTree(document, result.SyntaxTree);
+        var finalTree = OfficeIMO.Markdown.MarkdownReader.BuildFinalSyntaxTree(document, result.SyntaxTree);
         var finalList = Assert.Single(finalTree.Children);
         var finalItem = Assert.Single(finalList.Children);
 
@@ -1955,7 +1955,7 @@ Lead {{core}} tail
         }, finalItem.Children.Select(child => child.Kind).ToArray());
         Assert.Same(item.ParagraphBlocks[0], finalItem.Children[1].AssociatedObject);
         Assert.Same(item.ParagraphBlocks[1], finalItem.Children[2].AssociatedObject);
-        Assert.Same(item.Children[0], finalItem.Children[3].AssociatedObject);
+        Assert.Same(item.NestedBlocks[0], finalItem.Children[3].AssociatedObject);
     }
 
     [Fact]
@@ -1976,7 +1976,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_Captures_Paragraph_Image_And_HardBreak_Inline_Nodes() {
         const string markdown = "See ![Alt](image.png \"Title\")  \nnext";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(new[] {
@@ -2023,7 +2023,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_Captures_Inline_Image_Link_Metadata_Nodes_And_Spans() {
         const string markdown = "See [![Alt text](https://example.com/image.png \"Image title\")](https://example.com/docs \"Link title\")";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
@@ -2094,7 +2094,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_Preserves_Raw_Image_Alt_Syntax_While_Rendering_Plain_Alt_Text() {
         const string markdown = "Lead ![foo *bar*](train.jpg \"train & tracks\")";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var image = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineImage);
 
@@ -2135,7 +2135,7 @@ Lead {{core}} tail
     public void ParseWithSyntaxTree_CommonMark_Profile_Leaves_Standalone_Image_Lines_Inside_Paragraphs() {
         const string markdown = "![foo *bar*](train.jpg \"train & tracks\")\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
@@ -2171,7 +2171,7 @@ Lead {{core}} tail
       two
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
@@ -2213,7 +2213,7 @@ Lead {{core}} tail
        more code
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.OrderedList, list.Kind);
@@ -2237,7 +2237,7 @@ Lead {{core}} tail
         var semanticList = Assert.IsType<OrderedListBlock>(Assert.Single(result.Document.Blocks));
         var semanticItem = Assert.Single(semanticList.Items);
         Assert.Empty(semanticItem.Content.Nodes);
-        Assert.Equal(new[] { typeof(CodeBlock), typeof(ParagraphBlock), typeof(CodeBlock) }, semanticItem.Children.Select(child => child.GetType()).ToArray());
+        Assert.Equal(new[] { typeof(CodeBlock), typeof(ParagraphBlock), typeof(CodeBlock) }, semanticItem.NestedBlocks.Select(child => child.GetType()).ToArray());
     }
 
     [Fact]
@@ -2248,7 +2248,7 @@ Lead {{core}} tail
 - bar
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
@@ -2265,7 +2265,7 @@ Lead {{core}} tail
         var semanticMiddleItem = semanticList.Items[1];
         Assert.Empty(semanticMiddleItem.Content.Nodes);
         Assert.Empty(semanticMiddleItem.AdditionalParagraphs);
-        Assert.Empty(semanticMiddleItem.Children);
+        Assert.Empty(semanticMiddleItem.NestedBlocks);
     }
 
     [Fact]
@@ -2277,7 +2277,7 @@ Lead {{core}} tail
    - boo
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
@@ -2286,7 +2286,7 @@ Lead {{core}} tail
 
         var semanticList = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
         Assert.Equal(new[] { 0, 0, 0, 0 }, semanticList.Items.Select(item => item.Level).ToArray());
-        Assert.All(semanticList.Items, item => Assert.Empty(item.Children));
+        Assert.All(semanticList.Items, item => Assert.Empty(item.NestedBlocks));
     }
 
     [Fact]
@@ -2296,7 +2296,7 @@ Lead {{core}} tail
 - # Bar
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         var outerList = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, outerList.Kind);
@@ -2316,8 +2316,8 @@ Lead {{core}} tail
         Assert.Equal("Bar", heading.Literal);
 
         var semanticOuterList = Assert.IsType<UnorderedListBlock>(Assert.Single(result.Document.Blocks));
-        Assert.IsType<UnorderedListBlock>(semanticOuterList.Items[0].Children.Single());
-        Assert.IsType<HeadingBlock>(semanticOuterList.Items[1].Children.Single());
+        Assert.IsType<UnorderedListBlock>(semanticOuterList.Items[0].NestedBlocks.Single());
+        Assert.IsType<HeadingBlock>(semanticOuterList.Items[1].NestedBlocks.Single());
     }
 
     [Fact]
@@ -2330,7 +2330,7 @@ Lead {{core}} tail
 [shortcut]: https://example.com/shortcut "Shortcut title"
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.Paragraph,
@@ -2454,7 +2454,7 @@ Lead {{core}} tail
 [alpha] [beta]
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Collection(
             result.ReferenceLinkDefinitions,
@@ -2486,7 +2486,7 @@ See ![Badge][hero]
 [hero]: https://example.com/badge.svg "Build badge"
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.Paragraph,
@@ -2546,7 +2546,7 @@ See ![Badge][hero]
   "Docs title"
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.Paragraph,
@@ -2601,7 +2601,7 @@ See ![Badge][hero]
 'title'
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.Paragraph,
@@ -2683,7 +2683,7 @@ See ![Badge][hero]
 [hero]
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         var paragraph = Assert.Single(result.FinalSyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
@@ -2732,7 +2732,7 @@ See ![Badge][hero]
 [Baz][Foo bar]
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.ReferenceLinkDefinition,
@@ -2805,7 +2805,7 @@ See ![Badge][hero]
 [hero]
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(new[] {
             MarkdownSyntaxKind.ReferenceLinkDefinition,
@@ -2826,7 +2826,7 @@ See ![Badge][hero]
   - child
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
@@ -2872,7 +2872,7 @@ See ![Badge][hero]
   trailing para
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
@@ -2939,7 +2939,7 @@ See ![Badge][hero]
   trailing
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
@@ -2976,7 +2976,7 @@ See ![Badge][hero]
   body
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
@@ -3008,7 +3008,7 @@ See ![Badge][hero]
   body
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
@@ -3042,7 +3042,7 @@ See ![Badge][hero]
   body
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var list = Assert.Single(result.SyntaxTree.Children);
         var item = Assert.Single(list.Children);
@@ -3080,7 +3080,7 @@ See ![Badge][hero]
 > second
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var quote = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
@@ -3105,7 +3105,7 @@ See ![Badge][hero]
 
     [Fact]
     public void ParseWithSyntaxTree_Assigns_Absolute_SourceSpans_To_Nested_Quote_ObjectModel() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 > quoted
 > second
 """);
@@ -3118,7 +3118,7 @@ See ![Badge][hero]
 
     [Fact]
     public void ParseWithSyntaxTree_Binds_Nested_Quote_Syntax_To_The_Same_Child_Block_Instances() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 > quoted
 > second
 """);
@@ -3134,7 +3134,7 @@ See ![Badge][hero]
 
     [Fact]
     public void QuoteBlock_SyntaxChild_Owner_Interface_Rebuilds_When_Children_Change() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 > original
 > second
 """);
@@ -3145,11 +3145,11 @@ See ![Badge][hero]
         var oldParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quoteBlock.ChildBlocks));
         var replacement = new ParagraphBlock(new InlineSequence().Text("replacement"));
 
-        quoteBlock.Children.Clear();
-        quoteBlock.Children.Add(replacement);
+        quoteBlock.ChildBlocks.Clear();
+        quoteBlock.ChildBlocks.Add(replacement);
 
         var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)quoteBlock).BuildOwnedSyntaxChildren();
-        var rebuiltSyntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var rebuiltSyntaxTree = OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(result.Document);
         var rebuiltQuote = Assert.Single(rebuiltSyntaxTree.Children);
         Assert.Equal(2, rebuiltQuote.Children.Count(child => child.Kind == MarkdownSyntaxKind.QuoteMarker));
         var rebuiltParagraph = Assert.Single(rebuiltQuote.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
@@ -3165,18 +3165,18 @@ See ![Badge][hero]
 
     [Fact]
     public void QuoteBlock_SyntaxChild_Owner_Interface_Drops_Stale_Cached_Children_After_Public_Projection_Changes() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 > intro
 >
 > - first
 """);
 
         var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
-        var listBlock = Assert.IsType<UnorderedListBlock>(quoteBlock.Children[1]);
+        var listBlock = Assert.IsType<UnorderedListBlock>(quoteBlock.ChildBlocks[1]);
         var providedChildren = ((ISyntaxChildrenMarkdownBlock)quoteBlock).ProvidedSyntaxChildren;
         var originalListSyntax = Assert.Single(providedChildren!, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
 
-        quoteBlock.Children.RemoveAt(0);
+        quoteBlock.ChildBlocks.RemoveAt(0);
 
         var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)quoteBlock).BuildOwnedSyntaxChildren();
 
@@ -3191,7 +3191,7 @@ See ![Badge][hero]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > original
 > second
 """, options);
@@ -3219,7 +3219,7 @@ See ![Badge][hero]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > original
 > second
 """, options);
@@ -3241,7 +3241,7 @@ See ![Badge][hero]
 >   trailing
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var quote = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Quote, quote.Kind);
@@ -3287,7 +3287,7 @@ See ![Badge][hero]
 > body
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
@@ -3351,7 +3351,7 @@ See ![Badge][hero]
 
     [Fact]
     public void ParseWithSyntaxTree_Assigns_Absolute_SourceSpans_To_Nested_Callout_ObjectModel() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 > [!NOTE] Title
 > body
 """);
@@ -3364,7 +3364,7 @@ See ![Badge][hero]
 
     [Fact]
     public void CalloutBlock_SyntaxChild_Owner_Interface_Clones_Parsed_Body_SyntaxChildren() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 > [!NOTE] Title
 > body
 >
@@ -3389,7 +3389,7 @@ See ![Badge][hero]
 
     [Fact]
     public void CalloutBlock_SyntaxChild_Owner_Interface_Drops_Stale_Cached_Children_After_Body_Projection_Changes() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 > [!NOTE] Title
 > body
 >
@@ -3420,7 +3420,7 @@ See ![Badge][hero]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > [!NOTE] Title
 > original
 """, options);
@@ -3455,7 +3455,7 @@ See ![Badge][hero]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > [!NOTE] Title
 > original
 """, options);
@@ -3474,7 +3474,7 @@ See ![Badge][hero]
 >   continued
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
@@ -3507,7 +3507,7 @@ See ![Badge][hero]
 > body
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
@@ -3529,7 +3529,7 @@ See ![Badge][hero]
 > body
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
@@ -3564,7 +3564,7 @@ Lazy body
 > quoted tail
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var callout = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
@@ -3593,7 +3593,7 @@ Term: Definition
 Other: Another
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var definitionList = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.DefinitionList, definitionList.Kind);
@@ -3655,7 +3655,7 @@ Other: Another
 Other: `code`
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var definitionList = Assert.Single(result.SyntaxTree.Children);
         var firstGroup = definitionList.Children[0];
@@ -3697,7 +3697,7 @@ Other: `code`
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteDefinitionListDefinitionsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 Term: original
 Other: second
 """, options);
@@ -3722,7 +3722,7 @@ Other: second
         var finalDefinitionListBlock = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var finalSemanticGroup = finalDefinitionListBlock.Groups[0];
         var finalSemanticValue = Assert.Single(finalSemanticGroup.Definitions);
-        var finalSemanticParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(finalSemanticValue.Blocks));
+        var finalSemanticParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(finalSemanticValue.ChildBlocks));
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Same(finalDefinitionListBlock, finalDefinitionList.AssociatedObject);
@@ -3740,7 +3740,7 @@ Term: Intro
   - second
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var definitionList = Assert.Single(result.SyntaxTree.Children);
         var group = Assert.Single(definitionList.Children);
@@ -3767,7 +3767,7 @@ Term: Intro
 
     [Fact]
     public void DefinitionList_ChildBlocks_Expose_Definition_Body_Blocks_As_Public_Ast_Projection() {
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 Term: Intro
 
   - first
@@ -3778,8 +3778,8 @@ Term: Intro
         var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
 
         Assert.Equal(2, definitionList.ChildBlocks.Count);
-        Assert.Same(definition.Blocks[0], definitionList.ChildBlocks[0]);
-        Assert.Same(definition.Blocks[1], definitionList.ChildBlocks[1]);
+        Assert.Same(definition.ChildBlocks[0], definitionList.ChildBlocks[0]);
+        Assert.Same(definition.ChildBlocks[1], definitionList.ChildBlocks[1]);
         Assert.IsType<ParagraphBlock>(definitionList.ChildBlocks[0]);
         Assert.IsType<UnorderedListBlock>(definitionList.ChildBlocks[1]);
         Assert.Equal(
@@ -3789,7 +3789,7 @@ Term: Intro
 
     [Fact]
     public void DefinitionList_SyntaxChild_Owner_Interface_Uses_Parsed_Groups() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 Term: Intro
 
   - first
@@ -3827,7 +3827,7 @@ Term: Intro
 
     [Fact]
     public void DefinitionList_SyntaxChild_Owner_Interface_Drops_Stale_Definition_Body_Children_After_Public_Projection_Changes() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 Term: Intro
 
   - first
@@ -3837,12 +3837,12 @@ Term: Intro
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var group = Assert.Single(definitionList.Groups);
         var definition = Assert.Single(group.Definitions);
-        var listBlock = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var listBlock = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         var providedGroup = Assert.Single(definitionList.SyntaxItems);
         var providedDefinitionValue = providedGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
         var originalListSyntax = Assert.Single(providedDefinitionValue.Children, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
 
-        definition.Blocks.RemoveAt(0);
+        definition.ChildBlocks.RemoveAt(0);
 
         var ownedGroup = Assert.Single(((IOwnedSyntaxChildrenMarkdownBlock)definitionList).BuildOwnedSyntaxChildren());
         var ownedDefinitionValue = ownedGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
@@ -3855,7 +3855,7 @@ Term: Intro
         Assert.Same(listBlock, ownedChildren[0].AssociatedObject);
         Assert.Equal(originalListSyntax.SourceSpan, ownedChildren[0].SourceSpan);
         Assert.DoesNotContain(ownedChildren, child => child.Kind == MarkdownSyntaxKind.Paragraph && child.Literal == "Intro");
-        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(MarkdownReader.BuildSyntaxTree(result.Document));
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(result.Document));
     }
 
     [Fact]
@@ -3894,7 +3894,7 @@ Lead[^1]
             new[] { "mermaid" },
             context => new SemanticFencedBlock(MarkdownSemanticKinds.Mermaid, context.InfoString, context.Content, context.Caption)));
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
@@ -3908,8 +3908,8 @@ Lead[^1]
         var definitionGroup = Assert.Single(definitionList.Groups);
         var definitionTerm = Assert.Single(definitionGroup.TermItems);
         var definition = Assert.Single(definitionGroup.Definitions);
-        var definitionParagraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
-        var definitionListBlock = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var definitionParagraph = Assert.IsType<ParagraphBlock>(definition.ChildBlocks[0]);
+        var definitionListBlock = Assert.IsType<UnorderedListBlock>(definition.ChildBlocks[1]);
         Assert.Equal(2, definitionListBlock.Items.Count);
         var firstDefinitionListItem = definitionListBlock.Items[0];
         var firstDefinitionListParagraph = Assert.Single(firstDefinitionListItem.ParagraphBlocks);
@@ -3919,8 +3919,8 @@ Lead[^1]
         var table = Assert.IsType<TableBlock>(result.Document.Blocks[3]);
         var tableHeaderCell = table.HeaderCells[0];
         var tableBodyCell = table.RowCells[0][1];
-        var tableCellParagraph = Assert.IsType<ParagraphBlock>(tableBodyCell.Blocks[0]);
-        var tableCellList = Assert.IsType<UnorderedListBlock>(tableBodyCell.Blocks[1]);
+        var tableCellParagraph = Assert.IsType<ParagraphBlock>(tableBodyCell.ChildBlocks[0]);
+        var tableCellList = Assert.IsType<UnorderedListBlock>(tableBodyCell.ChildBlocks[1]);
         var tableCellListItem = Assert.Single(tableCellList.Items);
         var tableCellListParagraph = Assert.Single(tableCellListItem.ParagraphBlocks);
 
@@ -3928,7 +3928,7 @@ Lead[^1]
         var semanticFence = Assert.IsType<SemanticFencedBlock>(result.Document.Blocks[5]);
         var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[6]);
         var footnote = Assert.IsType<FootnoteDefinitionBlock>(result.Document.Blocks[7]);
-        var footnoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.Blocks));
+        var footnoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.ChildBlocks));
 
         AssertSemanticObjectsHaveSourceSpans(
             heading,
@@ -3973,7 +3973,7 @@ Lead[^1]
 </details>
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var details = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Details, details.Kind);
@@ -4011,7 +4011,7 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 <details>
 <summary>Summary</summary>
 
@@ -4040,7 +4040,7 @@ original
 
     [Fact]
     public void DetailsBlock_SyntaxChild_Owner_Interface_Rebuilds_When_Children_Change() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 <details>
 <summary>Summary</summary>
 
@@ -4054,11 +4054,11 @@ original
         var oldParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(detailsBlock.ChildBlocks));
         var replacement = new ParagraphBlock(new InlineSequence().Text("replacement"));
 
-        detailsBlock.Children.Clear();
-        detailsBlock.Children.Add(replacement);
+        detailsBlock.ChildBlocks.Clear();
+        detailsBlock.ChildBlocks.Add(replacement);
 
         var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)detailsBlock).BuildOwnedSyntaxChildren();
-        var rebuiltSyntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var rebuiltSyntaxTree = OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(result.Document);
         var rebuiltDetails = Assert.Single(rebuiltSyntaxTree.Children);
         Assert.Equal(4, rebuiltDetails.Children.Count);
         var rebuiltSummary = rebuiltDetails.Children[1];
@@ -4076,7 +4076,7 @@ original
 
     [Fact]
     public void DetailsBlock_SyntaxChild_Owner_Interface_Drops_Stale_Cached_Children_After_Public_Projection_Changes() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 <details>
 <summary>Summary</summary>
 
@@ -4087,11 +4087,11 @@ intro
 """);
 
         var detailsBlock = Assert.IsType<DetailsBlock>(Assert.Single(result.Document.Blocks));
-        var listBlock = Assert.IsType<UnorderedListBlock>(detailsBlock.Children[1]);
+        var listBlock = Assert.IsType<UnorderedListBlock>(detailsBlock.ChildBlocks[1]);
         var providedChildren = ((ISyntaxChildrenMarkdownBlock)detailsBlock).ProvidedSyntaxChildren;
         var originalListSyntax = Assert.Single(providedChildren!, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
 
-        detailsBlock.Children.RemoveAt(0);
+        detailsBlock.ChildBlocks.RemoveAt(0);
 
         var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)detailsBlock).BuildOwnedSyntaxChildren();
 
@@ -4112,7 +4112,7 @@ intro
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 <details>
 <summary>Summary</summary>
 
@@ -4132,7 +4132,7 @@ original
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(transform);
 
-        _ = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        _ = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > original
 > second
 """, options);
@@ -4152,7 +4152,7 @@ Lead[^1]
   second paragraph
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var footnote = Assert.Single(result.SyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
         Assert.NotNull(footnote.SourceSpan);
@@ -4197,14 +4197,14 @@ Lead[^1]
 
     [Fact]
     public void ParseWithSyntaxTree_Assigns_Absolute_SourceSpans_To_Footnote_Paragraph_ObjectModel() {
-        var result = MarkdownReader.ParseWithSyntaxTree("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 Lead[^1]
 
 [^1]: first line
 """);
 
         var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.ChildBlocks));
 
         Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 16), paragraph.SourceSpan);
     }
@@ -4220,7 +4220,7 @@ Lead[^1]
   - second
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var footnote = Assert.Single(result.SyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
         Assert.NotNull(footnote.SourceSpan);
@@ -4271,7 +4271,7 @@ Lead[^1]
   second paragraph
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
         Assert.Equal(new MarkdownSourceSpan(3, 1, 6, 18), footnote.SourceSpan);
@@ -4286,7 +4286,7 @@ Lead[^note]
     continued
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown);
 
         var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
         Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 4), footnote.OpeningMarkerSourceSpan);
@@ -4315,14 +4315,14 @@ Lead[^note]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 Lead[^1]
 
 [^1]: original
 """, options);
 
         var finalFootnoteBlock = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
-        var finalFootnoteParagraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(finalFootnoteBlock.Blocks));
+        var finalFootnoteParagraphBlock = Assert.IsType<ParagraphBlock>(Assert.Single(finalFootnoteBlock.ChildBlocks));
         var finalFootnote = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
         Assert.Equal(4, finalFootnote.Children.Count);
         var finalOpeningMarker = finalFootnote.Children[0];
@@ -4351,14 +4351,14 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new RewriteNestedParagraphsTransform("rewritten"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 Lead[^1]
 
 [^1]: original
 """, options);
 
         var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
-        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.ChildBlocks));
 
         Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 14), paragraph.SourceSpan);
     }
@@ -4368,7 +4368,7 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > alpha
 >
 > beta
@@ -4401,7 +4401,7 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > - alpha
 >
 >   beta
@@ -4436,7 +4436,7 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > [!NOTE] Title
 > - alpha
 >
@@ -4474,7 +4474,7 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 <details>
 <summary>Summary</summary>
 
@@ -4513,7 +4513,7 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new MergeFirstTwoParagraphsInNestedBlockListsTransform("merged"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 Lead[^1]
 
 [^1]:
@@ -4523,7 +4523,7 @@ Lead[^1]
 """, options);
 
         var finalFootnoteBlock = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
-        var finalListBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(finalFootnoteBlock.Blocks));
+        var finalListBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(finalFootnoteBlock.ChildBlocks));
         var finalListItemBlock = Assert.IsType<ListItem>(Assert.Single(finalListBlock.Items));
         var finalParagraphBlocks = finalListItemBlock.ParagraphBlocks.ToArray();
 
@@ -4554,15 +4554,15 @@ Lead[^1]
         var options = new MarkdownReaderOptions();
         options.DocumentTransforms.Add(new SplitFirstParagraphInNestedBlockListsTransform("first", "second"));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 Lead[^1]
 
 [^1]: alpha beta
 """, options);
 
         var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(result.Document.Blocks, block => block is FootnoteDefinitionBlock));
-        Assert.Equal(2, footnote.Blocks.Count);
-        Assert.All(footnote.Blocks, block => Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 16), Assert.IsType<ParagraphBlock>(block).SourceSpan));
+        Assert.Equal(2, footnote.ChildBlocks.Count);
+        Assert.All(footnote.ChildBlocks, block => Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 16), Assert.IsType<ParagraphBlock>(block).SourceSpan));
 
         var finalFootnote = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.FootnoteDefinition);
         Assert.Equal(5, finalFootnote.Children.Count);
@@ -4573,8 +4573,8 @@ Lead[^1]
         Assert.Equal(2, finalParagraphs.Length);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
         Assert.Same(footnote, finalFootnote.AssociatedObject);
-        Assert.Same(footnote.Blocks[0], finalParagraphs[0].AssociatedObject);
-        Assert.Same(footnote.Blocks[1], finalParagraphs[1].AssociatedObject);
+        Assert.Same(footnote.ChildBlocks[0], finalParagraphs[0].AssociatedObject);
+        Assert.Same(footnote.ChildBlocks[1], finalParagraphs[1].AssociatedObject);
         Assert.All(finalParagraphs, paragraph => Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 16), paragraph.SourceSpan));
         Assert.All(finalParagraphs, paragraph => Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 16), Assert.IsType<ParagraphBlock>(paragraph.AssociatedObject).SourceSpan));
         Assert.Equal("first", finalParagraphs[0].Literal);
@@ -4591,7 +4591,7 @@ Lead[^1]
 | Two | 2 |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var table = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Table, table.Kind);
@@ -4638,7 +4638,7 @@ Lead[^1]
 | Two | 2 |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var tableBlock = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
         var tableSyntax = Assert.Single(result.SyntaxTree.Children);
         var finalTableSyntax = Assert.Single(result.FinalSyntaxTree.Children);
@@ -4683,7 +4683,7 @@ Lead[^1]
 | One | Intro<br><br>- first<br>- second |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var table = Assert.Single(result.SyntaxTree.Children);
         var header = table.Children[0];
@@ -4713,7 +4713,7 @@ Lead[^1]
 | One | Intro<br><br>- first<br>- second |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var table = Assert.Single(result.SyntaxTree.Children);
         var row = table.Children[2];
@@ -4747,7 +4747,7 @@ Lead[^1]
 | One |  |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var tableBlock = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
         var tableSyntax = Assert.Single(result.SyntaxTree.Children);
 
@@ -4777,7 +4777,7 @@ Lead[^1]
 | Two | 2 |
 """;
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         var header = table.GetHeaderCell(1);
@@ -4806,7 +4806,7 @@ Lead[^1]
 | One | 1 |
 """;
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         var nameHeader = table.GetHeaderCell(0);
@@ -4820,10 +4820,10 @@ Lead[^1]
         var childBlocks = table.ChildBlocks;
 
         Assert.Equal(4, childBlocks.Count);
-        Assert.Same(Assert.Single(nameHeader!.Blocks), childBlocks[0]);
-        Assert.Same(Assert.Single(valueHeader!.Blocks), childBlocks[1]);
-        Assert.Same(Assert.Single(nameBody!.Blocks), childBlocks[2]);
-        Assert.Same(Assert.Single(valueBody!.Blocks), childBlocks[3]);
+        Assert.Same(Assert.Single(nameHeader!.ChildBlocks), childBlocks[0]);
+        Assert.Same(Assert.Single(valueHeader!.ChildBlocks), childBlocks[1]);
+        Assert.Same(Assert.Single(nameBody!.ChildBlocks), childBlocks[2]);
+        Assert.Same(Assert.Single(valueBody!.ChildBlocks), childBlocks[3]);
         Assert.Equal(childBlocks, ((IChildMarkdownBlockContainer)table).ChildBlocks);
     }
 
@@ -4835,7 +4835,7 @@ Lead[^1]
 | One | Intro<br><br>- first<br>- second |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
         var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)table).BuildOwnedSyntaxChildren();
         var finalTable = Assert.Single(result.FinalSyntaxTree.Children);
@@ -4854,11 +4854,11 @@ Lead[^1]
         Assert.Same(notesCell, notesCellSyntax.AssociatedObject);
         Assert.Equal(new[] { MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.UnorderedList }, notesCellSyntax.Children.Select(child => child.Kind).ToArray());
         Assert.Equal(5, childBlocks.Count);
-        Assert.Same(Assert.Single(table.GetHeaderCell(0)!.Blocks), childBlocks[0]);
-        Assert.Same(Assert.Single(table.GetHeaderCell(1)!.Blocks), childBlocks[1]);
-        Assert.Same(Assert.Single(table.GetCell(0, 0)!.Blocks), childBlocks[2]);
-        Assert.Same(notesCell!.Blocks[0], childBlocks[3]);
-        Assert.Same(notesCell.Blocks[1], childBlocks[4]);
+        Assert.Same(Assert.Single(table.GetHeaderCell(0)!.ChildBlocks), childBlocks[0]);
+        Assert.Same(Assert.Single(table.GetHeaderCell(1)!.ChildBlocks), childBlocks[1]);
+        Assert.Same(Assert.Single(table.GetCell(0, 0)!.ChildBlocks), childBlocks[2]);
+        Assert.Same(notesCell!.ChildBlocks[0], childBlocks[3]);
+        Assert.Same(notesCell.ChildBlocks[1], childBlocks[4]);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
@@ -4870,13 +4870,12 @@ Lead[^1]
 | One | 1 |
 """;
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         var cell = table.GetCell(0, 0);
 
         Assert.NotNull(cell);
-        var block = Assert.Single(cell!.Blocks);
-        Assert.Same(block, Assert.Single(cell.ChildBlocks));
+        var block = Assert.Single(cell!.ChildBlocks);
         Assert.Equal(cell.ChildBlocks, ((IChildMarkdownBlockContainer)cell).ChildBlocks);
     }
 
@@ -4888,7 +4887,7 @@ Lead[^1]
 | Alpha | Intro<br><br>- first<br>- second |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
         var cell = table.GetCell(0, 1);
 
@@ -4904,8 +4903,8 @@ Lead[^1]
         Assert.NotSame(providedChildren[1], ownedChildren[1]);
         Assert.Equal(providedChildren[0].SourceSpan, ownedChildren[0].SourceSpan);
         Assert.Equal(providedChildren[1].SourceSpan, ownedChildren[1].SourceSpan);
-        Assert.Same(cell.Blocks[0], ownedChildren[0].AssociatedObject);
-        Assert.Same(cell.Blocks[1], ownedChildren[1].AssociatedObject);
+        Assert.Same(cell.ChildBlocks[0], ownedChildren[0].AssociatedObject);
+        Assert.Same(cell.ChildBlocks[1], ownedChildren[1].AssociatedObject);
         Assert.Equal(ownedChildren.Select(child => child.Kind), finalCell.Children.Select(child => child.Kind));
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
@@ -4918,21 +4917,21 @@ Lead[^1]
 | Alpha | Original<br><br>- first |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
         var cell = table.GetCell(0, 1);
 
         Assert.NotNull(cell);
         var providedChildren = ((ISyntaxChildrenMarkdownBlock)cell!).ProvidedSyntaxChildren;
         Assert.NotNull(providedChildren);
-        var oldParagraph = Assert.IsType<ParagraphBlock>(cell.Blocks[0]);
+        var oldParagraph = Assert.IsType<ParagraphBlock>(cell.ChildBlocks[0]);
         var replacement = new ParagraphBlock(new InlineSequence().Text("Replacement"));
 
-        cell.Blocks.Clear();
-        cell.Blocks.Add(replacement);
+        cell.ChildBlocks.Clear();
+        cell.ChildBlocks.Add(replacement);
 
         var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)cell).BuildOwnedSyntaxChildren();
-        var rebuiltSyntaxTree = MarkdownReader.BuildSyntaxTree(result.Document);
+        var rebuiltSyntaxTree = OfficeIMO.Markdown.MarkdownReader.BuildSyntaxTree(result.Document);
         var rebuiltCell = rebuiltSyntaxTree.Children[0].Children[2].Children[1];
         var rebuiltParagraph = Assert.Single(rebuiltCell.Children);
 
@@ -4953,16 +4952,16 @@ Lead[^1]
 | Alpha | Intro<br><br>- first |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
         var cell = table.GetCell(0, 1);
 
         Assert.NotNull(cell);
-        var listBlock = Assert.IsType<UnorderedListBlock>(cell!.Blocks[1]);
+        var listBlock = Assert.IsType<UnorderedListBlock>(cell!.ChildBlocks[1]);
         var providedChildren = ((ISyntaxChildrenMarkdownBlock)cell).ProvidedSyntaxChildren;
         var originalListSyntax = Assert.Single(providedChildren!, child => child.Kind == MarkdownSyntaxKind.UnorderedList);
 
-        cell.Blocks.RemoveAt(0);
+        cell.ChildBlocks.RemoveAt(0);
 
         var ownedChildren = ((IOwnedSyntaxChildrenMarkdownBlock)cell).BuildOwnedSyntaxChildren();
 
@@ -4980,7 +4979,7 @@ Lead[^1]
 > | One | 1 |
 """;
 
-        var document = MarkdownReader.Parse(markdown);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
 
         var table = Assert.Single(document.DescendantTables());
         Assert.Single(document.DescendantsAndSelf().OfType<QuoteBlock>());
@@ -5007,7 +5006,7 @@ Lead[^1]
 | Two | 2 |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var table = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Table, table.Kind);
@@ -5034,7 +5033,7 @@ Console.WriteLine("hi");
 ```
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var code = Assert.Single(result.SyntaxTree.Children);
         var codeBlock = Assert.IsType<CodeBlock>(code.AssociatedObject);
@@ -5076,7 +5075,7 @@ Console.WriteLine("hi");
     public void ParseWithSyntaxTree_Maps_Closing_Fence_After_BlankOnly_Fenced_Content() {
         var markdown = "```csharp\n\n```\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var code = Assert.Single(result.SyntaxTree.Children);
         var codeBlock = Assert.IsType<CodeBlock>(code.AssociatedObject);
@@ -5101,7 +5100,7 @@ hello
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.CustomContainers = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var container = Assert.Single(result.SyntaxTree.Children);
         var block = Assert.IsType<CustomContainerBlock>(container.AssociatedObject);
@@ -5141,7 +5140,7 @@ hello
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.CustomContainers = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var list = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.UnorderedList, list.Kind);
@@ -5179,7 +5178,7 @@ hello
   ~~~~
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var code = Assert.Single(result.SyntaxTree.Children);
         var opening = Assert.Single(code.Children, child => child.Kind == MarkdownSyntaxKind.CodeFenceOpening);
@@ -5210,7 +5209,7 @@ graph TD;
 ```
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var syntax = Assert.Single(result.SyntaxTree.Children);
         var semantic = Assert.IsType<SemanticFencedBlock>(syntax.AssociatedObject);
@@ -5234,7 +5233,7 @@ graph TD;
 ```
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var code = Assert.Single(result.SyntaxTree.Children);
         var info = Assert.Single(code.Children, child => child.Kind == MarkdownSyntaxKind.CodeFenceInfo);
@@ -5250,7 +5249,7 @@ graph TD;
     line 2
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var code = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.CodeBlock, code.Kind);
@@ -5270,7 +5269,7 @@ graph TD;
 ![Alt text](https://example.com/image.png "Image title")
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var image = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Image, image.Kind);
@@ -5311,7 +5310,7 @@ graph TD;
 _Caption_
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var image = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Image, image.Kind);
@@ -5361,7 +5360,7 @@ _Caption_
 </figure>
 """;
 
-        var document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5405,7 +5404,7 @@ _Caption_
 <p><a href="/docs/hero" title="Hero docs" target="_blank" rel="nofollow sponsored">Read more</a></p>
 """;
 
-        var document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5453,7 +5452,7 @@ _Caption_
 </figure>
 """;
 
-        var document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -5499,7 +5498,7 @@ title: Sample
 ---
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var frontMatter = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.FrontMatter, frontMatter.Kind);
@@ -5550,7 +5549,7 @@ title: Sample
     public void ParseWithSyntaxTree_Captures_Html_Comment_Block() {
         const string markdown = "<!-- keep me -->";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var comment = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.HtmlComment, comment.Kind);
@@ -5587,7 +5586,7 @@ this comment
 -->
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var comment = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.HtmlComment, comment.Kind);
@@ -5612,7 +5611,7 @@ this comment
     public void ParseWithSyntaxTree_Captures_Html_Raw_Block() {
         const string markdown = "<div>Raw</div>";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var rawHtml = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
@@ -5650,7 +5649,7 @@ Raw body
 </div>
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var rawHtml = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
@@ -5685,7 +5684,7 @@ Raw body
 ?>
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var rawHtml = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
@@ -5717,7 +5716,7 @@ x < y
 ]]>
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var rawHtml = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
@@ -5745,7 +5744,7 @@ x < y
     public void ParseWithSyntaxTree_Captures_Html_Raw_Declaration_Frame() {
         const string markdown = "<!DOCTYPE html>";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var rawHtml = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.HtmlRaw, rawHtml.Kind);
@@ -5776,7 +5775,7 @@ x < y
     public void ParseWithSyntaxTree_Captures_Toc_Placeholder_Block() {
         const string markdown = "[TOC]";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var tocPlaceholder = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.TocPlaceholder, tocPlaceholder.Kind);
@@ -5798,7 +5797,7 @@ x < y
   > quoted
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var titleNode = result.SyntaxTree.FindDeepestNodeAtLine(1);
         Assert.NotNull(titleNode);
@@ -5824,7 +5823,7 @@ x < y
 Paragraph
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var kinds = result.SyntaxTree.DescendantsAndSelf().Select(node => node.Kind).ToArray();
 
         Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.InlineText }, kinds);
@@ -5838,7 +5837,7 @@ Paragraph
 >   continued
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var path = result.SyntaxTree.FindNodePathAtLine(3).Select(node => node.Kind).ToArray();
 
         Assert.Equal(new[] {
@@ -5863,7 +5862,7 @@ Console.WriteLine();
 ![Alt](image.png "Image title")
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var codeDeepest = result.FindDeepestNodeAtLine(1);
         Assert.NotNull(codeDeepest);
@@ -5896,7 +5895,7 @@ Console.WriteLine();
 Paragraph
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var deepest = result.FindDeepestNodeAtLine(3);
         Assert.NotNull(deepest);
@@ -5919,7 +5918,7 @@ Paragraph
 >   continued
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var deepest = result.FindDeepestNodeContainingSpan(new MarkdownSourceSpan(2, 3));
         Assert.NotNull(deepest);
@@ -5948,7 +5947,7 @@ Paragraph
 Paragraph text
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var deepest = result.FindDeepestNodeOverlappingSpan(new MarkdownSourceSpan(1, 2));
         Assert.NotNull(deepest);
@@ -5976,7 +5975,7 @@ Console.WriteLine();
 ![Alt](image.png "Image title")
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var codeBlock = result.FindNearestBlockContainingSpan(new MarkdownSourceSpan(1, 1));
         Assert.NotNull(codeBlock);
@@ -5998,7 +5997,7 @@ Console.WriteLine();
 | Alpha | Intro<br><br>> Quoted<br><br>- first<br>- second |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         var table = Assert.IsType<TableBlock>(Assert.Single(result.Document.Blocks));
         var cell = table.GetCell(0, 1);
 
@@ -6018,7 +6017,7 @@ Console.WriteLine();
 | Alpha | Intro<br><br>> Quoted<br><br>- first<br>- second |
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(MarkdownSyntaxKind.TableCell, result.FindNearestBlockAtPosition(3, 16)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.TableCell, result.FindNearestBlockAtPosition(3, 32)!.Kind);
@@ -6032,8 +6031,8 @@ Console.WriteLine();
 Term: Definition
 """;
 
-        var expected = MarkdownReader.Parse(markdown);
-        var detailed = MarkdownReader.ParseWithSyntaxTree(markdown);
+        var expected = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+        var detailed = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
 
         Assert.Equal(expected.Blocks.Count, detailed.Document.Blocks.Count);
         Assert.Equal(expected.ToMarkdown(), detailed.Document.ToMarkdown());

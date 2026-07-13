@@ -6,36 +6,44 @@ namespace OfficeIMO.Html;
 /// First-party dependency-free HTML layout entry point shared by image and PDF adapters.
 /// </summary>
 public static class HtmlRenderEngine {
-    /// <summary>
-    /// Parses and renders HTML into a backend-neutral continuous or paged visual document.
-    /// </summary>
-    public static HtmlRenderDocument Render(string html, HtmlRenderOptions? options = null) {
-        if (html == null) {
-            throw new ArgumentNullException(nameof(html));
-        }
+    // Raw text entry points remain internal for renderer-focused tests and low-level package code.
+    // They delegate to the native source model so parsing, normalization, trust, and media filtering
+    // still have one owner.
+    internal static HtmlRenderDocument Render(string html, HtmlRenderOptions? options = null) =>
+        Render(HtmlConversionDocument.Parse(html), options);
 
+    /// <summary>
+    /// Renders a parsed HTML source into a backend-neutral continuous or paged visual document.
+    /// </summary>
+    public static HtmlRenderDocument Render(HtmlConversionDocument document, HtmlRenderOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        resolved.BaseUri ??= document.BaseUri;
         resolved.Validate();
-        HtmlRenderInputGuard.ValidateSource(html, resolved);
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
-        return RenderDocument(document, resolved);
+        HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+        IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+        return RenderDocument(renderDocument, resolved, document.ResourceManifest.Diagnostics);
     }
 
     /// <summary>
     /// Renders a prepared HTML DOM without reparsing source text or mutating the caller's document.
     /// </summary>
-    public static HtmlRenderDocument Render(IHtmlDocument document, HtmlRenderOptions? options = null) {
+    internal static HtmlRenderDocument Render(IHtmlDocument document, HtmlRenderOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();
         IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
         HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
-        return RenderDocument(renderDocument, resolved);
+        return RenderDocument(renderDocument, resolved, initialDiagnostics: null);
     }
 
-    private static HtmlRenderDocument RenderDocument(IHtmlDocument document, HtmlRenderOptions resolved) {
+    private static HtmlRenderDocument RenderDocument(
+        IHtmlDocument document,
+        HtmlRenderOptions resolved,
+        IEnumerable<HtmlDiagnostic>? initialDiagnostics) {
         HtmlRenderInputGuard.ValidateDocument(document, resolved, CancellationToken.None);
         var diagnostics = new HtmlDiagnosticReport();
+        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
             UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
@@ -44,7 +52,7 @@ public static class HtmlRenderEngine {
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
-        diagnostics.AddRange(manifest.Diagnostics.Diagnostics);
+        diagnostics.AddRange(manifest.Diagnostics);
         var resources = new HtmlRenderResourceSet();
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         OfficeIMO.Drawing.OfficeFontFaceCollection fonts = HtmlRenderFontFaceLoader.Load(document, resources, resolved, diagnostics);
@@ -55,34 +63,47 @@ public static class HtmlRenderEngine {
     }
 
     /// <summary>
-    /// Parses and renders HTML while asynchronously resolving policy-approved external resources through the configured resolver.
+    /// Renders a parsed HTML source while asynchronously resolving policy-approved external resources through the configured resolver.
     /// </summary>
-    public static async Task<HtmlRenderDocument> RenderAsync(string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
+    public static async Task<HtmlRenderDocument> RenderAsync(HtmlConversionDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
+        resolved.BaseUri ??= document.BaseUri;
         resolved.Validate();
-        HtmlRenderInputGuard.ValidateSource(html, resolved);
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
-        return await RenderDocumentAsync(document, resolved, cancellationToken).ConfigureAwait(false);
+        HtmlRenderInputGuard.ValidateSource(document.SourceHtml, resolved);
+        IHtmlDocument renderDocument = document.CreateDocumentForRendering();
+        return await RenderDocumentAsync(
+            renderDocument,
+            resolved,
+            document.ResourceManifest.Diagnostics,
+            cancellationToken).ConfigureAwait(false);
     }
+
+    internal static Task<HtmlRenderDocument> RenderAsync(string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
+        RenderAsync(HtmlConversionDocument.Parse(html), options, cancellationToken);
 
     /// <summary>
     /// Renders a prepared HTML DOM while resolving resources without reparsing or mutating the caller's document.
     /// </summary>
-    public static async Task<HtmlRenderDocument> RenderAsync(IHtmlDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
+    internal static async Task<HtmlRenderDocument> RenderAsync(IHtmlDocument document, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderOptions resolved = options?.Clone() ?? new HtmlRenderOptions();
         resolved.Validate();
         IHtmlDocument renderDocument = HtmlDocumentParser.CloneDocument(document);
         HtmlRenderInputGuard.ValidateSource(renderDocument.DocumentElement?.OuterHtml ?? string.Empty, resolved);
-        return await RenderDocumentAsync(renderDocument, resolved, cancellationToken).ConfigureAwait(false);
+        return await RenderDocumentAsync(renderDocument, resolved, initialDiagnostics: null, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task<HtmlRenderDocument> RenderDocumentAsync(IHtmlDocument document, HtmlRenderOptions resolved, CancellationToken cancellationToken) {
+    private static async Task<HtmlRenderDocument> RenderDocumentAsync(
+        IHtmlDocument document,
+        HtmlRenderOptions resolved,
+        IEnumerable<HtmlDiagnostic>? initialDiagnostics,
+        CancellationToken cancellationToken) {
         HtmlRenderInputGuard.ValidateDocument(document, resolved, cancellationToken);
         var diagnostics = new HtmlDiagnosticReport();
+        if (initialDiagnostics != null) diagnostics.AddRange(initialDiagnostics);
         var resourceOptions = new HtmlResourcePipelineOptions {
             BaseUri = resolved.BaseUri,
             UrlPolicy = (resolved.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
@@ -91,7 +112,7 @@ public static class HtmlRenderEngine {
             MediaHeight = resolved.Mode == HtmlRenderMode.Paged ? resolved.PageHeight : resolved.ViewportHeight ?? 1056D
         };
         HtmlResourceManifest manifest = HtmlResourcePipeline.BuildManifest(document, resourceOptions);
-        diagnostics.AddRange(manifest.Diagnostics.Diagnostics);
+        diagnostics.AddRange(manifest.Diagnostics);
         HtmlRenderResourceSet resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         HtmlRenderStylesheetApplier.Apply(document, resources, resolved, diagnostics);
@@ -105,13 +126,9 @@ public static class HtmlRenderEngine {
         return new HtmlRenderLayoutEngine(document, styles, resolved, diagnostics, resources, pageRules, fonts, cancellationToken).Render();
     }
 
-    /// <summary>
-    /// Renders HTML through the shared first-party layout engine.
-    /// </summary>
-    public static HtmlRenderDocument RenderHtml(this string html, HtmlRenderOptions? options = null) => Render(html, options);
+    internal static HtmlRenderDocument RenderHtml(this string html, HtmlRenderOptions? options = null) => Render(html, options);
 
-    /// <summary>Asynchronously renders HTML through the shared first-party layout engine.</summary>
-    public static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
+    internal static Task<HtmlRenderDocument> RenderHtmlAsync(this string html, HtmlRenderOptions? options = null, CancellationToken cancellationToken = default) =>
         RenderAsync(html, options, cancellationToken);
 
     private static void AddPendingStylesheetDiagnostics(HtmlResourceManifest manifest, HtmlRenderResourceSet resources, HtmlDiagnosticReport diagnostics) {

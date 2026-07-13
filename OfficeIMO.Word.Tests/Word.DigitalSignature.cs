@@ -7,7 +7,7 @@ using System.Collections.Generic;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Word;
 using Xunit;
 

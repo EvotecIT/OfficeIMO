@@ -12,7 +12,8 @@ namespace OfficeIMO.Examples.Word {
                 var picker = Guard.NotNull(document.GetDatePickerByTag("DateTag"), "Date picker with tag 'DateTag' was not found.");
                 Console.WriteLine($"Current date: {picker.Date}");
                 picker.Date = DateTime.Today.AddDays(1);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

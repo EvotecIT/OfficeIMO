@@ -1289,14 +1289,14 @@ Lazy body
         Assert.Empty(roundtrip.Diagnostics);
         Assert.Equal("> a. quote alpha\r\n> c. quote beta\r\n\r\n- parent\r\n  vi. child four\r\n  v. child five\r\n", roundtrip.Markdown);
 
-        var reparsed = MarkdownReader.Parse(roundtrip.Markdown, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip.Markdown, options);
         var quote = Assert.IsType<QuoteBlock>(reparsed.Blocks[0]);
         var quoteList = Assert.IsType<OrderedListBlock>(Assert.Single(quote.ChildBlocks));
         Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, quoteList.MarkerStyle);
         Assert.Equal("c.", quoteList.Items[1].MarkerText);
 
         var parentList = Assert.IsType<UnorderedListBlock>(reparsed.Blocks[1]);
-        var nestedRoman = Assert.IsType<OrderedListBlock>(Assert.Single(parentList.Items[0].Children));
+        var nestedRoman = Assert.IsType<OrderedListBlock>(Assert.Single(parentList.Items[0].NestedBlocks));
         Assert.Equal(6, nestedRoman.Start);
         Assert.Equal(MarkdownOrderedListMarkerStyle.LowerRoman, nestedRoman.MarkerStyle);
         Assert.Equal("vi.", nestedRoman.Items[0].MarkerText);
@@ -1335,10 +1335,10 @@ Lazy body
         Assert.Empty(roundtrip.Diagnostics);
         Assert.Equal("> - parent\r\n>   iv. child four\r\n>   vi. child five\r\n", roundtrip.Markdown);
 
-        var reparsed = MarkdownReader.Parse(roundtrip.Markdown, options);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(roundtrip.Markdown, options);
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(reparsed.Blocks));
         var parentList = Assert.IsType<UnorderedListBlock>(Assert.Single(quote.ChildBlocks));
-        var nestedRoman = Assert.IsType<OrderedListBlock>(Assert.Single(parentList.Items[0].Children));
+        var nestedRoman = Assert.IsType<OrderedListBlock>(Assert.Single(parentList.Items[0].NestedBlocks));
         Assert.Equal(2, nestedRoman.Items.Count);
         Assert.Equal("iv.", nestedRoman.Items[0].MarkerText);
         Assert.Equal("vi.", nestedRoman.Items[1].MarkerText);

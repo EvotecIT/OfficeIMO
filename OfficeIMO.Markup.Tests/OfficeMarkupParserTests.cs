@@ -4,6 +4,7 @@ using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
 using OfficeIMO.Markup.PowerPoint;
 using OfficeIMO.Markup.Word;
+using OfficeIMO.Excel;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 using Xunit;
@@ -1014,8 +1015,7 @@ Q3,260
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1084,8 +1084,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1135,8 +1134,7 @@ Stay in semantic Markdown until the slide actually needs more control.
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1238,8 +1236,7 @@ Details
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1299,8 +1296,7 @@ Body
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1349,8 +1345,7 @@ Background image slide
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false
             });
@@ -1399,8 +1394,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false
             });
@@ -1442,8 +1436,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1486,8 +1479,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false
             });
@@ -1527,8 +1519,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false,
                 AllowExternalImagePaths = true
@@ -1571,8 +1562,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 BaseDirectory = tempDirectory,
                 RenderMermaidDiagrams = false
             });
@@ -1611,8 +1601,7 @@ profile: presentation
 
             Assert.False(result.HasErrors);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 IncludeUnsupportedBlocksAsText = true,
                 RenderMermaidDiagrams = false
             });
@@ -1648,8 +1637,7 @@ Scaled textbox
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 SlideWidthInches = 13.333,
                 SlideHeightInches = 7.5,
                 RenderMermaidDiagrams = false
@@ -1695,8 +1683,7 @@ Gradient background slide
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1749,8 +1736,7 @@ Gradient angle slide
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1830,8 +1816,7 @@ profile: presentation
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 RenderMermaidDiagrams = false
             });
 
@@ -1883,8 +1868,7 @@ flowchart LR
   AST --> PPTX
 """);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 MermaidRendererPath = rendererPath,
                 TemporaryDirectory = directory
             });
@@ -1933,8 +1917,7 @@ flowchart LR
   AST --> Office
 """);
 
-            new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsPowerPoint(path, new MarkupToPowerPointOptions {
                 MermaidRendererPath = rendererPath,
                 TemporaryDirectory = directory
             });
@@ -1984,8 +1967,7 @@ C,60,77
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
-                OutputPath = path
+            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
             });
 
             Assert.True(File.Exists(path));
@@ -2056,8 +2038,7 @@ C,60,77
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
-                OutputPath = path
+            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
             });
 
             using var spreadsheet = SpreadsheetDocument.Open(path, false);
@@ -2115,8 +2096,7 @@ Cost,80,
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
-                OutputPath = path
+            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
             });
 
             using var spreadsheet = SpreadsheetDocument.Open(path, false);
@@ -2164,8 +2144,7 @@ Revenue,120
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
-                OutputPath = path
+            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
             });
 
             using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
@@ -2214,8 +2193,7 @@ Revenue,120
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
-                OutputPath = path
+            result.Document.SaveAsExcel(path, new MarkupToExcelOptions {
             });
 
             using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
@@ -2233,15 +2211,6 @@ Revenue,120
                 File.Delete(path);
             }
         }
-    }
-
-    [Fact]
-    public void ExcelExportOptions_EnableWorkbookRepairHardeningByDefault() {
-        var options = new OfficeMarkupExcelExportOptions();
-
-        Assert.True(options.SafePreflight);
-        Assert.True(options.ValidateOpenXml);
-        Assert.True(options.SafeRepairDefinedNames);
     }
 
     [Fact]
@@ -2268,8 +2237,7 @@ Q4,320,150
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsExcel(path, saveOptions: new ExcelSaveOptions {
                 SafePreflight = true,
                 ValidateOpenXml = true,
                 SafeRepairDefinedNames = true
@@ -2325,8 +2293,7 @@ Q2,180
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
-                OutputPath = path
+            result.Document.SaveAsWord(path, new MarkupToWordOptions {
             });
 
             Assert.True(File.Exists(path));
@@ -2370,8 +2337,7 @@ profile: document
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsWord(path, new MarkupToWordOptions {
                 BaseDirectory = tempDirectory
             });
 
@@ -2407,8 +2373,7 @@ profile: document
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
-                OutputPath = path
+            result.Document.SaveAsWord(path, new MarkupToWordOptions {
             });
 
             using var package = WordprocessingDocument.Open(path, false);
@@ -2445,8 +2410,7 @@ profile: document
         try {
             var result = OfficeMarkupParser.Parse(markup);
 
-            new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
-                OutputPath = path,
+            result.Document.SaveAsWord(path, new MarkupToWordOptions {
                 BaseDirectory = tempDirectory,
                 AllowExternalImagePaths = true
             });
@@ -2475,8 +2439,7 @@ profile: document
             section.Blocks.Add(list);
             documentModel.Blocks.Add(section);
 
-            new OfficeMarkupWordExporter().Export(documentModel, new OfficeMarkupWordExportOptions {
-                OutputPath = path
+            documentModel.SaveAsWord(path, new MarkupToWordOptions {
             });
 
             using var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });

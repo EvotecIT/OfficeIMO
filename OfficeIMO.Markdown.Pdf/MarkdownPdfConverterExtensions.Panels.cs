@@ -8,9 +8,9 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
-        if (quote.Children.Count > 0) {
-            RenderBlocksWithPanelRuns(pdf, quote.Children, document, options, visualTheme, visualTheme.QuotePanelStyleSnapshot);
+    private static void RenderQuoteBlock(PdfCore.PdfDocument pdf, QuoteBlock quote, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
+        if (quote.ChildBlocks.Count > 0) {
+            RenderBlocksWithPanelRuns(pdf, quote.ChildBlocks, document, options, visualTheme, visualTheme.QuotePanelStyleSnapshot);
             return;
         }
 
@@ -29,7 +29,7 @@ public static partial class MarkdownPdfConverterExtensions {
         IReadOnlyList<IMarkdownBlock> blocks,
         MarkdownDoc document,
         MarkdownPdfSaveOptions options,
-        MarkdownPdfVisualTheme visualTheme,
+        MarkdownPdfStyle visualTheme,
         PdfCore.PanelStyle panelStyle,
         Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader = null) {
         var panelBlocks = new List<IMarkdownBlock>();
@@ -59,7 +59,7 @@ public static partial class MarkdownPdfConverterExtensions {
         List<IMarkdownBlock> panelBlocks,
         MarkdownDoc document,
         MarkdownPdfSaveOptions options,
-        MarkdownPdfVisualTheme visualTheme,
+        MarkdownPdfStyle visualTheme,
         PdfCore.PanelStyle panelStyle,
         Action<PdfCore.PdfItemCompose>? renderFirstPanelHeader,
         ref bool renderedHeader) {
@@ -112,7 +112,7 @@ public static partial class MarkdownPdfConverterExtensions {
             case OrderedListBlock ordered:
                 return CanRenderListItemsInsidePanel(ordered.Items);
             case QuoteBlock quote:
-                return quote.Children.Count == 0 || CanRenderBlocksInsidePanel(quote.Children);
+                return quote.ChildBlocks.Count == 0 || CanRenderBlocksInsidePanel(quote.ChildBlocks);
             case DetailsBlock details:
                 return details.ChildBlocks.Count == 0 || CanRenderBlocksInsidePanel(details.ChildBlocks);
             default:
@@ -128,7 +128,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 }
             }
 
-            if (items[i].Children.Count > 0 && !CanRenderBlocksInsidePanel(items[i].Children)) {
+            if (items[i].NestedBlocks.Count > 0 && !CanRenderBlocksInsidePanel(items[i].NestedBlocks)) {
                 return false;
             }
         }
@@ -145,7 +145,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return nodes.Count == 1 && (nodes[0] is ImageInline || nodes[0] is ImageLinkInline);
     }
 
-    private static bool TryAppendBlocksInsidePanel(PdfCore.PdfParagraphBuilder builder, IReadOnlyList<IMarkdownBlock> blocks, InlineStyle style, MarkdownPdfVisualTheme visualTheme, bool lineBreakBeforeFirst) {
+    private static bool TryAppendBlocksInsidePanel(PdfCore.PdfParagraphBuilder builder, IReadOnlyList<IMarkdownBlock> blocks, InlineStyle style, MarkdownPdfStyle visualTheme, bool lineBreakBeforeFirst) {
         bool wroteContent = false;
         for (int i = 0; i < blocks.Count; i++) {
             if (!TryAppendBlockInsidePanel(builder, blocks[i], style, visualTheme, ref wroteContent, lineBreakBeforeFirst)) {
@@ -156,7 +156,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return wroteContent;
     }
 
-    private static bool TryAppendBlockInsidePanel(PdfCore.PdfParagraphBuilder builder, IMarkdownBlock block, InlineStyle style, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
+    private static bool TryAppendBlockInsidePanel(PdfCore.PdfParagraphBuilder builder, IMarkdownBlock block, InlineStyle style, MarkdownPdfStyle visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         switch (block) {
             case ParagraphBlock paragraph:
                 if (IsEmpty(paragraph.Inlines)) {
@@ -232,20 +232,20 @@ public static partial class MarkdownPdfConverterExtensions {
         return level <= 2 ? 12D : level == 3 ? 11D : 10D;
     }
 
-    private static void AppendUnorderedListInsidePanel(PdfCore.PdfParagraphBuilder builder, UnorderedListBlock list, InlineStyle style, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
+    private static void AppendUnorderedListInsidePanel(PdfCore.PdfParagraphBuilder builder, UnorderedListBlock list, InlineStyle style, MarkdownPdfStyle visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         for (int i = 0; i < list.Items.Count; i++) {
             AppendListItemInsidePanel(builder, list.Items[i], "•", style, visualTheme, ref wroteContent, lineBreakBeforeFirst);
         }
     }
 
-    private static void AppendOrderedListInsidePanel(PdfCore.PdfParagraphBuilder builder, OrderedListBlock list, InlineStyle style, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
+    private static void AppendOrderedListInsidePanel(PdfCore.PdfParagraphBuilder builder, OrderedListBlock list, InlineStyle style, MarkdownPdfStyle visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         for (int i = 0; i < list.Items.Count; i++) {
             string marker = (list.Start + i).ToString(CultureInfo.InvariantCulture) + ".";
             AppendListItemInsidePanel(builder, list.Items[i], marker, style, visualTheme, ref wroteContent, lineBreakBeforeFirst);
         }
     }
 
-    private static void AppendListItemInsidePanel(PdfCore.PdfParagraphBuilder builder, ListItem item, string marker, InlineStyle style, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
+    private static void AppendListItemInsidePanel(PdfCore.PdfParagraphBuilder builder, ListItem item, string marker, InlineStyle style, MarkdownPdfStyle visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         StartPanelLine(builder, ref wroteContent, lineBreakBeforeFirst);
         string indent = item.Level <= 0 ? string.Empty : new string(' ', item.Level * 2);
         if (item.IsTask) {
@@ -263,12 +263,12 @@ public static partial class MarkdownPdfConverterExtensions {
             AppendInlines(builder, item.AdditionalParagraphs[paragraphIndex], style);
         }
 
-        for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
-            TryAppendBlockInsidePanel(builder, item.Children[childIndex], style, visualTheme, ref wroteContent, lineBreakBeforeFirst);
+        for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
+            TryAppendBlockInsidePanel(builder, item.NestedBlocks[childIndex], style, visualTheme, ref wroteContent, lineBreakBeforeFirst);
         }
     }
 
-    private static void AppendCodeBlockInsidePanel(PdfCore.PdfParagraphBuilder builder, CodeBlock code, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
+    private static void AppendCodeBlockInsidePanel(PdfCore.PdfParagraphBuilder builder, CodeBlock code, MarkdownPdfStyle visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         StartPanelBlock(builder, ref wroteContent, lineBreakBeforeFirst);
         string language = code.Language?.Trim() ?? string.Empty;
         if (language.Length > 0) {
@@ -284,7 +284,7 @@ public static partial class MarkdownPdfConverterExtensions {
         ApplyStyle(builder, CreateInlineStyle(visualTheme));
     }
 
-    private static void AppendSemanticBlockInsidePanel(PdfCore.PdfParagraphBuilder builder, SemanticFencedBlock semantic, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
+    private static void AppendSemanticBlockInsidePanel(PdfCore.PdfParagraphBuilder builder, SemanticFencedBlock semantic, MarkdownPdfStyle visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         StartPanelBlock(builder, ref wroteContent, lineBreakBeforeFirst);
         string label = semantic.SemanticKind;
         if (!string.IsNullOrWhiteSpace(semantic.Language)) {
@@ -346,10 +346,10 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void AppendQuoteInsidePanel(PdfCore.PdfParagraphBuilder builder, QuoteBlock quote, InlineStyle style, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
+    private static void AppendQuoteInsidePanel(PdfCore.PdfParagraphBuilder builder, QuoteBlock quote, InlineStyle style, MarkdownPdfStyle visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         InlineStyle quoteStyle = style.With(italic: true);
-        if (quote.Children.Count > 0) {
-            TryAppendBlocksInsidePanel(builder, quote.Children, quoteStyle, visualTheme, lineBreakBeforeFirst: !wroteContent && lineBreakBeforeFirst);
+        if (quote.ChildBlocks.Count > 0) {
+            TryAppendBlocksInsidePanel(builder, quote.ChildBlocks, quoteStyle, visualTheme, lineBreakBeforeFirst: !wroteContent && lineBreakBeforeFirst);
             wroteContent = true;
             return;
         }
@@ -362,7 +362,7 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static void AppendDetailsInsidePanel(PdfCore.PdfParagraphBuilder builder, DetailsBlock details, InlineStyle style, MarkdownPdfVisualTheme visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
+    private static void AppendDetailsInsidePanel(PdfCore.PdfParagraphBuilder builder, DetailsBlock details, InlineStyle style, MarkdownPdfStyle visualTheme, ref bool wroteContent, bool lineBreakBeforeFirst) {
         if (details.Summary != null) {
             StartPanelBlock(builder, ref wroteContent, lineBreakBeforeFirst);
             ApplyStyle(builder, style.With(bold: true)).Text(details.Open ? "Details: " : "Collapsed details: ");

@@ -36,7 +36,7 @@ public class RtfHtmlTableRowMetadataTests {
 
         Assert.Contains("data-officeimo-rtf-row=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
         RtfTable roundTripTable = Assert.IsType<RtfTable>(Assert.Single(roundTrip.Blocks));
         RtfTableRow roundTripRow = Assert.Single(roundTripTable.Rows);
         Assert.True(roundTripRow.KeepTogether);

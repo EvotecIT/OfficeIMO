@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Reader;
 
@@ -109,7 +110,7 @@ public static class OfficeDocumentAssetMaterializer {
                 continue;
             }
 
-            File.WriteAllBytes(outputPath, payload);
+            OfficeFileCommit.WriteAllBytes(outputPath, payload);
             results.Add(new OfficeDocumentMaterializedAsset {
                 Asset = asset,
                 FileName = fileName,

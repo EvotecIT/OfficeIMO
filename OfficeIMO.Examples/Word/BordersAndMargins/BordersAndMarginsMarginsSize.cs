@@ -40,7 +40,8 @@ namespace OfficeIMO.Examples.Word {
 
                 //document.AddParagraph("Test");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

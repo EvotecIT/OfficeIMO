@@ -40,7 +40,7 @@ namespace OfficeIMO.Visio {
 
         private static OfficeTrueTypeFont? ResolveTextFont(VisioPngSaveOptions options) {
             if (!string.IsNullOrWhiteSpace(options.FontFilePath)) {
-                OfficeTrueTypeFont? configured = OfficeTrueTypeFont.TryLoadFromPath(options.FontFilePath, options.FontCollectionIndex, options.FontFaceName);
+                OfficeTrueTypeFont? configured = OfficeTrueTypeFont.TryLoad(options.FontFilePath, options.FontCollectionIndex, options.FontFaceName);
                 if (configured != null) {
                     return configured;
                 }

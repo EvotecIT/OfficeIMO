@@ -19,7 +19,8 @@ namespace OfficeIMO.Examples.Word {
                 list.AddItem("Butter");
 
                 document.AddParagraph("End of list.");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

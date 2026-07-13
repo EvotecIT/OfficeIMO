@@ -22,8 +22,6 @@ public enum MarkdownOrderedListMarkerStyle {
 public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyntaxMarkdownBlock {
     /// <summary>Items within the ordered list.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>();
-    /// <summary>Read-only AST-style view of list items.</summary>
-    public IReadOnlyList<ListItem> ListItems => Items;
     /// <summary>Starting number (default 1).</summary>
     public int Start { get; set; } = 1;
     /// <summary>Ordered list marker family.</summary>
@@ -58,7 +56,7 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
             _ => RenderOrderedListAttributes(),
             renderItemAttributes);
 
-    IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => ListItems;
+    IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => Items;
     MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.OrderedList;
     string? IMarkdownListBlock.ListLiteral => Start.ToString(System.Globalization.CultureInfo.InvariantCulture);
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>

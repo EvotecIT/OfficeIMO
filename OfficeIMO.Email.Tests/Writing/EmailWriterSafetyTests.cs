@@ -20,7 +20,7 @@ public sealed class EmailWriterSafetyTests {
         var writer = new EmailDocumentWriter(new EmailWriterOptions(maxOutputBytes: 1024));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            writer.WriteToBytes(document, format));
+            writer.ToBytes(document, format));
 
         Assert.Equal(nameof(EmailWriterOptions.MaxOutputBytes), exception.LimitName);
         Assert.Equal(payload.LongLength, exception.ActualValue);
@@ -34,7 +34,7 @@ public sealed class EmailWriterSafetyTests {
         var writer = new EmailDocumentWriter(new EmailWriterOptions(maxOutputBytes: 1024));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            writer.WriteToBytes(document));
+            writer.ToBytes(document));
 
         Assert.Equal(nameof(EmailWriterOptions.MaxOutputBytes), exception.LimitName);
         Assert.Equal(4096, exception.ActualValue);

@@ -29,23 +29,23 @@ public static class OfficeDocumentReaderBuilderHtmlExtensions {
             Description = "Modular HTML adapter using OfficeIMO.Markdown.Html.",
             Kind = ReaderInputKind.Html,
             Extensions = new[] { ".html", ".htm", ".xhtml" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlFile(
+            ReadPath = (path, readerOptions, ct) => HtmlReaderAdapter.Read(
                 htmlPath: path,
                 readerOptions: readerOptions,
                 htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtml(
+            ReadStream = (stream, sourceName, readerOptions, ct) => HtmlReaderAdapter.Read(
                 htmlStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlDocument(
+            ReadDocumentPath = (path, readerOptions, ct) => HtmlReaderAdapter.ReadDocument(
                 htmlPath: path,
                 readerOptions: readerOptions,
                 htmlOptions: ReaderHtmlOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderHtmlExtensions.ReadHtmlDocument(
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => HtmlReaderAdapter.ReadDocument(
                 htmlStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

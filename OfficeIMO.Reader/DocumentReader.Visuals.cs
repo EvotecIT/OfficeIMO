@@ -6,7 +6,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     /// <summary>
     /// Reads a supported document file and returns discovered visual payloads in source order.
     /// </summary>

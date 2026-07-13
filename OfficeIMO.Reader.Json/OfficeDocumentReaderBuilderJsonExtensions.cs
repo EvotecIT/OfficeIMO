@@ -29,12 +29,12 @@ public static class OfficeDocumentReaderBuilderJsonExtensions {
             Description = "Modular JSON AST parser with path/type/value chunk output.",
             Kind = ReaderInputKind.Json,
             Extensions = new[] { ".json" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderJsonExtensions.ReadJson(
+            ReadPath = (path, readerOptions, ct) => JsonReaderAdapter.Read(
                 path: path,
                 readerOptions: readerOptions,
                 jsonOptions: Clone(registered),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderJsonExtensions.ReadJson(
+            ReadStream = (stream, sourceName, readerOptions, ct) => JsonReaderAdapter.Read(
                 stream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

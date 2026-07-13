@@ -126,7 +126,7 @@ Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.
                     "<sup>2</sup>",
                     "<u>important</u>"
                 },
-                createSourceDocument: () => "<p>Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.</p>".ToMarkdownDocument(),
+                createSourceDocument: () => OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.</p>").ToMarkdownDocument(),
                 createRendererOptions: () => new MarkdownRendererOptions {
                     ReaderOptions = MarkdownReaderOptions.CreateOfficeIMOProfile(),
                     HtmlOptions = new HtmlOptions {
@@ -152,7 +152,7 @@ Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.
         };
 
         var readerOptions = fixture.CreateReaderOptions?.Invoke() ?? MarkdownReaderOptions.CreateOfficeIMOProfile();
-        var source = fixture.CreateSourceDocument?.Invoke() ?? MarkdownReader.Parse(fixture.Markdown, readerOptions);
+        var source = fixture.CreateSourceDocument?.Invoke() ?? OfficeIMO.Markdown.MarkdownReader.Parse(fixture.Markdown, readerOptions);
         var sourceMarkdown = NormalizeMarkdown(source.ToMarkdown());
         var sourceHtml = source.ToHtmlFragment(htmlOptions);
         var pipelineMarkdown = fixture.UseSourceMarkdownAsPipelineInput ? sourceMarkdown : fixture.Markdown;
@@ -167,11 +167,11 @@ Water H<sub>2</sub>O plus x<sup>2</sup> and <u>important</u>.
         };
         var renderedHtml = OmdRenderer.RenderBodyHtml(pipelineMarkdown, rendererOptions);
 
-        var htmlRoundTrip = sourceHtml.ToMarkdownDocument(new HtmlToMarkdownOptions());
+        var htmlRoundTrip = OfficeIMO.Html.HtmlConversionDocument.Parse(sourceHtml).ToMarkdownDocument(new HtmlToMarkdownOptions());
         var htmlRoundTripMarkdown = NormalizeMarkdown(htmlRoundTrip.ToMarkdown());
 
-        using var wordDocument = pipelineMarkdown.LoadFromMarkdown(
-            fixture.CreateWordOptions?.Invoke() ?? new MarkdownToWordOptions { FontFamily = "Calibri" });
+        MarkdownToWordOptions wordOptions = fixture.CreateWordOptions?.Invoke() ?? new MarkdownToWordOptions { FontFamily = "Calibri" };
+        using var wordDocument = OfficeIMO.Markdown.MarkdownReader.Parse(pipelineMarkdown, wordOptions.CreateReaderOptions()).ToWordDocument(wordOptions);
         var wordRoundTripMarkdown = NormalizeMarkdown(
             wordDocument.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true }));
 

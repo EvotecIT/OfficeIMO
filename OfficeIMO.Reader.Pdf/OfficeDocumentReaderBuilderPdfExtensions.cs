@@ -28,23 +28,23 @@ public static class OfficeDocumentReaderBuilderPdfExtensions {
             Description = "Modular PDF adapter using OfficeIMO.Pdf logical read model.",
             Kind = ReaderInputKind.Pdf,
             Extensions = new[] { ".pdf" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderPdfExtensions.ReadPdfFile(
+            ReadPath = (path, readerOptions, ct) => PdfReaderAdapter.Read(
                 pdfPath: path,
                 readerOptions: readerOptions,
                 pdfOptions: ReaderPdfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderPdfExtensions.ReadPdf(
+            ReadStream = (stream, sourceName, readerOptions, ct) => PdfReaderAdapter.Read(
                 pdfStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 pdfOptions: ReaderPdfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderPdfExtensions.ReadPdfDocument(
+            ReadDocumentPath = (path, readerOptions, ct) => PdfReaderAdapter.ReadDocument(
                 pdfPath: path,
                 readerOptions: readerOptions,
                 pdfOptions: ReaderPdfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderPdfExtensions.ReadPdfDocument(
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => PdfReaderAdapter.ReadDocument(
                 pdfStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

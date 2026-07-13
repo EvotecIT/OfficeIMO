@@ -39,7 +39,7 @@ public class RtfPdfConverterTests {
     public void RtfString_ToPdfDocument_Renders_Field_Result_Text() {
         const string rtf = @"{\rtf1\ansi Parsed {\field{\*\fldinst HYPERLINK ""https://evotec.xyz/rtf"" \\o ""Screen tip""}{\fldrslt link}} text\par}";
 
-        byte[] pdf = rtf.ToPdfFromRtf();
+        byte[] pdf = ParseRtf(rtf).ToPdf();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Contains("Parsed", text, StringComparison.Ordinal);
@@ -57,7 +57,7 @@ public class RtfPdfConverterTests {
     public void RtfString_ToPdfDocument_Renders_Internal_Hyperlink_Field_As_Bookmark_Link() {
         const string rtf = @"{\rtf1\ansi\pard {\*\bkmkstart Target}Target{\*\bkmkend Target}\par\pard Jump {\field{\*\fldinst HYPERLINK \\l ""Target"" \\o ""Jump tip""}{\fldrslt link}}\par}";
 
-        byte[] pdf = rtf.ToPdfFromRtf();
+        byte[] pdf = ParseRtf(rtf).ToPdf();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Contains("Target", info.NamedDestinationNames);
@@ -326,7 +326,7 @@ public class RtfPdfConverterTests {
     public void RtfString_ToPdfDocument_Renders_Parsed_Section_Breaks() {
         const string rtf = @"{\rtf1\ansi\sectd\sbkpage\pard Parsed first\par\sect\sectd\sbkpage\pard Parsed second\par}";
 
-        byte[] pdf = rtf.ToPdfFromRtf();
+        byte[] pdf = ParseRtf(rtf).ToPdf();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
 
         Assert.Equal(2, read.Pages.Count);
@@ -372,7 +372,7 @@ public class RtfPdfConverterTests {
     public void RtfString_ToPdfDocument_Applies_Parsed_Section_PageSetup() {
         const string rtf = @"{\rtf1\ansi\sectd\sbkpage\pgwsxn4800\pghsxn6400\pard Parsed small\par\sect\sectd\sbkpage\pgwsxn4800\pghsxn8400\lndscpsxn\pard Parsed landscape\par}";
 
-        byte[] pdf = rtf.ToPdfFromRtf();
+        byte[] pdf = ParseRtf(rtf).ToPdf();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
 
         Assert.Equal(2, info.PageCount);
@@ -428,7 +428,7 @@ public class RtfPdfConverterTests {
     public void RtfString_ToPdfDocument_Renders_Paragraph_Indentation_And_Spacing() {
         const string rtf = @"{\rtf1\ansi\paperw12240\paperh15840\margl720\margr720\margt720\margb720\pard Plain\par\pard\li1440\ri720\fi720\sb720\sa0 Indented\par}";
 
-        byte[] pdf = rtf.ToPdfFromRtf();
+        byte[] pdf = ParseRtf(rtf).ToPdf();
         using PdfPigDocument read = PdfPigDocument.Open(pdf);
         var words = read.GetPage(1).GetWords().ToList();
         var plain = Assert.Single(words, word => word.Text == "Plain");
@@ -442,7 +442,7 @@ public class RtfPdfConverterTests {
     public void RtfString_ToPdfDocument_Renders_Explicit_Tab_Stop_Alignment_And_Leader() {
         const string rtf = @"{\rtf1\ansi\paperw12240\paperh15840\margl720\margr720\margt720\margb720\pard\tqr\tldot\tx3600 Name\tab 12.34\par}";
 
-        byte[] pdf = rtf.ToPdfFromRtf();
+        byte[] pdf = ParseRtf(rtf).ToPdf();
         using PdfPigDocument read = PdfPigDocument.Open(pdf);
         var letters = read.GetPage(1).Letters.OrderBy(letter => letter.StartBaseLine.X).ToList();
         var label = FindTextBounds(letters, "Name");
@@ -630,6 +630,8 @@ public class RtfPdfConverterTests {
         Assert.Contains(result.Warnings, warning => warning.Code == "ObjectFlattened" && warning.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
         Assert.Contains(result.Warnings, warning => warning.Code == "ShapeFlattened" && warning.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
     }
+
+    private static RtfDocument ParseRtf(string rtf) => RtfDocument.Read(rtf).Document;
 
     private static string ExtractPdfContentStreams(byte[] pdf) {
         string raw = Encoding.GetEncoding("ISO-8859-1").GetString(pdf);

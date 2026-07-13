@@ -8,9 +8,7 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     public SummaryBlock? Summary { get; set; }
 
     /// <summary>Nested blocks rendered inside the details body.</summary>
-    public System.Collections.Generic.List<IMarkdownBlock> Children { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
-    /// <summary>Read-only AST-style view of parsed child blocks inside the details body.</summary>
-    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Children;
+    public System.Collections.Generic.List<IMarkdownBlock> ChildBlocks { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
     /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
 
@@ -43,7 +41,7 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     public DetailsBlock(SummaryBlock? summary, System.Collections.Generic.IEnumerable<IMarkdownBlock>? children = null, bool open = false) {
         Summary = summary;
         Open = open;
-        if (children != null) Children.AddRange(children);
+        if (children != null) ChildBlocks.AddRange(children);
     }
 
     internal void ClearSyntaxCache() {
@@ -67,23 +65,23 @@ public sealed class DetailsBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
                 : MarkdownBlockRenderDispatcher.RenderMarkdown(Summary));
         }
 
-        if (Children.Count > 0) {
+        if (ChildBlocks.Count > 0) {
             sb.Append(NewLine);
-            for (int i = 0; i < Children.Count; i++) {
+            for (int i = 0; i < ChildBlocks.Count; i++) {
                 if (i == 0) {
                     if (Summary != null && InsertBlankLineAfterSummary) sb.Append(NewLine);
                 } else {
                     sb.Append(NewLine).Append(NewLine);
                 }
                 var rendered = renderHtmlChildren
-                    ? MarkdownBlockRenderDispatcher.RenderHtml(Children[i])
-                    : MarkdownBlockRenderDispatcher.RenderMarkdown(Children[i]);
+                    ? MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i])
+                    : MarkdownBlockRenderDispatcher.RenderMarkdown(ChildBlocks[i]);
                 sb.Append(rendered);
             }
         }
 
         sb.Append(NewLine);
-        if (InsertBlankLineBeforeClosing && (Children.Count > 0 || Summary != null)) sb.Append(NewLine);
+        if (InsertBlankLineBeforeClosing && (ChildBlocks.Count > 0 || Summary != null)) sb.Append(NewLine);
         sb.Append("</details>");
         return sb.ToString();
     }

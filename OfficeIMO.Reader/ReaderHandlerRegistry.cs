@@ -260,7 +260,7 @@ internal sealed class ReaderHandlerDescriptor {
         var normalized = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (extensions != null) {
             foreach (string extension in extensions) {
-                string value = DocumentReader.NormalizeExtension(extension);
+                string value = DocumentReaderEngine.NormalizeExtension(extension);
                 if (value.Length > 0) {
                     normalized.Add(value);
                 }

@@ -18,6 +18,12 @@ public sealed class OfficeDocumentProcessorPipelineBuilder {
         if (!_ids.Add(id)) {
             throw new InvalidOperationException($"A document processor with id '{id}' is already registered.");
         }
+        if (!(processor is ISynchronousOfficeDocumentProcessor) && !(processor is IAsyncOfficeDocumentProcessor)) {
+            _ids.Remove(id);
+            throw new ArgumentException(
+                "Processor must implement the synchronous or asynchronous processing contract.",
+                nameof(processor));
+        }
         _processors.Add(processor);
         return this;
     }

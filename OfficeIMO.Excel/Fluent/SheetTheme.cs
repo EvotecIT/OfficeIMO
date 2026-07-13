@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Default spacing between blocks, in rows.</summary>
         public int DefaultSpacingRows { get; set; } = 1;
 
-        /// <summary>Built-in default theme.</summary>
-        public static SheetTheme Default { get; } = new SheetTheme();
+        /// <summary>Creates a fresh built-in default theme.</summary>
+        public static SheetTheme Default => new SheetTheme();
     }
 }

@@ -1,7 +1,8 @@
-using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -37,26 +38,54 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Saves this slide as a PNG file.
         /// </summary>
-        public void SaveAsPng(string path, PowerPointImageExportOptions? options = null) =>
-            WriteImageFile(path, ToPng(options));
+        public OfficeImageExportResult SaveAsPng(string path, PowerPointImageExportOptions? options = null) =>
+            new PowerPointSlideImageExportBuilder(this, options).AsPng().Save(path);
 
         /// <summary>
         /// Saves this slide as an SVG file.
         /// </summary>
-        public void SaveAsSvg(string path, PowerPointImageExportOptions? options = null) =>
-            WriteImageFile(path, Encoding.UTF8.GetBytes(ToSvg(options)));
+        public OfficeImageExportResult SaveAsSvg(string path, PowerPointImageExportOptions? options = null) =>
+            new PowerPointSlideImageExportBuilder(this, options).AsSvg().Save(path);
 
         /// <summary>
         /// Writes this slide as PNG to a stream.
         /// </summary>
-        public void SaveAsPng(Stream stream, PowerPointImageExportOptions? options = null) =>
-            WriteImageStream(stream, ToPng(options));
+        public OfficeImageExportResult SaveAsPng(Stream stream, PowerPointImageExportOptions? options = null) =>
+            new PowerPointSlideImageExportBuilder(this, options).AsPng().Save(stream);
 
         /// <summary>
         /// Writes this slide as SVG to a stream.
         /// </summary>
-        public void SaveAsSvg(Stream stream, PowerPointImageExportOptions? options = null) =>
-            WriteImageStream(stream, Encoding.UTF8.GetBytes(ToSvg(options)));
+        public OfficeImageExportResult SaveAsSvg(Stream stream, PowerPointImageExportOptions? options = null) =>
+            new PowerPointSlideImageExportBuilder(this, options).AsSvg().Save(stream);
+
+        /// <summary>Asynchronously saves this slide as a PNG file.</summary>
+        public Task<OfficeImageExportResult> SaveAsPngAsync(
+            string path,
+            PowerPointImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new PowerPointSlideImageExportBuilder(this, options).AsPng().SaveAsync(path, cancellationToken);
+
+        /// <summary>Asynchronously saves this slide as an SVG file.</summary>
+        public Task<OfficeImageExportResult> SaveAsSvgAsync(
+            string path,
+            PowerPointImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new PowerPointSlideImageExportBuilder(this, options).AsSvg().SaveAsync(path, cancellationToken);
+
+        /// <summary>Asynchronously writes this slide as PNG to a stream.</summary>
+        public Task<OfficeImageExportResult> SaveAsPngAsync(
+            Stream stream,
+            PowerPointImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new PowerPointSlideImageExportBuilder(this, options).AsPng().SaveAsync(stream, cancellationToken);
+
+        /// <summary>Asynchronously writes this slide as SVG to a stream.</summary>
+        public Task<OfficeImageExportResult> SaveAsSvgAsync(
+            Stream stream,
+            PowerPointImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new PowerPointSlideImageExportBuilder(this, options).AsSvg().SaveAsync(stream, cancellationToken);
 
         private static PowerPointImageExportOptions NormalizeImageExportOptions(PowerPointImageExportOptions? options) {
             PowerPointImageExportOptions resolved = options?.Clone() ?? new PowerPointImageExportOptions();
@@ -64,26 +93,5 @@ namespace OfficeIMO.PowerPoint {
             return resolved;
         }
 
-        private static void WriteImageFile(string path, byte[] bytes) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
-            }
-
-            string fullPath = Path.GetFullPath(path);
-            string? directory = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrWhiteSpace(directory)) {
-                Directory.CreateDirectory(directory!);
-            }
-
-            OfficeFileCommit.WriteAllBytes(fullPath, bytes);
-        }
-
-        private static void WriteImageStream(Stream stream, byte[] bytes) {
-            if (stream == null) {
-                throw new ArgumentNullException(nameof(stream));
-            }
-
-            stream.Write(bytes, 0, bytes.Length);
-        }
     }
 }
