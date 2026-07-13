@@ -64,6 +64,12 @@ public static class OfficeColorTransforms {
         return FromHsl(hue, saturation, ClampUnit(luminance + offset), color.A);
     }
 
+    /// <summary>Returns the HSL hue complement while preserving saturation, luminance, and alpha.</summary>
+    public static OfficeColor Complement(OfficeColor color) {
+        ToHsl(color, out double hue, out double saturation, out double luminance);
+        return FromHsl(hue + 180D, saturation, luminance, color.A);
+    }
+
     /// <summary>
     /// Applies a SpreadsheetML tint in the inclusive range -1 to 1 by adjusting HSL luminance.
     /// Negative values darken and positive values lighten.

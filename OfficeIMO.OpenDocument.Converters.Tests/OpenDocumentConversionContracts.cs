@@ -36,6 +36,8 @@ public sealed class OpenDocumentConversionContracts {
 
         OdfConversionResult<WordDocument> toWord = reopened.ToWordDocumentResult();
         using WordDocument roundTrip = toWord.Value;
+        roundTrip.AddParagraph("Detached conversion remains editable");
+        Assert.Throws<InvalidOperationException>(() => roundTrip.Save());
         Assert.Empty(roundTrip.ValidateDocument());
         WordDocumentSnapshot snapshot = roundTrip.CreateInspectionSnapshot();
         Assert.Contains(snapshot.Sections.SelectMany(section => section.Elements).OfType<WordParagraphSnapshot>(),

@@ -32,6 +32,13 @@ public class DrawingColorTransforms {
     }
 
     [Fact]
+    public void ComplementRotatesHueWithoutInvertingChannels() {
+        OfficeColor color = OfficeColor.FromRgba(51, 102, 153, 128);
+
+        Assert.Equal(OfficeColor.FromRgba(153, 102, 51, 128), OfficeColorTransforms.Complement(color));
+    }
+
+    [Fact]
     public void SpreadsheetTintAdjustsHslLuminance() {
         OfficeColor color = OfficeColor.FromRgb(79, 129, 189);
 

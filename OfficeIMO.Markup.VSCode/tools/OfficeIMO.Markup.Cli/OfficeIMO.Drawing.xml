@@ -1608,6 +1608,9 @@
         <member name="M:OfficeIMO.Drawing.OfficeColorTransforms.OffsetLuminance(OfficeIMO.Drawing.OfficeColor,System.Double)">
             <summary>Adds a normalized HSL luminance offset and clamps the result.</summary>
         </member>
+        <member name="M:OfficeIMO.Drawing.OfficeColorTransforms.Complement(OfficeIMO.Drawing.OfficeColor)">
+            <summary>Returns the HSL hue complement while preserving saturation, luminance, and alpha.</summary>
+        </member>
         <member name="M:OfficeIMO.Drawing.OfficeColorTransforms.SpreadsheetTint(OfficeIMO.Drawing.OfficeColor,System.Double)">
             <summary>
             Applies a SpreadsheetML tint in the inclusive range -1 to 1 by adjusting HSL luminance.

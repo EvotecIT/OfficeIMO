@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.IO.Compression;
+using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -60,6 +61,38 @@ public class CsvSaveApiTests
                 .SaveAsync(path, new CsvSaveOptions { Append = true, IncludeHeader = false, NewLine = "\n" });
 
             Assert.Equal("Name,Value\nAlpha,1\nBeta,2\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SaveAsync_Append_Does_Not_Write_Encoding_Preamble_Into_Existing_Content(bool useUtf16)
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.AsyncAppendBom." + Guid.NewGuid().ToString("N") + ".csv");
+        Encoding encoding = useUtf16 ? Encoding.Unicode : new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+        try
+        {
+            File.WriteAllText(path, "Name,Value\nAlpha,1\n", encoding);
+            await new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Beta", 2)
+                .SaveAsync(path, new CsvSaveOptions {
+                    Append = true,
+                    IncludeHeader = false,
+                    NewLine = "\n",
+                    Encoding = encoding
+                });
+
+            byte[] bytes = File.ReadAllBytes(path);
+            byte[] preamble = encoding.GetPreamble();
+            Assert.True(bytes.Take(preamble.Length).SequenceEqual(preamble));
+            Assert.Equal(-1, FindSequence(bytes, preamble, preamble.Length));
+            Assert.Equal("Name,Value\nAlpha,1\nBeta,2\n", File.ReadAllText(path, encoding));
         }
         finally
         {
@@ -139,6 +172,24 @@ public class CsvSaveApiTests
     private static CsvDocument CreateDocument() => new CsvDocument()
         .WithHeader("Name", "Value")
         .AddRow("Alpha", 1);
+
+    private static int FindSequence(byte[] bytes, byte[] sequence, int startIndex)
+    {
+        for (int index = startIndex; index <= bytes.Length - sequence.Length; index++)
+        {
+            bool matches = true;
+            for (int offset = 0; offset < sequence.Length; offset++)
+            {
+                if (bytes[index + offset] == sequence[offset]) continue;
+                matches = false;
+                break;
+            }
+
+            if (matches) return index;
+        }
+
+        return -1;
+    }
 
     private static string CreateMissingDirectoryPath() =>
         Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Save." + Guid.NewGuid().ToString("N"));

@@ -428,10 +428,16 @@ public static class WordOpenDocumentConversionExtensions {
         char.IsLetterOrDigit(character) ? character : '-').ToArray()).Trim('-');
 
     private static WordDocument Normalize(WordDocument document) {
-        var stream = new MemoryStream();
-        document.Save(stream);
-        document.Dispose();
-        stream.Position = 0;
-        return WordDocument.Load(stream);
+        byte[] bytes;
+        try {
+            using var stream = new MemoryStream();
+            document.Save(stream);
+            bytes = stream.ToArray();
+        } finally {
+            document.Dispose();
+        }
+
+        using var detachedSource = new MemoryStream(bytes, writable: false);
+        return WordDocument.Load(detachedSource);
     }
 }

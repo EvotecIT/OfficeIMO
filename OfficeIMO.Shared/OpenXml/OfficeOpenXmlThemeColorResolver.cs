@@ -110,6 +110,8 @@ internal static class OfficeOpenXmlThemeColorResolver {
         foreach (OpenXmlElement transform in colorElement.ChildElements) {
             switch (transform.LocalName) {
                 case "comp":
+                    resolved = OfficeColorTransforms.Complement(resolved);
+                    continue;
                 case "inv":
                     resolved = OfficeColor.FromRgba(
                         (byte)(255 - resolved.R),

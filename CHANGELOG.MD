@@ -15,6 +15,9 @@
 * Remove the `SixLabors.Fonts` dependency from Excel autofit by using deterministic first-party text measurement.
 * Fix the packed `OfficeIMO.Email` dependency graph for .NET Framework by directly declaring the code-page compatibility package used by its MIME, MSG, and TNEF codecs.
 * Preserve multilingual HTML-to-PDF text by embedding the installed CSS system font in its mapped PDF slot and reusing its regular face when a styled face lacks required glyphs.
+* Keep normalized OpenDocument-to-Word conversions editable while detaching them from the converter's private stream, so parameterless `Save()` correctly requires an explicit destination.
+* Apply DrawingML `comp` as a 180-degree hue complement and keep `inv` as channel inversion.
+* Avoid writing a second encoding preamble into an existing CSV when appending asynchronously with a BOM-enabled encoding.
 * Run every test project that declares `net472` on .NET Framework in CI, and verify `OfficeIMO.Email` as a clean packed-package consumer on `net472`, `net8.0`, and `net10.0`.
 * Write OpenDocument ZIP records with a first-party deterministic writer so the required uncompressed `mimetype` entry remains standards-compliant on .NET Framework as well as modern .NET.
 * Stop emitting repository examples, the bundled Markup CLI, and legacy benchmark executables as unsupported NuGet library packages.
