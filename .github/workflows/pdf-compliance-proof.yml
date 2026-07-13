@@ -76,7 +76,7 @@ env:
     10.0.103
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
-  VERAPDF_CLI_IMAGE: ghcr.io/verapdf/cli:v1.31.102
+  VERAPDF_CLI_IMAGE: ghcr.io/verapdf/cli:v1.31.105@sha256:7f28bd1ea0814e4eb8d99fc43c78dc6940047f4819c89b4194dbb8213f45b6de
 
 jobs:
   pdf-compliance-proof:
@@ -121,7 +121,7 @@ jobs:
           #!/usr/bin/env bash
           set -euo pipefail
 
-          image="${VERAPDF_CLI_IMAGE:-ghcr.io/verapdf/cli:v1.31.102}"
+          image="${VERAPDF_CLI_IMAGE:-ghcr.io/verapdf/cli:v1.31.105@sha256:7f28bd1ea0814e4eb8d99fc43c78dc6940047f4819c89b4194dbb8213f45b6de}"
           mount_args=()
           mapped_args=()
           mount_index=0
