@@ -163,6 +163,29 @@ namespace OfficeIMO.Tests {
             Assert.Contains("SetLength failed", exception.Message, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public async Task AssociatedReadOnlyPath_RejectsSyncAndAsyncSave() {
+            string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPoint.ReadOnly." + Guid.NewGuid().ToString("N") + ".pptx");
+            try {
+                using var presentation = PowerPointPresentation.Create(path);
+                presentation.AddSlide();
+                presentation.Save();
+                File.SetAttributes(path, File.GetAttributes(path) | FileAttributes.ReadOnly);
+                presentation.AddSlide();
+
+                IOException syncException = Assert.Throws<IOException>(() => presentation.Save());
+                Assert.Contains("read-only", syncException.Message, StringComparison.OrdinalIgnoreCase);
+
+                IOException asyncException = await Assert.ThrowsAsync<IOException>(() => presentation.SaveAsync());
+                Assert.Contains("read-only", asyncException.Message, StringComparison.OrdinalIgnoreCase);
+            } finally {
+                if (File.Exists(path)) {
+                    File.SetAttributes(path, FileAttributes.Normal);
+                    File.Delete(path);
+                }
+            }
+        }
+
         private static void AssertValidPackage(MemoryStream stream, int expectedSlides) {
             Assert.True(stream.Length > 0);
             stream.Position = 0;

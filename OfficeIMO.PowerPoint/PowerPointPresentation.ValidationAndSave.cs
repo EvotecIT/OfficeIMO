@@ -99,6 +99,7 @@ namespace OfficeIMO.PowerPoint {
         public void Save(string filePath, PowerPointSaveOptions? options = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            EnsureDestinationFileWritable(filePath);
             byte[] packageBytes = CreatePackageBytesForSave();
             OfficeFileCommit.WriteAllBytes(filePath, packageBytes);
             _filePath = filePath;
@@ -144,6 +145,7 @@ namespace OfficeIMO.PowerPoint {
             CancellationToken cancellationToken = default) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
             byte[] packageBytes = CreatePackageBytesForSave();
             await OfficeFileCommit.WriteAllBytesAsync(filePath, packageBytes,
@@ -226,9 +228,7 @@ namespace OfficeIMO.PowerPoint {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (filePath.Length == 0) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
-            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(filePath);
 
             using var packageStream = new MemoryStream();
             Save(packageStream);
@@ -253,6 +253,12 @@ namespace OfficeIMO.PowerPoint {
             Save(packageStream);
             byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
             OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
+        }
+
+        private static void EnsureDestinationFileWritable(string filePath) {
+            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+            }
         }
 
     }

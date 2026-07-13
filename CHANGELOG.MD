@@ -20,6 +20,7 @@
 * Apply DrawingML `comp` as a 180-degree hue complement and keep `inv` as channel inversion.
 * Avoid writing a second encoding preamble into an existing CSV when appending asynchronously with a BOM-enabled encoding.
 * Support one-time Word stream saves and PDF-table Word/PowerPoint exports to write-only, non-seekable destinations such as HTTP responses.
+* Reject synchronous and asynchronous PowerPoint saves to existing read-only files before atomic replacement can bypass POSIX file permissions.
 * Run every test project that declares `net472` on .NET Framework in CI, and verify `OfficeIMO.Email` as a clean packed-package consumer on `net472`, `net8.0`, and `net10.0`.
 * Write OpenDocument ZIP records with a first-party deterministic writer so the required uncompressed `mimetype` entry remains standards-compliant on .NET Framework as well as modern .NET.
 * Stop emitting repository examples, the bundled Markup CLI, and legacy benchmark executables as unsupported NuGet library packages.
