@@ -145,6 +145,23 @@ public sealed class PublicApiNamingContracts {
     }
 
     [Fact]
+    public void PersistenceOptionsDoNotMixSavingWithApplicationLaunching() {
+        Assembly[] assemblies = {
+            typeof(WordDocument).Assembly,
+            typeof(ExcelDocument).Assembly,
+            typeof(OfficeIMO.PowerPoint.PowerPointPresentation).Assembly
+        };
+
+        PropertyInfo[] launchProperties = assemblies
+            .SelectMany(static assembly => assembly.GetExportedTypes())
+            .SelectMany(static type => type.GetProperties(BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static))
+            .Where(static property => property.Name == "OpenAfterSave")
+            .ToArray();
+
+        Assert.Empty(launchProperties);
+    }
+
+    [Fact]
     public void CanonicalSchemaAndAstNamesDoNotExposeAliases() {
         Assert.Null(typeof(OfficeDocumentReadResultSchema).GetField("Version", BindingFlags.Public | BindingFlags.Static));
         Assert.NotNull(typeof(OfficeIMO.Markdown.FootnoteDefinitionBlock).GetProperty("ChildBlocks"));
