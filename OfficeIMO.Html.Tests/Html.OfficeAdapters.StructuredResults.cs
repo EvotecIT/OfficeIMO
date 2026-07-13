@@ -28,6 +28,8 @@ public class HtmlOfficeAdaptersStructuredResults {
         Assert.True(Assert.Single(workbook.Sheets).TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? value));
         Assert.Equal("42", value!.Text);
         Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, textBox => textBox.Text == "Prepared slide");
+        Assert.Throws<InvalidOperationException>(() => workbook.Save());
+        Assert.Throws<InvalidOperationException>(() => presentation.Save());
     }
 
     [Fact]

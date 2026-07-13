@@ -43,8 +43,7 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     private static HtmlToPowerPointResult ImportDocument(IHtmlDocument document, HtmlToPowerPointOptions options) {
-        var stream = new MemoryStream();
-        PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create(stream);
+        PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
         var result = new HtmlToPowerPointResult(presentation);
 
         List<IElement> slideSections = document.QuerySelectorAll("section.officeimo-slide").ToList();

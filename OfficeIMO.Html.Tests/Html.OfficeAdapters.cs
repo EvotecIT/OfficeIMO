@@ -466,9 +466,11 @@ public class HtmlOfficeAdapters {
         using ExcelDocument imported = result.Value;
 
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
-        imported.Save();
+        using var output = new MemoryStream();
+        imported.Save(output);
 
         Assert.Equal("Imported", importedSheet.Name);
+        Assert.NotEmpty(output.ToArray());
         HtmlDiagnostic diagnostic = Assert.Single(result.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);
         Assert.Equal(HtmlDiagnosticSeverity.Error, diagnostic.Severity);

@@ -24,7 +24,7 @@ public sealed partial class RtfDocument {
     /// <summary>Saves the document to an RTF file.</summary>
     public async Task SaveAsync(string path, RtfWriteOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        byte[] bytes = ToBytes(options, encoding);
+        byte[] bytes = ToFileBytes(options, encoding);
         await OfficeFileCommit.WriteAllBytesAsync(path, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
     }
 

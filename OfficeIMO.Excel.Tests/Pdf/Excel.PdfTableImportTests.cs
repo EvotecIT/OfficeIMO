@@ -74,6 +74,45 @@ public partial class Excel {
     }
 
     [Fact]
+    public void PdfTables_SaveAsExcel_SupportsNonSeekableDestinationStreams() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Table(new[] {
+                new[] { "Code", "Qty" },
+                new[] { "A-100", "2" },
+                new[] { "B-200", "3" }
+            }, style: new PdfCore.PdfTableStyle {
+                ColumnWidthPoints = new List<double?> { 180, 80 },
+                HeaderRowCount = 1,
+                CellPaddingX = 6,
+                CellPaddingY = 4
+            })
+            .ToBytes();
+        using var workbook = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
+
+        IReadOnlyList<PdfExcelTableImportResult> results = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
+            pdf,
+            workbook,
+            new PdfExcelTableImportOptions {
+                LayoutOptions = new PdfCore.PdfTextLayoutOptions { ForceSingleColumn = true },
+                AutoFitColumns = false
+            });
+
+        PdfExcelTableImportResult result = Assert.Single(results);
+        using ExcelDocumentReader reader = ExcelDocumentReader.Open(workbook.ToArray());
+        object?[,] values = reader.GetSheet(result.SheetName).ReadRange(result.Range);
+        Assert.Equal("A-100", values[1, 0]);
+        Assert.Equal(2d, Convert.ToDouble(values[1, 1], CultureInfo.InvariantCulture));
+    }
+
+    [Fact]
     public void PdfTables_SaveAsExcel_WritesDetectedNumericColumnsAsNumberCells() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 420,

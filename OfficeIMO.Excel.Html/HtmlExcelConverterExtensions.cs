@@ -41,8 +41,7 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     private static HtmlToExcelResult ImportDocument(IHtmlDocument document, HtmlToExcelOptions options) {
-        var stream = new MemoryStream();
-        ExcelDocument workbook = ExcelDocument.Create(stream);
+        ExcelDocument workbook = ExcelDocument.Create();
         var result = new HtmlToExcelResult(workbook);
 
         List<IElement> sheetSections = document.QuerySelectorAll("section.officeimo-sheet").ToList();

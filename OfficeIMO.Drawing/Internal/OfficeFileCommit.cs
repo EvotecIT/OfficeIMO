@@ -118,6 +118,8 @@ namespace OfficeIMO.Drawing.Internal {
                 return;
             }
 
+            EnsureDestinationWritable(fullTargetPath);
+
             if (!File.Exists(fullTargetPath)) {
                 try {
                     ExecuteWithRetry(() => File.Move(temporaryPath, fullTargetPath));
@@ -137,6 +139,12 @@ namespace OfficeIMO.Drawing.Internal {
             }
 
             ReplaceUsingBackup(temporaryPath, fullTargetPath);
+        }
+
+        private static void EnsureDestinationWritable(string targetPath) {
+            if (File.Exists(targetPath) && new FileInfo(targetPath).IsReadOnly) {
+                throw new UnauthorizedAccessException($"Destination file '{targetPath}' is read-only.");
+            }
         }
 
         /// <summary>Deletes a temporary file when it exists without hiding an earlier failure.</summary>

@@ -40,9 +40,9 @@ namespace OfficeIMO.Excel.Pdf {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
 
-            using ExcelDocument workbook = ExcelDocument.Create(workbookStream);
+            using ExcelDocument workbook = ExcelDocument.Create();
             IReadOnlyList<PdfExcelTableImportResult> results = ImportTables(document, workbook, options ?? new PdfExcelTableImportOptions());
-            workbook.Save();
+            workbook.Save(workbookStream);
             return results;
         }
 
