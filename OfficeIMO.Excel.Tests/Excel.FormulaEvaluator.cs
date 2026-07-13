@@ -6,6 +6,25 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
+        public void Test_FormulaEvaluator_PreservesRoundTripPrecisionInCachedNumbers() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.RoundTripPrecision.xlsx");
+
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorksheet("Precision");
+                sheet.CellFormula(1, 1, "1/7");
+
+                Assert.Equal(1, document.Calculate());
+                string cached = Assert.Single(sheet.InspectFormulas().Formulas).CachedValue!;
+                Assert.Equal(1d / 7d, double.Parse(cached, System.Globalization.CultureInfo.InvariantCulture));
+                document.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
         public void Test_FormulaEvaluator_CalculatesIndexAndExactMatch() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.IndexMatch.xlsx");
 

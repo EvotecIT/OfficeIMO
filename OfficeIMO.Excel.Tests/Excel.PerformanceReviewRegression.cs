@@ -23,12 +23,17 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void PerformanceReview_InvariantNumberTextExpandsForMediumIndexes() {
             string text = InvariantNumberText.Get(25000);
+            double doubleValue = 1d / 7d;
+            float floatValue = 1f / 7f;
 
             Assert.Equal("25000", text);
             Assert.Same(text, InvariantNumberText.Get(25000));
             Assert.True(InvariantNumberText.TryGet(25000, out string cached));
             Assert.Same(text, cached);
             Assert.Equal("-1", InvariantNumberText.Get(-1));
+            Assert.Equal(doubleValue, double.Parse(InvariantNumberText.Get(doubleValue), CultureInfo.InvariantCulture));
+            Assert.Equal(floatValue, float.Parse(InvariantNumberText.Get(floatValue), CultureInfo.InvariantCulture));
+            Assert.Equal("2.35", InvariantNumberText.Get(2.35d));
         }
 
         [Fact]

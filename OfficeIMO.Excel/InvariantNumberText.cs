@@ -44,6 +44,28 @@ namespace OfficeIMO.Excel {
                 : value.ToString(CultureInfo.InvariantCulture);
         }
 
+        internal static string Get(double value) {
+            if (value >= int.MinValue && value <= int.MaxValue) {
+                int integer = (int)value;
+                if (value == integer) {
+                    return Get(integer);
+                }
+            }
+
+            return value.ToString("R", CultureInfo.InvariantCulture);
+        }
+
+        internal static string Get(float value) {
+            if (value >= int.MinValue && value <= int.MaxValue) {
+                int integer = (int)value;
+                if (value == integer) {
+                    return Get(integer);
+                }
+            }
+
+            return value.ToString("R", CultureInfo.InvariantCulture);
+        }
+
         internal static bool TryGet(int value, out string text) {
             var cache = NonNegativeCache;
             if ((uint)value < (uint)cache.Length) {

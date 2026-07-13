@@ -153,7 +153,7 @@ internal static class CoerceValueHelper {
     }
 
     private static CellValue CreateNumberCellValue(double number) =>
-        new(number.ToString(CultureInfo.InvariantCulture));
+        new(InvariantNumberText.Get(number));
 
     private static CellValue CreateTextCellValue(string text) => new(text);
 

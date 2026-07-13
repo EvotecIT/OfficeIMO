@@ -259,8 +259,8 @@ namespace OfficeIMO.Excel {
                 double delta = left.Number.Value - right.Number.Value;
                 comparison = Math.Abs(delta) < 0.0000001 ? 0 : delta < 0 ? -1 : 1;
             } else {
-                string leftText = left.Text ?? left.Number?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-                string rightText = right.Text ?? right.Number?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+                string leftText = left.Text ?? (left.Number.HasValue ? InvariantNumberText.Get(left.Number.Value) : string.Empty);
+                string rightText = right.Text ?? (right.Number.HasValue ? InvariantNumberText.Get(right.Number.Value) : string.Empty);
                 comparison = string.Compare(leftText, rightText, StringComparison.OrdinalIgnoreCase);
             }
 

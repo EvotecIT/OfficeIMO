@@ -157,7 +157,7 @@ namespace OfficeIMO.Excel {
 
         private static void SetFormulaCachedValue(Cell cell, FormulaArgumentValue result) {
             if (result.Number.HasValue) {
-                cell.CellValue = new CellValue(result.Number.Value.ToString(CultureInfo.InvariantCulture));
+                cell.CellValue = new CellValue(InvariantNumberText.Get(result.Number.Value));
                 cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
                 return;
             }
@@ -367,7 +367,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (TryEvaluateFormula(formula, out double numeric)) {
-                result = new FormulaArgumentValue(numeric, numeric.ToString(CultureInfo.InvariantCulture));
+                result = new FormulaArgumentValue(numeric, InvariantNumberText.Get(numeric));
                 return true;
             }
 
