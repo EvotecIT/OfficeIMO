@@ -187,7 +187,7 @@ public class WordRtfCharacterFormattingTests {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph();
         paragraph.AddText("Normal ");
-        paragraph.AddText("Styled").SetFontFamily("Consolas").SetColorHex("4472c4");
+        paragraph.AddText("Styled").SetFontFamily("Consolas").SetColorHex("4472C4");
         paragraph.AddText(" done");
 
         RtfDocument rtfDocument = word.ToRtfDocument();
@@ -202,7 +202,7 @@ public class WordRtfCharacterFormattingTests {
         Assert.Contains(@"{\fonttbl{\f0 Calibri;}{\f1 Consolas;}}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"{\colortbl;\red68\green114\blue196;}", rtf, StringComparison.Ordinal);
         Assert.Contains(@"\f1 \cf1 Styled", rtf, StringComparison.Ordinal);
-        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.ColorHex == "4472c4");
+        Assert.Contains(roundTrip.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.ColorHex == "4472C4");
     }
 
     [Fact]
@@ -218,6 +218,6 @@ public class WordRtfCharacterFormattingTests {
 
         using WordDocument word = rtfDocument.ToWordDocument();
 
-        Assert.Contains(word.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.ColorHex == "4472c4");
+        Assert.Contains(word.Paragraphs, run => run.Text == "Styled" && run.FontFamily == "Consolas" && run.ColorHex == "4472C4");
     }
 }

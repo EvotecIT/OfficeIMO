@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Adds, removes, or replaces Standard password security on supported existing PDFs.</summary>
@@ -48,7 +49,7 @@ public static class PdfSecurityEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfSecurityMutationResult result = Encrypt(File.ReadAllBytes(inputPath), encryption);
-        File.WriteAllBytes(outputPath, result.Pdf);
+        OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
         return result;
     }
 
@@ -57,7 +58,7 @@ public static class PdfSecurityEditor {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
         PdfSecurityMutationResult result = Decrypt(File.ReadAllBytes(inputPath), ownerPassword);
-        File.WriteAllBytes(outputPath, result.Pdf);
+        OfficeFileCommit.WriteAllBytes(outputPath, result.Pdf);
         return result;
     }
 

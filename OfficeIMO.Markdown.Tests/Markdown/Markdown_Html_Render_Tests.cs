@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .H1("Title")
                 .P("Hello")
                 .ToHtmlDocument(new HtmlOptions {
-                    ApplyDefaultVisualTheme = false
+                    ApplyDefaultTheme = false
                 });
 
             Assert.DoesNotContain("article.markdown-body { color: #1f2937; background: #ffffff; }", html, StringComparison.OrdinalIgnoreCase);
@@ -63,6 +63,53 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Html_Rendering_Does_Not_Mutate_Reusable_Options() {
+            var options = new HtmlOptions {
+                Kind = HtmlKind.Document,
+                Theme = MarkdownVisualTheme.Report(),
+                Prism = new PrismOptions { Enabled = true }
+            };
+            options.AdditionalCssHrefs.Add("https://example.com/site.css");
+
+            string fragment = MarkdownDoc.Create().H1("Title").ToHtmlFragment(options);
+
+            Assert.DoesNotContain("<html", fragment, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(HtmlKind.Document, options.Kind);
+            Assert.Single(options.AdditionalCssHrefs);
+            Assert.NotNull(options.Theme);
+            Assert.True(options.Prism.Enabled);
+        }
+
+        [Fact]
+        public async System.Threading.Tasks.Task External_Css_Async_Saves_Are_Operation_Scoped_And_Cancellable() {
+            string temp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(temp);
+            var options = new HtmlOptions {
+                Kind = HtmlKind.Document,
+                Style = HtmlStyle.Clean,
+                CssDelivery = CssDelivery.ExternalFile
+            };
+            MarkdownDoc doc = MarkdownDoc.Create().H1("Title");
+            string first = Path.Combine(temp, "first.html");
+            string second = Path.Combine(temp, "second.html");
+
+            await System.Threading.Tasks.Task.WhenAll(
+                doc.SaveAsHtmlAsync(first, options),
+                doc.SaveAsHtmlAsync(second, options));
+
+            Assert.True(File.Exists(first));
+            Assert.True(File.Exists(Path.ChangeExtension(first, ".css")));
+            Assert.True(File.Exists(second));
+            Assert.True(File.Exists(Path.ChangeExtension(second, ".css")));
+            Assert.Equal(HtmlKind.Document, options.Kind);
+
+            string cancelled = Path.Combine(temp, "cancelled.html");
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                doc.SaveAsHtmlAsync(cancelled, options, new System.Threading.CancellationToken(canceled: true)));
+            Assert.False(File.Exists(cancelled));
+        }
+
+        [Fact]
         public void Shared_VisualTheme_Emits_Consistent_Html_Css() {
             MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
                 .WithColorScheme(MarkdownColorSchemeKind.Emerald)
@@ -77,7 +124,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .Table(t => t.Headers("Name", "Value").Row("Accent", "Emerald"))
                 .ToHtmlDocument(new HtmlOptions {
                     Title = "Shared Theme",
-                    VisualTheme = theme,
+                    Theme = theme,
                     Kind = HtmlKind.Document
                 });
 
@@ -95,25 +142,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void SaveHtml_Remains_Compatibility_Alias_For_SaveAsHtml() {
-            var temp = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(temp);
-            var path = Path.Combine(temp, "compat.html");
-            var doc = MarkdownDoc.Create().H1("Title");
-
-            doc.SaveHtml(path, new HtmlOptions { Title = "Compat", Style = HtmlStyle.Clean });
-
-            Assert.True(File.Exists(path));
-            Assert.Contains("Title", File.ReadAllText(path), StringComparison.Ordinal);
-        }
-
-        [Fact]
-        public void ThemeColors_Property_Remains_Html_Color_Override_Api() {
+        public void ColorOverridesApplyToHtmlThemeVariables() {
             string html = MarkdownDoc.Create()
                 .H1("Legacy colors")
                 .ToHtmlDocument(new HtmlOptions {
-                    Title = "Legacy",
-                    Theme = new ThemeColors {
+                    Title = "Custom colors",
+                    ColorOverrides = new ThemeColors {
                         HeadingLight = "SeaGreen",
                         AccentLight = "#123456"
                     },

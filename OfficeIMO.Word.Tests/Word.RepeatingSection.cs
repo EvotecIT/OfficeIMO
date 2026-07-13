@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("RS", rs.Alias);
                 Assert.Equal("RSTag", rs.Tag);
 
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -26,12 +26,12 @@ namespace OfficeIMO.Tests {
                 var control = document.GetRepeatingSectionByAlias("RS");
                 Assert.NotNull(control);
                 Assert.Equal("RSTag", document.GetRepeatingSectionByTag("RSTag")?.Tag);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.RepeatingSections[0].Remove();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

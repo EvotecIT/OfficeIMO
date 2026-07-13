@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(table4.Rows[0].Cells[0].Paragraphs[0].Text == document.Tables[1].Rows[0].Cells[0].Paragraphs[0].Text);
 
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithTablesAfterBefore.docx"))) {

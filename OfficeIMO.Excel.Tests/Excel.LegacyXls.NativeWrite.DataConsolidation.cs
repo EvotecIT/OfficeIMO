@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Consolidation");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
                     sheet.CellValue(1, 1, "Value");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate {
                         Function = DataConsolidateFunctionValues.Maximum,
@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Consolidation");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
                     sheet.CellValue(1, 1, "Region");
                     sheet.CellValue(2, 1, "North");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate {
@@ -125,13 +125,13 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet source = document.AddWorkSheet("Source");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet source = document.AddWorksheet("Source");
                     source.CellValue(1, 1, "Region");
                     source.CellValue(2, 1, "North");
                     source.CellValue(2, 2, 12d);
 
-                    ExcelSheet sheet = document.AddWorkSheet("Consolidation");
+                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
                     sheet.CellValue(1, 1, "Consolidated");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                         new DataReferences(
@@ -176,8 +176,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet source = document.AddWorkSheet("Source");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet source = document.AddWorksheet("Source");
                     source.CellValue(1, 1, "Region");
                     source.CellValue(2, 1, "North");
                     source.CellValue(2, 2, 12d);
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
                         Name = "ConsolidationSource"
                     });
 
-                    ExcelSheet sheet = document.AddWorkSheet("Consolidation");
+                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
                     sheet.CellValue(1, 1, "Consolidated");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                         new DataReferences(
@@ -239,8 +239,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet source = document.AddWorkSheet("Source");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet source = document.AddWorksheet("Source");
                     source.CellValue(1, 1, "Region");
                     source.CellValue(2, 1, "North");
                     source.CellValue(2, 2, 12d);
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
                         LocalSheetId = 0
                     });
 
-                    ExcelSheet sheet = document.AddWorkSheet("Consolidation");
+                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
                     sheet.CellValue(1, 1, "Consolidated");
                     sheet.WorksheetPart.Worksheet.Append(new DataConsolidate(
                         new DataReferences(
@@ -299,8 +299,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Consolidation");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
                     sheet.CellValue(1, 1, "Consolidated");
                     ExternalRelationship relationship = sheet.WorksheetPart.AddExternalRelationship(
                         ExternalLinkPathRelationshipType,
@@ -357,8 +357,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Consolidation");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Consolidation");
                     sheet.CellValue(1, 1, "Consolidated");
                     ExternalRelationship relationship = sheet.WorksheetPart.AddExternalRelationship(
                         ExternalLinkPathRelationshipType,

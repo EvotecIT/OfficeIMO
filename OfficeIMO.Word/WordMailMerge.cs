@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
 
                 using (WordDocument document = WordDocument.Load(templatePath)) {
                     Execute(document, values, removeFields);
-                    document.Save(outputPath, false);
+                    document.Save(outputPath);
                 }
 
                 outputPaths.Add(outputPath);

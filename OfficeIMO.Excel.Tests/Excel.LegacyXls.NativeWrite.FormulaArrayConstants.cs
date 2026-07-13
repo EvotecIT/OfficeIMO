@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ArrayConstants");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ArrayConstants");
                     sheet.CellValue(1, 1, 6d);
                     sheet.CellFormula(1, 1, "SUM({1,2,3})");
                     sheet.CellValue(2, 1, 2d);

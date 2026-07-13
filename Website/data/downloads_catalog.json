@@ -341,19 +341,6 @@
         {
           "registry": "nuget",
           "registry_label": "NuGet",
-          "registry_package": "OfficeIMO.Reader.Text",
-          "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Text",
-          "title": "OfficeIMO.Reader.Text",
-          "summary": "Structured text compatibility adapter extensions for the CSV, JSON, and XML path.",
-          "best_for": "reader deployments that want the structured text adapters together",
-          "install": "dotnet add package OfficeIMO.Reader.Text",
-          "product_url": "/products/reader/",
-          "docs_url": "/docs/reader/",
-          "accent": "#64748b"
-        },
-        {
-          "registry": "nuget",
-          "registry_label": "NuGet",
           "registry_package": "OfficeIMO.Reader.Html",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.Reader.Html",
           "title": "OfficeIMO.Reader.Html",

@@ -27,13 +27,13 @@ public class ComparerTests : VerifyTestBase {
             using (var document = WordDocument.Create(sourcePath)) {
                 var list = document.AddList(WordListStyle.Numbered);
                 list.AddItem("Item 1");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Create(targetPath)) {
                 var list = document.AddList(WordListStyle.Numbered);
                 list.AddItem("Item 1 updated");
-                document.Save(false);
+                document.Save();
             }
 
             await DoTest(sourcePath, targetPath);
@@ -57,14 +57,14 @@ public class ComparerTests : VerifyTestBase {
             using (var document = WordDocument.Create(sourcePath)) {
                 var table = document.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Left");
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Create(targetPath)) {
                 var table = document.AddTable(1, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].SetText("Left");
                 table.Rows[0].Cells[1].Paragraphs[0].SetText("Right");
-                document.Save(false);
+                document.Save();
             }
 
             await DoTest(sourcePath, targetPath);

@@ -21,7 +21,7 @@ internal static partial class Paragraphs {
                 paragraph.Style = style;
             }
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 

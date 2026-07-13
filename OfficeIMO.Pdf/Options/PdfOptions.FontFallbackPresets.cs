@@ -4,7 +4,7 @@ public sealed partial class PdfOptions {
     /// <summary>
     /// Default installed symbol and emoji family candidates used by document converters for generated PDF text fallback runs.
     /// </summary>
-    public const string DefaultDocumentSymbolAndEmojiFontFamilyFallback = "Arial, DejaVu Sans, Segoe UI Symbol, Segoe UI Emoji, Noto Emoji, Noto Color Emoji, Noto Sans Symbols, Noto Sans Symbols 2, Symbola, Arial Unicode MS";
+    public const string DefaultDocumentSymbolAndEmojiFontFamilyFallback = "Segoe UI Symbol, Apple Symbols, DejaVu Sans, Noto Sans Symbols 2, Noto Sans Symbols, Symbola, Arial Unicode MS, Segoe UI Emoji, Noto Emoji, Noto Color Emoji, Arial";
 
     /// <summary>
     /// Applies OfficeIMO's built-in generated-text fallback groups without requiring callers to manually assign fallback font slots.

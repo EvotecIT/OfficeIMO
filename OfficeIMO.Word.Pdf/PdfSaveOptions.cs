@@ -74,17 +74,9 @@ namespace OfficeIMO.Word.Pdf {
         /// </summary>
         public string? Keywords { get; set; }
 
-        /// <summary>
-        /// Warnings populated when content cannot be mapped faithfully.
-        /// The collection is cleared at the start of each export.
-        /// </summary>
-        public List<PdfExportWarning> Warnings { get; } = new List<PdfExportWarning>();
+        internal List<PdfExportWarning> Warnings { get; } = new List<PdfExportWarning>();
 
-        /// <summary>
-        /// Shared conversion report populated alongside <see cref="Warnings"/> for wrapper-friendly diagnostics.
-        /// The report is cleared at the start of each export.
-        /// </summary>
-        public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
+        internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
         /// <summary>
         /// Determines whether page numbers are rendered in the PDF footer. Defaults to true.
@@ -130,9 +122,23 @@ namespace OfficeIMO.Word.Pdf {
             return this;
         }
 
-        internal void ResetExportState() {
-            Warnings.Clear();
-            ConversionReport.Clear();
-        }
+        internal PdfSaveOptions CloneForConversion() => new() {
+            PdfOptions = PdfOptions,
+            FontFamily = FontFamily,
+            AllowSystemFontEmbedding = AllowSystemFontEmbedding,
+            TextFallbacks = TextFallbacks,
+            PageSize = PageSize,
+            Margins = Margins,
+            Orientation = Orientation,
+            DefaultPageSize = DefaultPageSize,
+            DefaultOrientation = DefaultOrientation,
+            Title = Title,
+            Author = Author,
+            Subject = Subject,
+            Keywords = Keywords,
+            IncludePageNumbers = IncludePageNumbers,
+            PageNumberFormat = PageNumberFormat,
+            DefaultTableBorders = DefaultTableBorders
+        };
     }
 }

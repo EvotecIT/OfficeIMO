@@ -110,7 +110,7 @@ namespace OfficeIMO.Word {
         private void PreSaving() {
             MoveSectionProperties();
             // Keep tblGrid consistent for online viewers without changing authoring semantics.
-            try { NormalizeTablesForOnline(); } catch { }
+            NormalizeTablesForOnline();
             SaveNumbering();
             if (AutoUpdateToc && TableOfContent != null) {
                 TableOfContent.Update();

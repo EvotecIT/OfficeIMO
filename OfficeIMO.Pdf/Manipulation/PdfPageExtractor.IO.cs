@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;
@@ -38,7 +39,7 @@ public static partial class PdfPageExtractor {
         var paths = new List<string>(pages.Count);
         for (int i = 0; i < pages.Count; i++) {
             string outputPath = Path.Combine(fullOutputDirectory, safeBaseName + "-page-" + (i + 1).ToString("0000", CultureInfo.InvariantCulture) + ".pdf");
-            File.WriteAllBytes(outputPath, pages[i]);
+            OfficeFileCommit.WriteAllBytes(outputPath, pages[i]);
             paths.Add(outputPath);
         }
     
@@ -68,7 +69,7 @@ public static partial class PdfPageExtractor {
                 range.LastPage.ToString("0000", CultureInfo.InvariantCulture) +
                 (occurrence <= 1 ? string.Empty : "-occurrence-" + occurrence.ToString("0000", CultureInfo.InvariantCulture)) +
                 ".pdf");
-            File.WriteAllBytes(outputPath, pages[i]);
+            OfficeFileCommit.WriteAllBytes(outputPath, pages[i]);
             paths.Add(outputPath);
         }
     
@@ -112,7 +113,7 @@ public static partial class PdfPageExtractor {
         string fullPath = ValidateOutputPath(outputPath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
     }
     
     private static string ValidateOutputPath(string outputPath) {

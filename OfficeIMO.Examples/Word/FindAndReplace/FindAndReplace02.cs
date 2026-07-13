@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Paragraphs[9].Bold = true;
                 document.Paragraphs[10].Bold = true;
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Word {
                 var replacedCount = document.FindAndReplace("Test Section", "Production Section");
                 Console.WriteLine("Replaced (should be 5): " + replacedCount);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(instruction);
                 Assert.Contains("\\o \"1-5\"", instruction);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(fieldCodeText);
                 Assert.Contains("\\o \"1-5\"", fieldCodeText);
 
-                document.Save(false);
+                document.Save();
             }
         }
     }

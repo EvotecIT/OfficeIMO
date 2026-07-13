@@ -23,14 +23,15 @@ public class RtfHtmlEncapsulationTests {
         RtfDocument document = RtfDocument.Read(rtf).Document;
         var options = new RtfToHtmlOptions();
 
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.Contains("<strong>Rich</strong>", html, StringComparison.Ordinal);
         Assert.Contains("message", html, StringComparison.Ordinal);
         Assert.DoesNotContain("Plain fallback", html, StringComparison.Ordinal);
         Assert.DoesNotContain("javascript", html, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RtfHtmlEncapsulatedHtmlUsed");
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "HtmlRtfHyperlinkRejected");
+        Assert.Contains(result.RtfDiagnostics, diagnostic => diagnostic.Code == "RtfHtmlEncapsulatedHtmlUsed");
+        Assert.Contains(result.RtfDiagnostics, diagnostic => diagnostic.Code == "HtmlRtfHyperlinkRejected");
     }
 
     [Fact]

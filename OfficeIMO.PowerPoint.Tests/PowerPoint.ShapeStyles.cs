@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.Single();
                 var shapes = slide.Shapes.OfType<PowerPointAutoShape>().ToList();
                 Assert.Equal("Accent", shapes.First().Name);

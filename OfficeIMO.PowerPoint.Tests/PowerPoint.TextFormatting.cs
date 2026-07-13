@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointSlide slide = presentation.Slides.First();
                 PowerPointTextBox textBox = slide.TextBoxes.First();
                 Assert.Equal(string.Empty, textBox.Text);

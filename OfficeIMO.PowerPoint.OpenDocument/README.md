@@ -6,7 +6,7 @@ Explicit conversion between `OfficeIMO.PowerPoint` presentations and native `Off
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.OpenDocument;
 
-using PowerPointPresentation presentation = PowerPointPresentation.Open("deck.pptx");
+using PowerPointPresentation presentation = PowerPointPresentation.Load("deck.pptx");
 var conversion = presentation.ToOpenDocument();
 conversion.Document.Save("deck.odp");
 

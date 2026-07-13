@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Excel {
             doc.BuiltinDocumentProperties.Creator = "OfficeIMO";
             doc.ApplicationProperties.Company = "Evotec";
 
-            var sheet = doc.AddWorkSheet("Summary");
+            var sheet = doc.AddWorksheet("Summary");
 
             // Header/Footer text (tokens: &P page, &N pages, &A sheet name)
             sheet.SetHeaderFooter(
@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Excel {
             sheet.Cell(1, 1, "Hello");
             sheet.Cell(2, 1, "World");
 
-            doc.Save(openExcel);
+            doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
         }
     }
 }

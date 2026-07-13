@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.FontSize = 16;
                 paragraph.Color = Color.AliceBlue;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

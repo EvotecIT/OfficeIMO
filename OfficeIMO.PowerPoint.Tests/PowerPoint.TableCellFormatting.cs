@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                 Assert.Equal("FF0000", cell.BorderColor);
                 Assert.Equal(4, cell.PaddingLeftPoints ?? 0, 2);
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                     Assert.Equal(new[] { "First bold", "Second" }, cell.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
                     Assert.Equal(18D, cell.Paragraphs[0].LineSpacingPoints);
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointTableCell cell = presentation.Slides.Single().Tables.First().GetCell(0, 0);
                     PowerPointParagraph[] paragraphs = cell.Paragraphs.ToArray();
 

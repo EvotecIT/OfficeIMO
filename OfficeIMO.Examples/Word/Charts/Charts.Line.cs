@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             lineChart.AddLine("USA", new List<int> { 10, 35, 18, 23 }, Color.AliceBlue);
             lineChart.AddLine("Brazil", new List<int> { 10, 35, 300, 18 }, Color.Brown);
             lineChart.AddLine("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
-            document.Save(false);
+            document.Save();
 
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

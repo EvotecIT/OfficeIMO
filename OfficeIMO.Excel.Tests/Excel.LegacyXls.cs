@@ -3078,7 +3078,7 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildThemePackage(string themeName) {
                 using var workbookStream = new MemoryStream();
-                using var document = OfficeIMO.Excel.ExcelDocument.Create(workbookStream, autoSave: false);
+                using var document = OfficeIMO.Excel.ExcelDocument.Create(workbookStream);
                 document.ResetWorkbookTheme(themeName);
                 string themeXml = document.GetWorkbookThemeXml()!;
 

@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].EndNotes.Count == 1);
                 Assert.True(document.Sections[1].EndNotes.Count == 1);
 
-                document.Save(false);
+                document.Save();
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
@@ -206,7 +206,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].FootNotes.Count == 2);
                 Assert.True(document.Sections[0].EndNotes.Count == 1);
 
-                document.Save(false);
+                document.Save();
             }
         }
 

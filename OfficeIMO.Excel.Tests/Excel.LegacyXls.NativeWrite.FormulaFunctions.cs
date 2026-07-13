@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("MoreFunctions");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("MoreFunctions");
                     sheet.CellValue(1, 2, 2d);
                     sheet.CellValue(2, 2, 3d);
                     sheet.CellValue(1, 3, 1d);
@@ -882,8 +882,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("VariableStdev");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("VariableStdev");
                     sheet.CellValue(1, 1, 1d);
                     sheet.CellFormula(1, 1, "STDEV(1,2,3)");
 
@@ -912,8 +912,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("OmittedRefs");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("OmittedRefs");
                     sheet.CellValue(2, 1, 2d);
                     sheet.CellFormula(2, 1, "ROW()");
                     sheet.CellValue(3, 1, 1d);
@@ -945,8 +945,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("If2");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("If2");
                     sheet.CellValue(1, 1, 5d);
                     sheet.CellValue(2, 1, 10d);
                     sheet.CellFormula(2, 1, "IF(A1>2,10)");

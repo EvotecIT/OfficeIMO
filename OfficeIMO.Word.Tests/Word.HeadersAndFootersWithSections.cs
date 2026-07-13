@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
 
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersSection1.docx"))) {
                 // There is only one Paragraph at the document level.
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
 
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersSection1.docx"))) {
                 // There is only one Paragraph at the document level.
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.PageBreaks.Count == 0, "Number of page breaks during read is wrong (load). Current: " + document.PageBreaks.Count);
                 Assert.True(document.Sections.Count == 3, "Number of sections during read is wrong. (load)");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong (load). Current: " + document.Sections[0].Paragraphs.Count);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersSection1.docx"))) {
@@ -301,7 +301,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndSections.docx"))) {
 
@@ -550,7 +550,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(GetSectionDefaultFooter(section2, "section2 default footer").Tables.Count == 1);
 
 
-                document.Save(false);
+                document.Save();
 
                 Assert.True(document.Sections[0].DifferentOddAndEvenPages == false);
                 Assert.True(document.Sections[0].DifferentFirstPage == false);

@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(paragraph2.IsTab);
 
                 paragraph2.Tab?.Remove();
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

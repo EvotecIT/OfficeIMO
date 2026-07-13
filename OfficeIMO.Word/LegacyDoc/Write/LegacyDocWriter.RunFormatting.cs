@@ -422,7 +422,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             string colorValue = value!;
-            string hex = colorValue.Trim().TrimStart('#').ToLowerInvariant();
+            string hex = colorValue.Trim().TrimStart('#').ToUpperInvariant();
             if (hex.Length != 6 || hex.Any(character => !Uri.IsHexDigit(character))) {
                 throw new NotSupportedException("Native DOC saving supports text color only when it is stored as a 6-digit RGB hex value.");
             }

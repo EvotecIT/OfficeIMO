@@ -1,8 +1,8 @@
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
         private static void CompareImages(WordDocument source, WordDocument target, WordDocument result) {
-            var srcImages = source.GetImages();
-            var tgtImages = target.GetImages();
+            var srcImages = source.GetImageBytes();
+            var tgtImages = target.GetImageBytes();
             int count = System.Math.Min(srcImages.Count, tgtImages.Count);
 
             for (int i = 0; i < count; i++) {

@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "CellValuesParallel.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
 
                 var column1 = new List<(int Row, int Column, object Value)>();
                 var column2 = new List<(int Row, int Column, object Value)>();
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Excel {
                     Task.Run(() => sheet.CellValues(column2, ExecutionMode.Parallel))
                 );
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

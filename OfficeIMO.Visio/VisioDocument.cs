@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -5,6 +6,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.Shared;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {
@@ -351,16 +353,10 @@ namespace OfficeIMO.Visio {
         public static VisioDocument Create(Stream stream) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+            if (!OfficeStreamWriter.CanReplaceContents(stream)) {
+                throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
+            }
             return new VisioDocument { _sourceStream = stream };
-        }
-
-        /// <summary>
-        /// Backward-compatible alias for <see cref="LearnMastersFromVsdx"/>. This learns
-        /// supported master names from a VSDX file but does not use it as a runtime template.
-        /// </summary>
-        /// <param name="vsdxPath">Path to a VSDX file that contains canonical masters.</param>
-        public void UseMastersFromTemplate(string vsdxPath) {
-            LearnMastersFromVsdx(vsdxPath);
         }
 
         private static IEnumerable<string>? ResolvePackageMasterNameFilters(string packagePath, IEnumerable<string>? names) {
@@ -753,4 +749,3 @@ namespace OfficeIMO.Visio {
         }
     }
 }
-

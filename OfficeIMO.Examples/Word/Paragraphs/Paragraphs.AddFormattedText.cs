@@ -14,7 +14,7 @@ internal static partial class Paragraphs {
             paragraph.AddFormattedText("Bold", bold: true);
             paragraph.AddFormattedText(" Italic", italic: true);
             paragraph.AddFormattedText(" Underlined", underline: UnderlineValues.Single);
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

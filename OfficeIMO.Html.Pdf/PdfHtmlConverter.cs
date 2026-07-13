@@ -12,39 +12,21 @@ public static partial class PdfHtmlConverter {
     /// Converts PDF bytes to HTML using the first-party logical PDF read model.
     /// </summary>
     public static string ToHtml(byte[] pdf, PdfHtmlSaveOptions? options = null) {
-        if (pdf == null) {
-            throw new ArgumentNullException(nameof(pdf));
-        }
-
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
-        return RenderLogicalDocument(LoadLogical(pdf, options), options, applyPageRanges: false);
+        return ToHtmlResult(pdf, options).Value;
     }
 
     /// <summary>
     /// Converts a PDF file to HTML using the first-party logical PDF read model.
     /// </summary>
     public static string ToHtml(string path, PdfHtmlSaveOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            throw new ArgumentException("PDF path cannot be empty.", nameof(path));
-        }
-
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
-        return RenderLogicalDocument(LoadLogical(path, options), options, applyPageRanges: false);
+        return ToHtmlResult(path, options).Value;
     }
 
     /// <summary>
     /// Converts PDF stream content to HTML using the first-party logical PDF read model.
     /// </summary>
     public static string ToHtml(Stream stream, PdfHtmlSaveOptions? options = null) {
-        if (stream == null) {
-            throw new ArgumentNullException(nameof(stream));
-        }
-
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
-        return RenderLogicalDocument(LoadLogical(stream, options), options, applyPageRanges: false);
+        return ToHtmlResult(stream, options).Value;
     }
 
     /// <summary>
@@ -72,68 +54,14 @@ public static partial class PdfHtmlConverter {
     /// Renders an already parsed PDF document as HTML.
     /// </summary>
     public static string ToHtml(this PdfCore.PdfReadDocument document, PdfHtmlSaveOptions? options = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
-
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
-        return RenderLogicalDocument(LoadLogical(document, options), options, applyPageRanges: false);
+        return document.ToHtmlResult(options).Value;
     }
 
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML.
     /// </summary>
     public static string ToHtml(this PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions? options = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
-
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
-        return RenderLogicalDocument(document, options, applyPageRanges: true);
-    }
-
-    private static string RenderLogicalDocument(PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options, bool applyPageRanges) {
-        IReadOnlyList<PdfCore.PdfLogicalPage> pages = applyPageRanges
-            ? GetRenderPages(document, options)
-            : document.Pages;
-        return options.Profile switch {
-            PdfHtmlProfile.Semantic => RenderSemanticDocument(document, pages, options),
-            PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
-            _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
-        };
-    }
-
-    private static PdfCore.PdfLogicalDocument LoadLogical(byte[] pdf, PdfHtmlSaveOptions options) {
-        PdfCore.PdfPageRange[]? ranges = CopyPageRanges(options);
-        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Load(pdf, options.ReadOptions);
-        return ranges.Length > 0
-            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
-            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
-    }
-
-    private static PdfCore.PdfLogicalDocument LoadLogical(string path, PdfHtmlSaveOptions options) {
-        PdfCore.PdfPageRange[]? ranges = CopyPageRanges(options);
-        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Load(path, options.ReadOptions);
-        return ranges.Length > 0
-            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
-            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
-    }
-
-    private static PdfCore.PdfLogicalDocument LoadLogical(Stream stream, PdfHtmlSaveOptions options) {
-        PdfCore.PdfPageRange[]? ranges = CopyPageRanges(options);
-        PdfCore.PdfReadDocument document = PdfCore.PdfReadDocument.Load(stream, options.ReadOptions);
-        return ranges.Length > 0
-            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
-            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
-    }
-
-    private static PdfCore.PdfLogicalDocument LoadLogical(PdfCore.PdfReadDocument document, PdfHtmlSaveOptions options) {
-        PdfCore.PdfPageRange[]? ranges = CopyPageRanges(options);
-        return ranges.Length > 0
-            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
-            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
+        return document.ToHtmlResult(options).Value;
     }
 
     private static PdfCore.PdfPageRange[] CopyPageRanges(PdfHtmlSaveOptions options) {
@@ -1087,7 +1015,7 @@ public static partial class PdfHtmlConverter {
     }
 
     private static void AddWarning(PdfHtmlSaveOptions options, string code, string message) {
-        options.ConversionReport.Add(new PdfCore.PdfConversionWarning(
+        options.Report.Add(new PdfCore.PdfConversionWarning(
             "OfficeIMO.Html.Pdf",
             code,
             "PDF to HTML",

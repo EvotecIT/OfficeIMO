@@ -57,7 +57,7 @@ public class BookmarkTests : VerifyTestBase {
         document.PageBreaks[7].Remove(includingParagraph: false);
         document.PageBreaks[6].Remove(true);
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument);
     }

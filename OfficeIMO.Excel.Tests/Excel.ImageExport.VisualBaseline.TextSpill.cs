@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateTextSpillBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Spill");
+            ExcelSheet sheet = document.AddWorksheet("Spill");
 
             sheet.CellValue(1, 1, "Excel Text Spill");
             sheet.Range("A1:E1").SetFillColor("0F172A").SetFontColor("FFFFFF").SetBold();

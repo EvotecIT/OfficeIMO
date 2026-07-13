@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -45,11 +46,11 @@ namespace OfficeIMO.Word {
         private static WordDocument LoadLegacyDocFromNormalFlow(
             byte[] bytes,
             string? sourcePath,
-            bool autoSave,
+            bool saveOnDispose,
             bool readOnly,
             LegacyDocImportOptions? importOptions = null) {
-            if (autoSave) {
-                throw new NotSupportedException("Auto-save is not supported when loading legacy binary .doc files. Load the document, then save explicitly to a .docx path.");
+            if (saveOnDispose) {
+                throw new NotSupportedException("SaveOnDispose is not supported when loading legacy binary .doc files. Load the document, then save explicitly to a .docx path.");
             }
 
             LegacyDocDocument document = LegacyDocDocument.Load(bytes, importOptions ?? new LegacyDocImportOptions());
@@ -78,7 +79,9 @@ namespace OfficeIMO.Word {
                 packageStream.Seek(0, SeekOrigin.Begin);
                 projectedDocument.Dispose();
 
-                WordDocument readOnlyDocument = Load(packageStream, readOnly: true);
+                WordDocument readOnlyDocument = Load(packageStream, new WordLoadOptions {
+                    AccessMode = DocumentAccessMode.ReadOnly
+                });
                 readOnlyDocument.OriginalStream = null!;
                 readOnlyDocument._ownedPackageStream = packageStream;
                 readOnlyDocument.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave: sourcePath != null);
@@ -109,7 +112,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("Legacy DOC import failed: " + FormatLegacyDocDiagnostics(errors));
             }
 
-            WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, autoSave: false);
+            WordDocument document = CreateInternal(filePath: null, stream: null, DocumentFormat.OpenXml.WordprocessingDocumentType.Document, DocumentPersistenceMode.Explicit);
             ApplyLegacyDocProperties(document, legacyDocument.DocumentProperties);
             AddLegacyDocParagraphStyleDefinitions(document, legacyDocument.StyleSheet);
             WordSection section = document.Sections.Count > 0

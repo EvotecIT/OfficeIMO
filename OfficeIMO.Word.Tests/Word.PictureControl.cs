@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("PC", pc.Alias);
                 Assert.Equal("PCTag", pc.Tag);
 
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -24,12 +24,12 @@ namespace OfficeIMO.Tests {
                 var pic = document.GetPictureControlByAlias("PC");
                 Assert.NotNull(pic);
                 Assert.Equal("PCTag", document.GetPictureControlByTag("PCTag")?.Tag);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.PictureControls[0].Remove();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(10000, normal.LineSpaceReduction!.Value);
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointTextBox box = presentation.Slides.First().TextBoxes.First();
                 Assert.Equal(PowerPointTextAutoFit.Normal, box.TextAutoFit);
                 PowerPointTextAutoFitOptions? options = box.TextAutoFitOptions;

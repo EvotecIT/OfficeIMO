@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                         .Revision("1.0")
                         .Custom("Custom1", "Value1"))
                     .Paragraph(p => p.Text("Test"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

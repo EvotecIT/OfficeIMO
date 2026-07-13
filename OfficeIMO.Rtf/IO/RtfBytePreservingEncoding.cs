@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Rtf;
 
 internal static class RtfBytePreservingEncoding {
@@ -58,10 +59,8 @@ internal static class RtfBytePreservingEncoding {
         return memory.ToArray();
     }
 
-    public static byte[] GetBytes(string rtf) => ToBytes(rtf);
-
     public static void WriteAllText(string path, string rtf) {
-        File.WriteAllBytes(path, ToBytes(rtf));
+        OfficeFileCommit.WriteAllBytes(path, ToBytes(rtf));
     }
 
     public static async Task WriteAllTextAsync(string path, string rtf, CancellationToken cancellationToken) {
@@ -109,7 +108,7 @@ internal static class RtfBytePreservingEncoding {
         }
     }
 
-    private static byte[] ToBytes(string rtf) {
+    internal static byte[] ToBytes(string rtf) {
         if (rtf == null) throw new ArgumentNullException(nameof(rtf));
 
         var bytes = new byte[rtf.Length];

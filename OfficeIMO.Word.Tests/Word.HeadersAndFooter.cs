@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
 
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault1.docx"))) {
                 // There is only one Paragraph at the document level.
@@ -185,7 +185,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Number of paragraphs on 1st section is wrong.");
 
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefault2.docx"))) {
                 // There is only one Paragraph at the document level.
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].Paragraphs.Count == 5, "Number of paragraphs on 1st section is wrong.");
 
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeadersAndFootersDefaultFirst1.docx"))) {
                 // There is only one Paragraph at the document level.
@@ -339,7 +339,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithHeaders.docx"))) {
 
@@ -451,7 +451,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 2, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong. Current: " + document.Sections[0].Paragraphs.Count);
 
-                document.Save(false);
+                document.Save();
             }
 
             // One liner fixes

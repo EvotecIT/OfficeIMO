@@ -17,7 +17,7 @@ dotnet add package OfficeIMO.PowerPoint.Pdf
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Open("deck.pptx");
+using var presentation = PowerPointPresentation.Load("deck.pptx");
 presentation.SaveAsPdf("deck.pdf");
 ```
 
@@ -29,7 +29,7 @@ presentation.SaveAsPdf("deck.pdf");
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Open("board-review.pptx");
+using var presentation = PowerPointPresentation.Load("board-review.pptx");
 
 var options = new PowerPointPdfSaveOptions {
     IncludeHiddenSlides = false,
@@ -50,7 +50,7 @@ presentation.SaveAsPdf("board-review.pdf", options);
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Open("training.pptx");
+using var presentation = PowerPointPresentation.Load("training.pptx");
 
 byte[] pdfBytes = presentation.ToPdf();
 
@@ -64,7 +64,7 @@ presentation.SaveAsPdf(stream);
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 
-using var presentation = PowerPointPresentation.Open("training.pptx");
+using var presentation = PowerPointPresentation.Load("training.pptx");
 
 presentation.SaveAsPdf("training-notes.pdf", new PowerPointPdfSaveOptions {
     PageLayout = PowerPointPdfPageLayout.NotesPages,
@@ -87,7 +87,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-using var presentation = PowerPointPresentation.Open("complex-deck.pptx");
+using var presentation = PowerPointPresentation.Load("complex-deck.pptx");
 var options = new PowerPointPdfSaveOptions {
     IncludeCharts = true,
     IncludeAutoShapes = true
@@ -103,11 +103,11 @@ if (!result.Succeeded) {
     }
 }
 
-foreach (var warning in options.ConversionReport.Warnings) {
+foreach (var warning in result.Warnings) {
     Console.WriteLine($"{warning.Source}: {warning.Message}");
 }
 
-options.ConversionReport.RequireNoErrorWarnings();
+result.Report.RequireNoErrorWarnings();
 ```
 
 ## What it maps
@@ -118,17 +118,17 @@ options.ConversionReport.RequireNoErrorWarnings();
 - Supported JPEG/PNG pictures through the shared PDF image pipeline.
 - Faithful and print-ready profiles consume the same shared visual snapshot as PNG/SVG and visual-review HTML. Selective profiles retain the per-shape path.
 - Profile presets through `PowerPointPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
-- Conversion warnings through `PowerPointPdfSaveOptions.Warnings` and `PowerPointPdfSaveOptions.ConversionReport`.
+- Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## PDF table import
 
-`SavePdfTablesAsPowerPoint(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. This is useful for review decks and migration workflows where the source PDF has table-like content that should become editable again.
+`SaveAsPowerPointFromPdfTables(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. This is useful for review decks and migration workflows where the source PDF has table-like content that should become editable again.
 
 ```csharp
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-var imported = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+var imported = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
     "financial-statement.pdf",
     "financial-statement-tables.pptx",
     new PdfPowerPointTableImportOptions {

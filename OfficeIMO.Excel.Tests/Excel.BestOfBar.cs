@@ -14,13 +14,13 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.SafePreflightFormula.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Amount");
                 sheet.CellValue(2, 1, 10);
                 sheet.CellValue(3, 1, 20);
                 sheet.AddTable("A1:A3", hasHeader: true, name: "Sales", style: ExcelTableStyle.TableStyleMedium2);
                 sheet.CellFormula(2, 3, "SUM(Sales[Amount])");
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { SafePreflight = true });
+                document.Save(filePath, new ExcelSaveOptions { SafePreflight = true });
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -35,10 +35,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.FullCalcExplicit.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 10);
                 sheet.CellFormula(1, 2, "A1*2");
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
+                document.Save(filePath, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -53,7 +53,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.CategoryAxisScale.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Trend");
+                ExcelSheet sheet = document.AddWorksheet("Trend");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "Jan");
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.WriteReservation.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data");
+                document.AddWorksheet("Data");
                 document.SetWriteReservation(new ExcelWorkbookWriteReservationOptions {
                     ReadOnlyRecommended = true,
                     UserName = "Reviewer",
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookWriteReservationInfo reservation = document.GetWriteReservation();
 
                 Assert.True(reservation.Exists);
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.RowHeight.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Rows");
+                ExcelSheet sheet = document.AddWorksheet("Rows");
                 sheet.CellValue(3, 1, "Tall");
                 sheet.CellValue(4, 1, "Normal");
                 sheet.SetRowHeight(3, 42D);
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("Id", document.Sheets[0].CellAt(1, 1).GetValue<string>());
                 Assert.Equal(2500D, document.Sheets[0].CellAt(2501, 1).GetValue<double>());
                 Assert.Empty(document.ValidateOpenXml());
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("00042", 1234.5M, 0.125M, new DateTime(2026, 6, 23));
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Sales", style: ExcelTableStyle.TableStyleMedium2);
 
                 var plan = new ExcelColumnFormatPlan()
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.HeaderRows.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Report");
                 sheet.CellValue(2, 1, "Value");
                 sheet.CellValue(2, 2, "  Value  ");
@@ -291,7 +291,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.BlankExplicitHeader.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(3, 1, 42);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
@@ -310,7 +310,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelBestOfBar.ColumnFormatPlan.DefaultHeaderLookup.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "  Value  ");
                 sheet.CellValue(2, 1, 42);
 
@@ -338,7 +338,7 @@ namespace OfficeIMO.Tests {
             table.Columns.Add("Count", typeof(int));
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Counts", style: ExcelTableStyle.TableStyleMedium2);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(
@@ -367,7 +367,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 2, 42);
@@ -378,7 +378,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(results);
                 Assert.True(results[0].Applied);
                 Assert.Equal(2, results[0].ColumnIndex);
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { DisableFastPackageWriter = true });
+                document.Save(filePath, new ExcelSaveOptions { DisableFastPackageWriter = true });
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -398,7 +398,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Alpha", 12.5M);
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
                 Assert.True(sheet.TryGetCellText(2, 1, out _));
 
@@ -408,7 +408,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(results);
                 Assert.True(results[0].Applied);
                 Assert.Equal(2, results[0].ColumnIndex);
-                document.Save(filePath, openExcel: false, options: new ExcelSaveOptions { DisableFastPackageWriter = true });
+                document.Save(filePath, new ExcelSaveOptions { DisableFastPackageWriter = true });
             }
 
             using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false);
@@ -428,7 +428,7 @@ namespace OfficeIMO.Tests {
             table.Rows.Add("Long descriptive customer name", 1234.5M);
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.InsertDataTableAsTable(table, 1, 1, includeHeaders: true, tableName: "Rows", style: ExcelTableStyle.TableStyleMedium2);
 
                 IReadOnlyList<ExcelColumnFormatResult> results = sheet.ApplyColumnFormatPlan(

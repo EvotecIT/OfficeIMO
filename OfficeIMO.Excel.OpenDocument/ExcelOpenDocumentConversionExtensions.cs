@@ -5,8 +5,12 @@ namespace OfficeIMO.Excel.OpenDocument;
 
 /// <summary>Explicit conversions between OfficeIMO Excel and native OpenDocument spreadsheet models.</summary>
 public static class ExcelOpenDocumentConversionExtensions {
+    /// <summary>Converts an Excel workbook to an in-memory ODS document.</summary>
+    public static OdsDocument ToOpenDocument(this ExcelDocument source,
+        ExcelOpenDocumentConversionOptions? options = null) => source.ToOpenDocumentResult(options).Value;
+
     /// <summary>Converts an Excel workbook to an in-memory ODS document and reports every lossy mapping.</summary>
-    public static OdfConversionResult<OdsDocument> ToOpenDocument(this ExcelDocument source,
+    public static OdfConversionResult<OdsDocument> ToOpenDocumentResult(this ExcelDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
@@ -165,13 +169,17 @@ public static class ExcelOpenDocumentConversionExtensions {
         return candidate;
     }
 
+    /// <summary>Converts an ODS document to an in-memory Excel workbook.</summary>
+    public static ExcelDocument ToExcelDocument(this OdsDocument source,
+        ExcelOpenDocumentConversionOptions? options = null) => source.ToExcelDocumentResult(options).Value;
+
     /// <summary>Converts an ODS document to an in-memory Excel workbook and reports every lossy mapping.</summary>
-    public static OdfConversionResult<ExcelDocument> ToExcelDocument(this OdsDocument source,
+    public static OdfConversionResult<ExcelDocument> ToExcelDocumentResult(this OdsDocument source,
         ExcelOpenDocumentConversionOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));
         ExcelOpenDocumentConversionOptions effective = options ?? new ExcelOpenDocumentConversionOptions();
         effective.Validate();
-        ExcelDocument target = ExcelDocument.Create(new MemoryStream(), autoSave: false);
+        ExcelDocument target = ExcelDocument.Create(new MemoryStream());
         var report = new OdfConversionReport("ODS", "XLSX");
         target.BuiltinDocumentProperties.Title = source.Metadata.Title;
         var dataStyles = source.DataStyles.GroupBy(style => style.Name, StringComparer.Ordinal)
@@ -185,7 +193,7 @@ public static class ExcelOpenDocumentConversionExtensions {
         ExcelSheet? activeTarget = null;
         ExcelSheet? firstTarget = null;
         foreach (OdsSheet odsSheet in source.Sheets) {
-            ExcelSheet sheet = target.AddWorkSheet(odsSheet.Name);
+            ExcelSheet sheet = target.AddWorksheet(odsSheet.Name);
             firstTarget ??= sheet;
             worksheetCount++;
             if (!string.Equals(sheet.Name, odsSheet.Name, StringComparison.Ordinal)) renamedSheets++;
@@ -272,7 +280,7 @@ public static class ExcelOpenDocumentConversionExtensions {
             }
         }
 
-        if (target.Sheets.Count == 0) activeTarget = target.AddWorkSheet("Sheet1");
+        if (target.Sheets.Count == 0) activeTarget = target.AddWorksheet("Sheet1");
         else if (activeTarget == null) {
             activeTarget = firstTarget!;
             activeTarget.SetHidden(false);
@@ -454,7 +462,7 @@ public static class ExcelOpenDocumentConversionExtensions {
         using var stream = new MemoryStream();
         document.Save(stream);
         document.Dispose();
-        stream.Position = 0;
-        return ExcelDocument.Load(stream, autoSave: false);
+        using var detachedInput = new MemoryStream(stream.ToArray(), writable: false);
+        return ExcelDocument.Load(detachedInput);
     }
 }

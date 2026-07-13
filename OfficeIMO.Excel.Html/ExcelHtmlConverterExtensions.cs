@@ -488,7 +488,7 @@ public static partial class ExcelHtmlConverterExtensions {
                     .Append("</p>");
             }
 
-            AppendImagePreview(body, image.GetBytes(), image.ContentType, label);
+            AppendImagePreview(body, image.ToBytes(), image.ContentType, label);
             body.Append("</li>");
         }
 

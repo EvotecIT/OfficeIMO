@@ -13,13 +13,13 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"Name\":\"Alpha\",\"Amount\":10,\"Active\":true},{\"Name\":\"Beta\",\"Amount\":20.5,\"Active\":false}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 string range = sheet.FromJson(json, startRow: 2, startColumn: 2);
                 Assert.Equal("B2:D4", range);
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.GetSheet("Data");
                 string exported = sheet.ToJson("B2:D4");
 
@@ -40,12 +40,12 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"FirstName\":\"Alpha\"}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.FromJson(json);
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.GetSheet("Data");
                 string exported = sheet.ToJson("A1:A2", jsonOptions: new JsonSerializerOptions {
                     DictionaryKeyPolicy = JsonNamingPolicy.CamelCase
@@ -63,13 +63,13 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"Name\":\"Alpha\"},{\"name\":\"Beta\",\"Score\":20}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 string range = sheet.FromJson(json);
                 Assert.Equal("A1:B3", range);
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.GetSheet("Data");
                 DataTable table = sheet.ToDataTable("A1:B3");
 
@@ -87,13 +87,13 @@ namespace OfficeIMO.Tests {
             const string json = "[{\"Name\":\"Alpha\"},{\"Name\":\"Beta\",\"Metric25\":25},{\"Metric50\":50}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 string range = sheet.FromJson(json);
                 Assert.Equal("A1:C4", range);
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.GetSheet("Data");
                 DataTable table = sheet.ToDataTable("A1:C4");
 
@@ -117,13 +117,13 @@ namespace OfficeIMO.Tests {
             string json = "[{" + columns + "},{\"Metric0\":\"Keep\",\"metric0\":null,\"Metric39\":39}]";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 string range = sheet.FromJson(json);
                 Assert.Equal("A1:AN3", range);
                 document.Save();
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.GetSheet("Data");
                 DataTable table = sheet.ToDataTable("A1:AN3");
 

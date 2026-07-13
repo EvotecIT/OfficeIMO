@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             string target = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
             var doc = VisioDocument.Create(target);
             doc.UseMastersByDefault = true;
-            doc.UseMastersFromTemplate(template);
+            doc.LearnMastersFromVsdx(template);
             var page = doc.AddPage("Page-1", 29.7, 21, VisioMeasurementUnit.Centimeters);
             page.Shapes.Add(new VisioShape("R1") { NameU = "Rectangle", PinX = 2, PinY = 6 });
             page.Shapes.Add(new VisioShape("S1") { NameU = "Square", PinX = 4, PinY = 6, Width = 1.2, Height = 1.2 });

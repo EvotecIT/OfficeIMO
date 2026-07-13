@@ -26,7 +26,7 @@ using OfficeIMO.Excel;
 
 // Create with a file path
 using var workbook = ExcelDocument.Create("report.xlsx");
-var sheet = workbook.AddWorkSheet("Sales");
+var sheet = workbook.AddWorksheet("Sales");
 
 sheet.Cells["A1"].Value = "Product";
 sheet.Cells["B1"].Value = "Revenue";
@@ -48,7 +48,7 @@ var sheet = workbook.Sheets[0]; // "Sales" sheet
 ```csharp
 using var stream = new MemoryStream();
 using var workbook = ExcelDocument.Create(stream);
-var sheet = workbook.AddWorkSheet("Data");
+var sheet = workbook.AddWorksheet("Data");
 // ... populate ...
 workbook.Save();
 ```

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Sheet1");
+                document.AddWorksheet("Sheet1");
                 await document.SaveAsync();
             }
 
@@ -33,12 +33,12 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Sheet1");
+                document.AddWorksheet("Sheet1");
                 await document.SaveAsync();
             }
 
-            var loadTask1 = ExcelDocument.LoadAsync(filePath, false);
-            var loadTask2 = ExcelDocument.LoadAsync(filePath, false);
+            var loadTask1 = ExcelDocument.LoadAsync(filePath);
+            var loadTask2 = ExcelDocument.LoadAsync(filePath);
 
             var documents = await Task.WhenAll(loadTask1, loadTask2);
 
@@ -56,12 +56,12 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sheet1");
+                var sheet = document.AddWorksheet("Sheet1");
                 sheet.CellValue(1, 1, "Original");
                 await document.SaveAsync();
             }
 
-            await using (var document = await ExcelDocument.LoadAsync(filePath, readOnly: false, autoSave: true)) {
+            await using (var document = await ExcelDocument.LoadAsync(filePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 var sheet = document.Sheets[0];
                 sheet.CellValue(1, 1, "Updated");
             }

@@ -1,5 +1,4 @@
 using DocumentFormat.OpenXml;
-using A = DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using System;
@@ -9,7 +8,7 @@ using System.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private ExcelSheet CopyWorkSheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
+        private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
             string usedRange = sourceSheet.GetUsedRangeA1();
             var (startRow, startColumn, _, _) = A1.ParseRange(usedRange);
@@ -18,7 +17,7 @@ namespace OfficeIMO.Excel {
                 values = reader.GetSheet(sourceSheet.Name).ReadRange(usedRange);
             }
 
-            ExcelSheet targetSheet = AddWorkSheet(newSheetName, validationMode);
+            ExcelSheet targetSheet = AddWorksheet(newSheetName, validationMode);
             for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
                 for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
                     object? value = values[rowOffset, columnOffset];
@@ -32,11 +31,11 @@ namespace OfficeIMO.Excel {
             return targetSheet;
         }
 
-        private ExcelSheet CopyWorkSheetFromPackage(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
-            return CopyWorkSheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode, rewriteCopiedReferences: true, copyReferencedDefinedNames: true).Sheet;
+        private ExcelSheet CopyWorksheetFromPackage(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
+            return CopyWorksheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode, rewriteCopiedReferences: true, copyReferencedDefinedNames: true).Sheet;
         }
 
-        private WorksheetPackageCopyResult CopyWorkSheetFromPackage(
+        private WorksheetPackageCopyResult CopyWorksheetFromPackage(
             ExcelDocument sourceDocument,
             string sourceSheetName,
             string newSheetName,
@@ -193,7 +192,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                cell.CellValue = new CellValue((serial + offset).ToString(CultureInfo.InvariantCulture));
+                cell.CellValue = new CellValue(InvariantNumberText.Get(serial + offset));
             }
         }
 
@@ -583,27 +582,16 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class WorkbookStyleColorResolver {
-            private static readonly string[] DefaultIndexedColors = {
-                "FF000000", "FFFFFFFF", "FFFF0000", "FF00FF00", "FF0000FF", "FFFFFF00", "FFFF00FF", "FF00FFFF",
-                "FF000000", "FFFFFFFF", "FFFF0000", "FF00FF00", "FF0000FF", "FFFFFF00", "FFFF00FF", "FF00FFFF",
-                "FF800000", "FF008000", "FF000080", "FF808000", "FF800080", "FF008080", "FFC0C0C0", "FF808080",
-                "FF9999FF", "FF993366", "FFFFFFCC", "FFCCFFFF", "FF660066", "FFFF8080", "FF0066CC", "FFCCCCFF",
-                "FF000080", "FFFF00FF", "FFFFFF00", "FF00FFFF", "FF800080", "FF800000", "FF008080", "FF0000FF",
-                "FF00CCFF", "FFCCFFFF", "FFCCFFCC", "FFFFFF99", "FF99CCFF", "FFFF99CC", "FFCC99FF", "FFFFCC99",
-                "FF3366FF", "FF33CCCC", "FF99CC00", "FFFFCC00", "FFFF9900", "FFFF6600", "FF666699", "FF969696",
-                "FF003366", "FF339966", "FF003300", "FF333300", "FF993300", "FF993366", "FF333399", "FF333333"
-            };
-
-            private readonly Dictionary<uint, string> _themeColors;
+            private readonly WorkbookPart _workbookPart;
             private readonly Dictionary<uint, string> _indexedColors;
 
-            private WorkbookStyleColorResolver(Dictionary<uint, string> themeColors, Dictionary<uint, string> indexedColors) {
-                _themeColors = themeColors;
+            private WorkbookStyleColorResolver(WorkbookPart workbookPart, Dictionary<uint, string> indexedColors) {
+                _workbookPart = workbookPart;
                 _indexedColors = indexedColors;
             }
 
             internal static WorkbookStyleColorResolver Create(WorkbookPart workbookPart, Stylesheet sourceStylesheet) {
-                return new WorkbookStyleColorResolver(ReadThemeColors(workbookPart), ReadIndexedColors(sourceStylesheet));
+                return new WorkbookStyleColorResolver(workbookPart, ReadIndexedColors(sourceStylesheet));
             }
 
             internal void NormalizeThemeAndIndexedColors(OpenXmlElement element) {
@@ -613,19 +601,9 @@ namespace OfficeIMO.Excel {
             }
 
             private void NormalizeColor(ColorType color) {
-                string? argb = null;
-                if (color.Theme?.Value is uint themeIndex && _themeColors.TryGetValue(themeIndex, out string? themeColor)) {
-                    argb = themeColor;
-                } else if (color.Indexed?.Value is uint indexed && _indexedColors.TryGetValue(indexed, out string? indexedColor)) {
-                    argb = indexedColor;
-                }
-
+                string? argb = Utilities.ExcelThemeColorResolver.Resolve(color, _workbookPart, _indexedColors);
                 if (argb == null) {
                     return;
-                }
-
-                if (color.Tint?.Value is double tint && Math.Abs(tint) > 0.0000001D) {
-                    argb = ApplyTint(argb, tint);
                 }
 
                 color.Rgb = argb;
@@ -644,68 +622,8 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            private static Dictionary<uint, string> ReadThemeColors(WorkbookPart workbookPart) {
-                var colors = new Dictionary<uint, string>();
-                A.ColorScheme? scheme = workbookPart.GetPartsOfType<ThemePart>()
-                    .FirstOrDefault()
-                    ?.Theme
-                    ?.ThemeElements
-                    ?.ColorScheme;
-                if (scheme == null) {
-                    AddDefaultThemeColors(colors);
-                    return colors;
-                }
-
-                AddThemeColor(colors, 0U, scheme.GetFirstChild<A.Light1Color>());
-                AddThemeColor(colors, 1U, scheme.GetFirstChild<A.Dark1Color>());
-                AddThemeColor(colors, 2U, scheme.GetFirstChild<A.Light2Color>());
-                AddThemeColor(colors, 3U, scheme.GetFirstChild<A.Dark2Color>());
-                AddThemeColor(colors, 4U, scheme.GetFirstChild<A.Accent1Color>());
-                AddThemeColor(colors, 5U, scheme.GetFirstChild<A.Accent2Color>());
-                AddThemeColor(colors, 6U, scheme.GetFirstChild<A.Accent3Color>());
-                AddThemeColor(colors, 7U, scheme.GetFirstChild<A.Accent4Color>());
-                AddThemeColor(colors, 8U, scheme.GetFirstChild<A.Accent5Color>());
-                AddThemeColor(colors, 9U, scheme.GetFirstChild<A.Accent6Color>());
-                AddThemeColor(colors, 10U, scheme.GetFirstChild<A.Hyperlink>());
-                AddThemeColor(colors, 11U, scheme.GetFirstChild<A.FollowedHyperlinkColor>());
-                if (colors.Count == 0) {
-                    AddDefaultThemeColors(colors);
-                }
-
-                return colors;
-            }
-
-            private static void AddDefaultThemeColors(Dictionary<uint, string> colors) {
-                colors[0U] = "FFFFFFFF";
-                colors[1U] = "FF000000";
-                colors[2U] = "FFEEECE1";
-                colors[3U] = "FF1F497D";
-                colors[4U] = "FF4F81BD";
-                colors[5U] = "FFC0504D";
-                colors[6U] = "FF9BBB59";
-                colors[7U] = "FF8064A2";
-                colors[8U] = "FF4BACC6";
-                colors[9U] = "FFF79646";
-                colors[10U] = "FF0000FF";
-                colors[11U] = "FF800080";
-            }
-
-            private static void AddThemeColor(Dictionary<uint, string> colors, uint index, OpenXmlCompositeElement? colorElement) {
-                string? rgb = colorElement?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value
-                    ?? colorElement?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
-                if (string.IsNullOrWhiteSpace(rgb)) {
-                    return;
-                }
-
-                colors[index] = ToArgb(rgb!);
-            }
-
             private static Dictionary<uint, string> ReadIndexedColors(Stylesheet sourceStylesheet) {
                 var colors = new Dictionary<uint, string>();
-                for (uint index = 0; index < DefaultIndexedColors.Length; index++) {
-                    colors[index] = DefaultIndexedColors[index];
-                }
-
                 IndexedColors? indexedColors = sourceStylesheet.Colors?.IndexedColors;
                 if (indexedColors == null) {
                     return colors;
@@ -714,42 +632,15 @@ namespace OfficeIMO.Excel {
                 uint customIndex = 0;
                 foreach (RgbColor color in indexedColors.Elements<RgbColor>()) {
                     string? rgb = color.Rgb?.Value;
-                    if (!string.IsNullOrWhiteSpace(rgb)) {
-                        colors[customIndex] = ToArgb(rgb!);
+                    string? argb = Utilities.ExcelThemeColorResolver.NormalizeArgb(rgb);
+                    if (argb != null) {
+                        colors[customIndex] = argb;
                     }
 
                     customIndex++;
                 }
 
                 return colors;
-            }
-
-            private static string ToArgb(string rgb) {
-                string value = rgb.Trim().TrimStart('#');
-                if (value.Length == 6) {
-                    return "FF" + value.ToUpperInvariant();
-                }
-
-                return value.ToUpperInvariant();
-            }
-
-            private static string ApplyTint(string argb, double tint) {
-                string normalized = ToArgb(argb);
-                byte alpha = System.Convert.ToByte(normalized.Substring(0, 2), 16);
-                byte red = System.Convert.ToByte(normalized.Substring(2, 2), 16);
-                byte green = System.Convert.ToByte(normalized.Substring(4, 2), 16);
-                byte blue = System.Convert.ToByte(normalized.Substring(6, 2), 16);
-                return alpha.ToString("X2", CultureInfo.InvariantCulture)
-                    + ApplyTintChannel(red, tint).ToString("X2", CultureInfo.InvariantCulture)
-                    + ApplyTintChannel(green, tint).ToString("X2", CultureInfo.InvariantCulture)
-                    + ApplyTintChannel(blue, tint).ToString("X2", CultureInfo.InvariantCulture);
-            }
-
-            private static byte ApplyTintChannel(byte channel, double tint) {
-                double value = tint < 0
-                    ? channel * (1D + tint)
-                    : channel * (1D - tint) + (255D * tint);
-                return (byte)Math.Max(0D, Math.Min(255D, Math.Round(value)));
             }
         }
     }

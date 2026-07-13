@@ -2,7 +2,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Describes which package writer was used by the most recent save operation.
     /// </summary>
-    public sealed class ExcelSaveDiagnostics {
+    internal sealed class ExcelSaveDiagnostics {
         internal ExcelSaveDiagnostics(ExcelSavePackageWriter writer, string? fastPackageSkipReason) {
             Writer = writer;
             FastPackageSkipReason = fastPackageSkipReason;
@@ -45,7 +45,7 @@ namespace OfficeIMO.Excel {
     /// <summary>
     /// Identifies the package writer used by an Excel save operation.
     /// </summary>
-    public enum ExcelSavePackageWriter {
+    internal enum ExcelSavePackageWriter {
         /// <summary>
         /// Full Open XML package finalization was used.
         /// </summary>

@@ -5,6 +5,7 @@ using OfficeIMO.Markup.Excel;
 using OfficeIMO.Markup.PowerPoint;
 using OfficeIMO.Markup.Word;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests.Markup;
@@ -1019,7 +1020,7 @@ Q3,260
             });
 
             Assert.True(File.Exists(path));
-            using (var presentation = PowerPointPresentation.Open(path)) {
+            using (var presentation = PowerPointPresentation.Load(path)) {
                 Assert.Equal(3, presentation.Slides.Count);
                 Assert.Equal(SlideTransition.Fade, presentation.Slides[0].Transition);
                 Assert.Equal("Open with the top-line result.", presentation.Slides[0].Notes.Text);
@@ -1089,7 +1090,7 @@ profile: presentation
             });
 
             Assert.True(File.Exists(path));
-            using var presentation = PowerPointPresentation.Open(path);
+            using var presentation = PowerPointPresentation.Load(path);
             Assert.Single(presentation.Slides);
             Assert.Contains(presentation.Slides[0].Shapes.OfType<PowerPointTextBox>(), box => box.Text.Contains("Quarterly Review", StringComparison.Ordinal));
         } finally {
@@ -1139,7 +1140,7 @@ Stay in semantic Markdown until the slide actually needs more control.
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Open(path);
+            using var presentation = PowerPointPresentation.Load(path);
             var slide = Assert.Single(presentation.Slides);
 
             Assert.Contains(slide.Shapes.OfType<PowerPointTextBox>(), box =>
@@ -1242,7 +1243,7 @@ Details
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Open(path);
+            using var presentation = PowerPointPresentation.Load(path);
             var sections = presentation.GetSections().ToArray();
 
             Assert.Equal(new[] { "Introduction", "Deep Dive" }, sections.Select(section => section.Name).ToArray());
@@ -1303,7 +1304,7 @@ Body
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Open(path);
+            using var presentation = PowerPointPresentation.Load(path);
             Assert.Equal(3, presentation.Slides.Count);
             Assert.Equal(SlideTransition.PushLeft, presentation.Slides[0].Transition);
             Assert.Equal(SlideTransitionSpeed.Fast, presentation.Slides[0].TransitionSpeed);
@@ -1354,7 +1355,7 @@ Background image slide
                 RenderMermaidDiagrams = false
             });
 
-            using (var presentation = PowerPointPresentation.Open(path)) {
+            using (var presentation = PowerPointPresentation.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
                 Assert.Contains(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name.Contains("Background Overlay", StringComparison.Ordinal));
                 Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name.Contains("Canvas Rail", StringComparison.Ordinal));
@@ -1576,7 +1577,7 @@ profile: presentation
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Open(path);
+            using var presentation = PowerPointPresentation.Load(path);
             var slide = Assert.Single(presentation.Slides);
             var picture = Assert.Single(slide.Pictures);
             Assert.True(picture.WidthInches < 3.0, "Contained JPEG should not stretch to the full placement width.");
@@ -1654,7 +1655,7 @@ Scaled textbox
                 RenderMermaidDiagrams = false
             });
 
-            using var presentation = PowerPointPresentation.Open(path);
+            using var presentation = PowerPointPresentation.Load(path);
             Assert.Equal(13.333, presentation.SlideSize.WidthInches, 3);
             Assert.Equal(7.5, presentation.SlideSize.HeightInches, 3);
 
@@ -1714,7 +1715,7 @@ Gradient background slide
                 Assert.Equal(8100000, gradient.GetFirstChild<DocumentFormat.OpenXml.Drawing.LinearGradientFill>()?.Angle?.Value);
             }
 
-            using (var presentation = PowerPointPresentation.Open(path)) {
+            using (var presentation = PowerPointPresentation.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
                 Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name.Contains("Canvas Rail", StringComparison.Ordinal));
             }
@@ -1760,7 +1761,7 @@ Gradient angle slide
                 Assert.Equal(2700000, gradient.GetFirstChild<DocumentFormat.OpenXml.Drawing.LinearGradientFill>()?.Angle?.Value);
             }
 
-            using (var presentation = PowerPointPresentation.Open(path)) {
+            using (var presentation = PowerPointPresentation.Load(path)) {
                 var slide = Assert.Single(presentation.Slides);
                 Assert.DoesNotContain(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name.Contains("Canvas Rail", StringComparison.Ordinal));
             }
@@ -1834,7 +1835,7 @@ profile: presentation
                 RenderMermaidDiagrams = false
             });
 
-            using (var presentation = PowerPointPresentation.Open(path)) {
+            using (var presentation = PowerPointPresentation.Load(path)) {
                 var slides = presentation.Slides.ToArray();
                 Assert.Equal(6, slides.Length);
                 Assert.Equal(SlideTransition.Fade, slides[0].Transition);
@@ -2012,7 +2013,7 @@ C,60,77
                 Assert.Contains("outEnd", chartXml, StringComparison.Ordinal);
             }
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, readOnly: true);
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
         } finally {
             if (File.Exists(path)) {
@@ -2075,7 +2076,7 @@ C,60,77
             Assert.Equal("1+1", GetCell(dashboardPart, "H1")!.CellFormula!.Text);
             Assert.False(dashboardPart.Worksheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().First().ShowGridLines!.Value);
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, readOnly: true);
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
         } finally {
             if (File.Exists(path)) {
@@ -2135,7 +2136,7 @@ Cost,80,
             Assert.True(dashboardPart.DrawingsPart!.ChartParts.Any());
             Assert.False(dashboardPart.Worksheet.GetFirstChild<SheetViews>()!.Elements<SheetView>().First().ShowGridLines!.Value);
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, readOnly: true);
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
         } finally {
             if (File.Exists(path)) {
@@ -2167,7 +2168,7 @@ Revenue,120
                 OutputPath = path
             });
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, readOnly: true);
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             var snapshot = document.CreateInspectionSnapshot();
             var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
             var valueCell = Assert.Single(dataSheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
@@ -2217,7 +2218,7 @@ Revenue,120
                 OutputPath = path
             });
 
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, readOnly: true);
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             var snapshot = document.CreateInspectionSnapshot();
             var dataSheet = Assert.Single(snapshot.Worksheets, worksheet => worksheet.Name == "Data");
             var valueCell = Assert.Single(dataSheet.Cells, cell => cell.Row == 2 && cell.Column == 2);
@@ -2275,7 +2276,7 @@ Q4,320,150
             });
 
             Assert.True(File.Exists(path));
-            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, readOnly: true);
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Empty(document.ValidateOpenXml());
         } finally {
             if (File.Exists(path)) {
@@ -2329,7 +2330,7 @@ Q2,180
             });
 
             Assert.True(File.Exists(path));
-            using (var document = OfficeIMO.Word.WordDocument.Load(path, readOnly: true)) {
+            using (var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.NotNull(document.TableOfContent);
                 Assert.True(document.PageBreaks.Count >= 1);
                 Assert.Contains(document.Paragraphs, paragraph => paragraph.Text.Contains("Architecture Note", StringComparison.Ordinal));
@@ -2478,7 +2479,7 @@ profile: document
                 OutputPath = path
             });
 
-            using var document = OfficeIMO.Word.WordDocument.Load(path, readOnly: true);
+            using var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "1. First", StringComparison.Ordinal));
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "2. Second", StringComparison.Ordinal));
             Assert.Contains(document.Paragraphs, paragraph => string.Equals(paragraph.Text, "3. Third", StringComparison.Ordinal));

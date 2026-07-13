@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.Fluent;
 using System.IO;
@@ -24,7 +25,7 @@ namespace OfficeIMO.Word {
         /// <param name="commentId">Id of the comment to remove.</param>
         public void RemoveComment(string commentId) {
             var comment = this.Comments.FirstOrDefault(c => c.Id == commentId);
-            comment?.Delete();
+            comment?.Remove();
         }
 
         /// <summary>
@@ -32,7 +33,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="comment">Comment instance to remove.</param>
         public void RemoveComment(WordComment comment) {
-            comment?.Delete();
+            comment?.Remove();
         }
 
         /// <summary>
@@ -40,7 +41,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public void RemoveAllComments() {
             foreach (var comment in this.Comments.ToList()) {
-                comment.Delete();
+                comment.Remove();
             }
         }
 
@@ -92,14 +93,6 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyDictionary<string, string> GetDocumentVariables() {
             return new Dictionary<string, string>(DocumentVariables);
-        }
-
-        /// <summary>
-        /// Enable or disable tracking of comment changes.
-        /// </summary>
-        public bool TrackComments {
-            get => this.Settings.TrackComments;
-            set => this.Settings.TrackComments = value;
         }
 
         /// <summary>
@@ -171,9 +164,9 @@ namespace OfficeIMO.Word {
         public WordDocumentStatistics Statistics { get; internal set; } = null!;
 
         /// <summary>
-        /// Indicates whether the document is saved automatically.
+        /// Gets the persistence policy selected when the document was created or loaded.
         /// </summary>
-        public bool AutoSave => _wordprocessingDocument.AutoSave;
+        public DocumentPersistenceMode PersistenceMode => _persistenceMode;
 
         /// <summary>
         /// When <c>true</c> the table of contents is flagged to update before saving.
@@ -198,5 +191,10 @@ namespace OfficeIMO.Word {
         /// FileOpenAccess of the document
         /// </summary>
         public FileAccess FileOpenAccess => _wordprocessingDocument.FileOpenAccess;
+
+        /// <summary>Gets whether the document was loaded for reading or editing.</summary>
+        public DocumentAccessMode AccessMode => FileOpenAccess == FileAccess.Read
+            ? DocumentAccessMode.ReadOnly
+            : DocumentAccessMode.ReadWrite;
     }
 }

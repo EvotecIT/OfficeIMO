@@ -272,7 +272,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using var readOnlyDocument = WordDocument.Load(filePath, readOnly: true);
+            using var readOnlyDocument = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save());
             using var outputStream = new MemoryStream();
             Assert.Throws<InvalidOperationException>(() => readOnlyDocument.Save(outputStream));
@@ -345,7 +345,7 @@ namespace OfficeIMO.Tests {
             using var document = WordDocument.Create();
             document.AddParagraph("Byte array compatibility");
 
-            byte[] data = document.ToDocx();
+            byte[] data = document.ToBytes();
 
             using var inspectionStream = new MemoryStream(data);
             using (var package = Package.Open(inspectionStream, FileMode.Open, FileAccess.Read)) {

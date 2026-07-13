@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         internal ExcelSheet CopyTemplateWorksheet(string sheetName) {
-            ExcelSheet target = _excelDocument.AddWorkSheet(sheetName, SheetNameValidationMode.Sanitize);
+            ExcelSheet target = _excelDocument.AddWorksheet(sheetName, SheetNameValidationMode.Sanitize);
             Worksheet worksheet = (Worksheet)WorksheetRoot.CloneNode(true);
             RemoveRelationshipBackedTemplateCopyElements(worksheet);
             target.WorksheetRoot = worksheet;

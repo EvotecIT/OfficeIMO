@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
 
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
             string fullPath = System.IO.Path.Combine(documentPaths, "sample1.docx");
-            using (WordDocument document = WordDocument.Load(fullPath, false)) {
+            using (WordDocument document = WordDocument.Load(fullPath)) {
                 Console.WriteLine(fullPath);
                 Console.WriteLine("Sections count: " + document.Sections.Count);
                 Console.WriteLine("Tables count: " + document.Tables.Count);
@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word {
                 // changing books from 1 to 5
                 document.Tables[0].Rows[1].Cells[1].Paragraphs[0].Text = "5";
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -185,7 +185,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 double position = foundIndex + 1;
-                result = new FormulaArgumentValue(position, position.ToString(CultureInfo.InvariantCulture));
+                result = new FormulaArgumentValue(position, InvariantNumberText.Get(position));
                 return true;
             }
 
@@ -196,7 +196,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                result = new FormulaArgumentValue(number, number.ToString(CultureInfo.InvariantCulture));
+                result = new FormulaArgumentValue(number, InvariantNumberText.Get(number));
                 return true;
             }
 
@@ -208,7 +208,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 double value = string.Equals(left, right, StringComparison.Ordinal) ? 1d : 0d;
-                result = new FormulaArgumentValue(value, value.ToString(CultureInfo.InvariantCulture));
+                result = new FormulaArgumentValue(value, InvariantNumberText.Get(value));
                 return true;
             }
 

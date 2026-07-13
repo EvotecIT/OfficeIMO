@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(macroDocPath)) {
                 document.SaveMacros(macroPath);
                 document.RemoveMacros();
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

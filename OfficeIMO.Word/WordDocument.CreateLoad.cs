@@ -1,6 +1,8 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.Fluent;
 using System.IO;
@@ -38,40 +40,39 @@ namespace OfficeIMO.Word {
             return filePath;
         }
 
-        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings, bool autoSave) {
-            bool shouldAutoSave = autoSave || (openSettings?.AutoSave ?? false);
-
+        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {
             if (openSettings is null) {
-                return new OpenSettings { AutoSave = shouldAutoSave };
-            }
-
-            if (openSettings.AutoSave == shouldAutoSave) {
-                return openSettings;
+                return new OpenSettings { AutoSave = false };
             }
 
             return new OpenSettings {
-                AutoSave = shouldAutoSave,
+                AutoSave = false,
                 CompatibilityLevel = openSettings.CompatibilityLevel,
                 MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
                 MaxCharactersInPart = openSettings.MaxCharactersInPart,
             };
         }
 
+        private static void ValidateLifecycle(DocumentAccessMode accessMode, DocumentPersistenceMode persistenceMode) {
+            if (accessMode == DocumentAccessMode.ReadOnly && persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
+                throw new ArgumentException("A read-only document cannot use SaveOnDispose persistence.");
+            }
+        }
+
         /// <summary>
         /// Create a new WordDocument
         /// </summary>
-        /// <param name="filePath"></param>
-        /// <param name="autoSave"></param>
+        /// <param name="filePath">Optional destination associated with the document. It is not created until the document is saved.</param>
+        /// <param name="options">Creation and persistence options.</param>
         /// <returns></returns>
-        public static WordDocument Create(string filePath = "", bool autoSave = false) {
-            if (!string.IsNullOrEmpty(filePath)) {
-                // Ensure the file exists
-                using (new FileStream(filePath, FileMode.Create)) {
-                }
+        public static WordDocument Create(string filePath = "", WordCreateOptions? options = null) {
+            WordCreateOptions resolved = options ?? new WordCreateOptions();
+            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && string.IsNullOrEmpty(filePath)) {
+                throw new ArgumentException("SaveOnDispose requires an associated file path or writable stream.", nameof(filePath));
             }
 
-            var documentType = GetDocumentType(filePath);
-            var word = CreateInternal(filePath, null, documentType, autoSave);
+            var documentType = string.IsNullOrEmpty(filePath) ? resolved.DocumentType : GetDocumentType(filePath);
+            var word = CreateInternal(filePath, null, documentType, resolved.PersistenceMode);
             return word;
         }
 
@@ -112,14 +113,14 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, bool autoSave) {
+        private static WordDocument CreateInternal(string? filePath, Stream? stream, WordprocessingDocumentType documentType, DocumentPersistenceMode persistenceMode) {
             WordDocument word = new WordDocument();
             if (stream != null) {
                 word.OriginalStream = stream;
             }
 
             var packageStream = new MemoryStream();
-            WordprocessingDocument wordDocument = WordprocessingDocument.Create(packageStream, documentType, autoSave);
+            WordprocessingDocument wordDocument = WordprocessingDocument.Create(packageStream, documentType, autoSave: false);
 
             wordDocument.AddMainDocumentPart();
             var mainPart = wordDocument.MainDocumentPart!;
@@ -166,6 +167,7 @@ namespace OfficeIMO.Word {
             word._ownedPackageStream = packageStream;
             word._wordprocessingDocument = wordDocument;
             word._document = mainPart.Document;
+            word._persistenceMode = persistenceMode;
             word.InitializeSdtIdState();
 
             StyleDefinitionsPart styleDefinitionsPart1 = mainPart.AddNewPart<StyleDefinitionsPart>("rId1");
@@ -203,36 +205,27 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
-        /// Asynchronously create a new <see cref="WordDocument"/>.
-        /// </summary>
-        /// <param name="filePath">Destination file path.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        /// <returns>Created <see cref="WordDocument"/>.</returns>
-        public static async Task<WordDocument> CreateAsync(string filePath = "", bool autoSave = false, CancellationToken cancellationToken = default) {
-            if (!string.IsNullOrEmpty(filePath)) {
-                using var fs = new FileStream(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None, 4096, FileOptions.Asynchronous);
-                await fs.FlushAsync(cancellationToken);
-            }
-
-            var documentType = GetDocumentType(filePath);
-            return CreateInternal(filePath, null, documentType, autoSave);
-        }
-
-        /// <summary>
         /// Create a new <see cref="WordDocument"/> writing directly to the provided stream.
         /// </summary>
         /// <param name="stream">Destination stream.</param>
-        /// <param name="documentType">Type of the document.</param>
-        /// <param name="autoSave">Whether to save automatically on dispose.</param>
+        /// <param name="options">Creation and persistence options.</param>
         /// <returns>Instance of <see cref="WordDocument"/>.</returns>
         /// <exception cref="ArgumentNullException">Thrown when <paramref name="stream"/> is null.</exception>
-        public static WordDocument Create(Stream stream, WordprocessingDocumentType documentType = WordprocessingDocumentType.Document, bool autoSave = false) {
+        public static WordDocument Create(Stream stream, WordCreateOptions? options = null) {
             if (stream == null) {
                 throw new ArgumentNullException(nameof(stream));
             }
 
-            var word = CreateInternal(null, stream, documentType, autoSave);
+            if (!stream.CanWrite) {
+                throw new ArgumentException("Stream must be writable.", nameof(stream));
+            }
+
+            WordCreateOptions resolved = options ?? new WordCreateOptions();
+            if (!OfficeStreamWriter.CanReplaceContents(stream)) {
+                throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
+            }
+
+            var word = CreateInternal(null, stream, resolved.DocumentType, resolved.PersistenceMode);
             return word;
         }
 
@@ -318,13 +311,10 @@ namespace OfficeIMO.Word {
         /// Load WordDocument from filePath
         /// </summary>
         /// <param name="filePath"></param>
-        /// <param name="readOnly"></param>
-        /// <param name="autoSave"></param>
-        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <returns></returns>
         /// <exception cref="FileNotFoundException"></exception>
-        public static WordDocument Load(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
+        public static WordDocument Load(string filePath, WordLoadOptions? options = null) {
             if (filePath is null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -332,9 +322,13 @@ namespace OfficeIMO.Word {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            var word = new WordDocument();
+            WordLoadOptions resolved = options ?? new WordLoadOptions();
+            ValidateLifecycle(resolved.AccessMode, resolved.PersistenceMode);
+            bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
+            bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+            var word = new WordDocument { _persistenceMode = resolved.PersistenceMode };
 
-            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
+            var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
 
             // Read the source file into memory with a shared read handle to avoid test collisions.
             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
@@ -344,14 +338,14 @@ namespace OfficeIMO.Word {
                 byte[] sourceBytes = memoryStream.ToArray();
 
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
-                    return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, effectiveOpenSettings.AutoSave, readOnly);
+                    return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
                 }
 
                 memoryStream.Seek(0, SeekOrigin.Begin);
 
                 var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
-                bool applyOverrideStyles = overrideStyles && !readOnly;
+                bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
                 InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
 
                 word.FilePath = filePath;
@@ -378,15 +372,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="filePath">Path to the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
-        /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
-        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(string,string,bool)"/> to persist encrypted changes.</param>
-        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadEncrypted(string filePath, string password, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
+        public static WordDocument LoadEncrypted(string filePath, string password, WordLoadOptions? options = null) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
+            WordLoadOptions resolved = options ?? new WordLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
@@ -398,11 +390,8 @@ namespace OfficeIMO.Word {
                 encryptedBytes = buffer.ToArray();
             }
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            var stream = new MemoryStream(packageBytes);
-            var document = Load(stream, readOnly, autoSave: false, overrideStyles, openSettings);
-            document.FilePath = string.Empty;
-            document._ownedPackageStream = stream;
-            return document;
+            using var decryptedSource = new MemoryStream(packageBytes, writable: false);
+            return Load(decryptedSource, resolved);
         }
 
         /// <summary>
@@ -410,16 +399,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="stream">Readable stream containing the encrypted document.</param>
         /// <param name="password">Password used to decrypt the document package.</param>
-        /// <param name="readOnly">Open the decrypted package in read-only mode.</param>
-        /// <param name="autoSave">Encrypted loads do not support auto-save. Use <see cref="SaveEncrypted(Stream,string)"/> to persist encrypted changes.</param>
-        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access and load options. SaveOnDispose is not supported for encrypted sources.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadEncrypted(Stream stream, string password, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
+        public static WordDocument LoadEncrypted(Stream stream, string password, WordLoadOptions? options = null) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
-            EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
+            WordLoadOptions resolved = options ?? new WordLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
 
             using var buffer = new MemoryStream();
             if (stream.CanSeek) {
@@ -427,15 +414,13 @@ namespace OfficeIMO.Word {
             }
             stream.CopyTo(buffer);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(buffer.ToArray(), password);
-            var packageStream = new MemoryStream(packageBytes);
-            var document = Load(packageStream, readOnly, autoSave: false, overrideStyles, openSettings);
-            document._ownedPackageStream = packageStream;
-            return document;
+            using var decryptedSource = new MemoryStream(packageBytes, writable: false);
+            return Load(decryptedSource, resolved);
         }
 
-        private static void EnsureEncryptedLoadDoesNotAutoSave(bool autoSave, OpenSettings? openSettings) {
-            if (autoSave || openSettings?.AutoSave == true) {
-                throw new NotSupportedException("Auto-save is not supported for encrypted Word loads. Use SaveEncrypted to persist encrypted changes.");
+        private static void EnsureEncryptedLoadUsesExplicitPersistence(WordLoadOptions options) {
+            if (options.PersistenceMode != DocumentPersistenceMode.Explicit) {
+                throw new NotSupportedException("SaveOnDispose is not supported for encrypted Word sources. Use SaveEncrypted to persist encrypted changes.");
             }
         }
 
@@ -443,14 +428,11 @@ namespace OfficeIMO.Word {
         /// Asynchronously loads a <see cref="WordDocument"/> from the given file.
         /// </summary>
         /// <param name="filePath">Path to the file.</param>
-        /// <param name="readOnly">Open the document in read-only mode.</param>
-        /// <param name="autoSave">Enable auto-save on dispose.</param>
-        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="WordDocument"/> instance.</returns>
         /// <exception cref="FileNotFoundException">Thrown when the file does not exist.</exception>
-        public static async Task<WordDocument> LoadAsync(string filePath, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
+        public static async Task<WordDocument> LoadAsync(string filePath, WordLoadOptions? options = null, CancellationToken cancellationToken = default) {
             if (filePath is null) {
                 throw new ArgumentNullException(nameof(filePath));
             }
@@ -466,10 +448,14 @@ namespace OfficeIMO.Word {
             memoryStream.Seek(0, SeekOrigin.Begin);
             byte[] sourceBytes = memoryStream.ToArray();
 
-            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
+            WordLoadOptions resolved = options ?? new WordLoadOptions();
+            ValidateLifecycle(resolved.AccessMode, resolved.PersistenceMode);
+            bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
+            bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+            var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
-                return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, effectiveOpenSettings.AutoSave, readOnly);
+                return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
             }
 
             memoryStream.Seek(0, SeekOrigin.Begin);
@@ -480,10 +466,11 @@ namespace OfficeIMO.Word {
                 FilePath = filePath,
                 _ownedPackageStream = memoryStream,
                 _wordprocessingDocument = wordDocument,
-                _document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.")
+                _document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing."),
+                _persistenceMode = resolved.PersistenceMode
             };
 
-            bool applyOverrideStyles = overrideStyles && !readOnly;
+            bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
             InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
             word.LoadDocument();
             if (applyOverrideStyles) {
@@ -498,61 +485,48 @@ namespace OfficeIMO.Word {
 
         /// <summary>Asynchronously loads a Word document from a readable stream.</summary>
         /// <param name="stream">Stream containing DOC or DOCX content.</param>
-        /// <param name="readOnly">Open the document in read-only mode.</param>
-        /// <param name="autoSave">Save editable changes back to the caller-owned stream on dispose.</param>
-        /// <param name="overrideStyles">Replace existing styles with library versions when editable.</param>
-        /// <param name="openSettings">Optional Open XML settings.</param>
+        /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>The loaded document. The caller retains ownership of <paramref name="stream"/>.</returns>
         public static async Task<WordDocument> LoadAsync(
             Stream stream,
-            bool readOnly = false,
-            bool autoSave = false,
-            bool overrideStyles = false,
-            OpenSettings? openSettings = null,
+            WordLoadOptions? options = null,
             CancellationToken cancellationToken = default) {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            OpenSettings effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
-            bool copyBackToSource = effectiveOpenSettings.AutoSave && !readOnly;
+            WordLoadOptions resolved = options ?? new WordLoadOptions();
+            ValidateLifecycle(resolved.AccessMode, resolved.PersistenceMode);
+            bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
+            bool copyBackToSource = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !readOnly;
             if (copyBackToSource && !stream.CanWrite) {
-                throw new ArgumentException("Stream must be writable when autoSave is enabled for an editable document.", nameof(stream));
+                throw new ArgumentException("Stream must be writable when SaveOnDispose is enabled.", nameof(stream));
             }
             if (copyBackToSource && !stream.CanSeek) {
-                throw new ArgumentException("Stream must support seeking when autoSave is enabled for an editable document.", nameof(stream));
+                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
             }
 
             if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
-            var bufferedStream = new MemoryStream();
-            try {
-                await stream.CopyToAsync(bufferedStream, 81920, cancellationToken).ConfigureAwait(false);
-                bufferedStream.Seek(0, SeekOrigin.Begin);
-                WordDocument document = Load(bufferedStream, readOnly, autoSave, overrideStyles, openSettings);
-                if (document.SourceFormat == WordFileFormat.Doc) {
-                    bufferedStream.Dispose();
-                } else {
-                    document._ownedPackageStream = bufferedStream;
-                    document.OriginalStream = stream.CanSeek ? stream : null!;
-                }
-
-                return document;
-            } catch {
-                bufferedStream.Dispose();
-                throw;
+            using var bufferedStream = new MemoryStream();
+            await stream.CopyToAsync(bufferedStream, 81920, cancellationToken).ConfigureAwait(false);
+            bufferedStream.Seek(0, SeekOrigin.Begin);
+            WordDocument document = Load(bufferedStream, resolved);
+            if (document.SourceFormat != WordFileFormat.Doc) {
+                document.OriginalStream = !readOnly && OfficeStreamWriter.CanReplaceContents(stream)
+                    ? stream
+                    : null!;
             }
+
+            return document;
         }
 
         /// <summary>
         /// Load WordDocument from stream
         /// </summary>
-        /// <param name="stream"></param>
-        /// <param name="readOnly"></param>
-        /// <param name="autoSave"></param>
-        /// <param name="overrideStyles">When <c>true</c>, existing styles are replaced with library versions. Ignored when <paramref name="readOnly"/> is <c>true</c>.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="stream">Readable source. Editable writable seekable sources become the associated destination; other sources remain detached.</param>
+        /// <param name="options">Access, persistence, style, and low-level package options.</param>
         /// <returns></returns>
-        public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
+        public static WordDocument Load(Stream stream, WordLoadOptions? options = null) {
             if (stream == null) {
                 throw new ArgumentNullException(nameof(stream));
             }
@@ -560,90 +534,68 @@ namespace OfficeIMO.Word {
                 throw new ArgumentException("Stream must be readable.", nameof(stream));
             }
 
-            var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
-            MemoryStream? bufferedOpenXmlStream = null;
-            Stream packageStream = stream;
-
-            if (stream.CanSeek) {
-                long originalPosition = stream.Position;
-                stream.Seek(0, SeekOrigin.Begin);
-                byte[] signature = ReadSignaturePrefix(stream);
-                if (WordDocumentLoadRouting.HasOleCompoundSignature(signature)) {
+            WordLoadOptions resolved = options ?? new WordLoadOptions();
+            ValidateLifecycle(resolved.AccessMode, resolved.PersistenceMode);
+            bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
+            bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
+            if (saveOnDispose && !stream.CanWrite) {
+                throw new ArgumentException("Stream must be writable when SaveOnDispose is enabled.", nameof(stream));
+            }
+            if (saveOnDispose && !stream.CanSeek) {
+                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
+            }
+            var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
+            long originalPosition = stream.CanSeek ? stream.Position : 0;
+            byte[] sourceBytes;
+            try {
+                if (stream.CanSeek) {
                     stream.Seek(0, SeekOrigin.Begin);
-                    byte[] sourceBytes = ReadRemainingBytes(stream);
+                }
+                using var sourceBuffer = new MemoryStream();
+                stream.CopyTo(sourceBuffer);
+                sourceBytes = sourceBuffer.ToArray();
+            } finally {
+                if (stream.CanSeek) {
                     stream.Seek(originalPosition, SeekOrigin.Begin);
-                    if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
-                        return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, effectiveOpenSettings.AutoSave, readOnly);
-                    }
                 }
-
-                stream.Seek(originalPosition, SeekOrigin.Begin);
-            } else {
-                bufferedOpenXmlStream = new MemoryStream();
-                stream.CopyTo(bufferedOpenXmlStream);
-                byte[] sourceBytes = bufferedOpenXmlStream.ToArray();
-                if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
-                    return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, effectiveOpenSettings.AutoSave, readOnly);
-                }
-
-                if (effectiveOpenSettings.AutoSave) {
-                    throw new NotSupportedException("Auto-save is not supported when loading non-seekable streams. Load the document with auto-save disabled, then save explicitly to a file path or writable stream.");
-                }
-
-                bufferedOpenXmlStream.Seek(0, SeekOrigin.Begin);
-                packageStream = bufferedOpenXmlStream;
             }
 
-            var document = new WordDocument() {
-                OriginalStream = bufferedOpenXmlStream == null ? stream : null!,
-                _ownedPackageStream = bufferedOpenXmlStream
-            };
+            if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
+                return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);
+            }
 
-            var wordDocument = WordprocessingDocument.Open(packageStream, !readOnly, effectiveOpenSettings);
-            bool applyOverrideStyles = overrideStyles && !readOnly;
-            InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+            var packageStream = new MemoryStream(sourceBytes.Length);
+            packageStream.Write(sourceBytes, 0, sourceBytes.Length);
+            packageStream.Position = 0;
+            try {
+                var document = new WordDocument() {
+                    OriginalStream = !readOnly && OfficeStreamWriter.CanReplaceContents(stream)
+                        ? stream
+                        : null!,
+                    _ownedPackageStream = packageStream,
+                    _persistenceMode = resolved.PersistenceMode
+                };
 
-            document._wordprocessingDocument = wordDocument;
-            document._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
-            document.LoadDocument();
-            if (applyOverrideStyles) {
+                var wordDocument = WordprocessingDocument.Open(packageStream, !readOnly, effectiveOpenSettings);
+                bool applyOverrideStyles = resolved.OverrideStyles && !readOnly;
                 InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
-                EnsureCustomStyleNames(wordDocument);
-            }
 
-
-            WordChart.InitializeAxisIdSeed(wordDocument);
-            WordChart.InitializeDocPrIdSeed(wordDocument);
-
-            // initialize abstract number id for lists to make sure those are unique
-            WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
-            return document;
-        }
-
-        private static byte[] ReadSignaturePrefix(Stream stream) {
-            byte[] signature = new byte[WordDocumentLoadRouting.SignatureLength];
-            int offset = 0;
-            while (offset < signature.Length) {
-                int read = stream.Read(signature, offset, signature.Length - offset);
-                if (read == 0) {
-                    break;
+                document._wordprocessingDocument = wordDocument;
+                document._document = wordDocument.MainDocumentPart?.Document ?? throw new InvalidOperationException("Document is missing.");
+                document.LoadDocument();
+                if (applyOverrideStyles) {
+                    InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
+                    EnsureCustomStyleNames(wordDocument);
                 }
 
-                offset += read;
+                WordChart.InitializeAxisIdSeed(wordDocument);
+                WordChart.InitializeDocPrIdSeed(wordDocument);
+                WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
+                return document;
+            } catch {
+                packageStream.Dispose();
+                throw;
             }
-
-            if (offset == signature.Length) {
-                return signature;
-            }
-
-            Array.Resize(ref signature, offset);
-            return signature;
-        }
-
-        private static byte[] ReadRemainingBytes(Stream stream) {
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            return buffer.ToArray();
         }
 
     }

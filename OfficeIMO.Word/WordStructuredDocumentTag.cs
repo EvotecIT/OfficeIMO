@@ -262,7 +262,7 @@ namespace OfficeIMO.Word {
                 return Helpers.ParseColor(ColorHex);
             }
             set {
-                ColorHex = value?.ToHexColor() ?? string.Empty;
+                ColorHex = value?.ToRgbHex() ?? string.Empty;
             }
         }
 
@@ -278,7 +278,7 @@ namespace OfficeIMO.Word {
                 var runProperties = VerifyRunProperties();
                 if (!string.IsNullOrEmpty(value)) {
                     runProperties.Color = new DocumentFormat.OpenXml.Wordprocessing.Color {
-                        Val = value.Replace("#", "").ToLowerInvariant()
+                        Val = value.Replace("#", "").ToUpperInvariant()
                     };
                 } else {
                     runProperties.Color?.Remove();

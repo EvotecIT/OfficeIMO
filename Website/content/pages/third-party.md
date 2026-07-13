@@ -25,8 +25,8 @@ OfficeIMO packages are published under the [MIT License](https://github.com/Evot
 | `OfficeIMO.Word.Pdf` | First-party `OfficeIMO.Word` and `OfficeIMO.Pdf` project references | Word-to-PDF conversion through the OfficeIMO PDF engine |
 | `OfficeIMO.Excel.Pdf` | First-party `OfficeIMO.Excel` and `OfficeIMO.Pdf` project references | Excel-to-PDF conversion through the OfficeIMO PDF engine |
 | `OfficeIMO.Visio` | `System.IO.Packaging` `10.0.3` | OPC packaging support for `.vsdx` files; colors and image metadata use first-party `OfficeIMO.Drawing` |
-| `OfficeIMO.Markdown` | No third-party runtime package references | Core package is intentionally dependency-light |
-| `OfficeIMO.CSV` | No third-party runtime package references | Core package is intentionally dependency-light |
+| `OfficeIMO.Markdown` | No third-party runtime package references | Keeps its runtime surface self-contained |
+| `OfficeIMO.CSV` | No third-party runtime package references | Uses the zero-dependency first-party `OfficeIMO.Drawing` foundation for shared document primitives |
 | `OfficeIMO.Reader` | Composes first-party OfficeIMO packages | Its effective upstream surface follows the format packages it wraps |
 
 Additional Microsoft compatibility helpers may appear on older target frameworks, but the table above focuses on the upstream packages that most teams will care about during license review.

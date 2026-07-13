@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("PrinterSettings");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("PrinterSettings");
                     sheet.CellValue(1, 1, "Printer settings");
 
                     SpreadsheetPrinterSettingsPart printerSettingsPart = sheet.WorksheetPart.AddNewPart<SpreadsheetPrinterSettingsPart>();

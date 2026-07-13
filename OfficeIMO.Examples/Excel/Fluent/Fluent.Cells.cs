@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Excel {
                         .Row(r => r.Cell("C", "Row builder"))
                         .Range("A1:C3", r => r.Cell(3, 3, "Range cell")))
                     .End()
-                    .Save(openExcel);
+                    .Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

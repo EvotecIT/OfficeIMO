@@ -23,7 +23,7 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md) | Generate `.pptx` presentations programmatically. |
 | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | Create, inspect, validate, and export `.vsdx` diagrams without Visio automation. |
 | [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md) | Dependency-free PDF creation, reading, inspection, page operations, and converter engine support. |
-| [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | Dependency-free native ODT, ODS, and ODP creation, editing, inspection, and preservation. |
+| [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | Native ODT, ODS, and ODP creation, editing, inspection, and preservation. |
 | [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | Bounded RTF parser, lossless syntax tree, editable semantic model, writer, and conversion reports. |
 | [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md) | Typed Markdown AST, builder API, reader, and HTML renderer. |
 | [OfficeIMO.Reader](OfficeIMO.Reader/README.md) | Unified read-only extraction facade with modular adapters. |
@@ -75,7 +75,6 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.Reader.Ocr.Tesseract](OfficeIMO.Reader.Ocr.Tesseract/README.md) | Optional Tesseract CLI OCR provider. |
 | [OfficeIMO.Reader.Pdf](OfficeIMO.Reader.Pdf/README.md) | PDF reader adapter. |
 | [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md) | Bounded RTF chunks, tables, visuals, warnings, and provenance. |
-| [OfficeIMO.Reader.Text](OfficeIMO.Reader.Text/README.md) | Structured text compatibility adapter. |
 | [OfficeIMO.Reader.Visio](OfficeIMO.Reader.Visio/README.md) | Visio inspection snapshot adapter. |
 | [OfficeIMO.Reader.Xml](OfficeIMO.Reader.Xml/README.md) | XML reader adapter. |
 | [OfficeIMO.Reader.Yaml](OfficeIMO.Reader.Yaml/README.md) | YAML reader adapter. |
@@ -135,7 +134,7 @@ document.Save();
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("sales.xlsx");
-var sheet = workbook.AddWorkSheet("Sales");
+var sheet = workbook.AddWorksheet("Sales");
 
 sheet.CellValue(1, 1, "Product");
 sheet.CellValue(1, 2, "Revenue");
@@ -203,11 +202,11 @@ PdfDocument.Open("packet.pdf")
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Word.Pdf;
 
-PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
     "statement.pdf",
     "statement-tables.xlsx");
 
-PdfWordTableConverterExtensions.SavePdfTablesAsWord(
+PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
     "statement.pdf",
     "statement-tables.docx");
 ```
@@ -234,7 +233,7 @@ byte[] pdf = html.ToPdf(options);
 byte[] png = html.ToPng(options);
 string svg = html.ToSvg(options);
 
-var pdfResult = html.ToPdfResult(options);
+var pdfResult = html.ToPdfDocumentResult(options);
 var pngResult = html.ToPngResult(options);
 var svgResult = html.ToSvgResult(options);
 
@@ -291,6 +290,8 @@ VisioDocument.Create("network.vsdx")
 Most shipping libraries target `netstandard2.0`, `net8.0`, and `net10.0`. Some packages also include `net472` or Windows-specific targets where the surface requires it. Check the package README or project file for exact targets.
 
 ## Deeper docs
+
+- [Breaking API migration](Docs/officeimo.breaking-api-migration.md)
 
 - [Examples](OfficeIMO.Examples/README.md)
 - [PDF current state](Docs/officeimo.pdf.current-state.md)

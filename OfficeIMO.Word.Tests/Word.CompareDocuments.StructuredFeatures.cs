@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 document.Header.Default!._header.Append(new Paragraph(
                     new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
                     CreateComparisonSimpleField(" AUTHOR ", "Alice")));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_field_inserted.docx");
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
                 document.Header.Default!._header.Append(new Paragraph(
                     new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
                     CreateComparisonSimpleField(" AUTHOR ", "Alice")));
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_first_header_field.docx");
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
                 document.Header.First!._header.Append(new Paragraph(
                     new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
                     CreateComparisonSimpleField(" AUTHOR ", "Alice")));
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithSimpleField(string path, string instruction, string resultText) {
             using WordDocument document = WordDocument.Create(path);
             document.AddParagraph("Placeholder");
-            document.Save(false);
+            document.Save();
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
             Body body = wordDocument.MainDocumentPart!.Document.Body!;
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests {
             document.Header.Default!._header.Append(new Paragraph(
                 new Run(new Text("Header: ") { Space = SpaceProcessingModeValues.Preserve }),
                 CreateComparisonSimpleField(headerFieldInstruction, headerFieldResult)));
-            document.Save(false);
+            document.Save();
         }
 
         private static SimpleField CreateComparisonSimpleField(string instruction, string resultText) {
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithBoundContentControl(string path, string alias, string tag, string storeItemId, string xpath, string text) {
             using WordDocument document = WordDocument.Create(path);
             document.AddParagraph("Placeholder");
-            document.Save(false);
+            document.Save();
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
             Body body = wordDocument.MainDocumentPart!.Document.Body!;

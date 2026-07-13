@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Word {
                 //WordTable wordTableFromEarlier = document.Tables[0];
                 //wordTableFromEarlier.Rows[1].Cells[1].Paragraphs[0].Text = "Middle table";
 
-                document.Save(false);
+                document.Save();
             }
         }
 

@@ -1293,10 +1293,10 @@ public partial class Word {
             document.AddParagraph("After malformed inline chart");
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
+            PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+            result.Save(pdfPath);
+            Assert.Contains(result.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         }
-
-        Assert.Contains(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("Before malformed inline chart", text);
         Assert.Contains("After malformed inline chart", text);
@@ -1523,12 +1523,13 @@ public partial class Word {
             Assert.Contains("omitted the additional plot types", (string?)arguments[2], StringComparison.OrdinalIgnoreCase);
 
             document.Save();
-            document.SaveAsPdf(pdfPath, options);
-        }
+            PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
+            conversion.Save(pdfPath);
 
-        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
-        PdfExportWarning simplified = Assert.Single(options.Warnings, warning => warning.Code == "NativeBodyChartSimplified");
-        Assert.Contains("omitted the additional plot types", simplified.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(conversion.Warnings, warning => warning.Code == "NativeBodyChartUnsupported");
+            PdfConversionWarning simplified = Assert.Single(conversion.Warnings, warning => warning.Code == "NativeBodyChartSimplified");
+            Assert.Contains("omitted the additional plot types", simplified.Message, StringComparison.OrdinalIgnoreCase);
+        }
 
         string text = PdfTextExtractor.ExtractAllText(pdfPath);
         Assert.Contains("After mixed chart", text);
@@ -2295,7 +2296,7 @@ public partial class Word {
         fill.SetAttribute(new OpenXmlAttribute("type", string.Empty, "gradient"));
         fill.SetAttribute(new OpenXmlAttribute("color2", string.Empty, "#ed7d31"));
         fill.SetAttribute(new OpenXmlAttribute("angle", string.Empty, "90"));
-        fill.SetAttribute(new OpenXmlAttribute("opacity", string.Empty, "32768f"));
+        fill.SetAttribute(new OpenXmlAttribute("opacity", string.Empty, "32768F"));
 
         var panel = new DocumentFormat.OpenXml.Vml.Rectangle(fill) {
             Id = "NativeCoverGradientPanel",
@@ -2381,7 +2382,7 @@ public partial class Word {
             FillColor = "#ed7d31",
             Stroked = false
         };
-        roundRect.SetAttribute(new OpenXmlAttribute("arcsize", string.Empty, "32768f"));
+        roundRect.SetAttribute(new OpenXmlAttribute("arcsize", string.Empty, "32768F"));
 
         return new Paragraph(new Run(new Picture(oval, roundRect)));
     }

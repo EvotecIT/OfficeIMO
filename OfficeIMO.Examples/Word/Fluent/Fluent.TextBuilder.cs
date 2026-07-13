@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Fluent;
@@ -21,9 +22,9 @@ namespace OfficeIMO.Examples.Word {
                             .CapsStyle(CapsStyle.SmallCaps)
                             .Strike()))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

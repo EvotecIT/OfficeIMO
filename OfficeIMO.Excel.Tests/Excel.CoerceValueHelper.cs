@@ -107,24 +107,24 @@ public class ExcelCoerceValueHelper
     public void Coerce_DateTimeOffset_UsesLocalStrategyByDefault()
     {
         var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(5));
-        var expected = offset.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
+        double expected = offset.LocalDateTime.ToOADate();
 
         var (value, type) = CoerceValueHelper.Coerce(offset, _ => throw new InvalidOperationException("Should not use shared strings"));
 
         Assert.Equal(CellValues.Number, type);
-        Assert.Equal(expected, value.Text);
+        Excel.AssertRoundTripNumericText(expected, value.Text);
     }
 
     [Fact]
     public void Coerce_DateTimeOffset_AllowsCustomStrategy()
     {
         var offset = new DateTimeOffset(2024, 1, 2, 3, 4, 5, TimeSpan.FromHours(-3));
-        var expected = offset.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
+        double expected = offset.UtcDateTime.ToOADate();
 
         var (value, type) = CoerceValueHelper.Coerce(offset, _ => throw new InvalidOperationException("Should not use shared strings"), dto => dto.UtcDateTime);
 
         Assert.Equal(CellValues.Number, type);
-        Assert.Equal(expected, value.Text);
+        Excel.AssertRoundTripNumericText(expected, value.Text);
     }
 
 #if NET6_0_OR_GREATER
@@ -132,16 +132,16 @@ public class ExcelCoerceValueHelper
     public void Coerce_DateOnlyAndTimeOnly_AreNumeric()
     {
         var dateOnly = new DateOnly(2024, 3, 1);
-        var expectedDate = dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture);
+        double expectedDate = dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate();
         var (dateValue, dateType) = CoerceValueHelper.Coerce(dateOnly, s => new CellValue(s));
         Assert.Equal(CellValues.Number, dateType);
-        Assert.Equal(expectedDate, dateValue.Text);
+        Excel.AssertRoundTripNumericText(expectedDate, dateValue.Text);
 
         var timeOnly = new TimeOnly(13, 45, 30);
-        var expectedTime = timeOnly.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture);
+        double expectedTime = timeOnly.ToTimeSpan().TotalDays;
         var (timeValue, timeType) = CoerceValueHelper.Coerce(timeOnly, s => new CellValue(s));
         Assert.Equal(CellValues.Number, timeType);
-        Assert.Equal(expectedTime, timeValue.Text);
+        Excel.AssertRoundTripNumericText(expectedTime, timeValue.Text);
     }
 #endif
 }

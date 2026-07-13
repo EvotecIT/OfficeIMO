@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                     Assert.True(slidePart.Slide.Descendants<A.Table>().Any());
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.First();
                     Assert.True(slide.Pictures.Any());
                     Assert.True(slide.Tables.Any());

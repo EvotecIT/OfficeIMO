@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
             var bar3d = document.AddChart("Bar3D chart");
             bar3d.AddCategories(categories);
             bar3d.AddBar3D("USA", new List<int> { 5, 2, 3, 4 }, Color.DarkOrange);
-            document.Save(false);
+            document.Save();
 
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

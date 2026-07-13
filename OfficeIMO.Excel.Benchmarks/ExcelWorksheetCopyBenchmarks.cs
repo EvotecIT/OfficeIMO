@@ -27,9 +27,9 @@ public class ExcelWorksheetCopyBenchmarks {
 
     private int CopyWorksheet(ExcelWorksheetCopyMode copyMode) {
         using var sourceStream = new MemoryStream(_sourceWorkbookBytes, writable: false);
-        using var sourceDocument = ExcelDocument.Load(sourceStream, readOnly: true);
+        using var sourceDocument = ExcelDocument.Load(sourceStream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         using var targetStream = new MemoryStream();
-        using (var targetDocument = ExcelDocument.Create(targetStream, autoSave: false)) {
+        using (var targetDocument = ExcelDocument.Create(targetStream)) {
             targetDocument.CopyWorksheetFrom(
                 sourceDocument,
                 "Data",

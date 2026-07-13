@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 document.CleanupDocument();
                 Assert.Single(p._paragraph.Elements<Run>());
                 Assert.Equal("Hello World", p.Text);
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Single(p._paragraph.Elements<Run>());
                 Assert.Equal("AB", p._paragraph.InnerText);
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, p._paragraph.Elements<Run>().Count());
                 document.CleanupDocument();
                 Assert.Single(p._paragraph.Elements<Run>());
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(run._paragraph);
                 var firstRun = run._paragraph!.Elements<Run>().First();
                 Assert.Null(firstRun.RunProperties);
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
                 document.CleanupDocument();
                 Assert.Single(document.Paragraphs);
                 Assert.Equal("Hello", document.Paragraphs.First().Text);
-                document.Save(false);
+                document.Save();
             }
         }
     }

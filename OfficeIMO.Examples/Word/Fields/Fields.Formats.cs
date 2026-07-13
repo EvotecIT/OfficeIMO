@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "FieldFormatRoman.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Current page: ").AddField(WordFieldType.Page, WordFieldFormat.roman);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 
@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Number as words: ").AddField(WordFieldType.Page, WordFieldFormat.CardText);
                 document.AddParagraph("Number ordinal: ").AddField(WordFieldType.Page, WordFieldFormat.Ordinal);
                 document.AddParagraph("Number hex: ").AddField(WordFieldType.Page, WordFieldFormat.Hex);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

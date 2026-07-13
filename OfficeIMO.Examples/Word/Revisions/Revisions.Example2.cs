@@ -10,13 +10,13 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.TrackChanges = true;
                 document.AddParagraph("Tracking enabled");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.TrackChanges = false;
                 document.AddParagraph("Tracking disabled");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

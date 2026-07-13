@@ -31,10 +31,10 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Links");
+                var sheet = document.AddWorksheet("Links");
                 sheet.SetHyperlink(1, 1, "https://initial.example/", display: "First");
                 sheet.SetHyperlink(1, 1, "https://final.example/", display: "Second");
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("https://final.example/", relationships[0].Uri.ToString());
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -64,12 +64,12 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Links");
-                var target1 = document.AddWorkSheet("Target1");
-                var target2 = document.AddWorkSheet("Target2");
+                var sheet = document.AddWorksheet("Links");
+                var target1 = document.AddWorksheet("Target1");
+                var target2 = document.AddWorksheet("Target2");
                 sheet.SetInternalLink(2, 1, target1, "A1", display: "First");
                 sheet.SetInternalLink(2, 1, target2, "B5", display: "Second");
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(worksheetPart.HyperlinkRelationships);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -99,11 +99,11 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Links");
-                var target = document.AddWorkSheet("Target");
+                var sheet = document.AddWorksheet("Links");
+                var target = document.AddWorksheet("Target");
                 sheet.SetHyperlink(1, 1, "https://example.org/docs", display: "Docs", style: false, tooltip: "Open external docs");
                 sheet.SetInternalLink(2, 1, target, "B2", display: "Jump", style: false, tooltip: "Jump to target cell");
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Jump to target cell", internalLink.Tooltip!.Value);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 var links = document.Sheets.First(sheet => sheet.Name == "Links").GetHyperlinks();
                 Assert.Equal("Open external docs", links["A1"].Tooltip);
                 Assert.Equal("Jump to target cell", links["A2"].Tooltip);
@@ -132,10 +132,10 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Links");
+                var sheet = document.AddWorksheet("Links");
                 sheet.SetHyperlink(1, 1, "https://shared.example/", display: "Primary");
                 sheet.SetHyperlink(1, 2, "https://shared.example/", display: "Secondary");
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, true)) {
@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Load(filePath)) {
                 var sheet = document.Sheets.First(s => s.Name == "Links");
                 sheet.SetHyperlink(1, 1, "https://updated.example/", display: "Updated");
-                document.Save(false);
+                document.Save();
             }
 
             using (var package = SpreadsheetDocument.Open(filePath, false)) {
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("https://shared.example/", remainingRel!.Uri.ToString());
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

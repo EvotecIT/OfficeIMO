@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Word {
                 };
 
                 WordMailMerge.Execute(document, values);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

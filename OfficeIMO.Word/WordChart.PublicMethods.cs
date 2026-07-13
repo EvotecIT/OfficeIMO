@@ -392,7 +392,7 @@ namespace OfficeIMO.Word {
             } else {
                 spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
                 spPr.Append(new DocumentFormat.OpenXml.Drawing.SolidFill(
-                    new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = color.ToHexColor() }));
+                    new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = color.ToRgbHex() }));
             }
             return this;
         }
@@ -424,7 +424,7 @@ namespace OfficeIMO.Word {
                 else {
                     spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
                     spPr.Append(new DocumentFormat.OpenXml.Drawing.SolidFill(
-                        new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = color.ToHexColor() }));
+                        new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = color.ToRgbHex() }));
                 }
                 break;
             }
@@ -540,7 +540,7 @@ namespace OfficeIMO.Word {
                     else {
                         spPr.RemoveAllChildren<DocumentFormat.OpenXml.Drawing.SolidFill>();
                         spPr.Append(new DocumentFormat.OpenXml.Drawing.SolidFill(
-                            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = c.ToHexColor() }));
+                            new DocumentFormat.OpenXml.Drawing.RgbColorModelHex() { Val = c.ToRgbHex() }));
                     }
                 }
             }

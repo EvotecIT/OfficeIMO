@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.PowerPoint;
@@ -40,8 +41,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                     .Stroke("007ACC", 2);
                 slide.Notes.Text = "Concrete objects can be edited immediately or after reopening the deck.";
 
-                using (PowerPointPresentation source = PowerPointPresentation.Open(sourcePath,
-                           PowerPointOpenMode.ReadOnly)) {
+                using (PowerPointPresentation source = PowerPointPresentation.Load(sourcePath,
+                           new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointSlide imported = presentation.ImportSlide(source, 0);
                     imported.AddTextBoxCm("Imported through the same presentation model.", 1.5, 5.0, 22.0, 0.8);
                 }
@@ -53,12 +54,12 @@ namespace OfficeIMO.Examples.PowerPoint {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation edited = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation edited = PowerPointPresentation.Load(filePath)) {
                 edited.ReplaceText("One lifecycle owner", "One consistent lifecycle owner");
                 edited.Save();
             }
 
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
     }
 }

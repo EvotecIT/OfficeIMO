@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -62,7 +63,7 @@ namespace OfficeIMO.Examples.PowerPoint {
 
             presentation.Save();
             Validate(filePath, presentation);
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
 
         private static PowerPointDeckPlan CreatePlan() {

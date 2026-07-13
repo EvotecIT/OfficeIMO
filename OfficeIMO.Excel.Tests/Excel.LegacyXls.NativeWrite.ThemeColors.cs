@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ThemeStyles");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ThemeStyles");
                     sheet.CellValue(1, 1, "Theme styled");
                     sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
 
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
 
                 LegacyXlsFont font = GetLegacyFont(workbook, cellFormat.FontIndex);
                 Assert.True(workbook.TryResolveColor(font.ColorIndex, out string? fontColor));
-                Assert.Equal("FF2F4D71", fontColor);
+                Assert.Equal("FF2C4D75", fontColor);
 
                 Assert.True(cellFormat.ApplyFill);
                 Assert.Equal((byte)1, cellFormat.FillPattern);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("FFCD7371", topBorderColor);
 
                 ExcelCellStyleSnapshot projectedStyle = result.Document.Sheets[0].GetCellStyle(1, 1);
-                Assert.Equal("FF2F4D71", projectedStyle.FontColorArgb);
+                Assert.Equal("FF2C4D75", projectedStyle.FontColorArgb);
                 Assert.Equal("FF666666", projectedStyle.FillColorArgb);
                 Assert.NotNull(projectedStyle.Border);
                 Assert.Equal("FFCD7371", projectedStyle.Border!.Top!.ColorArgb);

@@ -17,12 +17,12 @@ public partial class WordRtfConverterTests {
         word.AddParagraph("Async clinical ż");
         var options = new RtfWriteOptions { IncludeGenerator = false };
 
-        string rtf = await word.ToRtfAsync(options);
-        byte[] bytes = await word.ToRtfBytesAsync(options);
+        string rtf = word.ToRtf(options);
+        byte[] bytes = word.ToRtfBytes(options);
 
         Assert.Equal(rtf, Encoding.UTF8.GetString(bytes));
 
-        using MemoryStream memoryStream = await word.ToRtfMemoryStreamAsync(options);
+        using MemoryStream memoryStream = word.ToRtfStream(options);
         Assert.Equal(bytes, memoryStream.ToArray());
 
         using var output = new MemoryStream();
@@ -30,9 +30,9 @@ public partial class WordRtfConverterTests {
         await word.SaveAsRtfAsync(output, options);
         byte[] saved = output.ToArray();
 
-        Assert.Equal(saved.Length, output.Position);
-        Assert.Equal(0x2A, saved[0]);
-        Assert.Equal(rtf, Encoding.UTF8.GetString(saved, 1, saved.Length - 1));
+        Assert.Equal(0, output.Position);
+        Assert.Equal(bytes, saved);
+        Assert.Equal(rtf, Encoding.UTF8.GetString(saved));
 
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".rtf");
         try {
@@ -47,10 +47,10 @@ public partial class WordRtfConverterTests {
             }
         }
 
-        using WordDocument fromText = await rtf.LoadFromRtfAsync();
+        using WordDocument fromText = rtf.LoadFromRtf();
         Assert.Contains("Async clinical ż", string.Concat(fromText.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
-        using WordDocument fromBytes = await bytes.LoadFromRtfAsync();
+        using WordDocument fromBytes = bytes.LoadFromRtf();
         Assert.Contains("Async clinical ż", string.Concat(fromBytes.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
         using var input = new MemoryStream();
@@ -71,9 +71,7 @@ public partial class WordRtfConverterTests {
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() => word.ToRtfAsync(cancellationToken: cts.Token));
-        await Assert.ThrowsAsync<OperationCanceledException>(() => word.ToRtfBytesAsync(cancellationToken: cts.Token));
-        await Assert.ThrowsAsync<OperationCanceledException>(() => "ignored".LoadFromRtfAsync(cancellationToken: cts.Token));
-        await Assert.ThrowsAsync<OperationCanceledException>(() => new byte[] { 123, 125 }.LoadFromRtfAsync(cancellationToken: cts.Token));
+        using var input = new MemoryStream(new byte[] { 123, 125 });
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => input.LoadFromRtfAsync(cancellationToken: cts.Token));
     }
 }

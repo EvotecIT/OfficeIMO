@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("StyleParent");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("StyleParent");
                     sheet.CellValue(1, 1, 45291d);
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot!.WorkbookStylesPart ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();
@@ -118,8 +118,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("StyledBlank");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("StyledBlank");
                     sheet.CellValue(2, 2, "temporary");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot!.WorkbookStylesPart ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();
@@ -179,8 +179,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("EmptyString");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("EmptyString");
                     sheet.CellValue(2, 2, "temporary");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot!.WorkbookStylesPart ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();

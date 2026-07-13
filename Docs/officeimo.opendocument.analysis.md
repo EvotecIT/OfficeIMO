@@ -2,7 +2,7 @@
 
 ## Decision
 
-Add one dependency-free package named `OfficeIMO.OpenDocument` that owns the OpenDocument family:
+Add one native format package named `OfficeIMO.OpenDocument` that owns the OpenDocument family:
 
 - `OdtDocument` for text documents
 - `OdsDocument` for spreadsheets
@@ -41,13 +41,13 @@ The repository already contains the pieces of the right pattern:
 
 Word, Excel, and PowerPoint are useful API references, but not implementation bases for ODF. Their object models wrap the Open XML SDK and OOXML-specific concepts. Putting ODF serialization inside those packages would make ODF a conversion feature, prevent native round-trip editing, and add three implementations of the same ODF package and style rules.
 
-## What “No Dependencies” Means
+## Runtime Dependency Boundary
 
-The production `OfficeIMO.OpenDocument.csproj` should contain neither package nor project references. It can use the internal source linked from `OfficeIMO.Shared` by `Directory.Build.props`, just as other projects do, because that source is compiled into the package rather than shipped as a NuGet dependency.
+The production package has one first-party dependency: `OfficeIMO.Drawing`, the zero-dependency foundation that owns shared lifecycle, save-result, conversion-result, diagnostics, color, and measurement contracts. `OfficeIMO.OpenDocument` has no third-party runtime dependencies and does not depend on desktop Office, LibreOffice, UNO, or an external ZIP library.
 
 Archive safety is reusable behavior. The clean implementation is to move the reusable path normalization, entry limits, compression-ratio checks, duplicate-entry checks, and bounded copy helpers behind internal types in `OfficeIMO.Shared/Packaging`. `OfficeIMO.Zip` can delegate to the same source. This keeps one implementation without making OpenDocument depend on `OfficeIMO.Zip` at runtime.
 
-Do not reference `OfficeIMO.Drawing` from the native package. ODF needs format-native lexical types such as `OdfColor`, `OdfLength`, `OdfAngle`, and `OdfPercentage` that can preserve the exact source spelling. Conversion adapters can map those types to `OfficeIMO.Drawing` where required.
+Keep ODF lexical types such as `OdfColor`, `OdfLength`, `OdfAngle`, and `OdfPercentage` format-native so they preserve exact source spelling. The Drawing dependency supplies shared foundation contracts; it does not own ODF package, XML, style, or lexical semantics. Conversion adapters map between those format-native types and broader OfficeIMO models where required.
 
 Development and CI may use external validators and office applications as test oracles. They are not runtime dependencies.
 
@@ -436,7 +436,7 @@ Keep the implementation in reviewable vertical slices.
 
 ### Milestone 0: package kernel
 
-- [x] Add `OfficeIMO.OpenDocument` and `OfficeIMO.OpenDocument.Tests` with no package or project references.
+- [x] Add `OfficeIMO.OpenDocument` and `OfficeIMO.OpenDocument.Tests` with only the shared zero-dependency `OfficeIMO.Drawing` foundation and no third-party runtime packages.
 - [x] Extract shared internal archive-safety primitives and make `OfficeIMO.Zip` use them.
 - [x] Implement package open/save, manifest handling, safe XML loading, dirty-part tracking, metadata, diagnostics, and validation.
 - [x] Create minimal conforming ODT, ODS, and ODP packages that LibreOffice opens without repair.
@@ -476,7 +476,7 @@ Keep the implementation in reviewable vertical slices.
 - [x] Add tracked-change editing, advanced-chart preservation, basic animations, flat XML, encryption detection, and signature preservation as separate capability lines.
 - [x] Measure package size and build time before deciding whether to split the dependency-free package.
 
-The M5 measurement on Apple M4/macOS with .NET SDK 10.0.102 produced a 302,725-byte `OfficeIMO.OpenDocument` package with empty NuGet dependency groups. A clean Release build of its three non-Windows targets took 1.18 seconds. This does not justify splitting the native package; the format-specific source folders remain the simpler boundary. BenchmarkDotNet coverage lives in `OfficeIMO.OpenDocument.Benchmarks` for ODT open/enumeration, extreme sparse ODS writing, and bounded range-formula evaluation.
+The earlier M5 package-size measurement predates the solution-wide foundation consolidation. The current package declares only `OfficeIMO.Drawing`, which itself has no package or project dependencies. This does not justify splitting the native package; the format-specific source folders remain the simpler boundary. BenchmarkDotNet coverage lives in `OfficeIMO.OpenDocument.Benchmarks` for ODT open/enumeration, extreme sparse ODS writing, and bounded range-formula evaluation.
 
 ### Milestone 6: hardening and truthful diagnostics
 
@@ -490,7 +490,7 @@ The M5 measurement on Apple M4/macOS with .NET SDK 10.0.102 produced a 302,725-b
 - [x] Add an opt-in Windows desktop canary script for Office-equipped machines; do not claim that hosted runners provide Microsoft Office.
 
 M6 closes the known silent-data-loss and misleading-diagnostic paths. `Build/Test-OpenDocumentMicrosoftOffice.ps1` provides an automation smoke test on a current Office-equipped Windows machine; an interactive no-repair-prompt check is still required before declaring the first stable release complete.
-The Release `OfficeIMO.OpenDocument` package measured 323,842 bytes after M6 and still has empty dependency groups for every packed target framework.
+The M6 implementation remains free of third-party runtime dependencies. Its packed dependency groups now intentionally contain `OfficeIMO.Drawing` so all OfficeIMO document packages share the same lifecycle and result contracts.
 
 ## Repository Integration Points
 

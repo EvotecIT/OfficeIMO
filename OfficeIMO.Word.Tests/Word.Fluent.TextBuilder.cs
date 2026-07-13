@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
                         .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000"))
                         .Text("!", t => t.BoldOn()))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(" World", runs[1].Text);
                 Assert.True(runs[1].Bold);
                 Assert.True(runs[1].Italic);
-                Assert.Equal("ff0000", runs[1].ColorHex);
+                Assert.Equal("FF0000", runs[1].ColorHex);
                 Assert.Equal("!", runs[2].Text);
                 Assert.True(runs[2].Bold);
             }
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                         .Text(" Emboss", t => t.Emboss())
                         .Text(" SmallCaps", t => t.SmallCaps()))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

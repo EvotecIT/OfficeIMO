@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;
@@ -627,7 +628,7 @@ public static partial class PdfPageImporter {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
     }
 
     private static string ValidateOutputPath(string outputPath) {

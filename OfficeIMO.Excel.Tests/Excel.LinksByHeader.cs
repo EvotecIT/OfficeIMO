@@ -16,19 +16,19 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorkSheet("Summary");
+                var s = doc.AddWorksheet("Summary");
                 // Header
                 s.Cell(1, 1, "Domain");
                 // Two rows
                 s.Cell(2, 1, "domain-001.example");
                 s.Cell(3, 1, "domain-002.example");
                 // Create destination sheets
-                doc.AddWorkSheet("domain-001.example");
-                doc.AddWorkSheet("domain-002.example");
+                doc.AddWorksheet("domain-001.example");
+                doc.AddWorksheet("domain-002.example");
 
                 // Link by header (styled)
                 s.LinkByHeaderToInternalSheets("Domain", rowFrom: 2, rowTo: 3, targetA1: "A1", styled: true);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorkSheet("Summary");
+                var s = doc.AddWorksheet("Summary");
                 s.Cell(1, 1, "RFC");
                 s.Cell(2, 1, "rfc7208");
 
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                     titleForCellText: null,
                     styled: true);
 
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))
@@ -127,20 +127,20 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorkSheet("Summary");
+                var s = doc.AddWorksheet("Summary");
                 // Build a 2-column table with headers Domain, RFC and two data rows
                 s.Cell(1, 1, "Domain"); s.Cell(1, 2, "RFC");
                 s.Cell(2, 1, "domain-001.example"); s.Cell(2, 2, "rfc7208");
                 s.Cell(3, 1, "domain-002.example"); s.Cell(3, 2, "rfc6376");
                 s.AddTable("A1:B3", hasHeader: true, name: "TblSummary", style: OfficeIMO.Excel.TableStyle.TableStyleMedium9, includeAutoFilter: true);
                 // Destination sheets
-                doc.AddWorkSheet("domain-001.example");
-                doc.AddWorkSheet("domain-002.example");
+                doc.AddWorksheet("domain-001.example");
+                doc.AddWorksheet("domain-002.example");
 
                 // Link inside table by header
                 s.LinkByHeaderToInternalSheetsInTable("TblSummary", "Domain", targetA1: "A1", styled: true);
                 s.LinkByHeaderToUrlsInTable("TblSummary", "RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))
@@ -170,19 +170,19 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorkSheet("Summary");
+                var s = doc.AddWorksheet("Summary");
                 // Header + rows (no table)
                 s.Cell(1, 1, "Domain"); s.Cell(1, 2, "RFC");
                 s.Cell(2, 1, "domain-001.example"); s.Cell(2, 2, "rfc7208");
                 s.Cell(3, 1, "domain-002.example"); s.Cell(3, 2, "rfc6376");
                 // Destination sheets
-                doc.AddWorkSheet("domain-001.example");
-                doc.AddWorkSheet("domain-002.example");
+                doc.AddWorksheet("domain-001.example");
+                doc.AddWorksheet("domain-002.example");
 
                 // Link within the rectangular range
                 s.LinkByHeaderToInternalSheetsInRange("A1:B3", "Domain", targetA1: "A1", styled: true);
                 s.LinkByHeaderToUrlsInRange("A1:B3", "RFC", urlForCellText: rfc => $"https://datatracker.ietf.org/doc/html/{rfc}", styled: true);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))
@@ -212,14 +212,14 @@ namespace OfficeIMO.Tests {
 
             using (var doc = ExcelDocument.Create(filePath))
             {
-                var s = doc.AddWorkSheet("Summary");
-                var target = doc.AddWorkSheet("domain-001??");
+                var s = doc.AddWorksheet("Summary");
+                var target = doc.AddWorksheet("domain-001??");
 
                 s.Cell(1, 1, "Domain");
                 s.Cell(2, 1, "domain-001??");
 
                 s.LinkByHeaderToInternalSheetsInRange("A1:A2", "Domain", targetA1: "A1", styled: false);
-                doc.Save(false);
+                doc.Save();
             }
 
             using (var pkg = SpreadsheetDocument.Open(filePath, false))

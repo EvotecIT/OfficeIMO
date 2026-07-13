@@ -62,7 +62,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Alpha");
                     sheet.CellValue(2, 1, "Beta");
                     sheet.CellValue(3, 1, "Gamma");
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Delta");
                     sheet.CellValue(2, 1, "Epsilon");
                     sheet.CellValue(3, 1, "Zeta");
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void Load_FromMemoryStream_WithAutoSave_PersistsChanges()
+        public void Load_FromMemoryStream_WithSaveOnDispose_PersistsChanges()
         {
             string filePath = Path.Combine(_directoryWithFiles, "LoadFromStreamAutoSave.xlsx");
 
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorkSheet("AutoSave");
+                    var sheet = document.AddWorksheet("AutoSave");
                     sheet.CellValue(1, 1, "Original");
                     document.Save();
                 }
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests
                 memory.Write(bytes, 0, bytes.Length);
                 memory.Seek(0, SeekOrigin.Begin);
 
-                using (var document = ExcelDocument.Load(memory, readOnly: false, autoSave: true))
+                using (var document = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }))
                 {
                     var sheet = document.Sheets[0];
                     sheet.CellValue(1, 1, "Updated");
@@ -212,7 +212,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public async Task LoadAsync_FromMemoryStream_WithAutoSave_PersistsChanges()
+        public async Task LoadAsync_FromMemoryStream_WithSaveOnDispose_PersistsChanges()
         {
             string filePath = Path.Combine(_directoryWithFiles, "LoadFromStreamAutoSaveAsync.xlsx");
 
@@ -220,7 +220,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorkSheet("AutoSave");
+                    var sheet = document.AddWorksheet("AutoSave");
                     sheet.CellValue(1, 1, "Original Async");
                     document.Save();
                 }
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests
                 memory.Write(bytes, 0, bytes.Length);
                 memory.Seek(0, SeekOrigin.Begin);
 
-                await using (var document = await ExcelDocument.LoadAsync(memory, readOnly: false, autoSave: true))
+                await using (var document = await ExcelDocument.LoadAsync(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }))
                 {
                     var sheet = document.Sheets[0];
                     sheet.CellValue(1, 1, "Updated Async");
@@ -252,7 +252,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void Load_FromMemoryStream_WithOpenSettingsAutoSave_PersistsChanges()
+        public void Load_FromMemoryStream_LowLevelAutoSaveDoesNotEnablePersistence()
         {
             string filePath = Path.Combine(_directoryWithFiles, "LoadFromStreamOpenSettingsAutoSave.xlsx");
 
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorkSheet("AutoSave");
+                    var sheet = document.AddWorksheet("AutoSave");
                     sheet.CellValue(1, 1, "Original Settings");
                     document.Save();
                 }
@@ -271,7 +271,7 @@ namespace OfficeIMO.Tests
                 memory.Seek(0, SeekOrigin.Begin);
 
                 var openSettings = new OpenSettings { AutoSave = true };
-                using (var document = ExcelDocument.Load(memory, readOnly: false, autoSave: false, openSettings: openSettings))
+                using (var document = ExcelDocument.Load(memory, new ExcelLoadOptions { OpenSettings = openSettings }))
                 {
                     var sheet = document.Sheets[0];
                     sheet.CellValue(1, 1, "Updated Settings");
@@ -281,7 +281,7 @@ namespace OfficeIMO.Tests
                 using var reloaded = ExcelDocument.Load(memory);
                 var reloadedSheet = reloaded.Sheets[0];
                 Assert.True(reloadedSheet.TryGetCellText(1, 1, out var text));
-                Assert.Equal("Updated Settings", text);
+                Assert.Equal("Original Settings", text);
             }
             finally
             {
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public async Task LoadAsync_FromMemoryStream_WithOpenSettingsAutoSave_PersistsChanges()
+        public async Task LoadAsync_FromMemoryStream_LowLevelAutoSaveDoesNotEnablePersistence()
         {
             string filePath = Path.Combine(_directoryWithFiles, "LoadFromStreamOpenSettingsAutoSaveAsync.xlsx");
 
@@ -301,7 +301,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorkSheet("AutoSave");
+                    var sheet = document.AddWorksheet("AutoSave");
                     sheet.CellValue(1, 1, "Original Settings Async");
                     document.Save();
                 }
@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests
                 memory.Seek(0, SeekOrigin.Begin);
 
                 var openSettings = new OpenSettings { AutoSave = true };
-                await using (var document = await ExcelDocument.LoadAsync(memory, readOnly: false, autoSave: false, openSettings: openSettings))
+                await using (var document = await ExcelDocument.LoadAsync(memory, new ExcelLoadOptions { OpenSettings = openSettings }))
                 {
                     var sheet = document.Sheets[0];
                     sheet.CellValue(1, 1, "Updated Settings Async");
@@ -322,7 +322,7 @@ namespace OfficeIMO.Tests
                 using var reloaded = ExcelDocument.Load(memory);
                 var reloadedSheet = reloaded.Sheets[0];
                 Assert.True(reloadedSheet.TryGetCellText(1, 1, out var text));
-                Assert.Equal("Updated Settings Async", text);
+                Assert.Equal("Original Settings Async", text);
             }
             finally
             {
@@ -334,7 +334,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void Load_FromReadOnlyStream_WithAutoSave_Throws()
+        public void Load_FromReadOnlyStream_WithSaveOnDispose_Throws()
         {
             string filePath = Path.Combine(_directoryWithFiles, "LoadFromStreamReadOnly.xlsx");
 
@@ -342,12 +342,12 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    document.AddWorkSheet("Readonly");
+                    document.AddWorksheet("Readonly");
                     document.Save();
                 }
 
                 using var readOnlyStream = new MemoryStream(File.ReadAllBytes(filePath), writable: false);
-                var ex = Assert.Throws<ArgumentException>(() => ExcelDocument.Load(readOnlyStream, readOnly: false, autoSave: true));
+                var ex = Assert.Throws<ArgumentException>(() => ExcelDocument.Load(readOnlyStream, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
                 Assert.Equal("stream", ex.ParamName);
             }
             finally
@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public async Task LoadAsync_FromReadOnlyStream_WithAutoSave_Throws()
+        public async Task LoadAsync_FromReadOnlyStream_WithSaveOnDispose_Throws()
         {
             string filePath = Path.Combine(_directoryWithFiles, "LoadFromStreamReadOnlyAsync.xlsx");
 
@@ -368,12 +368,12 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    document.AddWorkSheet("Readonly");
+                    document.AddWorksheet("Readonly");
                     document.Save();
                 }
 
                 using var readOnlyStream = new MemoryStream(File.ReadAllBytes(filePath), writable: false);
-                var ex = await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.LoadAsync(readOnlyStream, readOnly: false, autoSave: true));
+                var ex = await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.LoadAsync(readOnlyStream, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
                 Assert.Equal("stream", ex.ParamName);
             }
             finally
@@ -386,17 +386,54 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
+        public async Task Load_ReadOnlyWritableStreamCannotSaveOrMutateItsSource()
+        {
+            byte[] bytes;
+            using (var created = ExcelDocument.Create())
+            {
+                created.AddWorksheet("ReadOnly").CellValue(1, 1, "Original");
+                bytes = created.ToBytes();
+            }
+
+            using var source = new MemoryStream(bytes.ToArray(), writable: true);
+            using var document = ExcelDocument.Load(source, new ExcelLoadOptions
+            {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
+
+            Assert.Throws<InvalidOperationException>(() => document.Save());
+            using var explicitDestination = new MemoryStream();
+            Assert.Throws<InvalidOperationException>(() => document.Save(explicitDestination));
+            await Assert.ThrowsAsync<InvalidOperationException>(() => document.SaveAsync());
+            await Assert.ThrowsAsync<InvalidOperationException>(() => document.SaveAsync(explicitDestination));
+            Assert.Equal(bytes, source.ToArray());
+        }
+
+        [Fact]
+        public void Create_NonSeekableAssociatedStreamIsRejected()
+        {
+            using var stream = new NonSeekableReadWriteBuffer(Array.Empty<byte>());
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => ExcelDocument.Create(stream));
+
+            Assert.Equal("stream", exception.ParamName);
+            Assert.Contains("support seeking", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Create_ToMemoryStream_AfterExplicitSave_PersistsLaterEditsOnDispose()
         {
             using var source = new MemoryStream();
-            using (var document = ExcelDocument.Create(source))
+            using (var document = ExcelDocument.Create(source, new ExcelCreateOptions {
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+            }))
             {
-                document.AddWorkSheet("Initial");
+                document.AddWorksheet("Initial");
 
                 using var export = new MemoryStream();
                 document.Save(export, new ExcelSaveOptions { ValidateOpenXml = true });
 
-                document.AddWorkSheet("AfterExplicitSave");
+                document.AddWorksheet("AfterExplicitSave");
             }
 
             source.Position = 0;
@@ -412,7 +449,7 @@ namespace OfficeIMO.Tests
             using var source = new MemoryStream();
             using (var document = ExcelDocument.Create(source))
             {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Saved");
                 document.Save();
             }
@@ -429,7 +466,7 @@ namespace OfficeIMO.Tests
             using var source = new MemoryStream();
             await using (var document = ExcelDocument.Create(source))
             {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Saved Async");
                 await document.SaveAsync();
             }
@@ -441,7 +478,7 @@ namespace OfficeIMO.Tests
         }
 
         [Fact]
-        public void Load_FromMemoryStream_WithAutoSave_ThrowsWhenPersistingBackFails()
+        public void Load_FromMemoryStream_WithSaveOnDispose_ThrowsWhenPersistingBackFails()
         {
             string filePath = Path.Combine(_directoryWithFiles, "LoadFromStreamAutoSaveFailure.xlsx");
 
@@ -449,7 +486,7 @@ namespace OfficeIMO.Tests
             {
                 using (var document = ExcelDocument.Create(filePath))
                 {
-                    var sheet = document.AddWorkSheet("AutoSave");
+                    var sheet = document.AddWorksheet("AutoSave");
                     sheet.CellValue(1, 1, "Original");
                     document.Save();
                 }
@@ -459,7 +496,7 @@ namespace OfficeIMO.Tests
 
                 var ex = Assert.Throws<IOException>(() =>
                 {
-                    using var document = ExcelDocument.Load(memory, readOnly: false, autoSave: true);
+                    using var document = ExcelDocument.Load(memory, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose });
                     document.Sheets[0].CellValue(1, 1, "Updated");
                 });
 
@@ -475,4 +512,3 @@ namespace OfficeIMO.Tests
         }
     }
 }
-

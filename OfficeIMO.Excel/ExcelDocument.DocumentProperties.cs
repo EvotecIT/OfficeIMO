@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
@@ -39,6 +40,14 @@ namespace OfficeIMO.Excel {
         /// FileOpenAccess of the document
         /// </summary>
         public FileAccess FileOpenAccess => _spreadSheetDocument.FileOpenAccess;
+
+        /// <summary>Gets whether the workbook was loaded for reading or editing.</summary>
+        public DocumentAccessMode AccessMode => FileOpenAccess == FileAccess.Read
+            ? DocumentAccessMode.ReadOnly
+            : DocumentAccessMode.ReadWrite;
+
+        /// <summary>Gets the persistence policy selected when the workbook was created or loaded.</summary>
+        public DocumentPersistenceMode PersistenceMode => _persistenceMode;
 
         /// <summary>
         /// Indicates whether the document is valid.

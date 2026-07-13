@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.SetBackgroundColor(Color.BlueViolet);
 
-                Assert.True(document.Settings.BackgroundColor == "8a2be2");
+                Assert.True(document.Settings.BackgroundColor == "8A2BE2");
 
                 document.Settings.ZoomPercentage = 150;
 
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.ReadOnlyRecommended == false);
                 document.Settings.ReadOnlyRecommended = true;
                 Assert.True(document.Settings.ReadOnlyRecommended == true);
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatingDocumentWithSettings.docx"))) {
                 Assert.True(document.CompatibilitySettings.CompatibilityMode == CompatibilityMode.Word2003);
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
 
                 document.Settings.RemoveProtection();
 
-                Assert.True(document.Settings.BackgroundColor == "8a2be2");
+                Assert.True(document.Settings.BackgroundColor == "8A2BE2");
 
                 document.Settings.SetBackgroundColor("FFA07A");
 
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.FontFamily == "Times New Roman");
 
                 Assert.True(document.Settings.ProtectionType == null);
-                Assert.True(document.Settings.BackgroundColor == "ffa07a");
+                Assert.True(document.Settings.BackgroundColor == "FFA07A");
                 Assert.True(document.Settings.ZoomPercentage == 100);
                 Assert.True(document.Settings.UpdateFieldsOnOpen == false);
 
@@ -190,7 +190,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test ReadOnlyRecommended");
                 document.Settings.ReadOnlyRecommended = true;
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Settings.ReadOnlyRecommended == true);
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Test FinalDocument");
                 document.Settings.FinalDocument = true;
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Settings.FinalDocument == true);
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
                 if (value != null) {
                     document.CustomDocumentProperties.Add("_MarkAsFinal", new WordCustomProperty(value));
                 }
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Settings.FinalDocument == expected);
@@ -235,7 +235,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Test ReadOnlyEnforced");
                 document.Settings.ProtectionPassword = "Test123";
                 document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.True(document.Settings.ProtectionType == DocumentProtectionValues.ReadOnly);

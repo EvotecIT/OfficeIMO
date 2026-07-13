@@ -15,7 +15,7 @@ public static partial class DocumentReader {
     }
 
     private static ReaderHandlerRegistrySnapshot GetActiveHandlerRegistry() {
-        return ActiveHandlerRegistry.Value ?? HandlerRegistry.CaptureSnapshot();
+        return ActiveHandlerRegistry.Value ?? BuiltInHandlerRegistry;
     }
 
     private sealed class ReaderHandlerRegistryScope : IDisposable {

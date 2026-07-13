@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                 MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2016)
             };
 
-            using (var document = ExcelDocument.Load(filePath, openSettings: settings)) {
+            using (var document = ExcelDocument.Load(filePath, new ExcelLoadOptions { OpenSettings = settings })) {
                 var mcSettings = document._spreadSheetDocument.MarkupCompatibilityProcessSettings;
                 Assert.NotNull(mcSettings);
                 Assert.Equal(MarkupCompatibilityProcessMode.ProcessAllParts, mcSettings.ProcessMode);
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2007)
             };
 
-            await using (var document = await ExcelDocument.LoadAsync(filePath, openSettings: settings)) {
+            await using (var document = await ExcelDocument.LoadAsync(filePath, new ExcelLoadOptions { OpenSettings = settings })) {
                 var mcSettings = document._spreadSheetDocument.MarkupCompatibilityProcessSettings;
                 Assert.NotNull(mcSettings);
                 Assert.Equal(MarkupCompatibilityProcessMode.ProcessAllParts, mcSettings.ProcessMode);

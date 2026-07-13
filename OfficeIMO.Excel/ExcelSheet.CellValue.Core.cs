@@ -174,20 +174,9 @@ namespace OfficeIMO.Excel {
 
         private void CellDoubleValueCore(int row, int column, double value) {
             var cell = GetCell(row, column);
-            cell.CellValue = new CellValue(FormatDoubleCellValue(value));
+            cell.CellValue = new CellValue(InvariantNumberText.Get(value));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             ClearHeaderCacheForCellMutation(row, column);
-        }
-
-        private static string FormatDoubleCellValue(double value) {
-            if (value >= int.MinValue && value <= int.MaxValue) {
-                int integer = (int)value;
-                if (value == integer) {
-                    return InvariantNumberText.Get(integer);
-                }
-            }
-
-            return value.ToString(CultureInfo.InvariantCulture);
         }
 
         private void CellDecimalValueCore(int row, int column, decimal value) {
@@ -215,7 +204,7 @@ namespace OfficeIMO.Excel {
             double serial = ExcelDateSystemConverter.ToSerial(value, _excelDocument.DateSystem);
             var cell = GetCell(row, column);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(serial.ToString(CultureInfo.InvariantCulture));
+            cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
@@ -237,7 +226,7 @@ namespace OfficeIMO.Excel {
             if (value.UtcDateTime >= CellValueExcelMinimumSupportedDate) {
                 try {
                     double serial = ExcelDateSystemConverter.ToSerial(converted, _excelDocument.DateSystem);
-                    cell.CellValue = new CellValue(serial.ToString(CultureInfo.InvariantCulture));
+                    cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
                     cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
 
                     uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
@@ -264,7 +253,7 @@ namespace OfficeIMO.Excel {
         private void CellDateOnlyValueCore(int row, int column, DateOnly value) {
             var cell = GetCell(row, column);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(ExcelDateSystemConverter.ToSerial(value.ToDateTime(TimeOnly.MinValue), _excelDocument.DateSystem).ToString(CultureInfo.InvariantCulture));
+            cell.CellValue = new CellValue(InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(value.ToDateTime(TimeOnly.MinValue), _excelDocument.DateSystem)));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDateStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 14))
@@ -275,7 +264,7 @@ namespace OfficeIMO.Excel {
         private void CellTimeOnlyValueCore(int row, int column, TimeOnly value) {
             var cell = GetCell(row, column);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(value.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture));
+            cell.CellValue = new CellValue(InvariantNumberText.Get(value.ToTimeSpan().TotalDays));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDurationStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 46))
@@ -296,7 +285,7 @@ namespace OfficeIMO.Excel {
             double serial = value.TotalDays;
             var cell = GetCell(row, column);
             uint baseStyleIndex = cell.StyleIndex?.Value ?? 0U;
-            cell.CellValue = new CellValue(serial.ToString(CultureInfo.InvariantCulture));
+            cell.CellValue = new CellValue(InvariantNumberText.Get(serial));
             cell.DataType = DocumentFormat.OpenXml.Spreadsheet.CellValues.Number;
             cell.StyleIndex = baseStyleIndex == 0U
                 ? (_cellValueDefaultDurationStyleIndex ??= GetOrCreateBuiltInNumberFormatStyleIndex(0U, 46))

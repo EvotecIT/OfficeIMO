@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 var background = document._wordprocessingDocument!.MainDocumentPart!.Document.DocumentBackground;
                 Assert.NotNull(background);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

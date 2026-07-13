@@ -321,7 +321,7 @@ namespace OfficeIMO.Excel {
             internal string Signature => string.Join("\u001f", new[] {
                 Text,
                 FamilyName ?? string.Empty,
-                Size?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                Size.HasValue ? InvariantNumberText.Get(Size.Value) : string.Empty,
                 Bold?.ToString() ?? string.Empty,
                 Italic?.ToString() ?? string.Empty,
                 Underline?.ToString() ?? string.Empty

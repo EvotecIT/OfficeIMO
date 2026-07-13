@@ -27,7 +27,7 @@ public sealed class PdfConverterOptionsApiTests {
         var options = new MarkdownPdfSaveOptions {
             IncludeDataUriImages = true,
             IncludeLocalImages = true,
-            ApplyWordLikeTheme = true
+            ApplyDefaultTheme = true
         };
 
         MarkdownPdfSaveOptions returned = options.UseProfile(PdfExportProfile.TextOnly);
@@ -35,7 +35,7 @@ public sealed class PdfConverterOptionsApiTests {
         Assert.Same(options, returned);
         Assert.False(options.IncludeDataUriImages);
         Assert.False(options.IncludeLocalImages);
-        Assert.False(options.ApplyWordLikeTheme);
+        Assert.False(options.ApplyDefaultTheme);
         Assert.Equal(MarkdownPdfFrontMatterRenderMode.Hidden, options.FrontMatterRenderMode);
     }
 

@@ -83,8 +83,8 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteReportWorkbookBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
-            var sheet = document.AddWorkSheet("Data");
+        using (var document = ExcelDocument.Create(stream)) {
+            var sheet = document.AddWorksheet("Data");
             sheet.InsertObjects(rows);
             ApplyOfficeImoReportWorkbookCore(sheet, rows.Count);
             AddOfficeImoReportWorkbookChart(sheet, rows.Count);
@@ -100,8 +100,8 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteReportWorkbookCoreBytes(IReadOnlyList<Dictionary<string, object?>> rows) {
         using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
-            var sheet = document.AddWorkSheet("Data");
+        using (var document = ExcelDocument.Create(stream)) {
+            var sheet = document.AddWorksheet("Data");
             sheet.InsertObjects(rows);
             ApplyOfficeImoReportWorkbookCore(sheet, rows.Count);
             document.Save(stream);
@@ -116,8 +116,8 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteReportWorkbookDataTableBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
-            var sheet = document.AddWorkSheet("Data");
+        using (var document = ExcelDocument.Create(stream)) {
+            var sheet = document.AddWorksheet("Data");
             sheet.InsertDataTable(dataTable);
             ApplyOfficeImoReportWorkbookCore(sheet, dataTable.Rows.Count);
             AddOfficeImoReportWorkbookChart(sheet, dataTable.Rows.Count);
@@ -133,8 +133,8 @@ internal static partial class ExcelLibraryComparisonRunner {
 
     private static byte[] OfficeImoWriteReportWorkbookDataTableCoreBytes(DataTable dataTable) {
         using var stream = new MemoryStream();
-        using (var document = ExcelDocument.Create(stream, autoSave: false)) {
-            var sheet = document.AddWorkSheet("Data");
+        using (var document = ExcelDocument.Create(stream)) {
+            var sheet = document.AddWorksheet("Data");
             sheet.InsertDataTable(dataTable);
             ApplyOfficeImoReportWorkbookCore(sheet, dataTable.Rows.Count);
             document.Save(stream);

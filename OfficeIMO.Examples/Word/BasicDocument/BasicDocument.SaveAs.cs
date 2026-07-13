@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.AddParagraph("This is my test");
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -34,16 +34,12 @@ namespace OfficeIMO.Examples.Word {
             document.AddParagraph("This is my test in document");
 
             // We're checking if the file is locked (it should be)
-            Console.WriteLine("File: " + filePath + " is locked: " + filePath.IsFileLocked());
 
             // We're checking if the file is locked (it shouldn't be - yet)
-            Console.WriteLine("File: " + filePathOutput + " is locked: " + filePathOutput.IsFileLocked());
 
             document.SaveCopy(filePathOutput);
 
             // both files should not be locked
-            Console.WriteLine("File: " + filePath + " is locked: " + filePath.IsFileLocked());
-            Console.WriteLine("File: " + filePathOutput + " is locked: " + filePathOutput.IsFileLocked());
 
             WordDocument document1 = WordDocument.Load(filePathOutput);
 

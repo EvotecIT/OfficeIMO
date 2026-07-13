@@ -167,7 +167,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Charts count: " + document.Sections[0].Charts.Count);
                 Console.WriteLine("Images count: " + document.Sections[0].Images.Count);
 
-                document.Save(false);
+                document.Save();
 
                 var valid = document.ValidateDocument();
                 if (valid.Count > 0) {
@@ -179,7 +179,7 @@ namespace OfficeIMO.Examples.Word {
                     Console.WriteLine("Document is valid.");
                 }
 
-                document.Open(openWord);
+                if (openWord) document.OpenInApplication();
             }
         }
     }

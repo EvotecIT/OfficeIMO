@@ -489,7 +489,7 @@ public partial class Html {
 
         using var screenWordDocument = WordHtmlConverterExtensions.ToWordDocument(screen);
         var screenRun = screenWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();
-        Assert.Equal("ff0000", screenRun.ColorHex);
+        Assert.Equal("FF0000", screenRun.ColorHex);
 
         using var printWordDocument = WordHtmlConverterExtensions.ToWordDocument(print);
         var printRun = printWordDocument.Paragraphs.Single(paragraph => paragraph.Text.Contains("Total", StringComparison.Ordinal)).GetRuns().First();

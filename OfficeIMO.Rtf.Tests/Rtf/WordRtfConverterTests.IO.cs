@@ -20,7 +20,7 @@ public partial class WordRtfConverterTests {
 
         Assert.Equal(rtf, Encoding.UTF8.GetString(bytes));
 
-        using MemoryStream memoryStream = word.ToRtfMemoryStream(options);
+        using MemoryStream memoryStream = word.ToRtfStream(options);
         Assert.Equal(bytes, memoryStream.ToArray());
 
         using var output = new MemoryStream();
@@ -28,9 +28,9 @@ public partial class WordRtfConverterTests {
         word.SaveAsRtf(output, options);
         byte[] saved = output.ToArray();
 
-        Assert.Equal(saved.Length, output.Position);
-        Assert.Equal(0x2A, saved[0]);
-        Assert.Equal(rtf, Encoding.UTF8.GetString(saved, 1, saved.Length - 1));
+        Assert.Equal(0, output.Position);
+        Assert.Equal(bytes, saved);
+        Assert.Equal(rtf, Encoding.UTF8.GetString(saved));
 
         using WordDocument fromBytes = bytes.LoadFromRtf();
         Assert.Contains("Clinical ż", string.Concat(fromBytes.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);

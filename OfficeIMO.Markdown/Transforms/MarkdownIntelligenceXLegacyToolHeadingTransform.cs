@@ -132,7 +132,7 @@ public sealed class MarkdownIntelligenceXLegacyToolHeadingTransform : IMarkdownD
             return false;
         }
 
-        var itemBlocks = item.BlockChildren;
+        var itemBlocks = item.ChildBlocks;
         if (itemBlocks.Count == 0 || itemBlocks[0] is not ParagraphBlock firstParagraph) {
             return false;
         }

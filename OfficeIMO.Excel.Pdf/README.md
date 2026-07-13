@@ -83,11 +83,11 @@ if (!result.Succeeded) {
     }
 }
 
-foreach (var warning in options.ConversionReport.Warnings) {
+foreach (var warning in result.Warnings) {
     Console.WriteLine($"{warning.Source}: {warning.Message}");
 }
 
-options.ConversionReport.RequireNoErrorWarnings();
+result.Report.RequireNoErrorWarnings();
 ```
 
 ## Import PDF tables
@@ -95,7 +95,7 @@ options.ConversionReport.RequireNoErrorWarnings();
 ```csharp
 using OfficeIMO.Excel.Pdf;
 
-var results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+var results = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
     "statement.pdf",
     "statement-tables.xlsx");
 
@@ -110,7 +110,7 @@ foreach (var table in results) {
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-var results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+var results = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
     "bank-statement.pdf",
     "bank-statement-q1.xlsx",
     new PdfExcelTableImportOptions {
@@ -128,7 +128,7 @@ Console.WriteLine($"Imported {results.Count} table(s).");
 - Cell display values, common number formats, fills, font emphasis, alignment, borders, merged cells, links, row heights, column widths, conditional fills/data bars/icons, and table layout primitives.
 - Supported worksheet images and common chart snapshots through shared OfficeIMO drawing primitives.
 - Profile presets through `ExcelPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
-- Conversion warnings through `ExcelPdfSaveOptions.Warnings` and `ExcelPdfSaveOptions.ConversionReport`.
+- Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Boundaries
 

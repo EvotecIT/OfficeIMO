@@ -109,7 +109,7 @@ namespace OfficeIMO.Word {
                 return WordContentControlPictureValue.FromExternalImage(image.ExternalUri, image.FileName, image.ExternalRelationshipId);
             }
 
-            return WordContentControlPictureValue.FromBytes(image.GetBytes(), image.FileName ?? "image.bin");
+            return WordContentControlPictureValue.FromBytes(image.ToBytes(), image.FileName ?? "image.bin");
         }
 
         /// <summary>

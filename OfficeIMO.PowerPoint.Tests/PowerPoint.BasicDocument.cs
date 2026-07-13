@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 Assert.Single(presentation.Slides);
                 Assert.Equal("Office Theme", presentation.ThemeName);
                 PowerPointSlide slide = presentation.Slides[0];

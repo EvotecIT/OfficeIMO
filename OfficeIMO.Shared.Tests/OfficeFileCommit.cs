@@ -1,6 +1,8 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Shared;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests {
@@ -39,6 +41,46 @@ namespace OfficeIMO.Shared.Tests {
                 Assert.Equal(original, File.ReadAllBytes(path));
             } finally {
                 if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void WriteAllBytes_CreatesMissingDestinationDirectory() {
+            string root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+            string path = Path.Combine(root, "nested", "artifact.bin");
+
+            try {
+                OfficeFileCommit.WriteAllBytes(path, new byte[] { 1, 2, 3, 4 });
+
+                Assert.Equal(new byte[] { 1, 2, 3, 4 }, File.ReadAllBytes(path));
+            } finally {
+                if (Directory.Exists(root)) Directory.Delete(root, recursive: true);
+            }
+        }
+
+        [Fact]
+        public async Task WriteAllBytes_SyncAndAsync_PreserveReadOnlyDestinations() {
+            string syncPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".bin");
+            string asyncPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".bin");
+            byte[] original = { 1, 2, 3, 4 };
+            File.WriteAllBytes(syncPath, original);
+            File.WriteAllBytes(asyncPath, original);
+            var syncDestination = new FileInfo(syncPath) { IsReadOnly = true };
+            var asyncDestination = new FileInfo(asyncPath) { IsReadOnly = true };
+
+            try {
+                Assert.Throws<UnauthorizedAccessException>(() =>
+                    OfficeFileCommit.WriteAllBytes(syncPath, new byte[] { 9, 8, 7 }));
+                await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+                    OfficeFileCommit.WriteAllBytesAsync(asyncPath, new byte[] { 9, 8, 7 }));
+
+                Assert.Equal(original, File.ReadAllBytes(syncPath));
+                Assert.Equal(original, File.ReadAllBytes(asyncPath));
+            } finally {
+                syncDestination.IsReadOnly = false;
+                asyncDestination.IsReadOnly = false;
+                if (File.Exists(syncPath)) File.Delete(syncPath);
+                if (File.Exists(asyncPath)) File.Delete(asyncPath);
             }
         }
     }

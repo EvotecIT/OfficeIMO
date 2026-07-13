@@ -82,7 +82,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string FormulaValueToText(FormulaArgumentValue value) {
-            return value.ErrorCode ?? value.Text ?? value.Number?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            return value.ErrorCode ?? value.Text ?? (value.Number.HasValue ? InvariantNumberText.Get(value.Number.Value) : string.Empty);
         }
 
         private bool TryResolveFormulaArgument(string token, out FormulaArgumentValue value) {
@@ -142,8 +142,8 @@ namespace OfficeIMO.Excel {
                 return Math.Abs(left.Number.Value - right.Number.Value) < 0.0000001;
             }
 
-            string leftText = left.Text ?? left.Number?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
-            string rightText = right.Text ?? right.Number?.ToString(CultureInfo.InvariantCulture) ?? string.Empty;
+            string leftText = left.Text ?? (left.Number.HasValue ? InvariantNumberText.Get(left.Number.Value) : string.Empty);
+            string rightText = right.Text ?? (right.Number.HasValue ? InvariantNumberText.Get(right.Number.Value) : string.Empty);
             return string.Equals(leftText, rightText, StringComparison.OrdinalIgnoreCase);
         }
 

@@ -5,14 +5,14 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class ReaderRegistryTests {
     [Fact]
-    public void DocumentReader_RegisterHandler_RichDocumentOnly_ProjectsChunksAndPreservesEnvelope() {
+    public void OfficeDocumentReader_RichDocumentHandler_ProjectsChunksAndPreservesEnvelope() {
         const string handlerId = "officeimo.tests.custom.rich";
         const string extension = ".richix";
         string file = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
 
         try {
-            DocumentReader.UnregisterHandler(handlerId);
-            DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddHandler(new ReaderHandlerRegistration {
                 Id = handlerId,
                 DisplayName = "Rich document test handler",
                 Kind = ReaderInputKind.Text,
@@ -38,38 +38,37 @@ public sealed partial class ReaderRegistryTests {
                         }
                     }
                 }
-            });
+                })
+                .Build();
             File.WriteAllText(file, "input");
 
-            ReaderChunk chunk = Assert.Single(DocumentReader.Read(file));
+            ReaderChunk chunk = Assert.Single(reader.Read(file));
             Assert.Equal("rich-document-output", chunk.Text);
 
-            OfficeDocumentReadResult result = DocumentReader.ReadDocument(file);
+            OfficeDocumentReadResult result = reader.ReadDocument(file);
             Assert.Contains("officeimo.tests.rich-envelope", result.CapabilitiesUsed);
             Assert.Equal("https://example.test/rich", Assert.Single(result.Links).Uri);
 
             ReaderHandlerCapability capability = Assert.Single(
-                DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true),
+                reader.GetCapabilities(),
                 item => item.Id == handlerId);
             Assert.True(capability.SupportsPath);
             Assert.False(capability.SupportsStream);
             Assert.True(capability.SupportsDocumentPath);
             Assert.False(capability.SupportsDocumentStream);
         } finally {
-            DocumentReader.UnregisterHandler(handlerId);
             if (File.Exists(file)) File.Delete(file);
         }
     }
 
     [Fact]
-    public void DocumentReader_RichStreamHandler_EnforcesNonSeekableInputLimitBeforeDispatch() {
+    public void OfficeDocumentReader_RichStreamHandler_EnforcesNonSeekableInputLimitBeforeDispatch() {
         const string handlerId = "officeimo.tests.custom.rich.limit";
         const string extension = ".richlimitix";
         bool handlerInvoked = false;
 
-        try {
-            DocumentReader.UnregisterHandler(handlerId);
-            DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
                 Id = handlerId,
                 Kind = ReaderInputKind.Text,
                 Extensions = new[] { extension },
@@ -77,18 +76,16 @@ public sealed partial class ReaderRegistryTests {
                     handlerInvoked = true;
                     return new OfficeDocumentReadResult { Kind = ReaderInputKind.Text };
                 }
-            });
-            using var stream = new NonSeekableReadStream(new byte[128]);
+            })
+            .Build();
+        using var stream = new NonSeekableReadStream(new byte[128]);
 
-            IOException exception = Assert.Throws<IOException>(() => DocumentReader.ReadDocument(
-                stream,
-                "sample" + extension,
-                new ReaderOptions { MaxInputBytes = 16 }));
+        IOException exception = Assert.Throws<IOException>(() => reader.ReadDocument(
+            stream,
+            "sample" + extension,
+            new ReaderOptions { MaxInputBytes = 16 }));
 
-            Assert.Contains("Input exceeds MaxInputBytes", exception.Message, StringComparison.Ordinal);
-            Assert.False(handlerInvoked);
-        } finally {
-            DocumentReader.UnregisterHandler(handlerId);
-        }
+        Assert.Contains("Input exceeds MaxInputBytes", exception.Message, StringComparison.Ordinal);
+        Assert.False(handlerInvoked);
     }
 }

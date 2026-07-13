@@ -41,21 +41,20 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     private static HtmlToExcelResult ImportDocument(IHtmlDocument document, HtmlToExcelOptions options) {
-        var stream = new MemoryStream();
-        ExcelDocument workbook = ExcelDocument.Create(stream);
+        ExcelDocument workbook = ExcelDocument.Create();
         var result = new HtmlToExcelResult(workbook);
 
         List<IElement> sheetSections = document.QuerySelectorAll("section.officeimo-sheet").ToList();
         if (sheetSections.Count == 0) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticContentMissing,
                 "No semantic Excel sheet sections were found.", HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure);
-            workbook.AddWorkSheet("Imported");
+            workbook.AddWorksheet("Imported");
             return result;
         }
 
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IElement section in sheetSections) {
-            ExcelSheet sheet = workbook.AddWorkSheet(GetUniqueSheetName(GetSheetName(section), usedNames));
+            ExcelSheet sheet = workbook.AddWorksheet(GetUniqueSheetName(GetSheetName(section), usedNames));
             result.Sheets++;
             ImportTable(section, sheet, result, options);
             if (options.ImportFormulas) {
@@ -77,12 +76,10 @@ public static partial class HtmlExcelConverterExtensions {
     }
 
     private static ExcelDocument GetWorkbookOrThrow(HtmlToExcelResult result) {
-        if (result.Succeeded) {
-            return result.Workbook;
-        }
+        if (result.Succeeded) return result.Value;
 
-        result.Workbook.Dispose();
-        throw new HtmlConversionException(result.Diagnostics.Diagnostics);
+        result.Value.Dispose();
+        throw new HtmlConversionException(result.Diagnostics);
     }
 
     private static void ApplySheetVisibility(IElement section, ExcelSheet sheet) {

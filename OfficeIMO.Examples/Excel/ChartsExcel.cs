@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "ExcelCharts.Basic.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
                     new[] {
@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.AddChart(data, row: 2, column: 6, widthPixels: 640, heightPixels: 360,
                     type: ExcelChartType.ColumnClustered, title: "Quarterly Sales");
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
 
@@ -34,7 +34,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "ExcelCharts.ComboScatter.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
 
                 var comboData = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
@@ -113,7 +113,7 @@ namespace OfficeIMO.Examples.Excel {
                     new ExcelChartSeriesRange("Bubbles", "A31:A33", "B31:B33", "D31:D33")
                 }, row: 54, column: 6, widthPixels: 640, heightPixels: 360, title: "Bubble");
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

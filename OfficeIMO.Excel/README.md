@@ -19,7 +19,7 @@ dotnet add package OfficeIMO.Excel
 using OfficeIMO.Excel;
 
 using var document = ExcelDocument.Create("report.xlsx");
-var sheet = document.AddWorkSheet("Data");
+var sheet = document.AddWorksheet("Data");
 
 sheet.CellValue(1, 1, "Name");
 sheet.CellValue(1, 2, "Value");
@@ -139,7 +139,7 @@ public sealed class RowModel {
 using OfficeIMO.Excel;
 
 using var document = ExcelDocument.Create("dashboard.xlsx");
-var sheet = document.AddWorkSheet("Summary");
+var sheet = document.AddWorksheet("Summary");
 
 sheet.CellValue(1, 1, "Quarter");
 sheet.CellValue(1, 2, "Revenue");
@@ -168,7 +168,7 @@ using OfficeIMO.Excel;
 using System.Linq;
 
 using var document = ExcelDocument.Create("pivot-report.xlsx");
-var sheet = document.AddWorkSheet("Sales");
+var sheet = document.AddWorksheet("Sales");
 
 sheet.CellValue(1, 1, "Region");
 sheet.CellValue(1, 2, "Product");
@@ -224,7 +224,7 @@ foreach (var formula in formulas.Formulas.Where(f => !f.IsSupportedByOfficeIMO))
 }
 
 int calculated = document.Calculate();
-document.Save("report.xlsx", openExcel: false, options: new ExcelSaveOptions {
+document.Save("report.xlsx", new ExcelSaveOptions {
     EvaluateFormulasBeforeSave = true,
     ForceFullCalculationOnOpen = true
 });

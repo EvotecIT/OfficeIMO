@@ -12,9 +12,9 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    document.AddWorkSheet("First").CellValue(1, 1, "First");
-                    document.AddWorkSheet("Second").CellValue(1, 1, "Second");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    document.AddWorksheet("First").CellValue(1, 1, "First");
+                    document.AddWorksheet("Second").CellValue(1, 1, "Second");
 
                     Workbook workbook = document.WorkbookRoot;
                     workbook.RemoveAllChildren<BookViews>();
@@ -114,8 +114,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Views");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Views");
                     sheet.CellValue(1, 1, "Equivalent worksheet views");
 
                     Worksheet worksheet = sheet.WorksheetPart.Worksheet;
@@ -195,8 +195,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Views");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Views");
                     sheet.CellValue(1, 1, "Divergent worksheet views");
 
                     Worksheet worksheet = sheet.WorksheetPart.Worksheet;

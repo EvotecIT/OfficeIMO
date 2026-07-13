@@ -38,7 +38,6 @@
     "OfficeIMO.Reader.Ocr.Tesseract": "0.0.X",
     "OfficeIMO.Reader.Pdf": "0.0.X",
     "OfficeIMO.Reader.Rtf": "0.0.X",
-    "OfficeIMO.Reader.Text": "0.0.X",
     "OfficeIMO.Reader.Visio": "0.0.X",
     "OfficeIMO.Reader.Xml": "0.0.X",
     "OfficeIMO.Reader.Yaml": "0.0.X",

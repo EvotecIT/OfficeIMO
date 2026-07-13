@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -35,9 +36,9 @@ namespace OfficeIMO.Examples.Word {
                             cell.Borders.BottomStyle = BorderValues.Single;
                         }))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

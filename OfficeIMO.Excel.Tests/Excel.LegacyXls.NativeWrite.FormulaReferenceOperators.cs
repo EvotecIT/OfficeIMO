@@ -11,8 +11,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ReferenceOps");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ReferenceOps");
                     sheet.CellValue(1, 2, 10d);
                     sheet.CellValue(1, 3, 20d);
                     sheet.CellValue(1, 4, 30d);
@@ -61,12 +61,12 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet first = document.AddWorkSheet("Region 1");
-                    ExcelSheet second = document.AddWorkSheet("Region 2");
-                    ExcelSheet third = document.AddWorkSheet("Region 3");
-                    ExcelSheet fourth = document.AddWorkSheet("Region 4");
-                    ExcelSheet calc = document.AddWorkSheet("Calc");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet first = document.AddWorksheet("Region 1");
+                    ExcelSheet second = document.AddWorksheet("Region 2");
+                    ExcelSheet third = document.AddWorksheet("Region 3");
+                    ExcelSheet fourth = document.AddWorksheet("Region 4");
+                    ExcelSheet calc = document.AddWorksheet("Calc");
 
                     first.CellValue(1, 1, 1d);
                     second.CellValue(1, 1, 2d);

@@ -54,7 +54,7 @@ namespace OfficeIMO.Examples.Excel {
                     return;
                 }
 
-                document.Save(false);
+                document.Save();
                 document.SaveAsPdf(pdfPath, new ExcelPdfSaveOptions {
                     IncludeSheetHeadings = false,
                     HeaderRowCount = 1,
@@ -63,7 +63,7 @@ namespace OfficeIMO.Examples.Excel {
                 });
 
                 if (openExcel) {
-                    document.Open(workbookPath, true);
+                    document.OpenInApplication(workbookPath);
                 }
             }
         }

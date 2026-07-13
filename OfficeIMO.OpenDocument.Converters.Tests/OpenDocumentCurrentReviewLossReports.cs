@@ -1,10 +1,10 @@
 using System;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
 using OfficeIMO.OpenDocument;
+using OfficeIMO.OpenDocument.Testing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.OpenDocument;
 using OfficeIMO.PowerPoint;
@@ -26,8 +26,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         list.AddItem("Parent");
         list.AddItem("Child", 1);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocument();
-        using OdtDocument target = conversion.Document;
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        using OdtDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "list-levels" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
@@ -39,8 +39,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         source.PageLayout.Header.AddParagraph("Logo").AddImage(TinyPng, "header.png",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocument();
-        using WordDocument target = conversion.Document;
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
@@ -55,8 +55,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         mixed.AddRun("Bold").Bold = true;
         textBox.AddList().AddItem("Bullet");
 
-        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentation();
-        using PowerPointPresentation target = conversion.Document;
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "text-lists" &&
             mapping.Status == OdfConversionMappingStatus.Approximated && mapping.Count == 1);
@@ -73,8 +73,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
         using OdtDocument source = OdtDocument.Open(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocument();
-        using WordDocument target = conversion.Document;
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
 
         Assert.Contains(target.CreateInspectionSnapshot().Sections.SelectMany(section => section.Elements)
             .OfType<WordParagraphSnapshot>(), paragraph => paragraph.Text == "Minimal");
@@ -84,16 +84,16 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void ExcelToOdsPreservesTypedValuesOnHyperlinkedCellsAndFormulaSeparators() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
-        ExcelSheet sheet = source.AddWorkSheet("Data");
-        source.AddWorkSheet("Other, Sheet").CellAt(1, 1).SetValue(1);
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        source.AddWorksheet("Other, Sheet").CellAt(1, 1).SetValue(1);
         sheet.SetHyperlink(1, 1, "https://example.com", "42");
         sheet.CellAt(1, 1).SetValue(42);
         sheet.CellAt(1, 2).SetFormula("IF(A1=42,\"x,y\",\"other\")");
         sheet.CellAt(1, 3).SetFormula("SUM('Other, Sheet'!A1,A1)");
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocument();
-        using OdsDocument target = conversion.Document;
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        using OdsDocument target = conversion.Value;
         OdsSheet converted = target.GetSheet("Data")!;
 
         Assert.Equal(OdsCellValueKind.Number, converted.GetValue(0, 0).Kind);
@@ -111,8 +111,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         linked.SetNumber(42D);
         linked.SetHyperlink("Go", "#$'Target'.A1");
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocument();
-        using ExcelDocument target = conversion.Document;
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
         ExcelWorksheetSnapshot links = target.CreateInspectionSnapshot().Worksheets.Single(sheet => sheet.Name == "Links");
         ExcelCellSnapshot cell = Assert.Single(links.Cells);
 
@@ -124,14 +124,14 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
 
     [Fact]
     public void ExcelToOdsConvertsLowercaseFormulaReferences() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
-        ExcelSheet sheet = source.AddWorkSheet("Data");
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = source.AddWorksheet("Data");
         sheet.CellAt(1, 1).SetValue(1);
         sheet.CellAt(1, 2).SetFormula("sum(a1,'Data'!a1)");
         source.SetNamedRange("A1_total", "'Data'!$A$1", save: false);
         sheet.CellAt(1, 3).SetFormula("SUM(A1_total,a1)");
 
-        using OdsDocument target = source.ToOpenDocument().Document;
+        using OdsDocument target = source.ToOpenDocument();
 
         Assert.Equal("of:=sum([.a1];[$'Data'.a1])", target.GetSheet("Data")!.GetFormula(0, 1));
         Assert.Equal("of:=SUM(A1_total;[.a1])", target.GetSheet("Data")!.GetFormula(0, 2));
@@ -145,7 +145,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         linked.SetHyperlink("Docs", "docs/page.html");
         using OdsDocument source = OdsDocument.Open(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
-        using ExcelDocument target = source.ToExcelDocument().Document;
+        using ExcelDocument target = source.ToExcelDocument();
         ExcelCellSnapshot cell = Assert.Single(target.CreateInspectionSnapshot().Worksheets.Single().Cells);
 
         Assert.NotNull(cell.Hyperlink);
@@ -170,7 +170,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
                 .SetAttributeValue(XName.Get("href", "http://www.w3.org/1999/xlink"), escapedHref));
         using OdpPresentation source = OdpPresentation.Open(new MemoryStream(package));
 
-        using PowerPointPresentation target = source.ToPowerPointPresentation().Document;
+        using PowerPointPresentation target = source.ToPowerPointPresentation();
         PowerPointSlide converted = Assert.Single(target.Slides);
 
         Assert.Equal(new[] { "First", "Second" }, converted.TextBoxes.Single().Paragraphs.Select(paragraph => paragraph.Text));
@@ -184,7 +184,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         template.AddSlide("Minimal").AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "Text");
         using OdpPresentation source = OdpPresentation.Open(new MemoryStream(RemovePackageEntry(template.ToBytes(), "styles.xml")));
 
-        using PowerPointPresentation target = source.ToPowerPointPresentation().Document;
+        using PowerPointPresentation target = source.ToPowerPointPresentation();
 
         Assert.Single(target.Slides);
         Assert.Contains("Text", target.Slides.Single().TextBoxes.Single().Text, StringComparison.Ordinal);
@@ -204,7 +204,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         });
         using OdsDocument source = OdsDocument.Open(new MemoryStream(package));
 
-        using ExcelDocument target = source.ToExcelDocument().Document;
+        using ExcelDocument target = source.ToExcelDocument();
 
         Assert.Single(target.CreateInspectionSnapshot().Worksheets);
     }
@@ -218,10 +218,10 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
         second.AddHeadersAndFooters();
         second.Header.Default!.AddParagraph("Later header");
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocument(new WordOpenDocumentConversionOptions {
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult(new WordOpenDocumentConversionOptions {
             IncludeHeadersAndFooters = true
         });
-        using OdtDocument target = conversion.Document;
+        using OdtDocument target = conversion.Value;
         OdfConversionReport report = conversion.Report;
 
         Assert.Contains(report.Mappings, mapping => mapping.Feature == "header-footer-tables" &&
@@ -230,45 +230,17 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count >= 1);
     }
 
-    private static byte[] RemovePackageEntry(byte[] packageBytes, string removedPath) {
-        using var input = new MemoryStream(packageBytes, writable: false);
-        using var output = new MemoryStream();
-        using (var source = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false))
-        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-            foreach (ZipArchiveEntry sourceEntry in source.Entries.Where(entry => entry.FullName != removedPath)) {
-                ZipArchiveEntry targetEntry = target.CreateEntry(sourceEntry.FullName,
-                    sourceEntry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-                using Stream sourceStream = sourceEntry.Open();
-                using Stream targetStream = targetEntry.Open();
-                sourceStream.CopyTo(targetStream);
-            }
-        }
-        return output.ToArray();
-    }
+    private static byte[] RemovePackageEntry(byte[] packageBytes, string removedPath) =>
+        OdfTestPackageRewriter.Remove(packageBytes, removedPath);
 
     private static byte[] RewriteXmlEntry(byte[] packageBytes, string path, Action<XDocument> rewrite) {
-        using var input = new MemoryStream(packageBytes, writable: false);
-        using var output = new MemoryStream();
-        using (var source = new ZipArchive(input, ZipArchiveMode.Read, leaveOpen: false))
-        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-            foreach (ZipArchiveEntry sourceEntry in source.Entries) {
-                byte[] bytes;
-                using (Stream sourceStream = sourceEntry.Open())
-                using (var copy = new MemoryStream()) {
-                    sourceStream.CopyTo(copy);
-                    bytes = copy.ToArray();
-                }
-                if (sourceEntry.FullName == path) {
-                    XDocument document = XDocument.Parse(Encoding.UTF8.GetString(bytes));
-                    rewrite(document);
-                    bytes = Encoding.UTF8.GetBytes(document.ToString(SaveOptions.DisableFormatting));
-                }
-                ZipArchiveEntry targetEntry = target.CreateEntry(sourceEntry.FullName,
-                    sourceEntry.FullName == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-                using Stream targetStream = targetEntry.Open();
-                targetStream.Write(bytes, 0, bytes.Length);
+        return OdfTestPackageRewriter.Rewrite(packageBytes, (name, bytes) => {
+            if (name == path) {
+                XDocument document = XDocument.Parse(Encoding.UTF8.GetString(bytes));
+                rewrite(document);
+                return Encoding.UTF8.GetBytes(document.ToString(SaveOptions.DisableFormatting));
             }
-        }
-        return output.ToArray();
+            return bytes;
+        });
     }
 }

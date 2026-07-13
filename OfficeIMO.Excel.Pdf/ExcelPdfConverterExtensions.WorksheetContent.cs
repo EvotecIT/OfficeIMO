@@ -76,7 +76,7 @@ namespace OfficeIMO.Excel.Pdf {
                     continue;
                 }
 
-                byte[] bytes = image.GetBytes();
+                byte[] bytes = image.ToBytes();
                 if (bytes.Length == 0 || image.WidthPixels <= 0 || image.HeightPixels <= 0) {
                     AddWarning(
                         options,
@@ -165,7 +165,7 @@ namespace OfficeIMO.Excel.Pdf {
         private static void AddWarning(ExcelPdfSaveOptions options, string sheetName, string feature, string message) {
             var warning = new ExcelPdfExportWarning(sheetName, feature, message);
             options.Warnings.Add(warning);
-            options.ConversionReport.Add(warning.ToConversionWarning());
+            options.Report.Add(warning.ToConversionWarning());
         }
 
         private static bool IsPdfSupportedImageContentType(string contentType) {

@@ -25,7 +25,7 @@ namespace OfficeIMO.PowerPoint {
             string? solidColor = null;
             if (solidFill != null) {
                 A.ColorScheme? colorScheme = GetThemePart(ownerPart ?? _slidePart)?.Theme?.ThemeElements?.ColorScheme;
-                OfficeColor? color = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(solidFill, colorScheme);
+                OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(solidFill, colorScheme);
                 solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
             }
 
@@ -102,7 +102,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.ColorScheme? colorScheme = themePart?.Theme?.ThemeElements?.ColorScheme;
-            OfficeColor? color = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(), colorScheme, styleReference.GetFirstChild<A.SchemeColor>());
+            OfficeColor? color = OfficeOpenXmlThemeColorResolver.ResolveColor(fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(), colorScheme, styleReference.GetFirstChild<A.SchemeColor>());
             string? solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
             if (!string.IsNullOrWhiteSpace(solidColor)) {
                 return PowerPointSlideBackground.SolidColor(solidColor!);
@@ -208,8 +208,8 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient has fewer than two stops.");
             }
 
-            OfficeColor? startColor = PowerPointThemeColorResolver.ResolveGradientStopOfficeColor(stops[0], colorScheme, placeholderColor);
-            OfficeColor? endColor = PowerPointThemeColorResolver.ResolveGradientStopOfficeColor(stops[stops.Length - 1], colorScheme, placeholderColor);
+            OfficeColor? startColor = OfficeOpenXmlThemeColorResolver.ResolveColor(stops[0], colorScheme, placeholderColor);
+            OfficeColor? endColor = OfficeOpenXmlThemeColorResolver.ResolveColor(stops[stops.Length - 1], colorScheme, placeholderColor);
             if (!startColor.HasValue || !endColor.HasValue) {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient uses colors that could not be resolved.");
             }

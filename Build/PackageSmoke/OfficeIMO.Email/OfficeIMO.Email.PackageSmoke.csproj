@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
+    <OfficeIMOSharedDir>$(MSBuildThisFileDirectory)__none</OfficeIMOSharedDir>
+    <EnableOfficeIMOEmailPackageSmoke Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == ''">false</EnableOfficeIMOEmailPackageSmoke>
+    <OfficeIMOEmailPackageVersion Condition="'$(OfficeIMOEmailPackageVersion)' == ''">0.1.0</OfficeIMOEmailPackageVersion>
+    <IsPackable>false</IsPackable>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == 'true'">
+    <PackageReference Include="OfficeIMO.Email" Version="[$(OfficeIMOEmailPackageVersion)]" />
+  </ItemGroup>
+
+  <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
+          Condition="'$(EnableOfficeIMOEmailPackageSmoke)' != 'true'">
+    <Error Text="Set EnableOfficeIMOEmailPackageSmoke=true and restore from a feed containing the packed OfficeIMO.Email package." />
+  </Target>
+</Project>

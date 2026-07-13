@@ -16,19 +16,19 @@ namespace OfficeIMO.OpenDocument.Converters.Tests;
 public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelFormulaConversionDoesNotRewriteQuotedCellLikeText() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
-        ExcelSheet sheet = source.AddWorkSheet("Data");
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = source.AddWorksheet("Data");
         sheet.CellAt(1, 1).SetValue("B2");
         sheet.CellAt(1, 2).SetFormula("IF(A1=\"B2\",1,0)");
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocument();
-        using OdsDocument target = conversion.Document;
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        using OdsDocument target = conversion.Value;
 
         Assert.Equal("of:=IF([.A1]=\"B2\";1;0)", target.GetSheet("Data")!.Cell(0, 1).Formula);
 
         target.GetSheet("Data")!.Cell(0, 2).Formula = "of:=IF([.A1]=\"[.B2]\",1,0)";
-        OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocument();
-        using ExcelDocument roundTrip = reverse.Document;
+        OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocumentResult();
+        using ExcelDocument roundTrip = reverse.Value;
         ExcelCellSnapshot reverseFormula = roundTrip.CreateInspectionSnapshot().Worksheets.Single().Cells
             .Single(cell => cell.Row == 1 && cell.Column == 3);
         Assert.Equal("IF(A1=\"[.B2]\",1,0)", reverseFormula.Formula);
@@ -36,19 +36,19 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void ExcelFormulaConversionMapsSheetQualifiedReferences() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
-        ExcelSheet data = source.AddWorkSheet("Data");
-        source.AddWorkSheet("Other").CellAt(1, 1).SetValue(1);
-        source.AddWorkSheet("Other Sheet").CellAt(2, 2).SetValue(2);
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet data = source.AddWorksheet("Data");
+        source.AddWorksheet("Other").CellAt(1, 1).SetValue(1);
+        source.AddWorksheet("Other Sheet").CellAt(2, 2).SetValue(2);
         data.CellAt(1, 1).SetFormula("SUM(Other!A1,'Other Sheet'!B2:C3)");
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocument();
-        using OdsDocument target = conversion.Document;
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        using OdsDocument target = conversion.Value;
 
         Assert.Equal("of:=SUM([$'Other'.A1];[$'Other Sheet'.B2:.C3])",
             target.GetSheet("Data")!.Cell(0, 0).Formula);
-        OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocument();
-        using ExcelDocument roundTrip = reverse.Document;
+        OdfConversionResult<ExcelDocument> reverse = target.ToExcelDocumentResult();
+        using ExcelDocument roundTrip = reverse.Value;
         ExcelCellSnapshot formula = roundTrip.CreateInspectionSnapshot().Worksheets.Single(sheet => sheet.Name == "Data").Cells.Single();
         Assert.Equal("SUM('Other'!A1,'Other Sheet'!B2:C3)", formula.Formula);
     }
@@ -60,8 +60,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         sheet.Cell(0, 0).SetNumber(1);
         sheet.Cell(0, 1).Formula = "of:=IF([.A1]>0;\"yes;still\";\"no\")";
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocument();
-        using ExcelDocument target = conversion.Document;
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
 
         ExcelCellSnapshot formula = target.CreateInspectionSnapshot().Worksheets.Single().Cells
             .Single(cell => cell.Row == 1 && cell.Column == 2);
@@ -70,16 +70,16 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void DuplicateSheetLocalExcelNamesAreDisambiguatedWithoutAborting() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
-        ExcelSheet first = source.AddWorkSheet("First Sheet");
-        ExcelSheet second = source.AddWorkSheet("Second Sheet");
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet first = source.AddWorksheet("First Sheet");
+        ExcelSheet second = source.AddWorksheet("Second Sheet");
         first.CellAt(1, 1).SetValue(1);
         second.CellAt(1, 1).SetValue(2);
         first.SetNamedRange("LocalValue", "A1", save: false);
         second.SetNamedRange("LocalValue", "A1", save: false);
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocument();
-        using OdsDocument target = conversion.Document;
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
+        using OdsDocument target = conversion.Value;
 
         Assert.Equal(2, target.NamedRanges.Count);
         Assert.Equal(2, target.NamedRanges.Select(named => named.Name).Distinct(StringComparer.Ordinal).Count());
@@ -96,8 +96,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });
         source.AddParagraph().AddImage(tiff, "unsupported.tiff", 10, 10);
 
-        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocument();
-        using OdtDocument target = conversion.Document;
+        OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
+        using OdtDocument target = conversion.Value;
 
         Assert.Equal("Automatic color", target.Paragraphs.First().Text);
         Assert.Null(target.Paragraphs.First().Spans.Single().Color);
@@ -113,8 +113,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         byte[] webp = { 0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
         source.AddParagraph("Image").AddImage(webp, "pixel.webp", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
-        OdfConversionResult<WordDocument> conversion = source.ToWordDocument();
-        using WordDocument target = conversion.Document;
+        OdfConversionResult<WordDocument> conversion = source.ToWordDocumentResult();
+        using WordDocument target = conversion.Value;
 
         WordRunSnapshot link = target.CreateInspectionSnapshot().Sections.SelectMany(section => section.Elements)
             .OfType<WordParagraphSnapshot>().Single(paragraph => paragraph.Text == "Relative").Runs.Single();
@@ -135,8 +135,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         textSource.AddParagraph().AddImage(png, "missing.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
         using OdtDocument brokenText = OpenBrokenFlat(textSource.ToFlatXml(), draw, xlink, office,
             stream => OdtDocument.OpenFlatXml(stream));
-        OdfConversionResult<WordDocument> wordConversion = brokenText.ToWordDocument();
-        using WordDocument word = wordConversion.Document;
+        OdfConversionResult<WordDocument> wordConversion = brokenText.ToWordDocumentResult();
+        using WordDocument word = wordConversion.Value;
 
         Assert.Contains(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
@@ -145,8 +145,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         presentationSource.AddSlide("Broken").AddImage(png, "missing.png", OdfRect.FromCentimeters(1, 1, 2, 2));
         using OdpPresentation brokenPresentation = OpenBrokenFlat(presentationSource.ToFlatXml(), draw, xlink, office,
             stream => OdpPresentation.OpenFlatXml(stream));
-        OdfConversionResult<PowerPointPresentation> powerPointConversion = brokenPresentation.ToPowerPointPresentation();
-        using PowerPointPresentation powerPoint = powerPointConversion.Document;
+        OdfConversionResult<PowerPointPresentation> powerPointConversion = brokenPresentation.ToPowerPointPresentationResult();
+        using PowerPointPresentation powerPoint = powerPointConversion.Value;
 
         Assert.Contains(powerPointConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Unsupported && mapping.Count == 1);
@@ -154,13 +154,13 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void UnsupportedPowerPointImageFormatsAreReportedWithoutAbortingConversion() {
-        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointStreamCreateOptions { AutoSave = false });
+        using PowerPointPresentation source = PowerPointPresentation.Create(new MemoryStream(), new PowerPointCreateOptions());
         PowerPointSlide slide = source.AddSlide();
         using var tiff = new MemoryStream(new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x00, 0x00, 0x00, 0x00 });
         slide.AddPicture(tiff, ImagePartType.Tiff);
 
-        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocument();
-        using OdpPresentation target = conversion.Document;
+        OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
+        using OdpPresentation target = conversion.Value;
 
         Assert.Empty(Assert.Single(target.Slides).Shapes.OfType<OdpImage>());
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
@@ -172,8 +172,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         using OdtDocument source = OdtDocument.Create();
         source.AddTrackedParagraphInsertion("Inserted", "Author");
 
-        OdfConversionResult<OfficeIMO.Word.WordDocument> conversion = source.ToWordDocument();
-        using OfficeIMO.Word.WordDocument target = conversion.Document;
+        OdfConversionResult<OfficeIMO.Word.WordDocument> conversion = source.ToWordDocumentResult();
+        using OfficeIMO.Word.WordDocument target = conversion.Value;
 
         Assert.True(conversion.Report.HasLoss);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-tracked-changes" && mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -186,8 +186,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         OdpRectangle shape = slide.AddRectangle(OdfRect.FromCentimeters(1, 1, 2, 2));
         slide.AddFadeInAnimation(shape, TimeSpan.FromSeconds(1));
 
-        var conversion = source.ToPowerPointPresentation();
-        using var target = conversion.Document;
+        OdfConversionResult<PowerPointPresentation> conversion = source.ToPowerPointPresentationResult();
+        using PowerPointPresentation target = conversion.Value;
 
         Assert.True(conversion.Report.HasLoss);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "source-presentation-animations" && mapping.Status == OdfConversionMappingStatus.Unsupported);
@@ -202,10 +202,10 @@ public sealed class OpenDocumentConversionLossReportTests {
         hidden.Cell(0, 1).SetNumber(2);
         source.AddSheet("Visible").Cell(0, 0).SetNumber(3);
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocument(new ExcelOpenDocumentConversionOptions {
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult(new ExcelOpenDocumentConversionOptions {
             MaximumExpandedCells = 1
         });
-        using ExcelDocument target = conversion.Document;
+        using ExcelDocument target = conversion.Value;
 
         Assert.Equal(2, target.CreateInspectionSnapshot().Worksheets.Count);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "worksheets" && mapping.Count == 2);
@@ -218,8 +218,8 @@ public sealed class OpenDocumentConversionLossReportTests {
         source.AddSheet("First").Hidden = true;
         source.AddSheet("Second").Hidden = true;
 
-        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocument();
-        using ExcelDocument target = conversion.Document;
+        OdfConversionResult<ExcelDocument> conversion = source.ToExcelDocumentResult();
+        using ExcelDocument target = conversion.Value;
         ExcelWorkbookSnapshot snapshot = target.CreateInspectionSnapshot();
 
         Assert.Empty(target.ValidateDocument());
@@ -232,16 +232,16 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void ExcelToOdsReportsConfiguredCellAndStyleOmissions() {
-        using ExcelDocument source = ExcelDocument.Create(new MemoryStream(), autoSave: false);
-        ExcelSheet sheet = source.AddWorkSheet("Data");
+        using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
+        ExcelSheet sheet = source.AddWorksheet("Data");
         sheet.CellAt(1, 1).SetValue("One").SetBold();
         sheet.CellAt(1, 2).SetValue("Two").SetBold();
 
-        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocument(new ExcelOpenDocumentConversionOptions {
+        OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult(new ExcelOpenDocumentConversionOptions {
             IncludeBasicStyles = false,
             MaximumExpandedCells = 1
         });
-        using OdsDocument target = conversion.Document;
+        using OdsDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "cell-styles" && mapping.Status == OdfConversionMappingStatus.Skipped);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "expansion-limits" && mapping.Status == OdfConversionMappingStatus.Skipped);

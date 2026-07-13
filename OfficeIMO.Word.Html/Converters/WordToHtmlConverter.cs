@@ -121,7 +121,7 @@ namespace OfficeIMO.Word.Html {
                         var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
                         if (ext == ".svg") {
                             if (options.EmbedImagesAsBase64) {
-                                var svgXml = Encoding.UTF8.GetString(imgObj.GetBytes());
+                                var svgXml = Encoding.UTF8.GetString(imgObj.ToBytes());
                                 var parser = new HtmlParser();
                                 var fragment = parser.ParseFragment(svgXml, body);
                                 var svgElement = fragment.OfType<IElement>().FirstOrDefault();
@@ -157,7 +157,7 @@ namespace OfficeIMO.Word.Html {
                         } else if (!options.EmbedImagesAsBase64) {
                             src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
                         } else {
-                            var bytes = imgObj.GetBytes();
+                            var bytes = imgObj.ToBytes();
                             var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
                             src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
                         }

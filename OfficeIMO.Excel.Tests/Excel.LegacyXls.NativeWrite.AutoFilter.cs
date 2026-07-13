@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("AdvancedFilter");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("AdvancedFilter");
                     sheet.CellValue(1, 1, "Optional");
                     sheet.CellValue(1, 2, "Required");
                     sheet.CellValue(1, 3, "Score");
@@ -128,10 +128,10 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
 
-                    ExcelSheet sheet = document.AddWorkSheet("DateFilter");
+                    ExcelSheet sheet = document.AddWorksheet("DateFilter");
                     sheet.CellValue(1, 1, "Entered");
                     sheet.CellValue(2, 1, new DateTime(2026, 6, 27));
                     sheet.CellValue(3, 1, new DateTime(2026, 6, 28));

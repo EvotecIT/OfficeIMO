@@ -46,7 +46,7 @@ public sealed class ReaderDocumentReaderTests {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         try {
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Data");
+                var sheet = doc.AddWorksheet("Data");
                 sheet.Cell(1, 1, "Name");
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "A");
@@ -104,8 +104,8 @@ public sealed class ReaderDocumentReaderTests {
     public void DocumentReader_LegacyXlsWarningsIncludePreservedRecords() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
-            using ExcelDocument document = ExcelDocument.Create(path, autoSave: false);
-            document.AddWorkSheet("Data").CellValue(1, 1, "Preserved record warning");
+            using ExcelDocument document = ExcelDocument.Create(path);
+            document.AddWorksheet("Data").CellValue(1, 1, "Preserved record warning");
 
             typeof(ExcelDocument)
                 .GetProperty(nameof(ExcelDocument.SourceFormat))!
@@ -159,7 +159,7 @@ public sealed class ReaderDocumentReaderTests {
         string encryptedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (var doc = ExcelDocument.Create(sourcePath)) {
-                var sheet = doc.AddWorkSheet("SecureData");
+                var sheet = doc.AddWorksheet("SecureData");
                 sheet.Cell(1, 1, "Name");
                 sheet.Cell(1, 2, "Value");
                 sheet.Cell(2, 1, "Token");
@@ -1486,12 +1486,12 @@ public sealed class ReaderDocumentReaderTests {
         var htmlPath = Path.Combine(folder, "oversized.html");
 
         try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
 
             var html = "<html><body><p>" + new string('x', 2048) + "</p></body></html>";
             File.WriteAllText(htmlPath, html);
 
-            var document = Assert.Single(DocumentReader.ReadFolderDocuments(
+            var document = Assert.Single(reader.ReadFolderDocuments(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1507,7 +1507,6 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Single(document.Warnings!);
             Assert.Contains("split due to MaxChars", document.Warnings![0], StringComparison.OrdinalIgnoreCase);
         } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
     }
@@ -1520,12 +1519,12 @@ public sealed class ReaderDocumentReaderTests {
         var htmlPath = Path.Combine(folder, "oversized.html");
 
         try {
-            DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(replaceExisting: true);
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddHtmlHandler().Build();
 
             var html = "<html><body><p>" + new string('x', 2048) + "</p></body></html>";
             File.WriteAllText(htmlPath, html);
 
-            var result = DocumentReader.ReadFolderDetailed(
+            var result = reader.ReadFolderDetailed(
                 folderPath: folder,
                 folderOptions: new ReaderFolderOptions {
                     Recurse = false,
@@ -1547,7 +1546,6 @@ public sealed class ReaderDocumentReaderTests {
             Assert.Single(result.Warnings!);
             Assert.Contains("split due to MaxChars", result.Warnings![0], StringComparison.OrdinalIgnoreCase);
         } finally {
-            DocumentReaderHtmlRegistrationExtensions.UnregisterHtmlHandler();
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
     }

@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("ff0080", run.ColorHex);
+            Assert.Equal("FF0080", run.ColorHex);
         }
 
         [Fact]
@@ -72,11 +72,11 @@ namespace OfficeIMO.Tests {
             string html = "<div style=\"color:#ff0000;font-size:20px;\">A<span style=\"font-size:10px;\">B</span><span>C</span></div>";
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var runs = doc.Paragraphs[0].GetRuns().ToArray();
-            Assert.Equal("ff0000", runs[0].ColorHex);
+            Assert.Equal("FF0000", runs[0].ColorHex);
             Assert.Equal(20, runs[0].FontSize);
-            Assert.Equal("ff0000", runs[1].ColorHex);
+            Assert.Equal("FF0000", runs[1].ColorHex);
             Assert.Equal(10, runs[1].FontSize);
-            Assert.Equal("ff0000", runs[2].ColorHex);
+            Assert.Equal("FF0000", runs[2].ColorHex);
             Assert.Equal(20, runs[2].FontSize);
         }
 
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("0000ff", run.ColorHex);
+            Assert.Equal("0000FF", run.ColorHex);
         }
 
         [Fact]
@@ -109,7 +109,7 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("abcdef", run.ColorHex);
+            Assert.Equal("ABCDEF", run.ColorHex);
             Assert.Equal(11, run.FontSize);
         }
 

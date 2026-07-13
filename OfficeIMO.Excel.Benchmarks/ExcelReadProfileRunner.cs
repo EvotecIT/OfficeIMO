@@ -41,7 +41,7 @@ internal static class ExcelReadProfileRunner {
         string dataRange = ExcelBenchmarkScenarioFactory.BuildDataRange(rowCount);
         using var loadedDataReaderDocument = ExcelDocumentReader.Open(workbookBytes);
         var loadedDataReaderSheet = loadedDataReaderDocument.GetSheet("Data");
-        using var loadedHeaderDocument = ExcelDocument.Load(new MemoryStream(workbookBytes, writable: false), readOnly: true);
+        using var loadedHeaderDocument = ExcelDocument.Load(new MemoryStream(workbookBytes, writable: false), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         var loadedHeaderSheet = loadedHeaderDocument.GetSheet("Data");
         using var loadedHeaderOpsStream = new MemoryStream();
         loadedHeaderOpsStream.Write(workbookBytes, 0, workbookBytes.Length);
@@ -51,7 +51,7 @@ internal static class ExcelReadProfileRunner {
         byte[] mixedTypeWorkbookBytes = CreateMixedTypeWorkbookBytes(rowCount);
         byte[] sparseWorkbookBytes = CreateSparseWorkbookBytes(SparseLastRow);
         byte[] sharedStringHeavyWorkbookBytes = CreateSharedStringHeavyWorkbookBytes(rowCount);
-        using var loadedSharedStringHeaderDocument = ExcelDocument.Load(new MemoryStream(sharedStringHeavyWorkbookBytes, writable: false), readOnly: true);
+        using var loadedSharedStringHeaderDocument = ExcelDocument.Load(new MemoryStream(sharedStringHeavyWorkbookBytes, writable: false), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         var loadedSharedStringHeaderSheet = loadedSharedStringHeaderDocument.GetSheet("Data");
         string sparseRange = $"A1:A{SparseLastRow}";
 
@@ -442,7 +442,7 @@ internal static class ExcelReadProfileRunner {
 
     private static int OfficeImoGetHeaderMap(byte[] workbookBytes) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
-        using var document = ExcelDocument.Load(stream, readOnly: true);
+        using var document = ExcelDocument.Load(stream, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         var map = document.GetSheet("Data").GetHeaderMap();
         return map.Count + map["Id"];
     }
@@ -588,7 +588,7 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateSparseWorkbookBytes(int lastRow) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Header");
             sheet.CellValue(lastRow, 1, "Tail");
         }
@@ -599,7 +599,7 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateMixedTypeWorkbookBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Id");
             sheet.CellValue(1, 2, "Region");
             sheet.CellValue(1, 3, "Owner");
@@ -629,7 +629,7 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateSharedStringHeavyWorkbookBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Id");
             sheet.CellValue(1, 2, "Region");
             sheet.CellValue(1, 3, "Owner");

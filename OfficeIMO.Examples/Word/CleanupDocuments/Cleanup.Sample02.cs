@@ -29,7 +29,7 @@ internal static partial class CleanupDocuments {
 
             Console.WriteLine("Merged text: " + document.Paragraphs[0].Text);
 
-            document.Save(false);
+            document.Save();
         }
         using (WordDocument document = WordDocument.Load(Path.Combine(folderPath, "SimpleWordDocumentReadyToCleanup1.docx"))) {
             Console.WriteLine("Paragraph count after loading: " + document.Paragraphs.Count);
@@ -47,7 +47,7 @@ internal static partial class CleanupDocuments {
 
             Console.WriteLine("Paragraph count after merging: " + document.Paragraphs.Count);
 
-            document.Save(false);
+            document.Save();
         }
     }
 }

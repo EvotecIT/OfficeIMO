@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Border Left Style: " + wordTable.Rows[1].Cells[0].Borders.LeftStyle);
 
                 wordTable.Rows[1].Cells[1].Borders.LeftStyle = BorderValues.Dotted;
-                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToHexColor();
+                wordTable.Rows[1].Cells[1].Borders.LeftColorHex = OfficeIMO.Drawing.OfficeColor.OrangeRed.ToRgbHex();
 
                 wordTable.Rows[2].Cells[1].Borders.LeftStyle = BorderValues.Double;
                 wordTable.Rows[2].Cells[1].Borders.LeftColor = Color.Gold;
@@ -73,7 +73,7 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable.AddRow(5);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -261,13 +261,6 @@ namespace OfficeIMO.Excel {
             }
 
             WorkbookRoot.Save();
-            if (_packageContentTypesKnownNormalized
-                && !string.IsNullOrEmpty(FilePath)
-                && !_copyPackageToFilePathOnDispose
-                && !_copyPackageToSourceOnDispose
-                && _spreadSheetDocument.FileOpenAccess != System.IO.FileAccess.Read) {
-                Save(FilePath, openExcel: false);
-            }
         }
 
         /// <summary>
@@ -534,4 +527,3 @@ namespace OfficeIMO.Excel {
         }
     }
 }
-

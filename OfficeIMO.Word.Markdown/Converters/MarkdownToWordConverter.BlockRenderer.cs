@@ -367,7 +367,7 @@ namespace OfficeIMO.Word.Markdown {
                 foreach (var item in items) {
                     var effectiveLevel = _listLevel + item.Level;
                     var firstParagraph = true;
-                    var blockChildren = item.BlockChildren;
+                    var blockChildren = item.ChildBlocks;
 
                     for (int i = 0; i < blockChildren.Count; i++) {
                         if (blockChildren[i] is Omd.ParagraphBlock paragraph) {

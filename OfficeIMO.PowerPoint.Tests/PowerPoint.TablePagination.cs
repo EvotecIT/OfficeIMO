@@ -50,7 +50,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(filePath);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(filePath);
                 Assert.Equal(4, reopened.Slides.Count);
                 Assert.All(reopened.Slides, slide => Assert.Single(slide.Tables));
             } finally {

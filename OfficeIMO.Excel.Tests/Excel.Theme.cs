@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookTheme.ResetRename.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data");
+                document.AddWorksheet("Data");
                 document.ResetWorkbookTheme("Contoso Workbook Theme");
                 ExcelWorkbookThemeInfo info = document.GetWorkbookTheme(includeXml: true);
 

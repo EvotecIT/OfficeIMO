@@ -158,7 +158,7 @@ namespace OfficeIMO.Examples.Excel
 
             ar.ColumnsAdaptiveRows(rows, gutter: 1);
             ar.Finish(autoFitColumns: false);
-            doc.Save(openExcel);
+            doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
         }
     }
 }

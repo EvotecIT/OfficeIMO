@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="documentPath">Destination Word document path.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfWordTableImportResult> SavePdfTablesAsWord(
+        public static IReadOnlyList<PdfWordTableImportResult> SaveAsWordFromPdfTables(
             this PdfCore.PdfLogicalDocument document,
             string documentPath,
             PdfWordTableImportOptions? options = null) {
@@ -34,16 +34,17 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="documentStream">Writable destination stream for the document package.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfWordTableImportResult> SavePdfTablesAsWord(
+        public static IReadOnlyList<PdfWordTableImportResult> SaveAsWordFromPdfTables(
             this PdfCore.PdfLogicalDocument document,
             Stream documentStream,
             PdfWordTableImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (documentStream == null) throw new ArgumentNullException(nameof(documentStream));
+            if (!documentStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(documentStream));
 
-            using WordDocument word = WordDocument.Create(documentStream);
+            using WordDocument word = WordDocument.Create();
             IReadOnlyList<PdfWordTableImportResult> results = ImportTables(document, word, options ?? new PdfWordTableImportOptions());
-            word.Save();
+            word.Save(documentStream);
             return results;
         }
 
@@ -53,13 +54,13 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="document">Logical PDF document to import.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Word document package bytes.</returns>
-        public static byte[] ToWordTableDocumentBytes(
+        public static byte[] ToWordBytesFromPdfTables(
             this PdfCore.PdfLogicalDocument document,
             PdfWordTableImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
             using var stream = new MemoryStream();
-            document.SavePdfTablesAsWord(stream, options);
+            document.SaveAsWordFromPdfTables(stream, options);
             return stream.ToArray();
         }
 
@@ -70,7 +71,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="documentPath">Destination Word document path.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfWordTableImportResult> SavePdfTablesAsWord(
+        public static IReadOnlyList<PdfWordTableImportResult> SaveAsWordFromPdfTables(
             string pdfPath,
             string documentPath,
             PdfWordTableImportOptions? options = null) {
@@ -79,7 +80,7 @@ namespace OfficeIMO.Word.Pdf {
 
             options ??= new PdfWordTableImportOptions();
             PdfCore.PdfLogicalDocument document = LoadPdf(pdfPath, options);
-            return document.SavePdfTablesAsWord(documentPath, options);
+            return document.SaveAsWordFromPdfTables(documentPath, options);
         }
 
         /// <summary>
@@ -89,7 +90,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="documentStream">Writable destination stream for the document package.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfWordTableImportResult> SavePdfTablesAsWord(
+        public static IReadOnlyList<PdfWordTableImportResult> SaveAsWordFromPdfTables(
             byte[] pdfBytes,
             Stream documentStream,
             PdfWordTableImportOptions? options = null) {
@@ -98,7 +99,7 @@ namespace OfficeIMO.Word.Pdf {
 
             options ??= new PdfWordTableImportOptions();
             PdfCore.PdfLogicalDocument document = LoadPdf(pdfBytes, options);
-            return document.SavePdfTablesAsWord(documentStream, options);
+            return document.SaveAsWordFromPdfTables(documentStream, options);
         }
 
         /// <summary>
@@ -108,7 +109,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <param name="documentStream">Writable destination stream for the document package.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfWordTableImportResult> SavePdfTablesAsWord(
+        public static IReadOnlyList<PdfWordTableImportResult> SaveAsWordFromPdfTables(
             Stream pdfStream,
             Stream documentStream,
             PdfWordTableImportOptions? options = null) {
@@ -117,7 +118,7 @@ namespace OfficeIMO.Word.Pdf {
 
             options ??= new PdfWordTableImportOptions();
             PdfCore.PdfLogicalDocument document = LoadPdf(pdfStream, options);
-            return document.SavePdfTablesAsWord(documentStream, options);
+            return document.SaveAsWordFromPdfTables(documentStream, options);
         }
 
         private static IReadOnlyList<PdfWordTableImportResult> ImportTables(

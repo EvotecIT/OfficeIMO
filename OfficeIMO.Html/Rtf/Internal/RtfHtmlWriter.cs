@@ -395,7 +395,8 @@ internal static partial class RtfHtmlWriter {
             options.AddDiagnostic(
                 "RtfHtmlImageEmbeddingLimitExceeded",
                 "RTF image was skipped because it exceeds the configured data URI embedding limit.",
-                image.Data.Length.ToString(CultureInfo.InvariantCulture));
+                image.Data.Length.ToString(CultureInfo.InvariantCulture),
+                action: RtfConversionAction.Blocked);
             return null;
         }
 
@@ -649,7 +650,7 @@ internal static partial class RtfHtmlWriter {
             return resolved;
         }
 
-        options.AddDiagnostic(diagnosticCode, "URL was omitted because it was rejected by the configured HTML URL policy.", source);
+        options.AddDiagnostic(diagnosticCode, "URL was omitted because it was rejected by the configured HTML URL policy.", source, action: RtfConversionAction.Blocked);
         return null;
     }
 }

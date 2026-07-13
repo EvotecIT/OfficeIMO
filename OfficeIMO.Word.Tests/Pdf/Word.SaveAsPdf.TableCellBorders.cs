@@ -54,15 +54,15 @@ public partial class Word {
             WordTable table = document.AddTable(1, 1);
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Native styled cell";
-            cell.ShadingFillColorHex = "ff0000";
+            cell.ShadingFillColorHex = "FF0000";
             cell.Borders.TopStyle = BorderValues.Single;
             cell.Borders.BottomStyle = BorderValues.Single;
             cell.Borders.LeftStyle = BorderValues.Single;
             cell.Borders.RightStyle = BorderValues.Single;
-            cell.Borders.TopColorHex = "0000ff";
-            cell.Borders.BottomColorHex = "0000ff";
-            cell.Borders.LeftColorHex = "0000ff";
-            cell.Borders.RightColorHex = "0000ff";
+            cell.Borders.TopColorHex = "0000FF";
+            cell.Borders.BottomColorHex = "0000FF";
+            cell.Borders.LeftColorHex = "0000FF";
+            cell.Borders.RightColorHex = "0000FF";
             cell.Borders.TopSize = 8;
             cell.Borders.BottomSize = 8;
             cell.Borders.LeftSize = 8;
@@ -96,10 +96,10 @@ public partial class Word {
             WordTableCell cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].Text = "Native non-uniform cell";
             cell.Borders.TopStyle = BorderValues.Single;
-            cell.Borders.TopColorHex = "ff0000";
+            cell.Borders.TopColorHex = "FF0000";
             cell.Borders.TopSize = 16;
             cell.Borders.RightStyle = BorderValues.Single;
-            cell.Borders.RightColorHex = "0000ff";
+            cell.Borders.RightColorHex = "0000FF";
             cell.Borders.RightSize = 20;
 
             document.Save();

@@ -128,7 +128,7 @@ public sealed class HtmlApiConsistencyTests {
 
     [Fact]
     public void HtmlPdf_ByteSerializationHonorsCancellation() {
-        PdfCore.PdfDocumentConversionResult result = "<p>Cancellation contract</p>".ToPdfResult();
+        PdfCore.PdfDocumentConversionResult result = "<p>Cancellation contract</p>".ToPdfDocumentResult();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 

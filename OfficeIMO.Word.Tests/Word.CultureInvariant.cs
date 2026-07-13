@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
                 CultureInfo.CurrentUICulture = new CultureInfo("tr-TR");
 
                 var normalized = Helpers.NormalizeColor("AAEEDD");
-                Assert.Equal("aaeedd", normalized);
+                Assert.Equal("AAEEDD", normalized);
             } finally {
                 CultureInfo.CurrentCulture = current;
                 CultureInfo.CurrentUICulture = currentUi;

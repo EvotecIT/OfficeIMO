@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void InsertObjectsWithTable_UsesDirectWriterForCleanWorkbook() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
-                var sheet = document.AddWorkSheet("Data");
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                var sheet = document.AddWorksheet("Data");
                 object?[] rows = {
                     new Dictionary<string, object?> {
                         ["Region"] = "NA",
@@ -61,8 +61,8 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void InsertObjects_GetUsedRangeIncludesOverlayCells() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(new MemoryStream(), autoSave: false)) {
-                var sheet = document.AddWorkSheet("Data");
+            using (var document = ExcelDocument.Create(new MemoryStream())) {
+                var sheet = document.AddWorksheet("Data");
                 object?[] rows = {
                     new Dictionary<string, object?> {
                         ["Region"] = "NA",

@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "DataValidation.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
 
                 sheet.ValidationWholeNumber("A1:A10", DataValidationOperatorValues.Between, 1, 10);
                 sheet.ValidationDecimal("B1:B10", DataValidationOperatorValues.GreaterThan, 5.5);
@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.ValidationTextLength("E1:E10", DataValidationOperatorValues.LessThanOrEqual, 20);
                 sheet.ValidationCustomFormula("F1:F10", "SUM(A1:B1)>10");
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

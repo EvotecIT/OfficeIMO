@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Original", loaded.StyleName!.Val);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, overrideStyles: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { OverrideStyles = true })) {
                 var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                 var loaded = styles.Elements<Style>().First(s => s.StyleId == "MyStyle");
                 Assert.Equal("Updated", loaded.StyleName!.Val);
@@ -96,7 +96,10 @@ namespace OfficeIMO.Tests {
             updated.Append(new StyleName { Val = "Updated" });
             WordParagraphStyle.RegisterCustomStyle("MyStyle", updated);
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true, overrideStyles: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                OverrideStyles = true
+            })) {
                 var styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
                 var loaded = styles.Elements<Style>().First(s => s.StyleId == "MyStyle");
                 Assert.Equal("Original", loaded.StyleName!.Val);

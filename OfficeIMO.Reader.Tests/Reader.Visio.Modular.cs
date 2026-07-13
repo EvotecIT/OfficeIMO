@@ -181,32 +181,29 @@ public sealed class ReaderVisioModularTests {
     }
 
     [Fact]
-    public void DocumentReaderVisio_Registration_DispatchesVisioStream() {
-        try {
-            DocumentReaderVisioRegistrationExtensions.RegisterVisioHandler(
-                new ReaderVisioOptions { IncludeSvgPreviewAssets = true });
-            using MemoryStream stream = BuildSampleVisio();
+    public void DocumentReaderVisio_BuilderHandler_DispatchesVisioStream() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddVisioHandler(new ReaderVisioOptions { IncludeSvgPreviewAssets = true })
+            .Build();
+        using MemoryStream stream = BuildSampleVisio();
 
-            List<ReaderChunk> chunks = DocumentReader.Read(stream, "registered.vsdx").ToList();
+        List<ReaderChunk> chunks = reader.Read(stream, "registered.vsdx").ToList();
 
-            ReaderChunk chunk = Assert.Single(chunks);
-            Assert.Equal(ReaderInputKind.Visio, chunk.Kind);
-            Assert.Contains("Gateway", chunk.Markdown, StringComparison.Ordinal);
+        ReaderChunk chunk = Assert.Single(chunks);
+        Assert.Equal(ReaderInputKind.Visio, chunk.Kind);
+        Assert.Contains("Gateway", chunk.Markdown, StringComparison.Ordinal);
 
-            stream.Position = 0;
-            OfficeDocumentReadResult result = DocumentReader.ReadDocument(stream, "registered.vsdx");
-            Assert.Contains("officeimo.visio.inspection-snapshot", result.CapabilitiesUsed);
-            Assert.NotEmpty(result.Links);
-            Assert.Equal("preview-svg", Assert.Single(result.Assets).Kind);
+        stream.Position = 0;
+        OfficeDocumentReadResult result = reader.ReadDocument(stream, "registered.vsdx");
+        Assert.Contains("officeimo.visio.inspection-snapshot", result.CapabilitiesUsed);
+        Assert.NotEmpty(result.Links);
+        Assert.Equal("preview-svg", Assert.Single(result.Assets).Kind);
 
-            ReaderHandlerCapability capability = Assert.Single(
-                DocumentReader.GetCapabilities(includeBuiltIn: false, includeCustom: true),
-                item => item.Id == DocumentReaderVisioRegistrationExtensions.HandlerId);
-            Assert.True(capability.SupportsDocumentPath);
-            Assert.True(capability.SupportsDocumentStream);
-        } finally {
-            DocumentReaderVisioRegistrationExtensions.UnregisterVisioHandler();
-        }
+        ReaderHandlerCapability capability = Assert.Single(
+            reader.GetCapabilities(),
+            item => item.Id == OfficeDocumentReaderBuilderVisioExtensions.HandlerId);
+        Assert.True(capability.SupportsDocumentPath);
+        Assert.True(capability.SupportsDocumentStream);
     }
 
     private static MemoryStream BuildSampleVisio() {

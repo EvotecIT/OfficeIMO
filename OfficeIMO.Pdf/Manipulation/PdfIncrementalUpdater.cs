@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -134,7 +135,7 @@ public static partial class PdfIncrementalUpdater {
         bool createXmpMetadata = false) {
         Guard.NotNullOrWhiteSpace(inputPath, nameof(inputPath));
         Guard.NotNullOrWhiteSpace(outputPath, nameof(outputPath));
-        File.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, readOptions, createXmpMetadata));
+        OfficeFileCommit.WriteAllBytes(outputPath, UpdateMetadata(File.ReadAllBytes(inputPath), title, author, subject, keywords, readOptions, createXmpMetadata));
     }
 
     private static void SynchronizeXmpMetadata(

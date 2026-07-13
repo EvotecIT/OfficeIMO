@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
 
                 AppendNotesParagraph(filePath, "Second note paragraph");
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath, PowerPointOpenMode.ReadOnly)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointExtractChunk chunk = presentation.ExtractMarkdownChunks(
                         sourcePath: filePath).Single();
 
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath, PowerPointOpenMode.ReadOnly)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     PowerPointExtractChunk chunk = presentation.ExtractMarkdownChunks(
                         new PowerPointExtractionExtensions.PowerPointExtractOptions {
                             IncludeNotes = false,

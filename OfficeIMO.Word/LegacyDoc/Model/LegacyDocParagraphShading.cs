@@ -3,7 +3,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocParagraphShading(string? fillColorHex) {
             FillColorHex = string.IsNullOrWhiteSpace(fillColorHex)
                 ? null
-                : fillColorHex!.Replace("#", string.Empty).ToLowerInvariant();
+                : fillColorHex!.Replace("#", string.Empty).ToUpperInvariant();
         }
 
         internal string? FillColorHex { get; }

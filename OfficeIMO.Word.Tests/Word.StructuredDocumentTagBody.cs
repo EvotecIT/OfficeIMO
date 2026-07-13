@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests {
                 var body = document._wordprocessingDocument?.MainDocumentPart?.Document?.Body;
                 Assert.NotNull(body);
                 body!.Append(block);
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("TagBody", sdt.Tag);
                 Assert.Equal("Body text", sdt.Text);
                 sdt.Text = "Updated";
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

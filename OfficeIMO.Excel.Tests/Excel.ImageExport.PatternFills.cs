@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersPatternFillAndReportsApproximation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Patterns");
+            ExcelSheet sheet = document.AddWorksheet("Patterns");
             sheet.CellValue(1, 1, "Pattern");
             sheet.SetColumnWidth(1, 18);
             sheet.SetRowHeight(1, 42);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersGrayPatternFillsAsSharedPercentStipples() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Patterns");
+            ExcelSheet sheet = document.AddWorksheet("Patterns");
             sheet.CellValue(1, 1, "Gray");
             sheet.SetColumnWidth(1, 18);
             sheet.SetRowHeight(1, 42);
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSimpleLinearGradientFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Gradients");
+            ExcelSheet sheet = document.AddWorksheet("Gradients");
             sheet.CellValue(1, 1, "Gradient");
             sheet.SetColumnWidth(1, 18);
             sheet.SetRowHeight(1, 42);
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersMultiStopLinearGradientFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Gradients");
+            ExcelSheet sheet = document.AddWorksheet("Gradients");
             sheet.CellValue(1, 1, "Multi");
             sheet.SetColumnWidth(1, 18);
             sheet.SetRowHeight(1, 42);
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportClampsAcceptedGradientEndpointOffsets() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Gradients");
+            ExcelSheet sheet = document.AddWorksheet("Gradients");
             sheet.CellValue(1, 1, "Near");
             sheet.SetColumnWidth(1, 18);
             sheet.SetRowHeight(1, 42);
@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsUnsupportedGradientFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Gradients");
+            ExcelSheet sheet = document.AddWorksheet("Gradients");
             sheet.CellValue(1, 1, "Gradient");
             sheet.SetColumnWidth(1, 18);
             sheet.SetRowHeight(1, 42);

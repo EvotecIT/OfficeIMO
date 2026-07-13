@@ -44,7 +44,7 @@ namespace OfficeIMO.Word {
                 AppendTrackedRedlineFindings(document, result, options);
             }
 
-            document.Save(false);
+            document.Save();
             return result;
         }
 
@@ -75,7 +75,9 @@ namespace OfficeIMO.Word {
             }
 
             File.Copy(targetPath, outputPath, overwrite: true);
-            using WordDocument sourceDocument = WordDocument.Load(sourcePath, readOnly: true);
+            using WordDocument sourceDocument = WordDocument.Load(sourcePath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+            });
             using WordDocument document = WordDocument.Load(outputPath);
             HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(
                 sourceDocument._wordprocessingDocument,
@@ -93,7 +95,8 @@ namespace OfficeIMO.Word {
             ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             AppendInPlaceFeatureAndReviewFindings(document, result, options);
 
-            document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+            document.Save(document.FilePath,
+                new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
         }
 
         private static bool HasTrackedText(WordComparisonFinding finding) {

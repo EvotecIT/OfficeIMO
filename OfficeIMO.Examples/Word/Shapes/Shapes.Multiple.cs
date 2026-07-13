@@ -70,7 +70,7 @@ namespace OfficeIMO.Examples.Word {
                 d5.FillColor = OfficeIMO.Drawing.OfficeColor.Plum;
                 d5.StrokeColor = OfficeIMO.Drawing.OfficeColor.Purple;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
                 OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
             }
         }

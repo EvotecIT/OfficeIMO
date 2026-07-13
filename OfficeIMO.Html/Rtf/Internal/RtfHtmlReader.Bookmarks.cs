@@ -14,7 +14,8 @@ internal static partial class RtfHtmlReader {
                 _options.AddDiagnostic(
                     "HtmlRtfHyperlinkRejected",
                     "HTML hyperlink was omitted because it was rejected by the configured URL policy.",
-                    "href");
+                    "href",
+                    action: RtfConversionAction.Blocked);
             }
 
             string? kind = GetAttribute(token, "data-officeimo-rtf-bookmark");

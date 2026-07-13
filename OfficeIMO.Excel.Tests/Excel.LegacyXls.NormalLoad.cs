@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             } else {
                 using var sourceStream = new MemoryStream();
                 using ExcelDocument source = ExcelDocument.Create(sourceStream);
-                source.AddWorkSheet("OpenXml").CellValue(1, 1, "Encrypted Open XML");
+                source.AddWorksheet("OpenXml").CellValue(1, 1, "Encrypted Open XML");
                 using var encrypted = new MemoryStream();
                 source.SaveEncrypted(encrypted, password);
                 encryptedBytes = encrypted.ToArray();
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Load(sourcePath);
 
-                await document.SaveAsync(outputPath, openExcel: false);
+                await document.SaveAsync(outputPath);
 
                 using ExcelDocument converted = ExcelDocument.Load(outputPath);
                 Assert.False(converted.SourceFormat == ExcelFileFormat.Xls);
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("OpenXml");
+                    ExcelSheet sheet = document.AddWorksheet("OpenXml");
                     sheet.CellValue(1, 1, "Open XML payload");
                     document.Save();
                 }
@@ -330,14 +330,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NormalLoad_RejectsAutoSave() {
+        public void LegacyXls_NormalLoad_RejectsSaveOnDispose() {
             byte[] compound = CreateMinimalLegacyXlsCompound();
             string sourcePath = WriteTempWorkbook(compound, ".xls");
 
             try {
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(sourcePath, autoSave: true));
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Load(sourcePath, new OfficeIMO.Excel.ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
 
-                Assert.Contains("Auto-save is not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("SaveOnDispose is not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
             } finally {
                 TryDelete(sourcePath);
             }
@@ -462,8 +462,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Data");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "Alice");
                     sheet.CellValue(2, 2, 42);

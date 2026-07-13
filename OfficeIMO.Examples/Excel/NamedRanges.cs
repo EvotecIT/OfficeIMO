@@ -8,7 +8,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "NamedRanges.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Value1");
                 sheet.CellValue(2, 1, "Value2");
 
@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Excel {
                     Console.WriteLine($"Worksheet named range {pair.Key}: {pair.Value}");
                 }
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

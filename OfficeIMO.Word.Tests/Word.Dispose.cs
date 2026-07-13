@@ -28,7 +28,9 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "DisposeTestingSynchronizationContext.docx");
             File.Delete(filePath);
 
-            var document = WordDocument.Create(filePath, autoSave: true);
+            var document = WordDocument.Create(filePath, new WordCreateOptions {
+                PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
+            });
             document.AddParagraph("This is my test");
 
             var originalContext = SynchronizationContext.Current;

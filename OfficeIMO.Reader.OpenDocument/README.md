@@ -2,14 +2,16 @@
 
 Native ODT, ODS, and ODP ingestion for `OfficeIMO.Reader`. The adapter uses `OfficeIMO.OpenDocument` and does not invoke LibreOffice or Microsoft Office at runtime.
 
-Register the handler once, then use the normal reader API:
+Configure a reader once, then reuse it:
 
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.OpenDocument;
 
-DocumentReaderOpenDocumentRegistrationExtensions.RegisterOpenDocumentHandler();
-IReadOnlyList<ReaderChunk> chunks = DocumentReader.Read("report.odt").ToList();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddOpenDocumentHandler()
+    .Build();
+IReadOnlyList<ReaderChunk> chunks = reader.Read("report.odt").ToList();
 ```
 
 The handler emits:

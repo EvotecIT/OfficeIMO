@@ -88,7 +88,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 3)
         };
 
-        return presentation.SaveAsPdf(options);
+        return presentation.ToPdf(options);
     }
 
     private static byte[] CreateNativePowerPointDenseLayout() {
@@ -152,7 +152,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
             ChartLayout = new OfficeChartLayout(maximumCategoryAxisLabels: 4)
         };
 
-        return presentation.SaveAsPdf(options);
+        return presentation.ToPdf(options);
     }
 
     private static byte[] CreatePowerPointVisualGatePng() {

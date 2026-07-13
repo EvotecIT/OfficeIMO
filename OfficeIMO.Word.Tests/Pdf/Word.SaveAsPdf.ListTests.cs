@@ -489,7 +489,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph item = bulletList.AddItem(string.Empty);
                 item.AddText("ListPlain ");
                 WordParagraph red = item.AddText("ListRed");
-                red.ColorHex = "ff0000";
+                red.ColorHex = "FF0000";
                 item.AddText(" ");
                 item.AddText("ListBold").SetBold();
                 item.AddText(" ");

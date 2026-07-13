@@ -1,18 +1,31 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
+using System.Threading;
+using System.Threading.Tasks;
 using System.Xml.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
+        /// <summary>Opens the associated presentation in the operating system's registered application.</summary>
+        public void OpenInApplication(string? filePath = null) {
+            string target = string.IsNullOrEmpty(filePath) ? _filePath : filePath!;
+            if (string.IsNullOrEmpty(target)) {
+                throw new InvalidOperationException("The presentation has no associated file path.");
+            }
+            OfficeFileLauncher.Open(target);
+        }
+
         /// <summary>
         ///     Indicates whether the presentation passes Open XML validation.
         /// </summary>
@@ -62,56 +75,114 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>
-        ///     Saves all pending changes to the underlying package.
+        ///     Saves all pending changes to the associated file or stream.
         /// </summary>
         public void Save() {
-            ThrowIfDisposed();
-            ApplySignatureMutationPolicy();
-            foreach (PowerPointSlide slide in _slides) {
-                slide.Save();
-            }
+            Save(options: null);
+        }
 
-            PowerPointUtils.UpdateDocumentProperties(_presentationPart);
-            PresentationRoot.Save();
-            _document!.Save();
+        /// <summary>Saves all pending changes to the associated destination with optional save settings.</summary>
+        public void Save(PowerPointSaveOptions? options) {
+            if (!string.IsNullOrEmpty(_filePath)) {
+                Save(_filePath, options);
+                return;
+            }
+            if (_sourceStream != null) {
+                Save(_sourceStream);
+                return;
+            }
+            throw new InvalidOperationException(
+                "The presentation has no associated destination. Use Save(string) or Save(Stream).");
+        }
+
+        /// <summary>Saves the presentation to a file and associates that path with subsequent <see cref="Save()"/> calls.</summary>
+        public void Save(string filePath, PowerPointSaveOptions? options = null) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            EnsureDestinationFileWritable(filePath);
+            byte[] packageBytes = CreatePackageBytesForSave();
+            OfficeFileCommit.WriteAllBytes(filePath, packageBytes);
+            _filePath = filePath;
             _discardChangesOnDispose = false;
+            if (options?.OpenAfterSave == true) OpenInApplication(filePath);
         }
 
         /// <summary>
-        ///     Saves the presentation to the provided stream.
+        ///     Saves the presentation to the provided stream without changing its associated destination.
         /// </summary>
         public void Save(Stream destination) {
-            ThrowIfDisposed();
             if (destination == null) throw new ArgumentNullException(nameof(destination));
-            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            OfficeStreamWriter.WriteAllBytes(destination, CreatePackageBytesForSave());
+            _discardChangesOnDispose = false;
+        }
 
+        /// <summary>Encodes the presentation as a PPTX package.</summary>
+        public byte[] ToBytes() => CreatePackageBytesForSave();
+
+        /// <summary>Encodes the presentation in a new writable memory stream positioned at the beginning.</summary>
+        public MemoryStream ToStream() => new MemoryStream(ToBytes());
+
+        /// <summary>Asynchronously saves to the associated file or stream.</summary>
+        public Task SaveAsync(CancellationToken cancellationToken = default) =>
+            SaveAsync(options: null, cancellationToken);
+
+        /// <summary>Asynchronously saves to the associated destination with optional save settings.</summary>
+        public Task SaveAsync(PowerPointSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (!string.IsNullOrEmpty(_filePath)) {
+                return SaveAsync(_filePath, options, cancellationToken);
+            }
+            if (_sourceStream != null) {
+                return SaveAsync(_sourceStream, cancellationToken);
+            }
+            throw new InvalidOperationException(
+                "The presentation has no associated destination. Use SaveAsync(string) or SaveAsync(Stream).");
+        }
+
+        /// <summary>Asynchronously saves to a file and associates it with subsequent saves.</summary>
+        public async Task SaveAsync(
+            string filePath,
+            PowerPointSaveOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
+            EnsureDestinationFileWritable(filePath);
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] packageBytes = CreatePackageBytesForSave();
+            await OfficeFileCommit.WriteAllBytesAsync(filePath, packageBytes,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            _filePath = filePath;
+            _discardChangesOnDispose = false;
+            if (options?.OpenAfterSave == true) OpenInApplication(filePath);
+        }
+
+        /// <summary>Asynchronously saves once to a caller-owned writable stream without changing the associated destination.</summary>
+        public async Task SaveAsync(Stream destination, CancellationToken cancellationToken = default) {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] packageBytes = CreatePackageBytesForSave();
+            await OfficeStreamWriter.WriteAllBytesAsync(destination, packageBytes, cancellationToken)
+                .ConfigureAwait(false);
+            _discardChangesOnDispose = false;
+        }
+
+        private byte[] CreatePackageBytesForSave() {
+            ThrowIfDisposed();
+            if (AccessMode == DocumentAccessMode.ReadOnly) {
+                throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
+            }
             ApplySignatureMutationPolicy();
-
             foreach (PowerPointSlide slide in _slides) {
                 slide.Save();
             }
             PowerPointUtils.UpdateDocumentProperties(_presentationPart);
             PresentationRoot.Save();
             _document!.Save();
-            _discardChangesOnDispose = false;
 
-            if (destination.CanSeek) {
-                destination.Seek(0, SeekOrigin.Begin);
-                destination.SetLength(0);
+            using var packageStream = new MemoryStream();
+            using (var clone = _document.Clone(packageStream)) {
+                // Dispose finalizes the cloned package before its bytes are committed.
             }
-
-            using (var clone = _document.Clone(destination)) {
-                // Clone writes the package into destination; dispose immediately to finalize the write.
-            }
-
-            try {
-                destination.Flush();
-            } catch (NotSupportedException) {
-                // Some streams do not support Flush; ignore.
-            }
-            if (destination.CanSeek) {
-                destination.Seek(0, SeekOrigin.Begin);
-            }
+            return packageStream.ToArray();
         }
 
         /// <summary>
@@ -125,13 +196,9 @@ namespace OfficeIMO.PowerPoint {
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
 
             ValidateSlideIndex(slideIndex);
-            string? directory = Path.GetDirectoryName(Path.GetFullPath(filePath));
-            if (!string.IsNullOrWhiteSpace(directory)) {
-                Directory.CreateDirectory(directory);
-            }
-
-            using FileStream stream = new(filePath, FileMode.Create, FileAccess.ReadWrite, FileShare.None);
+            using var stream = new MemoryStream();
             ExportSlide(slideIndex, stream);
+            OfficeFileCommit.WriteAllBytes(filePath, stream.ToArray());
         }
 
         /// <summary>
@@ -145,8 +212,7 @@ namespace OfficeIMO.PowerPoint {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             ValidateSlideIndex(slideIndex);
-            using PowerPointPresentation exported = Create(destination,
-                new PowerPointStreamCreateOptions { AutoSave = false });
+            using PowerPointPresentation exported = Create();
             exported.ImportSlide(this, slideIndex);
             exported.Save(destination);
         }
@@ -156,26 +222,21 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         /// <param name="filePath">Destination path for the encrypted presentation.</param>
         /// <param name="password">Password used to encrypt the presentation package.</param>
-        /// <param name="openPowerPoint">Whether to open the saved file after writing.</param>
-        public void SaveEncrypted(string filePath, string password, bool openPowerPoint = false) {
+        /// <param name="options">Optional save settings, including whether to open the saved file.</param>
+        public void SaveEncrypted(string filePath, string password, PowerPointSaveOptions? options = null) {
             ThrowIfDisposed();
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (filePath.Length == 0) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
-            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
-                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
-            }
+            EnsureDestinationFileWritable(filePath);
 
             using var packageStream = new MemoryStream();
             Save(packageStream);
             byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
-            using (var fs = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None)) {
-                fs.Write(encryptedBytes, 0, encryptedBytes.Length);
-                fs.Flush();
-            }
+            OfficeFileCommit.WriteAllBytes(filePath, encryptedBytes);
 
-            if (openPowerPoint) {
-                Helpers.Open(filePath, true);
+            if (options?.OpenAfterSave == true) {
+                OpenInApplication(filePath);
             }
         }
 
@@ -186,13 +247,18 @@ namespace OfficeIMO.PowerPoint {
         /// <param name="password">Password used to encrypt the presentation package.</param>
         public void SaveEncrypted(Stream destination, string password) {
             ThrowIfDisposed();
-            if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
-            if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
             using var packageStream = new MemoryStream();
             Save(packageStream);
-            OfficeEncryption.EncryptPackageToStream(packageStream.ToArray(), password, destination);
+            byte[] encryptedBytes = OfficeEncryption.EncryptPackage(packageStream.ToArray(), password);
+            OfficeStreamWriter.WriteAllBytes(destination, encryptedBytes);
+        }
+
+        private static void EnsureDestinationFileWritable(string filePath) {
+            if (File.Exists(filePath) && new FileInfo(filePath).IsReadOnly) {
+                throw new IOException($"Failed to save to '{filePath}'. The file is read-only.");
+            }
         }
 
     }

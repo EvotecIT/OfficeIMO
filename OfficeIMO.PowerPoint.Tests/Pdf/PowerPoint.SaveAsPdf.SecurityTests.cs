@@ -3,6 +3,7 @@ using System.IO;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using Xunit;
+using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Tests.Pdf;
 
@@ -22,10 +23,10 @@ public class PowerPointSaveAsPdfSecurityTests {
                 UseSharedVisualSnapshot = true
             };
 
-            _ = presentation.ToPdfDocument(options);
+            PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
 
-            PowerPointPdfExportWarning warning = Assert.Single(options.Warnings, item => item.Code == "group-depth-limit");
-            Assert.Equal(1, warning.SlideNumber);
+            PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "group-depth-limit");
+            Assert.Equal("Slide 1", warning.Source);
             Assert.Contains("MaxGroupShapeDepth", warning.Message, StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) {

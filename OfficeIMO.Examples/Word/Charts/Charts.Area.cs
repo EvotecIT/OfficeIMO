@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
             areaChart.AddArea("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
             areaChart.AddArea("USA", new List<int> { 10, 305, 18, 23 }, Color.AliceBlue);
             areaChart.AddLegend(LegendPositionValues.Top);
-            document.Save(false);
+            document.Save();
 
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

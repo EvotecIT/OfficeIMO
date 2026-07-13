@@ -52,6 +52,7 @@
         <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetReader.cs" Link="Shared\Ole\OfficeOlePropertySetReader.cs" />
         <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetWriter.cs" Link="Shared\Ole\OfficeOlePropertySetWriter.cs" />
         <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertyValue.cs" Link="Shared\Ole\OfficeOlePropertyValue.cs" />
+        <Compile Include="..\OfficeIMO.Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -98,6 +99,7 @@
 
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.Excel.Benchmarks" />
     </ItemGroup>
 
 </Project>

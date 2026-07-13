@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
                         ["Client"] = "Northwind Traders"
                     },
                     removeFields: false);
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false);
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Equal(5, generated);
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false);
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(1, updated);
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false);

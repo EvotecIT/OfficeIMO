@@ -64,7 +64,7 @@ namespace OfficeIMO.Examples.Word {
                 ["IssuedDate"] = "2026-06-28"
             });
             document.AddParagraph("Total: 8900");
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
 
         internal static void Example_MailMergeGroupedTableWorkflow(string folderPath, bool openWord) {
@@ -138,7 +138,7 @@ namespace OfficeIMO.Examples.Word {
                 ["Period"] = "Q3 2026"
             });
             document.AddParagraph("Generated rows: " + result.TotalRowCount.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
 
         internal static void Example_MailMergeProposalWorkflow(string folderPath, bool openWord) {
@@ -214,7 +214,7 @@ namespace OfficeIMO.Examples.Word {
                 ["PreparedBy"] = "OfficeIMO",
                 ["ExecutiveSummary"] = "This proposal is generated from a reusable Word template with conditional and nested repeated regions."
             });
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
 
         internal static void Example_MailMergeReviewLetterWorkflow(string folderPath, bool openWord) {
@@ -272,7 +272,7 @@ namespace OfficeIMO.Examples.Word {
                 ["Matter"] = "Services agreement review"
             });
             closing.AddComment("Reviewer", "RV", "This generated letter keeps review feedback close to the produced document.");
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
 
         internal static void Example_MailMergeHeaderFooterWorkflow(string folderPath, bool openWord) {
@@ -334,7 +334,7 @@ namespace OfficeIMO.Examples.Word {
                 ["ClientName"] = "Contoso Legal",
                 ["PreparedDate"] = "2026-06-30"
             });
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
 
         internal static void Example_MailMergeFormFillWorkflow(string folderPath, bool openWord) {
@@ -366,7 +366,7 @@ namespace OfficeIMO.Examples.Word {
 
             int updated = document.FillContentControlValues(values);
             WriteExtractedValues(Path.Combine(folderPath, "MailMergeFormFillWorkflow.ExtractedValues.md"), updated, document.ExtractContentControlValues());
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
 
         internal static void Example_MailMergeWorkflowGallery(string folderPath, bool openWord) {

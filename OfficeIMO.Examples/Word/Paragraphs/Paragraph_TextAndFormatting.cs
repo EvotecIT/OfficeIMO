@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -18,8 +19,8 @@ internal static partial class Paragraphs {
                     .Text(" World", t => t.BoldOn().ItalicOn().Color("#ff0000"))
                     .Text("!", t => t.BoldOn()))
                 .End()
-                .Save(false);
+                .Save();
         }
-        Helpers.Open(filePath, openWord);
+        if (openWord) OfficeFileLauncher.Open(filePath);
     }
 }

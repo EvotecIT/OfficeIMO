@@ -17,7 +17,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddShapeDrawing(ShapeType.Rectangle, 40, 40);
                 document.AddTextBox("Text");
-                document.Save(false);
+                document.Save();
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
                 var body = Guard.NotNull(word.MainDocumentPart?.Document?.Body, "Document body must exist.");
@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Shapes count: {document.Shapes.Count}");
                 Console.WriteLine($"TextBoxes count: {document.TextBoxes.Count}");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

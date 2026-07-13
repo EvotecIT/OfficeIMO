@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.PowerPoint;
@@ -48,7 +49,7 @@ namespace OfficeIMO.Examples.PowerPoint {
             }
 
             // Reopen and append more content
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointLayoutBox content = presentation.SlideSize.GetContentBoxCm(marginCm);
                 PowerPointLayoutBox titleBox = PowerPointLayoutBox.FromCentimeters(
                     content.LeftCm, content.TopCm, content.WidthCm, titleHeightCm);
@@ -72,7 +73,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                 presentation.Save();
             }
 
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "Add Table Overlapping.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Excel {
                     Console.WriteLine($"Expected error: {ex.Message}");
                 }
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

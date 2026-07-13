@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, headerList.ListItems.Count);
                 Assert.Equal(2, footerList.ListItems.Count);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

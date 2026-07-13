@@ -518,12 +518,12 @@ namespace OfficeIMO.Excel {
             private static void WriteInvariant(TextWriter writer, double value) {
 #if NET6_0_OR_GREATER
                 Span<char> buffer = stackalloc char[32];
-                if (value.TryFormat(buffer, out int written, provider: CultureInfo.InvariantCulture)) {
+                if (value.TryFormat(buffer, out int written, "R", CultureInfo.InvariantCulture)) {
                     writer.Write(buffer.Slice(0, written));
                     return;
                 }
 #endif
-                writer.Write(value.ToString(CultureInfo.InvariantCulture));
+                writer.Write(InvariantNumberText.Get(value));
             }
 
             private static void WriteColumnWidth(TextWriter writer, double value) {
@@ -540,12 +540,12 @@ namespace OfficeIMO.Excel {
             private static void WriteInvariant(TextWriter writer, float value) {
 #if NET6_0_OR_GREATER
                 Span<char> buffer = stackalloc char[32];
-                if (value.TryFormat(buffer, out int written, provider: CultureInfo.InvariantCulture)) {
+                if (value.TryFormat(buffer, out int written, "R", CultureInfo.InvariantCulture)) {
                     writer.Write(buffer.Slice(0, written));
                     return;
                 }
 #endif
-                writer.Write(value.ToString(CultureInfo.InvariantCulture));
+                writer.Write(InvariantNumberText.Get(value));
             }
 
             private static void WriteInvariant(TextWriter writer, decimal value) {

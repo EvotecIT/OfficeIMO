@@ -131,7 +131,7 @@ public sealed class Markdown_Semantic_Fenced_Block_Ast_Parity_Tests {
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         Assert.Same(lead, list.Items[0].Content);
         Assert.Same(additional, list.Items[0].AdditionalParagraphs[0]);
-        Assert.Equal(new[] { "Intro", "Tail" }, list.Items[0].BlockChildren.Select(block => block.RenderMarkdown()).ToArray());
+        Assert.Equal(new[] { "Intro", "Tail" }, list.Items[0].ChildBlocks.Select(block => block.RenderMarkdown()).ToArray());
     }
 
     [Fact]

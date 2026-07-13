@@ -39,7 +39,7 @@ public class CoverPageTests : VerifyTestBase {
         document.AddPageBreak();
         wordListToc.AddItem("More on the next page");
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument!);
     }
@@ -74,7 +74,7 @@ public class CoverPageTests : VerifyTestBase {
 
         document.TableOfContent!.Update();
 
-        _ = document.ToDocx();
+        _ = document.ToBytes();
 
         await DoTest(document._wordprocessingDocument!);
     }

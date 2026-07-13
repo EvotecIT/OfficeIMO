@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             var paragraph = document.AddParagraph("Image with compression quality");
             var image = paragraph.InsertImage(System.IO.Path.Combine(imagePaths, "Kulek.jpg"), 100, 100, WrapTextImage.BehindText);
             image.CompressionQuality = BlipCompressionValues.HighQualityPrint;
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

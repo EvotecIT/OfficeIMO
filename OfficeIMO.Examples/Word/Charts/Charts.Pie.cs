@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Word {
             pieChart.AddPie("Poland", 15);
             pieChart.AddPie("USA", 30);
             pieChart.AddPie("Brazil", 20);
-            document.Save(false);
+            document.Save();
 
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

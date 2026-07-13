@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Word {
                 //Console.WriteLine("Watermarks in header: " + document.Header!.Default.Watermarks.Count);
                 //Console.WriteLine("Images in header: " + document.Header!.Default.Images.Count);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
                 //Console.WriteLine("Images in document: " + document.Images.Count);
                 //Console.WriteLine("Watermarks in header: " + document.Header!.Default.Watermarks.Count);
                 //Console.WriteLine("Images in header: " + document.Header!.Default.Images.Count);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

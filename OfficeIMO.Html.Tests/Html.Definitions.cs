@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("HtmlDefinitionDescription", doc.Paragraphs[1].StyleId);
             Assert.Equal(720, doc.Paragraphs[1].IndentationBefore);
 
-            using MemoryStream packageStream = doc.ToDocxStream();
+            using MemoryStream packageStream = doc.ToStream();
             packageStream.Position = 0;
             using WordprocessingDocument package = WordprocessingDocument.Open(packageStream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();

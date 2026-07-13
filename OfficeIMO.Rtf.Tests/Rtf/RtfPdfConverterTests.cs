@@ -74,8 +74,8 @@ public class RtfPdfConverterTests {
         paragraph.AddText("Visible ");
         paragraph.AddText("Hidden").SetHidden();
 
-        string defaultText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf()).ExtractText();
-        string includedText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf(new RtfPdfSaveOptions {
+        string defaultText = PdfCore.PdfReadDocument.Load(document.ToPdf()).ExtractText();
+        string includedText = PdfCore.PdfReadDocument.Load(document.ToPdf(new RtfPdfSaveOptions {
             IncludeHiddenText = true
         })).ExtractText();
 
@@ -102,9 +102,7 @@ public class RtfPdfConverterTests {
         };
 
         PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
-        PdfCore.PdfDocument processed = result.Document.AppendMetadataRevision(title: "Processed RTF PDF");
-
-        options.ConversionReport.Clear();
+        PdfCore.PdfDocument processed = result.Value.AppendMetadataRevision(title: "Processed RTF PDF");
 
         Assert.True(result.HasWarnings);
         Assert.Contains(result.Warnings, warning => warning.Converter == "OfficeIMO.Rtf.Pdf" && warning.Code == "HeaderFooterSkipped");
@@ -113,7 +111,6 @@ public class RtfPdfConverterTests {
         Assert.Contains(result.Warnings, warning => warning.Code == "TableSkipped");
         PdfCore.PdfConversionWarning imageWarning = Assert.Single(result.Warnings, warning => warning.Code == "UnsupportedImage");
         Assert.Equal("Emf", imageWarning.Details["Format"]);
-        Assert.False(options.ConversionReport.HasWarnings);
         Assert.Equal("Processed RTF PDF", processed.Inspect().Metadata.Title);
 
         string text = PdfCore.PdfReadDocument.Load(result.ToBytes()).ExtractText();
@@ -130,13 +127,15 @@ public class RtfPdfConverterTests {
         document.AddImage(RtfImageFormat.Dib, CreateDib24(OfficeColor.FromRgb(18, 52, 86)));
         var options = new RtfPdfSaveOptions();
 
-        byte[] pdf = document.ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
 
         Assert.NotEmpty(pdf);
-        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic =>
-            diagnostic.Code == "ImageConverted" && diagnostic.Action == RtfConversionAction.Substituted);
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "UnsupportedImage");
-        options.RtfConversionReport.RequireNoLoss();
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "ImageConverted" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
+            warning.Details["RtfAction"] == nameof(RtfConversionAction.Substituted));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "UnsupportedImage");
     }
 
     [Fact]
@@ -151,14 +150,16 @@ public class RtfPdfConverterTests {
             }
         };
 
-        byte[] pdf = document.ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
 
         Assert.NotEmpty(pdf);
         Assert.Equal(1, conversionCount);
-        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic =>
-            diagnostic.Code == "ImageConverted" && diagnostic.Action == RtfConversionAction.Substituted);
-        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "UnsupportedImage");
-        options.RtfConversionReport.RequireNoLoss();
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "ImageConverted" &&
+            warning.Severity == PdfCore.PdfConversionWarningSeverity.Information &&
+            warning.Details["RtfAction"] == nameof(RtfConversionAction.Substituted));
+        Assert.DoesNotContain(result.Warnings, warning => warning.Code == "UnsupportedImage");
     }
 
     [Fact]
@@ -534,8 +535,8 @@ public class RtfPdfConverterTests {
         RtfRun annotationRun = paragraph.AddAnnotation("3", "Annotation body");
         annotationRun.Note!.Author = "Alice";
 
-        string defaultText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf()).ExtractText();
-        string skippedText = PdfCore.PdfReadDocument.Load(document.SaveAsPdf(new RtfPdfSaveOptions {
+        string defaultText = PdfCore.PdfReadDocument.Load(document.ToPdf()).ExtractText();
+        string skippedText = PdfCore.PdfReadDocument.Load(document.ToPdf(new RtfPdfSaveOptions {
             IncludeNotes = false
         })).ExtractText();
 
@@ -620,16 +621,14 @@ public class RtfPdfConverterTests {
         document.AddShape().AddTextBoxParagraph("Shape result");
         var options = new RtfPdfSaveOptions();
 
-        byte[] pdf = document.ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Contains("Object result", text, StringComparison.Ordinal);
         Assert.Contains("Shape result", text, StringComparison.Ordinal);
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "ObjectFlattened");
-        Assert.Contains(options.ConversionReport.Warnings, warning => warning.Code == "ShapeFlattened");
-        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ObjectFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic => diagnostic.Code == "ShapeFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Throws<RtfConversionLossException>(() => options.RtfConversionReport.RequireNoLoss());
+        Assert.Contains(result.Warnings, warning => warning.Code == "ObjectFlattened" && warning.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
+        Assert.Contains(result.Warnings, warning => warning.Code == "ShapeFlattened" && warning.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
     }
 
     private static string ExtractPdfContentStreams(byte[] pdf) {

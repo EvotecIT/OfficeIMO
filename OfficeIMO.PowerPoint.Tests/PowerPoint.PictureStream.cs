@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides.Single();
                     Assert.Single(slide.Pictures);
                 }

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersCellCommentIndicatorsAndReportsUnsupportedBodiesInVisibleRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Objects");
+            ExcelSheet sheet = document.AddWorksheet("Objects");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 2, "Reviewed");
             sheet.SetComment("B2", "Needs design review", "Reviewer");
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersCommentBodiesWhenRequested() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("CommentBody");
+            ExcelSheet sheet = document.AddWorksheet("CommentBody");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 2, "Reviewed");
             sheet.SetCommentRichText("B2", new[] {
@@ -115,13 +115,13 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesRichCommentBreaksAndNonRgbColors() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("CommentBreaks");
+                ExcelSheet sheet = document.AddWorksheet("CommentBreaks");
                 sheet.CellValue(2, 2, "Reviewed");
                 sheet.SetCommentRichText("B2", new[] {
                     new ExcelRichTextRun("Line one"),
                     new ExcelRichTextRun("line two") { Bold = true }
                 }, "Reviewer");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPlacesCommentBodyAwayFromChartWhenSpaceExists() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("CommentChart");
+            ExcelSheet sheet = document.AddWorksheet("CommentChart");
             for (int column = 1; column <= 10; column++) {
                 sheet.SetColumnWidth(column, 10);
             }
@@ -207,11 +207,11 @@ namespace OfficeIMO.Tests {
             const string personId = "{11111111-1111-1111-1111-111111111111}";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Threaded");
+                ExcelSheet sheet = document.AddWorksheet("Threaded");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Reviewed");
                 sheet.CellValue(1, 4, "Outside");
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
@@ -273,11 +273,11 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsUnsupportedDrawingShapesInVisibleRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Shapes");
+                ExcelSheet sheet = document.AddWorksheet("Shapes");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Reviewed");
                 sheet.CellValue(1, 4, "Outside");
-                document.Save(false);
+                document.Save();
             }
 
             AddDrawingShapes(filePath);
@@ -303,10 +303,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSupportedDrawingShapesThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("ShapeVisual");
+                ExcelSheet sheet = document.AddWorksheet("ShapeVisual");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Reviewed");
-                document.Save(false);
+                document.Save();
             }
 
             AddSupportedDrawingShape(filePath);
@@ -341,9 +341,9 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportExpandsUsedRangeForDrawingShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("ShapeOnly");
+                ExcelSheet sheet = document.AddWorksheet("ShapeOnly");
                 sheet.CellValue(1, 1, "Only cell");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(filePath, "Outside used range", "Outside used range");
@@ -374,9 +374,9 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportDoesNotExpandUsedRangeForUnsupportedDrawingShapes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("UnsupportedOnly");
+                ExcelSheet sheet = document.AddWorksheet("UnsupportedOnly");
                 sheet.CellValue(1, 1, "Only cell");
-                document.Save(false);
+                document.Save();
             }
 
             AddDrawingShapes(filePath);
@@ -398,12 +398,12 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportIncludesDrawingObjectAnchorOffsetsWhenExpandingUsedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("OffsetShape");
+                ExcelSheet sheet = document.AddWorksheet("OffsetShape");
                 sheet.SetColumnWidth(1, 8D);
                 sheet.SetColumnWidth(2, 8D);
                 sheet.SetColumnWidth(3, 8D);
                 sheet.CellValue(1, 1, "Only cell");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(filePath, "Offset shape", "Offset shape", offsetXPixels: 90, toColumn: 3, toRow: 3);
@@ -422,12 +422,12 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportResolvesAbsoluteAnchorDrawingShapeCoordinates() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("AbsoluteShape");
+                ExcelSheet sheet = document.AddWorksheet("AbsoluteShape");
                 sheet.SetColumnWidth(1, 8);
                 sheet.SetColumnWidth(2, 8);
                 sheet.SetRowHeight(1, 24);
                 sheet.CellValue(1, 2, "Shape area");
-                document.Save(false);
+                document.Save();
             }
 
             AppendAbsoluteDrawingShape(filePath, "Absolute shape", "Absolute shape", xPixels: 80, yPixels: 12, widthPixels: 96, heightPixels: 34);
@@ -451,10 +451,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.EnsureWorkbookTheme();
-                ExcelSheet sheet = document.AddWorkSheet("ThemeShape");
+                ExcelSheet sheet = document.AddWorksheet("ThemeShape");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Themed shape");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -476,12 +476,12 @@ namespace OfficeIMO.Tests {
                 string svg = range.ToSvg(options);
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
-                Assert.Equal("FF95B3D7", drawingObject.FillColorArgb);
+                Assert.Equal("FF96B3D7", drawingObject.FillColorArgb);
                 Assert.Equal("FFC0504D", drawingObject.StrokeColorArgb);
                 Assert.Equal("FF9BBB59", drawingObject.TextColorArgb);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
                 Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
-                Assert.Contains("#95B3D7", svg, StringComparison.Ordinal);
+                Assert.Contains("#96B3D7", svg, StringComparison.Ordinal);
                 Assert.Contains("#C0504D", svg, StringComparison.Ordinal);
                 Assert.Contains("#9BBB59", svg, StringComparison.Ordinal);
 
@@ -495,10 +495,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeOutlineStyleThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("OutlineStyle");
+                ExcelSheet sheet = document.AddWorksheet("OutlineStyle");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Styled outline");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -534,10 +534,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersDrawingShapeEffectsThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("ShapeEffects");
+                ExcelSheet sheet = document.AddWorksheet("ShapeEffects");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Styled effects");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -587,10 +587,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesDrawingShapeTextLineBreaks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("ShapeBreaks");
+                ExcelSheet sheet = document.AddWorksheet("ShapeBreaks");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Shape breaks");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(filePath, "Break shape", "Line 1", textHardBreak: true);
@@ -609,10 +609,10 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
                 document.EnsureWorkbookTheme();
-                ExcelSheet sheet = document.AddWorkSheet("DefaultStyle");
+                ExcelSheet sheet = document.AddWorksheet("DefaultStyle");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Default styled shape");
-                document.Save(false);
+                document.Save();
             }
 
             AppendDefaultStyledDrawingShape(filePath, "Default styled shape", "Styled shape");
@@ -637,10 +637,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSharedDrawingMlPresetShapesThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("PresetShape");
+                ExcelSheet sheet = document.AddWorksheet("PresetShape");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Shared heart");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -695,10 +695,10 @@ namespace OfficeIMO.Tests {
             foreach ((A.ShapeTypeValues preset, string expectedName) in presets) {
                 string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
                 using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("FlowchartShape");
+                    ExcelSheet sheet = document.AddWorksheet("FlowchartShape");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 2, expectedName);
-                    document.Save(false);
+                    document.Save();
                 }
 
                 AppendSupportedDrawingShape(
@@ -730,10 +730,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersRotatedDrawingMlPresetShapesThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("RotatedShape");
+                ExcelSheet sheet = document.AddWorksheet("RotatedShape");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Rotated heart");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -778,10 +778,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsRotatedDrawingShapeTextApproximation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("RotatedText");
+                ExcelSheet sheet = document.AddWorksheet("RotatedText");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Rotated label");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -816,10 +816,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeTextAlignmentThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("AlignedText");
+                ExcelSheet sheet = document.AddWorksheet("AlignedText");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Aligned label");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -854,10 +854,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeTextColorThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("TextColor");
+                ExcelSheet sheet = document.AddWorksheet("TextColor");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Colored label");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -890,10 +890,10 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeTextFontThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("TextFont");
+                ExcelSheet sheet = document.AddWorksheet("TextFont");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 2, "Styled label");
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -939,8 +939,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportWrapsDrawingShapeTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("TextWrap");
-                document.Save(false);
+                document.AddWorksheet("TextWrap");
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -983,8 +983,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDrawingShapeTextInsetsThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("TextInsets");
-                document.Save(false);
+                document.AddWorksheet("TextInsets");
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1024,8 +1024,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportShrinksDrawingShapeTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("TextShrink");
-                document.Save(false);
+                document.AddWorksheet("TextShrink");
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1064,8 +1064,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsDrawingShapeTextAutoFitUnsupported() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("TextAutoFit");
-                document.Save(false);
+                document.AddWorksheet("TextAutoFit");
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1103,8 +1103,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSimpleDrawingShapeVerticalTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("VerticalText");
-                document.Save(false);
+                document.AddWorksheet("VerticalText");
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1146,8 +1146,8 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersVertical270DrawingShapeTextThroughSharedDrawing() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Vertical270");
-                document.Save(false);
+                document.AddWorksheet("Vertical270");
+                document.Save();
             }
 
             AppendSupportedDrawingShape(
@@ -1194,14 +1194,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             byte[] redBadge = CreateSolidPng(120, 48, OfficeColor.FromRgb(220, 38, 38));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("LayerOrder");
+                ExcelSheet sheet = document.AddWorksheet("LayerOrder");
                 sheet.CellValue(1, 1, "Layer order");
                 sheet.CellValue(2, 2, "Overlap");
                 if (imageFirst) {
                     sheet.AddImage(2, 2, redBadge, "image/png", widthPixels: 120, heightPixels: 48, name: "Red badge");
                 }
 
-                document.Save(false);
+                document.Save();
             }
 
             AppendSupportedDrawingShape(filePath, "Layer shape", string.Empty);
@@ -1209,7 +1209,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = ExcelDocument.Load(filePath);
                 ExcelSheet sheet = document.Sheets.Single();
                 sheet.AddImage(2, 2, redBadge, "image/png", widthPixels: 120, heightPixels: 48, name: "Red badge");
-                document.Save(false);
+                document.Save();
             }
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {

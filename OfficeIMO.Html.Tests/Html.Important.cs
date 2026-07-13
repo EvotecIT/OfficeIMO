@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             string html = "<style>p { color:#0000ff !important; }</style><p style=\"color:#ff0000\">Test</p>";
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.Equal("0000ff", run.ColorHex);
+            Assert.Equal("0000FF", run.ColorHex);
             string roundTrip = doc.ToHtml();
             Assert.Contains("<p>Test</p>", roundTrip, StringComparison.OrdinalIgnoreCase);
         }
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             string html = "<style>p { color:#0000ff !important; } div p { color:#ff0000; }</style><div><p>Test</p></div>";
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.Equal("0000ff", run.ColorHex);
+            Assert.Equal("0000FF", run.ColorHex);
             string roundTrip = doc.ToHtml();
             Assert.Contains("<p>Test</p>", roundTrip, StringComparison.OrdinalIgnoreCase);
         }

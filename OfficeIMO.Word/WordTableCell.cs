@@ -170,12 +170,12 @@ namespace OfficeIMO.Word {
         public string ShadingFillColorHex {
             get {
                 var fill = _tableCellProperties?.Shading?.Fill?.Value;
-                return fill != null ? fill.ToLowerInvariant() : "";
+                return fill != null ? fill.ToUpperInvariant() : "";
             }
             set {
                 AddTableCellProperties();
                 if (value != "") {
-                    var color = value.Replace("#", "").ToLowerInvariant();
+                    var color = value.Replace("#", "").ToUpperInvariant();
                     _tableCellProperties!.Shading ??= new Shading();
                     _tableCellProperties.Shading.Fill = color;
                     _tableCellProperties.Shading.Val ??= ShadingPatternValues.Clear;
@@ -279,7 +279,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
-                    this.ShadingFillColorHex = value.Value.ToHexColor();
+                    this.ShadingFillColorHex = value.Value.ToRgbHex();
                 }
             }
         }

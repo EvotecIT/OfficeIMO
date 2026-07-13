@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -17,9 +18,9 @@ namespace OfficeIMO.Examples.Word {
                         .InlineImage(Path.Combine(imagesPath, "EvotecLogo.png"), widthPx: 16, heightPx: 16, alt: "icon")
                         .Text(" followed by text."))
                     .End();
-                document.Save(false);
+                document.Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

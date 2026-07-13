@@ -121,7 +121,7 @@ public sealed class PdfConversionScenarioManifestTests {
         };
 
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
-        string html = result.Html;
+        string html = result.Value;
         byte[] activeContentPdf = CreatePdfToHtmlActiveContentProofPdf();
         PdfHtmlConversionResult activeContentResult = PdfHtmlConverter.ToHtmlResult(activeContentPdf, new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.PositionedReview,
@@ -144,7 +144,6 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-outline\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"#pdf-page-1\"", html, StringComparison.Ordinal);
-        Assert.False(options.ConversionReport.HasWarnings);
         Assert.Equal(1, result.Summary.RenderedPageCount);
         Assert.Equal(3, result.Summary.OutlineCount);
         Assert.Equal(3, result.Summary.RenderedOutlineCount);
@@ -156,16 +155,16 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(2, activeContentResult.Summary.JavaScriptActionCount);
         Assert.Equal(1, activeContentResult.Summary.LaunchActionCount);
         Assert.Equal(1, activeContentResult.Summary.SubmitFormActionCount);
-        Assert.DoesNotContain("app.alert", activeContentResult.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("tool.exe", activeContentResult.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("https://example.com/submit", activeContentResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("app.alert", activeContentResult.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", activeContentResult.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.com/submit", activeContentResult.Value, StringComparison.OrdinalIgnoreCase);
         Assert.True(xfaResult.Summary.HasAcroFormXfa);
         Assert.Equal(2, xfaResult.Summary.AcroFormXfaPacketCount);
         Assert.Equal(2, xfaResult.Summary.AcroFormXfaStreamCount);
         Assert.True(xfaResult.Summary.AcroFormXfaPayloadByteCount > 0);
-        Assert.Contains("class=\"pdf-xfa-notice\"", xfaResult.Html, StringComparison.Ordinal);
-        Assert.Contains("data-xfa-packet-names=\"template,datasets\"", xfaResult.Html, StringComparison.Ordinal);
-        Assert.Single(xfaResult.ConversionReport.Warnings, warning => warning.Code == "AcroFormXfaDetected");
+        Assert.Contains("class=\"pdf-xfa-notice\"", xfaResult.Value, StringComparison.Ordinal);
+        Assert.Contains("data-xfa-packet-names=\"template,datasets\"", xfaResult.Value, StringComparison.Ordinal);
+        Assert.Single(xfaResult.Report.Warnings, warning => warning.Code == "AcroFormXfaDetected");
 
         var summary = new {
             scenario = "pdf-to-html-positioned-review",
@@ -173,15 +172,15 @@ public sealed class PdfConversionScenarioManifestTests {
             activeContent = activeContentResult.Summary,
             activeContentPayloadPolicy = "Catalog, page, and annotation actions are counted as inert diagnostics; action payloads are not emitted into review HTML.",
             xfaForm = xfaResult.Summary,
-            xfaWarningCodes = xfaResult.ConversionReport.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray()
+            xfaWarningCodes = xfaResult.Report.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray()
         };
 
         WriteReviewArtifact("pdf-to-html-logical-source.pdf", pdf);
         WriteReviewArtifact("pdf-to-html-positioned-review.html", Encoding.UTF8.GetBytes(html));
         WriteReviewArtifact("pdf-to-html-active-content-source.pdf", activeContentPdf);
-        WriteReviewArtifact("pdf-to-html-active-content-positioned-review.html", Encoding.UTF8.GetBytes(activeContentResult.Html));
+        WriteReviewArtifact("pdf-to-html-active-content-positioned-review.html", Encoding.UTF8.GetBytes(activeContentResult.Value));
         WriteReviewArtifact("pdf-to-html-xfa-form-source.pdf", xfaPdf);
-        WriteReviewArtifact("pdf-to-html-xfa-form-positioned-review.html", Encoding.UTF8.GetBytes(xfaResult.Html));
+        WriteReviewArtifact("pdf-to-html-xfa-form-positioned-review.html", Encoding.UTF8.GetBytes(xfaResult.Value));
         WriteReviewArtifact("pdf-to-html-positioned-review-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
     }
 
@@ -238,7 +237,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void MarkdownInvoiceStatement_ProducesManifestedReviewProof() {
         byte[] pdf = CreateInvoiceStatementMarkdown().ToPdfFromMarkdown(new MarkdownPdfSaveOptions {
-            ApplyWordLikeTheme = true,
+            ApplyDefaultTheme = true,
             Title = "OfficeIMO invoice statement proof",
             Subject = "Invoice and statement conversion proof"
         });
@@ -765,7 +764,6 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1D, scoreProfile.Confidence, 3);
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", html, StringComparison.Ordinal);
         Assert.Contains("Revenue Readback Diagnostics", html, StringComparison.Ordinal);
-        Assert.False(options.ConversionReport.HasWarnings);
         Assert.NotNull(readerChunk.Tables);
         ReaderTable readerTable = Assert.Single(readerChunk.Tables!);
         Assert.NotNull(readerTable.Diagnostics);
@@ -1109,13 +1107,13 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(2, htmlResult.Summary.LaunchActionCount);
         Assert.Equal(1, htmlResult.Summary.SubmitFormActionCount);
         Assert.Equal(2, htmlResult.Summary.ImportDataActionCount);
-        Assert.Contains("Hostile Action Corpus", htmlResult.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain("app.alert", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("tool.exe", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("https://example.com/submit", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("payload.fdf", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("name-tree-data.fdf", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("preview.mov", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("Hostile Action Corpus", htmlResult.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain("app.alert", htmlResult.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", htmlResult.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.com/submit", htmlResult.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("payload.fdf", htmlResult.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("name-tree-data.fdf", htmlResult.Value, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("preview.mov", htmlResult.Value, StringComparison.OrdinalIgnoreCase);
 
         var summary = new {
             scenario = "pdf-reader-hostile-action-corpus",
@@ -1158,7 +1156,7 @@ public sealed class PdfConversionScenarioManifestTests {
         };
 
         WriteReviewArtifact("pdf-reader-hostile-action-corpus.pdf", pdf);
-        WriteReviewArtifact("pdf-reader-hostile-action-positioned-review.html", Encoding.UTF8.GetBytes(htmlResult.Html));
+        WriteReviewArtifact("pdf-reader-hostile-action-positioned-review.html", Encoding.UTF8.GetBytes(htmlResult.Value));
         WriteReviewArtifact("pdf-reader-hostile-action-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions {
             WriteIndented = true
         }));
@@ -1613,7 +1611,7 @@ public sealed class PdfConversionScenarioManifestTests {
                     : null)
         };
 
-        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
@@ -1621,7 +1619,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.True(policy.HasResourceResolver);
         Assert.Equal(8192, policy.MaxResourceBytes);
         Assert.Equal(16384, policy.MaxTotalResourceBytes);
-        Assert.Contains(result.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
         Assert.Contains("HTML CSS Resource Policy Gate", text, StringComparison.Ordinal);
         Assert.Contains("Local stylesheet marker", text, StringComparison.Ordinal);
         Assert.Contains("Blocked remote stylesheet marker", text, StringComparison.Ordinal);
@@ -1631,7 +1629,7 @@ public sealed class PdfConversionScenarioManifestTests {
             scenario = "html-css-resource-policy",
             renderer = "direct-html",
             policy,
-            diagnostics = result.ConversionReport.Warnings
+            diagnostics = result.Report.Warnings
         };
 
         WriteReviewArtifact("html-css-resource-policy.pdf", pdf);
@@ -1648,14 +1646,14 @@ public sealed class PdfConversionScenarioManifestTests {
                     : null)
         };
 
-        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfDocumentResult(options);
         PdfCore.PdfDocumentConversionResult processed = result.Process(document => document.AppendMetadataRevision(title: "Processed HTML PDF"));
 
         Assert.True(result.HasWarnings);
         Assert.True(processed.HasWarnings);
-        Assert.Equal("Processed HTML PDF", processed.Document.Inspect().Metadata.Title);
+        Assert.Equal("Processed HTML PDF", processed.Value.Inspect().Metadata.Title);
         Assert.Contains(result.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
-        Assert.Contains("HTML CSS Resource Policy Gate", result.Document.Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("HTML CSS Resource Policy Gate", result.Value.Read.Text(), StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile && image.MimeType == "image/png");
     }
 
@@ -1725,7 +1723,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void HtmlPdfRoundTripProfiles_ProduceManifestedReviewProof() {
         const string linkUri = "https://example.com/html-pdf-roundtrip";
         var htmlOptions = new HtmlPdfSaveOptions();
-        PdfCore.PdfDocumentConversionResult htmlResult = CreatePracticalHtmlSample(linkUri).ToPdfResult(htmlOptions);
+        PdfCore.PdfDocumentConversionResult htmlResult = CreatePracticalHtmlSample(linkUri).ToPdfDocumentResult(htmlOptions);
         byte[] pdf = htmlResult.ToBytes();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
@@ -1753,12 +1751,12 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains(logical.TextBlocks, block => block.Text.Contains("Practical HTML", StringComparison.Ordinal));
         Assert.Contains(logical.GetLinksByUri(linkUri), link => link.Contents == "Report link");
         Assert.Contains(logical.Images, image => image.PlacementCount > 0);
-        Assert.Contains("Practical HTML", semantic.Html, StringComparison.Ordinal);
-        Assert.Contains("Report link", semantic.Html, StringComparison.Ordinal);
-        Assert.Contains("rel=\"noopener noreferrer\"", semantic.Html, StringComparison.Ordinal);
-        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", positioned.Html, StringComparison.Ordinal);
-        Assert.Contains("class=\"pdf-image-placeholder\"", positioned.Html, StringComparison.Ordinal);
-        Assert.Contains("rel=\"noopener noreferrer\"", positioned.Html, StringComparison.Ordinal);
+        Assert.Contains("Practical HTML", semantic.Value, StringComparison.Ordinal);
+        Assert.Contains("Report link", semantic.Value, StringComparison.Ordinal);
+        Assert.Contains("rel=\"noopener noreferrer\"", semantic.Value, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", positioned.Value, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-image-placeholder\"", positioned.Value, StringComparison.Ordinal);
+        Assert.Contains("rel=\"noopener noreferrer\"", positioned.Value, StringComparison.Ordinal);
         Assert.Equal(PdfHtmlProfile.Semantic, semantic.Summary.Profile);
         Assert.Equal(PdfHtmlProfile.PositionedReview, positioned.Summary.Profile);
         Assert.True(semantic.Summary.RenderedPageCount >= 2);
@@ -1776,15 +1774,15 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(0, positioned.Summary.RenderedUnsafeUriLinkCount);
         Assert.Equal(0, semantic.Summary.SkippedLinkCount);
         Assert.Equal(0, positioned.Summary.SkippedLinkCount);
-        Assert.False(semantic.ConversionReport.HasWarnings);
-        Assert.False(positioned.ConversionReport.HasWarnings);
+        Assert.False(semantic.Report.HasWarnings);
+        Assert.False(positioned.Report.HasWarnings);
 
         var summary = new {
             scenario = "html-pdf-roundtrip-profile-contract",
             htmlToPdfRenderer = "direct-html",
             pdfToSemanticProfile = PdfHtmlProfileContracts.Get(PdfHtmlProfile.Semantic),
             pdfToPositionedProfile = PdfHtmlProfileContracts.Get(PdfHtmlProfile.PositionedReview),
-            htmlToPdfWarnings = htmlResult.ConversionReport.Warnings.Select(warning => new {
+            htmlToPdfWarnings = htmlResult.Report.Warnings.Select(warning => new {
                 warning.Converter,
                 warning.Code,
                 warning.Source,
@@ -1797,8 +1795,8 @@ public sealed class PdfConversionScenarioManifestTests {
         };
 
         WriteReviewArtifact("html-pdf-roundtrip-source.pdf", pdf);
-        WriteReviewArtifact("html-pdf-roundtrip-semantic.html", Encoding.UTF8.GetBytes(semantic.Html));
-        WriteReviewArtifact("html-pdf-roundtrip-positioned.html", Encoding.UTF8.GetBytes(positioned.Html));
+        WriteReviewArtifact("html-pdf-roundtrip-semantic.html", Encoding.UTF8.GetBytes(semantic.Value));
+        WriteReviewArtifact("html-pdf-roundtrip-positioned.html", Encoding.UTF8.GetBytes(positioned.Value));
         WriteReviewArtifact("html-pdf-roundtrip-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions {
             WriteIndented = true
         }));
@@ -1815,16 +1813,16 @@ public sealed class PdfConversionScenarioManifestTests {
 
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
 
-        Assert.Contains("class=\"pdf-link\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", result.Html, StringComparison.Ordinal);
-        Assert.DoesNotContain(" href=\"javascript:alert(1)\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-link\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", result.Value, StringComparison.Ordinal);
+        Assert.DoesNotContain(" href=\"javascript:alert(1)\"", result.Value, StringComparison.Ordinal);
         Assert.Equal(1, result.Summary.LinkCount);
         Assert.Equal(1, result.Summary.RenderedLinkCount);
         Assert.Equal(0, result.Summary.RenderedSafeUriLinkCount);
         Assert.Equal(1, result.Summary.RenderedUnsafeUriLinkCount);
         Assert.Equal(0, result.Summary.RenderedInternalDestinationLinkCount);
         Assert.Equal(0, result.Summary.SkippedLinkCount);
-        Assert.False(result.ConversionReport.HasWarnings);
+        Assert.False(result.Report.HasWarnings);
     }
 
     [Fact]
@@ -1839,20 +1837,20 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
 
         Assert.Contains(logical.GetLinksByDestinationPageNumber(2), link => link.Contents == "Jump to page two");
-        Assert.Contains("data-destination-page-number=\"2\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-destination-mode=\"FitRectangle\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-destination-left=\"10\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-destination-bottom=\"20\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-destination-right=\"90\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains("data-destination-top=\"144\"", result.Html, StringComparison.Ordinal);
-        Assert.Contains(">Jump to page two</a>", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-destination-page-number=\"2\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-destination-mode=\"FitRectangle\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-destination-left=\"10\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-destination-bottom=\"20\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-destination-right=\"90\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains("data-destination-top=\"144\"", result.Value, StringComparison.Ordinal);
+        Assert.Contains(">Jump to page two</a>", result.Value, StringComparison.Ordinal);
         Assert.Equal(1, result.Summary.LinkCount);
         Assert.Equal(1, result.Summary.RenderedLinkCount);
         Assert.Equal(0, result.Summary.RenderedSafeUriLinkCount);
         Assert.Equal(0, result.Summary.RenderedUnsafeUriLinkCount);
         Assert.Equal(1, result.Summary.RenderedInternalDestinationLinkCount);
         Assert.Equal(0, result.Summary.SkippedLinkCount);
-        Assert.False(result.ConversionReport.HasWarnings);
+        Assert.False(result.Report.HasWarnings);
     }
 
     [Fact]
@@ -1863,7 +1861,7 @@ public sealed class PdfConversionScenarioManifestTests {
         };
 
         using var wordStream = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> wordResults = PdfWordTableConverterExtensions.SavePdfTablesAsWord(
+        IReadOnlyList<PdfWordTableImportResult> wordResults = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
             pdf,
             wordStream,
             new PdfWordTableImportOptions {
@@ -1873,10 +1871,13 @@ public sealed class PdfConversionScenarioManifestTests {
         var semanticWordOptions = new PdfWordReadOptions {
             LayoutOptions = layoutOptions
         };
-        pdf.SavePdfAsWord(semanticWordStream, semanticWordOptions);
+        PdfWordConversionResult semanticWordResult = pdf.ToWordDocumentFromPdfResult(semanticWordOptions);
+        using (OfficeIMO.Word.WordDocument semanticWordDocument = semanticWordResult.Value) {
+            semanticWordDocument.Save(semanticWordStream);
+        }
 
         using var excelStream = new MemoryStream();
-        IReadOnlyList<PdfExcelTableImportResult> excelResults = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+        IReadOnlyList<PdfExcelTableImportResult> excelResults = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
             pdf,
             excelStream,
             new PdfExcelTableImportOptions {
@@ -1885,7 +1886,7 @@ public sealed class PdfConversionScenarioManifestTests {
             });
 
         using var powerPointStream = new MemoryStream();
-        IReadOnlyList<PdfPowerPointTableImportResult> powerPointResults = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+        IReadOnlyList<PdfPowerPointTableImportResult> powerPointResults = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
             pdf,
             powerPointStream,
             new PdfPowerPointTableImportOptions {
@@ -1915,15 +1916,15 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.Contains(body.Descendants<BookmarkStart>(), bookmark => bookmark.Name?.Value == anchor);
         }
 
-        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
-        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
-        Assert.DoesNotContain(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
+        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(semanticWordResult.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
+        Assert.DoesNotContain(semanticWordResult.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
 
         var summary = new {
             scenario = "pdf-table-import-editable-office",
-            semanticWordWarningCodes = semanticWordOptions.ConversionReport.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray(),
+            semanticWordWarningCodes = semanticWordResult.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray(),
             tableWord = wordResult,
             excel = excelResult,
             powerPoint = powerPointResult
@@ -2200,9 +2201,9 @@ public sealed class PdfConversionScenarioManifestTests {
             sheet.SetHeaderFooter(headerCenter: "Excel Dashboard PDF Gate", footerRight: "Page &P of &N");
             sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 1U);
             document.SetPrintArea(sheet, "A1:H14", save: false);
-            document.Save(false);
+            document.Save();
 
-            return document.SaveAsPdf(new ExcelPdfSaveOptions {
+            return document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 3,
                 PageSize = new PdfCore.PageSize(560, 360),
@@ -2246,8 +2247,9 @@ public sealed class PdfConversionScenarioManifestTests {
         slide.SlidePart.Slide.Save();
 
         var options = new PowerPointPdfSaveOptions();
-        byte[] pdf = presentation.ToPdf(options);
-        Assert.Empty(options.Warnings);
+        PdfCore.PdfDocumentConversionResult result = presentation.ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
+        Assert.False(result.HasWarnings);
         Assert.Equal("1D4ED8", presentation.GetThemeColor(PowerPointThemeColor.Accent1));
         return pdf;
     }

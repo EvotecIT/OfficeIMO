@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                     .Paragraph(p => p.Text("Heading").Style(WordParagraphStyles.Heading1))
                     .Paragraph(p => p.Text("Custom style").Style(customStyleId))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                     .Paragraph(p => p.Text("Line1").Break().Text("Line2"))
                     .Paragraph(p => p.Align(HorizontalAlignment.Right).Text("Aligned"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Paragraph(p => p.Text("Justified").Justify())
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -97,9 +97,9 @@ namespace OfficeIMO.Tests {
 
                 var paragraph = document.Paragraphs[0];
                 Assert.Equal(BorderValues.Thick, paragraph.Borders.LeftStyle);
-                Assert.Equal(Color.Blue.ToHexColor(), paragraph.Borders.LeftColor!.Value.ToHexColor());
+                Assert.Equal(Color.Blue.ToRgbHex(), paragraph.Borders.LeftColor!.Value.ToRgbHex());
                 Assert.Equal(24U, paragraph.Borders.LeftSize!.Value);
-                Assert.Equal(Color.LightGray.ToHexColor(), paragraph.ShadingFillColorHex);
+                Assert.Equal(Color.LightGray.ToRgbHex(), paragraph.ShadingFillColorHex);
             }
         }
     }

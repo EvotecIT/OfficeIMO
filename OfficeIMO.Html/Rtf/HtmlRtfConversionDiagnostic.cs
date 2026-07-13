@@ -32,12 +32,22 @@ public sealed class HtmlRtfConversionDiagnostic {
     /// <param name="severity">Diagnostic severity.</param>
     /// <param name="source">Optional HTML/resource source associated with the diagnostic.</param>
     /// <param name="detail">Optional low-level detail, such as an exception type or status text.</param>
-    public HtmlRtfConversionDiagnostic(string code, string message, HtmlRtfConversionDiagnosticSeverity severity = HtmlRtfConversionDiagnosticSeverity.Warning, string? source = null, string? detail = null) {
+    /// <param name="action">Explicit fidelity action taken for the affected content.</param>
+    public HtmlRtfConversionDiagnostic(
+        string code,
+        string message,
+        HtmlRtfConversionDiagnosticSeverity severity = HtmlRtfConversionDiagnosticSeverity.Warning,
+        string? source = null,
+        string? detail = null,
+        RtfConversionAction? action = null) {
         Code = code ?? throw new ArgumentNullException(nameof(code));
         Message = message ?? throw new ArgumentNullException(nameof(message));
         Severity = severity;
         Source = source;
         Detail = detail;
+        Action = action ?? (severity == HtmlRtfConversionDiagnosticSeverity.Info
+            ? RtfConversionAction.Preserved
+            : RtfConversionAction.Omitted);
     }
 
     /// <summary>
@@ -64,4 +74,7 @@ public sealed class HtmlRtfConversionDiagnostic {
     /// Optional low-level detail, such as an exception type or status text.
     /// </summary>
     public string? Detail { get; }
+
+    /// <summary>Explicit fidelity action taken for the affected content.</summary>
+    public RtfConversionAction Action { get; }
 }

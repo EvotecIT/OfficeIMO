@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
                     new Paragraph(new Run(new Text("{{#each Tasks}}"))),
                     new Paragraph(new Run(new Text("Task ")), CreatePreflightMergeField("TaskName")),
                     new Paragraph(new Run(new Text("{{/each Tasks}}"))));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                 footer.AddParagraph("Signer: ")
                     .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"SignerName\"" });
                 footer.AddParagraph("{{/each Signers}}");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
                                 Id = 2
                             });
                 footnotesPart.Footnotes.Save();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
                     Instruction = " NEXTIF \"Status\" = \"Active\" "
                 });
                 document._document.Body!.Append(CreatePreflightComplexFieldParagraph(" SKIPIF \"Region\" <> \"EU\" ", "stale-skip"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

@@ -52,9 +52,6 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         return This;
     }
 
-    /// <summary>Sets the output scale using a compact fluent alias.</summary>
-    public TBuilder AtScale(double scale) => WithScale(scale);
-
     /// <summary>Sets the export background color.</summary>
     public TBuilder WithBackground(OfficeColor color) {
         Options.BackgroundColor = color;
@@ -64,24 +61,6 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
     /// <summary>Sets the export background from a named color or hexadecimal color value.</summary>
     public TBuilder WithBackground(string color) => WithBackground(OfficeColor.Parse(color));
 
-    /// <summary>Sets the export background color using a compact fluent alias.</summary>
-    public TBuilder OnBackground(OfficeColor color) => WithBackground(color);
-
-    /// <summary>Sets the export background from a named color or hexadecimal color value using a compact fluent alias.</summary>
-    public TBuilder OnBackground(string color) => WithBackground(color);
-
-    /// <summary>Uses an opaque white export background.</summary>
-    public TBuilder OnWhiteBackground() => WithBackground(OfficeColor.White);
-
-    /// <summary>Uses an opaque white export background.</summary>
-    public TBuilder WhiteBackground() => OnWhiteBackground();
-
-    /// <summary>Uses a transparent export background when the selected format supports transparency.</summary>
-    public TBuilder OnTransparentBackground() => WithBackground(OfficeColor.Transparent);
-
-    /// <summary>Uses a transparent export background when the selected format supports transparency.</summary>
-    public TBuilder TransparentBackground() => OnTransparentBackground();
-
     /// <summary>Configures a standard preview profile: PNG, 1x scale, white background.</summary>
     public TBuilder ForPreview() {
         _format = OfficeImageExportFormat.Png;
@@ -89,9 +68,6 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         Options.BackgroundColor = OfficeColor.White;
         return This;
     }
-
-    /// <summary>Configures a standard preview profile: PNG, 1x scale, white background.</summary>
-    public TBuilder Preview() => ForPreview();
 
     /// <summary>Configures a high-resolution profile: PNG, 2x scale, white background.</summary>
     public TBuilder ForHighResolution() {
@@ -101,23 +77,8 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
         return This;
     }
 
-    /// <summary>Configures a high-resolution profile: PNG, 2x scale, white background.</summary>
-    public TBuilder HighResolution() => ForHighResolution();
-
     /// <summary>Exports all selected images using the currently configured format and options.</summary>
     public IReadOnlyList<OfficeImageExportResult> Export() => _export(_format, Options);
-
-    /// <summary>Exports selected images as PNG using the currently configured options.</summary>
-    public IReadOnlyList<OfficeImageExportResult> ExportPng() {
-        _format = OfficeImageExportFormat.Png;
-        return Export();
-    }
-
-    /// <summary>Exports selected images as SVG using the currently configured options.</summary>
-    public IReadOnlyList<OfficeImageExportResult> ExportSvg() {
-        _format = OfficeImageExportFormat.Svg;
-        return Export();
-    }
 
     /// <summary>Saves all selected images to a folder.</summary>
     public IReadOnlyList<OfficeImageExportResult> Save(string folderPath) {
@@ -141,27 +102,6 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
 
         return results;
     }
-
-    /// <summary>Saves all selected images to a folder.</summary>
-    public IReadOnlyList<OfficeImageExportResult> SaveTo(string folderPath) => Save(folderPath);
-
-    /// <summary>Saves selected images as PNG files to a folder.</summary>
-    public IReadOnlyList<OfficeImageExportResult> SaveAsPng(string folderPath) {
-        _format = OfficeImageExportFormat.Png;
-        return Save(folderPath);
-    }
-
-    /// <summary>Saves selected images as PNG files to a folder.</summary>
-    public IReadOnlyList<OfficeImageExportResult> SavePng(string folderPath) => SaveAsPng(folderPath);
-
-    /// <summary>Saves selected images as SVG files to a folder.</summary>
-    public IReadOnlyList<OfficeImageExportResult> SaveAsSvg(string folderPath) {
-        _format = OfficeImageExportFormat.Svg;
-        return Save(folderPath);
-    }
-
-    /// <summary>Saves selected images as SVG files to a folder.</summary>
-    public IReadOnlyList<OfficeImageExportResult> SaveSvg(string folderPath) => SaveAsSvg(folderPath);
 
     private static string SanitizeFileName(string name) {
         char[] invalid = Path.GetInvalidFileNameChars();

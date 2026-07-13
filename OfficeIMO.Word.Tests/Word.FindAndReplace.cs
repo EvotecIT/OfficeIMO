@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
                 var replacedCount3 = document.FindAndReplace("even longer", "not longer");
                 Assert.True(replacedCount3 == 4);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentSearchFunctionality.docx"))) {
 
@@ -84,13 +84,13 @@ namespace OfficeIMO.Tests {
                 var replacedCount = document.FindAndReplace("Prod Section", "Production Section");
                 Assert.True(replacedCount == 6);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentSearchFunctionality.docx"))) {
 
 
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, result.Found);
                 Assert.Equal(2, result.Paragraphs.Count);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -136,7 +136,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(run.Break);
                 Assert.True(paragraph.Bold);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

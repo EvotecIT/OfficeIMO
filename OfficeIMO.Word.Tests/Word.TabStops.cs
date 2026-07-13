@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Sections[0].Paragraphs[0].TabStops.Count == 2);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTabStops.docx"))) {
                 Assert.True(document.Settings.DefaultTabStop == 2880);

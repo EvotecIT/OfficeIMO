@@ -15,7 +15,7 @@ namespace OfficeIMO.Word.Pdf {
             WordSection? firstSection = document.Sections.FirstOrDefault();
             PdfCore.PdfOptions pdfOptions = options?.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
             if (options != null) {
-                pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.Word.Pdf");
+                pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Word.Pdf");
             }
 
             NativeDocumentDefaults defaults = GetNativeDocumentDefaults(document);

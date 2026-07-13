@@ -1,9 +1,9 @@
-# OfficeIMO.Drawing - shared drawing primitives
+# OfficeIMO.Drawing - shared document and drawing primitives
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Drawing)](https://www.nuget.org/packages/OfficeIMO.Drawing)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Drawing?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Drawing)
 
-`OfficeIMO.Drawing` is the shared first-party drawing and imaging layer for OfficeIMO packages. It provides color, image metadata, font, text measurement, vector shape, chart snapshot, SVG, raster canvas, PNG read/write, and drawing-quality primitives without taking a dependency on a raster imaging library.
+`OfficeIMO.Drawing` is the zero-dependency shared foundation for OfficeIMO packages. It owns the common document lifecycle contracts as well as color, image metadata, font, text measurement, vector shape, chart snapshot, SVG, raster canvas, PNG read/write, and drawing-quality primitives. Format packages keep their document-specific behavior while reusing one lifecycle and persistence vocabulary.
 
 ## Install
 
@@ -12,6 +12,19 @@ dotnet add package OfficeIMO.Drawing
 ```
 
 ## Quick start
+
+### Document lifecycle policy
+
+```csharp
+using OfficeIMO.Drawing;
+
+var loadOptions = new DocumentLoadOptions {
+    AccessMode = DocumentAccessMode.ReadOnly,
+    PersistenceMode = DocumentPersistenceMode.Explicit
+};
+```
+
+Word, Excel, and PowerPoint expose format-specific options derived from these shared contracts.
 
 ### Colors and vector intent
 
@@ -124,6 +137,7 @@ if (font != null) {
 
 ## What it provides
 
+- `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions` for one lifecycle vocabulary across document packages.
 - `OfficeColor` immutable RGBA values with named colors and hex parsing.
 - `OfficeImageReader` and `OfficeImageInfo` for dependency-free image inspection where supported.
 - `OfficeImageFit` for shared stretch, contain, and cover intent.
@@ -138,7 +152,7 @@ if (font != null) {
 
 ## Boundaries
 
-- This package owns reusable drawing intent, raster buffers, SVG/PNG primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.
+- This package owns shared lifecycle contracts, persistence mechanics, drawing intent, raster buffers, SVG/PNG primitives, image projection, text layout helpers, chart drawing, and document-agnostic visual diagnostics.
 - Word, Excel, PowerPoint, Visio, and PDF packages own source-document semantics: package parsing, layout policy, coordinate systems, style/theme resolution, and user-facing export APIs.
 - Document packages should not add private pixel engines, PNG encoders/decoders, SVG primitive writers, text wrapping engines, or duplicate image-transform loops when the behavior can reasonably live here.
 - PDF keeps PDF-stream and page-writer behavior in `OfficeIMO.Pdf`; when it needs generic image-like drawing, vector descriptors, colors, chart snapshots, PNG helpers, or raster visual QA, it should use `OfficeIMO.Drawing`.

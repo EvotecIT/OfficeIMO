@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -15,16 +16,13 @@ using System.IO;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
-        /// <summary>
-        /// Opens the document with the associated application.
-        /// </summary>
-        /// <param name="filePath">Optional path to open.</param>
-        /// <param name="openExcel">Whether to launch Excel.</param>
-        public void Open(string filePath = "", bool openExcel = true) {
-            if (filePath == "") {
-                filePath = this.FilePath;
+        /// <summary>Opens the associated workbook in the operating system's registered application.</summary>
+        public void OpenInApplication(string? filePath = null) {
+            string target = string.IsNullOrEmpty(filePath) ? FilePath : filePath!;
+            if (string.IsNullOrEmpty(target)) {
+                throw new InvalidOperationException("The workbook has no associated file path.");
             }
-            Helpers.Open(filePath, openExcel);
+            OfficeFileLauncher.Open(target);
         }
 
         /// <summary>
@@ -46,13 +44,6 @@ namespace OfficeIMO.Excel {
             CleanupStyleAndSharedStringArtifacts(save: true);
             CleanupCalculationArtifacts(save: true);
             CleanupDefinedNameArtifacts(includeAggressiveRepairs: false, save: true);
-        }
-
-        /// <summary>
-        /// Closes the underlying spreadsheet document.
-        /// </summary>
-        public void Close() {
-            Dispose();
         }
 
         private static void EnsureDirectoryWritable(string path) {
@@ -82,37 +73,29 @@ namespace OfficeIMO.Excel {
             }
         }
 
+        private void EnsureWritableForSave() {
+            if (_spreadSheetDocument.FileOpenAccess == FileAccess.Read) {
+                throw new InvalidOperationException("The workbook is read-only and cannot be saved.");
+            }
+        }
+
         /// <summary>
         /// Saves the document without opening it.
         /// </summary>
         /// <param name="filePath">Path to save to.</param>
         public void Save(string filePath) {
-            Save(filePath, openExcel: false);
+            SaveFileCore(filePath, options: null);
         }
 
         /// <summary>Saves the document with typed options and no positional Boolean.</summary>
         /// <param name="filePath">Path to save to.</param>
         /// <param name="options">Optional save settings, including <see cref="ExcelSaveOptions.OpenAfterSave"/>.</param>
         public void Save(string filePath, ExcelSaveOptions? options) {
-            Save(filePath, options?.OpenAfterSave == true, options);
+            SaveFileCore(filePath, options);
         }
 
-        /// <summary>
-        /// Saves the document and optionally opens it.
-        /// </summary>
-        /// <param name="filePath">Path to save to.</param>
-        /// <param name="openExcel">Whether to open the file after saving.</param>
-        public void Save(string filePath, bool openExcel) {
-            Save(filePath, openExcel, options: null);
-        }
-
-        /// <summary>
-        /// Saves the document with optional robustness options.
-        /// </summary>
-        /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
-        /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
-        /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
-        public void Save(string filePath, bool openExcel, ExcelSaveOptions? options) {
+        private void SaveFileCore(string filePath, ExcelSaveOptions? options) {
+            EnsureWritableForSave();
             if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath)) {
                 if (_sourceStream != null) {
                     Save(_sourceStream, options);
@@ -131,13 +114,13 @@ namespace OfficeIMO.Excel {
             EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
-            if (TrySaveNativeLegacyXlsToFile(path, openExcel, options)) {
+            if (TrySaveNativeLegacyXlsToFile(path, options?.OpenAfterSave == true, options)) {
                 return;
             }
 
             if (TrySaveDirectDataSetPackageToFile(path, options, CancellationToken.None, out _)) {
-                if (openExcel) {
-                    Helpers.Open(path, true);
+                if (options?.OpenAfterSave == true) {
+                    OfficeFileLauncher.Open(path);
                 }
 
                 return;
@@ -151,8 +134,8 @@ namespace OfficeIMO.Excel {
             string? extendedPackageSkipReason = null;
             if (preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
-                if (openExcel) {
-                    Helpers.Open(path, true);
+                if (options?.OpenAfterSave == true) {
+                    OfficeFileLauncher.Open(path);
                 }
 
                 return;
@@ -164,8 +147,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (TrySaveWithSimplePackageToFile(path, options, out string? fastPackageSkipReason, alreadyPrepared: true)) {
-                if (openExcel) {
-                    Helpers.Open(path, true);
+                if (options?.OpenAfterSave == true) {
+                    OfficeFileLauncher.Open(path);
                 }
 
                 return;
@@ -173,8 +156,8 @@ namespace OfficeIMO.Excel {
 
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
-                if (openExcel) {
-                    Helpers.Open(path, true);
+                if (options?.OpenAfterSave == true) {
+                    OfficeFileLauncher.Open(path);
                 }
 
                 return;
@@ -189,8 +172,8 @@ namespace OfficeIMO.Excel {
                 FilePath = path;
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
 
-                if (openExcel) {
-                    Helpers.Open(path, true);
+                if (options?.OpenAfterSave == true) {
+                    OfficeFileLauncher.Open(path);
                 }
             } catch {
                 TryRestoreDocumentState(payload);
@@ -204,10 +187,10 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
         /// <param name="password">Password used to encrypt the workbook package.</param>
-        /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
         /// <param name="saveOptions">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
-        public void SaveEncrypted(string filePath, string password, bool openExcel = false, ExcelSaveOptions? saveOptions = null) {
+        public void SaveEncrypted(string filePath, string password, ExcelSaveOptions? saveOptions = null) {
             if (password == null) throw new ArgumentNullException(nameof(password));
+            EnsureWritableForSave();
             if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath)) {
                 throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call SaveEncrypted(Stream, ...).");
             }
@@ -229,8 +212,8 @@ namespace OfficeIMO.Excel {
                 FilePath = path;
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Encrypted saves use the standard package finalization path.");
 
-                if (openExcel) {
-                    Helpers.Open(path, true);
+                if (saveOptions?.OpenAfterSave == true) {
+                    OfficeFileLauncher.Open(path);
                 }
             } catch {
                 TryRestoreDocumentState(payload);
@@ -240,42 +223,19 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Saves the document and writes an optional OpenXML validation report (sidecar file)
-        /// next to the saved .xlsx when issues are detected. Useful to diagnose any remaining
-        /// problems that could cause Excel's repair dialog.
-        /// </summary>
-        /// <param name="filePath">Destination path. Empty uses <see cref="FilePath"/>.</param>
-        /// <param name="openExcel">When true, launches the saved file.</param>
-        /// <param name="writeReportOnIssues">When true (default), writes <c>.xlsx.validation.txt</c> on issues.</param>
-        public void SafeSave(string filePath = "", bool openExcel = false, bool writeReportOnIssues = true) {
-            Save(filePath, openExcel);
-            try {
-                var errs = ValidateDocument();
-                if (errs.Count > 0 && writeReportOnIssues) {
-                    var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
-                    var reportPath = System.IO.Path.ChangeExtension(target, ".xlsx.validation.txt");
-                    var lines = new System.Collections.Generic.List<string>(errs.Count);
-                    foreach (var e in errs) {
-                        lines.Add($"{e.ErrorType}: {e.Description} at {e.Path?.XPath}");
-                    }
-                    System.IO.File.WriteAllLines(reportPath, lines);
-                }
-            } catch { }
-        }
-
-        /// <summary>
         /// Saves the document without opening it.
         /// </summary>
         public void Save() {
-            this.Save("", false);
+            Save(options: null);
         }
 
-        /// <summary>
-        /// Saves the document and optionally opens it.
-        /// </summary>
-        /// <param name="openExcel">Whether to open the file after saving.</param>
-        public void Save(bool openExcel) {
-            this.Save("", openExcel);
+        /// <summary>Saves to the associated destination with optional save settings.</summary>
+        public void Save(ExcelSaveOptions? options) {
+            if (string.IsNullOrEmpty(FilePath) && _sourceStream != null) {
+                Save(_sourceStream, options);
+            } else {
+                SaveFileCore(FilePath, options);
+            }
         }
 
         /// <summary>
@@ -291,21 +251,11 @@ namespace OfficeIMO.Excel {
         /// Asynchronously saves the document.
         /// </summary>
         /// <param name="filePath">Optional path to save to.</param>
-        /// <param name="openExcel">Whether to open Excel after saving.</param>
+        /// <param name="options">Optional save settings, including whether to open the saved file.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        public async Task SaveAsync(string filePath, bool openExcel, CancellationToken cancellationToken = default) {
-            await SaveAsync(filePath, openExcel, options: null, cancellationToken: cancellationToken).ConfigureAwait(false);
-        }
-
-        /// <summary>
-        /// Asynchronously saves the document with optional robustness options.
-        /// </summary>
-        /// <param name="filePath">Destination path. When empty, uses the original <see cref="FilePath"/>.</param>
-        /// <param name="openExcel">When true, opens the saved file in the system's associated app.</param>
-        /// <param name="options">Optional save behaviors (safe defined-name repair, post-save Open XML validation).</param>
-        /// <param name="cancellationToken">Cancels the asynchronous save work.</param>
-        public async Task SaveAsync(string filePath, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+        private async Task SaveFileAsyncCore(string filePath, ExcelSaveOptions? options, CancellationToken cancellationToken) {
+            EnsureWritableForSave();
             if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath)) {
                 if (_sourceStream != null) {
                     await SaveAsync(_sourceStream, options, cancellationToken).ConfigureAwait(false);
@@ -322,13 +272,13 @@ namespace OfficeIMO.Excel {
             EnsureDestinationFileWritable(target);
             EnsureDirectoryWritable(target);
 
-            if (await TrySaveNativeLegacyXlsToFileAsync(target, openExcel, options, cancellationToken).ConfigureAwait(false)) {
+            if (await TrySaveNativeLegacyXlsToFileAsync(target, options?.OpenAfterSave == true, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
 
             if (TrySaveDirectDataSetPackageToFile(target, options, cancellationToken, out _)) {
-                if (openExcel) {
-                    Open(target, true);
+                if (options?.OpenAfterSave == true) {
+                    OpenInApplication(target);
                 }
 
                 return;
@@ -343,8 +293,8 @@ namespace OfficeIMO.Excel {
             string? extendedPackageSkipReason = null;
             if (preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(target, options, out extendedPackageSkipReason, cancellationToken)) {
-                if (openExcel) {
-                    Open(target, true);
+                if (options?.OpenAfterSave == true) {
+                    OpenInApplication(target);
                 }
 
                 return;
@@ -356,8 +306,8 @@ namespace OfficeIMO.Excel {
             }
 
             if (TrySaveWithSimplePackageToFile(target, options, out string? fastPackageSkipReason, cancellationToken, alreadyPrepared: true)) {
-                if (openExcel) {
-                    Open(target, true);
+                if (options?.OpenAfterSave == true) {
+                    OpenInApplication(target);
                 }
 
                 return;
@@ -365,8 +315,8 @@ namespace OfficeIMO.Excel {
 
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(target, options, out extendedPackageSkipReason, cancellationToken)) {
-                if (openExcel) {
-                    Open(target, true);
+                if (options?.OpenAfterSave == true) {
+                    OpenInApplication(target);
                 }
 
                 return;
@@ -381,8 +331,8 @@ namespace OfficeIMO.Excel {
                 FilePath = target;
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
 
-                if (openExcel) {
-                    Open(target, true);
+                if (options?.OpenAfterSave == true) {
+                    OpenInApplication(target);
                 }
             } catch {
                 TryRestoreDocumentState(payload);
@@ -391,35 +341,16 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        /// <summary>Encodes the workbook as an XLSX package.</summary>
-        /// <param name="options">Optional save settings.</param>
-        /// <returns>XLSX package bytes.</returns>
-        public byte[] ToXlsx(ExcelSaveOptions? options = null) {
+        /// <summary>Encodes the workbook in the selected physical format.</summary>
+        public byte[] ToBytes(ExcelFileFormat format = ExcelFileFormat.Xlsx, ExcelSaveOptions? options = null) {
             using var stream = new MemoryStream();
-            Save(stream, ExcelFileFormat.Xlsx, options);
+            Save(stream, format, options);
             return stream.ToArray();
         }
 
-        /// <summary>Encodes the workbook as an XLS compound file.</summary>
-        /// <param name="options">Optional save settings.</param>
-        /// <returns>XLS compound-file bytes.</returns>
-        public byte[] ToXls(ExcelSaveOptions? options = null) {
-            using var stream = new MemoryStream();
-            Save(stream, ExcelFileFormat.Xls, options);
-            return stream.ToArray();
-        }
-
-        /// <summary>Encodes the workbook as XLSX in a new memory stream.</summary>
-        /// <param name="options">Optional save settings.</param>
-        public MemoryStream ToXlsxStream(ExcelSaveOptions? options = null) {
-            return new MemoryStream(ToXlsx(options));
-        }
-
-        /// <summary>Encodes the workbook as XLS in a new memory stream.</summary>
-        /// <param name="options">Optional save settings.</param>
-        public MemoryStream ToXlsStream(ExcelSaveOptions? options = null) {
-            return new MemoryStream(ToXls(options));
-        }
+        /// <summary>Encodes the workbook in a new writable memory stream positioned at the beginning.</summary>
+        public MemoryStream ToStream(ExcelFileFormat format = ExcelFileFormat.Xlsx, ExcelSaveOptions? options = null) =>
+            new MemoryStream(ToBytes(format, options));
 
         /// <summary>
         /// Saves the document into a writable stream as XLSX.
@@ -439,13 +370,21 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>Saves the workbook to a stream in the explicitly selected physical format.</summary>
-        /// <param name="destination">Writable destination stream.</param>
+        /// <param name="destination">Writable destination stream. This one-time save does not change the associated destination.</param>
         /// <param name="format">Physical XLSX or XLS format.</param>
         /// <param name="options">Optional save settings.</param>
         public void Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
+
+            if (!destination.CanSeek) {
+                using var buffer = new MemoryStream();
+                Save(buffer, format, options);
+                OfficeStreamWriter.WriteAllBytes(destination, buffer.ToArray());
+                return;
+            }
 
             if (TrySaveNativeLegacyXlsToStream(destination, format, options)) {
                 return;
@@ -514,6 +453,7 @@ namespace OfficeIMO.Excel {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (password == null) throw new ArgumentNullException(nameof(password));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
 
             if (CanUseUnchangedPackageFastPath(saveOptions) && _unchangedPackageBytes != null) {
@@ -561,7 +501,15 @@ namespace OfficeIMO.Excel {
         public async Task SaveAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null, CancellationToken cancellationToken = default) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
+
+            if (!destination.CanSeek) {
+                using var buffer = new MemoryStream();
+                await SaveAsync(buffer, format, options, cancellationToken).ConfigureAwait(false);
+                await OfficeStreamWriter.WriteAllBytesAsync(destination, buffer.ToArray(), cancellationToken).ConfigureAwait(false);
+                return;
+            }
 
             if (await TrySaveNativeLegacyXlsToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;
@@ -626,17 +574,20 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="cancellationToken">Cancellation token.</param>
         public Task SaveAsync(CancellationToken cancellationToken = default) {
-            return SaveAsync("", false, cancellationToken);
+            return SaveAsync(options: null, cancellationToken);
         }
 
+        /// <summary>Asynchronously saves to the associated destination with optional save settings.</summary>
+        public Task SaveAsync(ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+            if (string.IsNullOrEmpty(FilePath) && _sourceStream != null) {
+                return SaveAsync(_sourceStream, options, cancellationToken);
+            }
+            return SaveFileAsyncCore(FilePath, options, cancellationToken);
+        }
 
-        /// <summary>
-        /// Asynchronously saves the document and optionally opens Excel.
-        /// </summary>
-        /// <param name="openExcel">Whether to open Excel after saving.</param>
-        /// <param name="cancellationToken">Cancellation token.</param>
-        public Task SaveAsync(bool openExcel, CancellationToken cancellationToken = default) {
-            return SaveAsync("", openExcel, cancellationToken);
+        /// <summary>Asynchronously saves to a path with optional save settings.</summary>
+        public Task SaveAsync(string filePath, ExcelSaveOptions? options = null, CancellationToken cancellationToken = default) {
+            return SaveFileAsyncCore(filePath, options, cancellationToken);
         }
     }
 }

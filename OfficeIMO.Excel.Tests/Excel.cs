@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Validation;
+using Xunit;
 
 namespace OfficeIMO.Tests {
     /// <summary>
@@ -32,6 +34,11 @@ namespace OfficeIMO.Tests {
                     $"ErrorType: {error.ErrorType}\n" +
                     $"Part: {error.Part?.Uri}\n" +
                     $"Path: {error.Path?.XPath}"));
+        }
+
+        internal static void AssertRoundTripNumericText(double expected, string? actual) {
+            Assert.NotNull(actual);
+            Assert.Equal(expected, double.Parse(actual!, NumberStyles.Float, CultureInfo.InvariantCulture));
         }
     }
 }

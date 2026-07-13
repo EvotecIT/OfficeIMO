@@ -532,7 +532,7 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                byte[] bytes = image.GetBytes();
+                byte[] bytes = image.ToBytes();
                 string source = GetImageDiagnosticSource(sheet, image);
                 if (bytes.Length == 0) {
                     diagnostics.Add(new OfficeImageExportDiagnostic(OfficeImageExportDiagnosticSeverity.Warning, ExcelImageExportDiagnosticCodes.ImageBytesMissing, "Worksheet image bytes could not be read.", source));

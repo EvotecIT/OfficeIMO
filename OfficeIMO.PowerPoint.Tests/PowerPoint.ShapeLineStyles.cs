@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                     slidePart.Slide.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointShape line = presentation.Slides[0].GetShape("JoinedArrowLine")!;
                     line.SetLineEnds(null, A.LineEndValues.Triangle, A.LineEndWidthValues.Medium, A.LineEndLengthValues.Medium);
                     presentation.Save();

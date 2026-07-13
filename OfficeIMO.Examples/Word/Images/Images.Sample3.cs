@@ -76,7 +76,7 @@ namespace OfficeIMO.Examples.Word {
                     firstImage.Width = 200;
                 }
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

@@ -114,11 +114,15 @@
         "resolved": "4.6.2",
         "contentHash": "yQgmjfFximrNm9LIV3mL6T5MzjeC+epeE5rl4hXxAlYmxby7RM1dPSkIKXk9HNkl6G54h2JHOmLD46+Pey+IRg=="
       },
+      "officeimo.drawing": {
+        "type": "Project"
+      },
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
+          "OfficeIMO.Drawing": "[1.0.30, )",
           "OfficeIMO.Rtf": "[0.1.10, )"
         }
       },
@@ -141,7 +145,11 @@
         }
       },
       "officeimo.rtf": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[1.0.30, )",
+          "System.Text.Encoding.CodePages": "[8.0.0, )"
+        }
       }
     },
     "net10.0": {
@@ -158,11 +166,15 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
+      "officeimo.drawing": {
+        "type": "Project"
+      },
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
+          "OfficeIMO.Drawing": "[1.0.30, )",
           "OfficeIMO.Rtf": "[0.1.10, )"
         }
       },
@@ -184,7 +196,10 @@
         }
       },
       "officeimo.rtf": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[1.0.30, )"
+        }
       }
     },
     "net10.0-windows7.0": {
@@ -207,11 +222,15 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
+      "officeimo.drawing": {
+        "type": "Project"
+      },
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
+          "OfficeIMO.Drawing": "[1.0.30, )",
           "OfficeIMO.Rtf": "[0.1.10, )"
         }
       },
@@ -233,7 +252,10 @@
         }
       },
       "officeimo.rtf": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[1.0.30, )"
+        }
       }
     },
     "net8.0": {
@@ -250,11 +272,15 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
+      "officeimo.drawing": {
+        "type": "Project"
+      },
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
+          "OfficeIMO.Drawing": "[1.0.30, )",
           "OfficeIMO.Rtf": "[0.1.10, )"
         }
       },
@@ -276,7 +302,10 @@
         }
       },
       "officeimo.rtf": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[1.0.30, )"
+        }
       }
     },
     "net8.0-windows7.0": {
@@ -299,11 +328,15 @@
           "AngleSharp": "[1.0.0, 2.0.0)"
         }
       },
+      "officeimo.drawing": {
+        "type": "Project"
+      },
       "officeimo.html": {
         "type": "Project",
         "dependencies": {
           "AngleSharp": "[1.5.2, )",
           "AngleSharp.Css": "[1.0.0-beta.216, )",
+          "OfficeIMO.Drawing": "[1.0.30, )",
           "OfficeIMO.Rtf": "[0.1.10, )"
         }
       },
@@ -325,7 +358,10 @@
         }
       },
       "officeimo.rtf": {
-        "type": "Project"
+        "type": "Project",
+        "dependencies": {
+          "OfficeIMO.Drawing": "[1.0.30, )"
+        }
       }
     }
   }

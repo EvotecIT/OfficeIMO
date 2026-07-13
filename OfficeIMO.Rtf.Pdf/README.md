@@ -13,13 +13,14 @@ Supported import coverage includes PDF Info metadata, first-page paper size, log
 ```csharp
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Pdf;
+using OfficeIMO.Pdf;
 
 RtfDocument rtf = RtfDocument.Load("input.rtf").Document;
 var options = new RtfPdfSaveOptions();
-var result = rtf.ToPdfResult(options);
+PdfDocumentConversionResult result = rtf.ToPdfDocumentResult(options);
 
-options.RtfConversionReport.RequireNoLoss();
-File.WriteAllBytes("output.pdf", result.Document.ToBytes());
+result.Report.RequireNoErrorWarnings();
+result.Save("output.pdf");
 ```
 
 For raw RTF strings, bytes, or streams, use source-explicit APIs such as `ToPdfFromRtf()`, `ToPdfDocumentFromRtf()`, and `SaveAsPdfFromRtf()`. Typed `RtfDocument` instances use the standard `ToPdf()`, `ToPdfDocument()`, and destination-only `SaveAsPdf()` names.

@@ -477,9 +477,11 @@ namespace OfficeIMO.Tests {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
             };
 
-            using var roundTrip = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
 
-            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            using var roundTrip = conversion.Value;
+
+            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Intro", StringComparison.Ordinal));
         }
 
@@ -493,9 +495,11 @@ namespace OfficeIMO.Tests {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
             };
 
-            using var roundTrip = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
 
-            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            using var roundTrip = conversion.Value;
+
+            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Normal paragraph", StringComparison.Ordinal));
         }
 
@@ -804,15 +808,15 @@ namespace OfficeIMO.Tests {
             var table = doc.AddTable(1, 1);
             var cell = table.Rows[0].Cells[0];
             cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Right;
-            cell.ShadingFillColorHex = "ff0000";
+            cell.ShadingFillColorHex = "FF0000";
             cell.Borders.LeftStyle = BorderValues.Single;
             cell.Borders.RightStyle = BorderValues.Single;
             cell.Borders.TopStyle = BorderValues.Single;
             cell.Borders.BottomStyle = BorderValues.Single;
-            cell.Borders.LeftColorHex = "00ff00";
-            cell.Borders.RightColorHex = "00ff00";
-            cell.Borders.TopColorHex = "00ff00";
-            cell.Borders.BottomColorHex = "00ff00";
+            cell.Borders.LeftColorHex = "00FF00";
+            cell.Borders.RightColorHex = "00FF00";
+            cell.Borders.TopColorHex = "00FF00";
+            cell.Borders.BottomColorHex = "00FF00";
             cell.Borders.LeftSize = 8;
             cell.Borders.RightSize = 8;
             cell.Borders.TopSize = 8;
@@ -987,7 +991,7 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             var p = doc.AddParagraph();
             var run = p.AddText("Colored");
-            run.ColorHex = "ff0000";
+            run.ColorHex = "FF0000";
             run.Highlight = HighlightColorValues.Cyan;
 
             string html = doc.ToHtml(new WordToHtmlOptions {
@@ -1064,11 +1068,13 @@ namespace OfficeIMO.Tests {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
             };
 
-            using var roundTrip = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+
+            using var roundTrip = conversion.Value;
 
             Assert.Single(roundTrip.Sections);
             Assert.Contains(roundTrip.Paragraphs, paragraph => string.Equals(paragraph.Text, "Only section", StringComparison.Ordinal));
-            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -1090,7 +1096,9 @@ namespace OfficeIMO.Tests {
                 UnsupportedCssHandling = HtmlUnsupportedCssHandling.Error
             };
 
-            using var roundTrip = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+
+            using var roundTrip = conversion.Value;
 
             Assert.Equal(2, roundTrip.Sections.Count);
             var roundTripSecond = roundTrip.Sections[1];
@@ -1105,7 +1113,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(paragraph.IndentationAfter);
             Assert.Null(paragraph.LineSpacingBefore);
             Assert.Null(paragraph.LineSpacingAfter);
-            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code.StartsWith("UnsupportedCss", StringComparison.OrdinalIgnoreCase));
         }
     }
 }

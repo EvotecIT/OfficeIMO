@@ -14,10 +14,10 @@ namespace OfficeIMO.Excel {
             // Remove existing TOC sheet if present (recreate clean to avoid leftover elements)
             var existing = SheetNameLookup.FindByRequestedName(this.Sheets, sheetName);
             if (existing != null) {
-                RemoveWorkSheet(existing.Name);
+                RemoveWorksheet(existing.Name);
             }
 
-            var toc = this.AddWorkSheet(sheetName);
+            var toc = this.AddWorksheet(sheetName);
             string tocName = toc.Name;
             int r = 1;
             // Banner
@@ -93,11 +93,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Backward-compatible alias for AddTableOfContents.
-        /// </summary>
-        public void CreateTableOfContents(string sheetName = "TOC") => AddTableOfContents(sheetName, placeFirst: true, withHyperlinks: true);
-
-        /// <summary>
         /// Adds a small back link to the TOC on each worksheet at the given cell (default A2).
         /// </summary>
         public void AddBackLinksToToc(string tocSheetName = "TOC", int row = 2, int col = 1, string text = "← TOC") {
@@ -152,7 +147,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Removes a worksheet by name, deleting its part and entry in the workbook.
         /// </summary>
-        public void RemoveWorkSheet(string sheetName) {
+        public void RemoveWorksheet(string sheetName) {
             Locking.ExecuteWrite(EnsureLock(), () => {
                 var wb = WorkbookRoot;
                 var sheets = wb.Sheets;

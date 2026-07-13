@@ -812,7 +812,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreatePremiumBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Premium");
+            ExcelSheet sheet = document.AddWorksheet("Premium");
 
             sheet.CellValue(1, 1, "Operations Snapshot");
             sheet.Range("A1:H1").Merge();
@@ -896,7 +896,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateCommentBodyBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelCommentBodyBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("CommentBodies");
+            ExcelSheet sheet = document.AddWorksheet("CommentBodies");
 
             sheet.CellValue(1, 1, "Comment Body Fidelity");
             sheet.Range("A1:G1").Merge();
@@ -951,7 +951,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateRichTextBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRichTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("RichText");
+            ExcelSheet sheet = document.AddWorksheet("RichText");
 
             sheet.CellValue(1, 1, "Rich Text Fidelity");
             sheet.Range("A1:B1").Merge();
@@ -1026,7 +1026,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateStackedTextBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelStackedTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("StackedText");
+            ExcelSheet sheet = document.AddWorksheet("StackedText");
 
             sheet.CellValue(1, 1, "Stacked Text Fidelity");
             sheet.Range("A1:D1").Merge();
@@ -1104,7 +1104,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreatePatternFillBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelPatternFillBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Patterns");
+            ExcelSheet sheet = document.AddWorksheet("Patterns");
 
             sheet.CellValue(1, 1, "Pattern Fill Fidelity");
             sheet.Range("A1:D1").Merge();
@@ -1160,7 +1160,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateConditionalFormattingBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelConditionalBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Signals");
+            ExcelSheet sheet = document.AddWorksheet("Signals");
 
             sheet.CellValue(1, 1, "Conditional Signals");
             sheet.Range("A1:G1").Merge();
@@ -1232,7 +1232,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateExpandedIconSetBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelExpandedIconSetBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("IconSets");
+            ExcelSheet sheet = document.AddWorksheet("IconSets");
 
             sheet.CellValue(1, 1, "Expanded Icon Sets");
             sheet.Range("A1:G1").Merge();
@@ -1283,7 +1283,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateSparklineBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelSparklineBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Sparklines");
+            ExcelSheet sheet = document.AddWorksheet("Sparklines");
 
             sheet.CellValue(1, 1, "Metric");
             sheet.CellValue(1, 2, "Jan");
@@ -1341,7 +1341,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateImageClippingBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelImageClippingBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ImageClip");
+            ExcelSheet sheet = document.AddWorksheet("ImageClip");
 
             sheet.CellValue(1, 1, "Outside Anchor");
             sheet.CellValue(1, 2, "Selected Range");
@@ -1372,7 +1372,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateTwoCellImageBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelTwoCellImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("TwoCell");
+            ExcelSheet sheet = document.AddWorksheet("TwoCell");
 
             sheet.CellValue(1, 1, "Two-cell image anchor");
             sheet.Range("A1:F1").Merge();
@@ -1408,7 +1408,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateCroppedImageBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelCroppedImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Crop");
+            ExcelSheet sheet = document.AddWorksheet("Crop");
 
             sheet.CellValue(1, 1, "Cropped worksheet image");
             sheet.Range("A1:E1").Merge();
@@ -1443,7 +1443,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateRotatedImageBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelRotatedImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Rotate");
+            ExcelSheet sheet = document.AddWorksheet("Rotate");
 
             sheet.CellValue(1, 1, "Rotated worksheet image");
             sheet.Range("A1:E1").Merge();
@@ -1482,7 +1482,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateTransformedImageBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelTransformedImageBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Transform");
+            ExcelSheet sheet = document.AddWorksheet("Transform");
 
             sheet.CellValue(1, 1, "Cropped, flipped, rotated worksheet image");
             sheet.Range("A1:E1").Merge();
@@ -1518,7 +1518,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateDrawingObjectBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelDrawingObjectBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Drawing");
+            ExcelSheet sheet = document.AddWorksheet("Drawing");
 
             sheet.CellValue(1, 1, "Worksheet drawing object");
             sheet.Range("A1:F1").Merge();

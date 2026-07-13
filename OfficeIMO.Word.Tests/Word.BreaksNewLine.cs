@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(document.Paragraphs.Count == 28);
 
-            document.Save(false);
+            document.Save();
         }
     }
 }

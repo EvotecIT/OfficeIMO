@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                     .Paragraph(p => p.Text("Hello"))
                     .Table(t => t.Columns(2).Row("A", "B"))
                     .End();
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

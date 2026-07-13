@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                 });
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Shared");
+                ExcelSheet sheet = document.AddWorksheet("Shared");
                 sheet.AddChart(
                     OfficeChartKind.ColumnClustered,
                     sharedData,
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
                         error.Node?.OuterXml)));
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document.Sheets.Single(item => item.Name == "Shared");
                 ExcelChart chart = Assert.Single(sheet.Charts);
                 Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -98,13 +98,13 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Shared");
+                ExcelSheet sheet = document.AddWorksheet("Shared");
                 sheet.AddChart(OfficeChartKind.BarClustered, sharedData,
                     row: 1, column: 5, title: "Horizontal secondary");
                 document.Save();
             }
 
-            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
             ExcelChart chart = Assert.Single(reopenedSheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -120,13 +120,13 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Shared");
+                ExcelSheet sheet = document.AddWorksheet("Shared");
                 sheet.AddChart(OfficeChartKind.Scatter, sharedData,
                     row: 1, column: 5, title: "Explicit X values");
                 document.Save();
             }
 
-            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             ExcelSheet reopenedSheet = reopened.Sheets.Single(item => item.Name == "Shared");
             ExcelChart chart = Assert.Single(reopenedSheet.Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Shared");
+                ExcelSheet sheet = document.AddWorksheet("Shared");
                 sheet.AddChart(OfficeChartKind.Line, sharedData, row: 1, column: 5);
                 document.Save();
             }
@@ -170,7 +170,7 @@ namespace OfficeIMO.Tests {
                         error.Node?.OuterXml)));
             }
 
-            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             ExcelChart chart = Assert.Single(reopened.Sheets[0].Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
@@ -194,7 +194,7 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Shared").AddChart(OfficeChartKind.Line, sharedData,
+                document.AddWorksheet("Shared").AddChart(OfficeChartKind.Line, sharedData,
                     row: 1, column: 5);
                 document.Save();
             }
@@ -224,12 +224,12 @@ namespace OfficeIMO.Tests {
             });
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Shared").AddChart(OfficeChartKind.ColumnClustered, sharedData,
+                document.AddWorksheet("Shared").AddChart(OfficeChartKind.ColumnClustered, sharedData,
                     row: 1, column: 5);
                 document.Save();
             }
 
-            using ExcelDocument reopened = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument reopened = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             ExcelChart chart = Assert.Single(reopened.Sheets[0].Charts);
             Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
             Assert.Equal("DC2626", snapshot.Data.Series.Single(series => series.Name == "Columns A").SeriesColorArgb);
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
         public void Test_ExcelCharts_UpdateRejectsScatterMixedWithCategoryCharts() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.ScatterCombo.xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Shared");
+            ExcelSheet sheet = document.AddWorksheet("Shared");
             ExcelChart chart = sheet.AddChart(new ExcelChartData(
                 new[] { "Q1", "Q2" },
                 new[] {

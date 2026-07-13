@@ -53,7 +53,7 @@ namespace OfficeIMO.Word {
                     Val = lineType.Value,
                     Size = size,
                     Space = space,
-                    Color = color != null ? color.Value.ToHexColor() : "auto"
+                    Color = color != null ? color.Value.ToRgbHex() : "auto"
                 }
             };
             return this;

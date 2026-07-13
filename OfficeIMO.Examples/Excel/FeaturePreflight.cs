@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "FeaturePreflight.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Report");
+                ExcelSheet sheet = document.AddWorksheet("Report");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 1, "Alpha");
@@ -21,10 +21,10 @@ namespace OfficeIMO.Examples.Excel {
                 sheet.CellValue(3, 2, 20d);
                 sheet.CellFormula(4, 2, "SUM(B2:B3)");
                 document.Calculate();
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
 
-            using (ExcelDocument document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
 
                 foreach (ExcelPreflightCapability capability in Enum.GetValues(typeof(ExcelPreflightCapability))) {

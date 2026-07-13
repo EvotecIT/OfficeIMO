@@ -31,7 +31,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Client field: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Client\"" });
                 document.AddStructuredDocumentTag("Northwind Traders", "Client", "ClientName");
                 document.AddParagraph("Review target").AddComment("Legal Reviewer", "LR", "Confirm this wording before approval.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Create(targetPath)) {
@@ -56,7 +56,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Client field: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Customer\"" });
                 document.AddStructuredDocumentTag("Northwind Traders", "Customer", "CustomerName");
                 document.AddParagraph("Review target").AddComment("Legal Reviewer", "LR", "Approved for the premium contract.");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -94,14 +94,14 @@ namespace OfficeIMO.Examples.Word {
                     TrackFormattingFindings = false
                 });
 
-            using (WordDocument redline = WordDocument.Load(redlinePath, readOnly: true)) {
+            using (WordDocument redline = WordDocument.Load(redlinePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 var errors = redline.ValidateDocument();
                 if (errors.Count > 0) {
                     throw new InvalidOperationException("Generated comparison redline document failed Open XML validation: " + errors[0].Description);
                 }
             }
 
-            using (WordDocument inPlaceRedline = WordDocument.Load(inPlaceRedlinePath, readOnly: true)) {
+            using (WordDocument inPlaceRedline = WordDocument.Load(inPlaceRedlinePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 var errors = inPlaceRedline.ValidateDocument();
                 if (errors.Count > 0) {
                     throw new InvalidOperationException("Generated in-place comparison redline document failed Open XML validation: " + errors[0].Description);
@@ -110,7 +110,7 @@ namespace OfficeIMO.Examples.Word {
 
             if (openWord) {
                 using WordDocument inPlaceRedline = WordDocument.Load(inPlaceRedlinePath);
-                inPlaceRedline.Save(true);
+                inPlaceRedline.Save(new WordSaveOptions { OpenAfterSave = true });
             }
         }
 

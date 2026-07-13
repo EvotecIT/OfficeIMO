@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs.Count == 1);
                 Assert.NotNull(paragraph.Line);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithLines.docx"))) {
@@ -33,11 +33,11 @@ namespace OfficeIMO.Tests {
                 var paragraph = document.AddParagraph("Paragraph with line");
                 var line = paragraph.AddLine(0, 0, 100, 0, Color.Blue, 2);
 
-                Assert.Equal(Color.Blue.ToHexColor(), line.ColorHex.Replace("#", ""));
+                Assert.Equal(Color.Blue.ToRgbHex(), line.ColorHex.Replace("#", ""));
 
-                Assert.Equal(line.ColorHex.Replace("#", ""), line.ColorHex.Replace("#", "").ToLowerInvariant());
+                Assert.Equal(line.ColorHex.Replace("#", ""), line.ColorHex.Replace("#", "").ToUpperInvariant());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithLinesColor.docx"))) {

@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(Math.Abs(cell.MarginTopCentimeters.GetValueOrDefault() - 0.3) < 0.01);
                 Assert.True(table.Rows[0].Cells[0].MarginRightWidth == null);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithCellMargins.docx"))) {
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(cell1.WrapText);
                 Assert.True(cell2.FitText);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Cell paragraph", parentCell.Paragraphs.First().Text);
                 Assert.Equal(table.RowsCount, parentCell.ParentTable.RowsCount);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Null(cell._tableCell.TableCellProperties);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

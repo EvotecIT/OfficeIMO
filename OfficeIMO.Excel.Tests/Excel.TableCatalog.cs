@@ -13,14 +13,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Tables.Catalog.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet1 = document.AddWorkSheet("SheetOne");
+                var sheet1 = document.AddWorksheet("SheetOne");
                 sheet1.CellValue(1, 1, "Name");
                 sheet1.CellValue(1, 2, "Value");
                 sheet1.CellValue(2, 1, "A");
                 sheet1.CellValue(2, 2, 1d);
                 sheet1.AddTable("A1:B2", true, "TableOne", TableStyle.TableStyleMedium9);
 
-                var sheet2 = document.AddWorkSheet("SheetTwo");
+                var sheet2 = document.AddWorksheet("SheetTwo");
                 sheet2.CellValue(1, 1, "Name");
                 sheet2.CellValue(1, 2, "Value");
                 sheet2.CellValue(1, 3, "Count");
@@ -36,7 +36,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 var tables = document.GetTables().ToList();
                 Assert.Equal(2, tables.Count);
 

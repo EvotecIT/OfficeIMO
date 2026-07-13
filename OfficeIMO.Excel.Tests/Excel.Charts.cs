@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Basic.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
                     new[] {
@@ -121,7 +121,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.DataPointStyle.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.FluentRange.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 sheet.CellValue(1, 1, "Quarter");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(1, 3, "Target");
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Radar.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Coverage");
+                var sheet = document.AddWorksheet("Coverage");
                 sheet.CellValue(1, 1, "Area");
                 sheet.CellValue(1, 2, "Current");
                 sheet.CellValue(1, 3, "Target");
@@ -283,7 +283,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Stock.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Prices");
+                var sheet = document.AddWorksheet("Prices");
                 sheet.CellValue(1, 1, "Date");
                 sheet.CellValue(1, 2, "Open");
                 sheet.CellValue(1, 3, "High");
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -372,7 +372,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Surface.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Terrain");
+                var sheet = document.AddWorksheet("Terrain");
                 sheet.CellValue(1, 1, "Zone");
                 sheet.CellValue(1, 2, "Low");
                 sheet.CellValue(1, 3, "Mid");
@@ -435,7 +435,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SurfaceVariants.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Surface");
+                var sheet = document.AddWorksheet("Surface");
                 sheet.CellValue(1, 1, "Bucket");
                 sheet.CellValue(1, 2, "Low");
                 sheet.CellValue(1, 3, "Mid");
@@ -537,7 +537,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -547,7 +547,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Pie3D.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Mix");
+                var sheet = document.AddWorksheet("Mix");
                 sheet.CellValue(1, 1, "Category");
                 sheet.CellValue(1, 2, "Share");
                 sheet.CellValue(2, 1, "Mail");
@@ -601,7 +601,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -611,7 +611,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.OfPie.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Share");
+                var sheet = document.AddWorksheet("Share");
                 sheet.CellValue(1, 1, "Segment");
                 sheet.CellValue(1, 2, "Share");
                 sheet.CellValue(2, 1, "Core");
@@ -684,7 +684,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -694,7 +694,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.BarStacked100.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Mix");
+                var sheet = document.AddWorksheet("Mix");
                 sheet.CellValue(1, 1, "Quarter");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(1, 3, "Target");
@@ -766,7 +766,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -776,7 +776,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Bar3D.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Quarter");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(1, 3, "Target");
@@ -884,7 +884,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -894,7 +894,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.LineStacked.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Trend");
+                var sheet = document.AddWorksheet("Trend");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Actual");
                 sheet.CellValue(1, 3, "Plan");
@@ -969,7 +969,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -982,7 +982,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, $"ExcelCharts.{type}.MultipleSeries.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Share");
+                var sheet = document.AddWorksheet("Share");
                 sheet.CellValue(1, 1, "Segment");
                 sheet.CellValue(1, 2, "Current");
                 sheet.CellValue(1, 3, "Previous");
@@ -1008,7 +1008,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Line3D.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Trend");
+                var sheet = document.AddWorksheet("Trend");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Actual");
                 sheet.CellValue(1, 3, "Plan");
@@ -1070,7 +1070,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1080,7 +1080,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.AreaStacked.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Mix");
+                var sheet = document.AddWorksheet("Mix");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Services");
                 sheet.CellValue(1, 3, "Licenses");
@@ -1151,7 +1151,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1161,7 +1161,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Area3D.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Volume");
+                var sheet = document.AddWorksheet("Volume");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Actual");
                 sheet.CellValue(1, 3, "Plan");
@@ -1249,7 +1249,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(errors.Count == 0, FormatValidationErrors(errors));
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1259,7 +1259,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RecipeHelpers.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Dashboard");
+                var sheet = document.AddWorksheet("Dashboard");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Revenue");
                 sheet.CellValue(2, 1, "Jan");
@@ -1322,7 +1322,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.ChartLayout.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Dashboard");
+                var sheet = document.AddWorksheet("Dashboard");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(1, 2, "Rules");
                 sheet.CellValue(2, 1, "High");
@@ -1366,7 +1366,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.PieOutsideEndLabels.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Pie");
+                var sheet = document.AddWorksheet("Pie");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(1, 2, "Rules");
                 sheet.CellValue(2, 1, "High");
@@ -1401,7 +1401,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.PieBestFitLabels.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Pie");
+                var sheet = document.AddWorksheet("Pie");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(1, 2, "Rules");
                 sheet.CellValue(2, 1, "High");
@@ -1436,7 +1436,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.RecipeBuilderReuse.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Dashboard");
+                var sheet = document.AddWorksheet("Dashboard");
                 sheet.CellValue(1, 1, "Month");
                 sheet.CellValue(1, 2, "Revenue");
                 sheet.CellValue(2, 1, "Jan");
@@ -1470,7 +1470,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesStyling.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
                     new[] {
@@ -1497,7 +1497,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("2563EB", chartPart.ChartSpace.OuterXml, StringComparison.OrdinalIgnoreCase);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1507,7 +1507,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Jan", "Feb" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
@@ -1536,7 +1536,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((uint)3, cache.PointCount!.Val!.Value);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1546,7 +1546,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.NoHeaders.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 sheet.CellValues(new[] {
                     (9, 1, (object)"sentinel"),
                     (9, 2, (object)"sentinel"),
@@ -1596,7 +1596,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Update.QuotedBangSheet.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Report!2026's");
+                var sheet = document.AddWorksheet("Report!2026's");
                 sheet.Cell(1, 1, "Month");
                 sheet.Cell(1, 2, "Sales");
                 sheet.Cell(2, 1, "Jan");
@@ -1644,7 +1644,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Scatter.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "1", "2", "3" },
                     new[] { new ExcelChartSeries("Series 1", new[] { 2d, 4d, 6d }, ExcelChartType.Scatter) });
@@ -1663,7 +1663,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, plotArea.Elements<C.ValueAxis>().Count());
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -1674,7 +1674,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Scatter.NumericCategories.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "1", "2", "3" },
                     new[] { new ExcelChartSeries("Series 1", new[] { 2d, 4d, 6d }, ExcelChartType.Scatter) });
@@ -1724,7 +1724,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
 
                 var comboData = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3", "Q4" },
@@ -1837,7 +1837,7 @@ namespace OfficeIMO.Tests {
                 new ExcelChartSeriesRange("Series 1", "A2:A4", "B2:B4"));
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 sheet.CellValues(new[] {
                     (1, 1, (object)"X"), (1, 2, (object)"Y"),
                     (2, 1, (object)1d), (2, 2, (object)2d),
@@ -1862,7 +1862,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Combo.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
@@ -1897,7 +1897,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesLabels.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] {
@@ -1939,7 +1939,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.ScatterRanges.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValues(new[] {
                     (1, 1, (object)"X"), (1, 2, "Y1"),
                     (2, 1, 1d), (2, 2, 2d),
@@ -1979,7 +1979,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.BubbleRanges.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValues(new[] {
                     (1, 1, (object)"X"), (1, 2, "Y"), (1, 3, "Size"),
                     (2, 1, 1d), (2, 2, 2d), (2, 3, 4d),
@@ -2016,7 +2016,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
@@ -2039,7 +2039,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.LabelStyle.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
@@ -2075,7 +2075,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.LabelShape.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
@@ -2108,7 +2108,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.LeaderLines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
@@ -2141,7 +2141,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.TitleLegendStyle.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
@@ -2192,7 +2192,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.AxisTextStyle.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 1d, 2d }) });
@@ -2261,7 +2261,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.AxisGridlines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
@@ -2306,7 +2306,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.AxisCrossing.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
@@ -2344,7 +2344,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.AxisCrossingAt.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
@@ -2371,7 +2371,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.AxisScale.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
@@ -2402,7 +2402,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.ScatterAxisScale.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "1", "2", "3", "4" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, ExcelChartType.Scatter) });
@@ -2433,7 +2433,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.ScatterYAxisScale.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "1", "2", "3", "4" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d, 5d }, ExcelChartType.Scatter) });
@@ -2463,7 +2463,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.ScatterAxisCrossingLog.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "1", "2", "3" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d }, ExcelChartType.Scatter) });
@@ -2482,7 +2482,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.ScatterYAxisCrossing.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "1", "2", "3" },
                     new[] { new ExcelChartSeries("Points", new[] { 2d, 4d, 3d }, ExcelChartType.Scatter) });
@@ -2510,7 +2510,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.LabelTemplate.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
@@ -2575,7 +2575,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesStyleIndexOrder.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] {
@@ -2606,7 +2606,7 @@ namespace OfficeIMO.Tests {
                 chartPart.ChartSpace.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
                 Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
                 Assert.Equal("0000FF", snapshot.Data.Series[0].SeriesColorArgb);
@@ -2619,7 +2619,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SparseCachedValues.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
@@ -2649,7 +2649,7 @@ namespace OfficeIMO.Tests {
                 chartPart.ChartSpace.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
                 Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
 
@@ -2666,7 +2666,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.HorizontalNonAdjacentValues.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 sheet.CellValue(1, 2, "Q1");
                 sheet.CellValue(1, 3, "Q2");
                 sheet.CellValue(1, 4, "Q3");
@@ -2710,7 +2710,7 @@ namespace OfficeIMO.Tests {
                 chartPart.ChartSpace.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
                 Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
 
@@ -2726,7 +2726,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Trendline.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2", "Q3" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
@@ -2764,7 +2764,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.AreaStyle.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Summary");
+                var sheet = document.AddWorksheet("Summary");
                 var data = new ExcelChartData(
                     new[] { "Q1", "Q2" },
                     new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d }) });

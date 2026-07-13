@@ -28,19 +28,13 @@ namespace OfficeIMO.Excel {
 #endif
         }
 
-        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings, bool autoSave) {
-            bool shouldAutoSave = autoSave || (openSettings?.AutoSave ?? false);
-
+        private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {
             if (openSettings is null) {
-                return new OpenSettings { AutoSave = shouldAutoSave };
-            }
-
-            if (openSettings.AutoSave == shouldAutoSave) {
-                return openSettings;
+                return new OpenSettings { AutoSave = false };
             }
 
             return new OpenSettings {
-                AutoSave = shouldAutoSave,
+                AutoSave = false,
                 CompatibilityLevel = openSettings.CompatibilityLevel,
                 MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
                 MaxCharactersInPart = openSettings.MaxCharactersInPart,

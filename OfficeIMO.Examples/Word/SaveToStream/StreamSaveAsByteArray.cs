@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -12,17 +13,17 @@ namespace OfficeIMO.Examples.Word {
         /// </summary>
         /// <param name="folderPath">Directory to store the file.</param>
         /// <param name="openWord">Opens Word when <c>true</c>.</param>
-        public static void Example_ToDocx(string folderPath, bool openWord) {
+        public static void Example_ToBytes(string folderPath, bool openWord) {
             Console.WriteLine("[*] Saving document as a byte array");
             byte[] bytes;
             using (var document = WordDocument.Create()) {
                 document.AddParagraph("Saved to byte array");
-                bytes = document.ToDocx();
+                bytes = document.ToBytes();
             }
 
             string filePath = Path.Combine(folderPath, "ToDocx.docx");
             File.WriteAllBytes(filePath, bytes);
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
 
         /// <summary>
@@ -30,18 +31,18 @@ namespace OfficeIMO.Examples.Word {
         /// </summary>
         /// <param name="folderPath">Directory to store the file.</param>
         /// <param name="openWord">Opens Word when <c>true</c>.</param>
-        public static void Example_ToDocxStream(string folderPath, bool openWord) {
+        public static void Example_ToStream(string folderPath, bool openWord) {
             Console.WriteLine("[*] Saving document to a MemoryStream");
             using var document = WordDocument.Create();
             document.AddParagraph("Saved to memory stream");
 
-            using MemoryStream stream = document.ToDocxStream();
+            using MemoryStream stream = document.ToStream();
 
             string filePath = Path.Combine(folderPath, "ToDocxStream.docx");
             using (var file = new FileStream(filePath, FileMode.Create, FileAccess.Write)) {
                 stream.CopyTo(file);
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
 
         /// <summary>
@@ -62,7 +63,7 @@ namespace OfficeIMO.Examples.Word {
                 stream.Position = 0;
                 stream.CopyTo(file);
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

@@ -32,7 +32,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddField(WordFieldType.Ask, parameters: new List<string> { bookmarkName, "\"How was your day?\"", "\\d \"Thanks for asking\"" });
 
                 var fileTarget = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents", "DocumentWithFields.docx");
-                document.Save(fileTarget, openWord);
+                document.Save(fileTarget, new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

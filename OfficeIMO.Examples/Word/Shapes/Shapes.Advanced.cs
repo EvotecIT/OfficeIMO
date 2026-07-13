@@ -94,7 +94,7 @@ namespace OfficeIMO.Examples.Word {
                 d15.FillColor = Color.Plum;
                 d15.StrokeColor = Color.Purple;
                 d15.StrokeWeight = 1.5;
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
                 OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
             }
         }

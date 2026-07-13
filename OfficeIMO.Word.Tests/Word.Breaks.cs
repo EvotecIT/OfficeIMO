@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].ParagraphsBreaks.Count == 2);
                 Assert.True(document.Sections[0].ParagraphsPageBreaks.Count == 0);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[0].ParagraphsPageBreaks.Count == 1);
                 Assert.True(document.Sections[0].ParagraphsBreaks.Count == 7);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1);
                 Assert.True(document.Sections[0].Paragraphs.Count == 8);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(4, document.Paragraphs.Count);
                 Assert.Equal("After Break 2", document.Paragraphs[3].Text);
 
-                document.Save(false);
+                document.Save();
             }
         }
     }

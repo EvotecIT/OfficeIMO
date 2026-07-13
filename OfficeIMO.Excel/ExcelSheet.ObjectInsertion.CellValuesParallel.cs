@@ -27,20 +27,6 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        /// <summary>
-        /// Obsolete. Use <see cref="CellValues(IEnumerable{ValueTuple{int, int, object}}, ExecutionMode?, System.Threading.CancellationToken)"/>
-        /// with <see cref="ExecutionMode.Parallel"/> instead.
-        /// </summary>
-        /// <param name="cells">Collection of cell coordinates and values.</param>
-        [Obsolete("Use CellValues(..., ExecutionMode.Parallel) instead.")]
-        public void CellValuesParallel(IEnumerable<(int Row, int Column, object Value)> cells) {
-            if (cells == null) {
-                throw new ArgumentNullException(nameof(cells));
-            }
-
-            CellValues(cells, ExecutionMode.Parallel);
-        }
-
         private CellUpdate PrepareCellUpdate(int row, int column, object value) {
             var dateTimeOffsetStrategy = _excelDocument.DateTimeOffsetWriteStrategy;
             var (cellValue, dataType) = CoerceValueHelper.Coerce(

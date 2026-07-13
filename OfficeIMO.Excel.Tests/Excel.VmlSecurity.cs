@@ -13,9 +13,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "HeaderFooterVmlDtd.xlsx");
             byte[] pngBytes = File.ReadAllBytes(Path.Combine(_directoryWithImages, "EvotecLogo.png"));
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sheet1");
+                ExcelSheet sheet = document.AddWorksheet("Sheet1");
                 sheet.SetHeaderImage(HeaderFooterPosition.Center, pngBytes, "image/png");
-                document.Save(false);
+                document.Save();
             }
 
             string relationshipId = GetSingleVmlImageRelationshipId(filePath);
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 </xml>
                 """);
 
-            using ExcelDocument loaded = ExcelDocument.Load(filePath, readOnly: true);
+            using ExcelDocument loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             ExcelSheet.HeaderFooterSnapshot snapshot = loaded.Sheets.Single().GetHeaderFooter();
 
             Assert.True(snapshot.HeaderHasPicturePlaceholder);
@@ -40,9 +40,9 @@ namespace OfficeIMO.Tests {
         public void CommentVmlRejectsDtdBeforeUpdatingShapes() {
             string filePath = Path.Combine(_directoryWithFiles, "CommentVmlDtd.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sheet1");
+                ExcelSheet sheet = document.AddWorksheet("Sheet1");
                 sheet.SetComment(1, 1, "Original");
-                document.Save(false);
+                document.Save();
             }
 
             ReplaceFirstVmlPart(filePath, """
@@ -60,7 +60,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath)) {
                 document.Sheets.Single().SetComment(2, 1, "Updated");
-                document.Save(false);
+                document.Save();
             }
 
             string vml = ReadFirstVmlPartText(filePath);

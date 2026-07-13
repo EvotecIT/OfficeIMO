@@ -61,9 +61,10 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_AccessibilityDiagnostics_AreOptIn() {
             var options = new HtmlToWordOptions();
 
-            using var document = "<h1>Title</h1><h3>Skipped</h3><p><img src=\"missing.png\"></p>".ToWordDocument(options);
+            HtmlToWordResult conversion = "<h1>Title</h1><h3>Skipped</h3><p><img src=\"missing.png\"></p>".ToWordDocumentResult(options);
+            using var document = conversion.Value;
 
-            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
+            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
         }
 
         [Fact]
@@ -73,7 +74,7 @@ namespace OfficeIMO.Tests {
                 ImageProcessing = ImageProcessingMode.EmbedDataUriOnly
             };
 
-            using var document = """
+            HtmlToWordResult conversion = """
                 <p>
                   <img src="missing.png">
                   <img src="decorative.png" alt="">
@@ -81,9 +82,11 @@ namespace OfficeIMO.Tests {
                   <a href="https://example.com/empty"><img src="icon.png" alt=""></a>
                   <a href="https://example.com/named" aria-label="Quarterly report"></a>
                 </p>
-                """.ToWordDocument(options);
+                """.ToWordDocumentResult(options);
 
-            var accessibilityDiagnostics = options.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
+            using var document = conversion.Value;
+
+            var accessibilityDiagnostics = conversion.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityImageMissingAlt" && diagnostic.Source == "missing.png");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityLinkTextWeak" && diagnostic.Source == "https://example.com/report");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityLinkTextMissing" && diagnostic.Source == "https://example.com/empty");
@@ -97,7 +100,7 @@ namespace OfficeIMO.Tests {
                 EnableAccessibilityDiagnostics = true
             };
 
-            using var document = """
+            HtmlToWordResult conversion = """
                 <h1>Title</h1>
                 <h3>Skipped</h3>
                 <table id="data">
@@ -108,9 +111,11 @@ namespace OfficeIMO.Tests {
                   <thead><tr><th>Name</th><th>Total</th></tr></thead>
                   <tbody><tr><td>Ada</td><td>42</td></tr></tbody>
                 </table>
-                """.ToWordDocument(options);
+                """.ToWordDocumentResult(options);
 
-            var accessibilityDiagnostics = options.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
+            using var document = conversion.Value;
+
+            var accessibilityDiagnostics = conversion.Diagnostics.Where(diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase)).ToList();
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityHeadingLevelSkipped" && diagnostic.Source == "h3");
             Assert.Contains(accessibilityDiagnostics, diagnostic => diagnostic.Code == "AccessibilityTableMissingHeader" && diagnostic.Source == "table#data");
             Assert.DoesNotContain(accessibilityDiagnostics, diagnostic => diagnostic.Source == "table#headed");
@@ -123,7 +128,7 @@ namespace OfficeIMO.Tests {
                 EnableAccessibilityDiagnostics = true
             };
 
-            using var document = $"""
+            HtmlToWordResult conversion = $"""
                 <html lang="en-US">
                   <body>
                     <main>
@@ -151,11 +156,13 @@ namespace OfficeIMO.Tests {
                     </main>
                   </body>
                 </html>
-                """.ToWordDocument(options);
+                """.ToWordDocumentResult(options);
 
-            Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
+            using var document = conversion.Value;
 
-            using MemoryStream stream = document.ToDocxStream();
+            Assert.DoesNotContain(conversion.Diagnostics, diagnostic => diagnostic.Code.StartsWith("Accessibility", StringComparison.OrdinalIgnoreCase));
+
+            using MemoryStream stream = document.ToStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
             Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));

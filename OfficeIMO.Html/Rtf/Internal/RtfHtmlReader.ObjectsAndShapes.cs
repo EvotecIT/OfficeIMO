@@ -50,8 +50,9 @@ internal static partial class RtfHtmlReader {
             }
 
             HtmlToRtfOptions nestedOptions = CreateNestedOptions();
-            RtfDocument resultDocument = html!.ToRtfDocument(nestedOptions);
-            PropagateNestedDiagnostics(nestedOptions);
+            HtmlToRtfResult nestedResult = html!.ToRtfDocumentResult(nestedOptions);
+            RtfDocument resultDocument = nestedResult.RequireValue();
+            PropagateNestedDiagnostics(nestedResult.RtfDiagnostics);
             RtfParagraph? paragraph = resultDocument.Paragraphs.FirstOrDefault();
             if (paragraph != null) {
                 CopyParagraphInlines(paragraph, rtfObject.Result, resultDocument);
@@ -65,8 +66,9 @@ internal static partial class RtfHtmlReader {
             }
 
             HtmlToRtfOptions nestedOptions = CreateNestedOptions();
-            RtfDocument textDocument = html!.ToRtfDocument(nestedOptions);
-            PropagateNestedDiagnostics(nestedOptions);
+            HtmlToRtfResult nestedResult = html!.ToRtfDocumentResult(nestedOptions);
+            RtfDocument textDocument = nestedResult.RequireValue();
+            PropagateNestedDiagnostics(nestedResult.RtfDiagnostics);
             foreach (RtfParagraph paragraph in textDocument.Paragraphs) {
                 RtfParagraph textParagraph = shape.AddTextBoxParagraph();
                 CopyParagraphInlines(paragraph, textParagraph, textDocument);
@@ -75,12 +77,11 @@ internal static partial class RtfHtmlReader {
 
         private HtmlToRtfOptions CreateNestedOptions() {
             HtmlToRtfOptions nestedOptions = _options.Clone();
-            nestedOptions.DiagnosticHandler = null;
             return nestedOptions;
         }
 
-        private void PropagateNestedDiagnostics(HtmlToRtfOptions nestedOptions) {
-            foreach (HtmlRtfConversionDiagnostic diagnostic in nestedOptions.Diagnostics) {
+        private void PropagateNestedDiagnostics(IEnumerable<HtmlRtfConversionDiagnostic> diagnostics) {
+            foreach (HtmlRtfConversionDiagnostic diagnostic in diagnostics) {
                 _options.AddDiagnostic(diagnostic);
             }
         }

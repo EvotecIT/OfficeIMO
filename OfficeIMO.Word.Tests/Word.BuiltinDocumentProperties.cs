@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.BuiltinDocumentProperties.LastPrinted == new DateTime(2000, 07, 01), "Wrong LastPrinted");
                 Assert.True(document.BuiltinDocumentProperties.Version == "0.1.0", "Wrong Version");
                 Assert.True(document.BuiltinDocumentProperties.Revision == "0.5.0", "Wrong Revision");
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentCreationWithProperties.docx"))) {
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.BuiltinDocumentProperties.Revision == "0.5.0", "Wrong Revision");
                 document.BuiltinDocumentProperties.Modified = new DateTime(2001, 06, 01);
                 document.BuiltinDocumentProperties.Creator = "Evotec Services";
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentCreationWithProperties.docx"))) {
 
@@ -71,7 +71,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.BuiltinDocumentProperties.LastPrinted == new DateTime(2000, 07, 01), "Wrong LastPrinted");
                 Assert.True(document.BuiltinDocumentProperties.Version == "0.1.0", "Wrong Version");
                 Assert.True(document.BuiltinDocumentProperties.Revision == "0.5.0", "Wrong Revision");
-                document.Save(false);
+                document.Save();
             }
         }
     }

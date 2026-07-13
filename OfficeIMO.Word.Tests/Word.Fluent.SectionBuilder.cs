@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Section(s => s.New().Orientation(PageOrientationValues.Landscape))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -28,11 +28,11 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Section(s => s.New().Background("FF00FF"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
-                Assert.Equal("ff00ff", document.Background.Color);
+                Assert.Equal("FF00FF", document.Background.Color);
             }
         }
 
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                         .Paragraph(p => p.Text("Section2"))
                         .Table(t => t.Row("cell")))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

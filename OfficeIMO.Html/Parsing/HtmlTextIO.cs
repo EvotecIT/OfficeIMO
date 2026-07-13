@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Html;
 
 /// <summary>
@@ -30,7 +31,7 @@ public static class HtmlTextIO {
     /// <summary>Writes HTML text to a file as UTF-8 without a byte-order mark.</summary>
     public static void Write(string path, string html) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("An HTML output path is required.", nameof(path));
-        File.WriteAllBytes(path, Utf8NoBom.GetBytes(html ?? throw new ArgumentNullException(nameof(html))));
+        OfficeFileCommit.WriteAllBytes(path, Utf8NoBom.GetBytes(html ?? throw new ArgumentNullException(nameof(html))));
     }
 
     /// <summary>Writes HTML text to a stream as UTF-8 without a byte-order mark and leaves it open.</summary>

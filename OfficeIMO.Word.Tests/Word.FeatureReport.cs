@@ -32,10 +32,10 @@ namespace OfficeIMO.Tests {
                 document.AddEmbeddedFragment("<html><body><p>Imported</p></body></html>", WordAlternativeFormatImportPartType.Html);
                 document.AddMacro(System.Text.Encoding.ASCII.GetBytes("OfficeIMO macro placeholder"));
                 document.ApplicationProperties.DigitalSignature = new DigitalSignature();
-                document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+                document.Save(new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Paragraphs" && feature.Count > 0);
@@ -72,10 +72,10 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Simple");
                 document.AddTable(1, 1);
-                document.Save(false);
+                document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 Assert.Contains(report.EditableFeatures, feature => feature.Name == "Paragraphs" && feature.Count > 0);
@@ -105,10 +105,10 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Date: ").AddField(WordFieldType.Date);
                 document.AddParagraph("Variable: ").AddField(WordFieldType.DocVariable, parameters: new List<string> { "\"ClientName\"" });
                 document.AddParagraph("Unsupported: ")._paragraph.Append(BuildFeatureReportSimpleField(" SILLYFIELD value ", "Unknown", locked: false));
-                document.Save(false);
+                document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
                 WordFeatureFinding fields = Assert.Single(report.FindFeatures("Fields"));
 
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Template");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
                 mainPart.Document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
                 WordFeatureFinding dataBinding = Assert.Single(report.FindFeatures("Content-control data bindings"));
 
@@ -191,10 +191,10 @@ namespace OfficeIMO.Tests {
                 document.AddSmartArt(SmartArtType.BasicProcess);
                 const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>x=1</m:t></m:r></m:oMath></m:oMathPara>";
                 document.AddEquation(omml);
-                document.Save(false);
+                document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 WordFeatureFinding charts = Assert.Single(report.FindFeatures("Charts"));
@@ -230,7 +230,7 @@ namespace OfficeIMO.Tests {
                 };
                 document.BibliographySources[source.Tag!] = source;
                 document.AddCitation(source.Tag!);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -251,7 +251,7 @@ namespace OfficeIMO.Tests {
                 settingsPart.Settings.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 WordFeatureFinding variables = Assert.Single(report.FindFeatures("Document variables"));
@@ -277,7 +277,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Advanced package signals");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests {
                     "<wetp:taskpanes xmlns:wetp=\"http://schemas.microsoft.com/office/webextensions/taskpanes/2010/11\" />");
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 WordFeatureFinding glossary = Assert.Single(report.FindFeatures("Building blocks and glossary"));
@@ -338,10 +338,10 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Linked logo")
                     .AddImage(new Uri("https://example.com/assets/logo.png"), 64, 32, description: "Linked logo");
-                document.Save(false);
+                document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 WordFeatureFinding images = Assert.Single(report.FindFeatures("External linked images"));
@@ -363,7 +363,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("ActiveX package signals");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -378,7 +378,7 @@ namespace OfficeIMO.Tests {
                     new byte[] { 1, 2, 3, 4 });
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
                 WordFeatureFinding activeX = Assert.Single(report.FindFeatures("ActiveX controls"));
 
@@ -404,7 +404,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Preserve package signals");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
@@ -433,7 +433,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AddParagraph("OfficeIMO edit after package metadata.");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
@@ -445,7 +445,7 @@ namespace OfficeIMO.Tests {
                 AssertPartBytes(mainPart, "activeX.bin", activeXBinaryBytes);
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordFeatureReport report = document.InspectFeatures();
 
                 Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Building blocks and glossary"

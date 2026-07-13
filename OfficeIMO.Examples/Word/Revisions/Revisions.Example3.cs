@@ -12,12 +12,12 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph();
                 paragraph.AddInsertedText("Inserted text", "Codex");
                 paragraph.AddDeletedText("Deleted text", "Codex");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.ConvertRevisionsToMarkup();
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

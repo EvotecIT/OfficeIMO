@@ -127,7 +127,7 @@ public sealed class ReaderOcrProcessTests {
                 }
             }));
             bool windows = RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-            string scriptPath = Path.Combine(directory, windows ? "copy response.cmd" : "copy response.sh");
+            string scriptPath = Path.Combine(directory, windows ? "copy-response.cmd" : "copy-response.sh");
             File.WriteAllText(scriptPath, windows ? "@copy /Y \"%~1\" \"%~2\" >nul\r\n" : "cp \"$1\" \"$2\"\n");
             var arguments = windows
                 ? new[] { "/d", "/c", scriptPath, responsePath, "{output}" }

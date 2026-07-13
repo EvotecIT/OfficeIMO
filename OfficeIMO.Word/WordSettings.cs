@@ -466,7 +466,7 @@ namespace OfficeIMO.Word {
             get {
                 var background = _document._wordprocessingDocument.MainDocumentPart?
                     .Document?.DocumentBackground;
-                return background?.Color?.Value?.ToLowerInvariant();
+                return background?.Color?.Value?.ToUpperInvariant();
             }
             set {
                 var settings = _document._wordprocessingDocument.MainDocumentPart?
@@ -501,7 +501,7 @@ namespace OfficeIMO.Word {
         /// <param name="backgroundColor">Color value.</param>
         /// <returns>The current <see cref="WordSettings"/> instance.</returns>
         public WordSettings SetBackgroundColor(OfficeIMO.Drawing.OfficeColor backgroundColor) {
-            BackgroundColor = backgroundColor.ToHexColor();
+            BackgroundColor = backgroundColor.ToRgbHex();
             return this;
         }
 
@@ -657,15 +657,6 @@ namespace OfficeIMO.Word {
                     track?.Remove();
                 }
             }
-        }
-
-        /// <summary>
-        /// Enable or disable tracking of comments in the document.
-        /// Wrapper around <see cref="TrackRevisions"/> for backwards compatibility.
-        /// </summary>
-        public bool TrackComments {
-            get => TrackRevisions;
-            set => TrackRevisions = value;
         }
 
         /// <summary>

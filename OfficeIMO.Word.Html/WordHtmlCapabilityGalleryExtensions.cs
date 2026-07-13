@@ -32,8 +32,9 @@ namespace OfficeIMO.Word.Html {
 
             HtmlToWordOptions importOptions = CreateImportOptions(options.ImportOptions);
             WordToHtmlOptions exportOptions = CreateExportOptions(options.ExportOptions);
-            using WordDocument document = html.ToWordDocument(importOptions);
-            using MemoryStream packageStream = document.ToDocxStream();
+            HtmlToWordResult importResult = html.ToWordDocumentResult(importOptions);
+            using WordDocument document = importResult.RequireValue();
+            using MemoryStream packageStream = document.ToStream();
             string roundTripHtml = document.ToHtml(exportOptions);
 
             HtmlCapabilityGalleryArtifact sourceArtifact = HtmlCapabilityGalleryArtifact.WriteTextFile("source", "input-html", inputPath, "text/html", html);
@@ -50,7 +51,7 @@ namespace OfficeIMO.Word.Html {
             result.AddArtifact(sourceArtifact);
             result.AddArtifact(docxArtifact);
             result.AddArtifact(roundTripArtifact);
-            result.Diagnostics.AddRange(importOptions.ConversionReport.Diagnostics);
+            result.Diagnostics.AddRange(importResult.Diagnostics);
             AppendOpenXmlValidationDiagnostics(result, packageStream);
 
             HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(html, roundTripHtml);
@@ -76,7 +77,6 @@ namespace OfficeIMO.Word.Html {
         private static HtmlToWordOptions CreateImportOptions(HtmlToWordOptions? options) {
             HtmlToWordOptions importOptions = options?.Clone() ?? HtmlToWordOptions.CreateTrustedDocumentProfile();
             importOptions.EnableAccessibilityDiagnostics = true;
-            importOptions.ConversionReport.Clear();
             return importOptions;
         }
 

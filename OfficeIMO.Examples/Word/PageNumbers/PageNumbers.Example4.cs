@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
                 para.ParagraphAlignment = JustificationValues.Center;
                 para.AddPageNumber();
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

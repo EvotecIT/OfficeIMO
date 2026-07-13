@@ -112,7 +112,7 @@ public sealed class ReaderOfficeRichMappingTests {
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
             document.BuiltinDocumentProperties.Title = "Rich workbook";
             document.BuiltinDocumentProperties.Creator = "OfficeIMO";
-            ExcelSheet sheet = document.AddWorkSheet("Inventory");
+            ExcelSheet sheet = document.AddWorksheet("Inventory");
             sheet.Cell(1, 1, "Name");
             sheet.Cell(1, 2, "Qty");
             sheet.Cell(2, 1, "Bandage");
@@ -123,7 +123,7 @@ public sealed class ReaderOfficeRichMappingTests {
             sheet.Cell(1, 5, "Value");
             sheet.Cell(2, 4, "Unstructured");
             sheet.Cell(2, 5, 7);
-            ExcelSheet rawSheet = document.AddWorkSheet("Raw");
+            ExcelSheet rawSheet = document.AddWorksheet("Raw");
             rawSheet.Cell(1, 1, "Metric");
             rawSheet.Cell(1, 2, "Value");
             rawSheet.Cell(2, 1, "Retries");
@@ -157,7 +157,7 @@ public sealed class ReaderOfficeRichMappingTests {
     public void DocumentReader_ExcelRichMapping_HonorsSelectedRangeAcrossRichArtifacts() {
         using var stream = new MemoryStream();
         using (ExcelDocument document = ExcelDocument.Create(stream)) {
-            ExcelSheet sheet = document.AddWorkSheet("Inventory");
+            ExcelSheet sheet = document.AddWorksheet("Inventory");
             sheet.Cell(1, 1, "Name");
             sheet.Cell(1, 2, "Qty");
             sheet.Cell(2, 1, "Bandage");

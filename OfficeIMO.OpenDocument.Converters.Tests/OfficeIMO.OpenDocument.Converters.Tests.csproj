@@ -27,6 +27,10 @@
     <ProjectReference Include="..\OfficeIMO.PowerPoint.OpenDocument\OfficeIMO.PowerPoint.OpenDocument.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Compile Include="..\TestSupport\OpenDocument\OdfTestPackageRewriter.cs" Link="TestSupport\OdfTestPackageRewriter.cs" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
   </ItemGroup>

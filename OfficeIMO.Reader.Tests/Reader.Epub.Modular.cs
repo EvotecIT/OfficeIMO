@@ -17,9 +17,9 @@ public sealed class ReaderEpubModularTests {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {
             BuildEpubWithSpine(epubPath);
-            DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(replaceExisting: true);
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddEpubHandler().Build();
 
-            OfficeDocumentReadResult result = DocumentReader.ReadDocument(epubPath);
+            OfficeDocumentReadResult result = reader.ReadDocument(epubPath);
 
             Assert.Equal(ReaderInputKind.Epub, result.Kind);
             Assert.Equal("Demo Book", result.Source.Title);
@@ -49,7 +49,6 @@ public sealed class ReaderEpubModularTests {
             }
             Assert.Contains("officeimo.reader.epub.rich-v5", result.CapabilitiesUsed);
         } finally {
-            DocumentReaderEpubRegistrationExtensions.UnregisterEpubHandler();
             if (File.Exists(epubPath)) File.Delete(epubPath);
         }
     }

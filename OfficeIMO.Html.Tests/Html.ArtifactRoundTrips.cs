@@ -23,11 +23,11 @@ public class HtmlArtifactRoundTrips {
 
         HtmlToWordResult wordResult = source.ToWordDocumentResult();
         using var docx = new MemoryStream();
-        wordResult.Document.Save(docx);
-        using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), readOnly: true);
+        wordResult.Value.Save(docx);
+        using WordDocument reopenedWord = WordDocument.Load(new MemoryStream(docx.ToArray()), new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
         HtmlToRtfResult rtfResult = source.ToRtfDocumentResult();
-        string rtf = rtfResult.Document.ToRtf();
+        string rtf = rtfResult.Value.ToRtf();
         RtfReadResult reopenedRtf = RtfDocument.Read(rtf);
 
         string markdown = source.ToMarkdown();
@@ -48,14 +48,14 @@ public class HtmlArtifactRoundTrips {
     [Fact]
     public void SemanticHtml_ProducesReopenableXlsxAndPptxArtifacts() {
         using ExcelDocument sourceWorkbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sourceSheet = sourceWorkbook.AddWorkSheet("Evidence");
+        ExcelSheet sourceSheet = sourceWorkbook.AddWorksheet("Evidence");
         sourceSheet.CellValue(1, 1, "Label");
         sourceSheet.CellValue(2, 1, Marker);
         sourceSheet.MergeRange("A2:B2");
         HtmlToExcelResult excelResult = sourceWorkbook.ToHtml().ToExcelDocumentResult();
         using var xlsx = new MemoryStream();
-        excelResult.Workbook.Save(xlsx);
-        using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), readOnly: true);
+        excelResult.Value.Save(xlsx);
+        using ExcelDocument reopenedWorkbook = ExcelDocument.Load(new MemoryStream(xlsx.ToArray()), new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
         using PowerPointPresentation sourcePresentation = PowerPointPresentation.Create(new MemoryStream());
         PowerPointSlide sourceSlide = sourcePresentation.AddSlide();
@@ -64,10 +64,10 @@ public class HtmlArtifactRoundTrips {
         sourceTable.MergeCells(0, 0, 0, 1);
         HtmlToPowerPointResult powerPointResult = sourcePresentation.ToHtml().ToPowerPointPresentationResult();
         using var pptx = new MemoryStream();
-        powerPointResult.Presentation.Save(pptx);
-        using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Open(
+        powerPointResult.Value.Save(pptx);
+        using PowerPointPresentation reopenedPresentation = PowerPointPresentation.Load(
             new MemoryStream(pptx.ToArray()),
-            new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
+            new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
         ExcelSheet reopenedSheet = Assert.Single(reopenedWorkbook.Sheets);
         Assert.True(reopenedSheet.TryGetCellText(2, 1, out string excelText));

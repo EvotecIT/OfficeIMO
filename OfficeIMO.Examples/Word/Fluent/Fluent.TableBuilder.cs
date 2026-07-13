@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO;
@@ -33,9 +34,9 @@ namespace OfficeIMO.Examples.Word {
                         .RowStyle(1, r => r.Cells.ForEach(c => c.ShadingFillColorHex = "ffcccc"))
                         .ColumnStyle(2, c => c.ShadingFillColorHex = "ccffcc"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

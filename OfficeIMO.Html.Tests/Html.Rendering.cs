@@ -258,12 +258,12 @@ public sealed partial class HtmlRenderingTests {
         options.ResourceResolver = (request, cancellationToken) =>
             Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(imageBytes, "image/png"));
 
-        PdfCore.PdfDocumentConversionResult result = await html.ToPdfResultAsync(options);
+        PdfCore.PdfDocumentConversionResult result = await html.ToPdfDocumentResultAsync(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains("AsyncPdfMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public sealed partial class HtmlRenderingTests {
                 System.Text.Encoding.UTF8.GetBytes("@page { size:4in 3in; margin:12px; } p { color:#123456; }"),
                 "text/css"));
 
-        PdfCore.PdfDocumentConversionResult result = await html.ToPdfResultAsync(options);
+        PdfCore.PdfDocumentConversionResult result = await html.ToPdfDocumentResultAsync(options);
         byte[] pdf = result.ToBytes();
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
         (double width, double height) = read.Pages[0].GetPageSize();
@@ -283,7 +283,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(288D, width, 2);
         Assert.Equal(216D, height, 2);
         Assert.Contains("ExternalCssPdfMarker", read.ExtractText(), StringComparison.Ordinal);
-        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalStylesheetPending);
     }
 
     [Fact]
@@ -961,7 +961,7 @@ public sealed partial class HtmlRenderingTests {
         options.PageSize = new OfficePageSize(4D, 3D);
         options.Margins = HtmlRenderMargins.All(20D);
 
-        PdfCore.PdfDocumentConversionResult result = html.ToPdfResult(options);
+        PdfCore.PdfDocumentConversionResult result = html.ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
@@ -972,7 +972,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("SecondPageMarker", text, StringComparison.Ordinal);
         Assert.Contains(linkUri, info.LinkUris);
         Assert.Equal(HtmlRenderMode.Paged, options.Mode);
-        Assert.DoesNotContain(result.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(result.Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

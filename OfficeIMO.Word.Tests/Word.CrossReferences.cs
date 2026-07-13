@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Start").AddBookmark("B1");
                 document.AddParagraph("See ").AddCrossReference("B1", WordCrossReferenceType.Bookmark).AddText(".");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                 heading.AddBookmark("H1");
 
                 document.AddParagraph("See heading ").AddCrossReference("H1", WordCrossReferenceType.Heading).AddText(".");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

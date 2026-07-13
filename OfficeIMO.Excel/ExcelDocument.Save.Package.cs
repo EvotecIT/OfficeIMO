@@ -1,9 +1,10 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
-using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Shared;
+using OfficeIMO.Excel.Utilities;
 using System.IO.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -51,7 +52,7 @@ namespace OfficeIMO.Excel {
             if (_requiresSavePreflight || options?.SafePreflight == true) {
                 if (!skipDirectFastSaveSheetPreparation || options?.SafePreflight == true) {
                     MaterializePendingDirectCellValueSheetIfNeeded();
-                    try { PreflightWorkbook(sheets); } catch { }
+                    PreflightWorkbook(sheets);
                     _requiresSavePreflight = false;
                 } else {
                     ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SkipAutomaticPreflight");
@@ -63,7 +64,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (options?.SafeRepairDefinedNames == true) {
-                try { RepairDefinedNames(save: true); } catch { }
+                RepairDefinedNames(save: true);
             }
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.RepairDefinedNames");
 
@@ -78,7 +79,7 @@ namespace OfficeIMO.Excel {
 
             WorkbookRoot.Save();
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.SaveWorkbookRoot");
-            try { _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow; } catch { }
+            _spreadSheetDocument.PackageProperties.Modified = DateTime.UtcNow;
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.UpdatePackageProperties");
         }
 
@@ -294,7 +295,7 @@ namespace OfficeIMO.Excel {
                 : new MemoryStream(packageBytes.Length + 8192);
             mem.Write(packageBytes, 0, packageBytes.Length);
             mem.Position = 0;
-            var reopenSettings = new OpenSettings { AutoSave = true };
+            var reopenSettings = new OpenSettings { AutoSave = false };
             _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
             _workBookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
             _sharedStringTablePart = null;

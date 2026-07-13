@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
                 foreach (var macro in document.Macros) {
                     Console.WriteLine($"Found macro: {macro.Name}");
                 }
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -382,12 +382,12 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            OfficeColor? fillColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
+            OfficeColor? fillColor = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
             if (IsFilledChartKind(chartKind)) {
                 return fillColor;
             }
 
-            OfficeColor? lineColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), colorScheme);
+            OfficeColor? lineColor = OfficeOpenXmlThemeColorResolver.ResolveColor(properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), colorScheme);
             if (lineColor.HasValue) {
                 return lineColor;
             }

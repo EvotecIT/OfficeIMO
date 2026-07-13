@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Paragraph using custom embedded style").SetStyleId("EmbeddedStyle");
                 document.AddParagraph("Paragraph using builtin Times New Roman").SetFontFamily("Times New Roman");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

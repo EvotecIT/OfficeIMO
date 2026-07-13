@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
             File.Copy(docPath, filePath, true);
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AddMacro(macroPath);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

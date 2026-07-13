@@ -576,13 +576,13 @@ namespace OfficeIMO.Excel {
             return value switch {
                 string text => TrimPivotFieldText(text),
                 bool boolean => boolean ? "1" : "0",
-                DateTime dateTime => ExcelDateSystemConverter.ToSerial(dateTime, dateSystem).ToString(CultureInfo.InvariantCulture),
-                DateTimeOffset dateTimeOffset => ExcelDateSystemConverter.ToSerial(dateTimeOffsetWriteStrategy(dateTimeOffset), dateSystem).ToString(CultureInfo.InvariantCulture),
+                DateTime dateTime => InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateTime, dateSystem)),
+                DateTimeOffset dateTimeOffset => InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateTimeOffsetWriteStrategy(dateTimeOffset), dateSystem)),
 #if NET6_0_OR_GREATER
-                DateOnly dateOnly => ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem).ToString(CultureInfo.InvariantCulture),
+                DateOnly dateOnly => InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(dateOnly.ToDateTime(TimeOnly.MinValue), dateSystem)),
 #endif
-                double number => FormatPivotDoubleText(number),
-                float number => FormatPivotDoubleText(number),
+                double number => InvariantNumberText.Get(number),
+                float number => InvariantNumberText.Get(number),
                 decimal number => number.ToString(CultureInfo.InvariantCulture),
                 IFormattable formattable => TrimPivotFieldText(formattable.ToString(null, CultureInfo.InvariantCulture)),
                 _ => TrimPivotFieldText(value.ToString())
@@ -599,17 +599,6 @@ namespace OfficeIMO.Excel {
             return char.IsWhiteSpace(normalized[0]) || char.IsWhiteSpace(normalized[last])
                 ? normalized.Trim()
                 : normalized;
-        }
-
-        private static string FormatPivotDoubleText(double value) {
-            if (value >= int.MinValue && value <= int.MaxValue) {
-                int integer = (int)value;
-                if (value == integer) {
-                    return InvariantNumberText.Get(integer);
-                }
-            }
-
-            return value.ToString(CultureInfo.InvariantCulture);
         }
 
         private PivotFieldValue GetGeneratedPivotDateFieldValue(int row, int column, GroupByValues groupBy) {
@@ -834,7 +823,7 @@ namespace OfficeIMO.Excel {
 
             public static PivotFieldValue FromBoolean(bool boolean) => new(PivotFieldValueKind.Boolean, boolean ? "1" : "0", boolean: boolean);
 
-            public static PivotFieldValue FromNumber(double number) => new(PivotFieldValueKind.Number, number.ToString("G17", CultureInfo.InvariantCulture), number: number);
+            public static PivotFieldValue FromNumber(double number) => new(PivotFieldValueKind.Number, InvariantNumberText.Get(number), number: number);
 
             public static PivotFieldValue FromDate(DateTime date) => new(PivotFieldValueKind.Date, date.ToString("O", CultureInfo.InvariantCulture), date: date);
         }

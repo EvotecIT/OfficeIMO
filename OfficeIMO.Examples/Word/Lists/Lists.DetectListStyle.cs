@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
                         Console.WriteLine($"{paragraph.Text} -> {paragraph.ListStyle}");
                     }
                 }
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

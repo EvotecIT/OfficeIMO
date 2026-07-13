@@ -145,7 +145,7 @@ namespace OfficeIMO.Excel {
                 AppendUIntAttribute(builder, "max", column.Max);
                 if (column.Width != null) {
                     builder.Append(" width=\"");
-                    builder.Append(column.Width.Value.ToString(CultureInfo.InvariantCulture));
+                    builder.Append(InvariantNumberText.Get(column.Width.Value));
                     builder.Append('"');
                 }
 
@@ -168,7 +168,7 @@ namespace OfficeIMO.Excel {
             AppendBooleanAttribute(builder, "hidden", row.Hidden);
             if (row.Height != null) {
                 builder.Append(" ht=\"");
-                builder.Append(row.Height.Value.ToString(CultureInfo.InvariantCulture));
+                builder.Append(InvariantNumberText.Get(row.Height.Value));
                 builder.Append('"');
             }
 

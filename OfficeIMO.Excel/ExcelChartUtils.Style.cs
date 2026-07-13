@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < values.Count; i++) {
                 cache.Append(new NumericPoint {
                     Index = (uint)i,
-                    NumericValue = new NumericValue { Text = values[i].ToString(CultureInfo.InvariantCulture) }
+                    NumericValue = new NumericValue { Text = InvariantNumberText.Get(values[i]) }
                 });
             }
             reference.Append(cache);
@@ -83,7 +83,7 @@ namespace OfficeIMO.Excel {
             for (int i = 0; i < values.Count; i++) {
                 literal.Append(new NumericPoint {
                     Index = (uint)i,
-                    NumericValue = new NumericValue { Text = values[i].ToString(CultureInfo.InvariantCulture) }
+                    NumericValue = new NumericValue { Text = InvariantNumberText.Get(values[i]) }
                 });
             }
 

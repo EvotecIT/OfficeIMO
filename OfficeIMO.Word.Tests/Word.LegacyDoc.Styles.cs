@@ -254,22 +254,22 @@ namespace OfficeIMO.Tests {
                 StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyleAfterReload.StyleParagraphProperties);
                 Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
                 Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
-                Assert.Equal("ff0000", shading.Fill!.Value);
+                Assert.Equal("FF0000", shading.Fill!.Value);
 
                 ParagraphBorders borders = Assert.IsType<ParagraphBorders>(paragraphProperties.GetFirstChild<ParagraphBorders>());
                 Assert.Equal(BorderValues.Single, borders.TopBorder!.Val!.Value);
-                Assert.Equal("ff0000", borders.TopBorder.Color!.Value);
+                Assert.Equal("FF0000", borders.TopBorder.Color!.Value);
                 Assert.Equal(8U, borders.TopBorder.Size!.Value);
                 Assert.Equal(2U, borders.TopBorder.Space!.Value);
                 Assert.Equal(BorderValues.Double, borders.LeftBorder!.Val!.Value);
-                Assert.Equal("0000ff", borders.LeftBorder.Color!.Value);
+                Assert.Equal("0000FF", borders.LeftBorder.Color!.Value);
                 Assert.Equal(12U, borders.LeftBorder.Size!.Value);
                 Assert.Equal(1U, borders.LeftBorder.Space!.Value);
                 Assert.Equal(BorderValues.Dotted, borders.BottomBorder!.Val!.Value);
-                Assert.Equal("00ff00", borders.BottomBorder.Color!.Value);
+                Assert.Equal("00FF00", borders.BottomBorder.Color!.Value);
                 Assert.Equal(4U, borders.BottomBorder.Size!.Value);
                 Assert.Equal(BorderValues.Dashed, borders.RightBorder!.Val!.Value);
-                Assert.Equal("ffff00", borders.RightBorder.Color!.Value);
+                Assert.Equal("FFFF00", borders.RightBorder.Color!.Value);
                 Assert.Equal(6U, borders.RightBorder.Size!.Value);
                 Assert.Equal(3U, borders.RightBorder.Space!.Value);
             } finally {

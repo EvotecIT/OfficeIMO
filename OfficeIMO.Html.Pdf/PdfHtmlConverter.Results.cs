@@ -12,8 +12,7 @@ public static partial class PdfHtmlConverter {
             throw new ArgumentNullException(nameof(pdf));
         }
 
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
+        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
         return RenderLogicalDocumentResult(LoadLogicalResult(pdf, options), options, applyPageRanges: false);
     }
 
@@ -25,8 +24,7 @@ public static partial class PdfHtmlConverter {
             throw new ArgumentException("PDF path cannot be empty.", nameof(path));
         }
 
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
+        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
         return RenderLogicalDocumentResult(LoadLogicalResult(path, options), options, applyPageRanges: false);
     }
 
@@ -38,8 +36,7 @@ public static partial class PdfHtmlConverter {
             throw new ArgumentNullException(nameof(stream));
         }
 
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
+        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
         return RenderLogicalDocumentResult(LoadLogicalResult(stream, options), options, applyPageRanges: false);
     }
 
@@ -51,8 +48,7 @@ public static partial class PdfHtmlConverter {
             throw new ArgumentNullException(nameof(document));
         }
 
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
+        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
         return RenderLogicalDocumentResult(LoadLogicalResult(document, options), options, applyPageRanges: false);
     }
 
@@ -64,8 +60,7 @@ public static partial class PdfHtmlConverter {
             throw new ArgumentNullException(nameof(document));
         }
 
-        options ??= new PdfHtmlSaveOptions();
-        options.ResetExportState();
+        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
         return RenderLogicalDocumentResult(new LogicalResultSource(document, document.PageCount), options, applyPageRanges: true);
     }
 
@@ -79,7 +74,7 @@ public static partial class PdfHtmlConverter {
             PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
             _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
         };
-        return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, source.SourcePageCount), options.ConversionReport);
+        return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, source.SourcePageCount), options.Report);
     }
 
     private static LogicalResultSource LoadLogicalResult(byte[] pdf, PdfHtmlSaveOptions options) {
@@ -202,7 +197,7 @@ public static partial class PdfHtmlConverter {
             actionSummary.SelectedPageActionCount,
             actionSummary.AnnotationActionCount,
             actionSummary.SelectedAnnotationActionCount,
-            options.ConversionReport.Warnings.Count,
+            options.Report.Warnings.Count,
             options.EmitDocumentShell,
             options.ImageExportMode,
             contract.FidelityContract,

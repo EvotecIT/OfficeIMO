@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using OfficeIMO.Shared.OpenXml;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -22,7 +23,7 @@ namespace OfficeIMO.Word {
                     return false;
                 }
 
-                Dictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors = GetThemeColors();
+                A.ColorScheme? colorScheme = _document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
 
                 if (!HasSingleSupportedChartElement(plotArea)) {
                     snapshot = null!;
@@ -30,7 +31,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.BarChart>() is C.BarChart barChart) {
-                    WordChartData? data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -41,7 +42,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.Bar3DChart>() is C.Bar3DChart bar3DChart) {
-                    WordChartData? data = ReadCategorySeriesData(bar3DChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(bar3DChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -52,7 +53,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.LineChart>() is C.LineChart lineChart) {
-                    WordChartData? data = ReadCategorySeriesData(lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -63,7 +64,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.Line3DChart>() is C.Line3DChart line3DChart) {
-                    WordChartData? data = ReadCategorySeriesData(line3DChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(line3DChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -74,7 +75,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.AreaChart>() is C.AreaChart areaChart) {
-                    WordChartData? data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -85,7 +86,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.Area3DChart>() is C.Area3DChart area3DChart) {
-                    WordChartData? data = ReadCategorySeriesData(area3DChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(area3DChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -96,7 +97,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.RadarChart>() is C.RadarChart radarChart) {
-                    WordChartData? data = ReadCategorySeriesData(radarChart.Elements<C.RadarChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(radarChart.Elements<C.RadarChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -107,7 +108,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.ScatterChart>() is C.ScatterChart scatterChart) {
-                    WordChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), themeColors);
+                    WordChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -118,7 +119,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.PieChart>() is C.PieChart pieChart) {
-                    WordChartData? data = ReadCategorySeriesData(pieChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(pieChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -129,7 +130,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.Pie3DChart>() is C.Pie3DChart pie3DChart) {
-                    WordChartData? data = ReadCategorySeriesData(pie3DChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(pie3DChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -140,7 +141,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (plotArea.GetFirstChild<C.DoughnutChart>() is C.DoughnutChart doughnutChart) {
-                    WordChartData? data = ReadCategorySeriesData(doughnutChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), themeColors);
+                    WordChartData? data = ReadCategorySeriesData(doughnutChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -270,7 +271,7 @@ namespace OfficeIMO.Word {
             return WordChartSnapshotKind.Area;
         }
 
-        private static WordChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements, IReadOnlyDictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors) {
+        private static WordChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements, A.ColorScheme? colorScheme) {
             var seriesList = seriesElements.ToList();
             if (seriesList.Count == 0) {
                 return null;
@@ -315,14 +316,14 @@ namespace OfficeIMO.Word {
                 series.Add(new WordChartSeries(
                     name,
                     values,
-                    color: ReadSeriesColor(seriesElement, themeColors),
-                    pointColors: ReadPointColors(seriesElement, values.Count, themeColors)));
+                    color: ReadSeriesColor(seriesElement, colorScheme),
+                    pointColors: ReadPointColors(seriesElement, values.Count, colorScheme)));
             }
 
             return series.Count == 0 ? null : new WordChartData(categories, series);
         }
 
-        private static WordChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements, IReadOnlyDictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors) {
+        private static WordChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements, A.ColorScheme? colorScheme) {
             var seriesList = seriesElements.ToList();
             if (seriesList.Count == 0) {
                 return null;
@@ -354,8 +355,8 @@ namespace OfficeIMO.Word {
                     name,
                     values,
                     xValues.Take(pointCount).ToList(),
-                    ReadSeriesColor(seriesElement, themeColors),
-                    ReadPointColors(seriesElement, values.Count, themeColors)));
+                    ReadSeriesColor(seriesElement, colorScheme),
+                    ReadPointColors(seriesElement, values.Count, colorScheme)));
             }
 
             if (series.Count == 0 || categoryXValues == null || categoryXValues.Count == 0) {
@@ -398,13 +399,13 @@ namespace OfficeIMO.Word {
             return richText.Trim();
         }
 
-        private static OfficeIMO.Drawing.OfficeColor? ReadSeriesColor(OpenXmlElement seriesElement, IReadOnlyDictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors) {
+        private static OfficeIMO.Drawing.OfficeColor? ReadSeriesColor(OpenXmlElement seriesElement, A.ColorScheme? colorScheme) {
             C.ChartShapeProperties? shapeProperties = seriesElement.GetFirstChild<C.ChartShapeProperties>();
-            return ReadShapeFillColor(shapeProperties, themeColors)
-                ?? ReadShapeOutlineColor(shapeProperties, themeColors);
+            return ReadShapeFillColor(shapeProperties, colorScheme)
+                ?? ReadShapeOutlineColor(shapeProperties, colorScheme);
         }
 
-        private static IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? ReadPointColors(OpenXmlElement seriesElement, int pointCount, IReadOnlyDictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors) {
+        private static IReadOnlyList<OfficeIMO.Drawing.OfficeColor?>? ReadPointColors(OpenXmlElement seriesElement, int pointCount, A.ColorScheme? colorScheme) {
             if (pointCount <= 0) {
                 return null;
             }
@@ -417,7 +418,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                OfficeIMO.Drawing.OfficeColor? color = ReadShapeFillColor(dataPoint.GetFirstChild<C.ChartShapeProperties>(), themeColors);
+                OfficeIMO.Drawing.OfficeColor? color = ReadShapeFillColor(dataPoint.GetFirstChild<C.ChartShapeProperties>(), colorScheme);
                 if (color.HasValue) {
                     colors[index] = color.Value;
                     hasColor = true;
@@ -427,155 +428,18 @@ namespace OfficeIMO.Word {
             return hasColor ? colors : null;
         }
 
-        private static OfficeIMO.Drawing.OfficeColor? ReadShapeFillColor(C.ChartShapeProperties? shapeProperties, IReadOnlyDictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors) {
+        private static OfficeIMO.Drawing.OfficeColor? ReadShapeFillColor(C.ChartShapeProperties? shapeProperties, A.ColorScheme? colorScheme) {
             A.SolidFill? fill = shapeProperties?.GetFirstChild<A.SolidFill>();
-            return ReadSolidFillColor(fill, themeColors);
+            return ReadSolidFillColor(fill, colorScheme);
         }
 
-        private static OfficeIMO.Drawing.OfficeColor? ReadShapeOutlineColor(C.ChartShapeProperties? shapeProperties, IReadOnlyDictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors) {
+        private static OfficeIMO.Drawing.OfficeColor? ReadShapeOutlineColor(C.ChartShapeProperties? shapeProperties, A.ColorScheme? colorScheme) {
             A.SolidFill? fill = shapeProperties?.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>();
-            return ReadSolidFillColor(fill, themeColors);
+            return ReadSolidFillColor(fill, colorScheme);
         }
 
-        private static OfficeIMO.Drawing.OfficeColor? ReadSolidFillColor(A.SolidFill? fill, IReadOnlyDictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors) {
-            if (fill == null) {
-                return null;
-            }
-
-            return ReadColorChoice(fill.GetFirstChild<A.RgbColorModelHex>(), fill.GetFirstChild<A.SchemeColor>(), fill.GetFirstChild<A.SystemColor>(), themeColors);
-        }
-
-        private Dictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> GetThemeColors() {
-            var colors = new Dictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor>();
-            A.ColorScheme? colorScheme = _document.MainDocumentPartRoot.ThemePart?.Theme?.ThemeElements?.ColorScheme;
-            if (colorScheme == null) {
-                return colors;
-            }
-
-            AddThemeColor(colors, A.SchemeColorValues.Dark1, colorScheme.GetFirstChild<A.Dark1Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Light1, colorScheme.GetFirstChild<A.Light1Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Dark2, colorScheme.GetFirstChild<A.Dark2Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Light2, colorScheme.GetFirstChild<A.Light2Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Accent1, colorScheme.GetFirstChild<A.Accent1Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Accent2, colorScheme.GetFirstChild<A.Accent2Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Accent3, colorScheme.GetFirstChild<A.Accent3Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Accent4, colorScheme.GetFirstChild<A.Accent4Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Accent5, colorScheme.GetFirstChild<A.Accent5Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Accent6, colorScheme.GetFirstChild<A.Accent6Color>());
-            AddThemeColor(colors, A.SchemeColorValues.Hyperlink, colorScheme.GetFirstChild<A.Hyperlink>());
-            AddThemeColor(colors, A.SchemeColorValues.FollowedHyperlink, colorScheme.GetFirstChild<A.FollowedHyperlinkColor>());
-            AddThemeAlias(colors, A.SchemeColorValues.Background1, A.SchemeColorValues.Light1);
-            AddThemeAlias(colors, A.SchemeColorValues.Text1, A.SchemeColorValues.Dark1);
-            AddThemeAlias(colors, A.SchemeColorValues.Background2, A.SchemeColorValues.Light2);
-            AddThemeAlias(colors, A.SchemeColorValues.Text2, A.SchemeColorValues.Dark2);
-            return colors;
-        }
-
-        private static void AddThemeAlias(
-            Dictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> colors,
-            A.SchemeColorValues alias,
-            A.SchemeColorValues target) {
-            if (!colors.ContainsKey(alias) && colors.TryGetValue(target, out var color)) {
-                colors[alias] = color;
-            }
-        }
-
-        private static void AddThemeColor(Dictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> colors, A.SchemeColorValues key, OpenXmlElement? element) {
-            OfficeIMO.Drawing.OfficeColor? color = ReadColorChoice(
-                element?.GetFirstChild<A.RgbColorModelHex>(),
-                element?.GetFirstChild<A.SchemeColor>(),
-                element?.GetFirstChild<A.SystemColor>(),
-                colors);
-            if (color.HasValue) {
-                colors[key] = color.Value;
-            }
-        }
-
-        private static OfficeIMO.Drawing.OfficeColor? ReadColorChoice(
-            A.RgbColorModelHex? rgb,
-            A.SchemeColor? scheme,
-            A.SystemColor? system,
-            IReadOnlyDictionary<A.SchemeColorValues, OfficeIMO.Drawing.OfficeColor> themeColors) {
-            if (OfficeIMO.Drawing.OfficeColor.TryParseHex(rgb?.Val?.Value, out var directColor)) {
-                return ApplyColorTransforms(directColor, rgb!);
-            }
-
-            if (scheme?.Val?.Value != null && themeColors.TryGetValue(scheme.Val.Value, out var themeColor)) {
-                return ApplyColorTransforms(themeColor, scheme);
-            }
-
-            if (OfficeIMO.Drawing.OfficeColor.TryParseHex(system?.LastColor?.Value, out var systemColor)) {
-                return ApplyColorTransforms(systemColor, system!);
-            }
-
-            return null;
-        }
-
-        private static OfficeIMO.Drawing.OfficeColor ApplyColorTransforms(OfficeIMO.Drawing.OfficeColor color, OpenXmlElement colorElement) {
-            double red = color.R;
-            double green = color.G;
-            double blue = color.B;
-            double alpha = color.A;
-
-            foreach (OpenXmlElement transform in colorElement.ChildElements) {
-                switch (transform) {
-                    case A.LuminanceModulation luminanceModulation when luminanceModulation.Val != null:
-                        double luminanceMultiplier = ClampPercentage(luminanceModulation.Val.Value);
-                        red *= luminanceMultiplier;
-                        green *= luminanceMultiplier;
-                        blue *= luminanceMultiplier;
-                        break;
-                    case A.LuminanceOffset luminanceOffset when luminanceOffset.Val != null:
-                        double luminanceOffsetValue = 255D * ClampPercentage(luminanceOffset.Val.Value);
-                        red += luminanceOffsetValue;
-                        green += luminanceOffsetValue;
-                        blue += luminanceOffsetValue;
-                        break;
-                    case A.Tint tint when tint.Val != null:
-                        double tintAmount = ClampPercentage(tint.Val.Value);
-                        red = red + (255D - red) * tintAmount;
-                        green = green + (255D - green) * tintAmount;
-                        blue = blue + (255D - blue) * tintAmount;
-                        break;
-                    case A.Shade shade when shade.Val != null:
-                        double shadeAmount = ClampPercentage(shade.Val.Value);
-                        red *= shadeAmount;
-                        green *= shadeAmount;
-                        blue *= shadeAmount;
-                        break;
-                    case A.Alpha alphaTransform when alphaTransform.Val != null:
-                        alpha = 255D * ClampPercentage(alphaTransform.Val.Value);
-                        break;
-                    case A.AlphaModulation alphaModulation when alphaModulation.Val != null:
-                        alpha *= ClampPercentage(alphaModulation.Val.Value);
-                        break;
-                    case A.AlphaOffset alphaOffset when alphaOffset.Val != null:
-                        alpha += 255D * ClampPercentage(alphaOffset.Val.Value);
-                        break;
-                }
-            }
-
-            return OfficeIMO.Drawing.OfficeColor.FromRgba(ToByte(red), ToByte(green), ToByte(blue), ToByte(alpha));
-        }
-
-        private static double ClampPercentage(int value) {
-            if (value <= 0) {
-                return 0D;
-            }
-
-            return value >= 100000 ? 1D : value / 100000D;
-        }
-
-        private static byte ToByte(double value) {
-            if (value <= 0D) {
-                return 0;
-            }
-
-            if (value >= 255D) {
-                return 255;
-            }
-
-            return (byte)Math.Round(value, MidpointRounding.AwayFromZero);
+        private static OfficeIMO.Drawing.OfficeColor? ReadSolidFillColor(A.SolidFill? fill, A.ColorScheme? colorScheme) {
+            return OfficeOpenXmlThemeColorResolver.ResolveColor(fill, colorScheme);
         }
 
         private static IReadOnlyList<string> ReadCachedStrings(OpenXmlElement? container) {

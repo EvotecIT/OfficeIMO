@@ -39,6 +39,21 @@ public class RtfConversionReportTests {
         var report = new RtfConversionReport();
         var result = new RtfConversionResult<string>("value", report);
 
+        Assert.True(result.Succeeded);
+        Assert.False(result.HasLoss);
+        Assert.Equal("value", result.RequireValue());
         Assert.Equal("value", result.RequireNoLoss());
+    }
+
+    [Fact]
+    public void Generic_Result_Distinguishes_Errors_From_Fidelity_Loss() {
+        var report = new RtfConversionReport();
+        report.Add(RtfConversionSeverity.Warning, "Flattened", "Flattened.", RtfConversionAction.Flattened);
+        var result = new RtfConversionResult<string>("value", report);
+
+        Assert.True(result.Succeeded);
+        Assert.True(result.HasLoss);
+        Assert.Equal("value", result.RequireValue());
+        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
     }
 }

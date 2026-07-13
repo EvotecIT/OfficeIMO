@@ -129,7 +129,7 @@ public sealed class PdfConversionReportTests {
             PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Refresh source proof")),
             report);
 
-        PdfDocumentConversionResult processed = result.WithDocument(result.Document.UpdateMetadata(title: "Processed refresh source proof"));
+        PdfDocumentConversionResult processed = result.WithValue(result.Value.UpdateMetadata(title: "Processed refresh source proof"));
         report.Add(new PdfConversionWarning(
             "OfficeIMO.Tests",
             "SaveTimeWarning",
@@ -141,6 +141,24 @@ public sealed class PdfConversionReportTests {
         PdfConversionWarning warning = Assert.Single(processed.Warnings);
         Assert.Equal("SaveTimeWarning", warning.Code);
         Assert.DoesNotContain(result.Warnings, item => item.Code == "SaveTimeWarning");
+    }
+
+    [Fact]
+    public void PdfDocumentConversionResult_FailedSerializationPreservesRecordedDiagnostics() {
+        var report = new PdfConversionReport();
+        var options = new PdfOptions().ReportDiagnosticsTo(report, "OfficeIMO.Tests");
+        var result = new PdfDocumentConversionResult(
+            PdfDocument.Create(options).Paragraph(paragraph => paragraph.Text("مرحبا")),
+            report);
+
+        Assert.ThrowsAny<ArgumentException>(() => result.ToBytes());
+
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "unsupported-bidirectional-text-layout" &&
+            warning.Converter == "OfficeIMO.Tests");
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "unsupported-complex-script-shaping" &&
+            warning.Converter == "OfficeIMO.Tests");
     }
 
     [Fact]

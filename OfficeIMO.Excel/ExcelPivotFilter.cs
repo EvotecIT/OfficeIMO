@@ -313,8 +313,8 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Creates a value pivot filter using a specific Open XML pivot filter type.</summary>
         public static ExcelPivotFilter Value(string fieldName, string dataFieldName, PivotFilterValues type, double value1, double? value2 = null, string? name = null, string? description = null) {
-            string first = value1.ToString("G17", CultureInfo.InvariantCulture);
-            string? second = value2?.ToString("G17", CultureInfo.InvariantCulture);
+            string first = InvariantNumberText.Get(value1);
+            string? second = value2.HasValue ? InvariantNumberText.Get(value2.Value) : null;
             return new ExcelPivotFilter(fieldName, type, first, second, dataFieldName, name, description);
         }
 
@@ -339,7 +339,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string FormatDateFilterValue(DateTime value) {
-            return value.ToOADate().ToString("G17", CultureInfo.InvariantCulture);
+            return InvariantNumberText.Get(value.ToOADate());
         }
 
         private static bool IsFixedDateFilter(PivotFilterValues type) {
@@ -365,7 +365,7 @@ namespace OfficeIMO.Excel {
         private static ExcelPivotFilter TopBottomSum(string fieldName, string dataFieldName, double value, bool isTop, string? name, string? description) {
             if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value), "Top/bottom sum filter values must be greater than zero.");
 
-            string text = value.ToString("G17", CultureInfo.InvariantCulture);
+            string text = InvariantNumberText.Get(value);
             return new ExcelPivotFilter(fieldName, PivotFilterValues.Sum, text, null, dataFieldName, name, description, isTop, false);
         }
 

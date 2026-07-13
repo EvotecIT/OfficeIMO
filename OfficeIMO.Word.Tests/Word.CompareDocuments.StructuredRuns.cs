@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithRuns(string path, params (string Text, bool Bold)[] runs) {
             using WordDocument doc = WordDocument.Create(path);
             doc.AddParagraph("Placeholder");
-            doc.Save(false);
+            doc.Save();
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             Body body = document.MainDocumentPart!.Document.Body!;

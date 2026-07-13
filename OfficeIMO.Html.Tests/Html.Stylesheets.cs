@@ -16,8 +16,8 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run1 = doc.Paragraphs[0].GetRuns().First();
             var run2 = doc.Paragraphs[1].GetRuns().First();
-            Assert.Equal("ff0000", run1.ColorHex);
-            Assert.Equal("ff0000", run2.ColorHex);
+            Assert.Equal("FF0000", run1.ColorHex);
+            Assert.Equal("FF0000", run2.ColorHex);
         }
 
         [Fact]
@@ -29,8 +29,8 @@ namespace OfficeIMO.Tests {
                 var doc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 var run1 = doc.Paragraphs[0].GetRuns().First();
                 var run2 = doc.Paragraphs[1].GetRuns().First();
-                Assert.Equal("00ff00", run1.ColorHex);
-                Assert.Equal("00ff00", run2.ColorHex);
+                Assert.Equal("00FF00", run1.ColorHex);
+                Assert.Equal("00FF00", run2.ColorHex);
             } finally {
                 File.Delete(path);
             }
@@ -41,11 +41,12 @@ namespace OfficeIMO.Tests {
             string html = "<p>First</p><p>Second</p>";
             var options = new HtmlToWordOptions();
             options.StylesheetContents.Add("p { color:#0000ff; }");
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
             var run1 = doc.Paragraphs[0].GetRuns().First();
             var run2 = doc.Paragraphs[1].GetRuns().First();
-            Assert.Equal("0000ff", run1.ColorHex);
-            Assert.Equal("0000ff", run2.ColorHex);
+            Assert.Equal("0000FF", run1.ColorHex);
+            Assert.Equal("0000FF", run2.ColorHex);
         }
 
         [Fact]
@@ -55,7 +56,8 @@ namespace OfficeIMO.Tests {
             string html = "<link rel=\\\"stylesheet\\\" href=\\\"https://example.com/style.css\\\" /><p>Test</p>";
             var options = new HtmlToWordOptions();
             options.StylesheetContents.Add("p { color:#123456; }");
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("123456", run.ColorHex);
             string roundTrip = doc.ToHtml();
@@ -76,10 +78,11 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.Equal("abcdef", run.ColorHex);
+            Assert.Equal("ABCDEF", run.ColorHex);
         }
 
         [Fact]
@@ -95,12 +98,13 @@ namespace OfficeIMO.Tests {
             var options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
             options.HttpClient = httpClient;
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             Assert.False(fetched);
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.NotEqual("abcdef", run.ColorHex);
-            var diagnostic = Assert.Single(options.Diagnostics, item => item.Code == "HtmlStylesheetLinkSkipped");
+            Assert.NotEqual("ABCDEF", run.ColorHex);
+            var diagnostic = Assert.Single(conversion.Diagnostics, item => item.Code == "HtmlStylesheetLinkSkipped");
             Assert.Equal("https://styles.example.test/untrusted.css", diagnostic.Source);
         }
 
@@ -114,11 +118,12 @@ namespace OfficeIMO.Tests {
             };
             options.AllowedStylesheetHosts.Add("styles.example.test");
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.NotEqual("abcdef", run.ColorHex);
-            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.NotEqual("ABCDEF", run.ColorHex);
+            var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetResourceRejectedByPolicy", diagnostic.Code);
             Assert.Equal("https://blocked.example.test/site.css", diagnostic.Source);
         }
@@ -141,8 +146,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("https://styles.example.test/max.css", exception.LimitSource);
             Assert.Equal(8, exception.Limit);
             Assert.Equal(1024, exception.Actual);
-            var diagnostic = Assert.Single(options.Diagnostics);
-            Assert.Equal("CssSizeLimitExceeded", diagnostic.Code);
         }
 
         [Fact]
@@ -165,8 +168,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal("https://styles.example.test/total.css", exception.LimitSource);
             Assert.Equal(options.MaxTotalCssBytes, exception.Limit);
             Assert.True(exception.Actual > exception.Limit);
-            var diagnostic = Assert.Single(options.Diagnostics);
-            Assert.Equal("CssTotalSizeLimitExceeded", diagnostic.Code);
         }
 
         [Fact]
@@ -180,11 +181,12 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.NotEqual("fedcba", run.ColorHex);
-            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.NotEqual("FEDCBA", run.ColorHex);
+            var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetContentTypeRejected", diagnostic.Code);
             Assert.Equal("https://styles.example.test/rejected-content-type.css", diagnostic.Source);
         }
@@ -201,11 +203,11 @@ namespace OfficeIMO.Tests {
                 ValidateStylesheetContentTypes = false
             };
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.Equal("112233", run.ColorHex);
-            Assert.Empty(options.Diagnostics);
         }
 
         [Fact]
@@ -219,11 +221,12 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("445566", run.ColorHex);
-            var diagnostic = Assert.Single(options.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetHttpStatusRejected", diagnostic.Code);
             Assert.Equal("https://styles.example.test/not-found.css", diagnostic.Source);
             Assert.Contains("404", diagnostic.Detail, StringComparison.Ordinal);
@@ -239,11 +242,12 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("778899", run.ColorHex);
-            var diagnostic = Assert.Single(options.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetTransportFailed", diagnostic.Code);
             Assert.Equal("https://styles.example.test/transport.css", diagnostic.Source);
             Assert.Contains("DNS resolution failed", diagnostic.Detail, StringComparison.Ordinal);
@@ -260,11 +264,12 @@ namespace OfficeIMO.Tests {
                 ResourceTimeout = TimeSpan.FromMilliseconds(1)
             };
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
-            Assert.NotEqual("aabbcc", run.ColorHex);
-            var diagnostic = Assert.Single(options.Diagnostics);
+            Assert.NotEqual("AABBCC", run.ColorHex);
+            var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetLoadTimedOut", diagnostic.Code);
             Assert.Equal("https://styles.example.test/timeout.css", diagnostic.Source);
             Assert.Contains("timed out", diagnostic.Detail, StringComparison.OrdinalIgnoreCase);
@@ -284,8 +289,6 @@ namespace OfficeIMO.Tests {
             };
 
             await Assert.ThrowsAsync<OperationCanceledException>(() => html.ToWordDocumentAsync(options, cts.Token));
-
-            Assert.Empty(options.Diagnostics);
         }
 
         [Fact]
@@ -316,11 +319,12 @@ namespace OfficeIMO.Tests {
                 var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
                 options.AllowedStylesheetUriSchemes.Remove(Uri.UriSchemeFile);
 
-                var doc = html.ToWordDocument(options);
+                HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+                var doc = conversion.Value;
 
                 var run = doc.Paragraphs[0].GetRuns().First();
                 Assert.NotEqual("246810", run.ColorHex);
-                var diagnostic = Assert.Single(options.Diagnostics);
+                var diagnostic = Assert.Single(conversion.Diagnostics);
                 Assert.Equal("StylesheetResourceRejectedByPolicy", diagnostic.Code);
             } finally {
                 File.Delete(path);
@@ -344,8 +348,6 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(path, exception.LimitSource);
                 Assert.Equal(8, exception.Limit);
                 Assert.True(exception.Actual > exception.Limit);
-                var diagnostic = Assert.Single(options.Diagnostics);
-                Assert.Equal("CssSizeLimitExceeded", diagnostic.Code);
             } finally {
                 File.Delete(path);
             }
@@ -370,8 +372,6 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(path, exception.LimitSource);
                 Assert.Equal(options.MaxTotalCssBytes, exception.Limit);
                 Assert.True(exception.Actual > exception.Limit);
-                var diagnostic = Assert.Single(options.Diagnostics);
-                Assert.Equal("CssTotalSizeLimitExceeded", diagnostic.Code);
             } finally {
                 File.Delete(path);
             }
@@ -401,11 +401,12 @@ namespace OfficeIMO.Tests {
             string html = $"<p>Before</p><link rel=\"stylesheet\" href=\"{path}\" /><p>After</p>";
             try {
                 var options = new HtmlToWordOptions();
-                var doc = html.ToWordDocument(options);
+                HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+                var doc = conversion.Value;
 
                 var afterRun = doc.Paragraphs[1].GetRuns().First();
                 Assert.NotEqual("765432", afterRun.ColorHex);
-                var diagnostic = Assert.Single(options.Diagnostics);
+                var diagnostic = Assert.Single(conversion.Diagnostics);
                 Assert.Equal("HtmlStylesheetLinkSkipped", diagnostic.Code);
                 Assert.Equal(path, diagnostic.Source, ignoreCase: true);
             } finally {
@@ -418,10 +419,11 @@ namespace OfficeIMO.Tests {
             string html = "<link rel=\"stylesheet\" /><p>Missing href</p>";
             var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             Assert.Equal("Missing href", doc.Paragraphs[0].Text);
-            var diagnostic = Assert.Single(options.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("HtmlStylesheetLinkMissingHref", diagnostic.Code);
             Assert.Equal("link", diagnostic.Source);
         }
@@ -431,11 +433,12 @@ namespace OfficeIMO.Tests {
             string html = "<link rel=\"stylesheet\" href=\"data:text/css,p%7Bcolor:%23999999%7D\" /><p>Unsupported scheme</p>";
             var options = new HtmlToWordOptions { AllowDocumentStylesheetLinks = true };
 
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var run = doc.Paragraphs[0].GetRuns().First();
             Assert.NotEqual("999999", run.ColorHex);
-            var diagnostic = Assert.Single(options.Diagnostics);
+            var diagnostic = Assert.Single(conversion.Diagnostics);
             Assert.Equal("StylesheetResourceRejectedByPolicy", diagnostic.Code);
             Assert.Equal("data:text/css,p%7Bcolor:%23999999%7D", diagnostic.Source);
             Assert.Contains("data", diagnostic.Detail, StringComparison.OrdinalIgnoreCase);

@@ -21,7 +21,6 @@
     <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
-    <ProjectReference Include="..\OfficeIMO.Reader.Text\OfficeIMO.Reader.Text.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Yaml\OfficeIMO.Reader.Yaml.csproj" />

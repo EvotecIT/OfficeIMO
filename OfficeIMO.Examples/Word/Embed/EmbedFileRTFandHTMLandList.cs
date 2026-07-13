@@ -40,7 +40,7 @@ namespace OfficeIMO.Examples.Word {
                 document.AddEmbeddedDocument(htmlFilePath);
 
                 document.Settings.UpdateFieldsOnOpen = true;
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

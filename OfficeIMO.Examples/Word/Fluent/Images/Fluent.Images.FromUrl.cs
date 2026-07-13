@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO;
@@ -17,9 +18,9 @@ namespace OfficeIMO.Examples.Word {
                         .Size(400)
                         .Align(HorizontalAlignment.Center))
                     .End();
-                document.Save(false);
+                document.Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

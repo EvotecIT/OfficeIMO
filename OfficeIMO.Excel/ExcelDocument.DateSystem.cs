@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    cell.CellValue = new CellValue((serial + offset).ToString(CultureInfo.InvariantCulture));
+                    cell.CellValue = new CellValue(InvariantNumberText.Get(serial + offset));
                     changed = true;
                 }
 

@@ -18,12 +18,14 @@ public static partial class PowerPointPdfConverterExtensions {
     /// Converts a PowerPoint presentation to a first-party OfficeIMO PDF document model.
     /// </summary>
     public static PdfCore.PdfDocument ToPdfDocument(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
+        return presentation.ToPdfDocumentResult(options).Value;
+    }
+
+    private static PdfCore.PdfDocument ConvertToPdfDocument(PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions options) {
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));
         }
 
-        options ??= new PowerPointPdfSaveOptions();
-        options.ResetExportState();
         PdfCore.PdfOptions pdfOptions = CreatePdfOptions(presentation, options);
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
 
@@ -62,14 +64,14 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <summary>
     /// Converts a PowerPoint presentation to a PDF document and returns conversion diagnostics with it.
     /// </summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
         if (presentation == null) {
             throw new ArgumentNullException(nameof(presentation));
         }
 
-        options ??= new PowerPointPdfSaveOptions();
-        PdfCore.PdfDocument pdf = presentation.ToPdfDocument(options);
-        return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+        PowerPointPdfSaveOptions operation = (options ?? new PowerPointPdfSaveOptions()).CloneForConversion();
+        PdfCore.PdfDocument pdf = ConvertToPdfDocument(presentation, operation);
+        return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
     }
 
     /// <summary>
@@ -79,12 +81,6 @@ public static partial class PowerPointPdfConverterExtensions {
     public static byte[] ToPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
         return presentation.ToPdfDocument(options).ToBytes();
     }
-
-    /// <summary>Returns a PDF document and diagnostics. Prefer <see cref="ToPdfResult(PptCore.PowerPointPresentation, PowerPointPdfSaveOptions?)"/>.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) => presentation.ToPdfResult(options);
-
-    /// <summary>Returns PDF bytes. Prefer <see cref="ToPdf(PptCore.PowerPointPresentation, PowerPointPdfSaveOptions?)"/> for consistent in-memory naming.</summary>
-    public static byte[] SaveAsPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) => presentation.ToPdf(options);
 
     /// <summary>
     /// Saves a PowerPoint presentation as a PDF file.
@@ -98,7 +94,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// </summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this PptCore.PowerPointPresentation presentation, string path, PowerPointPdfSaveOptions? options = null) {
         try {
-            return presentation.ToPdfDocument(options).TrySave(path);
+            return presentation.ToPdfDocumentResult(options).TrySave(path);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(path, ex);
         }
@@ -116,7 +112,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// </summary>
     public static PdfCore.PdfSaveResult TrySaveAsPdf(this PptCore.PowerPointPresentation presentation, Stream stream, PowerPointPdfSaveOptions? options = null) {
         try {
-            return presentation.ToPdfDocument(options).TrySave(stream);
+            return presentation.ToPdfDocumentResult(options).TrySave(stream);
         } catch (Exception ex) {
             return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
         }
@@ -1171,12 +1167,12 @@ public static partial class PowerPointPdfConverterExtensions {
     private static void AddWarning(PowerPointPdfSaveOptions options, int slideNumber, string code, string message) {
         var warning = new PowerPointPdfExportWarning(slideNumber, code, message);
         options.Warnings.Add(warning);
-        options.ConversionReport.Add(warning.ToConversionWarning());
+        options.Report.Add(warning.ToConversionWarning());
     }
 
     private static void AddWarning(PowerPointPdfSaveOptions options, int slideNumber, string code, string message, PdfCore.PdfLayoutDiagnostic layoutDiagnostic) {
         var warning = new PowerPointPdfExportWarning(slideNumber, code, message, layoutDiagnostic);
         options.Warnings.Add(warning);
-        options.ConversionReport.Add(warning.ToConversionWarning());
+        options.Report.Add(warning.ToConversionWarning());
     }
 }

@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
                 par.FontFamily = "Tahoma";
                 par.FontSize = 20;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

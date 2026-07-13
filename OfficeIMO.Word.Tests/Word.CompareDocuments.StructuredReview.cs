@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.Comments).MarkUnresolved();
                 WordParagraph paragraph = document.AddParagraph("Tracked ");
                 paragraph.AddInsertedText("Draft", "Alice Reviewer", revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_review_target.docx");
@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.Comments).MarkResolved();
                 WordParagraph paragraph = document.AddParagraph("Tracked ");
                 paragraph.AddInsertedText("Final", "Bob Reviewer", revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -59,14 +59,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Source comment.");
                 document.AddParagraph("Tracked ").AddDeletedText("Source deletion", "Alice Reviewer", revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_review_options_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Review target").AddComment("Bob Reviewer", "BR", "Target comment.");
                 document.AddParagraph("Tracked ").AddDeletedText("Target deletion", "Bob Reviewer", revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -84,7 +84,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Source comment text.");
                 Assert.Single(document.Comments).MarkUnresolved();
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_comment_subfamilies_target.docx");
@@ -93,7 +93,7 @@ namespace OfficeIMO.Tests {
                 WordComment comment = WordComment.GetAllComments(document).Single();
                 comment.AddReply("Carol Reviewer", "CR", "Reply text.");
                 comment.MarkResolved();
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult defaultResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -117,13 +117,13 @@ namespace OfficeIMO.Tests {
             DateTime revisionDate = new DateTime(2026, 6, 28, 12, 0, 0, DateTimeKind.Utc);
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Tracked ").AddInsertedText("Draft", "Alice Reviewer", revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_revision_subfamilies_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Tracked ").AddInsertedText("Final", "Bob Reviewer", revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult defaultResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -143,14 +143,14 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_comment_inserted_before_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Stable target").AddComment("Alice Reviewer", "AR", "Keep this note.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_comment_inserted_before_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("New target").AddComment("Bob Reviewer", "BR", "Inserted note.");
                 document.AddParagraph("Stable target").AddComment("Alice Reviewer", "AR", "Keep this note.");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_comment_target_suppressed_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Stable body target").AddComment("Alice Reviewer", "AR", "Keep this note.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_comment_target_suppressed_target.docx");
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("New target").AddComment("Bob Reviewer", "BR", "Inserted note.");
                 document.AddHeadersAndFooters();
                 document.Header.Default!.AddParagraph("Stable header target").AddComment("Alice Reviewer", "AR", "Keep this note.");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
@@ -210,7 +210,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_word_authored_review_empty_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("No review metadata here.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-comments-revisions.docx"));
@@ -249,7 +249,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_word_authored_move_formatting_empty_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("No review metadata here.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-move-formatting-revisions.docx"));
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_word_authored_paragraph_section_empty_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("No review metadata here.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-paragraph-section-formatting-revisions.docx"));
@@ -340,7 +340,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_word_com_related_parts_empty_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("No related-part review metadata here.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "word-authored-related-part-revisions.docx"));
@@ -380,7 +380,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_imported_related_part_comments_empty_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("No imported related-part review metadata here.");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "ReviewRedline", "imported-related-part-comments-revisions.docx"));
@@ -597,7 +597,7 @@ namespace OfficeIMO.Tests {
                 WordParagraph headerParagraph = document.Header.Default!.AddParagraph("Header review target ");
                 headerParagraph.AddComment(author, "RV", label + " header comment.");
                 headerParagraph.AddInsertedText(label + " header revision", author, revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             ReverseImportedCommentStorageOrder(path);

@@ -18,7 +18,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
         HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Presentation;
+        using PowerPointPresentation imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
 
         Assert.Contains("data-officeimo-left=\"0\" data-officeimo-top=\"0\"", html, StringComparison.Ordinal);
@@ -50,7 +50,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
         HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Presentation;
+        using PowerPointPresentation imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
         PowerPointShape[] orderedShapes = importedSlide.Shapes.OrderBy(shape => shape.DrawingOrder).ToArray();
 

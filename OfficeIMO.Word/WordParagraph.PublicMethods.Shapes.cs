@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
         /// Add a rectangle shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
         public WordShape AddShape(double widthPt, double heightPt, OfficeIMO.Drawing.OfficeColor fillColor) {
-            return AddShape(widthPt, heightPt, fillColor.ToHexColor());
+            return AddShape(widthPt, heightPt, fillColor.ToRgbHex());
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public WordShape AddShape(ShapeType shapeType, double widthPt, double heightPt,
             OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor, double strokeWeightPt = 1, double arcSize = 0.25) {
-            return AddShape(shapeType, widthPt, heightPt, fillColor.ToHexColor(), strokeColor.ToHexColor(), strokeWeightPt, arcSize);
+            return AddShape(shapeType, widthPt, heightPt, fillColor.ToRgbHex(), strokeColor.ToRgbHex(), strokeWeightPt, arcSize);
         }
 
         /// <summary>
@@ -152,7 +152,7 @@ namespace OfficeIMO.Word {
         /// Add a line shape to the paragraph using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
         public WordLine AddLine(double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.Drawing.OfficeColor color, double strokeWeightPt = 1) {
-            return AddLine(startXPt, startYPt, endXPt, endYPt, color.ToHexColor(), strokeWeightPt);
+            return AddLine(startXPt, startYPt, endXPt, endYPt, color.ToRgbHex(), strokeWeightPt);
         }
     }
 }

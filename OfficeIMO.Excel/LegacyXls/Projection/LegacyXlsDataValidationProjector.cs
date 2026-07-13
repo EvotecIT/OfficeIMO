@@ -137,7 +137,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 return formula;
             }
 
-            return date.ToOADate().ToString("G15", CultureInfo.InvariantCulture);
+            return InvariantNumberText.Get(date.ToOADate());
         }
 
         private static DataValidation CreateOpenXmlValidation(

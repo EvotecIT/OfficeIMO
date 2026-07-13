@@ -12,6 +12,29 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointVisualProofTests {
         [Fact]
+        public void PowerPointHtmlResultsKeepSnapshotDiagnosticsScopedToEachConversion() {
+            var options = new PowerPointHtmlSaveOptions {
+                Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
+            };
+            using var firstStream = new MemoryStream();
+            using PowerPointPresentation firstPresentation = PowerPointPresentation.Create(firstStream);
+            firstPresentation.SlideSize.SetSizePoints(160, 100);
+            PowerPointSlide firstSlide = firstPresentation.AddSlide();
+            firstSlide.AddRectanglePoints(500, 500, 20, 20, "Outside slide bounds");
+
+            PowerPointToHtmlResult first = firstPresentation.ToHtmlResult(options);
+            Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "unsupported-powerpoint-shape");
+
+            using var secondStream = new MemoryStream();
+            using PowerPointPresentation secondPresentation = PowerPointPresentation.Create(secondStream);
+            secondPresentation.AddSlide().AddTextBoxPoints("Clean snapshot", 20, 20, 120, 30);
+            PowerPointToHtmlResult second = secondPresentation.ToHtmlResult(options);
+
+            Assert.Empty(second.ImageDiagnostics);
+            Assert.Contains(first.ImageDiagnostics, diagnostic => diagnostic.Code == "unsupported-powerpoint-shape");
+        }
+
+        [Fact]
         public void SharedSnapshotFeedsImageHtmlAndFaithfulPdfEvidence() {
             string presentationPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
             try {
@@ -42,20 +65,22 @@ namespace OfficeIMO.Tests {
                     var htmlOptions = new PowerPointHtmlSaveOptions {
                         Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
                     };
-                    string html = presentation.ToHtml(htmlOptions);
+                    PowerPointToHtmlResult htmlResult = presentation.ToHtmlResult(htmlOptions);
+                    string html = htmlResult.Value;
                     Assert.Contains("officeimo-shared-slide-snapshot", html, StringComparison.Ordinal);
                     Assert.Contains("data-officeimo-visual-owner=\"OfficeIMO.Drawing\"", html, StringComparison.Ordinal);
                     Assert.Contains("<svg", html, StringComparison.OrdinalIgnoreCase);
                     report.RecordArtifact("proof.html", "text/html", Encoding.UTF8.GetBytes(html),
-                        htmlOptions.SnapshotDiagnostics.Count);
+                        htmlResult.ImageDiagnostics.Count);
 
                     var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
                     Assert.True(pdfOptions.UseSharedVisualSnapshot);
-                    byte[] pdf = presentation.ToPdf(pdfOptions);
+                    PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
+                    byte[] pdf = pdfResult.ToBytes();
                     Assert.True(pdf.Length > 100);
-                    Assert.DoesNotContain(pdfOptions.Warnings,
+                    Assert.DoesNotContain(pdfResult.Warnings,
                         warning => warning.Code == "snapshot-selective-fallback");
-                    report.RecordArtifact("proof.pdf", "application/pdf", pdf, pdfOptions.Warnings.Count);
+                    report.RecordArtifact("proof.pdf", "application/pdf", pdf, pdfResult.Warnings.Count);
                 }
 
                 report.RecordArtifact("proof.pptx",
@@ -83,7 +108,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void VisualReviewSharedSnapshotHonorsTableSuppression() {
             using var stream = new MemoryStream();
-            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointStreamCreateOptions { AutoSave = false });
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream, new PowerPointCreateOptions());
             PowerPointTable table = presentation.AddSlide().AddTablePoints(1, 1, 30, 40, 180, 45);
             table.GetCell(0, 0).Text = "FILTERED REVIEW TABLE";
 
@@ -103,7 +128,7 @@ namespace OfficeIMO.Tests {
                 "PowerPointWithTablesAndCharts.pptx");
             Assert.True(File.Exists(fixture), "Expected sanitized PowerPoint-authored fixture was not found.");
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Open(fixture, PowerPointOpenMode.ReadOnly);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(fixture, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             PowerPointVisualProofReport report = presentation.CreateVisualProofReport("powerpoint-authored-import");
 
             Assert.NotEmpty(report.Slides);

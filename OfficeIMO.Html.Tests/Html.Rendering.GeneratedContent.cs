@@ -163,7 +163,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("Generated", svg, StringComparison.Ordinal);
         Assert.Contains("BackendMarker", svg, StringComparison.Ordinal);
         Assert.Contains("GeneratedBackendMarker", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

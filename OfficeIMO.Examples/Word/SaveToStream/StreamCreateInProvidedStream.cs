@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -25,7 +26,7 @@ namespace OfficeIMO.Examples.Word {
                 stream.Position = 0;
                 stream.CopyTo(file);
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
 
         /// <summary>
@@ -42,7 +43,7 @@ namespace OfficeIMO.Examples.Word {
                     document.Save(fs);
                 }
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

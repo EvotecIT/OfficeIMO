@@ -113,7 +113,7 @@ namespace OfficeIMO.Examples.Excel {
                     .AutoFit(columns: true, rows: false))
                 .End();
 
-            document.Save(openExcel);
+            document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
         }
     }
 }

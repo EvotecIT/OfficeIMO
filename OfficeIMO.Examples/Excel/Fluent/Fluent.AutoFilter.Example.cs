@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Excel {
                         .Table(t => t.Add("A1:C4", true, "DataTable"))  // AutoFilter included by default
                     )
                     .End()
-                    .Save(false);
+                    .Save();
                 
                 Console.WriteLine("[✓] Created table with AutoFilter");
             }
@@ -44,7 +44,7 @@ namespace OfficeIMO.Examples.Excel {
                         )
                     )
                     .End()
-                    .Save(false);
+                    .Save();
                 
                 Console.WriteLine("[✓] Created table without AutoFilter");
             }
@@ -63,7 +63,7 @@ namespace OfficeIMO.Examples.Excel {
                         .AutoFilter("A1:C4")  // Worksheet-level AutoFilter
                     )
                     .End()
-                    .Save(false);
+                    .Save();
                 
                 Console.WriteLine("[✓] Created worksheet with AutoFilter (no table)");
             }
@@ -85,7 +85,7 @@ namespace OfficeIMO.Examples.Excel {
                         .AutoFilter("A1:C4")  // Should detect table and add filter to it
                     )
                     .End()
-                    .Save(false);
+                    .Save();
                 
                 Console.WriteLine("[✓] Table first, then AutoFilter - filter added to table");
             }
@@ -107,12 +107,12 @@ namespace OfficeIMO.Examples.Excel {
                         )
                     )
                     .End()
-                    .Save(false);
+                    .Save();
                 
                 Console.WriteLine("[✓] AutoFilter first, then Table - filter migrated to table");
                 
                 if (openExcel) {
-                    document5.Open();
+                    document5.OpenInApplication();
                 }
             }
         }

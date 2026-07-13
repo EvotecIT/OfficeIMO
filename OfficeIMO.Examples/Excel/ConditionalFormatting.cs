@@ -9,12 +9,12 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "Conditional Formatting.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellValue(2, 1, 20d);
                 sheet.CellValue(3, 1, 30d);
                 sheet.AddConditionalColorScale("A1:A3", Color.Red, Color.Green);
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

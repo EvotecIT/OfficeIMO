@@ -352,7 +352,8 @@ public sealed class ReaderDetectionTests {
         public override bool CanWrite => true;
         public override long Length => throw new NotSupportedException();
         public override long Position {
-            get => throw new NotSupportedException();
+            // .NET Framework's streaming ZipArchive reads the forward write position even when CanSeek is false.
+            get => _inner.Position;
             set => throw new NotSupportedException();
         }
 

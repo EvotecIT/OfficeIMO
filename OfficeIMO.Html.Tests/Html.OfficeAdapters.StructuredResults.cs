@@ -19,15 +19,17 @@ public class HtmlOfficeAdaptersStructuredResults {
             """);
 
         HtmlToExcelResult excelResult = excelSource.ToExcelDocumentResult();
-        using OfficeIMO.Excel.ExcelDocument workbook = excelResult.Workbook;
+        using OfficeIMO.Excel.ExcelDocument workbook = excelResult.Value;
         HtmlToPowerPointResult powerPointResult = powerPointSource.ToPowerPointPresentationResult();
-        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPointResult.Presentation;
+        using OfficeIMO.PowerPoint.PowerPointPresentation presentation = powerPointResult.Value;
 
         Assert.True(excelResult.Succeeded);
         Assert.True(powerPointResult.Succeeded);
         Assert.True(Assert.Single(workbook.Sheets).TryGetCellValueSnapshot(1, 1, out ExcelCellValueSnapshot? value));
         Assert.Equal("42", value!.Text);
         Assert.Contains(Assert.Single(presentation.Slides).TextBoxes, textBox => textBox.Text == "Prepared slide");
+        Assert.Throws<InvalidOperationException>(() => workbook.Save());
+        Assert.Throws<InvalidOperationException>(() => presentation.Save());
     }
 
     [Fact]

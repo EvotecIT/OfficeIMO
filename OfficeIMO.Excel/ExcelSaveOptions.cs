@@ -1,7 +1,7 @@
 namespace OfficeIMO.Excel {
     /// <summary>
-    /// Optional behaviors applied during <see cref="ExcelDocument.Save(string, bool, ExcelSaveOptions?)"/> and
-    /// <see cref="ExcelDocument.SaveAsync(string, bool, ExcelSaveOptions?, System.Threading.CancellationToken)"/> to strengthen
+    /// Optional behaviors applied during <see cref="ExcelDocument.Save(string, ExcelSaveOptions?)"/> and
+    /// <see cref="ExcelDocument.SaveAsync(string, ExcelSaveOptions?, System.Threading.CancellationToken)"/> to strengthen
     /// robustness and CI validation.
     /// </summary>
     public sealed class ExcelSaveOptions {

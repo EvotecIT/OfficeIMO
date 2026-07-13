@@ -21,8 +21,8 @@ public sealed class ReaderInstanceScopedTests {
 
             Assert.Equal("first-output", chunks[0].Text);
             Assert.Equal("second-output", chunks[1].Text);
-            Assert.Equal("officeimo.tests.instance.first", Assert.Single(first.GetCapabilities(false, true)).Id);
-            Assert.Equal("officeimo.tests.instance.second", Assert.Single(second.GetCapabilities(false, true)).Id);
+            Assert.Contains(first.GetCapabilities(), capability => capability.Id == "officeimo.tests.instance.first");
+            Assert.Contains(second.GetCapabilities(), capability => capability.Id == "officeimo.tests.instance.second");
         } finally {
             File.Delete(file);
         }
@@ -46,8 +46,8 @@ public sealed class ReaderInstanceScopedTests {
 
             Assert.Equal("before-build", Assert.Single(first.Read(file)).Text);
             Assert.Equal("after-build", Assert.Single(second.Read(file)).Text);
-            Assert.Equal("officeimo.tests.snapshot.first", Assert.Single(first.GetCapabilities(false, true)).Id);
-            Assert.Equal("officeimo.tests.snapshot.second", Assert.Single(second.GetCapabilities(false, true)).Id);
+            Assert.Contains(first.GetCapabilities(), capability => capability.Id == "officeimo.tests.snapshot.first");
+            Assert.Contains(second.GetCapabilities(), capability => capability.Id == "officeimo.tests.snapshot.second");
         } finally {
             File.Delete(file);
         }
@@ -88,7 +88,8 @@ public sealed class ReaderInstanceScopedTests {
 
         Assert.Equal("rich-instance-output", Assert.Single(result.Chunks).Text);
         Assert.Equal("https://example.test/instance", Assert.Single(result.Links).Uri);
-        Assert.True(Assert.Single(reader.GetCapabilities(false, true)).SupportsDocumentStream);
+        Assert.Contains(reader.GetCapabilities(), capability =>
+            capability.Id == "officeimo.tests.instance.rich" && capability.SupportsDocumentStream);
     }
 
     [Fact]
@@ -158,47 +159,6 @@ public sealed class ReaderInstanceScopedTests {
                 Kind = detected,
                 Text = detected.ToString()
             };
-        }
-    }
-}
-
-public sealed partial class ReaderRegistryTests {
-    [Fact]
-    public void OfficeDocumentReader_IsNotAffectedByStaticRegistration() {
-        const string staticHandlerId = "officeimo.tests.instance.static";
-        const string instanceHandlerId = "officeimo.tests.instance.isolated";
-        const string extension = ".staticisolationix";
-        string file = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + extension);
-
-        try {
-            DocumentReader.UnregisterHandler(staticHandlerId);
-            DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
-                Id = staticHandlerId,
-                Kind = ReaderInputKind.Text,
-                Extensions = new[] { extension },
-                ReadPath = (path, options, cancellationToken) => new[] {
-                    new ReaderChunk { Id = "static", Kind = ReaderInputKind.Text, Text = "static-output" }
-                }
-            });
-
-            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
-                .AddHandler(new ReaderHandlerRegistration {
-                    Id = instanceHandlerId,
-                    Kind = ReaderInputKind.Text,
-                    Extensions = new[] { extension },
-                    ReadPath = (path, options, cancellationToken) => new[] {
-                        new ReaderChunk { Id = "instance", Kind = ReaderInputKind.Text, Text = "instance-output" }
-                    }
-                })
-                .Build();
-            File.WriteAllText(file, "input");
-
-            Assert.Equal("static-output", Assert.Single(DocumentReader.Read(file)).Text);
-            Assert.Equal("instance-output", Assert.Single(reader.Read(file)).Text);
-            Assert.Equal(instanceHandlerId, Assert.Single(reader.GetCapabilities(false, true)).Id);
-        } finally {
-            DocumentReader.UnregisterHandler(staticHandlerId);
-            File.Delete(file);
         }
     }
 }

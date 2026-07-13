@@ -84,7 +84,7 @@ internal static class MarkdownObjectTreeBinder {
                 yield break;
 
             case ListItem listItem:
-                var listItemBlocks = listItem.BlockChildren;
+                var listItemBlocks = listItem.ChildBlocks;
                 for (int i = 0; i < listItemBlocks.Count; i++) {
                     if (listItemBlocks[i] is MarkdownObject listItemChild) {
                         yield return listItemChild;

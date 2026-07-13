@@ -168,7 +168,7 @@ namespace OfficeIMO.Examples.Word {
                 SetCellText(table5, 2, 1, $"Style: {leftBorderProps.Style}");
                 SetCellText(table5, 2, 2, $"Size: {rightBorderProps.Size}");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
 
                 static void SetCellText(WordTable table, int rowIndex, int columnIndex, string text) {
                     var row = Guard.GetRequiredItem(table.Rows, rowIndex, $"Table must contain row index {rowIndex}.");

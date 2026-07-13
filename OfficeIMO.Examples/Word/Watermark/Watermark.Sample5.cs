@@ -45,7 +45,7 @@ namespace OfficeIMO.Examples.Word {
                 watermark = document.Sections[4].AddWatermark(WordWatermarkStyle.Text, "Cyan");
                 watermark.ColorHex = "#00ffff";
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

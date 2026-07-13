@@ -5,7 +5,7 @@ namespace OfficeIMO.Excel.Pdf {
     public static partial class ExcelPdfConverterExtensions {
         private static PdfCore.PdfOptions CreatePdfOptions(ExcelPdfSaveOptions options, out bool preserveConfiguredFontSlots) {
             PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
-            pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.Excel.Pdf");
+            pdfOptions.ReportDiagnosticsTo(options.Report, "OfficeIMO.Excel.Pdf");
 
             pdfOptions.CreateOutlineFromHeadings = true;
             preserveConfiguredFontSlots = options.PdfOptions != null;

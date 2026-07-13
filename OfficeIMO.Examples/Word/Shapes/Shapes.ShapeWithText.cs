@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "ShapeWithText.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddShape(ShapeType.Ellipse, 40, 40, Color.Red, Color.Blue);
-                document.Save(false);
+                document.Save();
             }
             using (WordprocessingDocument word = WordprocessingDocument.Open(filePath, true)) {
                 var oval = word.MainDocumentPart?.Document?.Body?.Descendants<V.Oval>().FirstOrDefault()
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Shapes count: {document.Shapes.Count}");
                 Console.WriteLine($"TextBoxes count: {document.TextBoxes.Count}");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

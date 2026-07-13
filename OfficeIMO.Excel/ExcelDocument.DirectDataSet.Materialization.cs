@@ -164,7 +164,7 @@ namespace OfficeIMO.Excel {
         private void MaterializeDirectDataSetModel(DirectDataSetWorkbookModel model) {
             foreach (var sheetModel in model.Sheets) {
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
-                    ?? AddWorkSheet(sheetModel.SheetName, SheetNameValidationMode.Strict);
+                    ?? AddWorksheet(sheetModel.SheetName, SheetNameValidationMode.Strict);
                 if (sheetModel.Range.Length == 0) {
                     continue;
                 }

@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(8, updated);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -127,7 +127,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(8, updated);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("High", document.GetDropDownListByTag("Priority")!.SelectedValue);
                 Assert.Equal("Teams", document.GetComboBoxByTag("ContactMethod")!.SelectedValue);
                 Assert.Equal("Imported rich-text notes", document.GetStructuredDocumentTagByTag("Notes")!.Text);
-                Assert.Equal(File.ReadAllBytes(replacementImagePath), document.GetPictureControlByTag("Logo")!.Image!.GetBytes());
+                Assert.Equal(File.ReadAllBytes(replacementImagePath), document.GetPictureControlByTag("Logo")!.Image!.ToBytes());
                 Assert.Equal("REF-2026-001", document.GetStructuredDocumentTagByTag("ReferenceCode")!.Text);
             }
 
@@ -269,7 +269,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Logo:").AddPictureControl(originalImagePath, 24, 24, "Logo Alias", "Logo");
-                originalBytes = document.GetPictureControlByTag("Logo")!.Image!.GetBytes();
+                originalBytes = document.GetPictureControlByTag("Logo")!.Image!.ToBytes();
 
                 WordContentControlFormValidationResult validation = document.ValidateContentControlValues(new Dictionary<string, object?> {
                     ["Logo"] = replacementImagePath
@@ -283,14 +283,14 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(0, updated);
-                Assert.Equal(originalBytes, document.GetPictureControlByTag("Logo")!.Image!.GetBytes());
+                Assert.Equal(originalBytes, document.GetPictureControlByTag("Logo")!.Image!.ToBytes());
 
                 int trustedUpdated = document.FillContentControlValues(new Dictionary<string, object?> {
                     ["Logo"] = WordContentControlPictureValue.FromFile(replacementImagePath)
                 });
 
                 Assert.Equal(1, trustedUpdated);
-                Assert.Equal(File.ReadAllBytes(replacementImagePath), document.GetPictureControlByTag("Logo")!.Image!.GetBytes());
+                Assert.Equal(File.ReadAllBytes(replacementImagePath), document.GetPictureControlByTag("Logo")!.Image!.ToBytes());
             }
         }
 

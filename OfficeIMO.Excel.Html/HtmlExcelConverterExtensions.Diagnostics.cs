@@ -13,6 +13,6 @@ public static partial class HtmlExcelConverterExtensions {
         HtmlConversionLossKind lossKind = HtmlConversionLossKind.None,
         string? source = null,
         string? detail = null) {
-        result.Diagnostics.Add(ImportComponentName, code, message, severity, source, detail, lossKind);
+        result.AddImportDiagnostic(new HtmlDiagnostic(ImportComponentName, code, message, severity, source, detail, lossKind));
     }
 }

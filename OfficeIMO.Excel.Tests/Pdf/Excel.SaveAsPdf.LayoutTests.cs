@@ -35,9 +35,9 @@ public partial class Excel {
             Assert.True(columns[1].CustomWidth);
             Assert.Equal((uint)50, sheet.GetPageSetup().Scale);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -78,9 +78,9 @@ public partial class Excel {
             Assert.Equal(60, row.Height);
             Assert.True(row.CustomHeight);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(260, 260),
@@ -126,9 +126,9 @@ public partial class Excel {
             Assert.Equal(2, row.Index);
             Assert.True(row.Hidden);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(320, 220),
@@ -165,9 +165,9 @@ public partial class Excel {
             Assert.Equal(1, mergedRange.EndRow);
             Assert.Equal(2, mergedRange.EndColumn);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),

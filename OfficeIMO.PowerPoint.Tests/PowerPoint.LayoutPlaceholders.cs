@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                     Assert.Contains(PlaceholderValues.SlideNumber, placeholderTypes);
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides[0];
 
                     Assert.NotNull(slide.GetLayoutPlaceholder(PlaceholderValues.Footer, 10U));

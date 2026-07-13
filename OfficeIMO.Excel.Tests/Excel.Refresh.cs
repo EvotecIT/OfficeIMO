@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             const string connectionXml = "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\"><connection id=\"1\" name=\"SalesConnection\" type=\"5\" refreshedVersion=\"7\"/></connections>";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "East");
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(result.Enabled);
                 Assert.Equal(1, result.PivotCacheCount);
                 Assert.Equal(1, result.ConnectionCount);
-                document.Save(false);
+                document.Save();
             }
 
             using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, false)) {
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelRefreshOnOpen.TypedConnections.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data");
+                document.AddWorksheet("Data");
                 document.Save();
             }
 

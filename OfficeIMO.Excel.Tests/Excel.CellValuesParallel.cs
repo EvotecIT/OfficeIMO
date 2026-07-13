@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelStrings.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
 
                 var col1 = Enumerable.Range(1, 500).Select(i => (i, 1, (object)$"R{i}C1"));
                 var col2 = Enumerable.Range(1, 500).Select(i => (i, 2, (object)$"R{i}C2"));
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelMixedTypes.xlsx");
             Guid guid = Guid.NewGuid();
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 var uri = new Uri("https://example.com");
                 var cells = new (int, int, object)[] {
                     (1, 1, (object)guid),
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesNull.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
 
                 Assert.Throws<ArgumentNullException>(() => sheet.CellValues(null!));
             }
@@ -128,7 +128,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelPreserveDefaultStyle.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 var workbookPart = document._spreadSheetDocument.WorkbookPart!;
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 stylesPart.Stylesheet = new Stylesheet(
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelPreserveTemplateColumnStyle.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 var workbookPart = document._spreadSheetDocument.WorkbookPart!;
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 stylesPart.Stylesheet = new Stylesheet(
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelPlainCellsNoLastRowStyle.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 var workbookPart = document._spreadSheetDocument.WorkbookPart!;
                 var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
                 stylesPart.Stylesheet = new Stylesheet(
@@ -287,7 +287,7 @@ namespace OfficeIMO.Tests {
             string sanitizedGamma = "GammaDelta";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 var cells = new (int, int, object)[] {
                     (1, 1, (object)rawAlpha),
                     (1, 2, (object)rawGamma),
@@ -331,7 +331,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "TooLongString.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 string longText = new string('a', 32768);
                 Assert.Throws<ArgumentException>(() => sheet.CellValue(1, 1, longText));
             }
@@ -344,7 +344,7 @@ namespace OfficeIMO.Tests {
             var duration = new TimeSpan(1, 2, 3, 4);
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     var cells = new (int Row, int Column, object Value)[] {
                         (1, 1, date),
                         (2, 1, duration)

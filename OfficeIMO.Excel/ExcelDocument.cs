@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
@@ -38,6 +39,7 @@ namespace OfficeIMO.Excel {
         private List<ExcelSheet>? _cachedSheets;
         private bool _sheetCacheDirty = true;
         private bool _customDocumentPropertiesDirty;
+        private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
 
         /// <summary>
         /// Enables caching of <see cref="ExcelSheet"/> wrappers for faster repeat access at the cost of higher memory usage.
@@ -351,7 +353,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Diagnostics for the most recent save operation.
         /// </summary>
-        public ExcelSaveDiagnostics LastSaveDiagnostics { get; private set; } = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
+        internal ExcelSaveDiagnostics LastSaveDiagnostics { get; private set; } = ExcelSaveDiagnostics.Standard("Workbook has not been saved yet.");
 
         private const int StreamCopyBufferSize = 81920;
 
@@ -409,15 +411,8 @@ namespace OfficeIMO.Excel {
 
         internal bool IsMaterializingDeferredDataSetImport => _materializingDeferredDataSetImport;
 
-        internal bool CanWriteDirectDataSetPackageOnDispose
-            => _copyPackageToSourceOnDispose
-               && _sourceStream != null
-               && _spreadSheetDocument != null
-               && !_spreadSheetDocument.AutoSave;
-
         internal bool CanDeferDirectCellValuesAppendCandidate
-            => _spreadSheetDocument != null
-               && !_spreadSheetDocument.AutoSave;
+            => _spreadSheetDocument != null && _sourceStream != null;
 
         internal bool IsPreservingDirectDataSetExternalCellMutation
             => _directDataSetExternalCellMutationPreservationDepth > 0;

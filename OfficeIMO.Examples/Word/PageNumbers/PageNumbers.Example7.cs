@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
                 var pageNumber = document.FooterDefaultOrCreate.AddPageNumber(WordPageNumberStyle.PlainNumber);
                 pageNumber.AppendText(" of ");
                 pageNumber.Paragraph.AddField(WordFieldType.NumPages);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

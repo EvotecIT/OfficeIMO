@@ -39,10 +39,10 @@ using OfficeIMO.Markdown.Pdf;
     .SaveAsPdfFromMarkdown("hello.pdf");
 ```
 
-File-based conversion uses explicit converter methods so a string path is not confused with Markdown text:
+File-based conversion uses source-explicit fluent methods so a string path is not confused with Markdown text:
 
 ```csharp
-MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf");
+"README.md".SaveAsPdfFromMarkdownFile("README.pdf");
 ```
 
 ## Examples
@@ -78,7 +78,7 @@ tags:
 
 markdown.SaveAsPdfFromMarkdown("incident-review.pdf", new MarkdownPdfSaveOptions {
     UseFrontMatterMetadata = true,
-    UseFrontMatterVisualTheme = true,
+    UseFrontMatterTheme = true,
     FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.DocumentHeader
 });
 ```
@@ -94,10 +94,10 @@ var options = new MarkdownPdfSaveOptions {
     IncludeLocalImages = true,
     DefaultImageWidth = 420,
     DefaultImageHeight = 240,
-    VisualTheme = MarkdownPdfVisualTheme.Report()
+    PdfTheme = MarkdownPdfVisualTheme.Report()
 };
 
-MarkdownPdfConverter.SaveFileAsPdf("Docs/status.md", "Artifacts/status.pdf", options);
+"Docs/status.md".SaveAsPdfFromMarkdownFile("Artifacts/status.pdf", options);
 ```
 
 ### Reuse one visual theme across HTML, PDF, and Word
@@ -118,11 +118,11 @@ MarkdownVisualTheme theme = MarkdownVisualTheme.Report()
 
 MarkdownDoc document = MarkdownReader.Parse(markdown);
 
-document.SaveAsHtml("report.html", new HtmlOptions { VisualTheme = theme });
+document.SaveAsHtml("report.html", new HtmlOptions { Theme = theme });
 document.SaveAsPdf("report.pdf", new MarkdownPdfSaveOptions { Theme = theme });
 
 using var word = document.ToWordDocument(new MarkdownToWordOptions { Theme = theme });
-word.SaveAs("report.docx");
+word.Save("report.docx");
 ```
 
 ### Write to bytes or streams
@@ -152,18 +152,18 @@ var options = new MarkdownPdfSaveOptions {
 options.TextFallbacks = PdfTextFallbackFeatures.Default;
 options.AllowSystemFontEmbedding = true;
 
-var result = MarkdownPdfConverter.TrySaveFileAsPdf("README.md", "README.pdf", options);
+var result = "README.md".TrySaveAsPdfFromMarkdownFile("README.pdf", options);
 if (!result.Succeeded) {
     foreach (string diagnostic in result.Diagnostics) {
         Console.WriteLine(diagnostic);
     }
 }
 
-foreach (var warning in options.ConversionReport.Warnings) {
+foreach (var warning in result.Warnings) {
     Console.WriteLine($"{warning.Source}: {warning.Message}");
 }
 
-options.ConversionReport.RequireNoErrorWarnings();
+result.Report.RequireNoErrorWarnings();
 ```
 
 ## What it maps
@@ -173,16 +173,16 @@ options.ConversionReport.RequireNoErrorWarnings();
 - Paragraphs, rich inline formatting, links, lists, task lists, tables, code blocks, semantic fenced blocks, callouts, details, definition lists, block quotes, footnotes, and generated table-of-contents blocks.
 - Visual themes for readable document rhythm, page treatment, links, code blocks, panels, tables, and checklist rows.
 - Profile presets through `MarkdownPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
-- Conversion warnings through `MarkdownPdfSaveOptions.Warnings` and `MarkdownPdfSaveOptions.ConversionReport`.
+- Per-operation conversion warnings through `PdfDocumentConversionResult.Report` or `PdfSaveResult.Report`.
 
 ## Visual themes
 
 ```csharp
 var options = new MarkdownPdfSaveOptions {
-    VisualTheme = MarkdownPdfVisualTheme.TechnicalDocument()
+    PdfTheme = MarkdownPdfVisualTheme.TechnicalDocument()
 };
 
-MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf", options);
+"README.md".SaveAsPdfFromMarkdownFile("README.pdf", options);
 ```
 
 Built-in themes include `Plain`, `WordLike`, `TechnicalDocument`, `GitHubLike`, `Compact`, and `Report`. Front matter can select a theme with `pdfTheme` or `pdf-theme`.

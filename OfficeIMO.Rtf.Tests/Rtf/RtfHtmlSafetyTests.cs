@@ -14,15 +14,16 @@ public class RtfHtmlSafetyTests {
         document.AddParagraph().AddText("Visible link").SetHyperlink(new Uri(target, UriKind.RelativeOrAbsolute));
 
         var options = new RtfToHtmlOptions();
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.Equal("<p>Visible link</p>", html);
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
         Assert.Equal("RtfHtmlHyperlinkRejected", diagnostic.Code);
         Assert.Equal("run.Hyperlink", diagnostic.Source);
-        RtfConversionDiagnostic shared = Assert.Single(options.ConversionReport.Diagnostics);
+        RtfConversionDiagnostic shared = Assert.Single(result.Report.Diagnostics);
         Assert.Equal(RtfConversionAction.Blocked, shared.Action);
-        Assert.Throws<RtfConversionLossException>(() => options.ConversionReport.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
     }
 
     [Fact]
@@ -32,10 +33,11 @@ public class RtfHtmlSafetyTests {
         field.AddText("Visible field result");
 
         var options = new RtfToHtmlOptions();
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.Equal("<p><span>Visible field result</span></p>", html);
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
         Assert.Equal("RtfHtmlFieldHyperlinkRejected", diagnostic.Code);
         Assert.Equal("field.Hyperlink", diagnostic.Source);
     }
@@ -48,12 +50,13 @@ public class RtfHtmlSafetyTests {
         rtfObject.Result.AddText("Attachment").SetBold();
 
         var options = new RtfToHtmlOptions();
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.Equal("<p><span class=\"rtf-object-result\"><strong>Attachment</strong></span></p>", html);
         Assert.DoesNotContain("data-officeimo-rtf-", html, StringComparison.Ordinal);
         Assert.DoesNotContain("AQIDBA==", html, StringComparison.Ordinal);
-        Assert.Equal("RtfHtmlObjectMetadataOmitted", Assert.Single(options.Diagnostics).Code);
+        Assert.Equal("RtfHtmlObjectMetadataOmitted", Assert.Single(result.RtfDiagnostics).Code);
     }
 
     [Fact]
@@ -64,10 +67,11 @@ public class RtfHtmlSafetyTests {
             ImageSourceResolver = _ => "https://cdn.example.test/image.png"
         };
 
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.Equal("<img src=\"https://cdn.example.test/image.png\">", html);
-        Assert.Empty(options.Diagnostics);
+        Assert.Empty(result.RtfDiagnostics);
     }
 
     [Fact]
@@ -78,10 +82,11 @@ public class RtfHtmlSafetyTests {
             ImageSourceResolver = _ => "file:///C:/private/image.png"
         };
 
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.Empty(html);
-        Assert.Collection(options.Diagnostics,
+        Assert.Collection(result.RtfDiagnostics,
             diagnostic => Assert.Equal("RtfHtmlImageSourceRejected", diagnostic.Code),
             diagnostic => Assert.Equal("RtfHtmlImageEmbeddingDisabled", diagnostic.Code));
     }
@@ -93,10 +98,11 @@ public class RtfHtmlSafetyTests {
         var options = RtfToHtmlOptions.CreateRoundTripProfile();
         options.MaxEmbeddedImageBytes = 3;
 
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.Empty(html);
-        Assert.Equal("RtfHtmlImageEmbeddingLimitExceeded", Assert.Single(options.Diagnostics).Code);
+        Assert.Equal("RtfHtmlImageEmbeddingLimitExceeded", Assert.Single(result.RtfDiagnostics).Code);
     }
 
     [Fact]

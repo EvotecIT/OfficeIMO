@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Word {
             var radarChart = document.AddChart("Radar chart");
             radarChart.AddCategories(categories);
             radarChart.AddRadar("USA", new List<int> { 1, 5, 3, 2 }, Color.Blue);
-            document.Save(false);
+            document.Save();
 
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

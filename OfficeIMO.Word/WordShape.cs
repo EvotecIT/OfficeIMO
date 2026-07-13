@@ -238,7 +238,7 @@ namespace OfficeIMO.Word {
         /// Adds an ellipse shape using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
         public static WordShape AddEllipse(WordParagraph paragraph, double widthPt, double heightPt, OfficeIMO.Drawing.OfficeColor fillColor) {
-            return AddEllipse(paragraph, widthPt, heightPt, fillColor.ToHexColor());
+            return AddEllipse(paragraph, widthPt, heightPt, fillColor.ToRgbHex());
         }
 
         /// <summary>
@@ -293,7 +293,7 @@ namespace OfficeIMO.Word {
         /// Adds a line shape using <see cref="OfficeIMO.Drawing.OfficeColor"/>.
         /// </summary>
         public static WordShape AddLine(WordParagraph paragraph, double startXPt, double startYPt, double endXPt, double endYPt, OfficeIMO.Drawing.OfficeColor color, double strokeWeightPt = 1) {
-            return AddLine(paragraph, startXPt, startYPt, endXPt, endYPt, color.ToHexColor(), strokeWeightPt);
+            return AddLine(paragraph, startXPt, startYPt, endXPt, endYPt, color.ToRgbHex(), strokeWeightPt);
         }
 
         /// <summary>
@@ -323,7 +323,7 @@ namespace OfficeIMO.Word {
         /// Adds a polygon shape using <see cref="OfficeIMO.Drawing.OfficeColor"/> values.
         /// </summary>
         public static WordShape AddPolygon(WordParagraph paragraph, string points, OfficeIMO.Drawing.OfficeColor fillColor, OfficeIMO.Drawing.OfficeColor strokeColor) {
-            return AddPolygon(paragraph, points, fillColor.ToHexColor(), strokeColor.ToHexColor());
+            return AddPolygon(paragraph, points, fillColor.ToRgbHex(), strokeColor.ToRgbHex());
         }
 
         /// <summary>
@@ -431,7 +431,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(v)) return string.Empty;
             var s = v!.Trim();
             if (s.StartsWith("#", StringComparison.Ordinal)) s = s.Substring(1);
-            return s.ToLowerInvariant();
+            return s.ToUpperInvariant();
         }
 
         /// <summary>
@@ -497,7 +497,7 @@ namespace OfficeIMO.Word {
                 if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
                 return OfficeIMO.Drawing.OfficeColor.Parse(hex);
             }
-            set => FillColorHex = value.ToHexColor();
+            set => FillColorHex = value.ToRgbHex();
         }
 
         /// <summary>
@@ -654,7 +654,7 @@ namespace OfficeIMO.Word {
                 if (!s.StartsWith("#", StringComparison.Ordinal)) s = "#" + s;
                 return OfficeIMO.Drawing.OfficeColor.Parse(s);
             }
-            set => StrokeColorHex = value.ToHexColor();
+            set => StrokeColorHex = value.ToRgbHex();
         }
 
         /// <summary>

@@ -78,7 +78,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     Assert.Equal(4, presentation.Slides.Count);
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     Assert.Single(presentation.Slides);
                     Assert.Contains(presentation.Slides[0].TextBoxes,
                         textBox => textBox.Text == "Reusable composition");
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     Assert.Equal(2, presentation.Slides.Count);
                     List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
@@ -2539,7 +2539,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                     Assert.Contains(presentation.Slides.SelectMany(slide => slide.TextBoxes),
@@ -2661,7 +2661,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 }
@@ -2704,7 +2704,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 }
@@ -2853,7 +2853,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     List<ValidationErrorInfo> errors = presentation.ValidateDocument();
                     Assert.True(errors.Count == 0, FormatValidationErrors(errors));
                 }

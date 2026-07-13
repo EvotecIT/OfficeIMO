@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("TableStyles");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("TableStyles");
                     sheet.CellValue(1, 1, "Default table style names");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot.WorkbookStylesPart
@@ -56,8 +56,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("TableStyles");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("TableStyles");
                     sheet.CellValue(1, 1, "Custom workbook table style");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot.WorkbookStylesPart

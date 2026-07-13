@@ -25,9 +25,8 @@ public class RtfPdfIoTests {
         rtfBytes.SaveAsPdfFromRtf(output);
         byte[] streamed = output.ToArray();
 
-        Assert.Equal(streamed.Length, output.Position);
-        Assert.Equal(0x2A, streamed[0]);
-        Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 1, 5));
+        Assert.Equal(0, output.Position);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 0, 5));
 
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
@@ -65,9 +64,9 @@ public class RtfPdfIoTests {
         byte[] streamed = output.ToArray();
 
         Assert.Equal(secondSource.Length, secondSource.Position);
-        Assert.Equal(streamed.Length, output.Position);
-        Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 1, 5));
-        Assert.Contains("Stream PDF", PdfCore.PdfReadDocument.Load(streamed.Skip(1).ToArray()).ExtractText(), StringComparison.Ordinal);
+        Assert.Equal(0, output.Position);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 0, 5));
+        Assert.Contains("Stream PDF", PdfCore.PdfReadDocument.Load(streamed).ExtractText(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -82,30 +81,29 @@ public class RtfPdfIoTests {
             PdfCore.PdfDocument pdfDocument = rtfPath.ToPdfDocumentFromRtfFile(encoding: Encoding.ASCII);
             Assert.Contains("File PDF", PdfCore.PdfReadDocument.Load(pdfDocument.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
-            byte[] pdfBytes = RtfPdfConverterExtensions.SaveRtfFileAsPdf(rtfPath, encoding: Encoding.ASCII);
+            byte[] pdfBytes = rtfPath.ToPdfFromRtfFile(encoding: Encoding.ASCII);
             Assert.Equal("%PDF-", Encoding.ASCII.GetString(pdfBytes, 0, 5));
             Assert.Contains("File PDF", PdfCore.PdfReadDocument.Load(pdfBytes).ExtractText(), StringComparison.Ordinal);
 
-            RtfPdfConverterExtensions.SaveRtfFileAsPdf(rtfPath, pdfPath, encoding: Encoding.ASCII);
+            rtfPath.SaveAsPdfFromRtfFile(pdfPath, encoding: Encoding.ASCII);
             Assert.Contains("File PDF", PdfCore.PdfReadDocument.Load(pdfPath).ExtractText(), StringComparison.Ordinal);
 
             using var output = new MemoryStream();
             output.WriteByte(0x2A);
-            RtfPdfConverterExtensions.SaveRtfFileAsPdf(rtfPath, output, encoding: Encoding.ASCII);
+            rtfPath.SaveAsPdfFromRtfFile(output, encoding: Encoding.ASCII);
             byte[] streamed = output.ToArray();
 
-            Assert.Equal(streamed.Length, output.Position);
-            Assert.Equal(0x2A, streamed[0]);
-            Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 1, 5));
-            Assert.Contains("File PDF", PdfCore.PdfReadDocument.Load(streamed.Skip(1).ToArray()).ExtractText(), StringComparison.Ordinal);
+            Assert.Equal(0, output.Position);
+            Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 0, 5));
+            Assert.Contains("File PDF", PdfCore.PdfReadDocument.Load(streamed).ExtractText(), StringComparison.Ordinal);
 
-            PdfCore.PdfSaveResult tryResult = RtfPdfConverterExtensions.TrySaveRtfFileAsPdf(rtfPath, output, encoding: Encoding.ASCII);
+            PdfCore.PdfSaveResult tryResult = rtfPath.TrySaveAsPdfFromRtfFile(output, encoding: Encoding.ASCII);
             Assert.True(tryResult.Succeeded);
 
             PdfCore.PdfDocument asyncDocument = await rtfPath.ToPdfDocumentFromRtfFileAsync(encoding: Encoding.ASCII);
             Assert.Contains("File PDF", PdfCore.PdfReadDocument.Load(asyncDocument.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
-            byte[] asyncBytes = await RtfPdfConverterExtensions.SaveRtfFileAsPdfAsync(rtfPath, encoding: Encoding.ASCII);
+            byte[] asyncBytes = await rtfPath.ToPdfFromRtfFileAsync(encoding: Encoding.ASCII);
             Assert.Contains("File PDF", PdfCore.PdfReadDocument.Load(asyncBytes).ExtractText(), StringComparison.Ordinal);
         } finally {
             if (File.Exists(rtfPath)) {
@@ -123,8 +121,8 @@ public class RtfPdfIoTests {
         const string rtf = @"{\rtf1\ansi\pard Async PDF\par}";
         byte[] rtfBytes = Encoding.ASCII.GetBytes(rtf);
 
-        byte[] fromString = await rtf.ToPdfFromRtfAsync();
-        byte[] fromBytes = await rtfBytes.ToPdfFromRtfAsync();
+        byte[] fromString = rtf.ToPdfFromRtf();
+        byte[] fromBytes = rtfBytes.ToPdfFromRtf();
 
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromString, 0, 5));
         Assert.Equal("%PDF-", Encoding.ASCII.GetString(fromBytes, 0, 5));
@@ -152,15 +150,15 @@ public class RtfPdfIoTests {
         byte[] streamed = output.ToArray();
 
         Assert.Equal(secondSource.Length, secondSource.Position);
-        Assert.Equal(streamed.Length, output.Position);
-        Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 1, 5));
-        Assert.Contains("Async PDF", PdfCore.PdfReadDocument.Load(streamed.Skip(1).ToArray()).ExtractText(), StringComparison.Ordinal);
+        Assert.Equal(0, output.Position);
+        Assert.Equal("%PDF-", Encoding.ASCII.GetString(streamed, 0, 5));
+        Assert.Contains("Async PDF", PdfCore.PdfReadDocument.Load(streamed).ExtractText(), StringComparison.Ordinal);
 
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
         await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            RtfPdfConverterExtensions.SaveRtfFileAsPdfAsync("ignored.rtf", encoding: Encoding.ASCII, cancellationToken: cts.Token));
+            "ignored.rtf".ToPdfFromRtfFileAsync(encoding: Encoding.ASCII, cancellationToken: cts.Token));
     }
 
     [Fact]

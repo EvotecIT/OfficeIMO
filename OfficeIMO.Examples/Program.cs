@@ -116,7 +116,7 @@ namespace OfficeIMO.Examples {
 
             foreach (string filePath in generatedFiles) {
                 using global::OfficeIMO.PowerPoint.PowerPointPresentation presentation =
-                    global::OfficeIMO.PowerPoint.PowerPointPresentation.Open(filePath);
+                    global::OfficeIMO.PowerPoint.PowerPointPresentation.Load(filePath);
                 List<DocumentFormat.OpenXml.Validation.ValidationErrorInfo> errors =
                     presentation.ValidateDocument().ToList();
                 if (errors.Count == 0) {
@@ -735,8 +735,8 @@ namespace OfficeIMO.Examples {
             // // Word/SaveToStream
             // Word.SaveToStream.Example_CreateInProvidedStream(folderPath, false);
             // Word.SaveToStream.Example_CreateInProvidedStreamAdvanced(folderPath, false);
-            // Word.SaveToStream.Example_ToDocx(folderPath, false);
-            // Word.SaveToStream.Example_ToDocxStream(folderPath, false);
+            // Word.SaveToStream.Example_ToBytes(folderPath, false);
+            // Word.SaveToStream.Example_ToStream(folderPath, false);
             // Word.SaveToStream.Example_SaveAsStream(folderPath, false);
             // Word.SaveToStream.Example_SaveToOriginalStream(folderPath, false);
             // Word.SaveToStream.Example_StreamDocumentProperties(folderPath, false);

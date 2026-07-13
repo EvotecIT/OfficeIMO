@@ -19,8 +19,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorkSheet("Summary");
-                    var hidden = document.AddWorkSheet("Hidden");
+                    var summary = document.AddWorksheet("Summary");
+                    var hidden = document.AddWorksheet("Hidden");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(2, 1, "Alpha");
@@ -179,7 +179,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Summary");
+                    var sheet = document.AddWorksheet("Summary");
 
                     sheet.CellValue(2, 1, 12.34d);
                     sheet.CellBackground(2, 1, "#D9EAD3");
@@ -241,8 +241,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorkSheet("Summary");
-                    var hidden = document.AddWorkSheet("Hidden");
+                    var summary = document.AddWorksheet("Summary");
+                    var hidden = document.AddWorksheet("Hidden");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(1, 2, "Count");
@@ -438,7 +438,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Value");
                 document.SetPrintArea(sheet, "A1:A5", save: false);
 
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data");
+                    var data = document.AddWorksheet("Data");
 
                     data.CellValue(1, 1, "Prefix");
                     data.CellValue(1, 2, "Suffix");
@@ -552,7 +552,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorkSheet("Summary");
+                    var summary = document.AddWorksheet("Summary");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(1, 2, "Amount");
@@ -628,7 +628,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorkSheet("Summary");
+                    var summary = document.AddWorksheet("Summary");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(1, 2, "Status");
@@ -686,8 +686,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var options = document.AddWorkSheet("Options");
-                    var summary = document.AddWorkSheet("Summary");
+                    var options = document.AddWorksheet("Options");
+                    var summary = document.AddWorksheet("Summary");
 
                     options.CellValue(1, 1, "Open");
                     options.CellValue(2, 1, "Closed");
@@ -745,8 +745,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var options = document.AddWorkSheet("Options");
-                    var summary = document.AddWorkSheet("Summary");
+                    var options = document.AddWorksheet("Options");
+                    var summary = document.AddWorksheet("Summary");
 
                     options.CellValue(1, 1, "Open");
                     options.CellValue(2, 1, "Closed");
@@ -803,7 +803,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorkSheet("Summary");
+                    var summary = document.AddWorksheet("Summary");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(1, 2, "Status");
@@ -860,7 +860,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data");
+                    var data = document.AddWorksheet("Data");
 
                     data.CellValue(1, 1, "Quantity");
                     data.CellValue(1, 2, "Score");
@@ -943,7 +943,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data");
+                    var data = document.AddWorksheet("Data");
 
                     data.CellValue(1, 1, "Start");
                     data.CellValue(2, 1, minimumDate);
@@ -1004,7 +1004,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data");
+                    var data = document.AddWorksheet("Data");
 
                     data.CellValue(1, 1, "Code");
                     data.CellValue(2, 1, "ABCD");
@@ -1066,7 +1066,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data");
+                    var data = document.AddWorksheet("Data");
 
                     data.CellValue(1, 1, "Quantity");
                     data.CellValue(2, 1, 2);
@@ -1136,7 +1136,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data");
+                    var data = document.AddWorksheet("Data");
 
                     data.CellValue(1, 1, "Status");
                     data.CellValue(2, 1, "Open");
@@ -1204,8 +1204,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var summary = document.AddWorkSheet("Summary");
-                    var hidden = document.AddWorkSheet("Hidden");
+                    var summary = document.AddWorksheet("Summary");
+                    var hidden = document.AddWorksheet("Hidden");
 
                     summary.CellValue(1, 1, "Name");
                     summary.CellValue(2, 2, 12);
@@ -1389,8 +1389,8 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
-                var target = document.AddWorkSheet("Target");
+                var summary = document.AddWorksheet("Summary");
+                var target = document.AddWorksheet("Target");
                 summary.CellValue(1, 1, "Name");
                 summary.SetHyperlink(2, 1, "https://alpha.example/", display: "Alpha");
                 summary.SetInternalLink(3, 1, target, "B5", display: "Target");
@@ -1459,7 +1459,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1512,7 +1512,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1567,7 +1567,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1631,7 +1631,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1697,7 +1697,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1756,7 +1756,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
                 summary.SetColumnWidth(1, 18);
@@ -1824,7 +1824,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -1885,7 +1885,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 

@@ -53,8 +53,8 @@ internal static class LatexReaderChunkBuilder {
         ReaderOptions readerOptions,
         ReaderLatexOptions options,
         CancellationToken cancellationToken) {
-        LatexMarkdownConversionResult conversion = result.Document.ToMarkdownDocument(options.MarkdownOptions);
-        string markdown = conversion.Document.ToMarkdown().TrimEnd();
+        LatexToMarkdownResult conversion = result.Document.ToMarkdownDocumentResult(options.MarkdownOptions);
+        string markdown = conversion.Value.ToMarkdown().TrimEnd();
         var projectedText = new List<string>();
         Candidate[] candidates = BuildCandidates(result.Document)
             .OrderBy(static candidate => candidate.Span.Start.Offset)

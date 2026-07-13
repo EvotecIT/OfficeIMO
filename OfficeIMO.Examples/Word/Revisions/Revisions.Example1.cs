@@ -25,7 +25,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = document.AddParagraph();
                 paragraph.AddInsertedText("Inserted text", "Codex");
                 paragraph.AddDeletedText("Deleted text", "Codex");
-                document.Save(false);
+                document.Save();
 
                 var valid = document.ValidateDocument();
                 if (valid.Count > 0) {
@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.AcceptRevisions();
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

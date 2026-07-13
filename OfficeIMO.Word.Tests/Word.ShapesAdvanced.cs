@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(40d, ellipse.Width, 1);
                 Assert.Equal(20d, ellipse.Height, 1);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Line via factory");
                 WordShape.AddLine(paragraph, 0, 0, 50, 0, Color.Red, 1);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

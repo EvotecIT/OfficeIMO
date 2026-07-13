@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word {
                 var items = new[] { "One", "Two", "Three" };
                 var comboBox = document.AddParagraph("Choose:").AddComboBox(items, "Combo", "ComboTag", defaultValue: "Two");
                 Console.WriteLine($"Default selection: {comboBox.SelectedValue}");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

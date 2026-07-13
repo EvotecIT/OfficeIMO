@@ -163,7 +163,7 @@ public partial class WordList : WordElement {
         }
         set {
             if (value != null) {
-                this.ColorHex = value.Value.ToHexColor();
+                this.ColorHex = value.Value.ToRgbHex();
             } else {
                 this.ColorHex = "";
             }
@@ -185,7 +185,7 @@ public partial class WordList : WordElement {
                 props.RemoveAllChildren<DocumentFormat.OpenXml.Wordprocessing.Color>();
                 if (!string.IsNullOrEmpty(value)) {
                     props.Append(new DocumentFormat.OpenXml.Wordprocessing.Color {
-                        Val = value.Replace("#", "").ToLowerInvariant()
+                        Val = value.Replace("#", "").ToUpperInvariant()
                     });
                 }
             }, !string.IsNullOrEmpty(value));

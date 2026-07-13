@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -40,7 +41,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Comments.Count);
 
                 document.Comments[0].Text = "Lets change it";
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -54,7 +55,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Sections[0].HyperLinks.Count);
                 Console.WriteLine(document.HyperLinks.Count);
                 Console.WriteLine(document.Fields.Count);
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 
@@ -71,9 +72,8 @@ namespace OfficeIMO.Examples.Word {
             document.Save();
             document.Dispose();
 
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
 
-            Console.WriteLine("+ IsLocked " + filePath.IsFileLocked());
         }
     }
 }

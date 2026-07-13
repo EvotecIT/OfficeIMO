@@ -238,10 +238,10 @@ namespace OfficeIMO.Examples.Excel {
                 }
 
                 // Save (no Excel launch yet)
-                doc.Save(false);
+                doc.Save();
 
                 // Re-open from disk and verify properties + header/footer
-                using (var verify = ExcelDocument.Load(filePath, readOnly: true))
+                using (var verify = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
                 {
                     Console.WriteLine("[=] Verifying saved workbook properties and header/footer...");
                     Console.WriteLine("    Title   : " + (verify.BuiltinDocumentProperties.Title ?? "<null>"));
@@ -265,7 +265,7 @@ namespace OfficeIMO.Examples.Excel {
                 if (openExcel)
                 {
                     // Open in Excel now, after verification
-                    doc.Open(filePath, true);
+                    doc.OpenInApplication(filePath);
                 }
             }
         }

@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
             string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Templates");
             string filePath = Path.Combine(folderPath, "DocumentWithBuiltinAndCustomProperties.docx");
 
-            using (WordDocument document = WordDocument.Load(filePath, true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new OfficeIMO.Word.WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Console.WriteLine("+ Document Path: " + document.FilePath);
                 Console.WriteLine("+ Document Title: " + document.BuiltinDocumentProperties.Title);
                 Console.WriteLine("+ Document Author: " + document.BuiltinDocumentProperties.Creator);
@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.ApplicationProperties.ApplicationVersion);
 
-                document.Open(openWord);
+                if (openWord) document.OpenInApplication();
             }
         }
     }

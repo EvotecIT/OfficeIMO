@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                             { "Q2", "1.3M", "1.8%" }
                         }).HeaderRow(0))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Table(t => t.Create(2, 2).Table!.Rows[1].Cells[1].AddParagraph("B"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -77,13 +77,13 @@ namespace OfficeIMO.Tests {
                         .Cell(1, 3, cell => cell.AddParagraph("Last", true))
                         .InsertRow(3, "A", "B", "C")
                         .InsertColumn(4, "X", "Y", "Z")
-                        .RowStyle(1, r => r.Cells.ForEach(c => c.ShadingFillColorHex = "ffcccc"))
-                        .ColumnStyle(2, c => c.ShadingFillColorHex = "ccffcc")
+                        .RowStyle(1, r => r.Cells.ForEach(c => c.ShadingFillColorHex = "FFCCCC"))
+                        .ColumnStyle(2, c => c.ShadingFillColorHex = "CCFFCC")
                         .Merge(1, 1, 2, 2)
                         .DeleteRow(3)
                         .DeleteColumn(4))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -94,9 +94,9 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, table.Rows[0].CellsCount);
                 Assert.Equal("Last", table.Rows[0].Cells[1].Paragraphs[0].Text);
                 Assert.Equal("R2C3", table.Rows[1].Cells[1].Paragraphs[0].Text);
-                Assert.Equal("ffcccc", table.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("FFCCCC", table.Rows[0].Cells[0].ShadingFillColorHex);
                 // Column style applies to column 2; after merge the shaded cell can land in either physical cell
-                Assert.Contains("ccffcc", new [] { table.Rows[0].Cells[0].ShadingFillColorHex, table.Rows[0].Cells[1].ShadingFillColorHex });
+                Assert.Contains("CCFFCC", new [] { table.Rows[0].Cells[0].ShadingFillColorHex, table.Rows[0].Cells[1].ShadingFillColorHex });
                 // GridSpan normalization may not set merge flags on both sides; rely on cell count already validated
             }
         }
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
                 document.AsFluent()
                     .Table(t => t.PreferredWidth(points: 100).Columns(2).Row("A", "B"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -132,11 +132,11 @@ namespace OfficeIMO.Tests {
                         .CellStyle(1, 1, cell => {
                             cell.Paragraphs[0].ParagraphAlignment = JustificationValues.Center;
                             cell.VerticalAlignment = TableVerticalAlignmentValues.Center;
-                            cell.ShadingFillColorHex = "ffcc00";
+                            cell.ShadingFillColorHex = "FFCC00";
                             cell.Borders.LeftStyle = BorderValues.Single;
                         }))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(720, table.Rows[0].Height);
                 Assert.Equal(1440, table.Rows[1].Height);
                 var cell = table.Rows[0].Cells[0];
-                Assert.Equal("ffcc00", cell.ShadingFillColorHex);
+                Assert.Equal("FFCC00", cell.ShadingFillColorHex);
                 Assert.Equal(TableVerticalAlignmentValues.Center, cell.VerticalAlignment);
                 Assert.Equal(JustificationValues.Center, cell.Paragraphs[0].ParagraphAlignment);
                 Assert.Equal(BorderValues.Single, cell.Borders.LeftStyle);
@@ -163,7 +163,7 @@ namespace OfficeIMO.Tests {
                         .Create(1, 2)
                         .ColumnWidthsPercentage(25, 75))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

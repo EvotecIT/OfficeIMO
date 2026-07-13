@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task ExcelHttpDocumentLoadOpensDownloadedWorkbookReadOnlyByDefault() {
+        public async Task ExcelHttpDocumentLoadUsesTheSameReadWriteDefaultAsOtherSources() {
             byte[] workbookBytes = CreateRemoteWorkbookBytes();
             using var handler = new FakeWorkbookHttpMessageHandler((_, _) =>
                 Task.FromResult(CreateWorkbookResponse(workbookBytes)));
@@ -55,9 +55,45 @@ namespace OfficeIMO.Tests {
                 new Uri("https://example.test/workbook.xlsx"),
                 new ExcelHttpLoadOptions { HttpMessageHandler = handler });
 
-            Assert.Equal(FileAccess.Read, document.FileOpenAccess);
+            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadWrite, document.AccessMode);
             Assert.Equal("Remote", document.Sheets[0].Name);
             Assert.Equal(string.Empty, document.FilePath);
+        }
+
+        [Fact]
+        public void ExcelHttpDocumentLoadRejectsSaveOnDisposeBeforeDownloading() {
+            int requestCount = 0;
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) => {
+                requestCount++;
+                return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
+            });
+
+            ArgumentException exception = Assert.Throws<ArgumentException>(() => ExcelDocument.Load(
+                new Uri("https://example.test/workbook.xlsx"),
+                new ExcelHttpLoadOptions { HttpMessageHandler = handler },
+                new ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
+
+            Assert.Equal("options", exception.ParamName);
+            Assert.Contains("detached", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, requestCount);
+        }
+
+        [Fact]
+        public async Task ExcelHttpDocumentLoadAsyncRejectsSaveOnDisposeBeforeDownloading() {
+            int requestCount = 0;
+            using var handler = new FakeWorkbookHttpMessageHandler((_, _) => {
+                requestCount++;
+                return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
+            });
+
+            ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() => ExcelDocument.LoadAsync(
+                new Uri("https://example.test/workbook.xlsx"),
+                new ExcelHttpLoadOptions { HttpMessageHandler = handler },
+                new ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
+
+            Assert.Equal("options", exception.ParamName);
+            Assert.Contains("detached", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(0, requestCount);
         }
 
         [Fact]
@@ -323,8 +359,8 @@ namespace OfficeIMO.Tests {
 
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
-            using (var document = ExcelDocument.Create(memory)) {
-                var sheet = document.AddWorkSheet("Remote");
+            using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                var sheet = document.AddWorksheet("Remote");
                 sheet.CellValue(1, 1, "Value");
             }
 

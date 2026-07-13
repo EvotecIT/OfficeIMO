@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Equal(2, generated);
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false);
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(includedPath, false)) {
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(removedPath, false)) {
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(includedPath, false)) {
@@ -175,7 +175,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(removedPath, false)) {
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
             AppendSectionBreakParagraph(document, PageOrientationValues.Landscape, "1440", "1440");
             document.AddParagraph("{{/IncludeLandscapeAppendix}}");
             document.AddParagraph("Closing");
-            document.Save(false);
+            document.Save();
         }
 
         private static void AppendSectionBreakParagraph(WordDocument document, PageOrientationValues orientation, string leftMargin, string rightMargin) {

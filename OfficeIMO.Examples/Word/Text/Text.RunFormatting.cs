@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -17,9 +18,9 @@ namespace OfficeIMO.Examples.Word {
                         .Text("SmallCaps ", t => t.SmallCaps())
                         .Text("Combined", t => t.Outline().Shadow().Emboss().SmallCaps()))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

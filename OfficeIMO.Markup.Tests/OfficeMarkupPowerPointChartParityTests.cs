@@ -50,8 +50,8 @@ public class OfficeMarkupPowerPointChartParityTests {
                     RenderMermaidDiagrams = false
                 });
 
-            using PowerPointPresentation presentation = PowerPointPresentation.Open(
-                outputPath, PowerPointOpenMode.ReadOnly);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+                outputPath, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             PowerPointChart chart = Assert.Single(presentation.Slides.SelectMany(slide => slide.Charts));
             Assert.True(chart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
             Assert.Equal(expectedKind, snapshot.ChartKind);

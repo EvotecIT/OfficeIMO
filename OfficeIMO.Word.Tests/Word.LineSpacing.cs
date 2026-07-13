@@ -53,7 +53,7 @@ public partial class Word {
 
             Assert.Equal(3, document.Paragraphs.Count);
 
-            document.Save(false);
+            document.Save();
         }
 
         using (var document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLineRules.docx"))) {
@@ -71,7 +71,7 @@ public partial class Word {
             par02.LineSpacing = 250;
             par02.LineSpacingRule = LineSpacingRuleValues.AtLeast;
 
-            document.Save(false);
+            document.Save();
         }
 
         using (var document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithLineRules.docx"))) {

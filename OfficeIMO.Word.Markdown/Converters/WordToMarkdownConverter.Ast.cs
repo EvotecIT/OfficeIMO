@@ -1367,13 +1367,13 @@ namespace OfficeIMO.Word.Markdown {
                 if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
                     File.Copy(image.FilePath, targetPath, true);
                 } else {
-                    File.WriteAllBytes(targetPath, image.GetBytes());
+                    File.WriteAllBytes(targetPath, image.ToBytes());
                 }
 
                 return fileName;
             }
 
-            byte[] bytes = image.GetBytes();
+            byte[] bytes = image.ToBytes();
             string imageExtension = Path.GetExtension(image.FilePath);
             string mime = imageExtension switch {
                 ".jpg" => "image/jpeg",

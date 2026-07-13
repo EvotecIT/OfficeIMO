@@ -39,9 +39,9 @@ public partial class Excel {
             Assert.Equal("112233", style.FontColorHex);
             Assert.Equal("DDEEFF", style.FillColorHex);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -69,9 +69,9 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.CellAt(1, 1).SetValue("ArialCell").SetFontName("Arial");
             sheet.CellAt(1, 2).SetValue("PlainCell");
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
@@ -99,9 +99,9 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.CellAt(1, 1).SetValue("FirstSerif").SetFontName("Times New Roman");
             sheet.CellAt(1, 2).SetValue("SecondSerif").SetFontName("Georgia");
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -128,9 +128,9 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.CellAt(1, 1).SetValue("StyledSerif").SetFontName("Georgia");
             sheet.CellAt(1, 2).SetValue("DefaultSerif");
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 FontFamily = "Times New Roman",
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
@@ -166,9 +166,9 @@ public partial class Excel {
             Assert.Equal("ColorScale", rule.Type);
             Assert.Equal(new[] { "FFFF0000", "FF00FF00" }, rule.ColorScaleColors);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -224,9 +224,9 @@ public partial class Excel {
             Assert.Equal("DataBar", rule.Type);
             Assert.Equal("FF5B9BD5", rule.DataBarColor);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -258,9 +258,9 @@ public partial class Excel {
             sheet.Cell(3, 1, 0);
             sheet.Cell(4, 1, 100);
             sheet.AddConditionalDataBar("A2:A4", "FF5B9BD5");
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -300,9 +300,9 @@ public partial class Excel {
             Assert.True(rule.IconSetShowValue);
             Assert.False(rule.IconSetReverse);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 240),
@@ -345,9 +345,9 @@ public partial class Excel {
             Assert.Equal("medium", style.Border!.Left!.Style);
             Assert.Equal("FF445566", style.Border.Left.ColorArgb);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -388,9 +388,9 @@ public partial class Excel {
             Assert.Equal("dotted", sheet.CellAt(1, 2).GetStyle().Border!.Left!.Style);
             Assert.Equal("mediumdashdot", sheet.CellAt(1, 3).GetStyle().Border!.Left!.Style);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -431,9 +431,9 @@ public partial class Excel {
             Assert.True(diagonalStyle.Border.DiagonalDown);
             Assert.Equal("double", diagonalStyle.Border.Diagonal!.Style);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0,
                 PageSize = new PdfCore.PageSize(320, 220),
@@ -484,9 +484,9 @@ public partial class Excel {
             Assert.Equal("yyyy-mm-dd", dateStyle.NumberFormatCode);
             Assert.True(dateStyle.IsDateLike);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(420, 360),
@@ -524,9 +524,9 @@ public partial class Excel {
             sheet.Cell(3, 1, "QuotedSectionSeparator");
             sheet.CellAt(3, 2).SetValue(-12).SetNumberFormat("0;\"minus;literal\"0" + extraSections);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(420, 220),
@@ -558,9 +558,9 @@ public partial class Excel {
             sheet.Cell(4, 1, "Elapsed units");
             sheet.CellAt(4, 2).SetValue(1.5).SetNumberFormat("[h] \"hours\"");
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),

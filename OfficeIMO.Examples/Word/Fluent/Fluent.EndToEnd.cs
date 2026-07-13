@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -27,9 +28,9 @@ namespace OfficeIMO.Examples.Word {
                         .Align(HorizontalAlignment.Center))
                     .Image(i => i.Add(Path.Combine(imagesPath, "Kulek.jpg")).Size(100).Alt("Chart", "Quarterly chart"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

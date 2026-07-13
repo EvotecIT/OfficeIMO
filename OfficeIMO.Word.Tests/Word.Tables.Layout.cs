@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordTableLayoutType.AutoFitToWindow, table7.LayoutMode);
                 Assert.Equal(5000, table7.Width);
 
-                document.Save(false);
+                document.Save();
             }
 
             // Re-load and verify persistence

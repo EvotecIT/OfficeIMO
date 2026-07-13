@@ -59,6 +59,10 @@
         <PackageReference Include="DocumentFormat.OpenXml" Version="[3.5.1, 4.0.0)" />
     </ItemGroup>
 
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
+    </ItemGroup>
+
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
     </ItemGroup>
@@ -67,6 +71,7 @@
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.cs" Link="Shared\OfficeEncryption.cs" />
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.AgileDescriptor.cs" Link="Shared\OfficeEncryption.AgileDescriptor.cs" />
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.CompoundFile.cs" Link="Shared\OfficeEncryption.CompoundFile.cs" />
+        <Compile Include="..\OfficeIMO.Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
     </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
@@ -82,6 +87,7 @@
         <Using Include="System.Collections" />
         <Using Include="System.Linq" />
         <Using Include="System.IO" />
+        <Using Include="OfficeIMO.Shared.OpenXml" />
         <Using Include="DocumentFormat.OpenXml" />
     </ItemGroup>
 

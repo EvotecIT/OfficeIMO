@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
-            Assert.Equal("ff0000", paragraph.ColorHex);
+            Assert.Equal("FF0000", paragraph.ColorHex);
             Assert.Equal(24, paragraph.FontSize);
             Assert.Equal(HighlightColorValues.Yellow, paragraph.Highlight);
         }
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
-            Assert.Equal("ff0000", paragraph.ColorHex);
+            Assert.Equal("FF0000", paragraph.ColorHex);
             Assert.Equal(20, paragraph.FontSize);
             Assert.Equal(HighlightColorValues.Cyan, paragraph.Highlight);
         }

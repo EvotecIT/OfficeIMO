@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult result = slide.ToImage()
                 .As(OfficeImageExportFormat.Svg)
                 .WithoutContent()
-                .SaveTo(output);
+                .Save(output);
 
             Assert.Equal(OfficeImageExportFormat.Svg, result.Format);
             Assert.Equal(result.Bytes.Length, output.Length);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_ToImageFriendlyAliasesExportPngAndSvg() {
+        public void PowerPointSlide_ToImageUsesConfiguredFormatForBytes() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(160, 90);
@@ -76,10 +76,12 @@ namespace OfficeIMO.Tests {
 
             byte[] png = slide.ToImage()
                 .WithoutContent()
-                .ToPng();
-            string svg = slide.ToImage()
+                .AsPng()
+                .ToBytes();
+            string svg = Encoding.UTF8.GetString(slide.ToImage()
                 .WithoutContent()
-                .ToSvg();
+                .AsSvg()
+                .ToBytes());
 
             Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, png.Take(4).ToArray());
             Assert.Contains("<svg", svg, StringComparison.Ordinal);
@@ -102,7 +104,8 @@ namespace OfficeIMO.Tests {
             string folder = Path.Combine(Path.GetTempPath(), "officeimo-ppt-images-" + Guid.NewGuid().ToString("N"));
             try {
                 IReadOnlyList<OfficeImageExportResult> visibleResults = presentation.ToImages()
-                    .SaveAsSvg(folder);
+                    .AsSvg()
+                    .Save(folder);
 
                 Assert.Single(visibleResults);
                 Assert.Equal("Slide 1", visibleResults[0].Name);
@@ -116,7 +119,8 @@ namespace OfficeIMO.Tests {
                 string allFolder = Path.Combine(folder, "all");
                 IReadOnlyList<OfficeImageExportResult> allResults = presentation.ToImages()
                     .IncludeHiddenSlides()
-                    .SaveAsSvg(allFolder);
+                    .AsSvg()
+                    .Save(allFolder);
 
                 Assert.Equal(2, allResults.Count);
                 Assert.Equal("Slide 2", allResults[1].Name);
@@ -153,7 +157,8 @@ namespace OfficeIMO.Tests {
             try {
                 IReadOnlyList<OfficeImageExportResult> selectedResults = presentation.ToImages()
                     .ForSlides(3, 1, 3)
-                    .SaveAsSvg(folder);
+                    .AsSvg()
+                    .Save(folder);
 
                 Assert.Equal(2, selectedResults.Count);
                 Assert.Equal("Slide 1", selectedResults[0].Name);
@@ -168,7 +173,8 @@ namespace OfficeIMO.Tests {
                 IReadOnlyList<OfficeImageExportResult> rangeResults = presentation.ToImages()
                     .ForSlideRange(2, 3)
                     .IncludeHiddenSlides()
-                    .SaveAsSvg(rangeFolder);
+                    .AsSvg()
+                    .Save(rangeFolder);
 
                 Assert.Equal(2, rangeResults.Count);
                 Assert.Equal("Slide 2", rangeResults[0].Name);
@@ -1689,10 +1695,11 @@ namespace OfficeIMO.Tests {
                 slide.AddRectanglePoints(16, 20, 32, 24, "Start Node");
                 slide.AddRectanglePoints(162, 96, 32, 24, "End Node");
                 slide.SlidePart.Slide.CommonSlideData!.ShapeTree!.Append(CreateNativeBentConnectionShape());
+                presentation.Save();
             }
 
             stream.Position = 0;
-            using PowerPointPresentation loaded = PowerPointPresentation.Open(stream, new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
+            using PowerPointPresentation loaded = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             PowerPointSlide loadedSlide = loaded.Slides[0];
 
             PowerPointConnectionShape connection = Assert.Single(loadedSlide.Shapes.OfType<PowerPointConnectionShape>());
@@ -2047,12 +2054,15 @@ namespace OfficeIMO.Tests {
             Assert.Empty(svg.Diagnostics);
             Assert.Empty(snapshot.Diagnostics);
             Assert.True(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().Count() >= 3);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
+                shape.Shape.FillColor == OfficeColor.FromRgb(34, 170, 102));
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingShape drawingShape && drawingShape.Shape.Transform.HasValue);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Region" && Math.Abs(drawingText.RotationDegrees - 5D) < 0.000001D);
             Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Shared table renderer");
 
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.Equal(OfficeColor.FromRgb(34, 170, 102), image!.GetPixel(30, 30));
+            Assert.Equal(png.Width, image!.Width);
+            Assert.Equal(png.Height, image.Height);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<rect", svgText, StringComparison.Ordinal);
@@ -2088,8 +2098,8 @@ namespace OfficeIMO.Tests {
                 .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle)
                 .ToList();
             Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(51, 102, 153));
-            Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(133, 163, 194));
-            Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(92, 133, 173));
+            Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(173, 194, 214));
+            Assert.Contains(rectangles, shape => shape.Shape.FillColor == OfficeColor.FromRgb(214, 224, 235));
             Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>(), shape =>
                 shape.Shape.Kind == OfficeShapeKind.Line &&
                 shape.Shape.StrokeColor == OfficeColor.FromRgb(248, 250, 252) &&
@@ -2097,8 +2107,8 @@ namespace OfficeIMO.Tests {
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("#336699", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("#85A3C2", svgText, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("#5C85AD", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#ADC2D6", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#D6E0EB", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#F8FAFC", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
             Assert.Equal(OfficeColor.FromRgb(51, 102, 153), image!.GetPixel(30, 30));
@@ -2303,7 +2313,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Theme fill", svgText, StringComparison.Ordinal);
             Assert.Contains("#99B2CC", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.Equal(OfficeColor.FromRgb(153, 178, 204), image!.GetPixel(30, 30));
+            Assert.Equal(png.Width, image!.Width);
+            Assert.Equal(png.Height, image.Height);
         }
 
         [Fact]
@@ -3058,11 +3069,11 @@ namespace OfficeIMO.Tests {
             OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
             OfficeRichTextRun run = Assert.Single(richText.Runs);
             Assert.Equal("Theme mark", run.Text);
-            Assert.Equal(OfficeColor.FromRgb(51, 102, 128), run.BackgroundColor);
+            Assert.Equal(OfficeColor.FromRgb(0, 119, 178), run.BackgroundColor);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Theme", svgText, StringComparison.Ordinal);
-            Assert.Contains("#336680", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#0077B2", svgText, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

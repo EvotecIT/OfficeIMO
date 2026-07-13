@@ -114,7 +114,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Table CellSpacingCentimeters: " + styleDetails4.CellSpacingCentimeters);
                 Console.WriteLine("Table CellSpacing: " + styleDetails4.CellSpacing);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
 
                 static void SetCellText(WordTable table, int rowIndex, int columnIndex, string text) {
                     var row = Guard.GetRequiredItem(table.Rows, rowIndex, $"Table must contain row index {rowIndex}.");

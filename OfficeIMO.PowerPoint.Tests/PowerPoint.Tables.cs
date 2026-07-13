@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
 
 
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
 
                 PowerPointTable table = presentation.Slides[0].Tables.First();
 
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointTable table = presentation.Slides.Single().Tables.First();
                 Assert.False(table.HeaderRow);
                 Assert.False(table.BandedRows);
@@ -225,7 +225,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
                 Assert.Equal("Product", table.GetCell(0, 0).Text);
                 Assert.Equal("Alpha", table.GetCell(1, 0).Text);
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
                 long sum = 0;
                 for (int i = 0; i < table.Columns; i++) {
@@ -301,7 +301,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointTable table = presentation.Slides[0].Tables.First();
                 Assert.Equal(4000000L, table.GetColumnWidth(0));
                 Assert.Equal(2000000L, table.GetColumnWidth(1));
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointTable table = presentation.Slides.Single().Tables.First();
                 Assert.Equal(3, table.Columns);
                 Assert.Equal("Appended", table.GetCell(0, 2).Text);

@@ -19,7 +19,7 @@ document.Save("copy.doc", new WordSaveOptions {
     LossPolicy = WordConversionLossPolicy.Allow
 });
 
-byte[] docx = document.ToDocx();
+byte[] docx = document.ToBytes();
 byte[] doc = document.ToDoc();
 ```
 
@@ -107,8 +107,8 @@ The parity API intentionally uses one vocabulary:
 | Removed API | Use |
 |---|---|
 | `SaveAs(path/stream)` | `SaveCopy(path/stream)` |
-| `SaveAsByteArray()` | `ToDocx()` |
-| `SaveAsMemoryStream()` | `ToDocxStream()` |
+| `SaveAsByteArray()` | `ToBytes()` |
+| `SaveAsMemoryStream()` | `ToStream()` |
 | `WasLoadedFromLegacyDoc` | `SourceFormat == WordFileFormat.Doc` |
 | `MaxWordDocumentStreamBytes` | `MaxInputBytes` |
 | `ReportUnsupportedFeatures` | `ReportUnsupportedContent` |

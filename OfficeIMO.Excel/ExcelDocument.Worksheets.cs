@@ -19,38 +19,38 @@ namespace OfficeIMO.Excel {
         /// Creates a new Excel document with a single worksheet.
         /// </summary>
         /// <param name="filePath">Path to the new file.</param>
-        /// <param name="workSheetName">Name of the worksheet.</param>
+        /// <param name="worksheetName">Name of the worksheet.</param>
         /// <returns>Created <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Create(string filePath, string workSheetName) {
+        public static ExcelDocument Create(string filePath, string worksheetName) {
             ExcelDocument excelDocument = Create(filePath);
             // Prefer a sanitized sheet name for convenience in the common Create(path, name) flow
-            excelDocument.AddWorkSheet(workSheetName, SheetNameValidationMode.Sanitize);
+            excelDocument.AddWorksheet(worksheetName, SheetNameValidationMode.Sanitize);
             return excelDocument;
         }
 
         /// <summary>
         /// Adds a worksheet to the document.
         /// </summary>
-        /// <param name="workSheetName">Worksheet name.</param>
+        /// <param name="worksheetName">Worksheet name.</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
-        public ExcelSheet AddWorkSheet(string workSheetName = "") {
-            return AddWorkSheet(workSheetName, SheetNameValidationMode.Sanitize);
+        public ExcelSheet AddWorksheet(string worksheetName = "") {
+            return AddWorksheet(worksheetName, SheetNameValidationMode.Sanitize);
         }
 
         /// <summary>
         /// Adds a worksheet to the document with control over name validation.
         /// </summary>
-        /// <param name="workSheetName">Requested worksheet name.</param>
+        /// <param name="worksheetName">Requested worksheet name.</param>
         /// <param name="validationMode">How to validate the sheet name: None (no checks), Sanitize (coerce), or Strict (throw on invalid).</param>
         /// <returns>Created <see cref="ExcelSheet"/> instance.</returns>
-        public ExcelSheet AddWorkSheet(string workSheetName, SheetNameValidationMode validationMode) {
+        public ExcelSheet AddWorksheet(string worksheetName, SheetNameValidationMode validationMode) {
             if (!_materializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImport();
             }
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 EnsureSheetCacheInitialized(_lock);
-                string name = ValidateOrSanitizeSheetName(workSheetName, validationMode, currentSheetName: null);
+                string name = ValidateOrSanitizeSheetName(worksheetName, validationMode, currentSheetName: null);
                 ExcelSheet excelSheet = new ExcelSheet(this, _workBookPart, _spreadSheetDocument, name);
                 MarkSheetCacheDirty();
                 MarkRequiresSavePreflight();
@@ -58,12 +58,12 @@ namespace OfficeIMO.Excel {
             });
         }
 
-        internal void RenameWorkSheet(ExcelSheet sheet, string workSheetName, SheetNameValidationMode validationMode) {
+        internal void RenameWorksheet(ExcelSheet sheet, string worksheetName, SheetNameValidationMode validationMode) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
 
             Locking.ExecuteWrite(EnsureLock(), () => {
                 string currentName = sheet.Name;
-                string validatedName = ValidateOrSanitizeSheetName(workSheetName, validationMode, currentName);
+                string validatedName = ValidateOrSanitizeSheetName(worksheetName, validationMode, currentName);
                 if (string.Equals(currentName, validatedName, StringComparison.Ordinal)) {
                     return;
                 }

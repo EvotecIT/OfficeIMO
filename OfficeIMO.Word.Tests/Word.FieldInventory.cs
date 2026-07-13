@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
                     locked: true);
                 AddNestedComplexFields(document.AddParagraph()._paragraph);
                 document.AddParagraph()._paragraph.Append(BuildSimpleField(" SILLYFIELD value ", "Unknown"));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
                     new FieldChar { FieldCharType = FieldCharValues.Separate },
                     new Text("cached") { Space = SpaceProcessingModeValues.Preserve },
                     new FieldChar { FieldCharType = FieldCharValues.End }));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -123,7 +123,7 @@ namespace OfficeIMO.Tests {
                 textBox.Paragraphs[0].AddField(WordFieldType.Subject);
 
                 AddContentControlField(document, " KEYWORDS ", "Keyword result");
-                document.Save(false);
+                document.Save();
             }
 
             AppendNoteFields(filePath);

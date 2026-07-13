@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Excel
                 s.AutoFitColumns();
                 s.AutoFitRows();
 
-                doc.Save(openExcel);
+                doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

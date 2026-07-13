@@ -114,7 +114,8 @@ public class RtfHtmlObjectsAndShapesTests {
         var options = HtmlToRtfOptions.CreateUntrustedHtmlProfile();
         options.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
 
-        RtfDocument document = html.ToRtfDocument(options);
+        HtmlToRtfResult result = html.ToRtfDocumentResult(options);
+        RtfDocument document = result.Value;
 
         RtfObject rtfObject = Assert.IsType<RtfObject>(document.Blocks[0]);
         Assert.All(rtfObject.Result.Runs, run => Assert.Null(run.Hyperlink));
@@ -122,8 +123,8 @@ public class RtfHtmlObjectsAndShapesTests {
         Assert.All(Assert.Single(shape.TextBoxParagraphs).Runs, run => Assert.Null(run.Hyperlink));
         Assert.Equal("Object link", rtfObject.Result.ToPlainText());
         Assert.Equal("Shape link", Assert.Single(shape.TextBoxParagraphs).ToPlainText());
-        Assert.Equal(2, options.Diagnostics.Count(diagnostic => diagnostic.Code == "HtmlRtfHyperlinkRejected"));
-        Assert.Throws<RtfConversionLossException>(() => options.ConversionReport.RequireNoLoss());
+        Assert.Equal(2, result.RtfDiagnostics.Count(diagnostic => diagnostic.Code == "HtmlRtfHyperlinkRejected"));
+        Assert.Throws<RtfConversionLossException>(() => result.Report.RequireNoLoss());
     }
 
     [Fact]

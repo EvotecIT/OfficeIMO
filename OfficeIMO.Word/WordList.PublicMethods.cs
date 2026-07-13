@@ -260,7 +260,7 @@ namespace OfficeIMO.Word {
             }
             if (!string.IsNullOrEmpty(colorHex)) {
                 if (colorHex is { Length: > 0 } hex) {
-                    symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = hex.Replace("#", "").ToLowerInvariant() });
+                    symbolProps.Append(new DocumentFormat.OpenXml.Wordprocessing.Color { Val = hex.Replace("#", "").ToUpperInvariant() });
                 }
             }
             if (fontSize.HasValue) {
@@ -286,7 +286,7 @@ namespace OfficeIMO.Word {
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddCustomBulletList(WordDocument document, WordBulletSymbol symbol, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
-            string? finalColor = color?.ToHexColor() ?? colorHex;
+            string? finalColor = color?.ToRgbHex() ?? colorHex;
             return AddCustomBulletList(document, (char)symbol, fontName, finalColor, fontSize);
         }
 
@@ -302,7 +302,7 @@ namespace OfficeIMO.Word {
         /// <returns>The created <see cref="WordList"/>.</returns>
         public static WordList AddCustomBulletList(WordDocument document, WordListLevelKind kind, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
-            string? finalColor = color?.ToHexColor() ?? colorHex;
+            string? finalColor = color?.ToRgbHex() ?? colorHex;
             return AddCustomBulletList(document, symbol, fontName, finalColor, fontSize);
         }
 
@@ -423,7 +423,7 @@ namespace OfficeIMO.Word {
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The current <see cref="WordList"/>.</returns>
         public WordList AddListLevel(int levelIndex, WordBulletSymbol symbol, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
-            string? finalColor = color?.ToHexColor() ?? colorHex;
+            string? finalColor = color?.ToRgbHex() ?? colorHex;
             return AddListLevel(levelIndex, (char)symbol, fontName, finalColor, fontSize);
         }
 
@@ -449,7 +449,7 @@ namespace OfficeIMO.Word {
         /// </example>
         public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
-            string? finalColor = color?.ToHexColor() ?? colorHex;
+            string? finalColor = color?.ToRgbHex() ?? colorHex;
             return AddListLevel(levelIndex, symbol, fontName, finalColor, fontSize);
         }
 

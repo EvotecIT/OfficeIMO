@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                 doc.AddShapeDrawing(ShapeType.Rectangle, 60, 30);
                 doc.AddShapeDrawing(ShapeType.RoundedRectangle, 50, 30);
                 doc.AddTextBox("Text");
-                doc.Save(false);
+                doc.Save();
             }
 
             string vmlFile = Path.Combine(folderPath, "DrawingVsVml.Vml.docx");
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 doc.AddShape(ShapeType.Rectangle, 60, 30, Color.Green, Color.Black);
                 doc.AddShape(ShapeType.RoundedRectangle, 50, 30, Color.Yellow, Color.Black, 1, arcSize: 0.3);
                 doc.AddTextBoxVml("Text");
-                doc.Save(false);
+                doc.Save();
             }
 
             using (WordDocument doc = WordDocument.Load(drawingFile)) {

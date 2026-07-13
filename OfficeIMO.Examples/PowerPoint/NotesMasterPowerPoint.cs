@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.PowerPoint;
@@ -30,7 +31,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                                "Use them for presenter-only reminders.";
 
             presentation.Save();
-            Helpers.Open(filePath, openPowerPoint);
+            if (openPowerPoint) OfficeFileLauncher.Open(filePath);
         }
     }
 }

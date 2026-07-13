@@ -45,7 +45,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.DocumentIsValid);
                 Assert.Empty(document.DocumentValidationErrors);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "RestartNumberingNamespace.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddList(WordListStyle.Bulleted);
-                document.Save(false);
+                document.Save();
             }
 
             // remove w15 namespace manually
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
 
                 var list = document.Lists[0];
                 list.RestartNumberingAfterBreak = true;
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

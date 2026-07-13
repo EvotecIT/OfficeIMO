@@ -504,7 +504,7 @@ namespace OfficeIMO.Word.Html {
                 if (collapse) {
                     wordTable.StyleDetails?.SetBordersForAllSides(tableBorderStyle.Value, tableBorderSize, tableBorderColor);
                 } else {
-                    var hex = tableBorderColor.ToHexColor();
+                    var hex = tableBorderColor.ToRgbHex();
                     foreach (var row in wordTable.Rows) {
                         foreach (var cell in row.Cells) {
                             cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = tableBorderStyle;
@@ -724,7 +724,7 @@ namespace OfficeIMO.Word.Html {
                 if (borderStyle != null && borderSize != null) {
                     cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = borderStyle;
                     cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = borderSize;
-                    var hex = borderColor.ToHexColor();
+                    var hex = borderColor.ToRgbHex();
                     cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
                 }
                 foreach (var sideBorder in sideBorders) {
@@ -782,7 +782,7 @@ namespace OfficeIMO.Word.Html {
                             if (TryParseBorder(value, out var bStyle, out var bSize, out var bColor)) {
                                 cell.Borders.LeftStyle = cell.Borders.RightStyle = cell.Borders.TopStyle = cell.Borders.BottomStyle = bStyle;
                                 cell.Borders.LeftSize = cell.Borders.RightSize = cell.Borders.TopSize = cell.Borders.BottomSize = bSize;
-                                var hex = bColor.ToHexColor();
+                                var hex = bColor.ToRgbHex();
                                 cell.Borders.LeftColorHex = cell.Borders.RightColorHex = cell.Borders.TopColorHex = cell.Borders.BottomColorHex = hex;
                                 borderSet = true;
                             }
@@ -878,7 +878,7 @@ namespace OfficeIMO.Word.Html {
         }
 
         private static void ApplyCellBorder(WordTableCell cell, TableBorderSide side, BorderValues style, UInt32Value size, SixColor color) {
-            var hex = color.ToHexColor();
+            var hex = color.ToRgbHex();
             switch (side) {
                 case TableBorderSide.Left:
                     cell.Borders.LeftStyle = style;

@@ -304,7 +304,7 @@ namespace OfficeIMO.Excel {
             if (actions.Count > 0) {
                 MarkPackageDirty();
                 if (options.Save && CanSaveToDefaultDestination()) {
-                    Save(false);
+                    Save();
                 }
             }
 

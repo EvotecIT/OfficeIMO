@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
 
                 ConvertFirstChartToPieLike(filePath, doughnut);
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointChart chart = presentation.Slides.Last().Charts.Single();
                     chart.UpdateData(updatedData);
                     presentation.Save();

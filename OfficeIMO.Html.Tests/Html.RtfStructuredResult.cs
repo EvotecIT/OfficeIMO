@@ -11,13 +11,13 @@ public class HtmlRtfStructuredResult {
         var options = new HtmlToRtfOptions { PreserveUnknownTagsAsText = true };
 
         HtmlToRtfResult import = source.ToRtfDocumentResult(options);
-        import.Document.AddParagraph().AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3 });
-        RtfToHtmlResult export = import.Document.ToHtmlResult();
+        import.Value.AddParagraph().AddObject(RtfObjectKind.Embedded, new byte[] { 1, 2, 3 });
+        RtfToHtmlResult export = import.Value.ToHtmlResult();
 
         Assert.True(import.Succeeded);
         Assert.True(export.Succeeded);
-        Assert.Contains("Value", export.Html, StringComparison.Ordinal);
-        Assert.Equal(options.HtmlDiagnostics.Count, options.Diagnostics.Count);
+        Assert.Contains("Value", export.Value, StringComparison.Ordinal);
+        Assert.Equal(import.Diagnostics.Count, import.RtfDiagnostics.Count);
         Assert.Contains(export.Diagnostics, diagnostic => diagnostic.LossKind == HtmlConversionLossKind.Omission);
     }
 }

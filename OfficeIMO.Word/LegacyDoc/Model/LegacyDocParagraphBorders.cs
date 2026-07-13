@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Style = style;
             ColorHex = string.IsNullOrWhiteSpace(colorHex)
                 ? null
-                : colorHex!.Replace("#", string.Empty).ToLowerInvariant();
+                : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
             SizeEighthPoints = sizeEighthPoints;
             SpacePoints = spacePoints;
         }

@@ -18,12 +18,12 @@ namespace OfficeIMO.Examples.Excel {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Sheet1");
+                document.AddWorksheet("Sheet1");
                 await document.SaveAsync();
             }
 
-            var loadTask1 = ExcelDocument.LoadAsync(filePath, false);
-            var loadTask2 = ExcelDocument.LoadAsync(filePath, false);
+            var loadTask1 = ExcelDocument.LoadAsync(filePath);
+            var loadTask2 = ExcelDocument.LoadAsync(filePath);
 
             var documents = await Task.WhenAll(loadTask1, loadTask2);
 
@@ -36,4 +36,3 @@ namespace OfficeIMO.Examples.Excel {
         }
     }
 }
-

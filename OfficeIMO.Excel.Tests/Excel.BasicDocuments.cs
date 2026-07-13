@@ -32,15 +32,15 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "TestFileTemporary1.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
                 Assert.True(document.Sheets.Count == 0);
-                var sheet1 = document.AddWorkSheet("Test1");
-                var sheet2 = document.AddWorkSheet("Test2");
-                var sheet3 = document.AddWorkSheet("Test3");
+                var sheet1 = document.AddWorksheet("Test1");
+                var sheet2 = document.AddWorksheet("Test2");
+                var sheet3 = document.AddWorksheet("Test3");
 
                 Assert.True(document.Sheets.Count == 3);
                 Assert.True(document.Sheets[0].Name == "Test1");
                 Assert.True(document.Sheets[1].Name == "Test2");
                 Assert.True(document.Sheets[2].Name == "Test3");
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -48,13 +48,13 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_CreatingExcel2() {
             var filePath = Path.Combine(_directoryWithFiles, "TestFileTemporary2.xlsx");
-            using (var document = ExcelDocument.Create(filePath, "WorkSheet5")) {
+            using (var document = ExcelDocument.Create(filePath, "Worksheet5")) {
                 Assert.True(document.Sheets.Count == 1);
-                ExcelSheet sheet = document.AddWorkSheet("Test");
+                ExcelSheet sheet = document.AddWorksheet("Test");
                 Assert.True(document.Sheets.Count == 2);
-                Assert.True(document.Sheets[0].Name == "WorkSheet5");
+                Assert.True(document.Sheets[0].Name == "Worksheet5");
                 Assert.True(document.Sheets[1].Name == "Test");
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_LoadingReadOnlyExcel() {
             var filePath = Path.Combine(_directoryDocuments, "BasicExcel.xlsx");
-            using var document = ExcelDocument.Load(filePath, readOnly: true);
+            using var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Equal(FileAccess.Read, document.FileOpenAccess);
         }
     }

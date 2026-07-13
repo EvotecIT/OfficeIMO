@@ -63,13 +63,13 @@ public sealed class MarkdownToLatexOptions {
 }
 
 /// <summary>Markdown result from LaTeX.</summary>
-public sealed class LatexMarkdownConversionResult {
-    internal LatexMarkdownConversionResult(MarkdownDoc document, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
-        Document = document;
-        Diagnostics = diagnostics;
+public sealed class LatexToMarkdownResult {
+    internal LatexToMarkdownResult(MarkdownDoc value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
+        Value = value ?? throw new ArgumentNullException(nameof(value));
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
     }
     /// <summary>Converted Markdown document.</summary>
-    public MarkdownDoc Document { get; }
+    public MarkdownDoc Value { get; }
     /// <summary>Loss diagnostics.</summary>
     public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
     /// <summary>True when any feature was not exactly converted.</summary>
@@ -77,16 +77,16 @@ public sealed class LatexMarkdownConversionResult {
 }
 
 /// <summary>Canonical LaTeX result from Markdown.</summary>
-public sealed class MarkdownLatexConversionResult {
-    internal MarkdownLatexConversionResult(string source, LatexDocument document, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
+public sealed class MarkdownToLatexResult {
+    internal MarkdownToLatexResult(string source, LatexDocument value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
         Source = source;
-        Document = document;
-        Diagnostics = diagnostics;
+        Value = value ?? throw new ArgumentNullException(nameof(value));
+        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
     }
     /// <summary>Generated source.</summary>
     public string Source { get; }
     /// <summary>Lossless parsed generated source.</summary>
-    public LatexDocument Document { get; }
+    public LatexDocument Value { get; }
     /// <summary>Loss diagnostics.</summary>
     public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
     /// <summary>True when any feature was not exactly converted.</summary>

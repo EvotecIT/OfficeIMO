@@ -85,10 +85,11 @@ public class RtfMarkdownConverterTests {
     public void MarkdownImagesEmitDiagnosticWhenBinaryPayloadIsNotProvided() {
         var options = new MarkdownToRtfOptions();
 
-        RtfDocument document = "![Logo](logo.png)".ToRtfDocumentFromMarkdown(options);
+        RtfConversionResult<RtfDocument> result = "![Logo](logo.png)".ToRtfDocumentFromMarkdownResult(options);
+        RtfDocument document = result.Value;
 
         Assert.Contains(document.Paragraphs, paragraph => paragraph.ToPlainText().Contains("[Image: Logo]", StringComparison.Ordinal));
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "MDRTF003");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDRTF003");
     }
 
     [Fact]
@@ -157,10 +158,11 @@ public class RtfMarkdownConverterTests {
     public void MarkdownToRtfDocumentRejectsUnsupportedHtmlNestedInSupportedWrapper() {
         var options = new MarkdownToRtfOptions();
 
-        RtfDocument document = "<u><span>x</span></u>".ToRtfDocumentFromMarkdown(options);
+        RtfConversionResult<RtfDocument> result = "<u><span>x</span></u>".ToRtfDocumentFromMarkdownResult(options);
+        RtfDocument document = result.Value;
 
         Assert.Empty(document.Paragraphs);
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "MDRTF004");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDRTF004");
     }
 
     [Fact]
@@ -178,15 +180,16 @@ public class RtfMarkdownConverterTests {
     public void MarkdownToRtfDocumentOmitsHtmlCommentBlocksByDefault() {
         var options = new MarkdownToRtfOptions();
 
-        RtfDocument document = """
+        RtfConversionResult<RtfDocument> result = """
             <!-- hidden -->
 
             Visible
-            """.ToRtfDocumentFromMarkdown(options);
+            """.ToRtfDocumentFromMarkdownResult(options);
+        RtfDocument document = result.Value;
 
         RtfParagraph paragraph = Assert.Single(document.Paragraphs);
         Assert.Equal("Visible", paragraph.ToPlainText());
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "MDRTF004");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDRTF004");
     }
 
     [Fact]
@@ -548,12 +551,13 @@ public class RtfMarkdownConverterTests {
             [^1]: see [^1]
             """;
 
-        RtfDocument document = markdown.ToRtfDocumentFromMarkdown(options);
+        RtfConversionResult<RtfDocument> result = markdown.ToRtfDocumentFromMarkdownResult(options);
+        RtfDocument document = result.Value;
 
         RtfGeneratedText reference = Assert.Single(document.Paragraphs[0].Inlines.OfType<RtfGeneratedText>());
         Assert.NotNull(reference.Note);
         Assert.Equal("see [^1]", reference.Note!.ToPlainText());
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "MDRTF020");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "MDRTF020");
     }
 
     [Fact]
@@ -717,13 +721,14 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph().AddFootnote("1", "Footnote body");
         var options = new RtfToMarkdownOptions();
 
-        string markdown = document.ToMarkdown(options).Replace("\r\n", "\n");
+        RtfConversionResult<string> result = document.ToMarkdownResult(options);
+        string markdown = result.Value.Replace("\r\n", "\n");
 
         Assert.Contains("<sup>1</sup>[^fn1]", markdown, StringComparison.Ordinal);
         Assert.Contains("[^fn1]: Footnote body", markdown, StringComparison.Ordinal);
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD015");
-        Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
-        options.ConversionReport.RequireNoLoss();
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD015");
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
+        result.RequireNoLoss();
     }
 
     [Fact]
@@ -739,15 +744,16 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph("Body").AddNoteReference(note, "1");
         var options = new RtfToMarkdownOptions();
 
-        string markdown = document.ToMarkdown(options).Replace("\r\n", "\n");
+        RtfConversionResult<string> result = document.ToMarkdownResult(options);
+        string markdown = result.Value.Replace("\r\n", "\n");
         MarkdownDoc parsed = MarkdownReader.Parse(markdown);
         FootnoteDefinitionBlock definition = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(parsed.Blocks, block => block is FootnoteDefinitionBlock));
 
         Assert.Contains("[^fn1]: Rich **bold** and [link](https://example.test/note)", markdown, StringComparison.Ordinal);
         Assert.Contains("Second *paragraph*", markdown, StringComparison.Ordinal);
         Assert.Equal(2, definition.ParagraphBlocks.Count);
-        Assert.DoesNotContain(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Action == RtfConversionAction.Omitted || diagnostic.Action == RtfConversionAction.Flattened);
-        options.ConversionReport.RequireNoLoss();
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Action == RtfConversionAction.Omitted || diagnostic.Action == RtfConversionAction.Flattened);
+        result.RequireNoLoss();
     }
 
     [Fact]
@@ -768,10 +774,11 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph().AddPageNumber();
         var options = new RtfToMarkdownOptions();
 
-        string markdown = document.ToMarkdown(options);
+        RtfConversionResult<string> result = document.ToMarkdownResult(options);
+        string markdown = result.Value;
 
         Assert.Contains("RTF generated text omitted", markdown, StringComparison.Ordinal);
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD013");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD013");
     }
 
     [Fact]
@@ -782,11 +789,12 @@ public class RtfMarkdownConverterTests {
         document.AddParagraph("Body");
         var options = new RtfToMarkdownOptions();
 
-        string markdown = document.ToMarkdown(options);
+        RtfConversionResult<string> result = document.ToMarkdownResult(options);
+        string markdown = result.Value;
 
         Assert.Contains("Body", markdown, StringComparison.Ordinal);
         Assert.Contains("RTF header/footer content omitted", markdown, StringComparison.Ordinal);
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD014");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD014");
     }
 
     [Fact]
@@ -917,6 +925,17 @@ public class RtfMarkdownConverterTests {
         Assert.Equal((inline, 1, "media/image 1.jpeg"), exported[1]);
         Assert.Contains("media/image%200.png", markdown, StringComparison.Ordinal);
         Assert.Contains("media/image%201.jpeg", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ReusingOptionsDoesNotLeakDiagnosticsAcrossConversions() {
+        var options = new MarkdownToRtfOptions();
+
+        RtfConversionResult<RtfDocument> lossy = "![Logo](logo.png)".ToRtfDocumentFromMarkdownResult(options);
+        RtfConversionResult<RtfDocument> clean = "Plain text".ToRtfDocumentFromMarkdownResult(options);
+
+        Assert.Contains(lossy.Report.Diagnostics, diagnostic => diagnostic.Code == "MDRTF003");
+        Assert.Empty(clean.Report.Diagnostics);
     }
 
     private static string ExtractPlainText(IPlainTextMarkdownInline inline) {

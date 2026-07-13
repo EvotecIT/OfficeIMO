@@ -61,7 +61,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.Tables.Count);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -113,7 +113,7 @@ namespace OfficeIMO.Examples.Word {
 
                 section.AddHorizontalLine(BorderValues.BalloonsHotAir, null, 24, 24);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

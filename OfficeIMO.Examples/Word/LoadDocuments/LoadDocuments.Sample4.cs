@@ -14,10 +14,12 @@ namespace OfficeIMO.Examples.Word {
             string documentPaths = Path.Combine(Directory.GetCurrentDirectory(), "Templates");
             string fullPath = Path.Combine(documentPaths, "sample1.docx");
 
-            using (WordDocument document = WordDocument.Load(fullPath, readOnly: true, overrideStyles: true)) {
+            using (WordDocument document = WordDocument.Load(fullPath, new WordLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                OverrideStyles = true
+            })) {
                 Console.WriteLine("Document loaded in read-only mode. Style overrides were ignored.");
             }
         }
     }
 }
-

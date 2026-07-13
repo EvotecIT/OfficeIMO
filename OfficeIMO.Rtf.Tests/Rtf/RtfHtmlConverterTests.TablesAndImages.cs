@@ -90,17 +90,15 @@ public partial class RtfHtmlConverterTests {
     public void RtfDocument_ToHtml_Reports_Diagnostic_When_Image_Embedding_Is_Disabled() {
         RtfDocument document = RtfDocument.Create();
         document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50, 0x4E, 0x47 });
-        var callbackDiagnostics = new List<HtmlRtfConversionDiagnostic>();
         var options = new RtfToHtmlOptions {
-            EmbedImagesAsDataUri = false,
-            DiagnosticHandler = callbackDiagnostics.Add
+            EmbedImagesAsDataUri = false
         };
 
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
-        Assert.Same(diagnostic, Assert.Single(callbackDiagnostics));
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
         Assert.Equal("RtfHtmlImageEmbeddingDisabled", diagnostic.Code);
         Assert.Equal(HtmlRtfConversionDiagnosticSeverity.Warning, diagnostic.Severity);
         Assert.Equal(RtfImageFormat.Png.ToString(), diagnostic.Source);
@@ -112,10 +110,11 @@ public partial class RtfHtmlConverterTests {
         document.AddImage(RtfImageFormat.Emf, new byte[] { 0x01, 0x02, 0x03 });
         RtfToHtmlOptions options = RtfToHtmlOptions.CreateRoundTripProfile();
 
-        string html = document.ToHtml(options);
+        RtfToHtmlResult result = document.ToHtmlResult(options);
+        string html = result.Value;
 
         Assert.DoesNotContain("<img", html, StringComparison.Ordinal);
-        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(options.Diagnostics);
+        HtmlRtfConversionDiagnostic diagnostic = Assert.Single(result.RtfDiagnostics);
         Assert.Equal("RtfHtmlImageFormatUnsupported", diagnostic.Code);
         Assert.Equal(RtfImageFormat.Emf.ToString(), diagnostic.Source);
     }

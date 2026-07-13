@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph.FontFamilyEastAsia = "Arial"; // to change east asia font family
                 paragraph.FontFamilyHighAnsi = "Arial"; // to change high ansi font family
                 paragraph.FontFamilyComplexScript = "Arial"; // to change complex script font family
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -1,5 +1,4 @@
 using OfficeIMO.Html;
-using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint.Html;
 
@@ -40,6 +39,17 @@ public sealed class PowerPointHtmlSaveOptions {
     /// </summary>
     public bool UseSharedVisualSnapshot { get; set; } = true;
 
-    /// <summary>Snapshot diagnostics recorded during the latest conversion.</summary>
-    public IList<OfficeImageExportDiagnostic> SnapshotDiagnostics { get; } = new List<OfficeImageExportDiagnostic>();
+    /// <summary>Creates a reusable copy of these conversion settings.</summary>
+    public PowerPointHtmlSaveOptions Clone() => new PowerPointHtmlSaveOptions {
+        Profile = Profile,
+        Theme = Theme,
+        IncludeDefaultStyles = IncludeDefaultStyles,
+        Title = Title,
+        IncludeHiddenSlides = IncludeHiddenSlides,
+        IncludeNotes = IncludeNotes,
+        IncludeTables = IncludeTables,
+        IncludeHiddenShapes = IncludeHiddenShapes,
+        IncludeExtractionProof = IncludeExtractionProof,
+        UseSharedVisualSnapshot = UseSharedVisualSnapshot
+    };
 }

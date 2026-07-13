@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             var insideH = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.InsideHorizontal);
             Assert.Equal(BorderValues.Single, insideH.Style);
             Assert.Equal((UInt32Value)12U, insideH.Size);
-            Assert.Equal("ff0000", insideH.ColorHex);
+            Assert.Equal("FF0000", insideH.ColorHex);
             var cell = table.Rows[0].Cells[0];
             Assert.Null(cell.Borders.TopStyle);
         }
@@ -29,8 +29,7 @@ namespace OfficeIMO.Tests {
             var cell = table.Rows[0].Cells[0];
             Assert.Equal(BorderValues.Single, cell.Borders.TopStyle);
             Assert.Equal((UInt32Value)12U, cell.Borders.TopSize);
-            Assert.Equal("ff0000", cell.Borders.TopColorHex);
+            Assert.Equal("FF0000", cell.Borders.TopColorHex);
         }
     }
 }
-

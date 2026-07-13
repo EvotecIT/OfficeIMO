@@ -61,10 +61,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Section page borders", Assert.Single(reloaded.Paragraphs).Text);
 
                 PageBorders pageBorders = Assert.IsType<PageBorders>(reloaded.Sections[0]._sectionProperties.GetFirstChild<PageBorders>());
-                AssertPageBorder(pageBorders.TopBorder, BorderValues.Single, "ff0000", 8U, 12U);
-                AssertPageBorder(pageBorders.LeftBorder, BorderValues.Double, "0000ff", 12U, 10U);
-                AssertPageBorder(pageBorders.BottomBorder, BorderValues.Dotted, "00ff00", 4U, 8U);
-                AssertPageBorder(pageBorders.RightBorder, BorderValues.Dashed, "ffff00", 6U, 6U);
+                AssertPageBorder(pageBorders.TopBorder, BorderValues.Single, "FF0000", 8U, 12U);
+                AssertPageBorder(pageBorders.LeftBorder, BorderValues.Double, "0000FF", 12U, 10U);
+                AssertPageBorder(pageBorders.BottomBorder, BorderValues.Dotted, "00FF00", 4U, 8U);
+                AssertPageBorder(pageBorders.RightBorder, BorderValues.Dashed, "FFFF00", 6U, 6U);
             } finally {
                 DeleteIfExists(docPath);
             }

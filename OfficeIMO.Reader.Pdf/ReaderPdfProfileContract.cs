@@ -37,7 +37,7 @@ public sealed class ReaderPdfProfileContract {
 /// </summary>
 public static class ReaderPdfProfileContracts {
     private static readonly ReaderPdfProfileContract OfficeIMOContract = new ReaderPdfProfileContract(
-        DocumentReaderPdfRegistrationExtensions.HandlerId,
+        OfficeDocumentReaderBuilderPdfExtensions.HandlerId,
         "OfficeIMO Reader PDF",
         "PDF -> OfficeIMO.Pdf logical model -> DocumentReader page-aware chunks",
         "Emits PDF input kind, normalized source identity, page-aware locations, Markdown text, detected table payloads, image placeholders, link annotations, form widget summaries, chunk hashes, and MaxChars split warnings where requested by ReaderOptions.",

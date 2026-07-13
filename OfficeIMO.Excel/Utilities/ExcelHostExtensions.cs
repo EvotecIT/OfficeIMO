@@ -29,12 +29,12 @@ public static class ExcelHostExtensions
                 return existing;
             }
 
-            return document.AddWorkSheet(requestedName, validationMode);
+            return document.AddWorksheet(requestedName, validationMode);
         }
 
         if (sheetsCollection.Count == 0)
         {
-            return document.AddWorkSheet();
+            return document.AddWorksheet();
         }
 
         return sheetsCollection[sheetsCollection.Count - 1];

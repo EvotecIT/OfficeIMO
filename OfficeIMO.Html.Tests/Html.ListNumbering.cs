@@ -4,25 +4,27 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using W14 = DocumentFormat.OpenXml.Office2010.Word;
-using Xunit;
-
-namespace OfficeIMO.Tests {
-    public partial class Html {
-        [Fact]
-        public void HtmlToWord_ListNumbering_ContiguousLists() {
-            string html = "<ol><li>One</li></ol><ol><li>Two</li></ol>";
-            var options = new HtmlToWordOptions { ContinueNumbering = true };
-            var doc = html.ToWordDocument(options);
-            Assert.True(doc.Paragraphs.Count(p => p.IsListItem) >= 2);
-            Assert.Single(doc.Paragraphs.Where(p => p.IsListItem).Select(p => p._listNumberId).Distinct());
-        }
-
-        [Fact]
+using Xunit;
+
+namespace OfficeIMO.Tests {
+    public partial class Html {
+        [Fact]
+        public void HtmlToWord_ListNumbering_ContiguousLists() {
+            string html = "<ol><li>One</li></ol><ol><li>Two</li></ol>";
+            var options = new HtmlToWordOptions { ContinueNumbering = true };
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
+            Assert.True(doc.Paragraphs.Count(p => p.IsListItem) >= 2);
+            Assert.Single(doc.Paragraphs.Where(p => p.IsListItem).Select(p => p._listNumberId).Distinct());
+        }
+
+        [Fact]
         public void HtmlToWord_ListNumbering_SeparatedLists() {
-            string html = "<ol><li>One</li></ol><p>Break</p><ol><li>Two</li></ol>";
-            var options = new HtmlToWordOptions { ContinueNumbering = true };
-            var doc = html.ToWordDocument(options);
-            Assert.True(doc.Paragraphs.Count(p => p.IsListItem) >= 2);
+            string html = "<ol><li>One</li></ol><p>Break</p><ol><li>Two</li></ol>";
+            var options = new HtmlToWordOptions { ContinueNumbering = true };
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
+            Assert.True(doc.Paragraphs.Count(p => p.IsListItem) >= 2);
             Assert.Single(doc.Paragraphs.Where(p => p.IsListItem).Select(p => p._listNumberId).Distinct());
             Assert.Contains(doc.Paragraphs, p => !p.IsListItem);
         }
@@ -131,7 +133,8 @@ namespace OfficeIMO.Tests {
             string html = "<ul style=\"list-style-type:'\\2713'\"><li>Done</li></ul><ul style=\"list-style:'◆' outside\"><li>Diamond</li></ul>";
 
             var options = new HtmlToWordOptions();
-            var doc = html.ToWordDocument(options);
+            HtmlToWordResult conversion = html.ToWordDocumentResult(options);
+            var doc = conversion.Value;
 
             var listItems = doc.Paragraphs
                 .Where(p => p.IsListItem)
@@ -145,7 +148,7 @@ namespace OfficeIMO.Tests {
             Assert.True(second.HasValue);
             Assert.Equal("✓", first.Value.LevelText);
             Assert.Equal("◆", second.Value.LevelText);
-            Assert.DoesNotContain(options.Diagnostics, diagnostic =>
+            Assert.DoesNotContain(conversion.Diagnostics, diagnostic =>
                 string.Equals(diagnostic.Code, "UnsupportedCssValue", StringComparison.OrdinalIgnoreCase) &&
                 diagnostic.Source?.Contains("list-style", StringComparison.OrdinalIgnoreCase) == true);
         }
@@ -194,7 +197,7 @@ namespace OfficeIMO.Tests {
             string html = "<ul><li>Intro<p>Details</p><table><tr><td>Metric</td></tr></table></li></ul><p>After</p>";
 
             using var doc = html.ToWordDocument(new HtmlToWordOptions());
-            using MemoryStream stream = doc.ToDocxStream();
+            using MemoryStream stream = doc.ToStream();
             stream.Position = 0;
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
 

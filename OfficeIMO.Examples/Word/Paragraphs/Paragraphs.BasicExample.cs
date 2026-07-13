@@ -42,7 +42,7 @@ internal static partial class Paragraphs {
 
             // primary section (for the whole document)
             Console.WriteLine("+ Paragraphs section 0: " + document.Sections[0].Paragraphs.Count);
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 

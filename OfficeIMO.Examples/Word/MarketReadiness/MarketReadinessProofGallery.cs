@@ -7,6 +7,7 @@ using System.Text.Json;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
@@ -131,7 +132,7 @@ namespace OfficeIMO.Examples.Word {
                 ["Customer"] = "Northwind Traders",
                 ["InvoiceNumber"] = "INV-2026-0042"
             });
-            invoice.Save(false);
+            invoice.Save();
         }
 
         private static void CreateContentControlFormProof(string scenarioPath) {
@@ -163,7 +164,7 @@ namespace OfficeIMO.Examples.Word {
 
             int updated = document.FillContentControlValues(values);
             WriteExtractedValues(Path.Combine(scenarioPath, "client-intake-filled-values.md"), updated, document.ExtractContentControlValues());
-            document.Save(false);
+            document.Save();
         }
 
         private static void CreateReviewDiffProof(string galleryPath) {
@@ -233,10 +234,11 @@ namespace OfficeIMO.Examples.Word {
                 File.WriteAllText(sourcePath, scenario.Value, Encoding.UTF8);
 
                 HtmlToWordOptions options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
-                using WordDocument document = scenario.Value.ToWordDocument(options);
+                HtmlToWordResult conversion = scenario.Value.ToWordDocumentResult(options);
+                using WordDocument document = conversion.RequireValue();
                 document.Save(docxPath);
                 File.WriteAllText(roundTripPath, document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true }), Encoding.UTF8);
-                WriteHtmlDiagnostics(diagnosticsPath, options.Diagnostics);
+                WriteHtmlDiagnostics(diagnosticsPath, conversion.Diagnostics);
             }
 
             WriteValidationReport(scenarioPath);
@@ -329,14 +331,14 @@ namespace OfficeIMO.Examples.Word {
             return index.HasValue ? index.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "-";
         }
 
-        private static void WriteHtmlDiagnostics(string path, IReadOnlyList<HtmlConversionDiagnostic> diagnostics) {
+        private static void WriteHtmlDiagnostics(string path, IReadOnlyList<HtmlDiagnostic> diagnostics) {
             var builder = new StringBuilder();
             builder.AppendLine("# HTML Conversion Diagnostics");
             builder.AppendLine();
             if (diagnostics.Count == 0) {
                 builder.AppendLine("- No diagnostics.");
             } else {
-                foreach (HtmlConversionDiagnostic diagnostic in diagnostics) {
+                foreach (HtmlDiagnostic diagnostic in diagnostics) {
                     builder.AppendLine("- " + diagnostic.Severity + " " + diagnostic.Code + ": " + diagnostic.Message);
                 }
             }

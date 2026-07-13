@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 sa.SetNodeText(idx, "Test\nQA", bold: true, italic: false, underline: true, colorHex: "#FF0000", sizePt: 12);
             }
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
         }
 
@@ -36,7 +36,7 @@ namespace OfficeIMO.Examples.Word {
                 sa.SetNodeText(last, "Delight\nFeedback", bold: false, italic: true, underline: false, colorHex: "#0066CC", sizePt: 11);
             }
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
         }
 
@@ -60,7 +60,7 @@ namespace OfficeIMO.Examples.Word {
             // Emphasize first
             sa.SetNodeText(0, "Plan", bold: true, italic: false);
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
         }
 
@@ -85,7 +85,7 @@ namespace OfficeIMO.Examples.Word {
             // Add style on one node
             sa.SetNodeText(1, "AB", bold: false, italic: true, underline: false, colorHex: "#008000", sizePt: 12);
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
         }
     }

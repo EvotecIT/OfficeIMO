@@ -27,7 +27,7 @@ public partial class Excel {
             sheet.Cell(2, 2, 1250.5);
             sheet.Cell(3, 1, "Support");
             sheet.Cell(3, 2, 250);
-            document.Save(false);
+            document.Save();
 
             document.SaveAsPdf(pdfPath);
         }
@@ -50,9 +50,9 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Title");
             sheet.Cell(2, 1, "Explicit serif default");
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 FontFamily = "serif",
                 IncludeSheetHeadings = false
             });
@@ -85,7 +85,7 @@ public partial class Excel {
             sheet.Cell(1, 2, "Amount");
             sheet.Cell(2, 1, "Licenses");
             sheet.Cell(2, 2, 1250.5);
-            document.Save(false);
+            document.Save();
 
             pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -127,7 +127,7 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Product");
             sheet.Cell(2, 1, "Licenses");
-            document.Save(false);
+            document.Save();
 
             pdfDocument = document.ToPdfDocument(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
@@ -155,15 +155,15 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorkSheet("Summary");
+            ExcelSheet summary = document.AddWorksheet("Summary");
             summary.Cell(1, 1, "Metric");
             summary.Cell(2, 1, "SelectedValue");
             summary.SetHeaderFooter(headerCenter: "Selected Header &A");
-            ExcelSheet internalSheet = document.AddWorkSheet("Internal");
+            ExcelSheet internalSheet = document.AddWorksheet("Internal");
             internalSheet.Cell(1, 1, "HiddenValue");
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 SheetNames = new[] { "summary" }
             });
         }
@@ -184,20 +184,20 @@ public partial class Excel {
         byte[] visibleBytes;
         byte[] explicitHiddenBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet visible = document.AddWorkSheet("Visible");
+            ExcelSheet visible = document.AddWorksheet("Visible");
             visible.Cell(1, 1, "VisibleSheetValue");
-            ExcelSheet hidden = document.AddWorkSheet("Hidden");
+            ExcelSheet hidden = document.AddWorksheet("Hidden");
             hidden.Cell(1, 1, "HiddenSheetValue");
             hidden.SetHidden(true);
             Assert.True(hidden.Hidden);
-            document.Save(false);
+            document.Save();
 
-            visibleBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            visibleBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0
             });
 
-            explicitHiddenBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            explicitHiddenBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 SheetNames = new[] { "Hidden" },
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 0

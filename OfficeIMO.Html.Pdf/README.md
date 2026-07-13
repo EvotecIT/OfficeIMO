@@ -36,7 +36,7 @@ Naming is consistent across the direct output APIs:
 
 - `ToPdf()` returns encoded bytes.
 - `ToPdfDocument()` returns the first-party PDF model.
-- `ToPdfResult()` returns the PDF model plus diagnostics.
+- `ToPdfDocumentResult()` returns the PDF model plus diagnostics.
 - `ToPngResult()` and `ToSvgResult()` return image output, dimensions, and diagnostics; plural forms return every page.
 - `SaveAsPdf(path)` and `SaveAsPdf(stream)` write to a destination.
 - Async counterparts use the same names with `Async` appended.
@@ -75,12 +75,12 @@ var options = new HtmlPdfSaveOptions {
         Task.FromResult<HtmlResolvedResource?>(null)
 };
 
-var result = await html.ToPdfResultAsync(options);
+var result = await html.ToPdfDocumentResultAsync(options);
 var pngResult = await html.ToPngResultAsync(options);
 var svgResult = await html.ToSvgResultAsync(options);
 await result.SaveAsync("report.pdf");
 
-foreach (var warning in result.ConversionReport.Warnings) {
+foreach (var warning in result.Report.Warnings) {
     Console.WriteLine($"{warning.Code}: {warning.Message}");
 }
 

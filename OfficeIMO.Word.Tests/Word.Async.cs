@@ -27,11 +27,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_WordCreateAsync() {
+        public async Task Test_WordCreate_DoesNotCreateDestinationUntilSaveAsync() {
             var filePath = Path.Combine(_directoryWithFiles, "AsyncCreate.docx");
             if (File.Exists(filePath)) File.Delete(filePath);
 
-            await using (var document = await WordDocument.CreateAsync(filePath, cancellationToken: CancellationToken.None)) {
+            await using (var document = WordDocument.Create(filePath)) {
+                Assert.False(File.Exists(filePath));
                 document.AddParagraph("Created");
                 await document.SaveAsync();
             }
@@ -43,15 +44,6 @@ namespace OfficeIMO.Tests {
             }
 
             File.Delete(filePath);
-        }
-
-        [Fact]
-        public async Task Test_WordCreateAsync_CanBeCancelled() {
-            var filePath = Path.Combine(_directoryWithFiles, "AsyncCreateCancelled.docx");
-            var cts = new CancellationTokenSource();
-            cts.Cancel();
-
-            await Assert.ThrowsAsync<TaskCanceledException>(() => WordDocument.CreateAsync(filePath, cancellationToken: cts.Token));
         }
 
         [Fact]

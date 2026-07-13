@@ -63,21 +63,13 @@ public sealed partial class RtfToHtmlOptions {
     /// <summary>Newline sequence used by the generated HTML.</summary>
     public string NewLine { get; set; } = Environment.NewLine;
 
-    /// <summary>
-    /// Diagnostics produced while converting the RTF document model into HTML.
-    /// </summary>
-    public List<HtmlRtfConversionDiagnostic> Diagnostics { get; } = new List<HtmlRtfConversionDiagnostic>();
+    internal List<HtmlRtfConversionDiagnostic> Diagnostics { get; } = new List<HtmlRtfConversionDiagnostic>();
 
     /// <summary>Shared cross-adapter fidelity and policy report for this conversion.</summary>
-    public RtfConversionReport ConversionReport { get; } = new RtfConversionReport();
+    internal RtfConversionReport ConversionReport { get; } = new RtfConversionReport();
 
     /// <summary>Shared HTML diagnostic report for cross-format aggregation.</summary>
-    public HtmlDiagnosticReport HtmlDiagnostics { get; } = new HtmlDiagnosticReport();
-
-    /// <summary>
-    /// Optional callback invoked whenever a conversion diagnostic is produced.
-    /// </summary>
-    public Action<HtmlRtfConversionDiagnostic>? DiagnosticHandler { get; set; }
+    internal HtmlDiagnosticReport HtmlDiagnostics { get; } = new HtmlDiagnosticReport();
 
     /// <summary>
     /// Creates a reusable copy of the current save options.
@@ -93,20 +85,18 @@ public sealed partial class RtfToHtmlOptions {
         EmbedImagesAsDataUri = EmbedImagesAsDataUri,
         MaxEmbeddedImageBytes = MaxEmbeddedImageBytes,
         ImageSourceResolver = ImageSourceResolver,
-        NewLine = NewLine,
-        DiagnosticHandler = DiagnosticHandler
+        NewLine = NewLine
     };
 
     internal string GetNewLine() => string.IsNullOrEmpty(NewLine) ? Environment.NewLine : NewLine;
 
     internal HtmlUrlPolicy GetUrlPolicy() => UrlPolicy ?? HtmlUrlPolicy.CreateWebOnlyProfile();
 
-    internal void AddDiagnostic(string code, string message, string? source = null, Exception? exception = null, HtmlRtfConversionDiagnosticSeverity severity = HtmlRtfConversionDiagnosticSeverity.Warning) {
+    internal void AddDiagnostic(string code, string message, string? source = null, Exception? exception = null, HtmlRtfConversionDiagnosticSeverity severity = HtmlRtfConversionDiagnosticSeverity.Warning, RtfConversionAction? action = null) {
         string? detail = exception == null ? null : exception.GetType().Name + ": " + exception.Message;
-        var diagnostic = new HtmlRtfConversionDiagnostic(code, message, severity, source, detail);
+        var diagnostic = new HtmlRtfConversionDiagnostic(code, message, severity, source, detail, action);
         Diagnostics.Add(diagnostic);
         HtmlRtfConversionReportMapper.Add(ConversionReport, diagnostic);
         HtmlRtfConversionReportMapper.Add(HtmlDiagnostics, diagnostic);
-        DiagnosticHandler?.Invoke(diagnostic);
     }
 }

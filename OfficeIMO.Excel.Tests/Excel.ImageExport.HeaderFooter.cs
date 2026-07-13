@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersPlainHeaderFooterText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "Confidential", footerRight: "Draft");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -34,7 +34,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersSupportedHeaderFooterFields() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "Sheet &A", footerRight: "Page &[Page] of &N && draft");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             }
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerLeft: "File &F", headerRight: "Path &[Path]", footerRight: "&[File]");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             DateTime headerFooterDateTime = new DateTime(2026, 6, 23, 14, 35, 0);
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerLeft: "Date &D", headerCenter: "Time &[Time]", footerRight: "Printed &[Date] &T");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersBasicFormattedHeaderFooterText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&B&I&UStyled &A", footerRight: "Printed &BConfidential");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersColorAndSizeHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&KFF0000&14Red &A");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersStrikethroughHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&SStrike Header");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -187,7 +187,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersFontFamilyHeaderFooterFormatting() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&\"Aptos,Bold Italic\"Font Header");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportReportsUnresolvedHeaderFooterFontFamilyFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&\"OfficeIMO Missing Header Font,Bold\"Font Header");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportKeepsMalformedHeaderFooterFontFamilyDiagnosed() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerCenter: "&\"AptosFont Header");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -255,7 +255,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             DateTime headerFooterDateTime = new DateTime(2026, 6, 23, 14, 35, 0);
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerLeft: "Date &D", headerCenter: "Time &[Time]", footerRight: "Printed &[Date] &T");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRendersFirstEvenAndOddHeaderFooterVariants() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet, rows: 6);
             sheet.SetHeaderFooter(headerCenter: "Odd &P", footerRight: "Odd Footer");
             sheet.SetFirstPageHeaderFooter(headerCenter: "First &P", footerRight: "First Footer");
@@ -319,7 +319,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportAddsHeaderFooterBands() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderFooter(headerLeft: "Prepared", footerCenter: "Internal");
             sheet.AddManualRowPageBreak(2, save: false);
@@ -345,7 +345,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportKeepsHeaderFooterInsidePageSetupCanvas() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetPaperSize(ExcelPaperSize.Letter);
             sheet.SetHeaderFooter(headerCenter: "Prepared", footerCenter: "Internal");
@@ -364,7 +364,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportKeepsHeaderFooterInsidePageSetupCanvasWithPrintTitles() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetPaperSize(ExcelPaperSize.Letter);
             sheet.SetHeaderFooter(headerCenter: "Prepared", footerCenter: "Internal");
@@ -385,7 +385,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportRendersSupportedHeaderFooterPngImages() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             byte[] logo = CreateHeaderFooterLogoPng();
             sheet.SetHeaderImage(HeaderFooterPosition.Center, logo, "image/png", widthPoints: 36D, heightPoints: 16D);
@@ -420,7 +420,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportRendersHeaderFooterBmpImagesThroughSharedDecoder() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderImage(HeaderFooterPosition.Center, CreateHeaderFooterLogoBmp(), "image/bmp", widthPoints: 36D, heightPoints: 16D);
             sheet.AddManualRowPageBreak(2, save: false);
@@ -450,7 +450,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportDiagnosesUnsupportedHeaderFooterImageFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetHeaderImage(HeaderFooterPosition.Center, new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61 }, "image/gif", widthPoints: 36D, heightPoints: 16D);
             sheet.AddManualRowPageBreak(2, save: false);

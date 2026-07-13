@@ -71,7 +71,7 @@ public class RtfLosslessRoundTripTests {
             await result.SaveLosslessAsync(outputPath);
 
             Assert.Equal(bytes, File.ReadAllBytes(outputPath));
-            Assert.Equal(bytes, await result.ToBytesLosslessAsync());
+            Assert.Equal(bytes, result.ToBytesLossless());
         } finally {
             if (File.Exists(inputPath)) File.Delete(inputPath);
             if (File.Exists(outputPath)) File.Delete(outputPath);
@@ -115,7 +115,7 @@ public class RtfLosslessRoundTripTests {
         Assert.Contains(@"{\*\unknown Keep}", editor.ToRtf(), StringComparison.Ordinal);
         Assert.Contains(@"{\pict\pngblip\bin3 abc}", editor.ToRtf(), StringComparison.Ordinal);
 
-        RtfReadResult edited = await editor.ToReadResultAsync();
+        RtfReadResult edited = RtfDocument.Read(editor.ToRtf());
         Assert.Equal(editor.ToRtf(), edited.ToRtfLossless());
     }
 
@@ -130,9 +130,8 @@ public class RtfLosslessRoundTripTests {
         await document.SaveAsync(output, new RtfWriteOptions { IncludeGenerator = false });
         byte[] saved = output.ToArray();
 
-        Assert.Equal(saved.Length, output.Position);
-        Assert.Equal(0x2A, saved[0]);
-        Assert.Equal(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false }), Encoding.UTF8.GetString(saved, 1, saved.Length - 1));
+        Assert.Equal(0, output.Position);
+        Assert.Equal(document.ToRtf(new RtfWriteOptions { IncludeGenerator = false }), Encoding.UTF8.GetString(saved));
     }
 
     [Fact]
@@ -140,7 +139,8 @@ public class RtfLosslessRoundTripTests {
         using var cts = new CancellationTokenSource();
         cts.Cancel();
 
-        await Assert.ThrowsAsync<OperationCanceledException>(() =>
-            RtfDocument.LoadAsync(new byte[] { 123, 125 }, cancellationToken: cts.Token));
+        using var input = new MemoryStream(new byte[] { 123, 125 });
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+            RtfDocument.LoadAsync(input, cancellationToken: cts.Token));
     }
 }

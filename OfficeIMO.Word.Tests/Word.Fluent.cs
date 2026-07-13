@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                     .End();
 
                 Assert.Same(document, fluentDocument);
-                fluentDocument.Save(false);
+                fluentDocument.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

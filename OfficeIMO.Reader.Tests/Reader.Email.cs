@@ -240,28 +240,24 @@ public sealed class ReaderEmailTests {
     }
 
     [Fact]
-    public void RtfOnlyMsg_UsesRegisteredSemanticRtfHandler() {
-        try {
-            DocumentReaderRtfRegistrationExtensions.RegisterRtfHandler();
-            RtfDocument rtf = RtfDocument.Create();
-            rtf.AddParagraph("Semantic RTF email body");
-            var document = new EmailDocument {
-                Format = EmailFileFormat.OutlookMsg,
-                Subject = "RTF body"
-            };
-            document.Body.Rtf = rtf.ToRtf();
-            byte[] bytes = new EmailDocumentWriter().WriteToBytes(document, EmailFileFormat.OutlookMsg);
+    public void RtfOnlyMsg_UsesConfiguredSemanticRtfHandler() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddRtfHandler().Build();
+        RtfDocument rtf = RtfDocument.Create();
+        rtf.AddParagraph("Semantic RTF email body");
+        var document = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            Subject = "RTF body"
+        };
+        document.Body.Rtf = rtf.ToRtf();
+        byte[] bytes = new EmailDocumentWriter().WriteToBytes(document, EmailFileFormat.OutlookMsg);
 
-            ReaderChunk[] chunks = DocumentReader.Read(bytes, "rtf-body.msg").ToArray();
+        ReaderChunk[] chunks = reader.Read(bytes, "rtf-body.msg").ToArray();
 
-            Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Rtf &&
-                chunk.Location.SourceBlockKind == "email-body-rtf" &&
-                chunk.Text.Contains("Semantic RTF email body", StringComparison.Ordinal));
-            Assert.DoesNotContain(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
-                warning => warning.StartsWith("EMAIL_RTF_BODY_PRESERVED", StringComparison.Ordinal));
-        } finally {
-            DocumentReaderRtfRegistrationExtensions.UnregisterRtfHandler();
-        }
+        Assert.Contains(chunks, chunk => chunk.Kind == ReaderInputKind.Rtf &&
+            chunk.Location.SourceBlockKind == "email-body-rtf" &&
+            chunk.Text.Contains("Semantic RTF email body", StringComparison.Ordinal));
+        Assert.DoesNotContain(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()),
+            warning => warning.StartsWith("EMAIL_RTF_BODY_PRESERVED", StringComparison.Ordinal));
     }
 
     [Fact]

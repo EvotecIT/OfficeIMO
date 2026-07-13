@@ -22,7 +22,7 @@ public class ExcelWriteBenchmarks {
         using var stream = new MemoryStream();
 
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.PopulateOfficeImoWorksheet(sheet, _rows);
         }
 

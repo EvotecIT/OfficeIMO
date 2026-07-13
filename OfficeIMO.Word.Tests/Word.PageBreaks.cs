@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, document.Paragraphs.Count);
                 Assert.Empty(document.PageBreaks);
 
-                document.Save(false);
+                document.Save();
             }
         }
     }

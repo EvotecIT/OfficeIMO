@@ -29,7 +29,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Sections[0].Borders.BottomColor = OfficeIMO.Drawing.OfficeColor.Blue;
                 document.Sections[0].Borders.BottomSize = 15;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

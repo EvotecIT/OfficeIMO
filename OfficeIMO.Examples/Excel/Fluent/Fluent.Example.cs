@@ -43,7 +43,7 @@ namespace OfficeIMO.Examples.Excel {
                         )
                     )
                     .End()
-                    .Save(false); // Don't open Excel yet
+                    .Save(); // Don't open Excel yet
 
                 // Validate the document
                 var errors = document.DocumentValidationErrors;
@@ -59,7 +59,7 @@ namespace OfficeIMO.Examples.Excel {
                 }
 
                 if (openExcel) {
-                    document.Open();
+                    document.OpenInApplication();
                 }
             }
         }

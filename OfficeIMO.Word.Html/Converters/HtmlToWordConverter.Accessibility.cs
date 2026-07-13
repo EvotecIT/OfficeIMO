@@ -1,5 +1,6 @@
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -16,6 +17,10 @@ namespace OfficeIMO.Word.Html {
         };
 
         private int _lastAccessibilityHeadingLevel;
+
+        private static void AddAccessibilityDiagnostic(HtmlToWordOptions options, string code, string message, string? source) {
+            AddDiagnostic(options, code, message, source, lossKind: HtmlConversionLossKind.None);
+        }
 
         private void ResetAccessibilityDiagnosticsState() {
             _lastAccessibilityHeadingLevel = 0;
@@ -53,7 +58,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            AddDiagnostic(
+            AddAccessibilityDiagnostic(
                 _options,
                 "AccessibilityImageMissingAlt",
                 "Image is missing an alt attribute. Add meaningful alternate text, or use an empty alt value for decorative images.",
@@ -69,7 +74,7 @@ namespace OfficeIMO.Word.Html {
 
             var accessibleName = GetAccessibleName(link);
             if (string.IsNullOrWhiteSpace(accessibleName)) {
-                AddDiagnostic(
+                AddAccessibilityDiagnostic(
                     _options,
                     "AccessibilityLinkTextMissing",
                     "Link has no accessible text. Add visible link text, aria-label, title, or image alternate text.",
@@ -78,7 +83,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (IsWeakLinkText(accessibleName, hrefSource)) {
-                AddDiagnostic(
+                AddAccessibilityDiagnostic(
                     _options,
                     "AccessibilityLinkTextWeak",
                     "Link text is generic or URL-only. Use text that describes the destination or action.",
@@ -93,7 +98,7 @@ namespace OfficeIMO.Word.Html {
             }
 
             if (_lastAccessibilityHeadingLevel > 0 && level > _lastAccessibilityHeadingLevel + 1) {
-                AddDiagnostic(
+                AddAccessibilityDiagnostic(
                     _options,
                     "AccessibilityHeadingLevelSkipped",
                     $"Heading level jumps from h{_lastAccessibilityHeadingLevel} to h{level}. Use consecutive heading levels where practical.",
@@ -108,7 +113,7 @@ namespace OfficeIMO.Word.Html {
                 return;
             }
 
-            AddDiagnostic(
+            AddAccessibilityDiagnostic(
                 _options,
                 "AccessibilityTableMissingHeader",
                 "Data table has no header cells. Use th, thead, or scope attributes so exported documents retain table meaning.",

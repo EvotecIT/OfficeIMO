@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void Test_SubtotalSummary_WritesFormulasAndOutlinesGroups() {
             string filePath = Path.Combine(_directoryWithFiles, "SubtotalSummary.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(1, 3, "Units");
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((byte)1, row4.OutlineLevel?.Value);
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
         public void Test_SubtotalSummary_RejectsOutputBeyondWorksheetBounds() {
             string filePath = Path.Combine(_directoryWithFiles, "SubtotalSummaryBounds.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales");
                 sheet.CellValue(2, 1, "NA");

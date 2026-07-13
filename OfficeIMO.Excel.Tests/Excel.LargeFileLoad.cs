@@ -23,7 +23,7 @@ namespace OfficeIMO.Tests
                 Assert.True(fileSize > 5 * 1024 * 1024, $"Expected a file larger than 5MB, but found {fileSize} bytes.");
 
                 using var allocationListener = new AllocationListener();
-                using (var document = ExcelDocument.Load(filePath, readOnly: true))
+                using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
                 {
                     Assert.NotEmpty(document.Sheets);
                     Assert.Contains(document.Sheets, sheet => string.Equals(sheet.Name, "Large", StringComparison.Ordinal));
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests
         private static void CreateLargeWorkbook(string filePath, int payloadBytes)
         {
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorkSheet("Large");
+            var sheet = document.AddWorksheet("Large");
             sheet.CellValue(1, 1, "Payload");
             document.Save();
 

@@ -7,9 +7,6 @@ namespace OfficeIMO.Word.Html;
 /// </summary>
 public sealed class HtmlToWordResult : HtmlConversionResult<WordDocument> {
     internal HtmlToWordResult(WordDocument document, IEnumerable<HtmlDiagnostic> diagnostics) : base(document) {
-        Diagnostics.AddRange(diagnostics);
+        AddDiagnostics(diagnostics);
     }
-
-    /// <summary>Imported Word document.</summary>
-    public WordDocument Document => Artifact;
 }

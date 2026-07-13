@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.Sections[1].Borders.Type);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

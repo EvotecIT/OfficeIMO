@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
                     .Paragraph(p => p.Text("Body"))
                     .Section(s => s.New(SectionMarkValues.Continuous))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
             using var loaded = WordDocument.Load(filePath);

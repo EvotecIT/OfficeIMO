@@ -127,7 +127,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("EffectPdfMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains("/Group << /S /Transparency /I true /K false >>", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
         Assert.True(pdfLink.SourceLink.X1 >= 15D - 0.01D);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("NestedEffectMarker", pdfText, StringComparison.Ordinal);
         Assert.True(rawPdf.Split(new[] { "/Group << /S /Transparency /I true /K false >>" }, StringSplitOptions.None).Length - 1 >= 2);
         Assert.DoesNotContain("OIMO_EFFECT_GROUP", rawPdf, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]

@@ -120,7 +120,10 @@ public static partial class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadWord(string path, ReaderOptions opt, CancellationToken ct) {
-        using var doc = WordDocument.Load(path, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(opt));
+        using var doc = WordDocument.Load(path, new WordLoadOptions {
+            AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+            OpenSettings = CreateOpenSettings(opt)
+        });
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWordWarnings(doc);
         var chunks = doc.ExtractMarkdownChunks(
             markdownOptions: new WordToMarkdownOptions(),
@@ -151,7 +154,10 @@ public static partial class DocumentReader {
     private static IEnumerable<ReaderChunk> ReadWord(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Copy input so we can open read-only without affecting caller's stream.
         using var ms = CopyToMemory(stream, ct);
-        using var doc = WordDocument.Load(ms, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(opt));
+        using var doc = WordDocument.Load(ms, new WordLoadOptions {
+            AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+            OpenSettings = CreateOpenSettings(opt)
+        });
         IReadOnlyList<string>? legacyWarnings = BuildLegacyWordWarnings(doc);
 
         var chunks = doc.ExtractMarkdownChunks(
@@ -307,7 +313,10 @@ public static partial class DocumentReader {
             });
         }
 
-        return ExcelDocument.Load(path, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+        return ExcelDocument.Load(path, new ExcelLoadOptions {
+            AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+            OpenSettings = openSettings
+        });
     }
 
     private static ExcelDocument LoadLegacyExcelForReader(Stream stream, ReaderOptions opt) {
@@ -321,16 +330,25 @@ public static partial class DocumentReader {
         }
 
         stream.Position = 0;
-        return ExcelDocument.Load(stream, readOnly: true, autoSave: false, openSettings: openSettings);
+        return ExcelDocument.Load(stream, new ExcelLoadOptions {
+            AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+            OpenSettings = openSettings
+        });
     }
 
     private static ExcelDocument LoadOpenXmlExcelForReader(string path, ReaderOptions opt) {
         OpenSettings? openSettings = CreateOpenSettings(opt);
         try {
-            return ExcelDocument.Load(path, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+            return ExcelDocument.Load(path, new ExcelLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                OpenSettings = openSettings
+            });
         } catch (Exception ex) when (ShouldRetryEncryptedExcelOpen(ex, opt)) {
             try {
-                return ExcelDocument.LoadEncrypted(path, opt.OpenPassword!, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+                return ExcelDocument.LoadEncrypted(path, opt.OpenPassword!, new ExcelLoadOptions {
+                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                    OpenSettings = openSettings
+                });
             } catch {
                 ExceptionDispatchInfo.Capture(ex).Throw();
                 throw;
@@ -342,11 +360,17 @@ public static partial class DocumentReader {
         OpenSettings? openSettings = CreateOpenSettings(opt);
         stream.Position = 0;
         try {
-            return ExcelDocument.Load(stream, readOnly: true, autoSave: false, openSettings: openSettings);
+            return ExcelDocument.Load(stream, new ExcelLoadOptions {
+                AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                OpenSettings = openSettings
+            });
         } catch (Exception ex) when (ShouldRetryEncryptedExcelOpen(ex, opt)) {
             stream.Position = 0;
             try {
-                return ExcelDocument.LoadEncrypted(stream, opt.OpenPassword!, readOnly: true, autoSave: false, openSettings: openSettings);
+                return ExcelDocument.LoadEncrypted(stream, opt.OpenPassword!, new ExcelLoadOptions {
+                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                    OpenSettings = openSettings
+                });
             } catch {
                 ExceptionDispatchInfo.Capture(ex).Throw();
                 throw;
@@ -468,7 +492,7 @@ public static partial class DocumentReader {
     }
 
     private static IEnumerable<ReaderChunk> ReadPowerPoint(string path, ReaderOptions opt, CancellationToken ct) {
-        using var presentation = PowerPointPresentation.Open(path, PowerPointOpenMode.ReadOnly);
+        using var presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         var chunks = presentation.ExtractMarkdownChunks(
             extract: new PowerPointExtractionExtensions.PowerPointExtractOptions { IncludeNotes = opt.IncludePowerPointNotes },
             chunking: new PowerPointExtractChunkingOptions { MaxChars = opt.MaxChars },
@@ -497,7 +521,7 @@ public static partial class DocumentReader {
 
     private static IEnumerable<ReaderChunk> ReadPowerPoint(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Read-only stream opening already copies to an internal stream for safety.
-        using var presentation = PowerPointPresentation.Open(stream, new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
+        using var presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
         var chunks = presentation.ExtractMarkdownChunks(
             extract: new PowerPointExtractionExtensions.PowerPointExtractOptions { IncludeNotes = opt.IncludePowerPointNotes },
             chunking: new PowerPointExtractChunkingOptions { MaxChars = opt.MaxChars },

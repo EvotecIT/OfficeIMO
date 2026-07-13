@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests
                 s.CellValue(3, 2, 20);
                 s.CellValue(3, 3, "New");
 
-                doc.Save(openExcel: false);
+                doc.Save();
             }
 
             // Read whole sheet as dictionaries
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests
                         s.CellValue(3, 3, "Hold");
                     }
                 }
-                doc.Save(openExcel: false);
+                doc.Save();
             }
 
             // Read back and assert changes

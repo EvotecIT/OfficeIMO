@@ -15,13 +15,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_options_text_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Policy   Owner");
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_options_text_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("policy owner");
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult defaultResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -93,13 +93,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_options_paragraph_style_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Same styled text").Style = WordParagraphStyles.Normal;
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_options_paragraph_style_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Same styled text").Style = WordParagraphStyles.Heading1;
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult defaultResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -169,13 +169,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_options_image_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph().AddImage(logoPath, 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_options_image_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph().AddImage(replacementPath, 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult defaultResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -196,14 +196,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(sourcePath)) {
                 document.AddParagraph("Source paragraph");
                 document.AddParagraph().AddImage(logoPath, 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_options_scope_filter_target.docx");
             using (WordDocument document = WordDocument.Create(targetPath)) {
                 document.AddParagraph("Target paragraph");
                 document.AddParagraph().AddImage(replacementPath, 80, 40);
-                document.Save(false);
+                document.Save();
             }
 
             WordComparisonResult defaultResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -261,7 +261,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithSingleRun(string path, bool bold) {
             using WordDocument document = WordDocument.Create(path);
             document.AddParagraph("Same text");
-            document.Save(false);
+            document.Save();
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
             Run run = wordDocument.MainDocumentPart!.Document.Body!.Descendants<Run>().First();
@@ -273,7 +273,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithRunStyle(string path, string runStyleId) {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Same run style text");
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
@@ -288,7 +288,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithInheritedComparisonStyle(string path, string paragraphSpacingAfter, string runColor) {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Inherited formatting text");
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
@@ -341,7 +341,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(path)) {
                 document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Same review note.");
                 document.AddParagraph("Tracked ").AddInsertedText("Same revision", "Alice Reviewer", revisionDate);
-                document.Save(false);
+                document.Save();
             }
 
             using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);

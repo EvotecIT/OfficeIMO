@@ -15,7 +15,7 @@ public partial class WordTableStyleDetails {
     public void SetBordersForAllSides(BorderValues style, UInt32Value size, OfficeIMO.Drawing.OfficeColor color) {
         _table.CheckTableProperties();
 
-        string colorHex = color.ToHexColor();
+        string colorHex = color.ToRgbHex();
 
         TableBorders borders = new TableBorders(
             new TopBorder() { Val = style, Size = size, Color = colorHex },
@@ -43,8 +43,8 @@ public partial class WordTableStyleDetails {
         BorderValues insideStyle, UInt32Value insideSize, OfficeIMO.Drawing.OfficeColor insideColor) {
         _table.CheckTableProperties();
 
-        string outsideColorHex = outsideColor.ToHexColor();
-        string insideColorHex = insideColor.ToHexColor();
+        string outsideColorHex = outsideColor.ToRgbHex();
+        string insideColorHex = insideColor.ToRgbHex();
 
         TableBorders borders = new TableBorders(
             new TopBorder() { Val = outsideStyle, Size = outsideSize, Color = outsideColorHex },
@@ -79,7 +79,7 @@ public partial class WordTableStyleDetails {
             if (topStyle != null) topBorder.Val = topStyle;
             if (topSize != null) topBorder.Size = topSize;
             if (topColor != null) {
-                topBorder.Color = topColor.Value.ToHexColor();
+                topBorder.Color = topColor.Value.ToRgbHex();
             }
             borders.TopBorder = topBorder;
         }
@@ -90,7 +90,7 @@ public partial class WordTableStyleDetails {
             if (bottomStyle != null) bottomBorder.Val = bottomStyle;
             if (bottomSize != null) bottomBorder.Size = bottomSize;
             if (bottomColor != null) {
-                bottomBorder.Color = bottomColor.Value.ToHexColor();
+                bottomBorder.Color = bottomColor.Value.ToRgbHex();
             }
             borders.BottomBorder = bottomBorder;
         }
@@ -101,7 +101,7 @@ public partial class WordTableStyleDetails {
             if (leftStyle != null) leftBorder.Val = leftStyle;
             if (leftSize != null) leftBorder.Size = leftSize;
             if (leftColor != null) {
-                leftBorder.Color = leftColor.Value.ToHexColor();
+                leftBorder.Color = leftColor.Value.ToRgbHex();
             }
             borders.LeftBorder = leftBorder;
         }
@@ -112,7 +112,7 @@ public partial class WordTableStyleDetails {
             if (rightStyle != null) rightBorder.Val = rightStyle;
             if (rightSize != null) rightBorder.Size = rightSize;
             if (rightColor != null) {
-                rightBorder.Color = rightColor.Value.ToHexColor();
+                rightBorder.Color = rightColor.Value.ToRgbHex();
             }
             borders.RightBorder = rightBorder;
         }
@@ -123,7 +123,7 @@ public partial class WordTableStyleDetails {
             if (insideHStyle != null) insideHBorder.Val = insideHStyle;
             if (insideHSize != null) insideHBorder.Size = insideHSize;
             if (insideHColor != null) {
-                insideHBorder.Color = insideHColor.Value.ToHexColor();
+                insideHBorder.Color = insideHColor.Value.ToRgbHex();
             }
             borders.InsideHorizontalBorder = insideHBorder;
         }
@@ -134,7 +134,7 @@ public partial class WordTableStyleDetails {
             if (insideVStyle != null) insideVBorder.Val = insideVStyle;
             if (insideVSize != null) insideVBorder.Size = insideVSize;
             if (insideVColor != null) {
-                insideVBorder.Color = insideVColor.Value.ToHexColor();
+                insideVBorder.Color = insideVColor.Value.ToRgbHex();
             }
             borders.InsideVerticalBorder = insideVBorder;
         }

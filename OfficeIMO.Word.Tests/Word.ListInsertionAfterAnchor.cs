@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[3].IsListItem);
                 Assert.Equal(new[] { "First item", "Second item", "Third item" }, list.ListItems.Select(i => i.Text).ToArray());
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, list.ListItems.Count);
                 Assert.All(list.ListItems, p => Assert.True(p.IsListItem));
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

@@ -26,6 +26,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\TestSupport\OpenDocument\OdfTestPackageRewriter.cs" Link="TestSupport\OdfTestPackageRewriter.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="Fixtures\**" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

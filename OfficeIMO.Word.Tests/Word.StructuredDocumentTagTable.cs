@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
                 var table = document.AddTable(1, 1);
                 table.Rows[0].Cells[0].Paragraphs[0].AddStructuredDocumentTag("Cell", "AliasCell", "TagCell");
                 var cb = table.Rows[0].Cells[0].Paragraphs[0].AddCheckBox(false, "AliasCheck", "TagCheck");
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                 var table = document.AddTable(1, 2);
                 table.Rows[0].Cells[0].Paragraphs[0].AddCheckBox(true, "Alias1", "Tag1");
                 table.Rows[0].Cells[1].Paragraphs[0].AddCheckBox(false, "Alias2", "Tag2");
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[1].Paragraphs[0].AddCheckBox(false, "AliasCB1", "TagCB1");
                 table.Rows[1].Cells[0].Paragraphs[0].AddCheckBox(true, "AliasCB2", "TagCB2");
                 table.Rows[1].Cells[1].Paragraphs[0].AddStructuredDocumentTag("Two", "AliasSdt2", "TagSdt2");
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 

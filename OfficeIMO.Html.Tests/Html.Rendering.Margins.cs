@@ -112,6 +112,6 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("y=\"25\"", svg, StringComparison.Ordinal);
         Assert.Contains("GapPdf", pdfText, StringComparison.Ordinal);
         Assert.Single(PdfCore.PdfReadDocument.Load(pdf).Pages);
-        Assert.DoesNotContain(html.ToPdfResult(pdfOptions).ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 }

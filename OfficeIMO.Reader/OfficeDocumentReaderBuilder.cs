@@ -7,7 +7,7 @@ namespace OfficeIMO.Reader;
 /// </summary>
 /// <remarks>
 /// A builder may be reused or changed after <see cref="Build"/>. Each built reader retains its own
-/// immutable snapshot and is unaffected by later builder or static <see cref="DocumentReader"/> registrations.
+/// immutable snapshot and is unaffected by later builder changes.
 /// </remarks>
 public sealed partial class OfficeDocumentReaderBuilder {
     private readonly ReaderHandlerRegistry _handlers = new ReaderHandlerRegistry(DocumentReader.BuiltInExtensions);
@@ -20,20 +20,7 @@ public sealed partial class OfficeDocumentReaderBuilder {
     /// <param name="replaceExisting">Whether conflicting custom handlers and built-in extensions may be replaced.</param>
     /// <returns>This builder.</returns>
     public OfficeDocumentReaderBuilder AddHandler(ReaderHandlerRegistration registration, bool replaceExisting = false) {
-        _handlers.Register(registration, replaceExisting, preserveExistingCustomExtensions: false);
-        return this;
-    }
-
-    /// <summary>
-    /// Adds a handler while leaving extensions already owned by other custom handlers untouched.
-    /// </summary>
-    /// <param name="registration">Handler registration.</param>
-    /// <param name="replaceExisting">Whether a handler with the same identifier and built-in extensions may be replaced.</param>
-    /// <returns>This builder.</returns>
-    public OfficeDocumentReaderBuilder AddHandlerPreservingExistingCustomExtensions(
-        ReaderHandlerRegistration registration,
-        bool replaceExisting = false) {
-        _handlers.Register(registration, replaceExisting, preserveExistingCustomExtensions: true);
+        _handlers.Register(registration, replaceExisting);
         return this;
     }
 

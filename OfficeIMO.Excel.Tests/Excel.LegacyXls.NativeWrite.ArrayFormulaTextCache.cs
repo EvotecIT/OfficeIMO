@@ -14,8 +14,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ArrayText");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ArrayText");
                     sheet.CellValue(1, 2, "AB");
                     sheet.SetArrayFormula("B1:B2", "CONCATENATE(\"A\",\"B\")");
                     sheet.CellValue(2, 2, "AB");
@@ -55,8 +55,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ArrayDates");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ArrayDates");
                     sheet.CellValue(1, 2, "2026-01-02T00:00:00");
                     sheet.SetArrayFormula("B1:B2", "DATE(2026,1,2)");
                     sheet.CellValue(2, 2, "2026-01-02T00:00:00");
@@ -97,8 +97,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ArrayBoolean");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ArrayBoolean");
                     sheet.CellValue(1, 2, true);
                     sheet.SetArrayFormula("B1:B2", "A1=1");
                     sheet.CellValue(2, 2, false);
@@ -131,8 +131,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ArrayErrors");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ArrayErrors");
                     sheet.CellValue(1, 2, "#N/A");
                     sheet.SetArrayFormula("B1:B2", "NA()");
                     sheet.CellValue(2, 2, "#N/A");

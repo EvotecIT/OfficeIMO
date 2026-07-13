@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, date);
                     sheet.ValidationDate("A1:A10", DataValidationOperatorValues.Between, minimum, maximum);
                     document.Save();
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal(date, readDate);
                 }
 
-                using (ExcelDocument loaded = ExcelDocument.Load(filePath, readOnly: true)) {
+                using (ExcelDocument loaded = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(ExcelDateSystem.NineteenFour, loaded.DateSystem);
                     Assert.Equal(ExcelDateSystem.NineteenFour, loaded.CreateInspectionSnapshot().DateSystem);
                 }
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Data");
+                    ExcelSheet sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, date);
                     document.Save();
                 }

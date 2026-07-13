@@ -10,12 +10,13 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="uri">HTTP or HTTPS URI of the workbook.</param>
         /// <param name="httpOptions">Optional HTTP loading options.</param>
-        /// <param name="readOnly">Open the document in read-only mode. Remote loads are read-only by default.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static ExcelDocument Load(Uri uri, ExcelHttpLoadOptions? httpOptions = null, bool readOnly = true, OpenSettings? openSettings = null) {
+        public static ExcelDocument Load(Uri uri, ExcelHttpLoadOptions? httpOptions = null, ExcelLoadOptions? options = null) {
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+            ValidateRemoteLoadLifecycle(resolved);
             byte[] bytes = ExcelHttpWorkbookLoader.Download(uri, httpOptions, CancellationToken.None);
-            return LoadFromByteArray(bytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(bytes, resolved, filePath: null);
         }
 
         /// <summary>
@@ -23,13 +24,23 @@ namespace OfficeIMO.Excel {
         /// </summary>
         /// <param name="uri">HTTP or HTTPS URI of the workbook.</param>
         /// <param name="httpOptions">Optional HTTP loading options.</param>
-        /// <param name="readOnly">Open the document in read-only mode. Remote loads are read-only by default.</param>
-        /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
+        /// <param name="options">Access, persistence, and low-level package options.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>Loaded <see cref="ExcelDocument"/> instance.</returns>
-        public static async Task<ExcelDocument> LoadAsync(Uri uri, ExcelHttpLoadOptions? httpOptions = null, bool readOnly = true, OpenSettings? openSettings = null, CancellationToken cancellationToken = default) {
+        public static async Task<ExcelDocument> LoadAsync(Uri uri, ExcelHttpLoadOptions? httpOptions = null, ExcelLoadOptions? options = null, CancellationToken cancellationToken = default) {
+            ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
+            ValidateRemoteLoadLifecycle(resolved);
             byte[] bytes = await ExcelHttpWorkbookLoader.DownloadAsync(uri, httpOptions, cancellationToken).ConfigureAwait(false);
-            return LoadFromByteArray(bytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+            return LoadFromByteArray(bytes, resolved, filePath: null);
+        }
+
+        private static void ValidateRemoteLoadLifecycle(ExcelLoadOptions options) {
+            ValidateLifecycle(options.AccessMode, options.PersistenceMode);
+            if (options.PersistenceMode == OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose) {
+                throw new ArgumentException(
+                    "SaveOnDispose requires an associated file path or writable stream. Remote URI loads are detached and must be saved explicitly.",
+                    nameof(options));
+            }
         }
     }
 }

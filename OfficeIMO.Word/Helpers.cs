@@ -1,6 +1,5 @@
 using OfficeIMO.Drawing;
 using System;
-using System.Diagnostics;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -16,15 +15,6 @@ namespace OfficeIMO.Word {
         internal static double ConvertPointsToPixels(double points) {
             return points * PixelsPerInch / 72;
         }
-        /// <summary>
-        /// Converts Color to Hex Color
-        /// </summary>
-        /// <param name="c"></param>
-        /// <returns></returns>
-        public static string ToHexColor(this OfficeIMO.Drawing.OfficeColor c) {
-            return c.ToHex().Remove(6).ToLowerInvariant();
-        }
-
         /// <summary>
         /// Parses a color string that may or may not start with '#'.
         /// </summary>
@@ -42,7 +32,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Normalizes color input which may be a hex value or a named color.
         /// Hex values may be specified as three or six digits, with or without '#'.
-        /// Returns a lowercase six-digit hex string without '#'.
+        /// Returns an uppercase six-digit hex string without '#'.
         /// Throws <see cref="ArgumentException"/> if the value cannot be parsed
         /// as a valid color.
         /// </summary>
@@ -53,73 +43,18 @@ namespace OfficeIMO.Word {
 
             try {
                 var parsed = OfficeIMO.Drawing.OfficeColor.Parse(color!);
-                return parsed.ToHexColor();
+                return parsed.ToRgbHex().ToUpperInvariant();
             } catch {
                 if (!color!.StartsWith("#", StringComparison.Ordinal)) {
                     try {
                         var parsedHex = OfficeIMO.Drawing.OfficeColor.Parse("#" + color);
-                        return parsedHex.ToHexColor();
+                        return parsedHex.ToRgbHex().ToUpperInvariant();
                     } catch {
                         // ignored so that ArgumentException below is thrown
                     }
                 }
                 throw new ArgumentException($"Invalid color value: {color}. Must be a valid hex color (3 or 6 characters) or named color.", nameof(color));
             }
-        }
-
-        /// <summary>
-        /// Opens up any file using assigned Application
-        /// </summary>
-        /// <param name="filePath"></param>
-        /// <param name="open"></param>
-        public static void Open(string filePath, bool open) {
-            if (open) {
-                if (string.IsNullOrEmpty(filePath)) {
-                    throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
-                }
-
-                ProcessStartInfo startInfo = new ProcessStartInfo(filePath) {
-                    UseShellExecute = true
-                };
-                Process.Start(startInfo);
-            }
-        }
-
-        /// <summary>
-        /// Checks if file is locked/used by another process
-        /// </summary>
-        /// <param name="file"></param>
-        /// <returns></returns>
-        public static bool IsFileLocked(this FileInfo file) {
-            try {
-                using (FileStream stream = file.Open(FileMode.Open, FileAccess.Read, FileShare.None)) {
-                    stream.Close();
-                }
-            } catch (IOException) {
-                //the file is unavailable because it is:
-                //still being written to
-                //or being processed by another thread
-                //or does not exist (has already been processed)
-                return true;
-            }
-
-            //file is not locked
-            return false;
-        }
-
-        /// <summary>
-        /// Checks if file is locked/used by another process
-        /// </summary>
-        /// <param name="fileName"></param>
-        /// <returns></returns>
-        public static bool IsFileLocked(this string fileName) {
-            if (string.IsNullOrEmpty(fileName)) {
-                return false;
-            }
-            if (!File.Exists(fileName)) {
-                return false;
-            }
-            return IsFileLocked(new FileInfo(fileName));
         }
 
         internal static TResult UseSeekableImageStream<TResult>(Stream imageStream, Func<Stream, TResult> action) {

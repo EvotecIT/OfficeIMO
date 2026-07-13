@@ -52,7 +52,7 @@ namespace OfficeIMO.Examples.Word {
                 // remove the textbox
                 textBox2.Remove();
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

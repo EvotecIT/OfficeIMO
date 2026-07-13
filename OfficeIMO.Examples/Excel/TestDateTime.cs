@@ -9,7 +9,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = Path.Combine(folderPath, "TestDateTime.xlsx");
             
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("DateTest");
+                var sheet = document.AddWorksheet("DateTest");
                 
                 // Test different ways of setting DateTime
                 DateTime testDate = new DateTime(2024, 12, 25, 14, 30, 0);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Excel {
                 Console.WriteLine($"Validation errors: {errors.Count}");
                 
                 if (openExcel) {
-                    document.Open();
+                    document.OpenInApplication();
                 }
             }
         }

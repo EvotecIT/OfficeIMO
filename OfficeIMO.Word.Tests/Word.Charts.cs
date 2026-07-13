@@ -144,7 +144,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(line3dXml);
                 */
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Charts.Count == 6); // Reduced by 1 due to Line3DChart removal
                 Assert.True(document.Charts.Count == 9); // Reduced by 1 due to Line3DChart removal
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -191,7 +191,7 @@ namespace OfficeIMO.Tests {
         //        chart.AddChartAxisX(categories);
         //        chart.AddLine3D("Series", new List<int> { 1, 2, 3 }, Color.Blue);
 
-        //        document.Save(false);
+        //        document.Save();
         //    }
 
         //    using (WordDocument document = WordDocument.Load(filePath)) {
@@ -216,7 +216,7 @@ namespace OfficeIMO.Tests {
                 var scatter = document.AddChart();
                 scatter.AddScatter("Data", new List<double> { 1, 2, 3 }, new List<double> { 3, 2, 1 }, Color.Red);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
                 lineChart.AddChartAxisX(new List<string> { "Jan", "Feb", "Mar", "Apr" });
                 lineChart.AddLine("Growth", new List<double> { decimalValues[0], decimalValues[1], decimalValues[2], decimalValues[3] }, Color.Red);
 
-                document.Save(false);
+                document.Save();
             }
 
             // Verify document can be loaded and validates correctly
@@ -267,7 +267,7 @@ namespace OfficeIMO.Tests {
                     Word.FormatValidationErrors(chartErrors));
 
                 // Verify the document can be saved again (full round-trip test)
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(document.ParagraphsCharts);
                 Assert.Single(document.Charts);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
                 areaChart.AddArea("USA", new List<int> { 10, 305, 18, 23 }, Color.AliceBlue);
                 areaChart.AddLegend(LegendPositionValues.Top);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -346,7 +346,7 @@ namespace OfficeIMO.Tests {
                     chart.AddLegend(position);
                 }
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -372,7 +372,7 @@ namespace OfficeIMO.Tests {
                 chart.SetYAxisTitle("Y Axis");
                 chart.SetAxisTitleFormat("Arial", 14, Color.Red);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -392,14 +392,14 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Arial", catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>()!.Typeface);
                 var catColor = catProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
                     .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()!.Val!;
-                Assert.Equal(Color.Red.ToHexColor(), catColor);
+                Assert.Equal(Color.Red.ToRgbHex(), catColor);
 
                 Assert.NotNull(valProps.FontSize);
                 Assert.Equal(1400, (int)valProps.FontSize!.Value!);
                 Assert.Equal("Arial", valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.LatinFont>()!.Typeface);
                 var valColor = valProps.GetFirstChild<DocumentFormat.OpenXml.Drawing.SolidFill>()!
                     .GetFirstChild<DocumentFormat.OpenXml.Drawing.RgbColorModelHex>()!.Val!;
-                Assert.Equal(Color.Red.ToHexColor(), valColor);
+                Assert.Equal(Color.Red.ToRgbHex(), valColor);
 
                 var validation = document.ValidateDocument();
                 var chartErrors = validation.Where(v => v.Description.Contains("chart")).ToList();
@@ -417,7 +417,7 @@ namespace OfficeIMO.Tests {
                 chart.AddChartAxisX(categories);
                 chart.AddBar("Sales", new List<int> { 1, 2, 3 }, Color.Blue);
                 chart.AddLine("Trend", new List<int> { 3, 2, 1 }, Color.Red);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

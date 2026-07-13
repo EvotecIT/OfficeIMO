@@ -74,7 +74,7 @@ namespace OfficeIMO.PowerPoint {
                 document.Save();
             }
 
-            PowerPointPresentation presentation = Open(destination);
+            PowerPointPresentation presentation = Load(destination);
             try {
                 presentation.ApplyTemplateSlideRetention(resolved);
                 return presentation;

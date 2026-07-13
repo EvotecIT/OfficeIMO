@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 list1Id = list1._numberId;
                 list2Id = list2._numberId;
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var wordDoc = WordprocessingDocument.Open(filePath, false)) {

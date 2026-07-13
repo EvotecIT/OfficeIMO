@@ -14,13 +14,13 @@ namespace OfficeIMO.Examples.Word {
             string outputPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
-            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocumentWithImages.docx"), true)) {
+            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "BasicDocumentWithImages.docx"), new OfficeIMO.Word.WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Console.WriteLine("+ Document paragraphs: " + document.Paragraphs.Count);
                 var images = document.Images;
                 Console.WriteLine("+ Document images: " + images.Count);
 
                 var firstImage = Guard.GetRequiredItem(images, 0, "Template should contain at least one image to export.");
-                firstImage.SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
+                firstImage.Save(System.IO.Path.Combine(outputPath, "random.jpg"));
             }
         }
     }

@@ -31,7 +31,7 @@ public static partial class WordRtfConverterExtensions {
 
         byte[] bytes;
         try {
-            bytes = source.Image.GetBytes();
+            bytes = source.Image.ToBytes();
         } catch (InvalidOperationException) {
             return null;
         }

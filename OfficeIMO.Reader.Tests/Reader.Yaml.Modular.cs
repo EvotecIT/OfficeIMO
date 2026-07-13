@@ -231,22 +231,18 @@ public sealed class ReaderYamlModularTests {
     }
 
     [Fact]
-    public void DocumentReaderYaml_Registration_DispatchesYamlStream() {
-        try {
-            DocumentReaderYamlRegistrationExtensions.RegisterYamlHandler(replaceExisting: true);
+    public void DocumentReaderYaml_BuilderHandler_DispatchesYamlStream() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddYamlHandler().Build();
 
-            var payload = "service:\n  name: IX\n  enabled: true\n";
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload), writable: false);
-            var chunks = DocumentReader.Read(stream, " config.yaml ").ToList();
+        var payload = "service:\n  name: IX\n  enabled: true\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(payload), writable: false);
+        var chunks = reader.Read(stream, " config.yaml ").ToList();
 
-            Assert.NotEmpty(chunks);
-            Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Yaml, c.Kind));
-            Assert.All(chunks, c => Assert.Equal("config.yaml", c.Location.Path));
-            Assert.Contains(chunks, c => (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
-            Assert.Equal(ReaderInputKind.Yaml, DocumentReader.DetectKind("values.yml"));
-        } finally {
-            DocumentReaderYamlRegistrationExtensions.UnregisterYamlHandler();
-        }
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, c => Assert.Equal(ReaderInputKind.Yaml, c.Kind));
+        Assert.All(chunks, c => Assert.Equal("config.yaml", c.Location.Path));
+        Assert.Contains(chunks, c => (c.Text?.Contains("$.service.name", StringComparison.Ordinal) ?? false));
+        Assert.Equal(ReaderInputKind.Yaml, reader.DetectKind("values.yml"));
     }
 
     [Fact]

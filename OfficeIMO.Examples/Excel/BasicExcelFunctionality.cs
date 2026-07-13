@@ -23,21 +23,21 @@ namespace OfficeIMO.Examples.Excel {
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
 
-                ExcelSheet sheet1 = document.AddWorkSheet("Test");
+                ExcelSheet sheet1 = document.AddWorksheet("Test");
 
-                ExcelSheet sheet2 = document.AddWorkSheet("Test2");
+                ExcelSheet sheet2 = document.AddWorksheet("Test2");
 
-                ExcelSheet sheet3 = document.AddWorkSheet("Test3");
+                ExcelSheet sheet3 = document.AddWorksheet("Test3");
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
         public static void BasicExcel_Example2(string folderPath, bool openExcel) {
             Console.WriteLine("[*] Excel - Creating standard Excel Document 2");
             string filePath = System.IO.Path.Combine(folderPath, "Basic Excel 2.xlsx");
-            using (ExcelDocument document = ExcelDocument.Create(filePath, "WorkSheet1")) {
+            using (ExcelDocument document = ExcelDocument.Create(filePath, "Worksheet1")) {
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
 
@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Excel {
 
                 Console.WriteLine("Sheets count:" + document.Sheets.Count);
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

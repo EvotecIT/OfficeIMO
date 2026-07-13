@@ -33,6 +33,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

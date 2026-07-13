@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Shared;
 using OfficeIMO.Word.LegacyDoc;
@@ -82,7 +83,7 @@ namespace OfficeIMO.Word {
             try {
                 try {
                     WordSaveOptions conversionSaveOptions = (options.SaveOptions ?? new WordSaveOptions()).WithLossPolicy(options.LossPolicy);
-                    await document.SaveAsync(stagingPath, openWord: false, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
+                    await document.SaveAsync(stagingPath, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
                 } catch (NotSupportedException exception) {
                     diagnostics.Add(new WordConversionDiagnostic(
                         "Word.DestinationFeatureUnsupported",
@@ -117,7 +118,7 @@ namespace OfficeIMO.Word {
                         exception);
                 }
 
-                if (options.OpenAfterSave) document.Open(paths.Destination, true);
+                if (options.OpenAfterSave) document.OpenInApplication(paths.Destination);
                 return CreateWordConversionResult(paths, sourceFormat, destinationFormat, diagnostics, true, replacesExistingFile);
             } finally {
                 OfficeFileCommit.DeleteIfExists(stagingPath);
@@ -135,7 +136,7 @@ namespace OfficeIMO.Word {
                     return LoadLegacyDocFromNormalFlow(
                         sourceBytes,
                         sourcePath,
-                        autoSave: false,
+                        saveOnDispose: false,
                         readOnly: false,
                         importOptions: importOptions);
                 }
@@ -143,10 +144,10 @@ namespace OfficeIMO.Word {
 
             return await LoadAsync(
                 sourcePath,
-                readOnly: false,
-                autoSave: false,
-                overrideStyles: options.OverrideStyles,
-                openSettings: CreateConversionOpenSettings(options.OpenSettings),
+                new WordLoadOptions {
+                    OverrideStyles = options.OverrideStyles,
+                    OpenSettings = CreateConversionOpenSettings(options.OpenSettings)
+                },
                 cancellationToken).ConfigureAwait(false);
         }
 

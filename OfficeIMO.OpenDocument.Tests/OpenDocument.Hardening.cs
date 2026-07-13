@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Xml.Linq;
+using OfficeIMO.OpenDocument.Testing;
 using Xunit;
 
 namespace OfficeIMO.OpenDocument.Tests;
@@ -14,8 +15,8 @@ public sealed class OpenDocumentHardeningTests {
     public void RejectsDuplicateAndCaseAmbiguousArchiveEntries() {
         using OdtDocument created = OdtDocument.Create();
         byte[] valid = created.ToBytes();
-        byte[] duplicate = RewritePackage(valid, additions: new[] { new ArchiveItem("content.xml", Encoding.UTF8.GetBytes("<duplicate/>")) });
-        byte[] ambiguous = RewritePackage(valid, additions: new[] { new ArchiveItem("Content.xml", Encoding.UTF8.GetBytes("<ambiguous/>")) });
+        byte[] duplicate = RewritePackage(valid, additions: new[] { new OdfTestPackageEntry("content.xml", Encoding.UTF8.GetBytes("<duplicate/>")) });
+        byte[] ambiguous = RewritePackage(valid, additions: new[] { new OdfTestPackageEntry("Content.xml", Encoding.UTF8.GetBytes("<ambiguous/>")) });
 
         Assert.Throws<InvalidDataException>(() => OdtDocument.Open(new MemoryStream(duplicate)));
         Assert.Throws<InvalidDataException>(() => OdtDocument.Open(new MemoryStream(ambiguous)));
@@ -31,11 +32,11 @@ public sealed class OpenDocumentHardeningTests {
         string deepXml = "<?xml version=\"1.0\"?><office:document-content xmlns:office=\"urn:oasis:names:tc:opendocument:xmlns:office:1.0\" xmlns:text=\"urn:oasis:names:tc:opendocument:xmlns:text:1.0\" office:version=\"1.4\"><office:body><office:text><text:p>" + nested + "</text:p></office:text></office:body></office:document-content>";
 
         using OdtDocument entity = OdtDocument.Open(new MemoryStream(RewritePackage(valid,
-            replacements: new[] { new ArchiveItem("content.xml", Encoding.UTF8.GetBytes(entityXml)) })));
+            replacements: new[] { new OdfTestPackageEntry("content.xml", Encoding.UTF8.GetBytes(entityXml)) })));
         Assert.Throws<InvalidDataException>(() => entity.ContentBlocks.ToArray());
 
         using OdtDocument deep = OdtDocument.Open(new MemoryStream(RewritePackage(valid,
-            replacements: new[] { new ArchiveItem("content.xml", Encoding.UTF8.GetBytes(deepXml)) })),
+            replacements: new[] { new OdfTestPackageEntry("content.xml", Encoding.UTF8.GetBytes(deepXml)) })),
             new OdfOpenOptions { MaxXmlDepth = 8 });
         Assert.Throws<InvalidDataException>(() => deep.ContentBlocks.ToArray());
     }
@@ -49,7 +50,7 @@ public sealed class OpenDocumentHardeningTests {
         broken.Root!.Elements(manifest + "file-entry").First(element => (string?)element.Attribute(manifest + "full-path") == "/")
             .SetAttributeValue(manifest + "media-type", OdfMediaTypes.Spreadsheet);
         Assert.Throws<InvalidDataException>(() => OdtDocument.Open(new MemoryStream(RewritePackage(valid,
-            replacements: new[] { new ArchiveItem("META-INF/manifest.xml", SaveXml(broken)) }))));
+            replacements: new[] { new OdfTestPackageEntry("META-INF/manifest.xml", SaveXml(broken)) }))));
 
         XDocument encrypted = ReadPackageXml(valid, "META-INF/manifest.xml");
         XElement contentEntry = encrypted.Root!.Elements(manifest + "file-entry")
@@ -57,14 +58,14 @@ public sealed class OpenDocumentHardeningTests {
         contentEntry.Add(new XElement(manifest + "encryption-data",
             new XElement(manifest + "algorithm", new XAttribute(manifest + "algorithm-name", "urn:example:cipher"))));
         Assert.Throws<OdfEncryptedPackageException>(() => OdtDocument.Open(new MemoryStream(RewritePackage(valid,
-            replacements: new[] { new ArchiveItem("META-INF/manifest.xml", SaveXml(encrypted)) }))));
+            replacements: new[] { new OdfTestPackageEntry("META-INF/manifest.xml", SaveXml(encrypted)) }))));
     }
 
     [Fact]
     public void PreservesUnchangedSignatureEntriesAndRequiresExplicitInvalidation() {
         using OdtDocument created = OdtDocument.Create();
         byte[] signedBytes = RewritePackage(created.ToBytes(), additions: new[] {
-            new ArchiveItem("META-INF/documentsignatures.xml", Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><signatures/>"))
+            new OdfTestPackageEntry("META-INF/documentsignatures.xml", Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><signatures/>"))
         });
 
         using OdtDocument signed = OdtDocument.Open(new MemoryStream(signedBytes));
@@ -83,7 +84,7 @@ public sealed class OpenDocumentHardeningTests {
         using OdtDocument created = OdtDocument.Create();
         byte[] odf13 = created.ToBytes(new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.Odf13 });
         byte[] signedBytes = RewritePackage(odf13, additions: new[] {
-            new ArchiveItem("META-INF/documentsignatures.xml", Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><signatures/>"))
+            new OdfTestPackageEntry("META-INF/documentsignatures.xml", Encoding.UTF8.GetBytes("<?xml version=\"1.0\"?><signatures/>"))
         });
 
         using OdtDocument signed = OdtDocument.Open(new MemoryStream(signedBytes));
@@ -125,7 +126,7 @@ public sealed class OpenDocumentHardeningTests {
         XNamespace table = "urn:oasis:names:tc:opendocument:xmlns:table:1.0";
         content.Descendants(table + "table-row").First().SetAttributeValue(table + "number-rows-repeated", "0");
         using OdsDocument invalid = OdsDocument.Open(new MemoryStream(RewritePackage(created.ToBytes(),
-            replacements: new[] { new ArchiveItem("content.xml", SaveXml(content)) })));
+            replacements: new[] { new OdfTestPackageEntry("content.xml", SaveXml(content)) })));
         Assert.Contains(invalid.Validate().Diagnostics, diagnostic => diagnostic.Id == "ODS100");
 
         using OdtDocument styled = OdtDocument.Create();
@@ -163,39 +164,15 @@ public sealed class OpenDocumentHardeningTests {
         }
     }
 
-    private static byte[] RewritePackage(byte[] sourceBytes, IReadOnlyList<ArchiveItem>? replacements = null,
-        IReadOnlyList<ArchiveItem>? additions = null) {
-        var replacementMap = (replacements ?? Array.Empty<ArchiveItem>()).ToDictionary(item => item.Name, StringComparer.Ordinal);
-        using var output = new MemoryStream();
-        using (var sourceStream = new MemoryStream(sourceBytes, writable: false))
-        using (var source = new ZipArchive(sourceStream, ZipArchiveMode.Read))
-        using (var target = new ZipArchive(output, ZipArchiveMode.Create, leaveOpen: true)) {
-            foreach (ZipArchiveEntry entry in source.Entries) {
-                byte[] bytes = replacementMap.TryGetValue(entry.FullName, out ArchiveItem? replacement)
-                    ? replacement.Bytes : ReadEntry(entry);
-                WriteEntry(target, entry.FullName, bytes);
-            }
-            foreach (ArchiveItem item in additions ?? Array.Empty<ArchiveItem>()) WriteEntry(target, item.Name, item.Bytes);
-        }
-        return output.ToArray();
-    }
+    private static byte[] RewritePackage(byte[] sourceBytes, IReadOnlyList<OdfTestPackageEntry>? replacements = null,
+        IReadOnlyList<OdfTestPackageEntry>? additions = null) =>
+        OdfTestPackageRewriter.Rewrite(sourceBytes, replacements, additions);
 
     private static XDocument ReadPackageXml(byte[] package, string path) {
         using var stream = new MemoryStream(package, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
         using Stream entry = archive.GetEntry(path)!.Open();
         return XDocument.Load(entry);
-    }
-
-    private static byte[] ReadEntry(ZipArchiveEntry entry) {
-        using Stream input = entry.Open();
-        using var output = new MemoryStream();
-        input.CopyTo(output); return output.ToArray();
-    }
-
-    private static void WriteEntry(ZipArchive archive, string name, byte[] bytes) {
-        ZipArchiveEntry entry = archive.CreateEntry(name, name == "mimetype" ? CompressionLevel.NoCompression : CompressionLevel.Optimal);
-        using Stream output = entry.Open(); output.Write(bytes, 0, bytes.Length);
     }
 
     private static byte[] SaveXml(XDocument document) {
@@ -206,11 +183,5 @@ public sealed class OpenDocumentHardeningTests {
         using var stream = new MemoryStream(package, writable: false);
         using var archive = new ZipArchive(stream, ZipArchiveMode.Read);
         return archive.GetEntry(path) != null;
-    }
-
-    private sealed class ArchiveItem {
-        internal ArchiveItem(string name, byte[] bytes) { Name = name; Bytes = bytes; }
-        internal string Name { get; }
-        internal byte[] Bytes { get; }
     }
 }

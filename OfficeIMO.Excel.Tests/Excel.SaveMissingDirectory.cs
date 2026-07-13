@@ -18,15 +18,15 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(sourcePath)) {
                 const string expectedSheetName = "Sheet1";
                 const string expectedCellValue = "Directory save";
-                var sheet = document.AddWorkSheet(expectedSheetName);
+                var sheet = document.AddWorksheet(expectedSheetName);
                 sheet.CellValue(1, 1, expectedCellValue);
 
-                document.Save(destinationPath, openExcel: false);
+                document.Save(destinationPath);
 
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
 
-                using (var reloaded = ExcelDocument.Load(destinationPath, readOnly: true)) {
+                using (var reloaded = ExcelDocument.Load(destinationPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(expectedSheetName, reloaded.Sheets[0].Name);
                     Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var actualValue));
                     Assert.Equal(expectedCellValue, actualValue);
@@ -50,15 +50,15 @@ namespace OfficeIMO.Tests {
             await using (var document = ExcelDocument.Create(sourcePath)) {
                 const string expectedSheetName = "AsyncSheet";
                 const string expectedCellValue = "Async directory save";
-                var sheet = document.AddWorkSheet(expectedSheetName);
+                var sheet = document.AddWorksheet(expectedSheetName);
                 sheet.CellValue(1, 1, expectedCellValue);
 
-                await document.SaveAsync(destinationPath, openExcel: false);
+                await document.SaveAsync(destinationPath);
 
                 Assert.True(Directory.Exists(destinationDirectory));
                 Assert.True(File.Exists(destinationPath));
 
-                using (var reloaded = ExcelDocument.Load(destinationPath, readOnly: true)) {
+                using (var reloaded = ExcelDocument.Load(destinationPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                     Assert.Equal(expectedSheetName, reloaded.Sheets[0].Name);
                     Assert.True(reloaded.Sheets[0].TryGetCellText(1, 1, out var actualValue));
                     Assert.Equal(expectedCellValue, actualValue);
@@ -77,8 +77,8 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(destinationDirectory, "Copy.xlsx");
 
             try {
-                using ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false);
-                document.AddWorkSheet("CopyData").CellValue(1, 1, "Directory copy");
+                using ExcelDocument document = ExcelDocument.Create(sourcePath);
+                document.AddWorksheet("CopyData").CellValue(1, 1, "Directory copy");
 
                 using ExcelDocument copy = document.SaveCopy(destinationPath);
 
@@ -102,8 +102,8 @@ namespace OfficeIMO.Tests {
             var destination = new FileInfo(destinationPath) { IsReadOnly = true };
 
             try {
-                using ExcelDocument document = ExcelDocument.Create(sourcePath, autoSave: false);
-                document.AddWorkSheet("Data").CellValue(1, 1, "Must not overwrite");
+                using ExcelDocument document = ExcelDocument.Create(sourcePath);
+                document.AddWorksheet("Data").CellValue(1, 1, "Must not overwrite");
 
                 Assert.Throws<IOException>(() => document.SaveCopy(destinationPath));
 

@@ -4,13 +4,14 @@ namespace OfficeIMO.Pdf;
 /// Result returned by file and stream output operations.
 /// </summary>
 public sealed class PdfSaveResult {
-    private PdfSaveResult(string? outputPath, long bytesWritten, IReadOnlyList<string> diagnostics, Exception? exception) {
+    private PdfSaveResult(string? outputPath, long bytesWritten, IReadOnlyList<string> diagnostics, Exception? exception, PdfConversionReport? report = null) {
         OutputPath = outputPath;
         BytesWritten = bytesWritten;
         Diagnostics = diagnostics;
         Exception = exception;
         TextEncodingDiagnostics = PdfOutputDiagnostics.ExtractTextEncodingDiagnostics(exception);
-        ConversionWarnings = PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics);
+        Report = Snapshot(report);
+        Report.AddRange(PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics));
     }
 
     /// <summary>True when the save operation completed.</summary>
@@ -31,8 +32,14 @@ public sealed class PdfSaveResult {
     /// <summary>Structured text encoding diagnostics captured from PDF generation failures.</summary>
     public IReadOnlyList<PdfTextEncodingDiagnostic> TextEncodingDiagnostics { get; }
 
-    /// <summary>Shared conversion warnings captured from structured PDF generation failures.</summary>
-    public IReadOnlyList<PdfConversionWarning> ConversionWarnings { get; }
+    /// <summary>Snapshot of source-conversion and structured output warnings for this save attempt.</summary>
+    public PdfConversionReport Report { get; }
+
+    /// <summary>Source-conversion and structured output warnings for this save attempt.</summary>
+    public IReadOnlyList<PdfConversionWarning> Warnings => Report.Warnings;
+
+    /// <summary>True when source conversion or PDF output produced a warning.</summary>
+    public bool HasWarnings => Report.HasWarnings;
 
     /// <summary>Returns this result or throws with diagnostics when the save failed.</summary>
     public PdfSaveResult RequireSuccess() {
@@ -64,5 +71,15 @@ public sealed class PdfSaveResult {
 
     internal static PdfSaveResult Failed(string? outputPath, Exception exception) {
         return FromFailure(outputPath, exception);
+    }
+
+    internal PdfSaveResult WithReport(PdfConversionReport report) {
+        return new PdfSaveResult(OutputPath, BytesWritten, Diagnostics, Exception, report);
+    }
+
+    private static PdfConversionReport Snapshot(PdfConversionReport? report) {
+        var snapshot = new PdfConversionReport();
+        if (report != null) snapshot.AddRange(report.Warnings);
+        return snapshot;
     }
 }

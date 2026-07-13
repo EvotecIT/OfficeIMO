@@ -8,7 +8,7 @@ First-party HTML adapter for OfficeIMO.PowerPoint. It exports semantic slide HTM
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Html;
 
-using PowerPointPresentation presentation = PowerPointPresentation.Open("briefing.pptx");
+using PowerPointPresentation presentation = PowerPointPresentation.Load("briefing.pptx");
 string html = presentation.ToHtml();
 
 HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();

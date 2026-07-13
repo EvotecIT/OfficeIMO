@@ -11,7 +11,8 @@ public sealed class PdfBytesResult {
         Diagnostics = diagnostics;
         Exception = exception;
         TextEncodingDiagnostics = PdfOutputDiagnostics.ExtractTextEncodingDiagnostics(exception);
-        ConversionWarnings = PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics);
+        Report = new PdfConversionReport();
+        Report.AddRange(PdfOutputDiagnostics.ToConversionWarnings(TextEncodingDiagnostics));
     }
 
     /// <summary>True when byte generation completed.</summary>
@@ -32,8 +33,14 @@ public sealed class PdfBytesResult {
     /// <summary>Structured text encoding diagnostics captured from PDF generation failures.</summary>
     public IReadOnlyList<PdfTextEncodingDiagnostic> TextEncodingDiagnostics { get; }
 
-    /// <summary>Shared conversion warnings captured from structured PDF generation failures.</summary>
-    public IReadOnlyList<PdfConversionWarning> ConversionWarnings { get; }
+    /// <summary>Structured PDF output warnings captured for this byte-generation attempt.</summary>
+    public PdfConversionReport Report { get; }
+
+    /// <summary>Structured PDF output warnings captured for this byte-generation attempt.</summary>
+    public IReadOnlyList<PdfConversionWarning> Warnings => Report.Warnings;
+
+    /// <summary>True when PDF output produced a warning.</summary>
+    public bool HasWarnings => Report.HasWarnings;
 
     /// <summary>Returns generated PDF bytes or throws with diagnostics when generation failed.</summary>
     public byte[] RequireBytes() {

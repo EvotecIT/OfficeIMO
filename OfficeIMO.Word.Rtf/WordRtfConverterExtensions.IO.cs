@@ -15,8 +15,8 @@ public static partial class WordRtfConverterExtensions {
     }
 
     /// <summary>Serializes a Word document to an encoded RTF memory stream.</summary>
-    public static MemoryStream ToRtfMemoryStream(this WordDocument document, RtfWriteOptions? options = null, Encoding? encoding = null) {
-        return document.ToRtfDocument().ToMemoryStream(options, encoding);
+    public static MemoryStream ToRtfStream(this WordDocument document, RtfWriteOptions? options = null, Encoding? encoding = null) {
+        return document.ToRtfDocument().ToStream(options, encoding);
     }
 
     /// <summary>Saves a Word document as an RTF file.</summary>

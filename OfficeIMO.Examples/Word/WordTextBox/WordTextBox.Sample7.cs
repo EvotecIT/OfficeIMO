@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                 var textBox3 = document.AddTextBox("No autofit");
                 textBox3.AutoFit = WordTextBoxAutoFitType.NoAutoFit;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

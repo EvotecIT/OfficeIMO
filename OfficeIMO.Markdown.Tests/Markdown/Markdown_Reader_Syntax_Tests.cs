@@ -1417,7 +1417,7 @@ Lead {{core}} tail
         Assert.Equal(1, secondItem.IndexInParent);
         Assert.Same(secondItem, firstItem.NextSibling);
         Assert.Same(firstItem, secondItem.PreviousSibling);
-        var firstParagraph = Assert.IsType<ParagraphBlock>(firstItem.BlockChildren[0]);
+        var firstParagraph = Assert.IsType<ParagraphBlock>(firstItem.ChildBlocks[0]);
         Assert.Same(firstItem, firstParagraph.Parent);
         Assert.Same(firstParagraph, firstItem.Content.Parent);
         Assert.Same(firstItem.Content, link.Parent);
@@ -1450,7 +1450,7 @@ Lead {{core}} tail
         Assert.Same(heading, heading.Inlines.Parent);
         Assert.Same(list, firstItem.Parent);
         Assert.Same(list, secondItem.Parent);
-        var firstParagraph = Assert.IsType<ParagraphBlock>(firstItem.BlockChildren[0]);
+        var firstParagraph = Assert.IsType<ParagraphBlock>(firstItem.ChildBlocks[0]);
         Assert.Same(firstItem, firstParagraph.Parent);
         Assert.Same(firstParagraph, firstItem.Content.Parent);
         Assert.Same(firstItem.Content, firstText.Parent);
@@ -1480,8 +1480,8 @@ Lead {{core}} tail
         var firstParagraphRead1 = item.ParagraphBlocks[0];
         var firstParagraphRead2 = item.ParagraphBlocks[0];
         var secondParagraph = item.ParagraphBlocks[1];
-        var blockChildrenRead1 = item.BlockChildren;
-        var blockChildrenRead2 = item.BlockChildren;
+        var blockChildrenRead1 = item.ChildBlocks;
+        var blockChildrenRead2 = item.ChildBlocks;
 
         Assert.Same(firstParagraphRead1, firstParagraphRead2);
         Assert.Same(blockChildrenRead1[0], blockChildrenRead2[0]);
@@ -1510,7 +1510,7 @@ Lead {{core}} tail
     }
 
     [Fact]
-    public void ListItem_Public_ChildBlocks_And_ChildContainer_Interface_Use_Canonical_BlockChildren_Projection() {
+    public void ListItem_Public_ChildBlocks_And_ChildContainer_Interface_Use_Canonical_ChildBlocks_Projection() {
         const string markdown = """
 - lead
 
@@ -1522,7 +1522,7 @@ Lead {{core}} tail
         var document = MarkdownReader.Parse(markdown);
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
-        var blockChildren = item.BlockChildren;
+        var blockChildren = item.ChildBlocks;
 
         Assert.Collection(
             blockChildren,
@@ -1535,7 +1535,7 @@ Lead {{core}} tail
     }
 
     [Fact]
-    public void ListItem_SyntaxChild_Owner_Interface_Uses_Parsed_BlockChildren() {
+    public void ListItem_SyntaxChild_Owner_Interface_Uses_Parsed_ChildBlocks() {
         const string markdown = """
 - lead
 
@@ -1878,7 +1878,7 @@ Lead {{core}} tail
         Assert.Same(quoteParagraph, quoteParagraph.Inlines.Parent);
 
         var list = Assert.IsType<UnorderedListBlock>(document.Blocks[1]);
-        var itemParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(list.Items[0].BlockChildren));
+        var itemParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(list.Items[0].ChildBlocks));
         Assert.Equal("after", itemParagraph.Inlines.RenderMarkdown());
         Assert.Same(list.Items[0], itemParagraph.Parent);
         Assert.Same(itemParagraph, itemParagraph.Inlines.Parent);
@@ -1898,7 +1898,7 @@ Lead {{core}} tail
 
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
-        var blocks = item.BlockChildren.ToArray();
+        var blocks = item.ChildBlocks.ToArray();
 
         Assert.Equal("after", item.Content.RenderMarkdown());
         Assert.Equal("after", Assert.Single(item.AdditionalParagraphs).RenderMarkdown());

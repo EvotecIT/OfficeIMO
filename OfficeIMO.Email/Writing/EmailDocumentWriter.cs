@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Email;
 
 /// <summary>Serializes <see cref="EmailDocument"/> instances into deterministic email artifacts.</summary>
@@ -19,7 +20,7 @@ public sealed class EmailDocumentWriter {
     public EmailWriteResult Write(EmailDocument document, string filePath, EmailFileFormat format = EmailFileFormat.Eml) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         byte[] data = WriteToBytes(document, format, out EmailWriteResult result);
-        File.WriteAllBytes(filePath, data);
+        OfficeFileCommit.WriteAllBytes(filePath, data);
         return result;
     }
 

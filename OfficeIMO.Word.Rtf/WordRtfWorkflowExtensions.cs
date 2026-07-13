@@ -116,8 +116,8 @@ public static class WordRtfWorkflowExtensions {
         string sourcePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
         string targetPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
         try {
-            sourceWord.Save(sourcePath, false);
-            targetWord.Save(targetPath, false);
+            sourceWord.Save(sourcePath);
+            targetWord.Save(targetPath);
             WordComparisonResult comparison = WordDocumentComparer.CompareStructure(sourcePath, targetPath, options);
             var report = new RtfConversionReport();
             report.Merge(sourceConversion.Report);

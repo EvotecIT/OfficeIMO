@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
         <TargetFrameworks>net8.0;net10.0</TargetFrameworks>
         <AssemblyName>OfficeIMO.Markup.Cli</AssemblyName>
         <AssemblyTitle>OfficeIMO.Markup.Cli</AssemblyTitle>

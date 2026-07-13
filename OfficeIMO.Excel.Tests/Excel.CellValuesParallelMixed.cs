@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesParallelMixed.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
 
                 var col1 = Enumerable.Range(1, 1000).Select(i => (i, 1, (object)$"R{i}C1"));
 

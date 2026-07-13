@@ -27,7 +27,7 @@ internal static partial class PageSettings {
             Console.WriteLine("Page orientation 2: " + document.PageSettings.Orientation);
             Console.WriteLine("Page orientation 2: " + document.PageOrientation);
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

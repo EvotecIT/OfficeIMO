@@ -39,7 +39,7 @@ namespace OfficeIMO.Examples.Word {
                     .Hyperlink, "Expected GitHub hyperlink to be created.");
                 gitHubLink.CopyFormattingFrom(yahooLink);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

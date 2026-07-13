@@ -270,7 +270,7 @@ var options = new PdfSaveOptions {
 }.UseProfile(PdfExportProfile.PrintReady);
 
 var result = document.ToPdfDocumentResult(options);
-result.ConversionReport.RequireNoErrorWarnings();
+result.Report.RequireNoErrorWarnings();
 result.Save("proposal.pdf");
 ```
 
@@ -353,7 +353,7 @@ using OfficeIMO.Word.Pdf;
 using var word = WordDocument.Load("proposal.docx");
 word.SaveAsPdf("proposal.pdf");
 
-PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
     "bank-statement.pdf",
     "bank-statement-tables.xlsx");
 

@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("CBTag", cb.Tag);
                 Assert.Equal("Two", cb.SelectedValue);
 
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(list);
                 Assert.Equal("CBTag", document.GetComboBoxByTag("CBTag")?.Tag);
                 Assert.Equal("Two", list!.SelectedValue);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.ComboBoxes[0].Remove();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 var items = new List<string> { "Alpha", "Beta", "Gamma" };
                 var combo = document.AddParagraph("Choose:").AddComboBox(items, "Combo", "ComboTag");
                 Assert.Equal("Alpha", combo.SelectedValue);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
                 var combo = document.AddParagraph("Pick:").AddComboBox(items, "Colors", "ColorTag", defaultValue: "Green");
 
                 combo.SelectedValue = "Blue";
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDoc = WordprocessingDocument.Open(filePath, false)) {

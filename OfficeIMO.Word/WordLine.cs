@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
             get {
                 var v = _line.StrokeColor?.Value ?? string.Empty;
                 if (v.StartsWith("#", StringComparison.Ordinal)) v = v.Substring(1);
-                return v.ToLowerInvariant();
+                return v.ToUpperInvariant();
             }
             set {
                 var v = value;
@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
                 return Color.Parse(color);
             }
             set {
-                var hex = value.ToHexColor();
+                var hex = value.ToRgbHex();
                 if (!hex.StartsWith("#", StringComparison.Ordinal)) hex = "#" + hex;
                 _line.StrokeColor = hex;
             }

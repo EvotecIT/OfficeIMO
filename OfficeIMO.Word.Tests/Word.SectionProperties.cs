@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections.Count == 1, "Number of sections during creation is wrong.");
                 Assert.True(document.Sections[0].Paragraphs.Count == 1, "Number of paragraphs on 1st section is wrong.");
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithPageOrientation.docx"))) {
                 // There is only one Paragraph at the document level.
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
                 second.RtlGutter = false;
 
                 document.AddParagraph("Test");
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithGutterSettings.docx"))) {
                 Assert.True(document.Settings.GutterAtTop);

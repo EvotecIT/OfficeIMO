@@ -95,7 +95,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].Paragraphs.Count == 2, "Number of paragraphs on 2nd section is wrong.");
                 Assert.True(document.Sections[2].Paragraphs.Count == 1, "Number of paragraphs on 3rd section is wrong.");
                 Assert.True(document.Sections[3].Paragraphs.Count == 0, "Number of paragraphs on 4th section is wrong.");
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections.docx"))) {
                 // There is only one Paragraph at the document level.
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[1].ColumnCount == 2, "Columns count for section should match");
                 Assert.True(document.Sections[2].ColumnCount == 2, "Columns count for section should match");
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSections1.docx"))) {
                 Assert.True(document.Paragraphs.Count == 53, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
@@ -329,7 +329,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Sections[4].Margins.HeaderDistance == 720);
                 Assert.True(document.Sections[4].Margins.FooterDistance == 720);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentWithSectionsPageMargins.docx"))) {
                 Assert.True(document.Paragraphs.Count == 5, "Number of paragraphs during creation is wrong. Current: " + document.Paragraphs.Count);
@@ -492,7 +492,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(section1.PageOrientation == PageOrientationValues.Landscape);
                 Assert.True(section1.PageSettings.Orientation == PageOrientationValues.Landscape);
                 Assert.True(document.Sections[1].PageOrientation == PageOrientationValues.Landscape);
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreatedDocumentSections.docx"))) {
 
@@ -525,7 +525,7 @@ namespace OfficeIMO.Tests {
                 var p2 = section2.AddParagraph("Section2");
                 p2.AddList(WordListStyle.Bulleted).AddItem("2");
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -563,13 +563,13 @@ namespace OfficeIMO.Tests {
                 section1.AddParagraph("Section1");
                 var section2 = document.AddSection();
                 section2.AddParagraph("Section2");
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Equal(3, document.Sections.Count);
                 var clone = document.Sections[1].CloneSection();
-                document.Save(false);
+                document.Save();
                 Assert.Equal(4, document.Sections.Count);
                 Assert.Equal("Section1", document.Sections[1].Paragraphs[0].Text);
                 Assert.Equal("Section1", document.Sections[2].Paragraphs[0].Text);

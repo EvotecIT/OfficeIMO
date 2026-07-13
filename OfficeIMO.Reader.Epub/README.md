@@ -11,18 +11,20 @@
 dotnet add package OfficeIMO.Reader.Epub
 ```
 
-## Register
+## Configure
 
 ```csharp
 using OfficeIMO.Epub;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 
-DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(new EpubReadOptions {
-    PreferSpineOrder = true,
-    IncludeRawHtml = false,
-    MaxChapters = 100
-});
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddEpubHandler(new EpubReadOptions {
+        PreferSpineOrder = true,
+        IncludeRawHtml = false,
+        MaxChapters = 100
+    })
+    .Build();
 ```
 
 ## Examples
@@ -33,9 +35,11 @@ DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(new EpubReadOptions
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 
-DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddEpubHandler()
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("book.epub", new ReaderOptions {
+foreach (var chunk in reader.Read("book.epub", new ReaderOptions {
     MaxChars = 6_000,
     ComputeHashes = true
 })) {
@@ -51,13 +55,15 @@ using OfficeIMO.Epub;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 
-DocumentReaderEpubRegistrationExtensions.RegisterEpubHandler(new EpubReadOptions {
-    FallbackToHtmlScan = true,
-    MaxChapterBytes = 2L * 1024L * 1024L
-}, replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddEpubHandler(new EpubReadOptions {
+        FallbackToHtmlScan = true,
+        MaxChapterBytes = 2L * 1024L * 1024L
+    })
+    .Build();
 
 await using var stream = File.OpenRead("upload.epub");
-var chunks = DocumentReader.Read(stream, "upload.epub").ToList();
+var chunks = reader.Read(stream, "upload.epub").ToList();
 
 foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>())) {
     Console.WriteLine(warning);
@@ -67,13 +73,14 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 ### Read chapters and packaged images as one rich result
 
 ```csharp
-OfficeDocumentReadResult document = DocumentReaderEpubExtensions.ReadEpubDocument(
-    "book.epub",
-    epubOptions: new EpubReadOptions {
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddEpubHandler(new EpubReadOptions {
         MaxResources = 500,
         MaxResourceBytes = 4L * 1024L * 1024L,
         MaxTotalResourceBytes = 32L * 1024L * 1024L
-    });
+    })
+    .Build();
+OfficeDocumentReadResult document = reader.ReadDocument("book.epub");
 
 foreach (OfficeDocumentPage chapter in document.Pages) {
     Console.WriteLine($"{chapter.Number}. {chapter.Name}");
@@ -84,7 +91,7 @@ foreach (OfficeDocumentAsset image in document.Assets) {
 }
 ```
 
-The rich reader always requests bounded chapter HTML and manifest payloads from `OfficeIMO.Epub` so it can reuse the HTML semantic mapping. After registration, `DocumentReader.ReadDocument("book.epub")` uses this native result path.
+The rich reader requests bounded chapter HTML and manifest payloads from `OfficeIMO.Epub` so it can reuse the HTML semantic mapping. `reader.ReadDocument("book.epub")` uses this native result path.
 
 ## What it emits
 
@@ -98,7 +105,7 @@ The rich reader always requests bounded chapter HTML and manifest payloads from 
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - EPUB parsing belongs in `OfficeIMO.Epub`.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
 

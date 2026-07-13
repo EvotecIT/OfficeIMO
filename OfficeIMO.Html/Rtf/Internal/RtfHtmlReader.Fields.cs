@@ -99,7 +99,8 @@ internal static partial class RtfHtmlReader {
                 _options.AddDiagnostic(
                     "RtfHtmlFieldHyperlinkRejected",
                     "RTF hyperlink field instruction contains multiple targets.",
-                    "data-officeimo-rtf-field-instruction");
+                    "data-officeimo-rtf-field-instruction",
+                    action: RtfConversionAction.Blocked);
                 return false;
             }
 
@@ -184,7 +185,8 @@ internal static partial class RtfHtmlReader {
             _options.AddDiagnostic(
                 "RtfHtmlFieldHyperlinkRejected",
                 "RTF hyperlink field target was rejected by the configured URL policy.",
-                source);
+                source,
+                action: RtfConversionAction.Blocked);
             return false;
         }
 

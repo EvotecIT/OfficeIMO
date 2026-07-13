@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides[0];
                     PowerPointTextBox? loadedTextBox = slide.GetShapeByName<PowerPointTextBox>("Hero Title");
                     PowerPointTable? loadedTable = slide.GetShapeByName<PowerPointTable>("Metrics Table");
@@ -117,7 +117,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointSlide slide = presentation.Slides[0];
 
                     Assert.Single(slide.Shapes);
@@ -151,7 +151,7 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                     PowerPointPicture? picture = presentation.Slides[0].GetShapeByName<PowerPointPicture>("Vector Logo");
 
                     Assert.NotNull(picture);

@@ -32,7 +32,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
             pdf,
             presentation,
             new PdfPowerPointTableImportOptions {
@@ -98,7 +98,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
             pdf,
             presentation,
             new PdfPowerPointTableImportOptions {
@@ -127,7 +127,7 @@ public class PowerPointPdfTableImportTests {
         }
 
         using var emptyPresentation = new MemoryStream();
-        IReadOnlyList<PdfPowerPointTableImportResult> emptyResults = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+        IReadOnlyList<PdfPowerPointTableImportResult> emptyResults = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
             pdf,
             emptyPresentation,
             new PdfPowerPointTableImportOptions {
@@ -167,7 +167,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
             pdf,
             presentation,
             new PdfPowerPointTableImportOptions {
@@ -211,7 +211,7 @@ public class PowerPointPdfTableImportTests {
             .ToBytes();
 
         using var presentation = new MemoryStream();
-        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+        IReadOnlyList<PdfPowerPointTableImportResult> results = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
             pdf,
             presentation,
             new PdfPowerPointTableImportOptions {

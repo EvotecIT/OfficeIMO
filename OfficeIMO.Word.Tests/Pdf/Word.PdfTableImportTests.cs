@@ -32,7 +32,7 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> results = PdfWordTableConverterExtensions.SavePdfTablesAsWord(
+        IReadOnlyList<PdfWordTableImportResult> results = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
             pdf,
             document,
             new PdfWordTableImportOptions {
@@ -92,7 +92,7 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> results = PdfWordTableConverterExtensions.SavePdfTablesAsWord(
+        IReadOnlyList<PdfWordTableImportResult> results = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
             pdf,
             document,
             new PdfWordTableImportOptions {
@@ -120,7 +120,7 @@ public partial class Word {
         }
 
         using var emptyDocument = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> emptyResults = PdfWordTableConverterExtensions.SavePdfTablesAsWord(
+        IReadOnlyList<PdfWordTableImportResult> emptyResults = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
             pdf,
             emptyDocument,
             new PdfWordTableImportOptions {

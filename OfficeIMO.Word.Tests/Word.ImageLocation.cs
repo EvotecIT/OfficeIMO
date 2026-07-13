@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(mainPart.HeaderParts.SelectMany(h => h.ImageParts));
             Assert.Empty(mainPart.FooterParts.SelectMany(f => f.ImageParts));
 
-            document.Save(false);
+            document.Save();
         }
 
         [Fact]
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(defaultFooter.Images);
             Assert.Empty(mainPart.FooterParts.First().ImageParts);
 
-            document.Save(false);
+            document.Save();
         }
 
         [Fact]
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
             Assert.Empty(defaultHeader.Images);
             Assert.Empty(mainPart.HeaderParts.First().ImageParts);
 
-            document.Save(false);
+            document.Save();
         }
     }
 }

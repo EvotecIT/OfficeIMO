@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("DDL", ddl.Alias);
                 Assert.Equal("DDLTag", ddl.Tag);
 
-                document.Save(false);
+                document.Save();
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
@@ -26,12 +26,12 @@ namespace OfficeIMO.Tests {
                 var list = document.GetDropDownListByAlias("DDL");
                 Assert.NotNull(list);
                 Assert.Equal("DDLTag", document.GetDropDownListByTag("DDLTag")?.Tag);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 document.DropDownLists[0].Remove();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

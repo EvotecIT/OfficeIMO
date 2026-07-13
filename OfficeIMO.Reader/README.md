@@ -90,7 +90,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 var chunks = reader.Read(@"C:\Docs\data.json").ToList();
 ```
 
-`Build()` freezes the handler configuration. The resulting `OfficeDocumentReader` is safe to reuse across concurrent reads, is unaffected by later builder changes, and cannot see handlers registered on another reader. The static `DocumentReader.RegisterHandler(...)` and adapter `Register...Handler()` methods remain available for compatibility, but they update a process-wide registry.
+`Build()` freezes the handler configuration. The resulting `OfficeDocumentReader` is safe to reuse across concurrent reads and is unaffected by later builder changes. `DocumentReader` remains the simple built-in-only facade; modular formats are configured explicitly on `OfficeDocumentReaderBuilder`, so one reader cannot change another reader or process-wide state.
 
 ## Async and bounded batches
 

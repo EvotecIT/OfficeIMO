@@ -31,7 +31,7 @@ internal static partial class CleanupDocuments {
             defaultFooter.AddParagraph();
 
             document.CleanupDocument();
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

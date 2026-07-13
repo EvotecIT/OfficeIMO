@@ -3,7 +3,7 @@ namespace OfficeIMO.AsciiDoc.Markdown;
 /// <summary>Loss-aware AsciiDoc to Markdown conversion engine.</summary>
 public static class AsciiDocToMarkdownConverter {
     /// <summary>Converts recognized AsciiDoc semantics and reports every fallback or omission.</summary>
-    public static AsciiDocMarkdownConversionResult Convert(
+    public static AsciiDocToMarkdownResult Convert(
         AsciiDocDocument document,
         AsciiDocToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -24,10 +24,10 @@ public static class AsciiDocToMarkdownConverter {
             AddBlock(markdown, block, attributes, options, diagnostics);
         }
 
-        return new AsciiDocMarkdownConversionResult(markdown, diagnostics);
+        return new AsciiDocToMarkdownResult(markdown, diagnostics);
     }
 
-    internal static AsciiDocMarkdownConversionResult ConvertBlock(
+    internal static AsciiDocToMarkdownResult ConvertBlock(
         AsciiDocBlock block,
         AsciiDocDocumentAttributes attributes,
         AsciiDocToMarkdownOptions? options = null) {
@@ -37,7 +37,7 @@ public static class AsciiDocToMarkdownConverter {
         var markdown = MarkdownDoc.Create();
         var diagnostics = new List<AsciiDocMarkdownConversionDiagnostic>();
         AddBlock(markdown, block, attributes, options, diagnostics);
-        return new AsciiDocMarkdownConversionResult(markdown, diagnostics);
+        return new AsciiDocToMarkdownResult(markdown, diagnostics);
     }
 
     private static void AddBlock(

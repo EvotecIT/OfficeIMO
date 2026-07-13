@@ -10,8 +10,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -25,8 +23,8 @@ namespace OfficeIMO.Reader;
 /// <remarks>
 /// This facade is intentionally dependency-free and deterministic.
 /// It normalizes extraction into <see cref="ReaderChunk"/> instances with stable IDs and location metadata.
-/// Read operations are thread-safe. The legacy static registration methods update a process-wide
-/// compatibility registry; use <see cref="OfficeDocumentReaderBuilder"/> for isolated immutable readers.
+/// Read operations are thread-safe. Use <see cref="OfficeDocumentReaderBuilder"/> when modular handlers
+/// or a processing pipeline are required.
 /// </remarks>
 public static partial class DocumentReader {
     private static readonly string[] DefaultFolderExtensions = {
@@ -113,7 +111,8 @@ public static partial class DocumentReader {
     };
 
     internal static readonly HashSet<string> BuiltInExtensions = BuildBuiltInExtensionSet();
-    private static readonly ReaderHandlerRegistry HandlerRegistry = new ReaderHandlerRegistry(BuiltInExtensions);
+    private static readonly ReaderHandlerRegistrySnapshot BuiltInHandlerRegistry =
+        new ReaderHandlerRegistry(BuiltInExtensions).CaptureSnapshot();
 
     private static string? TryGetExtension(string path) {
         if (path == null) return null;
@@ -139,77 +138,38 @@ public static partial class DocumentReader {
     }
 
     /// <summary>
-    /// Registers a custom handler for one or more file extensions.
+    /// Lists the capabilities supported by the built-in static reader.
     /// </summary>
-    /// <param name="registration">Custom handler registration.</param>
-    /// <param name="replaceExisting">
-    /// When true, removes conflicting custom handlers and allows built-in extension overrides.
-    /// </param>
-    public static void RegisterHandler(ReaderHandlerRegistration registration, bool replaceExisting = false) {
-        RegisterHandlerCore(registration, replaceExisting, preserveExistingCustomExtensions: false);
+    public static IReadOnlyList<ReaderHandlerCapability> GetCapabilities() {
+        return GetCapabilities(BuiltInHandlerRegistry);
     }
 
-    /// <summary>
-    /// Registers a custom handler while leaving extensions already owned by other custom handlers untouched.
-    /// </summary>
-    /// <param name="registration">Custom handler registration.</param>
-    /// <param name="replaceExisting">
-    /// When true, allows built-in extension overrides and replaces an existing handler with the same identifier.
-    /// </param>
-    /// <returns>The normalized extensions that were registered for the handler.</returns>
-    public static IReadOnlyList<string> RegisterHandlerPreservingExistingCustomExtensions(ReaderHandlerRegistration registration, bool replaceExisting = false) {
-        return RegisterHandlerCore(registration, replaceExisting, preserveExistingCustomExtensions: true);
-    }
-
-    private static IReadOnlyList<string> RegisterHandlerCore(ReaderHandlerRegistration registration, bool replaceExisting, bool preserveExistingCustomExtensions) {
-        return HandlerRegistry.Register(registration, replaceExisting, preserveExistingCustomExtensions);
-    }
-
-    /// <summary>
-    /// Unregisters a custom handler by identifier.
-    /// </summary>
-    public static bool UnregisterHandler(string handlerId) {
-        return HandlerRegistry.Unregister(handlerId);
-    }
-
-    /// <summary>
-    /// Lists built-in and custom reader capabilities for host discovery.
-    /// </summary>
-    public static IReadOnlyList<ReaderHandlerCapability> GetCapabilities(bool includeBuiltIn = true, bool includeCustom = true) {
+    internal static IReadOnlyList<ReaderHandlerCapability> GetCapabilities(ReaderHandlerRegistrySnapshot snapshot) {
         var list = new List<ReaderHandlerCapability>();
         var customCapabilities = new List<ReaderHandlerCapability>();
         Dictionary<string, ExtensionOverrideCoverage>? overriddenBuiltInExtensions = null;
-        ReaderHandlerRegistrySnapshot snapshot = GetActiveHandlerRegistry();
 
-        if (includeCustom) {
-            foreach (ReaderHandlerDescriptor custom in snapshot.Handlers) {
-                ReaderHandlerCapability capability = custom.ToCapability();
-                customCapabilities.Add(capability);
-                if (includeBuiltIn) {
-                    for (int extensionIndex = 0; extensionIndex < capability.Extensions.Count; extensionIndex++) {
-                        string extension = capability.Extensions[extensionIndex];
-                        if (BuiltInExtensions.Contains(extension)) {
-                            overriddenBuiltInExtensions ??= new Dictionary<string, ExtensionOverrideCoverage>(StringComparer.OrdinalIgnoreCase);
-                            overriddenBuiltInExtensions.TryGetValue(extension, out ExtensionOverrideCoverage coverage);
-                            overriddenBuiltInExtensions[extension] = coverage.Add(capability.SupportsPath, capability.SupportsStream);
-                        }
-                    }
+        foreach (ReaderHandlerDescriptor custom in snapshot.Handlers) {
+            ReaderHandlerCapability capability = custom.ToCapability();
+            customCapabilities.Add(capability);
+            for (int extensionIndex = 0; extensionIndex < capability.Extensions.Count; extensionIndex++) {
+                string extension = capability.Extensions[extensionIndex];
+                if (BuiltInExtensions.Contains(extension)) {
+                    overriddenBuiltInExtensions ??= new Dictionary<string, ExtensionOverrideCoverage>(StringComparer.OrdinalIgnoreCase);
+                    overriddenBuiltInExtensions.TryGetValue(extension, out ExtensionOverrideCoverage coverage);
+                    overriddenBuiltInExtensions[extension] = coverage.Add(capability.SupportsPath, capability.SupportsStream);
                 }
             }
         }
 
-        if (includeBuiltIn) {
-            for (int i = 0; i < BuiltInCapabilities.Length; i++) {
-                ReaderHandlerCapability? capability = CloneCapabilityWithRemainingSupport(BuiltInCapabilities[i], overriddenBuiltInExtensions);
-                if (capability is not null) {
-                    list.Add(capability);
-                }
+        for (int i = 0; i < BuiltInCapabilities.Length; i++) {
+            ReaderHandlerCapability? capability = CloneCapabilityWithRemainingSupport(BuiltInCapabilities[i], overriddenBuiltInExtensions);
+            if (capability is not null) {
+                list.Add(capability);
             }
         }
 
-        if (includeCustom) {
-            list.AddRange(customCapabilities);
-        }
+        list.AddRange(customCapabilities);
 
         return list
             .OrderBy(static c => c.IsBuiltIn ? 0 : 1)
@@ -218,10 +178,14 @@ public static partial class DocumentReader {
     }
 
     /// <summary>
-    /// Builds a machine-readable capability manifest for host auto-discovery.
+    /// Builds a machine-readable capability manifest for the built-in static reader.
     /// </summary>
-    public static ReaderCapabilityManifest GetCapabilityManifest(bool includeBuiltIn = true, bool includeCustom = true) {
-        var handlers = GetCapabilities(includeBuiltIn, includeCustom)
+    public static ReaderCapabilityManifest GetCapabilityManifest() {
+        return GetCapabilityManifest(BuiltInHandlerRegistry);
+    }
+
+    internal static ReaderCapabilityManifest GetCapabilityManifest(ReaderHandlerRegistrySnapshot snapshot) {
+        var handlers = GetCapabilities(snapshot)
             .Select(CloneCapability)
             .ToArray();
 
@@ -233,11 +197,10 @@ public static partial class DocumentReader {
     }
 
     /// <summary>
-    /// Builds a JSON capability manifest payload for host auto-discovery.
+    /// Builds a JSON capability manifest payload for the built-in static reader.
     /// </summary>
-    public static string GetCapabilityManifestJson(bool includeBuiltIn = true, bool includeCustom = true, bool indented = false) {
-        var manifest = GetCapabilityManifest(includeBuiltIn, includeCustom);
-        return ReaderCapabilityManifestJson.Serialize(manifest, indented);
+    public static string GetCapabilityManifestJson(bool indented = false) {
+        return ReaderCapabilityManifestJson.Serialize(GetCapabilityManifest(), indented);
     }
 
     /// <summary>
@@ -261,191 +224,6 @@ public static partial class DocumentReader {
         }
 
         return tables.Count == 0 ? Array.Empty<ReaderTable>() : tables.ToArray();
-    }
-
-    /// <summary>
-    /// Discovers modular registrar methods in the provided assemblies.
-    /// </summary>
-    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrars(IEnumerable<Assembly> assemblies) {
-        var candidates = DiscoverHandlerRegistrarsCore(assemblies);
-        return candidates
-            .Select(static c => CloneRegistrarDescriptor(c.Descriptor))
-            .ToArray();
-    }
-
-    /// <summary>
-    /// Discovers modular registrar methods in the provided assemblies.
-    /// </summary>
-    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrars(params Assembly[] assemblies) {
-        return DiscoverHandlerRegistrars((IEnumerable<Assembly>)assemblies);
-    }
-
-    /// <summary>
-    /// Discovers modular registrar methods from currently loaded assemblies
-    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>.
-    /// </summary>
-    /// <param name="assemblyNamePrefix">
-    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
-    /// </param>
-    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> DiscoverHandlerRegistrarsFromLoadedAssemblies(string assemblyNamePrefix = "OfficeIMO.Reader.") {
-        var assemblies = GetLoadedAssembliesByPrefix(assemblyNamePrefix);
-        return DiscoverHandlerRegistrars(assemblies);
-    }
-
-    /// <summary>
-    /// Registers modular handlers discovered in the provided assemblies.
-    /// </summary>
-    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
-    /// <param name="replaceExisting">
-    /// Passed to discovered registrar methods via their <c>replaceExisting</c> parameter when present.
-    /// </param>
-    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromAssemblies(IEnumerable<Assembly> assemblies, bool replaceExisting = true) {
-        var candidates = DiscoverHandlerRegistrarsCore(assemblies);
-        var registered = new List<ReaderHandlerRegistrarDescriptor>(candidates.Count);
-
-        foreach (var candidate in candidates) {
-            var parameters = candidate.Method.GetParameters();
-            var args = new object?[parameters.Length];
-            for (int i = 0; i < parameters.Length; i++) {
-                var parameter = parameters[i];
-                if (parameter.ParameterType == typeof(bool) &&
-                    string.Equals(parameter.Name, "replaceExisting", StringComparison.OrdinalIgnoreCase)) {
-                    args[i] = replaceExisting;
-                } else if (parameter.IsOptional) {
-                    args[i] = Type.Missing;
-                } else {
-                    throw new InvalidOperationException(
-                        $"Registrar method '{candidate.Method.DeclaringType?.FullName}.{candidate.Method.Name}' has unsupported non-optional parameter '{parameter.Name}'.");
-                }
-            }
-
-            try {
-                candidate.Method.Invoke(obj: null, parameters: args);
-            } catch (TargetInvocationException ex) when (ex.InnerException != null) {
-                ExceptionDispatchInfo.Capture(ex.InnerException).Throw();
-                throw;
-            }
-
-            registered.Add(CloneRegistrarDescriptor(candidate.Descriptor));
-        }
-
-        return registered.ToArray();
-    }
-
-    /// <summary>
-    /// Registers modular handlers discovered in the provided assemblies.
-    /// </summary>
-    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromAssemblies(bool replaceExisting = true, params Assembly[] assemblies) {
-        return RegisterHandlersFromAssemblies((IEnumerable<Assembly>)assemblies, replaceExisting);
-    }
-
-    /// <summary>
-    /// Registers modular handlers discovered from currently loaded assemblies
-    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>.
-    /// </summary>
-    /// <param name="replaceExisting">
-    /// Passed to discovered registrar methods via their <c>replaceExisting</c> parameter when present.
-    /// </param>
-    /// <param name="assemblyNamePrefix">
-    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
-    /// </param>
-    public static IReadOnlyList<ReaderHandlerRegistrarDescriptor> RegisterHandlersFromLoadedAssemblies(bool replaceExisting = true, string assemblyNamePrefix = "OfficeIMO.Reader.") {
-        var assemblies = GetLoadedAssembliesByPrefix(assemblyNamePrefix);
-        return RegisterHandlersFromAssemblies(assemblies, replaceExisting);
-    }
-
-    /// <summary>
-    /// Host bootstrap helper that registers modular handlers from the provided assemblies
-    /// and returns both typed and JSON capability manifests in one payload.
-    /// </summary>
-    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
-    /// <param name="options">Bootstrap options. When null, defaults are used.</param>
-    public static ReaderHostBootstrapResult BootstrapHostFromAssemblies(IEnumerable<Assembly> assemblies, ReaderHostBootstrapOptions? options = null) {
-        var normalizedOptions = NormalizeHostBootstrapOptions(options);
-        var registered = RegisterHandlersFromAssemblies(assemblies, replaceExisting: normalizedOptions.ReplaceExistingHandlers);
-        var manifest = GetCapabilityManifest(
-            includeBuiltIn: normalizedOptions.IncludeBuiltInCapabilities,
-            includeCustom: normalizedOptions.IncludeCustomCapabilities);
-
-        return new ReaderHostBootstrapResult {
-            ReplaceExistingHandlers = normalizedOptions.ReplaceExistingHandlers,
-            RegisteredHandlers = registered
-                .Select(static r => CloneRegistrarDescriptor(r))
-                .ToArray(),
-            Manifest = manifest,
-            ManifestJson = ReaderCapabilityManifestJson.Serialize(manifest, normalizedOptions.IndentedManifestJson)
-        };
-    }
-
-    /// <summary>
-    /// Host bootstrap helper that applies a preset profile, registers modular handlers from the provided
-    /// assemblies, and returns both typed and JSON capability manifests in one payload.
-    /// </summary>
-    /// <param name="assemblies">Assemblies to scan for registrar methods.</param>
-    /// <param name="profile">Bootstrap profile preset.</param>
-    /// <param name="indentedManifestJson">When true, indents the returned manifest JSON payload.</param>
-    public static ReaderHostBootstrapResult BootstrapHostFromAssemblies(
-        IEnumerable<Assembly> assemblies,
-        ReaderHostBootstrapProfile profile,
-        bool indentedManifestJson = false) {
-        var options = CreateHostBootstrapOptions(profile, indentedManifestJson);
-        var result = BootstrapHostFromAssemblies(assemblies, options);
-        result.Profile = profile;
-        return result;
-    }
-
-    /// <summary>
-    /// Host bootstrap helper that discovers and registers modular handlers from currently loaded assemblies
-    /// whose simple name starts with <paramref name="assemblyNamePrefix"/>, then returns both typed and
-    /// JSON capability manifests in one payload.
-    /// </summary>
-    /// <param name="assemblyNamePrefix">
-    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
-    /// </param>
-    /// <param name="options">Bootstrap options. When null, defaults are used.</param>
-    public static ReaderHostBootstrapResult BootstrapHostFromLoadedAssemblies(
-        string assemblyNamePrefix = "OfficeIMO.Reader.",
-        ReaderHostBootstrapOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(assemblyNamePrefix)) {
-            throw new ArgumentException("Assembly name prefix cannot be empty.", nameof(assemblyNamePrefix));
-        }
-
-        var normalizedOptions = NormalizeHostBootstrapOptions(options);
-        var registered = RegisterHandlersFromLoadedAssemblies(
-            replaceExisting: normalizedOptions.ReplaceExistingHandlers,
-            assemblyNamePrefix: assemblyNamePrefix);
-        var manifest = GetCapabilityManifest(
-            includeBuiltIn: normalizedOptions.IncludeBuiltInCapabilities,
-            includeCustom: normalizedOptions.IncludeCustomCapabilities);
-
-        return new ReaderHostBootstrapResult {
-            AssemblyNamePrefix = assemblyNamePrefix.Trim(),
-            ReplaceExistingHandlers = normalizedOptions.ReplaceExistingHandlers,
-            RegisteredHandlers = registered
-                .Select(static r => CloneRegistrarDescriptor(r))
-                .ToArray(),
-            Manifest = manifest,
-            ManifestJson = ReaderCapabilityManifestJson.Serialize(manifest, normalizedOptions.IndentedManifestJson)
-        };
-    }
-
-    /// <summary>
-    /// Host bootstrap helper that applies a preset profile, discovers and registers modular handlers from loaded
-    /// assemblies, and returns both typed and JSON capability manifests in one payload.
-    /// </summary>
-    /// <param name="profile">Bootstrap profile preset.</param>
-    /// <param name="assemblyNamePrefix">
-    /// Simple assembly-name prefix filter. Default: <c>OfficeIMO.Reader.</c>.
-    /// </param>
-    /// <param name="indentedManifestJson">When true, indents the returned manifest JSON payload.</param>
-    public static ReaderHostBootstrapResult BootstrapHostFromLoadedAssemblies(
-        ReaderHostBootstrapProfile profile,
-        string assemblyNamePrefix = "OfficeIMO.Reader.",
-        bool indentedManifestJson = false) {
-        var options = CreateHostBootstrapOptions(profile, indentedManifestJson);
-        var result = BootstrapHostFromLoadedAssemblies(assemblyNamePrefix, options);
-        result.Profile = profile;
-        return result;
     }
 
     /// <summary>

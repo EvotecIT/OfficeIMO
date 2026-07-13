@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -24,8 +25,8 @@ internal static partial class Paragraphs {
                     })
                     .Shading(Color.LightGray))
                 .End()
-                .Save(false);
+                .Save();
         }
-        Helpers.Open(filePath, openWord);
+        if (openWord) OfficeFileLauncher.Open(filePath);
     }
 }

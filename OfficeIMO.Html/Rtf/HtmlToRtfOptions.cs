@@ -50,21 +50,13 @@ public sealed partial class HtmlToRtfOptions {
     /// </summary>
     public int? MaxHtmlDepth { get; set; }
 
-    /// <summary>
-    /// Diagnostics produced while converting HTML into the RTF document model.
-    /// </summary>
-    public List<HtmlRtfConversionDiagnostic> Diagnostics { get; } = new List<HtmlRtfConversionDiagnostic>();
+    internal List<HtmlRtfConversionDiagnostic> Diagnostics { get; } = new List<HtmlRtfConversionDiagnostic>();
 
     /// <summary>Shared cross-adapter fidelity and policy report for this conversion.</summary>
-    public RtfConversionReport ConversionReport { get; } = new RtfConversionReport();
+    internal RtfConversionReport ConversionReport { get; } = new RtfConversionReport();
 
     /// <summary>Shared HTML diagnostic report for cross-format aggregation.</summary>
-    public HtmlDiagnosticReport HtmlDiagnostics { get; } = new HtmlDiagnosticReport();
-
-    /// <summary>
-    /// Optional callback invoked whenever a conversion diagnostic is produced.
-    /// </summary>
-    public Action<HtmlRtfConversionDiagnostic>? DiagnosticHandler { get; set; }
+    internal HtmlDiagnosticReport HtmlDiagnostics { get; } = new HtmlDiagnosticReport();
 
     /// <summary>
     /// Creates a reusable copy of the current options without carrying runtime diagnostics into the clone.
@@ -76,7 +68,6 @@ public sealed partial class HtmlToRtfOptions {
         PreserveUnknownTagsAsText = PreserveUnknownTagsAsText,
         IgnoreInsignificantWhitespace = IgnoreInsignificantWhitespace,
         MaxHtmlNodes = MaxHtmlNodes,
-        MaxHtmlDepth = MaxHtmlDepth,
-        DiagnosticHandler = DiagnosticHandler
+        MaxHtmlDepth = MaxHtmlDepth
     };
 }

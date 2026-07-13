@@ -28,11 +28,11 @@ public partial class WordRtfConverterTests {
         word.Borders.TopStyle = BorderValues.Single;
         word.Borders.TopSize = 12U;
         word.Borders.TopSpace = 24U;
-        word.Borders.TopColorHex = "ff0000";
+        word.Borders.TopColorHex = "FF0000";
         word.Borders.BottomStyle = BorderValues.Double;
         word.Borders.BottomSize = 18U;
         word.Borders.BottomSpace = 30U;
-        word.Borders.BottomColorHex = "0000ff";
+        word.Borders.BottomColorHex = "0000FF";
         PageBorders pageBorders = word.Sections[0]._sectionProperties.GetFirstChild<PageBorders>()!;
         pageBorders.Display = PageBorderDisplayValues.NotFirstPage;
         pageBorders.ZOrder = PageBorderZOrderValues.Front;

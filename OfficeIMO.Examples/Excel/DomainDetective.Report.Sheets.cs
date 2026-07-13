@@ -170,8 +170,8 @@ namespace OfficeIMO.Examples.Excel {
             var errors = doc.ValidateOpenXml();
             if (errors.Count > 0) Console.WriteLine($"[!] OpenXML validation issues: {errors.Count}");
 
-            doc.Save(false);
-            if (openExcel) doc.Open(filePath, true);
+            doc.Save();
+            if (openExcel) doc.OpenInApplication(filePath);
         }
 
         private static void BuildDomainSheet(ExcelDocument doc, DomainRow d) {

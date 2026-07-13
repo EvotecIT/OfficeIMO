@@ -45,14 +45,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Intro");
                 doc.AddParagraph().AddImage(imagePath, 80, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_position_preceding_xml.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Intro");
                 doc.AddParagraph().AddImage(imagePath, 80, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             ReplaceFirstBodyParagraphWithRuns(targetPath, "In", "tro");
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_drawing_image_hlink.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph().AddImage(imagePath, 80, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             AddDrawingImageHyperlinkClick(sourcePath, "https://evotec.xyz/source-click");
@@ -215,7 +215,7 @@ namespace OfficeIMO.Tests {
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_drawing_image_hlink.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph().AddImage(imagePath, 80, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             AddDrawingImageHyperlinkClick(targetPath, "https://evotec.xyz/target-click");
@@ -265,7 +265,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 WordList list = doc.AddList(WordListStyle.Numbered);
                 list.AddItem("Item");
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -283,14 +283,14 @@ namespace OfficeIMO.Tests {
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Policy A").AddFootNote("Alpha note");
                 doc.AddParagraph("Policy B").AddFootNote("Beta note");
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_reference_order_notes.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Policy A").AddFootNote("Alpha note");
                 doc.AddParagraph("Policy B").AddFootNote("Beta note");
-                doc.Save(false);
+                doc.Save();
             }
 
             ReverseNormalFootnotePartOrder(targetPath);
@@ -356,13 +356,13 @@ namespace OfficeIMO.Tests {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_layout_only.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph().AddImage(imagePath, 80, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_layout_only.docx");
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph().AddImage(imagePath, 120, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
@@ -399,20 +399,20 @@ namespace OfficeIMO.Tests {
                 doc.AddParagraph(paragraph);
             }
 
-            doc.Save(false);
+            doc.Save();
         }
 
         private static void CreateDocumentWithNumberedItem(string path, string text) {
             using WordDocument doc = WordDocument.Create(path);
             WordList list = doc.AddList(WordListStyle.Numbered);
             list.AddItem(text);
-            doc.Save(false);
+            doc.Save();
         }
 
         private static void CreateTextHyperlinkDocument(string path, string text, string target, string tooltip, string targetFrame, bool history, string docLocation) {
             using (WordDocument doc = WordDocument.Create(path)) {
                 doc.AddParagraph("Before");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
@@ -437,21 +437,21 @@ namespace OfficeIMO.Tests {
                 table.Rows[row].Cells[0].Paragraphs[0].SetText(rows[row]);
             }
 
-            doc.Save(false);
+            doc.Save();
         }
 
         private static void CreateDocumentWithDefaultHeaderForReviewWave(string path, string text) {
             using WordDocument doc = WordDocument.Create(path);
             doc.AddParagraph("Body");
             doc.HeaderDefaultOrCreate.AddParagraph(text);
-            doc.Save(false);
+            doc.Save();
         }
 
         private static void CreateDocumentWithOneCellTableForReviewWave(string path, string text) {
             using WordDocument doc = WordDocument.Create(path);
             WordTable table = doc.AddTable(1, 1);
             table.Rows[0].Cells[0].Paragraphs[0].SetText(text);
-            doc.Save(false);
+            doc.Save();
         }
 
         private static void ReplaceFirstBodyParagraphWithRuns(string path, string first, string second) {
@@ -478,7 +478,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithDefaultAndFirstHeaders(string path, bool createFirstHeaderPartFirst) {
             using WordDocument doc = WordDocument.Create(path);
             doc.AddParagraph("Body");
-            doc.Save(false);
+            doc.Save();
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             MainDocumentPart mainPart = document.MainDocumentPart!;
@@ -511,7 +511,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithVmlImage(string path, string imagePath, string shapeId) {
             using WordDocument doc = WordDocument.Create(path);
             doc.AddParagraph("Body");
-            doc.Save(false);
+            doc.Save();
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             MainDocumentPart mainPart = document.MainDocumentPart!;
@@ -536,7 +536,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithDrawingEditIds(string path, string imagePath, string editId, string anchorId) {
             using (WordDocument doc = WordDocument.Create(path)) {
                 doc.AddParagraph().AddImage(imagePath, 80, 40);
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
@@ -550,7 +550,7 @@ namespace OfficeIMO.Tests {
             using WordDocument doc = WordDocument.Create(path);
             WordTable table = doc.AddTable(1, 1);
             table.Rows[0].Cells[0].Paragraphs[0].SetText("Cell paragraph");
-            doc.Save(false);
+            doc.Save();
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             TableCell cell = document.MainDocumentPart!.Document.Descendants<TableCell>().First();
@@ -579,7 +579,7 @@ namespace OfficeIMO.Tests {
         private static void CreateInlineImageParagraphDocument(string path, string imagePath, bool imageFirst) {
             using (WordDocument doc = WordDocument.Create(path)) {
                 doc.AddParagraph("Placeholder");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
@@ -670,7 +670,7 @@ namespace OfficeIMO.Tests {
         private static void CreateAlternateContentImageDocument(string path, string imagePath, string fallbackStyle) {
             using (WordDocument doc = WordDocument.Create(path)) {
                 doc.AddParagraph("Placeholder");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
@@ -707,7 +707,7 @@ namespace OfficeIMO.Tests {
         private static void CreateDocumentWithDeletedTextParagraph(string path, string text, string deletedText) {
             using WordDocument doc = WordDocument.Create(path);
             doc.AddParagraph("Placeholder");
-            doc.Save(false);
+            doc.Save();
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             Body body = document.MainDocumentPart!.Document.Body!;

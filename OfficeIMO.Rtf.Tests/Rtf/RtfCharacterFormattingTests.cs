@@ -114,7 +114,7 @@ public class RtfCharacterFormattingTests {
         Assert.Contains(@"\ulc1", rtf, StringComparison.Ordinal);
         WordParagraph roundTripRun = Assert.Single(roundTrip.Paragraphs, run => run.Text == "Styled");
         Assert.Equal(UnderlineValues.WavyDouble, roundTripRun.Underline);
-        Assert.Equal("4472c4", roundTripRun._run?.RunProperties?.Underline?.Color?.Value);
+        Assert.Equal("4472C4", roundTripRun._run?.RunProperties?.Underline?.Color?.Value);
     }
 
     [Fact]
@@ -129,7 +129,7 @@ public class RtfCharacterFormattingTests {
 
         WordParagraph styled = Assert.Single(word.Paragraphs, run => run.Text == "Styled");
         Assert.Equal(UnderlineValues.DashDotDotHeavy, styled.Underline);
-        Assert.Equal("4472c4", styled._run?.RunProperties?.Underline?.Color?.Value);
+        Assert.Equal("4472C4", styled._run?.RunProperties?.Underline?.Color?.Value);
         WordParagraph plain = Assert.Single(word.Paragraphs, run => run.Text == "Plain");
         Assert.Null(plain.Underline);
         Assert.Null(plain._run?.RunProperties?.Underline?.Color?.Value);

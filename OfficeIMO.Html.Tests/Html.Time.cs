@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
             const string html = "<p>On <time datetime=\"2023-01-01\">New Year's Day</time> we met.</p>";
 
             using var doc = html.ToWordDocument();
-            using MemoryStream stream = doc.ToDocxStream();
+            using MemoryStream stream = doc.ToStream();
             byte[] packageBytes = stream.ToArray();
 
             using (var validationStream = new MemoryStream(packageBytes))
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             }
 
             using var reloadStream = new MemoryStream(packageBytes);
-            using var reloaded = WordDocument.Load(reloadStream, readOnly: true);
+            using var reloaded = WordDocument.Load(reloadStream, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
 
             string roundTrip = reloaded.ToHtml();
 

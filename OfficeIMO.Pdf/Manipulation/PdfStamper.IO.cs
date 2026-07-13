@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfStamper {
@@ -29,7 +30,7 @@ public static partial class PdfStamper {
         string fullPath = ValidateOutputPath(outputPath);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullPath, bytes);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
     }
 
     private static string ValidateOutputPath(string outputPath) {

@@ -15,7 +15,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <param name="presentationPath">Destination PowerPoint presentation path.</param>
     /// <param name="options">Optional import settings.</param>
     /// <returns>Metadata for every imported table.</returns>
-    public static IReadOnlyList<PdfPowerPointTableImportResult> SavePdfTablesAsPowerPoint(
+    public static IReadOnlyList<PdfPowerPointTableImportResult> SaveAsPowerPointFromPdfTables(
         this PdfCore.PdfLogicalDocument document,
         string presentationPath,
         PdfPowerPointTableImportOptions? options = null) {
@@ -35,14 +35,15 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <param name="presentationStream">Writable destination stream for the presentation package.</param>
     /// <param name="options">Optional import settings.</param>
     /// <returns>Metadata for every imported table.</returns>
-    public static IReadOnlyList<PdfPowerPointTableImportResult> SavePdfTablesAsPowerPoint(
+    public static IReadOnlyList<PdfPowerPointTableImportResult> SaveAsPowerPointFromPdfTables(
         this PdfCore.PdfLogicalDocument document,
         Stream presentationStream,
         PdfPowerPointTableImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
+        if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
 
-        using PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create(presentationStream, new PptCore.PowerPointStreamCreateOptions { AutoSave = false });
+        using PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
         IReadOnlyList<PdfPowerPointTableImportResult> results = ImportTables(document, presentation, options ?? new PdfPowerPointTableImportOptions());
         presentation.Save(presentationStream);
         return results;
@@ -54,13 +55,13 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <param name="document">Logical PDF document to import.</param>
     /// <param name="options">Optional import settings.</param>
     /// <returns>PowerPoint presentation package bytes.</returns>
-    public static byte[] ToPowerPointTablePresentationBytes(
+    public static byte[] ToPowerPointBytesFromPdfTables(
         this PdfCore.PdfLogicalDocument document,
         PdfPowerPointTableImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
 
         using var stream = new MemoryStream();
-        document.SavePdfTablesAsPowerPoint(stream, options);
+        document.SaveAsPowerPointFromPdfTables(stream, options);
         return stream.ToArray();
     }
 
@@ -71,7 +72,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <param name="presentationPath">Destination PowerPoint presentation path.</param>
     /// <param name="options">Optional import settings.</param>
     /// <returns>Metadata for every imported table.</returns>
-    public static IReadOnlyList<PdfPowerPointTableImportResult> SavePdfTablesAsPowerPoint(
+    public static IReadOnlyList<PdfPowerPointTableImportResult> SaveAsPowerPointFromPdfTables(
         string pdfPath,
         string presentationPath,
         PdfPowerPointTableImportOptions? options = null) {
@@ -80,7 +81,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         options ??= new PdfPowerPointTableImportOptions();
         PdfCore.PdfLogicalDocument document = LoadPdf(pdfPath, options);
-        return document.SavePdfTablesAsPowerPoint(presentationPath, options);
+        return document.SaveAsPowerPointFromPdfTables(presentationPath, options);
     }
 
     /// <summary>
@@ -90,7 +91,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <param name="presentationStream">Writable destination stream for the presentation package.</param>
     /// <param name="options">Optional import settings.</param>
     /// <returns>Metadata for every imported table.</returns>
-    public static IReadOnlyList<PdfPowerPointTableImportResult> SavePdfTablesAsPowerPoint(
+    public static IReadOnlyList<PdfPowerPointTableImportResult> SaveAsPowerPointFromPdfTables(
         byte[] pdfBytes,
         Stream presentationStream,
         PdfPowerPointTableImportOptions? options = null) {
@@ -99,7 +100,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         options ??= new PdfPowerPointTableImportOptions();
         PdfCore.PdfLogicalDocument document = LoadPdf(pdfBytes, options);
-        return document.SavePdfTablesAsPowerPoint(presentationStream, options);
+        return document.SaveAsPowerPointFromPdfTables(presentationStream, options);
     }
 
     /// <summary>
@@ -109,7 +110,7 @@ public static partial class PowerPointPdfConverterExtensions {
     /// <param name="presentationStream">Writable destination stream for the presentation package.</param>
     /// <param name="options">Optional import settings.</param>
     /// <returns>Metadata for every imported table.</returns>
-    public static IReadOnlyList<PdfPowerPointTableImportResult> SavePdfTablesAsPowerPoint(
+    public static IReadOnlyList<PdfPowerPointTableImportResult> SaveAsPowerPointFromPdfTables(
         Stream pdfStream,
         Stream presentationStream,
         PdfPowerPointTableImportOptions? options = null) {
@@ -118,7 +119,7 @@ public static partial class PowerPointPdfConverterExtensions {
 
         options ??= new PdfPowerPointTableImportOptions();
         PdfCore.PdfLogicalDocument document = LoadPdf(pdfStream, options);
-        return document.SavePdfTablesAsPowerPoint(presentationStream, options);
+        return document.SaveAsPowerPointFromPdfTables(presentationStream, options);
     }
 
     private static IReadOnlyList<PdfPowerPointTableImportResult> ImportTables(

@@ -261,20 +261,15 @@ public sealed class HtmlOptions {
     internal string? ExternalCssOutputPath { get; set; }
     internal string? _externalCssContentToWrite { get; set; }
 
-    /// <summary>
-    /// Optional color overrides for links, headings, and TOC. This property keeps the historical HTML theming API.
-    /// </summary>
-    public ThemeColors Theme { get; set; } = new ThemeColors();
-
     /// <summary>Shared visual theme used to keep Markdown HTML, PDF, and Word exports visually aligned.</summary>
-    public MarkdownVisualTheme? VisualTheme { get; set; }
+    public MarkdownVisualTheme? Theme { get; set; }
 
-    /// <summary>Applies the shared default visual theme when <see cref="VisualTheme"/> is omitted and the selected HTML style supports document theming.</summary>
-    public bool ApplyDefaultVisualTheme { get; set; } = true;
+    /// <summary>Applies the shared default visual theme when <see cref="Theme"/> is omitted and the selected HTML style supports document theming.</summary>
+    public bool ApplyDefaultTheme { get; set; } = true;
 
     /// <summary>
     /// Optional additional color overrides for links, headings, and TOC.
-    /// Values set here override colors derived from <see cref="VisualTheme"/> and <see cref="Theme"/>.
+    /// Values set here override colors derived from <see cref="Theme"/>.
     /// </summary>
     public ThemeColors ColorOverrides { get; set; } = new ThemeColors();
 
@@ -294,4 +289,68 @@ public sealed class HtmlOptions {
     public bool InjectTocOrdered { get; set; } = false;
     /// <summary>Heading level used for the TOC title. Default: 2.</summary>
     public int InjectTocTitleLevel { get; set; } = 2;
+
+    internal HtmlOptions CloneForRender(HtmlKind? kind = null) {
+        var clone = new HtmlOptions {
+            Kind = kind ?? Kind,
+            Style = Style,
+            CssDelivery = CssDelivery,
+            AssetMode = AssetMode,
+            CssHref = CssHref,
+            Title = Title,
+            BodyClass = BodyClass,
+            AutoHeadingIdentifiers = AutoHeadingIdentifiers,
+            HeadingIdentifierStyle = HeadingIdentifierStyle,
+            IncludeAnchorLinks = IncludeAnchorLinks,
+            ShowAnchorIcons = ShowAnchorIcons,
+            AnchorIcon = AnchorIcon,
+            CopyHeadingLinkOnClick = CopyHeadingLinkOnClick,
+            BackToTopLinks = BackToTopLinks,
+            BackToTopMinLevel = BackToTopMinLevel,
+            BackToTopText = BackToTopText,
+            ThemeToggle = ThemeToggle,
+            EmitMode = EmitMode,
+            Prism = Prism?.CloneForRender(),
+            CodeBlockHtmlRenderer = CodeBlockHtmlRenderer,
+            SemanticFencedBlockHtmlRenderer = SemanticFencedBlockHtmlRenderer,
+            TocHtmlRenderer = TocHtmlRenderer,
+            FootnoteSectionHtmlRenderer = FootnoteSectionHtmlRenderer,
+            GitHubTaskListHtml = GitHubTaskListHtml,
+            GitHubFootnoteHtml = GitHubFootnoteHtml,
+            GitHubHtmlTagFilter = GitHubHtmlTagFilter,
+            NormalizeUrlHostsToIdn = NormalizeUrlHostsToIdn,
+            PercentEncodeTildeInUrlAttributes = PercentEncodeTildeInUrlAttributes,
+            EscapeNonAsciiText = EscapeNonAsciiText,
+            CssScopeSelector = CssScopeSelector,
+            RawHtmlHandling = RawHtmlHandling,
+            ExternalLinksTargetBlank = ExternalLinksTargetBlank,
+            ExternalLinksRel = ExternalLinksRel,
+            ExternalLinksReferrerPolicy = ExternalLinksReferrerPolicy,
+            BaseUri = BaseUri,
+            RestrictHttpLinksToBaseOrigin = RestrictHttpLinksToBaseOrigin,
+            RestrictHttpImagesToBaseOrigin = RestrictHttpImagesToBaseOrigin,
+            BlockExternalHttpImages = BlockExternalHttpImages,
+            ImagesLoadingLazy = ImagesLoadingLazy,
+            ImagesDecodingAsync = ImagesDecodingAsync,
+            ImagesReferrerPolicy = ImagesReferrerPolicy,
+            Theme = Theme?.Clone(),
+            ApplyDefaultTheme = ApplyDefaultTheme,
+            ColorOverrides = ColorOverrides?.CloneForRender() ?? new ThemeColors(),
+            InjectTocAtTop = InjectTocAtTop,
+            InjectTocTitle = InjectTocTitle,
+            InjectTocMinLevel = InjectTocMinLevel,
+            InjectTocMaxLevel = InjectTocMaxLevel,
+            InjectTocOrdered = InjectTocOrdered,
+            InjectTocTitleLevel = InjectTocTitleLevel
+        };
+        clone.AdditionalCssHrefs.AddRange(AdditionalCssHrefs);
+        clone.AdditionalJsHrefs.AddRange(AdditionalJsHrefs);
+        clone.BlockRenderExtensions.AddRange(BlockRenderExtensions);
+        clone.InlineRenderExtensions.AddRange(InlineRenderExtensions);
+        clone.SyntaxBlockRenderExtensions.AddRange(SyntaxBlockRenderExtensions);
+        clone.SyntaxInlineRenderExtensions.AddRange(SyntaxInlineRenderExtensions);
+        clone.AllowedHttpLinkHosts.AddRange(AllowedHttpLinkHosts);
+        clone.AllowedHttpImageHosts.AddRange(AllowedHttpImageHosts);
+        return clone;
+    }
 }

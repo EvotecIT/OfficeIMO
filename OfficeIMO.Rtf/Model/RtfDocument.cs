@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Rtf.Syntax;
 using OfficeIMO.Rtf.Writing;
 
@@ -371,24 +372,34 @@ public sealed partial class RtfDocument {
     }
 
     /// <summary>Serializes the document to an encoded RTF memory stream.</summary>
-    public MemoryStream ToMemoryStream(RtfWriteOptions? options = null, Encoding? encoding = null) {
+    public MemoryStream ToStream(RtfWriteOptions? options = null, Encoding? encoding = null) {
         return new MemoryStream(ToBytes(options, encoding), writable: false);
     }
 
     /// <summary>Saves the document to an RTF file.</summary>
     public void Save(string path, RtfWriteOptions? options = null, Encoding? encoding = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
-        File.WriteAllText(path, ToRtf(options), encoding ?? CreateDefaultOutputEncoding());
+        OfficeFileCommit.WriteAllBytes(path, ToFileBytes(options, encoding));
     }
 
     /// <summary>Saves the document to an RTF stream without closing the stream.</summary>
     public void Save(Stream stream, RtfWriteOptions? options = null, Encoding? encoding = null) {
-        if (stream == null) throw new ArgumentNullException(nameof(stream));
-        byte[] bytes = ToBytes(options, encoding);
-        stream.Write(bytes, 0, bytes.Length);
+        OfficeStreamWriter.WriteAllBytes(stream, ToBytes(options, encoding));
     }
 
     private static Encoding CreateDefaultOutputEncoding() => new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+
+    private byte[] ToFileBytes(RtfWriteOptions? options, Encoding? encoding) {
+        Encoding outputEncoding = encoding ?? CreateDefaultOutputEncoding();
+        byte[] content = outputEncoding.GetBytes(ToRtf(options));
+        byte[] preamble = outputEncoding.GetPreamble();
+        if (preamble.Length == 0) return content;
+
+        var bytes = new byte[preamble.Length + content.Length];
+        Buffer.BlockCopy(preamble, 0, bytes, 0, preamble.Length);
+        Buffer.BlockCopy(content, 0, bytes, preamble.Length, content.Length);
+        return bytes;
+    }
 
     internal void AddParsedParagraph(RtfParagraph paragraph) {
         paragraph = paragraph ?? throw new ArgumentNullException(nameof(paragraph));

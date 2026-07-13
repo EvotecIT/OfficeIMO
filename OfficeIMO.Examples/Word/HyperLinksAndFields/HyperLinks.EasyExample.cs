@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
                 var para = document.AddHyperLink("Test", new Uri("https://evotec.xyz"));
                 var para1 = document.AddHyperLink("Test", new Uri("https://evotec.xyz"), addStyle: true);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
                 Console.WriteLine("IsValid: " + document.DocumentIsValid);
                 Console.WriteLine("Paragraph count: " + document.Paragraphs.Count);
             }

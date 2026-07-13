@@ -47,4 +47,17 @@ public sealed class ThemeColors {
     /// Active TOC link color in dark mode (overrides <see cref="AccentDark"/> when set).
     /// </summary>
     public string? ActiveLinkDark { get; set; } = null;
+
+    internal ThemeColors CloneForRender() => new ThemeColors {
+        AccentLight = AccentLight,
+        AccentDark = AccentDark,
+        HeadingLight = HeadingLight,
+        HeadingDark = HeadingDark,
+        TocBgLight = TocBgLight,
+        TocBgDark = TocBgDark,
+        TocBorderLight = TocBorderLight,
+        TocBorderDark = TocBorderDark,
+        ActiveLinkLight = ActiveLinkLight,
+        ActiveLinkDark = ActiveLinkDark
+    };
 }

@@ -17,8 +17,8 @@ namespace OfficeIMO.Tests {
             DateTime maximumDate = new DateTime(2024, 12, 31);
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("MoreValidation");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("MoreValidation");
                     sheet.CellValue(1, 1, "Amount");
                     sheet.CellValue(1, 2, "Date");
                     sheet.CellValue(1, 3, "Code");
@@ -84,9 +84,9 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet options = document.AddWorkSheet("Options");
-                    ExcelSheet input = document.AddWorkSheet("Input");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet options = document.AddWorksheet("Options");
+                    ExcelSheet input = document.AddWorksheet("Input");
 
                     options.CellValue(1, 1, "Open");
                     options.CellValue(2, 1, "Closed");
@@ -147,8 +147,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Validation");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Validation");
                     sheet.CellValue(1, 1, "Open");
                     sheet.CellValue(2, 1, "Closed");
                     sheet.CellValue(3, 1, "Pending");
@@ -187,8 +187,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("SingleDv");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("SingleDv");
                     sheet.CellValue(1, 1, 3d);
                     sheet.ValidationWholeNumber("A1", OpenXmlDataValidationOperatorValues.Between, 1, 5);
 
@@ -214,10 +214,10 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet input = document.AddWorkSheet("Input");
-                    ExcelSheet firstRegion = document.AddWorkSheet("Region 1");
-                    ExcelSheet secondRegion = document.AddWorkSheet("Region 2");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet input = document.AddWorksheet("Input");
+                    ExcelSheet firstRegion = document.AddWorksheet("Region 1");
+                    ExcelSheet secondRegion = document.AddWorksheet("Region 2");
 
                     firstRegion.CellValue(1, 1, "North");
                     firstRegion.CellValue(2, 1, "East");
@@ -256,8 +256,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ExternalDv");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ExternalDv");
                     sheet.CellValue(1, 1, "Amount");
                     sheet.CellValue(2, 1, 5d);
 
@@ -297,8 +297,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ExternalDvName");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ExternalDvName");
                     sheet.CellValue(1, 1, "Amount");
                     sheet.CellValue(2, 1, 5d);
 
@@ -338,8 +338,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ExternalDvName");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("ExternalDvName");
                     sheet.CellValue(1, 1, "Amount");
                     sheet.CellValue(2, 1, 5d);
 

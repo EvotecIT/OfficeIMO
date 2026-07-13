@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
                     CompareTables(source, target, result);
                     CompareImages(source, target, result);
 
-                    result.Save(false);
+                    result.Save();
                 }
 
                 finalResult = WordDocument.Load(resultPath);

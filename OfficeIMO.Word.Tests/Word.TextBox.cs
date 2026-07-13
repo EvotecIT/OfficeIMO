@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(3, document.TextBoxes[0].VerticalPositionOffsetCentimeters ?? 0);
 
-                document.Save(false);
+                document.Save();
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
@@ -105,7 +105,7 @@ namespace OfficeIMO.Tests {
                 textBox3.Paragraphs[0].Borders.LeftStyle = BorderValues.BasicWideOutline;
                 textBox3.Paragraphs[0].Borders.RightStyle = BorderValues.BasicWideOutline;
 
-                Assert.True(textBox3.Paragraphs[0].Borders.BottomColorHex == "ff0000");
+                Assert.True(textBox3.Paragraphs[0].Borders.BottomColorHex == "FF0000");
                 Assert.True(textBox3.Paragraphs[0].Borders.LeftColorHex == null);
                 Assert.True(textBox3.Paragraphs[0].Borders.RightColorHex == null);
                 Assert.True(textBox3.Paragraphs[0].Borders.TopColorHex == null);
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("008000", document.Sections[0].TextBoxes[0].Paragraphs[0].Borders.LeftColorHex);
 
 
-                document.Save(false);
+                document.Save();
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
@@ -297,7 +297,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddSection();
 
-                document.Save(false);
+                document.Save();
 
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
@@ -382,7 +382,7 @@ namespace OfficeIMO.Tests {
                     count++;
                 }
 
-                document.Save(false);
+                document.Save();
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentWithTextBoxesAdditionalFeatures.docx"))) {
@@ -425,7 +425,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(textBox.Height == 1800000);
 
 
-                document.Save(false);
+                document.Save();
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
         }
@@ -451,7 +451,7 @@ namespace OfficeIMO.Tests {
                 textBox.Paragraphs[1].Text = "This is a text box 1";
                 Assert.Equal("This is a text box 1", textBox.Paragraphs[1].Text.TrimEnd('\n'));
 
-                document.Save(false);
+                document.Save();
                 Assert.True(HasUnexpectedElements(document) == false, "Document has unexpected elements. Order of elements matters!");
             }
         }
@@ -465,7 +465,7 @@ namespace OfficeIMO.Tests {
                 textBox.Paragraphs[0].AddHyperLink(" to website?", new Uri("https://evotec.xyz"), addStyle: true);
 
                 // Ensure adding a hyperlink inside a text box doesn't throw and document saves correctly
-                document.Save(false);
+                document.Save();
             }
             // reload to confirm document can be opened
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -484,7 +484,7 @@ namespace OfficeIMO.Tests {
 
                 textBox.Paragraphs[0].AddHyperLink(" to website?", new Uri("https://evotec.xyz"), addStyle: true);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var defaultHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);
@@ -510,7 +510,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordTextBoxAutoFitType.ShrinkTextOnOverflow, tb2.AutoFit);
                 Assert.Equal(WordTextBoxAutoFitType.NoAutoFit, tb3.AutoFit);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

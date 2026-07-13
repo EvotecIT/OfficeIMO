@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.OpenDocument;
 
 public abstract partial class OdfDocument {
@@ -30,29 +31,32 @@ public abstract partial class OdfDocument {
 
     /// <summary>Writes flat OpenDocument XML without closing the destination stream.</summary>
     public void SaveFlatXml(Stream destination) {
+        _ = SaveFlatXmlResult(destination);
+    }
+
+    /// <summary>Writes flat OpenDocument XML and returns the serialized bytes with projection diagnostics.</summary>
+    public OdfSaveResult SaveFlatXmlResult(Stream destination) {
         ThrowIfDisposed();
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
-        if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         XDocument flat = ToFlatXml();
         byte[] bytes = OdfXmlCodec.Save(flat);
-        destination.Write(bytes, 0, bytes.Length);
-        LastSaveReport = CreateFlatXmlSaveReport();
+        OfficeStreamWriter.WriteAllBytes(destination, bytes);
+        return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 
     /// <summary>Writes flat OpenDocument XML to a path.</summary>
     public void SaveFlatXml(string path) {
+        _ = SaveFlatXmlResult(path);
+    }
+
+    /// <summary>Writes flat OpenDocument XML to a path and returns the serialized bytes with projection diagnostics.</summary>
+    public OdfSaveResult SaveFlatXmlResult(string path) {
         ThrowIfDisposed();
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
-        string directory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
-        Directory.CreateDirectory(directory);
-        string temporary = Path.Combine(directory, "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-        try {
-            XDocument flat = ToFlatXml();
-            File.WriteAllBytes(temporary, OdfXmlCodec.Save(flat));
-            ReplaceFile(temporary, fullPath);
-            LastSaveReport = CreateFlatXmlSaveReport();
-        } finally { if (File.Exists(temporary)) File.Delete(temporary); }
+        XDocument flat = ToFlatXml();
+        byte[] bytes = OdfXmlCodec.Save(flat);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 
     /// <summary>Opens a flat ODT, ODS, or ODP XML document.</summary>

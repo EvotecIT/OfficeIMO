@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             TimeSpan? nullableTs = time;
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, dateOffset);
                 sheet.FormatCell(1, 1, "yyyy-mm-dd hh:mm");
                 sheet.CellValue(2, 1, time);
@@ -64,10 +64,10 @@ namespace OfficeIMO.Tests {
                 var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
 
                 Cell cellDto = cells.First(c => c.CellReference == "A1");
-                Assert.Equal(dateOffset.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellDto.CellValue!.Text);
+                AssertRoundTripNumericText(dateOffset.LocalDateTime.ToOADate(), cellDto.CellValue!.Text);
 
                 Cell cellTs = cells.First(c => c.CellReference == "A2");
-                Assert.Equal(time.TotalDays.ToString(CultureInfo.InvariantCulture), cellTs.CellValue!.Text);
+                AssertRoundTripNumericText(time.TotalDays, cellTs.CellValue!.Text);
 
                 Cell cellUint = cells.First(c => c.CellReference == "A3");
                 Assert.Equal(ui.ToString(CultureInfo.InvariantCulture), cellUint.CellValue!.Text);
@@ -89,16 +89,16 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(string.Empty, cellNullableNull.CellValue!.Text);
 
                 Cell cellNullableDto = cells.First(c => c.CellReference == "A9");
-                Assert.Equal(nullableDto.Value.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellNullableDto.CellValue!.Text);
+                AssertRoundTripNumericText(nullableDto.Value.LocalDateTime.ToOADate(), cellNullableDto.CellValue!.Text);
 
                 Cell cellNullableTs = cells.First(c => c.CellReference == "A10");
-                Assert.Equal(nullableTs.Value.TotalDays.ToString(CultureInfo.InvariantCulture), cellNullableTs.CellValue!.Text);
+                AssertRoundTripNumericText(nullableTs.Value.TotalDays, cellNullableTs.CellValue!.Text);
 #if NET6_0_OR_GREATER
                 Cell cellDateOnly = cells.First(c => c.CellReference == "A11");
-                Assert.Equal(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture), cellDateOnly.CellValue!.Text);
+                AssertRoundTripNumericText(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate(), cellDateOnly.CellValue!.Text);
 
                 Cell cellTimeOnly = cells.First(c => c.CellReference == "A12");
-                Assert.Equal(timeOnly.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture), cellTimeOnly.CellValue!.Text);
+                AssertRoundTripNumericText(timeOnly.ToTimeSpan().TotalDays, cellTimeOnly.CellValue!.Text);
 #endif
 
                 var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateOnlyTimeOnlyStyles.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, new DateOnly(2026, 5, 22));
                 sheet.CellValue(2, 1, new TimeOnly(14, 30, 0));
                 document.Save();
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
             long largeSigned = long.MinValue;
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, largeUnsigned);
                 sheet.CellValue(2, 1, (object)largeSigned);
                 document.Save();
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, positive);
                 sheet.CellValue(2, 1, negative);
                 document.Save();
@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath))
             {
                 document.DateTimeOffsetWriteStrategy = dto => dto.UtcDateTime;
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, value);
                 document.Save();
             }
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
 
-                Assert.Equal(value.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cell.CellValue!.Text);
+                AssertRoundTripNumericText(value.UtcDateTime.ToOADate(), cell.CellValue!.Text);
             }
         }
 
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, historical);
                 document.Save();
             }
@@ -272,7 +272,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath))
             {
                 document.DateTimeOffsetWriteStrategy = _ => throw new InvalidOperationException("boom");
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
 
                 var ex = Assert.Throws<InvalidOperationException>(() => sheet.CellValue(1, 1, value));
                 Assert.Contains("DateTimeOffset write strategy", ex.Message);
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
             var duration = new TimeSpan(1, 2, 3, 4);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, duration);
                 sheet.CellValue(2, 1, (TimeSpan?)duration);
                 document.Save();
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
 
                 Cell cellDuration = cells.First(c => c.CellReference == "A1");
                 Assert.Equal(CellValues.Number, cellDuration.DataType!.Value);
-                Assert.Equal(duration.TotalDays.ToString(CultureInfo.InvariantCulture), cellDuration.CellValue!.Text);
+                AssertRoundTripNumericText(duration.TotalDays, cellDuration.CellValue!.Text);
                 Assert.NotNull(cellDuration.StyleIndex);
 
                 var styles = workbookPart.WorkbookStylesPart!.Stylesheet!;
@@ -319,11 +319,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(cellFormat.ApplyNumberFormat?.Value ?? false);
 
                 Cell cellNullable = cells.First(c => c.CellReference == "A2");
-                Assert.Equal(duration.TotalDays.ToString(CultureInfo.InvariantCulture), cellNullable.CellValue!.Text);
+                AssertRoundTripNumericText(duration.TotalDays, cellNullable.CellValue!.Text);
                 Assert.NotNull(cellNullable.StyleIndex);
                 Assert.Equal(cellDuration.StyleIndex!.Value, cellNullable.StyleIndex!.Value);
             }
         }
     }
 }
-

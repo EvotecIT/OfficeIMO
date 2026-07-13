@@ -71,7 +71,7 @@ public class RtfPdfImportTests {
             RtfDocument fromFile = pdfPath.ToRtfDocumentFromPdfFile(CreateReadOptions());
             Assert.Contains(fromFile.Paragraphs, paragraph => paragraph.ToPlainText() == "Second page body.");
 
-            RtfPdfConverterExtensions.SavePdfFileAsRtf(pdfPath, rtfPath, CreateReadOptions());
+            pdfPath.SaveAsRtfFromPdfFile(rtfPath, CreateReadOptions());
             RtfDocument saved = RtfDocument.Load(rtfPath, encoding: Encoding.UTF8).Document;
             Assert.Contains(saved.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
         } finally {

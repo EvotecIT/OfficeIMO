@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System.IO;
 using System.Text;
 using DocumentFormat.OpenXml.Spreadsheet;
@@ -410,7 +411,7 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
-            byte[] bytes = image.GetBytes();
+            byte[] bytes = image.ToBytes();
             if (OfficeRasterImageDecoder.TryDecode(bytes, out _)) {
                 return true;
             }
@@ -604,7 +605,7 @@ namespace OfficeIMO.Excel {
                 Directory.CreateDirectory(directory!);
             }
 
-            File.WriteAllBytes(fullPath, bytes);
+            OfficeFileCommit.WriteAllBytes(fullPath, bytes);
         }
 
         private static void WriteImageStream(Stream stream, byte[] bytes) {

@@ -17,34 +17,14 @@ internal sealed class ReaderHandlerRegistry {
         _builtInExtensions = new HashSet<string>(builtInExtensions ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
     }
 
-    public IReadOnlyList<string> Register(ReaderHandlerRegistration registration, bool replaceExisting, bool preserveExistingCustomExtensions) {
+    public void Register(ReaderHandlerRegistration registration, bool replaceExisting) {
         ReaderHandlerDescriptor handler = ReaderHandlerDescriptor.Create(registration);
 
         lock (_sync) {
-            IReadOnlyList<string> effectiveExtensions = handler.Extensions;
-            if (preserveExistingCustomExtensions) {
-                var preserved = new List<string>(handler.Extensions.Count);
-                foreach (string extension in handler.Extensions) {
-                    if (_handlerIdByExtension.TryGetValue(extension, out string? existing) &&
-                        !string.Equals(existing, handler.Id, StringComparison.OrdinalIgnoreCase)) {
-                        continue;
-                    }
-
-                    preserved.Add(extension);
-                }
-
-                if (preserved.Count == 0) {
-                    return Array.Empty<string>();
-                }
-
-                effectiveExtensions = preserved.ToArray();
-                handler = handler.WithExtensions(effectiveExtensions);
-            }
-
             if (!replaceExisting) {
-                ValidateNoConflicts(handler.Id, effectiveExtensions);
+                ValidateNoConflicts(handler.Id, handler.Extensions);
             } else {
-                RemoveConflicts(handler.Id, handler.Extensions, preserveExistingCustomExtensions);
+                RemoveConflicts(handler.Id, handler.Extensions);
             }
 
             _handlersById[handler.Id] = handler;
@@ -52,17 +32,6 @@ internal sealed class ReaderHandlerRegistry {
                 _handlerIdByExtension[extension] = handler.Id;
             }
 
-            return handler.Extensions.ToArray();
-        }
-    }
-
-    public bool Unregister(string handlerId) {
-        if (string.IsNullOrWhiteSpace(handlerId)) {
-            return false;
-        }
-
-        lock (_sync) {
-            return RemoveUnsafe(handlerId.Trim());
         }
     }
 
@@ -90,19 +59,13 @@ internal sealed class ReaderHandlerRegistry {
         }
     }
 
-    private void RemoveConflicts(string handlerId, IReadOnlyList<string> extensions, bool preserveExistingCustomExtensions) {
+    private void RemoveConflicts(string handlerId, IReadOnlyList<string> extensions) {
         var toRemove = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         if (_handlersById.ContainsKey(handlerId)) {
             toRemove.Add(handlerId);
         }
 
         foreach (string extension in extensions) {
-            if (preserveExistingCustomExtensions &&
-                _handlerIdByExtension.TryGetValue(extension, out string? preservedHandlerId) &&
-                !string.Equals(preservedHandlerId, handlerId, StringComparison.OrdinalIgnoreCase)) {
-                continue;
-            }
-
             if (_handlerIdByExtension.TryGetValue(extension, out string? existingHandlerId)) {
                 toRemove.Add(existingHandlerId);
             }
@@ -269,24 +232,6 @@ internal sealed class ReaderHandlerDescriptor {
             registration.ReadDocumentStream,
             registration.ReadDocumentPathAsync,
             registration.ReadDocumentStreamAsync);
-    }
-
-    public ReaderHandlerDescriptor WithExtensions(IReadOnlyList<string> extensions) {
-        return new ReaderHandlerDescriptor(
-            Id,
-            DisplayName,
-            Description,
-            Kind,
-            extensions.ToArray(),
-            DefaultMaxInputBytes,
-            WarningBehavior,
-            DeterministicOutput,
-            ReadPath,
-            ReadStream,
-            ReadDocumentPath,
-            ReadDocumentStream,
-            ReadDocumentPathAsync,
-            ReadDocumentStreamAsync);
     }
 
     public ReaderHandlerCapability ToCapability() {

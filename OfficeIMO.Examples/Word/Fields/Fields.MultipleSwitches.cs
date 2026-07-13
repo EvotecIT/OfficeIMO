@@ -8,13 +8,13 @@ namespace OfficeIMO.Examples.Word {
             string filePath = System.IO.Path.Combine(folderPath, "FieldMultipleSwitchesExample.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph().AddField(WordFieldType.Page, WordFieldFormat.Caps);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var field = document.Fields[0];
                 Console.WriteLine("Format switches: " + String.Join(", ", field.FieldFormat));
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

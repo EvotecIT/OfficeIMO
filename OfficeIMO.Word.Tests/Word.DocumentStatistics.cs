@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Statistics.CharactersWithSpaces >= 50);
                 Assert.True(document.Statistics.Characters >= 40);
 
-                document.Save(false);
+                document.Save();
             }
         }
     }

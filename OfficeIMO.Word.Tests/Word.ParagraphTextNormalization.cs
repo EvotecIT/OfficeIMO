@@ -27,7 +27,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(expected, paragraph.Text);
                 Assert.Equal(expected, document.Paragraphs.Last().Text);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph();
                 paragraph.Text = "Before";
-                document.Save(false);
+                document.Save();
             }
 
             using (var wordprocessing = WordprocessingDocument.Open(filePath, true)) {
@@ -82,7 +82,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains(NonTextBreakPlaceholder.ToString(), paragraph.Text);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var wordprocessing = WordprocessingDocument.Open(filePath, false)) {

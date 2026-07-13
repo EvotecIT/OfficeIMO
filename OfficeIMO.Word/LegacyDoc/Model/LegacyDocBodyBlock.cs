@@ -67,7 +67,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocTableCellShading(string? fillColorHex) {
             FillColorHex = string.IsNullOrWhiteSpace(fillColorHex)
                 ? null
-                : fillColorHex!.Replace("#", string.Empty).ToLowerInvariant();
+                : fillColorHex!.Replace("#", string.Empty).ToUpperInvariant();
         }
 
         internal string? FillColorHex { get; }
@@ -101,7 +101,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Style = style;
             ColorHex = string.IsNullOrWhiteSpace(colorHex)
                 ? null
-                : colorHex!.Replace("#", string.Empty).ToLowerInvariant();
+                : colorHex!.Replace("#", string.Empty).ToUpperInvariant();
             SizeEighthPoints = sizeEighthPoints;
             SpacePoints = spacePoints;
         }

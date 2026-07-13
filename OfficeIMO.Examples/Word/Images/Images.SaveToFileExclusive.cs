@@ -17,14 +17,14 @@ namespace OfficeIMO.Examples.Word {
             string fileToSave = Path.Combine(folderPath, "LockedImage.jpg");
             using (var lockStream = new FileStream(fileToSave, FileMode.Create, FileAccess.ReadWrite, FileShare.ReadWrite)) {
                 try {
-                    image.SaveToFile(fileToSave);
+                    image.Save(fileToSave);
                 } catch (IOException) {
                     Console.WriteLine("[!] Unable to save image while file is locked");
                 }
             }
 
-            image.SaveToFile(fileToSave);
-            document.Save(openWord);
+            image.Save(fileToSave);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

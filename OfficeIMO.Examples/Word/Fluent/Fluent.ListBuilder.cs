@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -21,9 +22,9 @@ namespace OfficeIMO.Examples.Word {
                                  .Item("Beta").Indent().Item("Beta.Child").Outdent()
                                  .Item("Gamma"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

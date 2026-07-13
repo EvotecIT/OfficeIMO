@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 PowerPointPicture picture = presentation.Slides.Single().Pictures.First();
                 Assert.Equal(0, picture.Left);
                 Assert.Equal(500000, picture.Top);

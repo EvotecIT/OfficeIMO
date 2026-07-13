@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Page 2");
                 document.AddTableOfContent();
                 document.UpdateFields();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Page 3");
                 document.UpdateFields();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Page 2");
                 document.AddTableOfContent();
                 document.UpdateFields();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -86,7 +86,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Page 2").AddPageNumber();
 
                 document.UpdateFields();
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

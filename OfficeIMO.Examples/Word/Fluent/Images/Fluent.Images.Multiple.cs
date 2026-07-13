@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO;
@@ -21,9 +22,9 @@ namespace OfficeIMO.Examples.Word {
                             .MaxWidth(300)
                             .Align(HorizontalAlignment.Right))
                     .End();
-                document.Save(false);
+                document.Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

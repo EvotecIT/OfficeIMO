@@ -17,7 +17,7 @@ public class HtmlOfficeAdaptersStreamIO {
     [Fact]
     public async Task ExcelHtml_StreamAndAsyncApisUseUtf8WithoutBomAndLeaveStreamsOpen() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorkSheet("Data").CellValue(1, 1, "Zażółć");
+        workbook.AddWorksheet("Data").CellValue(1, 1, "Zażółć");
         using var htmlStream = new MemoryStream();
 
         await workbook.SaveAsHtmlAsync(htmlStream);
@@ -27,7 +27,7 @@ public class HtmlOfficeAdaptersStreamIO {
         Assert.False(HasUtf8Bom(htmlBytes));
         htmlStream.Position = 0;
         HtmlToExcelResult result = await htmlStream.ToExcelDocumentResultAsync();
-        using ExcelDocument imported = result.Workbook;
+        using ExcelDocument imported = result.Value;
         Assert.True(result.Succeeded);
         Assert.True(htmlStream.CanRead);
     }
@@ -45,7 +45,7 @@ public class HtmlOfficeAdaptersStreamIO {
         Assert.False(HasUtf8Bom(htmlBytes));
         htmlStream.Position = 0;
         HtmlToPowerPointResult result = await htmlStream.ToPowerPointPresentationResultAsync();
-        using PowerPointPresentation imported = result.Presentation;
+        using PowerPointPresentation imported = result.Value;
         Assert.True(result.Succeeded);
         Assert.True(htmlStream.CanRead);
     }
@@ -60,7 +60,7 @@ public class HtmlOfficeAdaptersStreamIO {
 
         wordHtml.Position = 0;
         HtmlToWordResult wordResult = await wordHtml.ToWordDocumentResultAsync();
-        using WordDocument importedWord = wordResult.Document;
+        using WordDocument importedWord = wordResult.Value;
         Assert.True(wordHtml.CanRead);
         Assert.True(wordResult.Succeeded);
 
@@ -72,7 +72,7 @@ public class HtmlOfficeAdaptersStreamIO {
         Assert.True(markdownStream.CanRead);
 
         using var pdfStream = new MemoryStream(bomHtml);
-        var pdfResult = await pdfStream.ToPdfResultAsync();
+        var pdfResult = await pdfStream.ToPdfDocumentResultAsync();
         Assert.True(pdfStream.CanRead);
         Assert.NotEmpty(pdfResult.ToBytes());
     }

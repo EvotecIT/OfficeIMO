@@ -1,7 +1,8 @@
+using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Shared;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
-using OfficeIMO.Shared;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -82,7 +83,7 @@ namespace OfficeIMO.Excel {
             try {
                 try {
                     ExcelSaveOptions conversionSaveOptions = (options.SaveOptions ?? new ExcelSaveOptions()).WithLossPolicy(options.LossPolicy);
-                    await document.SaveAsync(stagingPath, openExcel: false, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
+                    await document.SaveAsync(stagingPath, conversionSaveOptions, cancellationToken).ConfigureAwait(false);
                 } catch (NotSupportedException exception) {
                     diagnostics.Add(new ExcelConversionDiagnostic(
                         "Excel.DestinationFeatureUnsupported",
@@ -117,7 +118,7 @@ namespace OfficeIMO.Excel {
                         exception);
                 }
 
-                if (options.OpenAfterSave) document.Open(paths.Destination, true);
+                if (options.OpenAfterSave) document.OpenInApplication(paths.Destination);
                 return CreateExcelConversionResult(paths, sourceFormat, destinationFormat, diagnostics, true, replacesExistingFile);
             } finally {
                 OfficeFileCommit.DeleteIfExists(stagingPath);
@@ -135,18 +136,17 @@ namespace OfficeIMO.Excel {
                     return LoadLegacyXlsFromNormalFlow(
                         sourceBytes,
                         readOnly: false,
-                        autoSave: false,
+                        saveOnDispose: false,
                         filePath: sourcePath,
-                        openSettings: null,
                         importOptions: importOptions);
                 }
             }
 
             return await LoadAsync(
                 sourcePath,
-                readOnly: false,
-                autoSave: false,
-                openSettings: CreateConversionOpenSettings(options.OpenSettings),
+                new ExcelLoadOptions {
+                    OpenSettings = CreateConversionOpenSettings(options.OpenSettings)
+                },
                 cancellationToken).ConfigureAwait(false);
         }
 

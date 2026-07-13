@@ -7,26 +7,25 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
-    ///     Represents a PowerPoint presentation providing basic create, open and save operations.
+    ///     Represents a PowerPoint presentation providing create, load, and save operations.
     /// </summary>
-    public sealed partial class PowerPointPresentation : IDisposable {
+    public sealed partial class PowerPointPresentation : IDisposable, IAsyncDisposable {
         private PresentationDocument? _document;
         private PresentationPart _presentationPart;
         private readonly List<PowerPointSlide> _slides = new();
-        private readonly string _filePath;
+        private string _filePath;
         private Stream? _packageStream;
         private Stream? _sourceStream;
-        private bool _copyPackageToSourceOnDispose;
-        private bool _saveOnDispose;
+        private DocumentPersistenceMode _persistenceMode = DocumentPersistenceMode.Explicit;
         private bool _discardChangesOnDispose;
         private string? _signedPackageOpenFingerprint;
-        private bool _leaveSourceStreamOpen = true;
         private PowerPointSlideSize? _slideSize;
         private bool _disposed = false;
         private const int StreamBufferSize = 4096;
@@ -79,21 +78,37 @@ namespace OfficeIMO.PowerPoint {
             PowerPointChartAxisIdGenerator.Initialize(_presentationPart);
         }
 
-        private void ConfigureStreamCopy(Stream? packageStream, Stream? sourceStream, bool copyPackageToSourceOnDispose, bool leaveSourceStreamOpen) {
-            _packageStream = copyPackageToSourceOnDispose ? packageStream : null;
-            _sourceStream = copyPackageToSourceOnDispose ? sourceStream : null;
-            _copyPackageToSourceOnDispose = copyPackageToSourceOnDispose && sourceStream != null;
-            _leaveSourceStreamOpen = leaveSourceStreamOpen;
+        private static byte[] ReadAllBytes(Stream stream) {
+            long originalPosition = stream.CanSeek ? stream.Position : 0L;
+            try {
+                if (stream.CanSeek) {
+                    stream.Seek(0, SeekOrigin.Begin);
+                }
+
+                using var buffer = new MemoryStream();
+                stream.CopyTo(buffer);
+                return buffer.ToArray();
+            } finally {
+                if (stream.CanSeek) {
+                    stream.Seek(originalPosition, SeekOrigin.Begin);
+                }
+            }
         }
 
-        private static byte[] ReadAllBytes(Stream stream) {
-            if (stream.CanSeek) {
-                stream.Seek(0, SeekOrigin.Begin);
-            }
+        /// <summary>Gets the destination path associated with the presentation, if any.</summary>
+        public string? FilePath => string.IsNullOrEmpty(_filePath) ? null : _filePath;
 
-            using var buffer = new MemoryStream();
-            stream.CopyTo(buffer);
-            return buffer.ToArray();
+        /// <summary>Gets the configured persistence behavior.</summary>
+        public DocumentPersistenceMode PersistenceMode => _persistenceMode;
+
+        /// <summary>Gets whether the presentation is editable or read-only.</summary>
+        public DocumentAccessMode AccessMode {
+            get {
+                ThrowIfDisposed();
+                return _document!.FileOpenAccess == FileAccess.Read
+                    ? DocumentAccessMode.ReadOnly
+                    : DocumentAccessMode.ReadWrite;
+            }
         }
 
         /// <summary>

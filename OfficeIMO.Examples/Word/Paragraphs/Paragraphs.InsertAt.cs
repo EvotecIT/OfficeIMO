@@ -17,7 +17,7 @@ internal static partial class Paragraphs {
                 var inserted = document.InsertParagraphAt(1);
                 inserted.Text = "Paragraph 2";
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

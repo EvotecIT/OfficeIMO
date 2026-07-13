@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
                 var clone = list.Clone();
                 Assert.True(clone.RestartNumberingAfterBreak);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 var clone = list.Clone();
                 Assert.Equal(5, clone.Numbering.Levels[0].StartNumberingValue);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

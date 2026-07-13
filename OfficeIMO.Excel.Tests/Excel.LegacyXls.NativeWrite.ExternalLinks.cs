@@ -13,8 +13,8 @@ namespace OfficeIMO.Tests {
             string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Links");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("Links");
                     sheet.CellValue(1, 1, "External link metadata");
 
                     ExternalWorkbookPart externalWorkbookPart = document.WorkbookPartRoot.AddNewPart<ExternalWorkbookPart>();

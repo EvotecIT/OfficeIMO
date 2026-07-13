@@ -13,11 +13,11 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelSheetNameValidationAndPreflightTests {
         [Fact]
-        public void AddWorkSheet_Default_SanitizesInvalidCharsAndDuplicates() {
+        public void AddWorksheet_Default_SanitizesInvalidCharsAndDuplicates() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var first = doc.AddWorkSheet("Q4:Revenue/Forecast?*");
-                var second = doc.AddWorkSheet("Q4:Revenue/Forecast?*");
+                var first = doc.AddWorksheet("Q4:Revenue/Forecast?*");
+                var second = doc.AddWorksheet("Q4:Revenue/Forecast?*");
 
                 Assert.Equal("Q4_Revenue_Forecast", first.Name);
                 Assert.Equal("Q4_Revenue_Forecast (2)", second.Name);
@@ -26,12 +26,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void AddWorkSheet_Default_BlankNamesUseUniqueExcelStyleSheetNames() {
+        public void AddWorksheet_Default_BlankNamesUseUniqueExcelStyleSheetNames() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var first = doc.AddWorkSheet();
-                var second = doc.AddWorkSheet("   ");
-                var third = doc.AddWorkSheet("???");
+                var first = doc.AddWorksheet();
+                var second = doc.AddWorksheet("   ");
+                var third = doc.AddWorksheet("???");
 
                 Assert.Equal("Sheet1", first.Name);
                 Assert.Equal("Sheet2", second.Name);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         public void GetOrCreateSheet_Sanitize_ReusesExistingSanitizedSheet() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var created = doc.AddWorkSheet("Data??");
+                var created = doc.AddWorksheet("Data??");
                 var resolved = doc.GetOrCreateSheet("Data??", SheetNameValidationMode.Sanitize);
 
                 Assert.Single(doc.Sheets);
@@ -55,14 +55,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void AddWorkSheet_Sanitize_InvalidCharsAndDuplicate() {
+        public void AddWorksheet_Sanitize_InvalidCharsAndDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var s1 = doc.AddWorkSheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
+                var s1 = doc.AddWorksheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
                 // invalid characters replaced, trimmed; consecutive underscores collapsed by sanitizer
                 Assert.Equal("Q4_Revenue_Forecast", s1.Name.Trim());
 
-                var s2 = doc.AddWorkSheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
+                var s2 = doc.AddWorksheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
                 Assert.NotEqual(s1.Name, s2.Name);
                 Assert.EndsWith("(2)", s2.Name);
             }
@@ -70,26 +70,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void AddWorkSheet_Strict_ThrowsOnInvalidOrDuplicate() {
+        public void AddWorksheet_Strict_ThrowsOnInvalidOrDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
                 // Invalid chars
-                Assert.Throws<ArgumentException>(() => doc.AddWorkSheet("Bad:Name", SheetNameValidationMode.Strict));
+                Assert.Throws<ArgumentException>(() => doc.AddWorksheet("Bad:Name", SheetNameValidationMode.Strict));
 
                 // Valid then duplicate
-                var s1 = doc.AddWorkSheet("Data", SheetNameValidationMode.Strict);
+                var s1 = doc.AddWorksheet("Data", SheetNameValidationMode.Strict);
                 Assert.NotNull(s1);
-                Assert.Throws<ArgumentException>(() => doc.AddWorkSheet("Data", SheetNameValidationMode.Strict));
+                Assert.Throws<ArgumentException>(() => doc.AddWorksheet("Data", SheetNameValidationMode.Strict));
             }
             File.Delete(path);
         }
 
         [Fact]
-        public void RenameWorkSheet_StrictSetter_ThrowsOnInvalidOrDuplicate() {
+        public void RenameWorksheet_StrictSetter_ThrowsOnInvalidOrDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var alpha = doc.AddWorkSheet("Alpha", SheetNameValidationMode.Strict);
-                var beta = doc.AddWorkSheet("Beta", SheetNameValidationMode.Strict);
+                var alpha = doc.AddWorksheet("Alpha", SheetNameValidationMode.Strict);
+                var beta = doc.AddWorksheet("Beta", SheetNameValidationMode.Strict);
 
                 Assert.Throws<ArgumentException>(() => alpha.Name = "Bad:Name");
                 Assert.Throws<ArgumentException>(() => beta.Name = "Alpha");
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
         public void Preflight_RemovesEmptyAndOrphanedWorksheetElements() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Preflight");
+                var sheet = doc.AddWorksheet("Preflight");
 
                 // Use reflection to access internal WorksheetPart and Worksheet to simulate problematic structures
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Preflight");
+                var sheet = doc.AddWorksheet("Preflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
 
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false, new ExcelSaveOptions { DisableFastPackageWriter = true, SafePreflight = true });
+                doc.Save(savePath, new ExcelSaveOptions { DisableFastPackageWriter = true, SafePreflight = true });
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("CommentsPreflight");
+                var sheet = doc.AddWorksheet("CommentsPreflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -222,7 +222,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new LegacyDrawing { Id = wsPart.GetIdOfPart(vmlPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
+                doc.Save(savePath, new ExcelSaveOptions { ForceFullCalculationOnOpen = true });
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -234,7 +234,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(ws.Elements<LegacyDrawing>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("HeaderFooterPreflight");
+                var sheet = doc.AddWorksheet("HeaderFooterPreflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -268,7 +268,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new LegacyDrawingHeaderFooter { Id = wsPart.GetIdOfPart(vmlPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(ws.Elements<LegacyDrawingHeaderFooter>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("ConditionalFormattingPreflight");
+                var sheet = doc.AddWorksheet("ConditionalFormattingPreflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -308,7 +308,7 @@ namespace OfficeIMO.Tests {
                 ws.AppendChild(conditional);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(wsPart.Worksheet.Elements<ConditionalFormatting>());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("ConditionalFormattingPriority");
+                var sheet = doc.AddWorksheet("ConditionalFormattingPriority");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -357,7 +357,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(second);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -369,7 +369,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new int?[] { 1, 2 }, priorities);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -383,7 +383,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("DrawingPreflight");
+                var sheet = doc.AddWorksheet("DrawingPreflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = wsPart.GetIdOfPart(drawingPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -404,7 +404,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -418,7 +418,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("BrokenDrawing");
+                var sheet = doc.AddWorksheet("BrokenDrawing");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests {
                 ws.Append(new DocumentFormat.OpenXml.Spreadsheet.Drawing { Id = wsPart.GetIdOfPart(drawingPart) });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -468,7 +468,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.Drawing>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -482,7 +482,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddWorkSheet("Data");
+                doc.AddWorksheet("Data");
                 var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
                 workbook.DefinedNames = new DefinedNames(
                     new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = 0U, Text = string.Empty },
@@ -490,14 +490,14 @@ namespace OfficeIMO.Tests {
                 );
                 workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
                 Assert.Null(package.WorkbookPart!.Workbook.DefinedNames);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -511,8 +511,8 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddWorkSheet("Data");
-                doc.AddWorkSheet("Summary");
+                doc.AddWorksheet("Data");
+                doc.AddWorksheet("Summary");
                 var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
                 workbook.DefinedNames = new DefinedNames(
                     new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = 0U, Text = "'Summary'!$A$1:$B$2" },
@@ -520,14 +520,14 @@ namespace OfficeIMO.Tests {
                 );
                 workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
                 Assert.Null(package.WorkbookPart!.Workbook.DefinedNames);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -541,7 +541,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Filters");
+                var sheet = doc.AddWorksheet("Filters");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -560,7 +560,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -570,7 +570,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B3", tablePart.Table!.AutoFilter!.Reference!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -584,7 +584,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Filters");
+                var sheet = doc.AddWorksheet("Filters");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -605,7 +605,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -615,7 +615,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B3", tablePart.Table!.AutoFilter!.Reference!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -629,7 +629,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Filters");
+                var sheet = doc.AddWorksheet("Filters");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -643,7 +643,7 @@ namespace OfficeIMO.Tests {
                 ws.AppendChild(autoFilter);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -651,7 +651,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<AutoFilter>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -665,7 +665,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Filters");
+                var sheet = doc.AddWorksheet("Filters");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -691,7 +691,7 @@ namespace OfficeIMO.Tests {
                 autoFilter.Append(keep, duplicate, outOfRange, empty);
                 tablePart.Table.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -704,7 +704,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0U, filterColumns[0].ColumnId!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -718,7 +718,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Tables");
+                var sheet = doc.AddWorksheet("Tables");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -735,7 +735,7 @@ namespace OfficeIMO.Tests {
                 wsPart.Worksheet.RemoveChild(tableParts!);
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -745,7 +745,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(wsPart.TableDefinitionParts);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -759,7 +759,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Tables");
+                var sheet = doc.AddWorksheet("Tables");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -775,7 +775,7 @@ namespace OfficeIMO.Tests {
                 tablePart.Table!.Reference = "BadRange";
                 tablePart.Table.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -784,7 +784,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<TableParts>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -798,7 +798,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Tables");
+                var sheet = doc.AddWorksheet("Tables");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(1, 3, "Note");
@@ -822,7 +822,7 @@ namespace OfficeIMO.Tests {
                 };
                 tablePart.Table.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -835,7 +835,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(columns.Count, columns.Select(column => column.Name!.Value).Distinct(StringComparer.OrdinalIgnoreCase).Count());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -849,7 +849,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Protection");
+                var sheet = doc.AddWorksheet("Protection");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -863,7 +863,7 @@ namespace OfficeIMO.Tests {
                     }));
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -872,7 +872,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(wsPart.Worksheet.Elements<ProtectedRanges>().FirstOrDefault());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -886,7 +886,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Protection");
+                var sheet = doc.AddWorksheet("Protection");
                 sheet.Protect();
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -922,7 +922,7 @@ namespace OfficeIMO.Tests {
                 }
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -934,7 +934,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1:B2", keptRanges[0].SequenceOfReferences!.InnerText);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -948,7 +948,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Protection");
+                var sheet = doc.AddWorksheet("Protection");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -965,7 +965,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -976,7 +976,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(protections[0].AutoFilter?.Value ?? false);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -990,7 +990,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Links");
+                var sheet = doc.AddWorksheet("Links");
                 sheet.SetHyperlink(1, 1, "https://example.com", display: "Example");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1001,7 +1001,7 @@ namespace OfficeIMO.Tests {
                 wsPart.DeleteReferenceRelationship(relationship);
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1010,7 +1010,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(wsPart.HyperlinkRelationships);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1024,7 +1024,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Links");
+                var sheet = doc.AddWorksheet("Links");
                 sheet.SetHyperlink(1, 1, "https://example.com/one", display: "One");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1033,7 +1033,7 @@ namespace OfficeIMO.Tests {
                 wsPart.AddHyperlinkRelationship(new Uri("https://example.com/orphan"), true, "rId999");
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1043,7 +1043,7 @@ namespace OfficeIMO.Tests {
                 Assert.DoesNotContain(wsPart.HyperlinkRelationships, relationship => relationship.Id == "rId999");
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1057,7 +1057,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Links");
+                var sheet = doc.AddWorksheet("Links");
                 sheet.SetHyperlink(1, 1, "https://example.com/one", display: "One");
                 sheet.SetHyperlink(1, 2, "https://example.com/two", display: "Two");
 
@@ -1070,7 +1070,7 @@ namespace OfficeIMO.Tests {
                 hyperlinks.InsertAfter((Hyperlink)b1.CloneNode(true), a1);
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1083,7 +1083,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2, wsPart.HyperlinkRelationships.Count());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1097,7 +1097,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Calc");
+                var sheet = doc.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellFormula(3, 1, "SUM(A1:A2)");
@@ -1113,7 +1113,7 @@ namespace OfficeIMO.Tests {
                 });
                 workbookPart.Workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1126,7 +1126,7 @@ namespace OfficeIMO.Tests {
                 Assert.False(calcProps.FullCalculationOnLoad?.Value ?? false);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1140,7 +1140,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Calc");
+                var sheet = doc.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, "Value");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
@@ -1149,7 +1149,7 @@ namespace OfficeIMO.Tests {
                 chainPart.CalculationChain.InnerXml = "<x:c xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" r=\"A1\" i=\"1\" />";
                 workbookPart.Workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1157,7 +1157,7 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(workbookPart.GetPartsOfType<CalculationChainPart>());
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1171,7 +1171,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Styles");
+                var sheet = doc.AddWorksheet("Styles");
                 sheet.CellValue(1, 1, "Value");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
@@ -1197,7 +1197,7 @@ namespace OfficeIMO.Tests {
                 cell.StyleIndex = 42U;
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1219,7 +1219,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0U, cell.StyleIndex!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1233,7 +1233,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Strings");
+                var sheet = doc.AddWorksheet("Strings");
                 sheet.CellValue(1, 1, "Alpha");
                 sheet.CellValue(2, 1, "Beta");
 
@@ -1244,7 +1244,7 @@ namespace OfficeIMO.Tests {
                 sharedStringTable.UniqueCount = 1U;
                 sharedStringTable.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1258,7 +1258,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2U, sharedStringTable.UniqueCount!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1272,7 +1272,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Strings");
+                var sheet = doc.AddWorksheet("Strings");
                 sheet.CellValue(1, 1, "Alpha");
                 sheet.CellValue(2, 1, "Beta");
 
@@ -1283,7 +1283,7 @@ namespace OfficeIMO.Tests {
                 sharedStringTable.UniqueCount = 2U;
                 sharedStringTable.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1296,7 +1296,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(2U, sharedStringTable.UniqueCount!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1310,9 +1310,9 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Strings");
+                var sheet = doc.AddWorksheet("Strings");
                 sheet.CellValue(1, 1, "Alpha");
-                doc.Save(path, openExcel: false);
+                doc.Save(path);
             }
 
             using (var package = SpreadsheetDocument.Open(path, true)) {
@@ -1326,7 +1326,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var doc = ExcelDocument.Load(path)) {
-                doc.Save(savePath, openExcel: false, new ExcelSaveOptions { DisableFastPackageWriter = true, SafePreflight = true });
+                doc.Save(savePath, new ExcelSaveOptions { DisableFastPackageWriter = true, SafePreflight = true });
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1336,7 +1336,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("NotAnIndex", cell.InlineString!.InnerText);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1350,7 +1350,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("View");
+                var sheet = doc.AddWorksheet("View");
                 sheet.SetGridlinesVisible(false);
 
                 var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
@@ -1367,7 +1367,7 @@ namespace OfficeIMO.Tests {
                 wsPart.Worksheet.Save();
                 workbook.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1380,7 +1380,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(0U, sheetView.WorkbookViewId!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1394,7 +1394,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("View");
+                var sheet = doc.AddWorksheet("View");
                 sheet.SetGridlinesVisible(false);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1412,7 +1412,7 @@ namespace OfficeIMO.Tests {
                 });
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1426,7 +1426,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A1", selections[0].SequenceOfReferences!.InnerText);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1440,7 +1440,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Freeze");
+                var sheet = doc.AddWorksheet("Freeze");
                 sheet.Freeze(topRows: 1, leftCols: 1);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1458,7 +1458,7 @@ namespace OfficeIMO.Tests {
                 });
                 wsPart.Worksheet.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1480,7 +1480,7 @@ namespace OfficeIMO.Tests {
                 });
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1494,7 +1494,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Print");
+                var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1519,7 +1519,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1546,7 +1546,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1U, columnBreaks.ManualBreakCount!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1558,7 +1558,7 @@ namespace OfficeIMO.Tests {
         public void ManualPageBreaks_CanBeRemovedAndCleared() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Print");
+                var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
 
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualRowPageBreak(A1.MaxRows + 1, save: false));
@@ -1603,7 +1603,7 @@ namespace OfficeIMO.Tests {
         public void ManualPageBreaks_ClearOnlyManualBreaks() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Print");
+                var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
                 sheet.AddManualRowPageBreak(3, save: false);
 
@@ -1638,7 +1638,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Print");
+                var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1660,7 +1660,7 @@ namespace OfficeIMO.Tests {
                 });
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1681,7 +1681,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(100U, pageSetup!.Scale!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1695,7 +1695,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Dimension");
+                var sheet = doc.AddWorksheet("Dimension");
                 sheet.CellValue(2, 2, "Value");
                 sheet.CellValue(4, 3, "Other");
 
@@ -1714,7 +1714,7 @@ namespace OfficeIMO.Tests {
                 ws.InsertAfter(new SheetDimension { Reference = "BadRef" }, firstDimension);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1724,7 +1724,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("B2:C4", dimensions[0].Reference!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
@@ -1738,7 +1738,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Dimension");
+                var sheet = doc.AddWorksheet("Dimension");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -1753,7 +1753,7 @@ namespace OfficeIMO.Tests {
                 sheetData.Append(row);
                 ws.Save();
 
-                doc.Save(savePath, openExcel: false);
+                doc.Save(savePath);
             }
 
             using (var package = SpreadsheetDocument.Open(savePath, false)) {
@@ -1763,11 +1763,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("A3:B3", dimension!.Reference!.Value);
             }
 
-            using (var reopened = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopened = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Empty(reopened.ValidateOpenXml());
             }
 
-            using (var reopenedForRead = ExcelDocument.Load(savePath, readOnly: true)) {
+            using (var reopenedForRead = ExcelDocument.Load(savePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Assert.Equal("A3:B3", reopenedForRead.Sheets.First().GetUsedRangeA1());
             }
 

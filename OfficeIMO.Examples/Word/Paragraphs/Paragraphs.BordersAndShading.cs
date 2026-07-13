@@ -19,7 +19,7 @@ internal static partial class Paragraphs {
             var shaded = document.AddParagraph("Shaded paragraph");
             shaded.ShadingFillColor = Color.LightGray;
 
-            document.Save(openWord);
+            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

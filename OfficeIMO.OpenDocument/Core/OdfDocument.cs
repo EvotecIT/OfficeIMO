@@ -1,3 +1,6 @@
+using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Shared;
+
 namespace OfficeIMO.OpenDocument;
 
 /// <summary>Common package lifecycle for ODT, ODS, and ODP documents.</summary>
@@ -35,90 +38,90 @@ public abstract partial class OdfDocument : IDisposable {
     public OdfStyleRepository Styles { get; }
     /// <summary>Non-fatal diagnostics produced while opening the package.</summary>
     public IReadOnlyList<OdfDiagnostic> Diagnostics => Package.Diagnostics;
-    /// <summary>Most recent save-entry report.</summary>
-    public OdfSaveReport? LastSaveReport { get; private set; }
-
     /// <summary>Saves to the original path used to open or first save the document.</summary>
     public void Save(OdfSaveOptions? options = null) {
+        _ = SaveResult(options);
+    }
+
+    /// <summary>Saves to the current path and returns the serialized bytes with entry-level diagnostics.</summary>
+    public OdfSaveResult SaveResult(OdfSaveOptions? options = null) {
         ThrowIfDisposed();
         if (string.IsNullOrEmpty(_sourcePath)) throw new InvalidOperationException("This document has no source path. Supply a destination path or stream.");
-        Save(_sourcePath!, options);
+        return SaveResult(_sourcePath!, options);
     }
 
     /// <summary>Saves the document to a path using a same-directory temporary file.</summary>
     public void Save(string path, OdfSaveOptions? options = null) {
+        _ = SaveResult(path, options);
+    }
+
+    /// <summary>Saves to a path and returns the serialized bytes with entry-level diagnostics.</summary>
+    public OdfSaveResult SaveResult(string path, OdfSaveOptions? options = null) {
         ThrowIfDisposed();
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
-        string directory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
-        Directory.CreateDirectory(directory);
-        string tempPath = Path.Combine(directory, "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-        try {
-            byte[] bytes = Render(options, out OdfSaveReport report);
-            File.WriteAllBytes(tempPath, bytes);
-            ReplaceFile(tempPath, fullPath);
-            _sourcePath = fullPath;
-            CompleteSave(report);
-        } finally {
-            if (File.Exists(tempPath)) File.Delete(tempPath);
-        }
+        byte[] bytes = Render(options, out OdfSaveReport report);
+        OfficeFileCommit.WriteAllBytes(fullPath, bytes);
+        _sourcePath = fullPath;
+        CompleteSave();
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Writes the document to a stream without closing it.</summary>
     public void Save(Stream destination, OdfSaveOptions? options = null) {
+        _ = SaveResult(destination, options);
+    }
+
+    /// <summary>Writes to a stream and returns the serialized bytes with entry-level diagnostics.</summary>
+    public OdfSaveResult SaveResult(Stream destination, OdfSaveOptions? options = null) {
         ThrowIfDisposed();
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
-        if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         byte[] bytes = Render(options, out OdfSaveReport report);
-        destination.Write(bytes, 0, bytes.Length);
-        CompleteSave(report);
+        OfficeStreamWriter.WriteAllBytes(destination, bytes);
+        CompleteSave();
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Asynchronously saves to a path.</summary>
     public async Task SaveAsync(string path, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        _ = await SaveResultAsync(path, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Asynchronously saves to a path and returns the serialized bytes with entry-level diagnostics.</summary>
+    public async Task<OdfSaveResult> SaveResultAsync(string path, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
-        string directory = Path.GetDirectoryName(fullPath) ?? Directory.GetCurrentDirectory();
-        Directory.CreateDirectory(directory);
-        string tempPath = Path.Combine(directory, "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
-        try {
-            byte[] bytes = Render(options, out OdfSaveReport report);
-            using (var stream = new FileStream(tempPath, FileMode.CreateNew, FileAccess.Write, FileShare.None, 81920, useAsync: true)) {
-#if NET8_0_OR_GREATER
-                await stream.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
-#else
-                await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-#endif
-            }
-            ReplaceFile(tempPath, fullPath);
-            _sourcePath = fullPath;
-            CompleteSave(report);
-        } finally {
-            if (File.Exists(tempPath)) File.Delete(tempPath);
-        }
+        byte[] bytes = Render(options, out OdfSaveReport report);
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        _sourcePath = fullPath;
+        CompleteSave();
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Asynchronously writes to a stream without closing it.</summary>
     public async Task SaveAsync(Stream destination, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
+        _ = await SaveResultAsync(destination, options, cancellationToken).ConfigureAwait(false);
+    }
+
+    /// <summary>Asynchronously writes to a stream and returns the serialized bytes with entry-level diagnostics.</summary>
+    public async Task<OdfSaveResult> SaveResultAsync(Stream destination, OdfSaveOptions? options = null, CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
-        if (destination == null) throw new ArgumentNullException(nameof(destination));
-        if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
         byte[] bytes = Render(options, out OdfSaveReport report);
-#if NET8_0_OR_GREATER
-        await destination.WriteAsync(bytes.AsMemory(0, bytes.Length), cancellationToken).ConfigureAwait(false);
-#else
-        await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-#endif
-        CompleteSave(report);
+        await OfficeStreamWriter.WriteAllBytesAsync(destination, bytes, cancellationToken).ConfigureAwait(false);
+        CompleteSave();
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Serializes the document to a byte array.</summary>
     public byte[] ToBytes(OdfSaveOptions? options = null) {
+        return ToBytesResult(options).Value;
+    }
+
+    /// <summary>Serializes the document and returns bytes with entry-level diagnostics.</summary>
+    public OdfSaveResult ToBytesResult(OdfSaveOptions? options = null) {
         ThrowIfDisposed();
         byte[] bytes = Render(options, out OdfSaveReport report);
-        CompleteSave(report);
-        return bytes;
+        return new OdfSaveResult(bytes, report);
     }
 
     /// <summary>Validates package and supported semantic invariants.</summary>
@@ -166,8 +169,7 @@ public abstract partial class OdfDocument : IDisposable {
         return bytes;
     }
 
-    private void CompleteSave(OdfSaveReport report) {
-        LastSaveReport = report;
+    private void CompleteSave() {
         Package.AcceptChanges();
     }
 
@@ -184,16 +186,4 @@ public abstract partial class OdfDocument : IDisposable {
         if (_disposed) throw new ObjectDisposedException(GetType().Name);
     }
 
-    private static void ReplaceFile(string tempPath, string fullPath) {
-        if (!File.Exists(fullPath)) {
-            File.Move(tempPath, fullPath);
-            return;
-        }
-        try {
-            File.Replace(tempPath, fullPath, null);
-        } catch (Exception ex) when (ex is PlatformNotSupportedException || ex is IOException) {
-            File.Copy(tempPath, fullPath, overwrite: true);
-            File.Delete(tempPath);
-        }
-    }
 }

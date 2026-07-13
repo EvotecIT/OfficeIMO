@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Native DOC byte output");
 
-            byte[] bytes = document.ToDoc();
+            byte[] bytes = document.ToBytes(OfficeIMO.Word.WordFileFormat.Doc);
 
             AssertOleCompoundBytes(bytes);
             using WordDocument reloaded = WordDocument.Load(new MemoryStream(bytes));
@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
         public async Task FormatApi_ToDocxAndLoadAsyncStream_RoundTrips() {
             using WordDocument document = WordDocument.Create();
             document.AddParagraph("Async DOCX stream");
-            byte[] bytes = document.ToDocx();
+            byte[] bytes = document.ToBytes();
 
             Assert.Equal(0x50, bytes[0]);
             Assert.Equal(0x4b, bytes[1]);
@@ -90,8 +90,15 @@ namespace OfficeIMO.Tests {
             Type documentType = typeof(WordDocument);
             Type importOptionsType = typeof(LegacyDocImportOptions);
 
-            Assert.NotNull(documentType.GetMethod(nameof(WordDocument.ToDocx), new[] { typeof(WordSaveOptions) }));
-            Assert.NotNull(documentType.GetMethod(nameof(WordDocument.ToDoc), new[] { typeof(WordSaveOptions) }));
+            Assert.NotNull(documentType.GetMethod(nameof(WordDocument.ToBytes),
+                new[] { typeof(WordFileFormat), typeof(WordSaveOptions) }));
+            Assert.NotNull(documentType.GetMethod(nameof(WordDocument.ToStream),
+                new[] { typeof(WordFileFormat), typeof(WordSaveOptions) }));
+            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name is "ToDocx" or "ToDoc" or "ToDocxStream" or "ToDocStream");
+            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name is "Save" or "SaveAsync" &&
+                method.GetParameters().Any(parameter => parameter.ParameterType == typeof(bool)));
+            Assert.DoesNotContain(documentType.GetMethods(), method => method.Name == "Open");
+            Assert.Contains(documentType.GetMethods(), method => method.Name == nameof(WordDocument.OpenInApplication));
             Assert.Contains(documentType.GetMethods(), method => method.Name == nameof(WordDocument.SaveCopy));
             Assert.Null(documentType.GetMethod("SaveAsByteArray"));
             Assert.Null(documentType.GetMethod("SaveAsMemoryStream"));

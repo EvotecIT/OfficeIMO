@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportOmitsHiddenRowsColumnsAndReportsHiddenAnchoredObjects() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Hidden");
+            ExcelSheet sheet = document.AddWorksheet("Hidden");
             sheet.CellValue(1, 1, "Visible A");
             sheet.CellValue(1, 2, "Hidden B");
             sheet.CellValue(1, 3, "Visible C");
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportOmitsDefaultHiddenRowsUnlessExplicitlyVisible() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("DefaultHidden");
+            ExcelSheet sheet = document.AddWorksheet("DefaultHidden");
             sheet.CellValue(1, 1, "Hidden by default");
             sheet.CellValue(2, 1, "Visible override");
             sheet.CellValue(3, 1, "Hidden by default too");
@@ -91,7 +91,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_DefaultImageExportSkipsHiddenImageAnchorsWhenExpandingUsedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("HiddenAnchor");
+            ExcelSheet sheet = document.AddWorksheet("HiddenAnchor");
             sheet.CellValue(1, 1, "Visible");
             sheet.SetColumnHidden(10, true);
             sheet.AddImage(1, 10, CreateSolidPng(24, 18, OfficeColor.FromRgb(220, 38, 38)), "image/png", widthPixels: 24, heightPixels: 18, name: "HiddenLogo");
@@ -108,7 +108,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_DefaultImageExportSkipsDefaultHiddenImageAnchorsWhenExpandingUsedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("DefaultHiddenAnchor");
+            ExcelSheet sheet = document.AddWorksheet("DefaultHiddenAnchor");
             sheet.CellValue(1, 1, "Visible");
             sheet.SetDefaultRowHeight(18D, hidden: true);
             sheet.SetRowHeight(1, 18D);
@@ -126,9 +126,9 @@ namespace OfficeIMO.Tests {
         public void ExcelWorkbook_DefaultImageExportSkipsHiddenSheetsUnlessRequested() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet visible = document.AddWorkSheet("Visible");
-            ExcelSheet hidden = document.AddWorkSheet("Hidden");
-            ExcelSheet veryHidden = document.AddWorkSheet("VeryHidden");
+            ExcelSheet visible = document.AddWorksheet("Visible");
+            ExcelSheet hidden = document.AddWorksheet("Hidden");
+            ExcelSheet veryHidden = document.AddWorksheet("VeryHidden");
             visible.CellValue(1, 1, "Visible");
             hidden.CellValue(1, 1, "Hidden");
             veryHidden.CellValue(1, 1, "Very hidden");
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_DefaultImageExportUsesVisibleExtentsAcrossHiddenColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("VisibleExtent");
+            ExcelSheet sheet = document.AddWorksheet("VisibleExtent");
             sheet.CellValue(1, 1, "Visible");
             sheet.SetColumnHidden(2, true);
             sheet.AddImage(1, 1, CreateSolidPng(120, 18, OfficeColor.FromRgb(37, 99, 235)), "image/png", widthPixels: 120, heightPixels: 18, name: "VisibleLogo");
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_DefaultImageExportIncludesImageAnchorOffsetsWhenExpandingUsedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("OffsetImage");
+            ExcelSheet sheet = document.AddWorksheet("OffsetImage");
             sheet.CellValue(1, 1, "Visible");
             sheet.SetColumnWidth(1, 8);
             sheet.SetColumnWidth(2, 8);
@@ -183,7 +183,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_DefaultPngExportDoesNotExpandRangeForUnsupportedImages() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("UnsupportedImage");
+            ExcelSheet sheet = document.AddWorksheet("UnsupportedImage");
             sheet.CellValue(1, 1, "Visible");
             sheet.AddImage(12, 8, CreateMinimalJpegHeader(), "image/jpeg", widthPixels: 64, heightPixels: 32, name: "JpegOutside");
 
@@ -199,7 +199,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportEvaluatesConditionalFormattingForMergeOriginOutsideSelectedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("MergeCf");
+            ExcelSheet sheet = document.AddWorksheet("MergeCf");
             sheet.CellValue(1, 1, 20);
             sheet.MergeRange("A1:B1");
             sheet.AddConditionalRule("A1:B1", DocumentFormat.OpenXml.Spreadsheet.ConditionalFormattingOperatorValues.GreaterThan, "10", fillColor: "C6EFCE");

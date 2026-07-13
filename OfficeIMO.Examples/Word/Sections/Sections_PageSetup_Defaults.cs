@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -20,9 +21,9 @@ namespace OfficeIMO.Examples.Word {
                         .DifferentFirstPage()
                         .DifferentOddAndEvenPages())
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(UnderlineValues.Single, runs[3].Underline);
             Assert.True(runs[4].IsHyperLink);
 
-            document.Save(false);
+            document.Save();
         }
     }
 }

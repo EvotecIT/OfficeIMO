@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO.Word;
@@ -19,9 +20,9 @@ namespace OfficeIMO.Examples.Word {
                     .Section(s => s.New())
                     .Paragraph(p => p.Text("Hello from fluent API"))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

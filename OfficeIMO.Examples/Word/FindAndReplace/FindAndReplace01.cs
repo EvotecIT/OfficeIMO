@@ -23,7 +23,7 @@ namespace OfficeIMO.Examples.Word {
                 document.Paragraphs[9].Bold = true;
                 document.Paragraphs[10].Bold = true;
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -48,14 +48,14 @@ namespace OfficeIMO.Examples.Word {
                 var replacedCount3 = document.FindAndReplace("even longer", "not longer");
                 Console.WriteLine("Replaced (should be 4): " + replacedCount3);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
 
                 Console.WriteLine(document.Paragraphs[0].Text == "Production Section" ? "OK" : "FAIL");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

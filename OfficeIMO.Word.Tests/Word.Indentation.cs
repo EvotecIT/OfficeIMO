@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(300, paragraph.IndentationFirstLine);
                 Assert.Equal(40, paragraph.IndentationHanging);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

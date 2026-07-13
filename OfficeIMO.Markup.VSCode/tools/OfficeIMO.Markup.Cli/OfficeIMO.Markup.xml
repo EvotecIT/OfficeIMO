@@ -14,9 +14,29 @@
             Resolves column names from a dictionary or public readable properties.
             </summary>
         </member>
+        <member name="M:OfficeIMO.Shared.ObjectDataHelpers.IsDictionaryLike(System.Object)">
+            <summary>
+            Returns whether the item exposes dictionary keys rather than fixed CLR properties.
+            </summary>
+        </member>
         <member name="M:OfficeIMO.Shared.ObjectDataHelpers.GetValue(System.Object,System.String)">
             <summary>
             Retrieves a value for the specified column from a dictionary or property.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Shared.ObjectDataHelpers.TryCreatePropertyProjector(System.Object,System.Collections.Generic.IReadOnlyList{System.String},System.Func{System.Object,System.Object[],System.Boolean}@)">
+            <summary>
+            Creates a reusable projector for a fixed CLR object type and column order.
+            </summary>
+        </member>
+        <member name="M:OfficeIMO.Shared.ObjectDataHelpers.TryCreatePropertyTextProjector(System.Object,System.Collections.Generic.IReadOnlyList{System.String},System.Func{System.Object,System.String[],System.Globalization.CultureInfo,System.Boolean}@)">
+            <summary>
+            Creates a reusable text projector for a fixed CLR object type and column order.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Shared.OfficeFileConversion">
+            <summary>
+            Validates file-to-file Office conversions without applying format-specific policy.
             </summary>
         </member>
         <member name="T:OfficeIMO.Shared.NonDisposingMemoryStream">
@@ -37,6 +57,11 @@
         <member name="T:OfficeIMO.Markup.OfficeMarkupPowerShellEmitter">
             <summary>
             Emits starter PowerShell code from the semantic OfficeIMO markup AST.
+            </summary>
+        </member>
+        <member name="T:OfficeIMO.Markup.OfficeMarkupChartKindResolver">
+            <summary>
+            Resolves markup chart tokens to the shared chart contract used by PowerPoint surfaces.
             </summary>
         </member>
         <member name="T:OfficeIMO.Markup.OfficeMarkupProfile">

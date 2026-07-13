@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word {
                 document.BuiltinDocumentProperties.Title = "This is my title";
                 document.BuiltinDocumentProperties.Creator = "Przemysław Kłys";
                 document.BuiltinDocumentProperties.Keywords = "word, docx, test";
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 
@@ -25,9 +25,9 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Adding paragraph with some text");
                 paragraph.ParagraphAlignment = JustificationValues.Center;
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Blue.ToHexColor());
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Crimson.ToHexColor());
-                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Aquamarine.ToHexColor());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Blue.ToRgbHex());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Crimson.ToRgbHex());
+                Console.WriteLine(OfficeIMO.Drawing.OfficeColor.Aquamarine.ToRgbHex());
 
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.Red;
 
@@ -38,7 +38,7 @@ namespace OfficeIMO.Examples.Word {
                 paragraph = paragraph.AddText(" , and we still continue adding more text to existing paragraph.");
                 paragraph.Color = OfficeIMO.Drawing.OfficeColor.CornflowerBlue;
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

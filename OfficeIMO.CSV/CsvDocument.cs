@@ -1,9 +1,12 @@
 #nullable enable
 
+using OfficeIMO.Drawing.Internal;
 using System.Collections;
 using System.Data;
 using System.Globalization;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Shared;
 
 namespace OfficeIMO.CSV;
@@ -271,14 +274,14 @@ public sealed partial class CsvDocument
     /// <summary>
     /// Saves the document to the specified path.
     /// </summary>
-    public CsvDocument Save(string path, CsvSaveOptions? options = null)
+    public void Save(string path, CsvSaveOptions? options = null)
     {
-        options ??= new CsvSaveOptions
+        if (string.IsNullOrWhiteSpace(path))
         {
-            Delimiter = _delimiter,
-            Culture = _culture,
-            Encoding = _encoding
-        };
+            throw new ArgumentException("File path cannot be empty.", nameof(path));
+        }
+
+        options = ResolveSaveOptions(options);
 
         var fullPath = Path.GetFullPath(path);
         if (options.NoClobber && File.Exists(fullPath))
@@ -286,9 +289,153 @@ public sealed partial class CsvDocument
             throw new IOException($"The file '{fullPath}' already exists.");
         }
 
-        using var writer = CsvFile.CreateTextWriter(fullPath, options, append: options.Append, bufferSize: FileBufferSize);
-        CsvWriter.Write(writer, this, options);
-        return this;
+        if (options.Append)
+        {
+            CsvCompressionType compressionType = CsvFile.ResolveCompression(options.CompressionType, fullPath);
+            if (compressionType != CsvCompressionType.None)
+                throw new NotSupportedException("Appending to compressed CSV files is not supported.");
+            OfficeFileCommit.EnsureTargetDirectory(fullPath);
+            using var writer = CsvFile.CreateTextWriter(fullPath, options, append: true, bufferSize: FileBufferSize);
+            CsvWriter.Write(writer, this, options);
+            return;
+        }
+
+        OfficeFileCommit.EnsureTargetDirectory(fullPath);
+        var temporaryPath = OfficeFileCommit.CreateTemporaryPath(fullPath);
+        try
+        {
+            using (var writer = CsvFile.CreateTextWriterForCompressionPath(
+                       temporaryPath, fullPath, options, FileBufferSize))
+            {
+                CsvWriter.Write(writer, this, options);
+            }
+            OfficeFileCommit.CommitTemporaryFile(temporaryPath, fullPath,
+                options.NoClobber ? OfficeFileCommit.ConflictPolicy.FailIfExists : OfficeFileCommit.ConflictPolicy.Replace);
+            temporaryPath = string.Empty;
+        }
+        finally
+        {
+            OfficeFileCommit.DeleteIfExists(temporaryPath);
+        }
+    }
+
+    /// <summary>Saves the document to a caller-owned writable stream.</summary>
+    public void Save(Stream destination, CsvSaveOptions? options = null)
+    {
+        OfficeStreamWriter.WriteAllBytes(destination, ToBytes(options));
+    }
+
+    /// <summary>Asynchronously saves the document to a path.</summary>
+    public async Task SaveAsync(string path, CsvSaveOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        options = ResolveSaveOptions(options);
+        cancellationToken.ThrowIfCancellationRequested();
+        string fullPath = Path.GetFullPath(path);
+        if (options.NoClobber && File.Exists(fullPath)) throw new IOException($"The file '{fullPath}' already exists.");
+        CsvCompressionType compressionType = CsvFile.ResolveCompression(options.CompressionType, fullPath);
+
+        if (options.Append)
+        {
+            if (compressionType != CsvCompressionType.None)
+                throw new NotSupportedException("Appending to compressed CSV files is not supported.");
+            OfficeFileCommit.EnsureTargetDirectory(fullPath);
+            byte[] appendBytes = SerializeToBytes(options, CsvCompressionType.None);
+            using var stream = new FileStream(fullPath, FileMode.Append, FileAccess.Write, FileShare.Read,
+                FileBufferSize, FileOptions.Asynchronous);
+            int appendOffset = GetAppendOffset(appendBytes, options.Encoding, stream.Length > 0);
+#if NET6_0_OR_GREATER
+            await stream.WriteAsync(appendBytes.AsMemory(appendOffset), cancellationToken).ConfigureAwait(false);
+#else
+            await stream.WriteAsync(appendBytes, appendOffset, appendBytes.Length - appendOffset, cancellationToken).ConfigureAwait(false);
+#endif
+            await stream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            return;
+        }
+
+        byte[] bytes = SerializeToBytes(options, compressionType);
+        await OfficeFileCommit.WriteAllBytesAsync(fullPath, bytes,
+            options.NoClobber ? OfficeFileCommit.ConflictPolicy.FailIfExists : OfficeFileCommit.ConflictPolicy.Replace,
+            cancellationToken).ConfigureAwait(false);
+    }
+
+    private static int GetAppendOffset(byte[] bytes, Encoding? configuredEncoding, bool destinationHasContent)
+    {
+        if (!destinationHasContent) return 0;
+        Encoding encoding = configuredEncoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        byte[] preamble = encoding.GetPreamble();
+        if (preamble.Length == 0 || bytes.Length < preamble.Length) return 0;
+        for (int index = 0; index < preamble.Length; index++)
+        {
+            if (bytes[index] != preamble[index]) return 0;
+        }
+
+        return preamble.Length;
+    }
+
+    /// <summary>Asynchronously saves the document to a caller-owned writable stream.</summary>
+    public Task SaveAsync(Stream destination, CsvSaveOptions? options = null, CancellationToken cancellationToken = default)
+    {
+        if (destination == null) throw new ArgumentNullException(nameof(destination));
+        cancellationToken.ThrowIfCancellationRequested();
+        return OfficeStreamWriter.WriteAllBytesAsync(destination, ToBytes(options), cancellationToken);
+    }
+
+    /// <summary>Encodes the document using the selected CSV encoding and compression.</summary>
+    public byte[] ToBytes(CsvSaveOptions? options = null)
+    {
+        options = ResolveSaveOptions(options);
+        if (options.Append || options.NoClobber)
+            throw new ArgumentException("Append and NoClobber apply only to path saves.", nameof(options));
+        CsvCompressionType compressionType = options.CompressionType == CsvCompressionType.Auto
+            ? CsvCompressionType.None
+            : options.CompressionType;
+        return SerializeToBytes(options, compressionType);
+    }
+
+    /// <summary>Encodes the document in a new writable memory stream positioned at the beginning.</summary>
+    public MemoryStream ToStream(CsvSaveOptions? options = null) => new MemoryStream(ToBytes(options));
+
+    private byte[] SerializeToBytes(CsvSaveOptions options, CsvCompressionType compressionType)
+    {
+        var serializationOptions = CopySaveOptions(options, compressionType);
+        using var stream = new MemoryStream();
+        using (TextWriter writer = CsvFile.CreateTextWriter(stream, serializationOptions, leaveOpen: true, FileBufferSize))
+        {
+            CsvWriter.Write(writer, this, serializationOptions);
+        }
+        return stream.ToArray();
+    }
+
+    private static CsvSaveOptions CopySaveOptions(CsvSaveOptions source, CsvCompressionType compressionType)
+    {
+        return new CsvSaveOptions
+        {
+            Delimiter = source.Delimiter,
+            DelimiterText = source.DelimiterText,
+            NewLine = source.NewLine,
+            IncludeHeader = source.IncludeHeader,
+            Culture = source.Culture,
+            Encoding = source.Encoding,
+            CompressionType = compressionType,
+            CompressionLevel = source.CompressionLevel,
+            NullValue = source.NullValue,
+            DateTimeFormat = source.DateTimeFormat,
+            UseUtc = source.UseUtc,
+            FormulaInjectionPolicy = source.FormulaInjectionPolicy,
+            QuoteMode = source.QuoteMode,
+            QuoteFields = source.QuoteFields
+        };
+    }
+
+    private CsvSaveOptions ResolveSaveOptions(CsvSaveOptions? options)
+    {
+        return options ?? new CsvSaveOptions
+        {
+            Delimiter = _delimiter,
+            Culture = _culture,
+            Encoding = _encoding
+        };
     }
 
     /// <summary>

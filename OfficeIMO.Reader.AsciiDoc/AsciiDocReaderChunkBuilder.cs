@@ -23,8 +23,8 @@ internal static class AsciiDocReaderChunkBuilder {
             if (block is AsciiDocHeading heading) UpdateHeadingStack(headingStack, heading);
             string headingPath = string.Join(" > ", headingStack.Select(static state => state.Title));
             string text = GetPlainText(block);
-            AsciiDocMarkdownConversionResult markdownResult = AsciiDocToMarkdownConverter.ConvertBlock(block, attributes, options.MarkdownOptions);
-            string markdown = markdownResult.Document.ToMarkdown().TrimEnd();
+            AsciiDocToMarkdownResult markdownResult = AsciiDocToMarkdownConverter.ConvertBlock(block, attributes, options.MarkdownOptions);
+            string markdown = markdownResult.Value.ToMarkdown().TrimEnd();
             if (markdown.Length == 0 && block is AsciiDocAttributeEntry) markdown = block.OriginalText.TrimEnd('\r', '\n');
 
             IReadOnlyList<string> parts = Split(text.Length == 0 ? markdown : text, readerOptions.MaxChars);
@@ -62,7 +62,7 @@ internal static class AsciiDocReaderChunkBuilder {
         ReaderAsciiDocOptions options,
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
-        AsciiDocMarkdownConversionResult conversion = result.Document.ToMarkdownDocument(options.MarkdownOptions);
+        AsciiDocToMarkdownResult conversion = result.Document.ToMarkdownDocumentResult(options.MarkdownOptions);
         var attachedBlocks = new HashSet<AsciiDocBlock>(
             result.Document.BlocksOfType<AsciiDocListBlock>()
                 .SelectMany(static list => list.Items)
@@ -71,7 +71,7 @@ internal static class AsciiDocReaderChunkBuilder {
             .Where(block => !attachedBlocks.Contains(block) && ShouldEmit(block, options))
             .Select(GetPlainText)
             .Where(value => value.Length > 0));
-        string markdown = conversion.Document.ToMarkdown().TrimEnd();
+        string markdown = conversion.Value.ToMarkdown().TrimEnd();
         IReadOnlyList<string> parts = Split(text.Length == 0 ? markdown : text, readerOptions.MaxChars);
         if (parts.Count == 0) parts = new[] { string.Empty };
 

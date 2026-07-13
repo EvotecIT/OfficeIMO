@@ -149,7 +149,7 @@ public partial class WordRtfConverterTests {
         using WordDocument semanticBridge = rtfDocument.ToWordDocument();
         Assert.Equal("Pixel image", Assert.Single(semanticBridge.Images).Description);
         WordImage roundTripImage = Assert.Single(roundTrip.Images);
-        Assert.Equal(png, roundTripImage.GetBytes());
+        Assert.Equal(png, roundTripImage.ToBytes());
         RtfImage semanticRoundTripImage = Assert.IsType<RtfImage>(Assert.Single(roundTripRtf.Blocks));
         Assert.Equal(png, semanticRoundTripImage.Data);
         Assert.Equal(480, semanticRoundTripImage.DesiredWidthTwips);
@@ -219,25 +219,25 @@ public partial class WordRtfConverterTests {
         table.Rows[0].Cells[0].WrapText = false;
         table.Rows[0].Cells[0].FitText = true;
         table.Rows[1].Cells[2].VerticalAlignment = TableVerticalAlignmentValues.Bottom;
-        table.Rows[0].Cells[0].ShadingFillColorHex = "e6f2ff";
+        table.Rows[0].Cells[0].ShadingFillColorHex = "E6F2FF";
         table.Rows[0].Cells[0].ShadingPattern = ShadingPatternValues.Percent37;
-        table.Rows[0].Cells[0]._tableCellProperties!.Shading!.Color = "00aa55";
+        table.Rows[0].Cells[0]._tableCellProperties!.Shading!.Color = "00AA55";
         table.Rows[0].Cells[0].MarginTopWidth = 120;
         table.Rows[0].Cells[0].MarginLeftWidth = 180;
         table.Rows[0].Cells[0].MarginBottomWidth = 240;
         table.Rows[0].Cells[0].MarginRightWidth = 300;
         table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Single;
         table.Rows[0].Cells[0].Borders.TopSize = 12U;
-        table.Rows[0].Cells[0].Borders.TopColorHex = "4472c4";
+        table.Rows[0].Cells[0].Borders.TopColorHex = "4472C4";
         table.Rows[0].Cells[0].Borders.LeftStyle = BorderValues.Double;
         table.Rows[0].Cells[0].Borders.LeftSize = 8U;
-        table.Rows[0].Cells[0].Borders.LeftColorHex = "00aa55";
+        table.Rows[0].Cells[0].Borders.LeftColorHex = "00AA55";
         table.Rows[0].Cells[0].Borders.TopLeftToBottomRightStyle = BorderValues.Dotted;
         table.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize = 6U;
-        table.Rows[0].Cells[0].Borders.TopLeftToBottomRightColorHex = "4472c4";
+        table.Rows[0].Cells[0].Borders.TopLeftToBottomRightColorHex = "4472C4";
         table.Rows[0].Cells[0].Borders.TopRightToBottomLeftStyle = BorderValues.Dashed;
         table.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize = 10U;
-        table.Rows[0].Cells[0].Borders.TopRightToBottomLeftColorHex = "00aa55";
+        table.Rows[0].Cells[0].Borders.TopRightToBottomLeftColorHex = "00AA55";
         table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
         table.Rows[1].Cells[0].AddParagraph("Vertical", removeExistingParagraphs: true);
 
@@ -325,8 +325,8 @@ public partial class WordRtfConverterTests {
         Assert.False(roundTripTable.Rows[0].Cells[0].WrapText);
         Assert.True(roundTripTable.Rows[0].Cells[0].FitText);
         Assert.Equal(TableVerticalAlignmentValues.Bottom, roundTripTable.Rows[1].Cells[2].VerticalAlignment);
-        Assert.Equal("e6f2ff", roundTripTable.Rows[0].Cells[0].ShadingFillColorHex);
-        Assert.Equal("00aa55", roundTripTable.Rows[0].Cells[0]._tableCellProperties?.Shading?.Color?.Value);
+        Assert.Equal("E6F2FF", roundTripTable.Rows[0].Cells[0].ShadingFillColorHex);
+        Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0]._tableCellProperties?.Shading?.Color?.Value);
         Assert.Equal(ShadingPatternValues.Percent37, roundTripTable.Rows[0].Cells[0].ShadingPattern);
         Assert.Equal((short?)120, roundTripTable.Rows[0].Cells[0].MarginTopWidth);
         Assert.Equal((short?)180, roundTripTable.Rows[0].Cells[0].MarginLeftWidth);
@@ -334,15 +334,15 @@ public partial class WordRtfConverterTests {
         Assert.Equal((short?)300, roundTripTable.Rows[0].Cells[0].MarginRightWidth);
         Assert.Equal(BorderValues.Single, roundTripTable.Rows[0].Cells[0].Borders.TopStyle);
         Assert.Equal(12U, roundTripTable.Rows[0].Cells[0].Borders.TopSize?.Value);
-        Assert.Equal("4472c4", roundTripTable.Rows[0].Cells[0].Borders.TopColorHex);
+        Assert.Equal("4472C4", roundTripTable.Rows[0].Cells[0].Borders.TopColorHex);
         Assert.Equal(BorderValues.Double, roundTripTable.Rows[0].Cells[0].Borders.LeftStyle);
         Assert.Equal(8U, roundTripTable.Rows[0].Cells[0].Borders.LeftSize?.Value);
-        Assert.Equal("00aa55", roundTripTable.Rows[0].Cells[0].Borders.LeftColorHex);
+        Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0].Borders.LeftColorHex);
         Assert.Equal(BorderValues.Dotted, roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightStyle);
         Assert.Equal(6U, roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightSize?.Value);
-        Assert.Equal("4472c4", roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightColorHex);
+        Assert.Equal("4472C4", roundTripTable.Rows[0].Cells[0].Borders.TopLeftToBottomRightColorHex);
         Assert.Equal(BorderValues.Dashed, roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftStyle);
         Assert.Equal(10U, roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftSize?.Value);
-        Assert.Equal("00aa55", roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftColorHex);
+        Assert.Equal("00AA55", roundTripTable.Rows[0].Cells[0].Borders.TopRightToBottomLeftColorHex);
     }
 }

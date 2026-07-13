@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(document.Paragraphs[0].Text == "This is a text more text even longer text and even longer right?");
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentReadyToCleanup.docx"))) {
                 Assert.True(document.Paragraphs.Count == 1);
@@ -45,13 +45,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Paragraphs[2].Text == " even longer text 1 and even longer right?");
 
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentReadyToCleanup.docx"))) {
 
                 Assert.True(document.Paragraphs.Count == 3);
 
-                document.Save(false);
+                document.Save();
             }
         }
     }

@@ -168,30 +168,31 @@ public class RtfNestedTableTests {
     public void Markdown_Flattens_Nested_Table_With_Explicit_Loss_Report() {
         var options = new RtfToMarkdownOptions();
 
-        string markdown = CreateNestedDocument().ToMarkdown(options);
+        RtfConversionResult<string> result = CreateNestedDocument().ToMarkdownResult(options);
+        string markdown = result.Value;
 
         Assert.Contains("Outer before", markdown, StringComparison.Ordinal);
         Assert.Contains("Inner A", markdown, StringComparison.Ordinal);
         Assert.Contains("Inner B", markdown, StringComparison.Ordinal);
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD016");
-        Assert.Contains(options.ConversionReport.Diagnostics, diagnostic =>
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "RTFMD016");
+        Assert.Contains(result.Report.Diagnostics, diagnostic =>
             diagnostic.Code == "RTFMD016" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Throws<RtfConversionLossException>(() => options.ConversionReport.RequireNoLoss());
+        Assert.Throws<RtfConversionLossException>(() => result.RequireNoLoss());
     }
 
     [Fact]
     public void Pdf_Flattens_Nested_Table_With_Explicit_Loss_Report() {
         var options = new RtfPdfSaveOptions();
 
-        byte[] pdf = CreateNestedDocument().ToPdf(options);
+        PdfCore.PdfDocumentConversionResult result = CreateNestedDocument().ToPdfDocumentResult(options);
+        byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 
         Assert.Contains("Outer before", text, StringComparison.Ordinal);
         Assert.Contains("Inner A", text, StringComparison.Ordinal);
         Assert.Contains("Inner B", text, StringComparison.Ordinal);
-        Assert.Contains(options.RtfConversionReport.Diagnostics, diagnostic =>
-            diagnostic.Code == "NestedTableFlattened" && diagnostic.Action == RtfConversionAction.Flattened);
-        Assert.Throws<RtfConversionLossException>(() => options.RtfConversionReport.RequireNoLoss());
+        Assert.Contains(result.Warnings, warning =>
+            warning.Code == "NestedTableFlattened" && warning.Details["RtfAction"] == nameof(RtfConversionAction.Flattened));
     }
 
     private static RtfDocument CreateNestedDocument() {

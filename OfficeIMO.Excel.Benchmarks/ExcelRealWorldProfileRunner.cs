@@ -72,7 +72,7 @@ internal static class ExcelRealWorldProfileRunner {
         Dictionary<string, double>? totals,
         List<RealWorldProfileDiagnostics>? diagnostics) {
         using var stream = new MemoryStream();
-        using var document = ExcelDocument.Create(stream, autoSave: false);
+        using var document = ExcelDocument.Create(stream);
         var totalWatch = Stopwatch.StartNew();
         var stageWatch = Stopwatch.StartNew();
 
@@ -82,7 +82,7 @@ internal static class ExcelRealWorldProfileRunner {
         }
 
         stageWatch.Restart();
-        var sheet = document.AddWorkSheet("Data");
+        var sheet = document.AddWorksheet("Data");
         AddStage(totals, "AddWorksheet", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();

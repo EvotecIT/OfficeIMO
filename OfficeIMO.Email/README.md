@@ -15,7 +15,7 @@ The package supports:
 
 MSG output includes the root storage identity, complete named-property forward and reverse mappings, and the compatibility metadata required by native Outlook. A document without an explicit date receives a deterministic creation-time fallback; set `Date` or `MessageMetadata.CreatedDate` when the real timestamp matters.
 
-The package depends on `OfficeIMO.Rtf`, which owns RTF syntax and semantic conversion, and that package uses Microsoft's code-page compatibility library. MSG compound storage is shared OfficeIMO source compiled into `OfficeIMO.Email`; it is not a public general-purpose CFB package. This keeps the product graph small without copying RTF or CFB logic into the facade.
+The package depends on `OfficeIMO.Rtf`, which owns RTF syntax and semantic conversion. `OfficeIMO.Email` directly declares Microsoft's code-page compatibility library because its MIME, MSG, and TNEF readers use legacy character encodings themselves. MSG compound storage is shared OfficeIMO source compiled into `OfficeIMO.Email`; it is not a public general-purpose CFB package. This keeps the product graph explicit without copying RTF or CFB logic into the facade.
 
 ## Read and write a message
 

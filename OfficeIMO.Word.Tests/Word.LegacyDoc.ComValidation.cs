@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
             Assert.Equal("LegacyDocOfficeIMOCustomBody", paragraph.StyleId);
 
-            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToDocx()));
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.ToBytes()));
             WordParagraph convertedParagraph = converted.Paragraphs
                 .First(item => item.Text == "Custom style Word COM paragraph");
             Assert.Equal(WordParagraphStyles.Custom, convertedParagraph.Style);
@@ -156,7 +156,7 @@ namespace OfficeIMO.Tests {
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.GetFirstChild<StyleRunProperties>());
             Assert.NotNull(runProperties.GetFirstChild<Bold>());
             Assert.Equal("28", runProperties.GetFirstChild<FontSize>()?.Val?.Value);
-            Assert.Equal("ff0000", runProperties.GetFirstChild<Color>()?.Val?.Value);
+            Assert.Equal("FF0000", runProperties.GetFirstChild<Color>()?.Val?.Value);
             RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
             Assert.Equal("Courier New", runFonts.Ascii?.Value);
             Assert.Equal("Courier New", runFonts.HighAnsi?.Value);

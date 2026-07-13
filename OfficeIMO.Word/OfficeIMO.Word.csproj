@@ -69,6 +69,7 @@
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.cs" Link="Shared\OfficeEncryption.cs" />
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.AgileDescriptor.cs" Link="Shared\OfficeEncryption.AgileDescriptor.cs" />
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.CompoundFile.cs" Link="Shared\OfficeEncryption.CompoundFile.cs" />
+        <Compile Include="..\OfficeIMO.Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
         <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFile.cs" Link="Shared\Compound\OfficeCompoundFile.cs" />
         <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileEntry.cs" Link="Shared\Compound\OfficeCompoundFileEntry.cs" />
         <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileReader.cs" Link="Shared\Compound\OfficeCompoundFileReader.cs" />

@@ -257,7 +257,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
         try {
             using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-                ExcelSheet summary = document.AddWorkSheet("Summary");
+                ExcelSheet summary = document.AddWorksheet("Summary");
                 summary.CellAt(1, 1).SetValue("Daily Excel PDF Gate").SetBold().SetFontColor("1F4E79").SetFillColor("DDEEFF");
                 summary.MergeRange("A1:B1");
                 summary.CellAt(2, 1).SetValue("Metric").SetBold().SetFillColor("E6F2FF");
@@ -311,7 +311,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 summary.SetOrientation(ExcelPageOrientation.Landscape);
                 summary.SetMargins(left: 0.35, right: 0.35, top: 0.55, bottom: 0.55);
 
-                ExcelSheet details = document.AddWorkSheet("Details");
+                ExcelSheet details = document.AddWorksheet("Details");
                 details.CellAt(1, 1).SetValue("Details Target").SetBold().SetFillColor("E2F0D9");
                 details.Cell(2, 1, "Owner");
                 details.Cell(2, 2, "OfficeIMO");
@@ -323,7 +323,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
                 document.SetPrintArea(summary, "A1:C7");
                 document.SetPrintTitles(summary, firstRow: 2, lastRow: 2, firstCol: null, lastCol: null);
                 document.SetPrintArea(details, "A1:B3");
-                document.Save(false);
+                document.Save();
 
                 document.SaveAsPdf(pdfPath, new ExcelPdfSaveOptions {
                     IncludeSheetHeadings = true,
@@ -383,7 +383,7 @@ _Figure 1. Relative local image resolved from the Markdown file directory._
 | Images | Local JPEG/PNG image blocks | Native |
 
 ```csharp
-MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf");
+"README.md".SaveAsPdfFromMarkdownFile("README.pdf");
 ```
 """, new UTF8Encoding(false));
 
@@ -393,7 +393,7 @@ MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf");
                 IncludeLocalImages = true
             };
 
-            byte[] pdf = MarkdownPdfConverter.SaveFileAsPdf(markdownPath, options);
+            byte[] pdf = markdownPath.ToPdfFromMarkdownFile(options);
             if (options.Warnings.Count != 0) {
                 throw new InvalidOperationException("Markdown raster fixture produced export warnings: " + string.Join("; ", options.Warnings.Select(warning => warning.Code + ":" + warning.Source)));
             }
@@ -407,7 +407,7 @@ MarkdownPdfConverter.SaveFileAsPdf("README.md", "README.pdf");
     private static byte[] CreateMarkdownThemeGallery(MarkdownPdfThemeKind themeKind) {
         string markdown = CreateMarkdownThemeGallerySource(themeKind);
         var options = new MarkdownPdfSaveOptions {
-            VisualTheme = MarkdownPdfVisualTheme.Create(themeKind)
+            PdfTheme = MarkdownPdfVisualTheme.Create(themeKind)
         };
 
         byte[] pdf = markdown.ToPdfFromMarkdown(options);
@@ -445,7 +445,7 @@ This page renders one first-party visual profile for headings, lists, tables, co
 > Quotes should read as supporting narrative.
 
 ```csharp
-var pdf = markdown.SaveAsPdf();
+var pdf = markdown.ToPdf();
 ```
 """.Replace("THEME_NAME", themeName);
     }

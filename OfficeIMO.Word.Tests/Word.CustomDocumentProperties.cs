@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.CustomDocumentProperties["TestDifferentWayNumber"].NumberInteger == 15);
                 Assert.True((int)document.CustomDocumentProperties["TestDifferentWayNumber"].Value == 15);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentCreationWithProperties.docx"))) {
 
@@ -116,7 +116,7 @@ namespace OfficeIMO.Tests {
                 document.CustomDocumentProperties["NumberDouble"].Value = 6.15;
                 document.CustomDocumentProperties["TestProperty"].Value = new DateTime(2010, 1, 1, 5, 5, 5);
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "SimpleWordDocumentCreationWithProperties.docx"))) {
 
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.CustomDocumentProperties["TestDifferentWayNumber"].NumberInteger == 15);
                 Assert.True((int)document.CustomDocumentProperties["TestDifferentWayNumber"].Value == 15);
 
-                document.Save(false);
+                document.Save();
             }
         }
 
@@ -165,7 +165,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Binary custom property");
                 document.CustomDocumentProperties.Add("BinaryPayload", new WordCustomProperty(payload));
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {

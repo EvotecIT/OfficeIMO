@@ -94,7 +94,7 @@ public class ConversionOptionsTests {
     [Fact]
     public void HtmlToWordOptions_CloneCopiesConfigurationWithoutDiagnostics() {
         using var httpClient = new HttpClient();
-        Action<HtmlConversionDiagnostic> handler = _ => { };
+        Action<StyleMissingEventArgs> handler = _ => { };
         var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
         options.FontFamily = "Aptos";
         options.QuotePrefix = "[";
@@ -125,7 +125,7 @@ public class ConversionOptionsTests {
         options.MaxCssBytes = 55;
         options.MaxTotalCssBytes = 66;
         options.MaxTableCells = 77;
-        options.DiagnosticHandler = handler;
+        options.StyleMissingHandler = handler;
         options.EnableAccessibilityDiagnostics = true;
         options.ImportHtmlComments = true;
         options.HtmlCommentAuthor = "HTML Reviewer";
@@ -147,9 +147,6 @@ public class ConversionOptionsTests {
         options.AllowedStylesheetHosts.Add("styles.example.test");
         options.AllowedStylesheetContentTypes.Clear();
         options.AllowedStylesheetContentTypes.Add("text/css");
-        options.Diagnostics.Add(new HtmlConversionDiagnostic("Existing", "Existing diagnostic"));
-        options.ConversionReport.Add("OfficeIMO.Word.Html", "Existing", "Existing diagnostic");
-
         var clone = options.Clone();
 
         Assert.Equal(options.FontFamily, clone.FontFamily);
@@ -180,7 +177,7 @@ public class ConversionOptionsTests {
         Assert.Equal(options.MaxCssBytes, clone.MaxCssBytes);
         Assert.Equal(options.MaxTotalCssBytes, clone.MaxTotalCssBytes);
         Assert.Equal(options.MaxTableCells, clone.MaxTableCells);
-        Assert.Same(handler, clone.DiagnosticHandler);
+        Assert.Same(handler, clone.StyleMissingHandler);
         Assert.Equal(options.EnableAccessibilityDiagnostics, clone.EnableAccessibilityDiagnostics);
         Assert.Equal(options.ImportHtmlComments, clone.ImportHtmlComments);
         Assert.Equal(options.HtmlCommentAuthor, clone.HtmlCommentAuthor);
@@ -199,9 +196,6 @@ public class ConversionOptionsTests {
         Assert.Equal(options.AllowedStylesheetUriSchemes, clone.AllowedStylesheetUriSchemes);
         Assert.Equal(options.AllowedStylesheetHosts, clone.AllowedStylesheetHosts);
         Assert.Equal(options.AllowedStylesheetContentTypes, clone.AllowedStylesheetContentTypes);
-        Assert.Empty(clone.Diagnostics);
-        Assert.Empty(clone.ConversionReport.Diagnostics);
-
         clone.ClassStyles["lead"] = WordParagraphStyles.Heading3;
         clone.StylesheetPaths.Add("other.css");
         clone.HyperlinkUrlPolicy.AllowedUrlSchemes.Add("mailto");

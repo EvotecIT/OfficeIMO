@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Word {
                     Console.WriteLine($"Found macro: {macro.Name}");
                     macro.Remove();
                 }
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

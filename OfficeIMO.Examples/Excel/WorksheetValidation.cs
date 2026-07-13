@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Excel {
             document.Execution.DiagnosticsRequested = true;
             document.Execution.OnInfo = message => Console.WriteLine($"[diagnostic] {message}");
 
-            var sheet = document.AddWorkSheet("Telemetry");
+            var sheet = document.AddWorksheet("Telemetry");
             var cells = Enumerable.Range(1, 20)
                 .SelectMany(row => Enumerable.Range(1, 3).Select(col => (row, col, (object)$"R{row}C{col}")))
                 .ToList();
@@ -30,7 +30,7 @@ namespace OfficeIMO.Examples.Excel {
             var fastCells = Enumerable.Range(21, 20).Select(i => (i, 1, (object)$"Fast {i}"));
             sheet.CellValues(fastCells, ExecutionMode.Parallel);
 
-            document.Save(openExcel);
+            document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
         }
     }
 }

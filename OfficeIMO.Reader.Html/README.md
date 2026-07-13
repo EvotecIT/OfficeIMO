@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Html)](https://www.nuget.org/packages/OfficeIMO.Reader.Html)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Html?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Html)
 
-`OfficeIMO.Reader.Html` registers a modular HTML ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Html` provides a modular HTML ingestion adapter for `OfficeIMO.Reader`.
 
 ## Install
 
@@ -11,21 +11,23 @@
 dotnet add package OfficeIMO.Reader.Html
 ```
 
-## Register
+## Configure
 
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 
-DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddHtmlHandler()
+    .Build();
 ```
 
 For untrusted or size-sensitive HTML:
 
 ```csharp
-DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
-    htmlOptions: ReaderHtmlOptions.CreateUntrustedHtmlProfile(maxInputCharacters: 100_000),
-    replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddHtmlHandler(ReaderHtmlOptions.CreateUntrustedHtmlProfile(maxInputCharacters: 100_000))
+    .Build();
 ```
 
 ## Examples
@@ -36,11 +38,11 @@ DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 
-DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler(
-    htmlOptions: ReaderHtmlOptions.CreatePortableProfile(),
-    replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddHtmlHandler(ReaderHtmlOptions.CreatePortableProfile())
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("page.html", new ReaderOptions {
+foreach (var chunk in reader.Read("page.html", new ReaderOptions {
     MarkdownChunkByHeadings = true,
     MaxChars = 5_000
 })) {
@@ -55,9 +57,11 @@ foreach (var chunk in DocumentReader.Read("page.html", new ReaderOptions {
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 
-DocumentReaderHtmlRegistrationExtensions.RegisterHtmlHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddHtmlHandler()
+    .Build();
 
-IReadOnlyList<ReaderTable> tables = DocumentReader.ReadTables("report.html",
+IReadOnlyList<ReaderTable> tables = reader.ReadTables("report.html",
     new ReaderOptions {
         MaxTableRows = 250
     });
@@ -70,8 +74,10 @@ foreach (var table in tables) {
 ### Read the rich document result
 
 ```csharp
-OfficeDocumentReadResult document =
-    DocumentReaderHtmlExtensions.ReadHtmlDocument("application.html");
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddHtmlHandler()
+    .Build();
+OfficeDocumentReadResult document = reader.ReadDocument("application.html");
 
 foreach (OfficeDocumentFormField field in document.Forms) {
     Console.WriteLine($"{field.Name}: {field.Value}");
@@ -82,7 +88,7 @@ foreach (OfficeDocumentLink link in document.Links) {
 }
 ```
 
-After registration, `DocumentReader.ReadDocument("application.html")` dispatches to this native rich mapping as well.
+`reader.ReadDocument("application.html")` dispatches to this native rich mapping.
 
 ## What it emits
 
@@ -95,7 +101,7 @@ After registration, `DocumentReader.ReadDocument("application.html")` dispatches
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - HTML to Markdown conversion belongs in `OfficeIMO.Markdown.Html`.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
 

@@ -9,12 +9,12 @@ namespace OfficeIMO.Word {
         public string ShadingFillColorHex {
             get {
                 var fill = _paragraphProperties?.Shading?.Fill?.Value;
-                return fill != null ? fill.ToLowerInvariant() : string.Empty;
+                return fill != null ? fill.ToUpperInvariant() : string.Empty;
             }
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value != string.Empty) {
-                    var color = value.Replace("#", string.Empty).ToLowerInvariant();
+                    var color = value.Replace("#", string.Empty).ToUpperInvariant();
                     props.Shading ??= new Shading();
                     props.Shading.Fill = color;
                     props.Shading.Val ??= ShadingPatternValues.Clear;
@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
-                    ShadingFillColorHex = value.Value.ToHexColor();
+                    ShadingFillColorHex = value.Value.ToRgbHex();
                 }
             }
         }

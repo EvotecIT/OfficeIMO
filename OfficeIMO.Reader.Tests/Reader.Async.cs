@@ -28,7 +28,9 @@ public sealed class ReaderAsyncTests {
 
             OfficeDocumentReadResult result = await reader.ReadDocumentAsync(file);
             IReadOnlyList<ReaderChunk> chunks = await reader.ReadAsync(file);
-            ReaderHandlerCapability capability = Assert.Single(reader.GetCapabilities(false, true));
+            ReaderHandlerCapability capability = Assert.Single(
+                reader.GetCapabilities(),
+                item => item.Id == "officeimo.tests.async.path");
 
             Assert.Equal("native-async-path", Assert.Single(result.Chunks).Text);
             Assert.Equal("native-async-path", Assert.Single(chunks).Text);

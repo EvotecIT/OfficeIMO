@@ -10,8 +10,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Reflection;
-using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -20,16 +18,6 @@ using System.Threading;
 namespace OfficeIMO.Reader;
 
 public static partial class DocumentReader {
-    private sealed class RegistrarCandidate {
-        public RegistrarCandidate(MethodInfo method, ReaderHandlerRegistrarDescriptor descriptor) {
-            Method = method ?? throw new ArgumentNullException(nameof(method));
-            Descriptor = descriptor ?? throw new ArgumentNullException(nameof(descriptor));
-        }
-
-        public MethodInfo Method { get; }
-        public ReaderHandlerRegistrarDescriptor Descriptor { get; }
-    }
-
     private sealed class FolderIngestState {
         public int FilesScanned { get; set; }
         public int FilesParsed { get; set; }

@@ -46,10 +46,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));
@@ -99,10 +99,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
 
-                document.Save(false);
+                document.Save();
             }
 
-            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+            using (WordDocument document = WordDocument.Load(filePath, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 WordTableOfContent list = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
                 Assert.Contains("List of Figures", TocText(list));

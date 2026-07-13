@@ -60,7 +60,7 @@ namespace OfficeIMO.Word {
         /// <param name="image">Image to extract bytes from.</param>
         /// <returns>Binary data representing the image.</returns>
         public static byte[] GetImageBytes(WordImage image) {
-            return image.GetBytes();
+            return image.ToBytes();
         }
 
         private static byte[] ResolveImageSource(string src) {

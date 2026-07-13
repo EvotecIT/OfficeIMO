@@ -186,7 +186,7 @@ namespace OfficeIMO.Examples.Word {
             innerFixed.Rows[1].Cells[0].AddParagraph("Inner L", true);
             innerFixed.Rows[1].Cells[1].AddParagraph("Inner R", true);
 
-            doc.Save(openWord);
+            doc.Save(new WordSaveOptions { OpenAfterSave = openWord });
         }
     }
 }

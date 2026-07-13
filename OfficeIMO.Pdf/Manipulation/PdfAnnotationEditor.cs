@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 namespace OfficeIMO.Pdf;
 
 /// <summary>Edits or removes PDF annotations without third-party dependencies.</summary>
@@ -566,6 +567,6 @@ public static partial class PdfAnnotationEditor {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllBytes(outputPath, bytes);
+        OfficeFileCommit.WriteAllBytes(outputPath, bytes);
     }
 }

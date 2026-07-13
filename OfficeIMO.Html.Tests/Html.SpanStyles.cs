@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             var doc = html.ToWordDocument(new HtmlToWordOptions());
             var run = doc.Paragraphs[0].GetRuns().First();
 
-            Assert.Equal("ff0000", run.ColorHex);
+            Assert.Equal("FF0000", run.ColorHex);
             Assert.Equal("Arial", run.FontFamily);
             Assert.Equal(24, run.FontSize);
         }

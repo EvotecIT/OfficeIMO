@@ -669,7 +669,7 @@ c | d
             Assert.Equal("first paragraph", list.Items[0].ParagraphBlocks[0].Inlines.RenderMarkdown());
             Assert.Equal("second paragraph", list.Items[0].ParagraphBlocks[1].Inlines.RenderMarkdown());
             Assert.Collection(
-                list.Items[0].BlockChildren,
+                list.Items[0].ChildBlocks,
                 block => Assert.Equal("first paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.Equal("second paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
 
@@ -1057,7 +1057,7 @@ after
                 block => Assert.Equal("item", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.IsType<QuoteBlock>(block),
                 block => Assert.Equal("trailing", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
-            Assert.Equal(list.Items[0].BlockChildren, list.Items[0].ChildBlocks);
+            Assert.Equal(list.Items[0].ChildBlocks, list.Items[0].ChildBlocks);
             Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
@@ -1084,7 +1084,7 @@ after
                 block => Assert.Equal("item", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.IsType<QuoteBlock>(block),
                 block => Assert.Equal("trailing", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
-            Assert.Equal(list.Items[0].BlockChildren, list.Items[0].ChildBlocks);
+            Assert.Equal(list.Items[0].ChildBlocks, list.Items[0].ChildBlocks);
             Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();

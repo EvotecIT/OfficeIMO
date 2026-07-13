@@ -24,24 +24,20 @@ public sealed class ReaderAsciiDocModularTests {
     }
 
     [Fact]
-    public void RegisteredHandler_DispatchesStreamAndReaderAddsHashes() {
-        try {
-            DocumentReaderAsciiDocRegistrationExtensions.RegisterAsciiDocHandler();
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes("= Registry\n\nContent\n"), writable: false);
+    public void BuilderHandler_DispatchesStreamAndReaderAddsHashes() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddAsciiDocHandler().Build();
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes("= Registry\n\nContent\n"), writable: false);
 
-            ReaderChunk[] chunks = DocumentReader.Read(stream, "registry.adoc").ToArray();
+        ReaderChunk[] chunks = reader.Read(stream, "registry.adoc").ToArray();
 
-            Assert.NotEmpty(chunks);
-            Assert.Equal(ReaderInputKind.AsciiDoc, DocumentReader.DetectKind("registry.adoc"));
-            Assert.All(chunks, chunk => {
-                Assert.Equal(ReaderInputKind.AsciiDoc, chunk.Kind);
-                Assert.False(string.IsNullOrWhiteSpace(chunk.SourceId));
-                Assert.False(string.IsNullOrWhiteSpace(chunk.ChunkHash));
-                Assert.Equal("asciidoc", chunk.Diagnostics?.SourceKind);
-            });
-        } finally {
-            DocumentReaderAsciiDocRegistrationExtensions.UnregisterAsciiDocHandler();
-        }
+        Assert.NotEmpty(chunks);
+        Assert.Equal(ReaderInputKind.AsciiDoc, reader.DetectKind("registry.adoc"));
+        Assert.All(chunks, chunk => {
+            Assert.Equal(ReaderInputKind.AsciiDoc, chunk.Kind);
+            Assert.False(string.IsNullOrWhiteSpace(chunk.SourceId));
+            Assert.False(string.IsNullOrWhiteSpace(chunk.ChunkHash));
+            Assert.Equal("asciidoc", chunk.Diagnostics?.SourceKind);
+        });
     }
 
     [Fact]

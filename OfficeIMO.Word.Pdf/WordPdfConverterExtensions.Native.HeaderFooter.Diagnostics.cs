@@ -691,7 +691,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void AddNativeExportWarning(PdfSaveOptions options, string code, string source, string message) {
             var warning = new PdfExportWarning(code, source, message);
             options.Warnings.Add(warning);
-            options.ConversionReport.Add(warning.ToConversionWarning());
+            options.Report.Add(warning.ToConversionWarning());
         }
 
     }

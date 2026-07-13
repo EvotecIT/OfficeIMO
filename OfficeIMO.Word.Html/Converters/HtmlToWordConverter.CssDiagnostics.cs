@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -127,11 +128,11 @@ namespace OfficeIMO.Word.Html {
 
             if (_options.UnsupportedCssHandling == HtmlUnsupportedCssHandling.Error) {
                 var exception = new HtmlUnsupportedCssException(code, message, source, detail);
-                AddDiagnostic(_options, code, message, source, exception, HtmlConversionDiagnosticSeverity.Error);
+                AddDiagnostic(_options, code, message, source, exception, HtmlDiagnosticSeverity.Error);
                 throw exception;
             }
 
-            AddDiagnostic(_options, code, message, source, detail == null ? null : new HtmlUnsupportedCssException(code, message, source, detail));
+            AddDiagnostic(_options, code, message, source, detail == null ? null : new HtmlUnsupportedCssException(code, message, source, detail), lossKind: HtmlConversionLossKind.Approximation);
         }
 
         private static bool TryGetUnsupportedCssValueReason(string elementName, string propertyName, string? rawValue, out string reason) {

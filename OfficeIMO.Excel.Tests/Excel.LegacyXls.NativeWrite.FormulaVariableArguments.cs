@@ -12,8 +12,8 @@ namespace OfficeIMO.Tests {
             string formula = "SUBTOTAL(9," + string.Join(",", Enumerable.Range(1, 31).Select(row => $"A{row}")) + ")";
 
             try {
-                using (ExcelDocument document = ExcelDocument.Create(openXmlPath, autoSave: false)) {
-                    ExcelSheet sheet = document.AddWorkSheet("SubtotalArgs");
+                using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
+                    ExcelSheet sheet = document.AddWorksheet("SubtotalArgs");
                     for (int row = 1; row <= 31; row++) {
                         sheet.CellValue(row, 1, row);
                     }

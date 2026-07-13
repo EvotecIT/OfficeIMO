@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(defaultFooter.Paragraphs[0].GetRuns().Count() == 1);
                 Assert.True(defaultFooter.Paragraphs[0].Text == "Footer clutter text");
 
-                document.Save(false);
+                document.Save();
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CleanupHeadersAndFooters.docx"))) {
                 var reloadedHeader = RequireSectionHeader(document, 0, HeaderFooterValues.Default);

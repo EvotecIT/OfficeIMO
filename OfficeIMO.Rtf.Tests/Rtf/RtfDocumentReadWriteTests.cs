@@ -71,7 +71,7 @@ public partial class RtfDocumentReadWriteTests {
         document.Save(stream, options);
         Assert.Equal(bytes, stream.ToArray());
 
-        using MemoryStream memoryStream = document.ToMemoryStream(options);
+        using MemoryStream memoryStream = document.ToStream(options);
         Assert.Equal(bytes, memoryStream.ToArray());
 
         RtfReadResult read = RtfDocument.Load(bytes);
@@ -101,6 +101,36 @@ public partial class RtfDocumentReadWriteTests {
             File.Delete(syncPath);
             File.Delete(asyncPath);
         }
+    }
+
+    [Fact]
+    public async Task Save_File_Preserves_Explicit_Encoding_Preambles() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddParagraph("Encoded ż");
+        string syncPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".rtf");
+        string asyncPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".rtf");
+        Encoding syncEncoding = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+        Encoding asyncEncoding = Encoding.Unicode;
+
+        try {
+            document.Save(syncPath, encoding: syncEncoding);
+            await document.SaveAsync(asyncPath, encoding: asyncEncoding);
+
+            AssertFileStartsWithPreamble(syncPath, syncEncoding);
+            AssertFileStartsWithPreamble(asyncPath, asyncEncoding);
+        } finally {
+            File.Delete(syncPath);
+            File.Delete(asyncPath);
+        }
+    }
+
+    private static void AssertFileStartsWithPreamble(string path, Encoding encoding) {
+        byte[] bytes = File.ReadAllBytes(path);
+        byte[] preamble = encoding.GetPreamble();
+
+        Assert.NotEmpty(preamble);
+        Assert.True(bytes.Take(preamble.Length).SequenceEqual(preamble));
+        Assert.StartsWith(@"{\rtf1", encoding.GetString(bytes, preamble.Length, bytes.Length - preamble.Length), StringComparison.Ordinal);
     }
 
     [Fact]

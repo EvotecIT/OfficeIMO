@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             using (var document = WordDocument.Create(filePath)) {
                 var p = document.AddParagraph("Anchor here");
                 var shape = WordShape.AddDrawingShapeAnchored(p, ShapeType.Rectangle, 80, 40, leftPt: 36, topPt: 72);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {
@@ -52,7 +52,7 @@ namespace OfficeIMO.Tests {
                 var p2 = document.AddParagraph("B");
                 WordShape.AddDrawingShapeAnchored(p1, ShapeType.Rectangle, 40, 40, 10, 10);
                 WordShape.AddDrawingShapeAnchored(p2, ShapeType.Ellipse, 30, 30, 20, 20);
-                document.Save(false);
+                document.Save();
             }
 
             using (var document = WordDocument.Load(filePath)) {

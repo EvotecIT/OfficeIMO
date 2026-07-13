@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using OfficeIMO;
@@ -25,9 +26,9 @@ namespace OfficeIMO.Examples.Word {
                     .Paragraph(p => p.Text("Table below"))
                     .Table(t => t.Create(2, 2))
                     .End()
-                    .Save(false);
+                    .Save();
             }
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

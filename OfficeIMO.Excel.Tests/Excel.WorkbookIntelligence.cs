@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string rightPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookIntelligence.Right.xlsx");
 
             using (var document = ExcelDocument.Create(leftPath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 10);
                 sheet.CellValue(1, 2, 20);
                 sheet.CellFormula(1, 3, "SUM(A1:B1)+NOW()");
@@ -23,15 +23,15 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(rightPath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 11);
                 sheet.CellValue(1, 2, 20);
                 sheet.CellFormula(1, 3, "SUM(A1:B1)");
                 document.Save();
             }
 
-            using (var left = ExcelDocument.Load(leftPath, readOnly: false))
-            using (var right = ExcelDocument.Load(rightPath, readOnly: true)) {
+            using (var left = ExcelDocument.Load(leftPath))
+            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelFormulaAnalysisReport formulas = left.AnalyzeFormulas();
                 Assert.Equal(1, formulas.FormulaCount);
                 Assert.Equal(1, formulas.VolatileFormulaCount);
@@ -66,7 +66,7 @@ namespace OfficeIMO.Tests {
             string rightPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookIntelligence.Advanced.Right.xlsx");
 
             using (var document = ExcelDocument.Create(leftPath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "{{CustomerName}}");
                 sheet.CellValue(1, 2, 10);
                 sheet.CellFormula(1, 3, "SUM(B1:B1)");
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Create(rightPath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Northwind");
                 sheet.CellValue(1, 2, 10);
                 sheet.CellFormula(1, 3, "SUM(B1:B1)");
@@ -98,8 +98,8 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var left = ExcelDocument.Load(leftPath, readOnly: false))
-            using (var right = ExcelDocument.Load(rightPath, readOnly: true)) {
+            using (var left = ExcelDocument.Load(leftPath))
+            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookCommentReport comments = left.InspectComments();
                 Assert.Equal(1, comments.CommentCount);
                 Assert.Empty(comments.Issues);
@@ -148,18 +148,20 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookIntelligence.NamedRangeSave.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 document.SetNamedRange("Totals", "'Data'!A1:B1", scope: sheet, save: true);
+                document.Save();
             }
 
             using (var document = ExcelDocument.Load(filePath)) {
                 ExcelSheet sheet = document["Data"];
                 Assert.True(document.RenameNamedRange("Totals", "GrandTotal", sheet, save: true));
+                document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelSheet sheet = document["Data"];
                 Assert.Null(document.GetNamedRange("Totals", sheet));
                 Assert.Equal("$A$1:$B$1", document.GetNamedRange("GrandTotal", sheet));
@@ -169,12 +171,12 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void Test_ExcelWorkbookIntelligence_RepairSaveSkipsMissingDefaultDestination() {
             using var stream = new MemoryStream();
-            using (var document = ExcelDocument.Create(stream, autoSave: true)) {
-                document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
+            using (var document = ExcelDocument.Create(stream, new OfficeIMO.Excel.ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
+                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
             }
 
             stream.Position = 0;
-            using (var document = ExcelDocument.Load(stream, readOnly: false, autoSave: false)) {
+            using (var document = ExcelDocument.Load(stream)) {
                 ExcelWorkbookRepairReport repair = document.RepairWorkbook(new ExcelWorkbookRepairOptions { Save = true });
                 Assert.NotNull(repair.Before);
                 Assert.NotNull(repair.After);
@@ -186,7 +188,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookIntelligence.QueryMissingSheet.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data");
+                document.AddWorksheet("Data");
 
                 Assert.Throws<ArgumentOutOfRangeException>(() => document.AddPowerQueryMetadata(new ExcelPowerQueryMetadataOptions {
                     Name = "MissingSheetQuery",
@@ -205,22 +207,22 @@ namespace OfficeIMO.Tests {
             string rightPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookDiff.RightSparse.xlsx");
 
             using (var document = ExcelDocument.Create(leftPath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "A");
                 sheet.CellValue(1, 3, "C");
                 document.Save();
             }
 
             using (var document = ExcelDocument.Create(rightPath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "A");
                 sheet.CellValue(1, 2, "B");
                 sheet.CellValue(1, 3, "C");
                 document.Save();
             }
 
-            using (var left = ExcelDocument.Load(leftPath, readOnly: true))
-            using (var right = ExcelDocument.Load(rightPath, readOnly: true)) {
+            using (var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
+            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookDiffReport diff = left.CompareWorkbook(right);
                 Assert.Contains(diff.Differences, difference => difference.Category == "Cell" && difference.Address == "B1" && difference.RightValue == "B");
             }
@@ -232,7 +234,7 @@ namespace OfficeIMO.Tests {
 
             string parentId;
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Review");
+                var sheet = document.AddWorksheet("Review");
                 sheet.CellValue(1, 1, "Variance");
                 sheet.CellValue(1, 2, 123.45);
 
@@ -279,7 +281,7 @@ namespace OfficeIMO.Tests {
                 document.Save();
             }
 
-            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+            using (var document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookCommentReport comments = document.InspectComments();
                 Assert.Equal(2, comments.ThreadedCommentCount);
                 Assert.Contains(comments.ThreadedComments, comment => comment.Id == parentId && comment.Author == "Finance Reviewer");
@@ -320,19 +322,19 @@ namespace OfficeIMO.Tests {
             string rightPath = Path.Combine(_directoryWithFiles, "ExcelWorkbookDiff.RightStyle.xlsx");
 
             using (var left = ExcelDocument.Create(leftPath)) {
-                left.AddWorkSheet("Data");
+                left.AddWorksheet("Data");
                 left.Save();
             }
 
             using (var right = ExcelDocument.Create(rightPath)) {
-                var sheet = right.AddWorkSheet("Data");
+                var sheet = right.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Styled");
                 sheet.CellBold(1, 1, true);
                 right.Save();
             }
 
-            using (var left = ExcelDocument.Load(leftPath, readOnly: true))
-            using (var right = ExcelDocument.Load(rightPath, readOnly: true)) {
+            using (var left = ExcelDocument.Load(leftPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly }))
+            using (var right = ExcelDocument.Load(rightPath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelWorkbookDiffReport report = left.CompareWorkbook(right, new ExcelWorkbookDiffOptions {
                     CompareCells = false,
                     CompareCellStyles = true,

@@ -18,7 +18,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
 
         string html = presentation.ToHtml();
         HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
-        using PowerPointPresentation imported = result.Presentation;
+        using PowerPointPresentation imported = result.Value;
         PowerPointTable importedTable = Assert.Single(Assert.Single(imported.Slides).Tables);
 
         Assert.Contains("<td rowspan=\"2\" colspan=\"2\">Merged heading</td>", html, StringComparison.Ordinal);
@@ -44,7 +44,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             """;
 
         HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
-        using PowerPointPresentation presentation = result.Presentation;
+        using PowerPointPresentation presentation = result.Value;
         PowerPointTable table = Assert.Single(Assert.Single(presentation.Slides).Tables);
 
         Assert.Equal(1, result.MergedRanges);
@@ -66,7 +66,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             """;
 
         HtmlToPowerPointResult result = html.ToPowerPointPresentationResult(new HtmlToPowerPointOptions { MaxTableCells = 4 });
-        using PowerPointPresentation presentation = result.Presentation;
+        using PowerPointPresentation presentation = result.Value;
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
         Assert.Equal((1, 1), Assert.Single(Assert.Single(presentation.Slides).Tables).GetCell(0, 0).Merge);

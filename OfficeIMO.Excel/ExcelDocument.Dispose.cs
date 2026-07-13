@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
+using OfficeIMO.Drawing;
 using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
@@ -30,24 +31,14 @@ namespace OfficeIMO.Excel {
             try {
                 if (this._spreadSheetDocument != null) {
                     try {
-                        if (_copyPackageToSourceOnDispose && _sourceStream != null && !this._spreadSheetDocument.AutoSave) {
-                            if (!TryWriteDirectDataSetPackage(_sourceStream, options: null, updateDocumentState: true, CancellationToken.None, out _)
-                                && !TryWriteSimpleWorkbookPackage(_sourceStream, options: null, updateDocumentState: true, out _)) {
-                                Save(_sourceStream);
-                            }
-
+                        if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
+                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read &&
+                                              (IsPackageDirty || _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose);
                             _copyPackageToSourceOnDispose = false;
-                        }
-
-                        if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
-                            lock (_sharedStringLock) {
-                                if (_sharedStringTableDirty) {
-                                    _sharedStringTablePart?.SharedStringTable?.Save();
-                                    _sharedStringTableDirty = false;
-                                }
+                            _copyPackageToFilePathOnDispose = false;
+                            if (shouldSave) {
+                                Save();
                             }
-
-                            WorkbookRoot.Save();
                         }
 
                         this._spreadSheetDocument.Dispose();
@@ -67,8 +58,8 @@ namespace OfficeIMO.Excel {
                 if (_ownedOpenStream != null) {
                     try {
                         _ownedOpenStream.Dispose();
-                    } catch {
-                        // ignored
+                    } catch (Exception ex) {
+                        persistenceFailure ??= ex;
                     }
                     _ownedOpenStream = null;
                 }
@@ -96,27 +87,17 @@ namespace OfficeIMO.Excel {
             try {
                 if (this._spreadSheetDocument != null) {
                     try {
-                        if (_copyPackageToSourceOnDispose && _sourceStream != null && !this._spreadSheetDocument.AutoSave) {
-                            if (!TryWriteDirectDataSetPackage(_sourceStream, options: null, updateDocumentState: true, CancellationToken.None, out _)
-                                && !TryWriteSimpleWorkbookPackage(_sourceStream, options: null, updateDocumentState: true, out _)) {
-                                Save(_sourceStream);
-                            }
-
+                        if (_persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
+                            bool shouldSave = this._spreadSheetDocument.FileOpenAccess != FileAccess.Read &&
+                                              (IsPackageDirty || _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose);
                             _copyPackageToSourceOnDispose = false;
-                        }
-
-                        if (this._spreadSheetDocument.AutoSave && this._spreadSheetDocument.FileOpenAccess != FileAccess.Read) {
-                            lock (_sharedStringLock) {
-                                if (_sharedStringTableDirty) {
-                                    _sharedStringTablePart?.SharedStringTable?.Save();
-                                    _sharedStringTableDirty = false;
-                                }
+                            _copyPackageToFilePathOnDispose = false;
+                            if (shouldSave) {
+                                await SaveAsync().ConfigureAwait(false);
                             }
-
-                            WorkbookRoot.Save();
                         }
 
-                        await Task.Run(() => this._spreadSheetDocument.Dispose()).ConfigureAwait(false);
+                        this._spreadSheetDocument.Dispose();
                     } catch (Exception ex) {
                         persistenceFailure = ex;
                     } finally {
@@ -133,8 +114,8 @@ namespace OfficeIMO.Excel {
                 if (_ownedOpenStream != null) {
                     try {
                         _ownedOpenStream.Dispose();
-                    } catch {
-                        // ignored
+                    } catch (Exception ex) {
+                        persistenceFailure ??= ex;
                     }
                     _ownedOpenStream = null;
                 }
@@ -192,7 +173,7 @@ namespace OfficeIMO.Excel {
             var targetStream = _sourceStream ?? throw new InvalidOperationException("Source stream is not available.");
 
             if (!targetStream.CanSeek) {
-                throw new InvalidOperationException("The provided stream must support seeking when autoSave is enabled.");
+                throw new InvalidOperationException("The provided stream must support seeking when SaveOnDispose is enabled.");
             }
 
             if (packageStream.CanSeek) {

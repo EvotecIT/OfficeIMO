@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Word {
             string outputPath = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Documents");
             string documentPaths = System.IO.Path.Combine(System.IO.Directory.GetCurrentDirectory(), "Templates");
 
-            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "DocumentWithImagesWraps.docx"), true)) {
+            using (WordDocument document = WordDocument.Load(System.IO.Path.Combine(documentPaths, "DocumentWithImagesWraps.docx"), new OfficeIMO.Word.WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 Console.WriteLine("+ Document paragraphs: " + document.Paragraphs.Count);
                 var images = document.Images;
                 Console.WriteLine("+ Document images: " + images.Count);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Examples.Word {
                 var defaultFooter = document.FooterDefaultOrCreate;
                 var footerImages = defaultFooter.Images;
                 Console.WriteLine("+ Document images in footer: " + footerImages.Count);
-                //document.Images[0].SaveToFile(System.IO.Path.Combine(outputPath, "random.jpg"));
+                //document.Images[0].Save(System.IO.Path.Combine(outputPath, "random.jpg"));
 
                 Console.WriteLine("----");
                 foreach (var image in images) {

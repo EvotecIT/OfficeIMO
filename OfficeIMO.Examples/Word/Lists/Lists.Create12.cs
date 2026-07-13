@@ -19,7 +19,7 @@ namespace OfficeIMO.Examples.Word {
                 // This will be added to the list, but after last paragraph
                 list.AddItem("List");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Word {
                 var para3 = document.AddParagraph("Control 3:");
                 para3.AddStructuredDocumentTag(text: "Third", alias: "Alias3", tag: "Tag3");
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -27,7 +27,7 @@ namespace OfficeIMO.Examples.Word {
                 var tagControl = Guard.NotNull(document.GetStructuredDocumentTagByTag("Tag3"), "Content control with tag 'Tag3' was not found.");
                 Console.WriteLine("Tag3 text before: " + tagControl.Text);
                 tagControl.Text = "Modified";
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

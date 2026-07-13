@@ -10,19 +10,10 @@ public sealed class RtfPdfSaveOptions {
     public RtfPdfSaveOptions() {
     }
 
-    private RtfPdfSaveOptions(PdfCore.PdfConversionReport conversionReport, RtfConversionReport rtfConversionReport) {
-        ConversionReport = conversionReport;
-        RtfConversionReport = rtfConversionReport;
-    }
-
     /// <summary>Optional PDF engine options. The converter clones the instance before applying RTF page setup.</summary>
     public PdfCore.PdfOptions? PdfOptions { get; set; }
 
-    /// <summary>Shared conversion diagnostics populated during PDF export.</summary>
-    public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
-
-    /// <summary>Shared cross-adapter RTF fidelity report populated during PDF export.</summary>
-    public RtfConversionReport RtfConversionReport { get; } = new RtfConversionReport();
+    internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
     /// <summary>When true, RTF hidden runs are included in PDF output. Hidden text is skipped by default.</summary>
     public bool IncludeHiddenText { get; set; }
@@ -55,7 +46,7 @@ public sealed class RtfPdfSaveOptions {
     public bool IncludeNotes { get; set; } = true;
 
     /// <summary>Returns a normalized copy with valid dimensions and independent PDF options.</summary>
-    internal RtfPdfSaveOptions Normalize() {
+    internal RtfPdfSaveOptions CloneForConversion() {
         if (DefaultImageWidth <= 0) {
             throw new ArgumentOutOfRangeException(nameof(DefaultImageWidth), "Default image width must be greater than zero.");
         }
@@ -64,7 +55,7 @@ public sealed class RtfPdfSaveOptions {
             throw new ArgumentOutOfRangeException(nameof(DefaultImageHeight), "Default image height must be greater than zero.");
         }
 
-        return new RtfPdfSaveOptions(ConversionReport, RtfConversionReport) {
+        return new RtfPdfSaveOptions {
             PdfOptions = PdfOptions?.Clone(),
             IncludeHiddenText = IncludeHiddenText,
             IncludeImages = IncludeImages,
@@ -78,8 +69,4 @@ public sealed class RtfPdfSaveOptions {
         };
     }
 
-    internal void ResetExportState() {
-        ConversionReport.Clear();
-        RtfConversionReport.Clear();
-    }
 }

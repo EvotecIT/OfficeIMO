@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Excel {
             string filePath = System.IO.Path.Combine(folderPath, "DataTable TimeSpans.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Durations");
+                var sheet = document.AddWorksheet("Durations");
 
                 var table = new DataTable();
                 table.Columns.Add("Task", typeof(string));
@@ -24,7 +24,7 @@ namespace OfficeIMO.Examples.Excel {
 
                 sheet.InsertDataTable(table, includeHeaders: true);
 
-                document.Save(openExcel);
+                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
             }
         }
     }

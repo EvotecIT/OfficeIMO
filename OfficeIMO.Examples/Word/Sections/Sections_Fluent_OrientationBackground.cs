@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -19,10 +20,10 @@ namespace OfficeIMO.Examples.Word {
                             .Background("FFD700")
                             .Paragraph(p => p.Text("Landscape section with background")))
                     .End()
-                    .Save(false);
+                    .Save();
             }
 
-            Helpers.Open(filePath, openWord);
+            if (openWord) OfficeFileLauncher.Open(filePath);
         }
     }
 }

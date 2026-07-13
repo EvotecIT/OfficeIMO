@@ -431,10 +431,10 @@ public static partial class DocumentReader {
             AppendEmailSummaryValue(builder, "Surname", document.Contact.Surname);
             AppendEmailSummaryValue(builder, "Company", document.Contact.CompanyName);
             AppendEmailSummaryValue(builder, "Job title", document.Contact.JobTitle);
-            AppendEmailSummaryValue(builder, "Business phone", document.Contact.BusinessPhone);
-            AppendEmailSummaryValue(builder, "Home phone", document.Contact.HomePhone);
-            AppendEmailSummaryValue(builder, "Mobile phone", document.Contact.MobilePhone);
-            AppendEmailSummaryValue(builder, "Email", document.Contact.Email1Address);
+            AppendEmailSummaryValue(builder, "Business phone", document.Contact.Phones.Business);
+            AppendEmailSummaryValue(builder, "Home phone", document.Contact.Phones.Home);
+            AppendEmailSummaryValue(builder, "Mobile phone", document.Contact.Phones.Mobile);
+            AppendEmailSummaryValue(builder, "Email", document.Contact.Email1.Address);
         }
         if (document.Task != null) {
             AppendEmailSummaryValue(builder, "Task start", FormatEmailDate(document.Task.Start));

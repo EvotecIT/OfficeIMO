@@ -15,11 +15,11 @@ namespace OfficeIMO.Tests {
             var (style, size, colorHex) = table.StyleDetails!.GetBorderProperties(WordTableBorderSide.Top);
             Assert.Equal(BorderValues.Single, style);
             Assert.Equal((UInt32Value)12U, size);
-            Assert.Equal("ff0000", colorHex);
+            Assert.Equal("FF0000", colorHex);
             var cell = table.Rows[0].Cells[0];
-            Assert.Equal("00ff00", cell.ShadingFillColorHex);
+            Assert.Equal("00FF00", cell.ShadingFillColorHex);
             Assert.Equal(BorderValues.Dashed, cell.Borders.TopStyle);
-            Assert.Equal("0000ff", cell.Borders.TopColorHex);
+            Assert.Equal("0000FF", cell.Borders.TopColorHex);
         }
 
         [Fact]

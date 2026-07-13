@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Reader.Json)](https://www.nuget.org/packages/OfficeIMO.Reader.Json)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Reader.Json?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Reader.Json)
 
-`OfficeIMO.Reader.Json` registers a modular JSON ingestion adapter for `OfficeIMO.Reader`.
+`OfficeIMO.Reader.Json` provides a modular JSON ingestion adapter for `OfficeIMO.Reader`.
 
 ## Install
 
@@ -11,13 +11,15 @@
 dotnet add package OfficeIMO.Reader.Json
 ```
 
-## Register
+## Configure
 
 ```csharp
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Json;
 
-DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddJsonHandler()
+    .Build();
 ```
 
 ## Examples
@@ -28,13 +30,15 @@ DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(replaceExisting: tr
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Json;
 
-DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler(new JsonReadOptions {
-    ChunkRows = 100,
-    MaxDepth = 16,
-    IncludeMarkdown = true
-}, replaceExisting: true);
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddJsonHandler(new JsonReadOptions {
+        ChunkRows = 100,
+        MaxDepth = 16,
+        IncludeMarkdown = true
+    })
+    .Build();
 
-foreach (var chunk in DocumentReader.Read("appsettings.json", new ReaderOptions {
+foreach (var chunk in reader.Read("appsettings.json", new ReaderOptions {
     MaxInputBytes = 5L * 1024L * 1024L
 })) {
     Console.WriteLine(chunk.Markdown ?? chunk.Text);
@@ -47,10 +51,12 @@ foreach (var chunk in DocumentReader.Read("appsettings.json", new ReaderOptions 
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Json;
 
-DocumentReaderJsonRegistrationExtensions.RegisterJsonHandler();
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddJsonHandler()
+    .Build();
 
 await using var stream = File.OpenRead("payload.json");
-var chunks = DocumentReader.Read(stream, "payload.json", new ReaderOptions {
+var chunks = reader.Read(stream, "payload.json", new ReaderOptions {
     MaxChars = 3_000
 }).ToList();
 ```
@@ -65,9 +71,8 @@ var chunks = DocumentReader.Read(stream, "payload.json", new ReaderOptions {
 
 ## Boundaries
 
-- Reader adapter registration belongs here.
+- Reader adapter configuration belongs here.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
-- `OfficeIMO.Reader.Text` exists only as a compatibility orchestrator for structured text adapters.
 
 ## Targets and license
 

@@ -42,7 +42,7 @@ namespace OfficeIMO.Examples.Word {
 
                 document.Settings.SetBackgroundColor(Color.Azure);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

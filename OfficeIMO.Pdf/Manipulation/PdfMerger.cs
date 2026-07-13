@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System.Globalization;
 
 namespace OfficeIMO.Pdf;
@@ -233,7 +234,7 @@ public static partial class PdfMerger {
         var merged = MergeFilesToBytes((IEnumerable<string>)inputPaths);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullOutputPath, merged);
+        OfficeFileCommit.WriteAllBytes(fullOutputPath, merged);
     }
 
     /// <summary>
@@ -246,7 +247,7 @@ public static partial class PdfMerger {
         var merged = MergeFilesToBytes(inputPaths);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullOutputPath, merged);
+        OfficeFileCommit.WriteAllBytes(fullOutputPath, merged);
     }
 
     /// <summary>
@@ -260,7 +261,7 @@ public static partial class PdfMerger {
         var merged = MergeFilesToBytes(options, inputPaths);
         var directory = Path.GetDirectoryName(fullOutputPath);
         if (!string.IsNullOrEmpty(directory)) Directory.CreateDirectory(directory);
-        File.WriteAllBytes(fullOutputPath, merged);
+        OfficeFileCommit.WriteAllBytes(fullOutputPath, merged);
     }
 
     /// <summary>

@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             using (var doc = ExcelDocument.Create(filePath)) {
                 // Case-sensitive comparer first: allow "Table" and "TABLE" side by side
                 doc.TableNameComparer = System.StringComparer.Ordinal; // case-sensitive
-                var s = doc.AddWorkSheet("Data");
+                var s = doc.AddWorksheet("Data");
                 s.CellValue(1, 1, "A");
                 s.AddTable("A1:A1", hasHeader: true, name: "Table", TableStyle.TableStyleMedium9);
 

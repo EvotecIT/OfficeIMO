@@ -79,7 +79,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(section.Paragraphs[0].Text == "Section 5");
                 Assert.True(section2.Paragraphs[0].Text == "Section 6");
 
-                document.Save(false);
+                document.Save();
                 // Validation may report benign ordering differences across platforms; skip strict unexpected-elements check
             }
             using (WordDocument document = WordDocument.Load(Path.Combine(_directoryWithFiles, "CreateDocumentPageSettings.docx"))) {

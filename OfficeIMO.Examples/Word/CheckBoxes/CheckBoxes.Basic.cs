@@ -12,14 +12,14 @@ namespace OfficeIMO.Examples.Word {
                 var paragraph = document.AddParagraph("Accept terms:");
                 var checkBox = paragraph.AddCheckBox(true, "Terms", "TermsTag");
                 Console.WriteLine($"Checkbox initially checked: {checkBox.IsChecked}");
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var checkBox = document.CheckBoxes[0];
                 Console.WriteLine($"Loaded state: {checkBox.IsChecked}");
                 checkBox.IsChecked = false;
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
     }

@@ -109,7 +109,7 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -128,7 +128,7 @@ namespace OfficeIMO.Examples.Word {
 
                 //Console.WriteLine("Watermarks in document: " + document.Watermarks.Count);
 
-                document.Save(openWord);
+                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
             }
         }
 

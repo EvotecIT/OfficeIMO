@@ -16,7 +16,7 @@ namespace OfficeIMO.Examples.Word {
             barChart.AddBar("Poland", new List<int> { 13, 20, 230, 150 }, Color.Green);
             barChart.BarGrouping = BarGroupingValues.Clustered;
             barChart.BarDirection = BarDirectionValues.Column;
-            document.Save(false);
+            document.Save();
 
             var valid = document.ValidateDocument();
             if (valid.Count > 0) {
@@ -28,7 +28,7 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Document is valid.");
             }
 
-            document.Open(openWord);
+            if (openWord) document.OpenInApplication();
         }
     }
 }

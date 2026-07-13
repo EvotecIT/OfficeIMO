@@ -23,6 +23,11 @@ namespace OfficeIMO.Tests {
             MethodInfo[] presentationMethods = typeof(PowerPointPresentation).GetMethods(BindingFlags.Public |
                 BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);
             Assert.Single(presentationMethods, method => method.Name == nameof(PowerPointPresentation.Compose));
+            Assert.DoesNotContain(presentationMethods, method => method.Name == "Open");
+            Assert.DoesNotContain(presentationMethods, method => method.Name is "Save" or "SaveAsync" or "SaveEncrypted" &&
+                method.GetParameters().Any(parameter => parameter.ParameterType == typeof(bool)));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.ToBytes));
+            Assert.Contains(presentationMethods, method => method.Name == nameof(PowerPointPresentation.SaveAsync));
             Assert.DoesNotContain(presentationMethods, method => method.Name == "OpenRead");
             Assert.DoesNotContain(presentationMethods, method => method.Name == "CreateFromTemplate");
             Assert.DoesNotContain(presentationMethods, method => method.Name == "InspectTemplate");
@@ -45,7 +50,7 @@ namespace OfficeIMO.Tests {
                 PowerPointDeckPlan plan = new PowerPointDeckPlan()
                     .AddSection("Operating model", "One semantic plan and one renderer")
                     .AddCardGrid("Ownership", "Concrete objects remain editable", new[] {
-                        new PowerPointCardContent("Lifecycle", new[] { "Create", "Open", "Save" }),
+                        new PowerPointCardContent("Lifecycle", new[] { "Create", "Load", "Save" }),
                         new PowerPointCardContent("Editing", new[] { "Slides", "Shapes", "Content" })
                     });
                 PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#008C95", "public-api-contract");
@@ -65,8 +70,8 @@ namespace OfficeIMO.Tests {
                     presentation.Save();
                 }
 
-                using PowerPointPresentation reopened = PowerPointPresentation.Open(path,
-                    PowerPointOpenMode.ReadOnly);
+                using PowerPointPresentation reopened = PowerPointPresentation.Load(path,
+                    new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
                 Assert.Contains(reopened.Slides.SelectMany(slide => slide.TextBoxes),
                     textBox => textBox.Text == "Edited after composition");
                 Assert.Empty(reopened.ValidateDocument());
@@ -79,14 +84,14 @@ namespace OfficeIMO.Tests {
         public void StreamOptionsMakePersistenceAndReadOnlyIntentExplicit() {
             using var stream = new MemoryStream();
             using (PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
-                       new PowerPointStreamCreateOptions { AutoSave = true })) {
+                       new PowerPointCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
                 Assert.Empty(presentation.Slides);
                 presentation.AddSlide().AddTitle("Stream lifecycle");
                 Assert.Single(presentation.Slides);
             }
 
-            using PowerPointPresentation reopened = PowerPointPresentation.Open(stream,
-                new PowerPointStreamOpenOptions { Mode = PowerPointOpenMode.ReadOnly });
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream,
+                new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Equal("Stream lifecycle", reopened.Slides[0].TextBoxes.First().Text);
         }
 
@@ -99,7 +104,7 @@ namespace OfficeIMO.Tests {
             PowerPointDeckDesign design = PowerPointDeckDesign.FromBrand("#D93025", "invalid-plan-theme");
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
-                new PowerPointStreamCreateOptions { AutoSave = false });
+                new PowerPointCreateOptions());
             string originalThemeName = presentation.ThemeName;
             string? originalAccent = presentation.GetThemeColor(PowerPointThemeColor.Accent1);
 
@@ -120,7 +125,7 @@ namespace OfficeIMO.Tests {
             PowerPointCompositionOptions options = PowerPointCompositionOptions.FromDesign(design);
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream,
-                new PowerPointStreamCreateOptions { AutoSave = false });
+                new PowerPointCreateOptions());
             presentation.AddSlide().AddTitle("Existing slide");
 
             PowerPointDeckPlanSlideRenderSummary preview = Assert.Single(

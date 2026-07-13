@@ -100,6 +100,25 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfOptions_UseTextFallbacksCoversCheckMarkWhenOnlyOneSymbolSlotIsAvailable() {
+        if (!PdfEmbeddedFontFamily.TryFromSystem("Segoe UI Symbol", out _) &&
+            !PdfEmbeddedFontFamily.TryFromSystem("DejaVu Sans", out _)) {
+            return;
+        }
+
+        var options = new PdfOptions();
+        options.UseTextFallbacks(
+            PdfTextFallbackFeatures.SymbolAndEmojiFonts,
+            new[] { PdfStandardFont.Helvetica },
+            allowSystemFontEmbedding: true);
+
+        PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
+        Assert.NotNull(fallbackSet);
+        Assert.Single(fallbackSet!.Candidates);
+        Assert.True(fallbackSet.PlanText("\u2713").IsFullyCovered);
+    }
+
+    [Fact]
     public void PdfOptions_UseTextFallbacksDoesNotAssignAutomaticFallbacksToTimesSlot() {
         if (!DefaultTextSymbolFallbackFontIsAvailable()) {
             return;
@@ -973,7 +992,7 @@ public class PdfFontFamilyTests {
 
         PdfConversionWarning processedWarning = Assert.Single(processed.Warnings);
         Assert.Equal("sample-warning", processedWarning.Code);
-        Assert.Equal("Processed conversion result", processed.Document.Inspect().Metadata.Title);
+        Assert.Equal("Processed conversion result", processed.Value.Inspect().Metadata.Title);
         Assert.Contains("Conversion result", PdfReadDocument.Load(processed.ToBytes()).ExtractText(), StringComparison.Ordinal);
 
         using var output = new MemoryStream();
@@ -981,6 +1000,8 @@ public class PdfFontFamilyTests {
 
         Assert.True(saveResult.Succeeded);
         Assert.True(saveResult.BytesWritten > 0);
+        Assert.Equal("sample-warning", Assert.Single(saveResult.Warnings).Code);
+        Assert.True(saveResult.HasWarnings);
         Assert.True(output.Length > 0);
         Assert.Same(processed, processed.Save(new MemoryStream()));
     }
@@ -1027,6 +1048,7 @@ public class PdfFontFamilyTests {
 
         Assert.True(streamResult.Succeeded);
         Assert.True(streamResult.BytesWritten > 0);
+        Assert.Equal("async-sample-warning", Assert.Single(streamResult.Warnings).Code);
         Assert.True(stream.Length > 0);
         Assert.True(result.HasWarnings);
         Assert.Equal("async-sample-warning", Assert.Single(result.Warnings).Code);
@@ -1046,6 +1068,7 @@ public class PdfFontFamilyTests {
             PdfDocumentConversionResult pathChained = await result.SaveAsync(savePath);
 
             Assert.True(pathResult.Succeeded);
+            Assert.Equal("async-sample-warning", Assert.Single(pathResult.Warnings).Code);
             Assert.True(File.Exists(tryPath));
             Assert.True(new FileInfo(tryPath).Length > 0);
             Assert.Same(result, pathChained);

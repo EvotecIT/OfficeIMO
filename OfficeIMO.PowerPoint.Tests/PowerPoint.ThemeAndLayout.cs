@@ -41,7 +41,7 @@ namespace OfficeIMO.Tests {
                 presentation.Save();
             }
 
-            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(filePath)) {
                 Assert.Equal("My Theme", presentation.ThemeName);
                 Assert.Equal(expectedLayouts.Count, presentation.Slides.Count);
 

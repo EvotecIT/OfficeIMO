@@ -29,9 +29,9 @@ public partial class Excel {
             Assert.True(hyperlink.IsExternal);
             Assert.Equal(linkUri, hyperlink.Target);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = false,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -59,10 +59,10 @@ public partial class Excel {
         byte[] bytes;
         byte[] summaryOnlyBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorkSheet("Summary");
+            ExcelSheet summary = document.AddWorksheet("Summary");
             summary.Cell(1, 1, "Name");
             summary.SetInternalLink(2, 1, "Details!B3", display: "Open Details B3");
-            ExcelSheet details = document.AddWorkSheet("Details");
+            ExcelSheet details = document.AddWorksheet("Details");
             details.Cell(1, 1, "Details Target");
             details.Cell(2, 1, "DestinationValue");
             details.Cell(3, 2, "CellSpecificTarget");
@@ -71,16 +71,16 @@ public partial class Excel {
             Assert.False(hyperlink.IsExternal);
             Assert.Equal("'Details'!B3", hyperlink.Target);
 
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
                 Margins = PdfCore.PageMargins.Uniform(24)
             });
 
-            summaryOnlyBytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            summaryOnlyBytes = document.ToPdf(new ExcelPdfSaveOptions {
                 SheetNames = new[] { "Summary" },
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
@@ -115,9 +115,9 @@ public partial class Excel {
             ExcelSheet sheet = document.Sheets[0];
             sheet.Cell(1, 1, "Top Target");
             sheet.SetInternalLink(2, 1, "A1", display: "Back to Top");
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),
@@ -138,17 +138,17 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorkSheet("Summary");
+            ExcelSheet summary = document.AddWorksheet("Summary");
             summary.Cell(1, 1, "Name");
             summary.SetInternalLink(2, 1, "Details!B200", display: "Open Details B200");
-            ExcelSheet details = document.AddWorkSheet("Details");
+            ExcelSheet details = document.AddWorksheet("Details");
             details.Cell(1, 1, "Details Header");
             details.Cell(2, 1, "Visible Detail");
             details.Cell(200, 2, "Hidden Target");
             document.SetPrintArea(details, "A1:B2");
-            document.Save(false);
+            document.Save();
 
-            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+            bytes = document.ToPdf(new ExcelPdfSaveOptions {
                 IncludeSheetHeadings = true,
                 HeaderRowCount = 1,
                 PageSize = new PdfCore.PageSize(360, 220),

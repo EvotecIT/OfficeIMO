@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -133,7 +134,8 @@ namespace OfficeIMO.Examples.PowerPoint {
                 presentation.Slides[slideIndex].SaveAsSvg(Path.Combine(outputFolder, stem + ".svg"));
             }
             var pdfOptions = new PowerPointPdfSaveOptions().UseProfile(PdfExportProfile.Faithful);
-            presentation.SaveAsPdf(pdfPath, pdfOptions);
+            PdfDocumentConversionResult pdfResult = presentation.ToPdfDocumentResult(pdfOptions);
+            pdfResult.Save(pdfPath);
             presentation.SaveAsPdf(handoutPath, new PowerPointPdfSaveOptions {
                 PageLayout = PowerPointPdfPageLayout.Handouts,
                 HandoutSlidesPerPage = 3,
@@ -142,16 +144,17 @@ namespace OfficeIMO.Examples.PowerPoint {
             var htmlOptions = new PowerPointHtmlSaveOptions {
                 Profile = OfficeHtmlConversionProfile.PowerPointVisualReview
             };
-            presentation.SaveAsHtml(htmlPath, htmlOptions);
+            PowerPointToHtmlResult htmlResult = presentation.ToHtmlResult(htmlOptions);
+            File.WriteAllText(htmlPath, htmlResult.Value, Encoding.UTF8);
 
             PowerPointVisualProofReport visualProof = presentation.InspectVisuals()
                 .RecordArtifact(Path.GetFileName(presentationPath),
                     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
                     File.ReadAllBytes(presentationPath))
                 .RecordArtifact(Path.GetFileName(pdfPath), "application/pdf", File.ReadAllBytes(pdfPath),
-                    pdfOptions.Warnings.Count)
+                    pdfResult.Warnings.Count)
                 .RecordArtifact(Path.GetFileName(htmlPath), "text/html", File.ReadAllBytes(htmlPath),
-                    htmlOptions.SnapshotDiagnostics.Count);
+                    htmlResult.ImageDiagnostics.Count);
             visualProof.SaveJson(visualProofPath);
 
             List<ValidationErrorInfo> errors = presentation.ValidateDocument();
@@ -168,7 +171,7 @@ namespace OfficeIMO.Examples.PowerPoint {
                               accessibility.WarningCount + " warnings");
             Console.WriteLine("    Rhythm: " + rhythm.Score + "/100, " + rhythm.Findings.Count + " finding(s)");
             Console.WriteLine("    Proof: PPTX, PNG, SVG, PDF, handout PDF, HTML, JSON, and Open XML validation");
-            Helpers.Open(presentationPath, openPowerPoint);
+            if (openPowerPoint) OfficeFileLauncher.Open(presentationPath);
         }
     }
 }

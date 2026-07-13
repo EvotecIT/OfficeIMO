@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2010)
             };
 
-            using (var document = WordDocument.Load(filePath, openSettings: settings)) {
+            using (var document = WordDocument.Load(filePath, new WordLoadOptions { OpenSettings = settings })) {
                 var mcSettings = document._wordprocessingDocument.MarkupCompatibilityProcessSettings;
                 Assert.NotNull(mcSettings);
                 Assert.Equal(MarkupCompatibilityProcessMode.ProcessAllParts, mcSettings.ProcessMode);
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests {
                 MarkupCompatibilityProcessSettings = new MarkupCompatibilityProcessSettings(MarkupCompatibilityProcessMode.ProcessAllParts, FileFormatVersions.Office2013)
             };
 
-            await using (var document = await WordDocument.LoadAsync(filePath, openSettings: settings, cancellationToken: CancellationToken.None)) {
+            await using (var document = await WordDocument.LoadAsync(filePath, new WordLoadOptions { OpenSettings = settings }, cancellationToken: CancellationToken.None)) {
                 var mcSettings = document._wordprocessingDocument.MarkupCompatibilityProcessSettings;
                 Assert.NotNull(mcSettings);
                 Assert.Equal(MarkupCompatibilityProcessMode.ProcessAllParts, mcSettings.ProcessMode);

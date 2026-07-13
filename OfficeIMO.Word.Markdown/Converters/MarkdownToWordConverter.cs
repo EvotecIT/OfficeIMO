@@ -4,7 +4,6 @@ using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Html;
 using System.Collections.Generic;
 using System.Threading;
-using System.Threading.Tasks;
 using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
@@ -26,15 +25,7 @@ namespace OfficeIMO.Word.Markdown {
         // Current footnote definitions map; scoped to this per-conversion converter instance.
         private IReadOnlyDictionary<string, string>? _currentFootnotes;
 
-        public WordDocument Convert(string markdown, MarkdownToWordOptions options) {
-            return ConvertAsync(markdown, options).GetAwaiter().GetResult();
-        }
-
-        public WordDocument Convert(Omd.MarkdownDoc markdown, MarkdownToWordOptions options) {
-            return ConvertAsync(markdown, options).GetAwaiter().GetResult();
-        }
-
-        public Task<WordDocument> ConvertAsync(string markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
+        public WordDocument Convert(string markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
@@ -45,29 +36,13 @@ namespace OfficeIMO.Word.Markdown {
             options.ApplyDefaults(document);
             var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
 
-            // Parse using OfficeIMO.Markdown reader.
             var readerOptions = CreateEffectiveReaderOptions(options);
             var omd = Omd.MarkdownReader.Parse(markdown, readerOptions);
-            var blocks = GetRenderableBlocks(omd);
-            // Build footnote definitions map for this document
-            _currentFootnotes = blocks
-                .OfType<Omd.FootnoteDefinitionBlock>()
-                .GroupBy(f => f.Label)
-                .ToDictionary(g => g.Key, g => g.Last().Text);
-
-            if (omd.DocumentHeader != null) {
-                ProcessBlockOmd(omd.DocumentHeader, document, options, quoteDepth: 0, pageContentWidthPixels: pageContentWidthPixels);
-            }
-
-            foreach (var block in blocks) {
-                cancellationToken.ThrowIfCancellationRequested();
-                ProcessBlockOmd(block, document, options, quoteDepth: 0, pageContentWidthPixels: pageContentWidthPixels);
-            }
-
-            return Task.FromResult(document);
+            RenderDocument(omd, document, options, pageContentWidthPixels, cancellationToken);
+            return document;
         }
 
-        public Task<WordDocument> ConvertAsync(Omd.MarkdownDoc markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
+        public WordDocument Convert(Omd.MarkdownDoc markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
             if (markdown == null) {
                 throw new ArgumentNullException(nameof(markdown));
             }
@@ -77,6 +52,12 @@ namespace OfficeIMO.Word.Markdown {
             var document = WordDocument.Create();
             options.ApplyDefaults(document);
             var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
+
+            RenderDocument(markdown, document, options, pageContentWidthPixels, cancellationToken);
+            return document;
+        }
+
+        private void RenderDocument(Omd.MarkdownDoc markdown, WordDocument document, MarkdownToWordOptions options, double pageContentWidthPixels, CancellationToken cancellationToken) {
             var blocks = GetRenderableBlocks(markdown);
 
             _currentFootnotes = blocks
@@ -116,7 +97,6 @@ namespace OfficeIMO.Word.Markdown {
                     alignment: Omd.ColumnAlignment.None);
             }
 
-            return Task.FromResult(document);
         }
 
         private static void RemoveDuplicateNativeTocTitleHeadings(List<Omd.IMarkdownBlock> blocks) {

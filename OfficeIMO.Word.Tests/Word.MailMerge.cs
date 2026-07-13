@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
 
                 var values = new Dictionary<string, string> { { "Name", "Alice" } };
                 WordMailMerge.Execute(document, values);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
 
                 var values = new Dictionary<string, string> { { "Name", "Bob" } };
                 WordMailMerge.Execute(document, values, removeFields: false);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
                     ["SimpleName"] = "Alice",
                     ["ComplexName"] = "Bob"
                 });
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
@@ -114,7 +114,7 @@ namespace OfficeIMO.Tests {
                     .AddText(", your city is ")
                     .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"City\"" })
                     .AddText(".");
-                document.Save(false);
+                document.Save();
             }
 
             IReadOnlyList<string> outputs = WordMailMerge.ExecuteBatch(
@@ -181,7 +181,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, generated);
                 Assert.Equal(3, table.Rows.Count);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -213,7 +213,7 @@ namespace OfficeIMO.Tests {
                     }
                 }, removeFields: false);
 
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, result.DetailRowCount);
                 Assert.Equal(5, result.TotalRowCount);
                 Assert.Equal(6, table.Rows.Count);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
@@ -353,7 +353,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Equal(2, generated);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
@@ -444,7 +444,7 @@ namespace OfficeIMO.Tests {
                     });
 
                 Assert.Equal(5, generated);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
@@ -495,7 +495,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -529,7 +529,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -576,7 +576,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(2, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -610,7 +610,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -640,7 +640,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -808,7 +808,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(1, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -853,7 +853,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal(2, processed);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -888,7 +888,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, result.UpdatedContentControls);
                 Assert.Equal(0, result.UpdatedCustomXmlNodes);
                 Assert.False(result.HasMissingValues);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -926,7 +926,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, executeResult.UpdatedContentControls);
                 Assert.Equal(0, executeResult.UpdatedCustomXmlNodes);
                 Assert.False(executeResult.HasMissingValues);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -964,7 +964,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(1, executeResult.UpdatedContentControls);
                 Assert.Equal(1, executeResult.UpdatedCustomXmlNodes);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -993,7 +993,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, result.BindingCount);
                 Assert.Equal(1, result.UpdatedContentControls);
                 Assert.False(result.HasMissingValues);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1020,7 +1020,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, result.BindingCount);
                 Assert.Equal(1, result.UpdatedContentControls);
                 Assert.False(result.HasMissingValues);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -1053,7 +1053,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, result.UpdatedContentControls);
                 Assert.Equal(1, result.UpdatedCustomXmlNodes);
                 Assert.False(result.HasMissingValues);
-                document.Save(false);
+                document.Save();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {

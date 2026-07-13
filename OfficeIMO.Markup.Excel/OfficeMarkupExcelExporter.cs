@@ -35,7 +35,7 @@ public sealed class OfficeMarkupExcelExporter {
 
         context.EnsureCurrentSheet();
         FinalizeWorkbook(context);
-        workbook.Save(options.OutputPath, openExcel: false, options: new ExcelSaveOptions {
+        workbook.Save(options.OutputPath, new ExcelSaveOptions {
             SafePreflight = options.SafePreflight,
             ValidateOpenXml = options.ValidateOpenXml,
             SafeRepairDefinedNames = options.SafeRepairDefinedNames
@@ -826,7 +826,7 @@ public sealed class OfficeMarkupExcelExporter {
                 return sheet;
             }
 
-            sheet = _workbook.AddWorkSheet(sheetName);
+            sheet = _workbook.AddWorksheet(sheetName);
             _sheets[sheetName] = sheet;
             _sheets[sheet.Name] = sheet;
             _nextRows[sheet.Name] = 1;

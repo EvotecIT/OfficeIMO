@@ -12,16 +12,16 @@ namespace OfficeIMO.Examples.Word {
 
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
                 doc.AddParagraph("Hello");
-                doc.Save(false);
+                doc.Save();
             }
 
             using (WordDocument doc = WordDocument.Create(targetPath)) {
                 doc.AddParagraph("Hello World");
-                doc.Save(false);
+                doc.Save();
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
-            result.Save(openWord);
+            result.Save(new WordSaveOptions { OpenAfterSave = openWord });
 
             WordComparisonResult structuredResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
             foreach (WordComparisonFinding finding in structuredResult.Findings) {
