@@ -1861,7 +1861,7 @@ public sealed class PdfConversionScenarioManifestTests {
         };
 
         using var wordStream = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> wordResults = PdfWordTableConverterExtensions.SavePdfTablesAsWord(
+        IReadOnlyList<PdfWordTableImportResult> wordResults = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
             pdf,
             wordStream,
             new PdfWordTableImportOptions {
@@ -1877,7 +1877,7 @@ public sealed class PdfConversionScenarioManifestTests {
         }
 
         using var excelStream = new MemoryStream();
-        IReadOnlyList<PdfExcelTableImportResult> excelResults = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+        IReadOnlyList<PdfExcelTableImportResult> excelResults = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
             pdf,
             excelStream,
             new PdfExcelTableImportOptions {
@@ -1886,7 +1886,7 @@ public sealed class PdfConversionScenarioManifestTests {
             });
 
         using var powerPointStream = new MemoryStream();
-        IReadOnlyList<PdfPowerPointTableImportResult> powerPointResults = PowerPointPdfConverterExtensions.SavePdfTablesAsPowerPoint(
+        IReadOnlyList<PdfPowerPointTableImportResult> powerPointResults = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
             pdf,
             powerPointStream,
             new PdfPowerPointTableImportOptions {

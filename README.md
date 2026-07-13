@@ -202,11 +202,11 @@ PdfDocument.Open("packet.pdf")
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Word.Pdf;
 
-PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
     "statement.pdf",
     "statement-tables.xlsx");
 
-PdfWordTableConverterExtensions.SavePdfTablesAsWord(
+PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
     "statement.pdf",
     "statement-tables.docx");
 ```

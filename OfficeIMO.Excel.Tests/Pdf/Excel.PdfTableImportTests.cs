@@ -33,7 +33,7 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        IReadOnlyList<PdfExcelTableImportResult> results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+        IReadOnlyList<PdfExcelTableImportResult> results = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
             pdf,
             workbook,
             new PdfExcelTableImportOptions {
@@ -97,7 +97,7 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        IReadOnlyList<PdfExcelTableImportResult> results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+        IReadOnlyList<PdfExcelTableImportResult> results = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
             pdf,
             workbook,
             new PdfExcelTableImportOptions {
@@ -131,7 +131,7 @@ public partial class Excel {
         Assert.Equal(2d, Convert.ToDouble(values[1, 2], CultureInfo.InvariantCulture));
 
         using var textWorkbook = new MemoryStream();
-        PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+        PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
             pdf,
             textWorkbook,
             new PdfExcelTableImportOptions {
@@ -186,7 +186,7 @@ public partial class Excel {
             .ToBytes();
 
         using var workbook = new MemoryStream();
-        IReadOnlyList<PdfExcelTableImportResult> results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+        IReadOnlyList<PdfExcelTableImportResult> results = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
             pdf,
             workbook,
             new PdfExcelTableImportOptions {
@@ -211,7 +211,7 @@ public partial class Excel {
         Assert.Equal("Customer", values[2, 0]);
 
         using var emptyWorkbook = new MemoryStream();
-        IReadOnlyList<PdfExcelTableImportResult> emptyResults = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+        IReadOnlyList<PdfExcelTableImportResult> emptyResults = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
             pdf,
             emptyWorkbook,
             new PdfExcelTableImportOptions {

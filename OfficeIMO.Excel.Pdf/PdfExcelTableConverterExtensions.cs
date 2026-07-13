@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <param name="workbookPath">Destination workbook path.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfExcelTableImportResult> SavePdfTablesAsExcel(
+        public static IReadOnlyList<PdfExcelTableImportResult> SaveAsExcelFromPdfTables(
             this PdfCore.PdfLogicalDocument document,
             string workbookPath,
             PdfExcelTableImportOptions? options = null) {
@@ -33,7 +33,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <param name="workbookStream">Writable destination stream for the workbook package.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfExcelTableImportResult> SavePdfTablesAsExcel(
+        public static IReadOnlyList<PdfExcelTableImportResult> SaveAsExcelFromPdfTables(
             this PdfCore.PdfLogicalDocument document,
             Stream workbookStream,
             PdfExcelTableImportOptions? options = null) {
@@ -52,13 +52,13 @@ namespace OfficeIMO.Excel.Pdf {
         /// <param name="document">Logical PDF document to import.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Workbook package bytes.</returns>
-        public static byte[] ToExcelTableWorkbookBytes(
+        public static byte[] ToExcelBytesFromPdfTables(
             this PdfCore.PdfLogicalDocument document,
             PdfExcelTableImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
             using var stream = new MemoryStream();
-            document.SavePdfTablesAsExcel(stream, options);
+            document.SaveAsExcelFromPdfTables(stream, options);
             return stream.ToArray();
         }
 
@@ -69,7 +69,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <param name="workbookPath">Destination workbook path.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfExcelTableImportResult> SavePdfTablesAsExcel(
+        public static IReadOnlyList<PdfExcelTableImportResult> SaveAsExcelFromPdfTables(
             string pdfPath,
             string workbookPath,
             PdfExcelTableImportOptions? options = null) {
@@ -78,7 +78,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             options ??= new PdfExcelTableImportOptions();
             PdfCore.PdfLogicalDocument document = LoadPdf(pdfPath, options);
-            return document.SavePdfTablesAsExcel(workbookPath, options);
+            return document.SaveAsExcelFromPdfTables(workbookPath, options);
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <param name="workbookStream">Writable destination stream for the workbook package.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfExcelTableImportResult> SavePdfTablesAsExcel(
+        public static IReadOnlyList<PdfExcelTableImportResult> SaveAsExcelFromPdfTables(
             byte[] pdfBytes,
             Stream workbookStream,
             PdfExcelTableImportOptions? options = null) {
@@ -97,7 +97,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             options ??= new PdfExcelTableImportOptions();
             PdfCore.PdfLogicalDocument document = LoadPdf(pdfBytes, options);
-            return document.SavePdfTablesAsExcel(workbookStream, options);
+            return document.SaveAsExcelFromPdfTables(workbookStream, options);
         }
 
         /// <summary>
@@ -107,7 +107,7 @@ namespace OfficeIMO.Excel.Pdf {
         /// <param name="workbookStream">Writable destination stream for the workbook package.</param>
         /// <param name="options">Optional import settings.</param>
         /// <returns>Metadata for every imported table.</returns>
-        public static IReadOnlyList<PdfExcelTableImportResult> SavePdfTablesAsExcel(
+        public static IReadOnlyList<PdfExcelTableImportResult> SaveAsExcelFromPdfTables(
             Stream pdfStream,
             Stream workbookStream,
             PdfExcelTableImportOptions? options = null) {
@@ -116,7 +116,7 @@ namespace OfficeIMO.Excel.Pdf {
 
             options ??= new PdfExcelTableImportOptions();
             PdfCore.PdfLogicalDocument document = LoadPdf(pdfStream, options);
-            return document.SavePdfTablesAsExcel(workbookStream, options);
+            return document.SaveAsExcelFromPdfTables(workbookStream, options);
         }
 
         private static IReadOnlyList<PdfExcelTableImportResult> ImportTables(

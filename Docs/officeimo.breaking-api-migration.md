@@ -79,6 +79,8 @@ The canonical PDF conversion-result method is `ToPdfDocumentResult()`. Source-ex
 | `RtfDocument.ToMemoryStream()` | `RtfDocument.ToStream()` |
 | `ToRtfMemoryStream()` / `ToRtfMemoryStreamAsync()` | `ToRtfStream()` / `ToRtfStreamAsync()` |
 | `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWordFromPdf()` / `SaveAsRtfFromPdf()`; use the `*FromPdfFile()` form for a source path |
+| `SavePdfTablesAsExcel()` / `SavePdfTablesAsWord()` / `SavePdfTablesAsPowerPoint()` | `SaveAsExcelFromPdfTables()` / `SaveAsWordFromPdfTables()` / `SaveAsPowerPointFromPdfTables()` |
+| `ToExcelTableWorkbookBytes()` / `ToWordTableDocumentBytes()` / `ToPowerPointTablePresentationBytes()` | `ToExcelBytesFromPdfTables()` / `ToWordBytesFromPdfTables()` / `ToPowerPointBytesFromPdfTables()` |
 
 Compatibility-only members such as `LastSaveReport`, public `LastSaveDiagnostics`, option-owned `ConversionReport`, and option-owned `Warnings` were removed. Use the operation result instead.
 

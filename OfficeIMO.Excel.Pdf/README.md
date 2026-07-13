@@ -95,7 +95,7 @@ result.Report.RequireNoErrorWarnings();
 ```csharp
 using OfficeIMO.Excel.Pdf;
 
-var results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+var results = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
     "statement.pdf",
     "statement-tables.xlsx");
 
@@ -110,7 +110,7 @@ foreach (var table in results) {
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 
-var results = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
+var results = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
     "bank-statement.pdf",
     "bank-statement-q1.xlsx",
     new PdfExcelTableImportOptions {
