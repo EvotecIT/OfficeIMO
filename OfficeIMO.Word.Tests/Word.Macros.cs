@@ -137,6 +137,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_SaveCopyAsyncMacroDocumentAsDocxRemovesMacros() {
+            string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
+            string sourcePath = Path.Combine(_directoryWithFiles, "MacroAsyncCopyDowngradeSource.docm");
+            string targetPath = Path.Combine(_directoryWithFiles, "MacroAsyncCopyDowngradeTarget.docx");
+            File.Delete(sourcePath);
+            File.Delete(targetPath);
+
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddMacro(macroPath);
+                document.Save();
+                await document.SaveCopyAsync(targetPath);
+
+                Assert.Equal(sourcePath, document.FilePath);
+                Assert.True(document.HasMacros);
+            }
+
+            AssertPackageHasNoVbaProject(targetPath);
+            using (WordDocument loaded = WordDocument.Load(targetPath)) {
+                Assert.False(loaded.HasMacros);
+            }
+        }
+
+        [Fact]
         public void Test_SavingAndRemovingMacros() {
             string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithMacro2.docm");

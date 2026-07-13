@@ -283,12 +283,11 @@ public sealed partial class CsvDocument
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         byte[] snapshot = OfficeStreamReader.ReadAllBytes(stream);
         return LoadInternal(
-            () => new StreamReader(
+            () => CsvFile.OpenTextReader(
                 new MemoryStream(snapshot, writable: false),
-                encoding,
-                detectEncodingFromByteOrderMarks: true,
-                bufferSize: FileBufferSize,
-                leaveOpen: false),
+                options,
+                leaveOpen: false,
+                FileBufferSize),
             options,
             encoding);
     }
@@ -297,8 +296,11 @@ public sealed partial class CsvDocument
     public static async Task<CsvDocument> LoadAsync(string path, CsvLoadOptions? options = null, CancellationToken cancellationToken = default)
     {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, FileBufferSize, useAsync: true);
-        return await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        CsvLoadOptions resolved = options?.Clone() ?? new CsvLoadOptions();
+        Encoding encoding = resolved.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        using TextReader reader = CsvFile.OpenTextReaderForAsyncRead(path, resolved, FileBufferSize);
+        string text = await ReadAllTextAsync(reader, cancellationToken).ConfigureAwait(false);
+        return LoadInternal(() => new StringReader(text), resolved, encoding, text);
     }
 
     /// <summary>Asynchronously loads a CSV document from a caller-owned stream.</summary>
@@ -310,9 +312,33 @@ public sealed partial class CsvDocument
         Encoding encoding = resolved.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         byte[] snapshot = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
         return LoadInternal(
-            () => new StreamReader(new MemoryStream(snapshot, writable: false), encoding, true, FileBufferSize, false),
+            () => CsvFile.OpenTextReader(
+                new MemoryStream(snapshot, writable: false),
+                resolved,
+                leaveOpen: false,
+                FileBufferSize),
             resolved,
             encoding);
+    }
+
+    private static async Task<string> ReadAllTextAsync(TextReader reader, CancellationToken cancellationToken)
+    {
+        var text = new StringBuilder();
+        var buffer = new char[FileBufferSize];
+        while (true)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            int count = await reader.ReadAsync(buffer, 0, buffer.Length).ConfigureAwait(false);
+            if (count == 0)
+            {
+                break;
+            }
+
+            text.Append(buffer, 0, count);
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        return text.ToString();
     }
 
     /// <summary>

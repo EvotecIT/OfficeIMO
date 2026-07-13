@@ -35,7 +35,9 @@ internal static partial class DocumentReaderEngine {
         }
 
         if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
-            throw CreateSynchronousOnlyHandlerException(resolution.Handler.Id, "path");
+            return await Task.Run<IReadOnlyList<ReaderChunk>>(
+                () => Read(path, opt, cancellationToken).ToArray(),
+                cancellationToken).ConfigureAwait(false);
         }
         using var stream = OpenAsyncReadStream(path);
         return await ReadAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
@@ -117,7 +119,9 @@ internal static partial class DocumentReaderEngine {
         }
 
         if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
-            throw CreateSynchronousOnlyHandlerException(resolution.Handler.Id, "path");
+            return await Task.Run(
+                () => ReadDocument(path, opt, cancellationToken),
+                cancellationToken).ConfigureAwait(false);
         }
         using var stream = OpenAsyncReadStream(path);
         return await ReadDocumentAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
@@ -226,11 +230,6 @@ internal static partial class DocumentReaderEngine {
     private static InvalidOperationException CreateAsyncOnlyHandlerException(string handlerId, string inputKind) {
         return new InvalidOperationException(
             $"Reader handler '{handlerId}' only provides asynchronous {inputKind} reading. Use ReadAsync(...) or ReadDocumentAsync(...).");
-    }
-
-    private static InvalidOperationException CreateSynchronousOnlyHandlerException(string handlerId, string inputKind) {
-        return new InvalidOperationException(
-            $"Reader handler '{handlerId}' only provides synchronous {inputKind} reading. Register an asynchronous handler or a stream handler before using ReadAsync(...).");
     }
 
     private static FileStream OpenAsyncReadStream(string path) => new FileStream(

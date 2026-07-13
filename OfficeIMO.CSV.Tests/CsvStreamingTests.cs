@@ -13,6 +13,70 @@ namespace OfficeIMO.CSV.Tests;
 public class CsvStreamingTests
 {
     [Fact]
+    public async Task LoadAsync_PathHonorsCompressionFromExtension()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Async." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Id", "Name")
+                .AddRow(1, "Alice")
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            CsvDocument document = await CsvDocument.LoadAsync(path);
+
+            Assert.Equal("Alice", Assert.Single(document.AsEnumerable()).AsString("Name"));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_PathHonorsExplicitCompression()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Async." + Guid.NewGuid().ToString("N") + ".data");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Id", "Name")
+                .AddRow(1, "Alice")
+                .Save(path, new CsvSaveOptions { CompressionType = CsvCompressionType.GZip, NewLine = "\n" });
+
+            CsvDocument document = await CsvDocument.LoadAsync(
+                path,
+                new CsvLoadOptions { CompressionType = CsvCompressionType.GZip });
+
+            Assert.Equal("Alice", Assert.Single(document.AsEnumerable()).AsString("Name"));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task LoadAsync_PathEnforcesMaxDecompressedBytes()
+    {
+        string path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.AsyncBounded." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Id", "Name")
+                .AddRow(1, "Alice")
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            await Assert.ThrowsAsync<InvalidOperationException>(() =>
+                CsvDocument.LoadAsync(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
+        }
+        finally
+        {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public async Task LoadAsync_SnapshotsCompleteCallerStreamAndRestoresPosition()
     {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("Id,Name\n1,Alice\n"));

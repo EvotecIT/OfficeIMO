@@ -2,6 +2,8 @@
 
 using System.IO.Compression;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.CSV;
 
@@ -22,8 +24,42 @@ public static class CsvFile
 
         options ??= new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        var stream = OpenReadStream(path, options, bufferSize);
+        var stream = OpenReadStream(path, options, bufferSize, useAsync: false);
         return new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+    }
+
+    internal static TextReader OpenTextReaderForAsyncRead(string path, CsvLoadOptions options, int bufferSize = 256 * 1024)
+    {
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        var stream = OpenReadStream(path, options, bufferSize, useAsync: true);
+        return new StreamReader(stream, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: bufferSize);
+    }
+
+    internal static TextReader OpenTextReader(Stream source, CsvLoadOptions options, bool leaveOpen, int bufferSize = 256 * 1024)
+    {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (!source.CanRead) throw new ArgumentException("Source stream must be readable.", nameof(source));
+
+        CsvCompressionType compressionType = options.CompressionType == CsvCompressionType.Auto
+            ? CsvCompressionType.None
+            : options.CompressionType;
+        EnsureCompressionSupported(compressionType);
+        ValidateMaxDecompressedBytes(options);
+
+        Stream input = WrapReadStream(source, compressionType, leaveOpen);
+        if (options.MaxDecompressedBytes is { } maxBytesLimit)
+        {
+            bool leaveBoundedInputOpen = compressionType == CsvCompressionType.None && leaveOpen;
+            input = new CsvBoundedReadStream(input, maxBytesLimit, leaveBoundedInputOpen);
+        }
+
+        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        return new StreamReader(
+            input,
+            encoding,
+            detectEncodingFromByteOrderMarks: true,
+            bufferSize,
+            leaveOpen: compressionType == CsvCompressionType.None && leaveOpen && options.MaxDecompressedBytes is null);
     }
 
     /// <summary>
@@ -107,20 +143,23 @@ public static class CsvFile
         return CsvCompressionType.None;
     }
 
-    private static Stream OpenReadStream(string path, CsvLoadOptions options, int bufferSize)
+    private static Stream OpenReadStream(string path, CsvLoadOptions options, int bufferSize, bool useAsync)
     {
         var compressionType = ResolveCompression(options.CompressionType, path);
         EnsureCompressionSupported(compressionType);
-        if (options.MaxDecompressedBytes is { } maxBytes && maxBytes < 0)
+        ValidateMaxDecompressedBytes(options);
+
+        FileOptions fileOptions = FileOptions.SequentialScan;
+        if (useAsync)
         {
-            throw new ArgumentOutOfRangeException(nameof(options), "MaxDecompressedBytes cannot be negative.");
+            fileOptions |= FileOptions.Asynchronous;
         }
 
-        var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan);
-        Stream stream = WrapReadStream(fileStream, compressionType);
+        var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, fileOptions);
+        Stream stream = WrapReadStream(fileStream, compressionType, leaveOpen: false);
         if (options.MaxDecompressedBytes is { } maxBytesLimit)
         {
-            stream = new CsvBoundedReadStream(stream, maxBytesLimit);
+            stream = new CsvBoundedReadStream(stream, maxBytesLimit, leaveOpen: false);
         }
 
         return stream;
@@ -143,21 +182,29 @@ public static class CsvFile
         return WrapWriteStream(fileStream, compressionType, compressionLevel);
     }
 
-    private static Stream WrapReadStream(Stream stream, CsvCompressionType compressionType) =>
+    private static Stream WrapReadStream(Stream stream, CsvCompressionType compressionType, bool leaveOpen) =>
         compressionType switch
         {
             CsvCompressionType.None => stream,
-            CsvCompressionType.GZip => new GZipStream(stream, CompressionMode.Decompress, leaveOpen: false),
-            CsvCompressionType.Deflate => new DeflateStream(stream, CompressionMode.Decompress, leaveOpen: false),
+            CsvCompressionType.GZip => new GZipStream(stream, CompressionMode.Decompress, leaveOpen),
+            CsvCompressionType.Deflate => new DeflateStream(stream, CompressionMode.Decompress, leaveOpen),
 #if NET8_0_OR_GREATER
-            CsvCompressionType.Brotli => new BrotliStream(stream, CompressionMode.Decompress, leaveOpen: false),
-            CsvCompressionType.ZLib => new ZLibStream(stream, CompressionMode.Decompress, leaveOpen: false),
+            CsvCompressionType.Brotli => new BrotliStream(stream, CompressionMode.Decompress, leaveOpen),
+            CsvCompressionType.ZLib => new ZLibStream(stream, CompressionMode.Decompress, leaveOpen),
 #else
             CsvCompressionType.Brotli => throw new PlatformNotSupportedException("Brotli CSV compression requires a .NET runtime that supports BrotliStream."),
             CsvCompressionType.ZLib => throw new PlatformNotSupportedException("ZLib CSV compression requires a .NET runtime that supports ZLibStream."),
 #endif
             _ => throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, "Unsupported CSV compression type.")
         };
+
+    private static void ValidateMaxDecompressedBytes(CsvLoadOptions options)
+    {
+        if (options.MaxDecompressedBytes is { } maxBytes && maxBytes < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxDecompressedBytes cannot be negative.");
+        }
+    }
 
     private static Stream WrapWriteStream(Stream stream, CsvCompressionType compressionType, CompressionLevel compressionLevel) =>
         WrapWriteStream(stream, compressionType, compressionLevel, leaveOpen: false);
@@ -218,12 +265,14 @@ public static class CsvFile
     {
         private readonly Stream _inner;
         private readonly long _maxBytes;
+        private readonly bool _leaveOpen;
         private long _bytesRead;
 
-        public CsvBoundedReadStream(Stream inner, long maxBytes)
+        public CsvBoundedReadStream(Stream inner, long maxBytes, bool leaveOpen)
         {
             _inner = inner ?? throw new ArgumentNullException(nameof(inner));
             _maxBytes = maxBytes;
+            _leaveOpen = leaveOpen;
         }
 
         public override bool CanRead => _inner.CanRead;
@@ -242,13 +291,24 @@ public static class CsvFile
         public override int Read(byte[] buffer, int offset, int count)
         {
             var read = _inner.Read(buffer, offset, count);
-            _bytesRead += read;
+            RecordBytesRead(read);
+            return read;
+        }
+
+        public override async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken)
+        {
+            int read = await _inner.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+            RecordBytesRead(read);
+            return read;
+        }
+
+        private void RecordBytesRead(int count)
+        {
+            _bytesRead += count;
             if (_bytesRead > _maxBytes)
             {
                 throw new InvalidOperationException($"CSV decompressed data exceeded the configured limit of {_maxBytes} bytes.");
             }
-
-            return read;
         }
 
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
@@ -259,7 +319,7 @@ public static class CsvFile
 
         protected override void Dispose(bool disposing)
         {
-            if (disposing)
+            if (disposing && !_leaveOpen)
             {
                 _inner.Dispose();
             }
