@@ -193,18 +193,20 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                 Source = document.Source ?? new OfficeDocumentSource(),
                 ProviderOptions = options.ProviderOptions
             };
-            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            timeout.CancelAfter(options.CandidateTimeout);
+            using var providerCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             Task<OfficeOcrEngineResult>? recognitionTask = null;
             try {
-                recognitionTask = engine.RecognizeAsync(request, timeout.Token).AsTask();
-                OfficeOcrEngineResult result = await WaitWithCancellationAsync(recognitionTask, timeout.Token).ConfigureAwait(false);
+                recognitionTask = engine.RecognizeAsync(request, providerCancellation.Token).AsTask();
+                OfficeOcrEngineResult result = await WaitWithTimeoutAsync(
+                    recognitionTask,
+                    options.CandidateTimeout,
+                    cancellationToken).ConfigureAwait(false);
                 return CandidateOutcome.Success(job, result);
-            } catch (OperationCanceledException) {
+            } catch (OcrCandidateTimeoutException) {
+                CancelProviderAfterTimeout(providerCancellation);
                 abandonedOperations.Track(recognitionTask);
                 ObserveBackgroundFailure(recognitionTask);
-                if (cancellationToken.IsCancellationRequested) throw;
-                if (timeout.IsCancellationRequested && options.ContinueOnError) {
+                if (options.ContinueOnError) {
                     return CandidateOutcome.Failure(job, BuildDiagnostic(
                         job.Candidate,
                         job.Asset,
@@ -215,9 +217,10 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
                         "OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ").",
                         true));
                 }
-                if (timeout.IsCancellationRequested) {
-                    throw new TimeoutException("OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ").");
-                }
+                throw new TimeoutException("OCR engine exceeded CandidateTimeout (" + options.CandidateTimeout + ").");
+            } catch (OperationCanceledException) {
+                abandonedOperations.Track(recognitionTask);
+                ObserveBackgroundFailure(recognitionTask);
                 throw;
             }
         } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
@@ -236,15 +239,32 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         }
     }
 
-    private static async Task<T> WaitWithCancellationAsync<T>(Task<T> operation, CancellationToken cancellationToken) {
+    private static async Task<T> WaitWithTimeoutAsync<T>(
+        Task<T> operation,
+        TimeSpan timeout,
+        CancellationToken cancellationToken) {
         if (operation.IsCompleted) return await operation.ConfigureAwait(false);
-        var cancellation = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
-        using (cancellationToken.Register(() => cancellation.TrySetResult(null))) {
-            Task completed = await Task.WhenAny(operation, cancellation.Task).ConfigureAwait(false);
-            if (completed != operation) throw new OperationCanceledException(cancellationToken);
+        using var deadlineCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        Task deadline = Task.Delay(timeout, deadlineCancellation.Token);
+        Task completed = await Task.WhenAny(operation, deadline).ConfigureAwait(false);
+        if (completed == operation) {
+            deadlineCancellation.Cancel();
+            return await operation.ConfigureAwait(false);
         }
-        return await operation.ConfigureAwait(false);
+
+        cancellationToken.ThrowIfCancellationRequested();
+        throw new OcrCandidateTimeoutException();
     }
+
+    private static void CancelProviderAfterTimeout(CancellationTokenSource providerCancellation) {
+        try {
+            providerCancellation.Cancel();
+        } catch (AggregateException) {
+            // A provider cancellation callback must not replace the timeout result.
+        }
+    }
+
+    private sealed class OcrCandidateTimeoutException : Exception { }
 
     private static void ObserveBackgroundFailure(Task? operation) {
         if (operation == null) return;
