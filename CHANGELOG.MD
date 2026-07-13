@@ -17,6 +17,7 @@
 * Preserve multilingual HTML-to-PDF text by embedding the installed CSS system font in its mapped PDF slot and reusing its regular face when a styled face lacks required glyphs.
 * Keep normalized OpenDocument-to-Word conversions editable while detaching them from the converter's private stream, so parameterless `Save()` correctly requires an explicit destination.
 * Keep encrypted Word loads detached from their private decrypted buffers so plain parameterless saves cannot silently target unreachable memory.
+* Keep asynchronous Word stream loads attached to their actual Open XML package stream so disposal releases the package backing store instead of only the temporary staging copy.
 * Apply DrawingML `comp` as a 180-degree hue complement and keep `inv` as channel inversion.
 * Avoid writing a second encoding preamble into an existing CSV when appending asynchronously with a BOM-enabled encoding.
 * Support one-time Word stream saves and PDF-table Word/PowerPoint exports to write-only, non-seekable destinations such as HTTP responses.

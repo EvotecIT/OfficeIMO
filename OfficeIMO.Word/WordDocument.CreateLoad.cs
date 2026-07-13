@@ -507,25 +507,17 @@ namespace OfficeIMO.Word {
             }
 
             if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
-            var bufferedStream = new MemoryStream();
-            try {
-                await stream.CopyToAsync(bufferedStream, 81920, cancellationToken).ConfigureAwait(false);
-                bufferedStream.Seek(0, SeekOrigin.Begin);
-                WordDocument document = Load(bufferedStream, resolved);
-                if (document.SourceFormat == WordFileFormat.Doc) {
-                    bufferedStream.Dispose();
-                } else {
-                    document._ownedPackageStream = bufferedStream;
-                    document.OriginalStream = !readOnly && OfficeStreamWriter.CanReplaceContents(stream)
-                        ? stream
-                        : null!;
-                }
-
-                return document;
-            } catch {
-                bufferedStream.Dispose();
-                throw;
+            using var bufferedStream = new MemoryStream();
+            await stream.CopyToAsync(bufferedStream, 81920, cancellationToken).ConfigureAwait(false);
+            bufferedStream.Seek(0, SeekOrigin.Begin);
+            WordDocument document = Load(bufferedStream, resolved);
+            if (document.SourceFormat != WordFileFormat.Doc) {
+                document.OriginalStream = !readOnly && OfficeStreamWriter.CanReplaceContents(stream)
+                    ? stream
+                    : null!;
             }
+
+            return document;
         }
 
         /// <summary>

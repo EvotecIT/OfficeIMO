@@ -1,4 +1,5 @@
 using OfficeIMO.Word;
+using System.Reflection;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -36,6 +37,35 @@ namespace OfficeIMO.Tests {
             source.Position = 0;
             using WordDocument reopened = WordDocument.Load(source, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
             Assert.Equal("After", Assert.Single(reopened.Paragraphs).Text);
+        }
+
+        [Fact]
+        public async Task LoadAsync_DisposeOwnsTheActualOpenXmlPackageStream() {
+            byte[] sourceBytes;
+            using (WordDocument created = WordDocument.Create()) {
+                created.AddParagraph("Before");
+                sourceBytes = created.ToBytes();
+            }
+
+            using var source = new MemoryStream(sourceBytes);
+            using WordDocument loaded = await WordDocument.LoadAsync(source);
+            FieldInfo ownedStreamField = typeof(WordDocument).GetField(
+                "_ownedPackageStream",
+                BindingFlags.Instance | BindingFlags.NonPublic)!;
+            MemoryStream ownedPackageStream = Assert.IsType<MemoryStream>(ownedStreamField.GetValue(loaded));
+            Assert.Single(loaded.Paragraphs).SetText("After");
+
+            using var output = new MemoryStream();
+            await loaded.SaveAsync(output);
+
+            using (WordDocument packageCopy = WordDocument.Load(
+                       new MemoryStream(ownedPackageStream.ToArray(), writable: false),
+                       new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
+                Assert.Equal("After", Assert.Single(packageCopy.Paragraphs).Text);
+            }
+
+            loaded.Dispose();
+            Assert.Throws<ObjectDisposedException>(() => ownedPackageStream.ReadByte());
         }
 
         [Fact]
