@@ -92,6 +92,21 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void PdfEditableOfficeManifestUsesCanonicalSemanticWordArtifact() {
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(GetManifestPath()));
+        JsonElement scenario = document.RootElement
+            .GetProperty("scenarios")
+            .EnumerateArray()
+            .Single(element => element.GetProperty("path").GetString() == "pdf-to-editable-office");
+        IReadOnlyList<string> reviewFiles = ReadStringArray(scenario, "visualReviewFiles");
+
+        Assert.Contains("pdf-semantic-import-word.docx", reviewFiles);
+        Assert.DoesNotContain("pdf-table-import-word.docx", reviewFiles);
+        Assert.Contains("pdf-table-import-excel.xlsx", reviewFiles);
+        Assert.Contains("pdf-table-import-powerpoint.pptx", reviewFiles);
+    }
+
+    [Fact]
     public void HtmlDirectRenderer_ProducesManifestedReviewProof() {
         const string linkUri = "https://example.com/pdf-conversion-manifest";
         byte[] pdf = HtmlConversionDocument.Parse(CreatePracticalHtmlSample(linkUri)).ToPdf();
@@ -1846,7 +1861,7 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
-    public void PdfTableImportProfiles_ProduceManifestedEditableOfficeProof() {
+    public void PdfEditableOfficeProfiles_ProduceManifestedProof() {
         byte[] pdf = CreateLogicalProofPdf();
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true

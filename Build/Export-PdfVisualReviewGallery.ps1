@@ -25,67 +25,25 @@ $outputPath = if ([System.IO.Path]::IsPathRooted($OutputDirectory)) {
 New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 $resolvedOutputPath = (Resolve-Path -LiteralPath $outputPath).Path
 
-$generatedReviewFileNames = @(
+$manifestReviewFileNames = @(
+    foreach ($scenario in @($scenarioManifest.scenarios)) {
+        foreach ($fileName in @($scenario.visualReviewFiles)) {
+            if (-not [string]::IsNullOrWhiteSpace($fileName)) {
+                $fileName
+            }
+        }
+    }
+) | Sort-Object -Unique
+
+$standaloneReviewFileNames = @(
     'professional-report.pdf',
     'line-items-two-page.pdf',
     'headers-footers.pdf',
     'flow-dsl.pdf',
-    'native-word-report.pdf',
     'native-word-daily-layout.pdf',
     'native-word-table-cell-picture-control.pdf',
     'native-powerpoint-slide.pdf',
-    'native-powerpoint-dense-layout.pdf',
-    'native-excel-daily-workbook.pdf',
-    'excel-dashboard-report.pdf',
-    'markdown-technical-document.pdf',
-    'markdown-invoice-statement.pdf',
-    'rtf-roundtrip-source.pdf',
-    'rtf-roundtrip-imported.rtf',
-    'rtf-roundtrip-summary.json',
-    'pdf-rewrite-preservation-source.pdf',
-    'pdf-rewrite-preservation-updated.pdf',
-    'pdf-rewrite-preservation-summary.json',
-    'pdf-redaction-removal-source.pdf',
-    'pdf-redaction-removal-redacted.pdf',
-    'pdf-redaction-removal-summary.json',
-    'pdf-form-appearance-source.pdf',
-    'pdf-form-appearance-filled.pdf',
-    'pdf-form-appearance-flattened.pdf',
-    'pdf-form-appearance-summary.json',
-    'pdf-provider-shaped-text.pdf',
-    'pdf-provider-shaped-text-summary.json',
-    'practical-html.pdf',
-    'html-css-resource-policy.pdf',
-    'html-css-resource-policy-summary.json',
-    'html-pdf-roundtrip-source.pdf',
-    'html-pdf-roundtrip-semantic.html',
-    'html-pdf-roundtrip-positioned.html',
-    'html-pdf-roundtrip-summary.json',
-    'pdf-to-html-logical-source.pdf',
-    'pdf-to-html-positioned-review.html',
-    'pdf-logical-diagnostics-source.pdf',
-    'pdf-logical-diagnostics-positioned-review.html',
-    'pdf-logical-diagnostics-summary.json',
-    'pdf-reader-degradation-corpus.pdf',
-    'pdf-reader-degradation-summary.json',
-    'pdf-reader-hostile-action-corpus.pdf',
-    'pdf-reader-hostile-action-positioned-review.html',
-    'pdf-reader-hostile-action-summary.json',
-    'pdf-reader-hostile-layout-corpus.pdf',
-    'pdf-reader-hostile-layout-summary.json',
-    'pdf-reader-hostile-table-corpus.pdf',
-    'pdf-reader-hostile-table-summary.json',
-    'powerpoint-layout-theme-groups.pdf',
-    'pdf-table-import-source.pdf',
-    'pdf-table-import-word.docx',
-    'pdf-table-import-excel.xlsx',
-    'pdf-table-import-powerpoint.pptx',
     'multilingual-business-report.pdf',
-    'multilingual-word-to-pdf.pdf',
-    'multilingual-excel-to-pdf.pdf',
-    'multilingual-markdown-to-pdf.pdf',
-    'multilingual-html-to-pdf.pdf',
-    'multilingual-powerpoint-to-pdf.pdf',
     'markdown-theme-gallery-plain.pdf',
     'markdown-theme-gallery-word-like.pdf',
     'markdown-theme-gallery-technical-document.pdf',
@@ -113,6 +71,11 @@ $generatedReviewFileNames = @(
     'conversion-proof-summary.json',
     'index.md'
 )
+
+$generatedReviewFileNames = @(
+    $manifestReviewFileNames
+    $standaloneReviewFileNames
+) | Sort-Object -Unique
 
 foreach ($fileName in $generatedReviewFileNames) {
     $path = Join-Path $resolvedOutputPath $fileName
