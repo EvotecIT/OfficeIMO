@@ -1,5 +1,7 @@
 # OfficeIMO breaking API migration
 
+This cleanup ships as one coordinated `2.0.0` release across every supported OfficeIMO package. The shared version marks a single compatibility boundary: applications should upgrade their OfficeIMO package set together instead of mixing `1.x` and `2.x` packages.
+
 This release is a coordinated breaking cleanup across the OfficeIMO solution. It removes compatibility aliases, duplicate infrastructure, misleading async methods, and option-owned operation state. Consumers should migrate to the canonical APIs below instead of recreating removed names in wrappers.
 
 ## Package architecture

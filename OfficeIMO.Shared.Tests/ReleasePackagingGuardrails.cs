@@ -6,7 +6,7 @@ namespace OfficeIMO.Shared.Tests;
 
 public sealed class ReleasePackagingGuardrails {
     [Fact]
-    public void ProjectBuild_IncludesEveryPublishablePackageExactlyOnce() {
+    public void ProjectBuild_IncludesEveryPublishablePackageExactlyOnceAndUsesOneVersion() {
         string repositoryRoot = GetRepositoryRoot();
         string projectBuildPath = Path.Combine(repositoryRoot, "Build", "project.build.json");
         using JsonDocument buildDocument = JsonDocument.Parse(File.ReadAllText(projectBuildPath));
@@ -19,6 +19,10 @@ public sealed class ReleasePackagingGuardrails {
                 static property => property.Name,
                 static property => property.Value.GetString() ?? string.Empty,
                 StringComparer.OrdinalIgnoreCase);
+        const string releaseBand = "2.0.X";
+        Assert.Equal(releaseBand, buildRoot.GetProperty("ExpectedVersion").GetString());
+        Assert.NotEmpty(expectedVersions);
+        Assert.All(expectedVersions, entry => Assert.Equal(releaseBand, entry.Value));
         HashSet<string> excludedProjects = buildRoot
             .GetProperty("ExcludeProjects")
             .EnumerateArray()
@@ -65,9 +69,18 @@ public sealed class ReleasePackagingGuardrails {
             .ToArray();
         Assert.Empty(staleExclusions);
 
-        foreach (PackageProject project in packageProjects.Where(project => expectedVersions.ContainsKey(project.PackageId))) {
+        PackageProject[] includedProjects = packageProjects
+            .Where(project => expectedVersions.ContainsKey(project.PackageId))
+            .ToArray();
+        foreach (PackageProject project in includedProjects) {
             AssertVersionMatchesReleaseBand(project, expectedVersions[project.PackageId]);
         }
+
+        string[] releaseVersions = includedProjects
+            .Select(static project => project.Version)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        Assert.Single(releaseVersions);
     }
 
     private static PackageProject? ReadPackageProject(string projectPath) {
