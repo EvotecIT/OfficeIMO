@@ -161,3 +161,10 @@ foreach (var table in imported) {
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages; no native or commercial PDF renderer.
+- **OfficeIMO:** `OfficeIMO.PowerPoint`, `OfficeIMO.Pdf`, and `OfficeIMO.Drawing` own slide snapshots, PDF rendering, and reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

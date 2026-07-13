@@ -155,3 +155,10 @@ foreach (OfficeDocumentAsset attachment in result.Assets) {
 The package does not expose general-purpose CFB transactions and does not read PST or OST mailbox stores. Its compound implementation serves MSG and structured attachments only. Use `EmailMailboxReader` for mbox aggregates and a dedicated store API for PST/OST workflows.
 
 For an exact pass-through of a signed or encrypted artifact, read with `preserveRawSource: true` and write with `usePreservedRawSource: true`. A structured rewrite can change MIME canonicalization and must not be treated as signature-preserving.
+
+## Dependency footprint
+
+- **External:** No third-party email engine or Outlook interop. `System.Text.Encoding.CodePages` supplies legacy encodings.
+- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Rtf`. MIME, MSG/MAPI, TNEF, mbox, and compressed-RTF handling are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

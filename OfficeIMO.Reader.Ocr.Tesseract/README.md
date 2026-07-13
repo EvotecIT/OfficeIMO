@@ -59,3 +59,10 @@ Per-request payload and output files use owner-only Unix directories and permiss
 - Targets: `netstandard2.0`, `net8.0`, `net10.0` (`net472` is also included on Windows builds).
 - OfficeIMO provider license: MIT.
 - Tesseract is an external dependency distributed under its own Apache 2.0 license.
+
+## Dependency footprint
+
+- **External:** An installed Tesseract CLI and its language data; neither is bundled.
+- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.Reader.Ocr.Process` own the OCR contract, bounded process execution, TSV projection, and diagnostics.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -131,3 +131,10 @@ foreach (string warning in book.Warnings) {
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None; no third-party EPUB engine.
+- **OfficeIMO:** `OfficeIMO.Drawing`. Container, OPF, spine, navigation, chapter, and resource parsing are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

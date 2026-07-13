@@ -2,11 +2,36 @@
 
 This project compares raw .NET CSV paths without PowerShell object overhead. Use it beside the PSWriteOffice benchmark scoreboard, not as a replacement for it.
 
+## Current generated headline comparison
+
+This compact table is selected from the same BenchmarkDotNet artifacts used by
+the detailed investigations below and is refreshed through PSPublishModule.
+Lower is faster; short-run results vary by machine, runtime, data, and options.
+
+<!-- officeimo-csv-benchmark-table:start -->
+| Scenario | Variables | Host | Operation | OfficeIMO.CSV | Sep | Sylvan.Data.Csv | Result |
+| --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| Prevalidated text-row write upper bound | Contract=OfficeIMO caller-prevalidated text, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Write rows | 1.00x (16ms) | 1.54x (24ms) | 1.73x (27ms) | OfficeIMO.CSV fastest |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Read every field | 1.00x (5ms) | 0.47x (2ms) | 1.89x (9ms) | OfficeIMO.CSV slower than Sep |
+| Wide projected-row CSV write | Contract=projected values, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Write projected rows | 1.00x (37ms) | 0.66x (24ms) | 0.74x (27ms) | OfficeIMO.CSV slower than Sep |
+<!-- officeimo-csv-benchmark-table:end -->
+
 ## Run
 
 ```powershell
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter *Csv*Benchmarks*
 ```
+
+Refresh the compact package-README comparison locally with one command:
+
+```powershell
+.\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run Csv
+```
+
+The script runs only the focused equivalent lanes, calls PSPublishModule's
+`Import-BenchmarkResult` and `Update-BenchmarkDocument`, and replaces the
+marker-delimited tables. It is a deliberate local maintainer command; benchmark
+execution is not scheduled in CI.
 
 For a write-focused competitor pass:
 

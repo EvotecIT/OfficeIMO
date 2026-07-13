@@ -71,3 +71,10 @@ var session = new GoogleWorkspaceSession(credentialSource, sessionOptions);
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** `System.Text.Json` plus platform HTTP and cryptography; no Google client SDK.
+- **OfficeIMO:** Credential abstractions, sessions, retry, Drive placement, failures, and translation reports are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

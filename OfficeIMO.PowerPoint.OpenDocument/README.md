@@ -16,3 +16,10 @@ foreach (var mapping in conversion.Report.Mappings) {
 ```
 
 The adapter maps slide size and order, hidden slides, text boxes and basic run formatting, images, tables and merges, basic shapes, solid backgrounds, common transitions, and plain speaker notes. Masters, complex geometry, charts, SmartArt, media, animations, unsupported transition families, and other detected advanced features are called out in the conversion report.
+
+## Dependency footprint
+
+- **External:** None.
+- **OfficeIMO:** `OfficeIMO.PowerPoint` and `OfficeIMO.OpenDocument`; the adapter owns feature mapping and fidelity reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -93,3 +93,10 @@ Preview.Markdown = string.Empty;
 - Targets: Windows WPF/WebView2 package targets.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** Microsoft WebView2 and WPF.
+- **OfficeIMO:** `OfficeIMO.MarkdownRenderer` owns the shell; this package owns the WPF host control and integration contract.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

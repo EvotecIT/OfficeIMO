@@ -141,3 +141,10 @@ PDF-to-HTML profiles describe how an existing PDF is projected to HTML. They are
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None beyond AngleSharp/AngleSharp.Css already isolated in `OfficeIMO.Html`; no browser process or native HTML renderer.
+- **OfficeIMO:** `OfficeIMO.Html`, `OfficeIMO.Pdf`, and `OfficeIMO.Drawing` own layout, rendering, reverse projection, and reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

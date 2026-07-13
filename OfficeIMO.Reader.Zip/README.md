@@ -103,3 +103,10 @@ foreach (string warning in chunks.SelectMany(chunk => chunk.Warnings ?? Array.Em
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** None beyond platform compression APIs.
+- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.Zip` own safe traversal, nested-archive limits, extraction projection, and warnings.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

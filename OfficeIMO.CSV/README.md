@@ -49,6 +49,35 @@ new CsvDocument()
 - Supports streaming mode for large files and explicit materialization when transforms are needed.
 - Includes benchmark lanes against Dataplat/dbatools CSV, Sep, Sylvan, CsvHelper, and OfficeIMO fast paths.
 
+## Performance without giving up the document model
+
+OfficeIMO.CSV has dedicated field-span, reusable-row, streaming `DbDataReader`,
+projected-row, and trusted-text fast paths. The same package also keeps the
+features expected from a document and ingestion model: schema inference and
+validation, typed values, transforms, compressed files, malformed-input policy,
+formula-injection protection, progress, cancellation, and diagnostics.
+
+The focused table compares equivalent 25,000-row wide read and projected-write
+lanes against Sep and Sylvan, then shows the narrower OfficeIMO trusted-text
+upper bound separately. Trusted-text rows require the caller to supply already
+validated, culture-formatted values, so that row is not presented as the same
+contract as the projected writers. Read lanes traverse every field and validate
+their output, so a parser cannot win by merely counting rows. Lower is faster.
+
+<!-- officeimo-csv-benchmark-table:start -->
+| Scenario | Variables | Host | Operation | OfficeIMO.CSV | Sep | Sylvan.Data.Csv | Result |
+| --- | --- | --- | --- | ---: | ---: | ---: | --- |
+| Prevalidated text-row write upper bound | Contract=OfficeIMO caller-prevalidated text, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Write rows | 1.00x (16ms) | 1.54x (24ms) | 1.73x (27ms) | OfficeIMO.CSV fastest |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Read every field | 1.00x (5ms) | 0.47x (2ms) | 1.89x (9ms) | OfficeIMO.CSV slower than Sep |
+| Wide projected-row CSV write | Contract=projected values, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Write projected rows | 1.00x (37ms) | 0.66x (24ms) | 0.74x (27ms) | OfficeIMO.CSV slower than Sep |
+<!-- officeimo-csv-benchmark-table:end -->
+
+These are short-run snapshots, not universal rankings. Runtime, CPU, input
+shape, quoting, encoding, storage, warm-up, and consumer behavior all matter;
+results will vary. See the [full benchmark harness](../OfficeIMO.CSV.Benchmarks/README.md)
+for CsvHelper, Dataplat/dbatools, LumenWorks, Sep, Sylvan, `DataTable`, and
+`DbDataReader` lanes and the exact commands used to reproduce them.
+
 ## Schema example
 
 ```csharp
@@ -356,3 +385,10 @@ string normalized = document.ToString(new CsvSaveOptions {
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`, `net472`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** No third-party CSV engine. `System.Buffers` and .NET Framework reference assemblies support compatibility targets.
+- **OfficeIMO:** `OfficeIMO.Drawing`. Parsing, streaming, schemas, transforms, compression, and object mapping are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -46,3 +46,10 @@ Available argument placeholders are `{request}`, `{input}`, `{output}`, `{langua
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0` (`net472` is also included on Windows builds).
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** A caller-configured executable plus `System.Text.Json` for the versioned protocol.
+- **OfficeIMO:** `OfficeIMO.Reader` owns candidate selection, bounded execution, containment, results, and diagnostics.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

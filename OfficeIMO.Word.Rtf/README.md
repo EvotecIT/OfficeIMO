@@ -44,3 +44,10 @@ Each result contains the normalized RTF document, the workflow-specific result, 
 ## Fidelity boundary
 
 Common paragraphs, rich runs, tables, nested tables, images, notes, headers/footers, sections, styles, numbering, links, bookmarks, revisions, and comments map through the bridge. Unsupported Word elements and unsupported RTF objects/shapes are reported as omissions. Use `RequireNoLoss()` when those omissions must stop the workflow.
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages.
+- **OfficeIMO:** `OfficeIMO.Word` and `OfficeIMO.Rtf`; Word workflows are reused instead of reimplemented.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -1,0 +1,216 @@
+{
+  "metadata": {
+    "generatedAtUtc": "2026-07-13T21:12:56.484951+00:00",
+    "source": "./.benchmark-artifacts/readme-refresh/csv",
+    "note": "Focused BenchmarkDotNet run; every read lane traverses every field and validates its output."
+  },
+  "comparison": [
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide field-span CSV read",
+      "operation": "Read every field",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "field spans",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "OfficeIMO.CSV",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 5.0237,
+      "baseline": 5.0237,
+      "ratio": 1.0,
+      "metric": "MedianMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide field-span CSV read",
+      "operation": "Read every field",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "field spans",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "Sep",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 2.37659,
+      "baseline": 5.0237,
+      "ratio": 0.47307562155383487,
+      "metric": "MedianMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide field-span CSV read",
+      "operation": "Read every field",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "field spans",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "Sylvan.Data.Csv",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 9.49223,
+      "baseline": 5.0237,
+      "ratio": 1.8894898182614408,
+      "metric": "MedianMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide projected-row CSV write",
+      "operation": "Write projected rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "projected values",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "OfficeIMO.CSV",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 36.649879999999996,
+      "baseline": 36.649879999999996,
+      "ratio": 1.0,
+      "metric": "MedianMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide projected-row CSV write",
+      "operation": "Write projected rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "projected values",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "Sep",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 24.2111,
+      "baseline": 36.649879999999996,
+      "ratio": 0.6606051643279596,
+      "metric": "MedianMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide projected-row CSV write",
+      "operation": "Write projected rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "projected values",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "Sylvan.Data.Csv",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 27.19788,
+      "baseline": 36.649879999999996,
+      "ratio": 0.7421001105597073,
+      "metric": "MedianMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Prevalidated text-row write upper bound",
+      "operation": "Write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "OfficeIMO caller-prevalidated text",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "OfficeIMO.CSV",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 15.69116,
+      "baseline": 15.69116,
+      "ratio": 1.0,
+      "metric": "MedianMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Prevalidated text-row write upper bound",
+      "operation": "Write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "OfficeIMO caller-prevalidated text",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "Sep",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 24.2111,
+      "baseline": 15.69116,
+      "ratio": 1.54297706479317,
+      "metric": "MedianMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Prevalidated text-row write upper bound",
+      "operation": "Write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "OfficeIMO caller-prevalidated text",
+        "Snapshot": "2026-07-13",
+        "Runner": "BenchmarkDotNet short"
+      },
+      "engine": "Sylvan.Data.Csv",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 27.19788,
+      "baseline": 15.69116,
+      "ratio": 1.733325005926904,
+      "metric": "MedianMs"
+    }
+  ]
+}

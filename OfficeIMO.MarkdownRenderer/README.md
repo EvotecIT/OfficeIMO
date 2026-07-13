@@ -124,3 +124,10 @@ string updateScript = MarkdownRenderer.RenderUpdateScript(markdownText, options)
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** `System.Text.Json`; optional Mermaid, chart, math, and Prism behavior is carried as shell assets rather than managed runtime packages.
+- **OfficeIMO:** `OfficeIMO.Markdown` and `OfficeIMO.Markdown.Html` own parsing and HTML mapping; this package owns shells, presets, updates, and plug-in registration.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

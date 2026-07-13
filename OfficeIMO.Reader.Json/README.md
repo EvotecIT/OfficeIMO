@@ -78,3 +78,10 @@ var chunks = reader.Read(stream, "payload.json", new ReaderOptions {
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** `System.Text.Json`.
+- **OfficeIMO:** `OfficeIMO.Reader` owns chunking, limits, locations, warnings, and result projection.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

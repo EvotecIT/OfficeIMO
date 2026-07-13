@@ -9,7 +9,7 @@ using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Cryptography;
 
 var provider = new PdfPkcsSignatureCryptographyProvider();
-var report = PdfDocument.Open("signed.pdf").ValidateSignatures(provider);
+var report = PdfDocument.Load("signed.pdf").ValidateSignatures(provider);
 
 foreach (var signature in report.Signatures) {
     var crypto = signature.CryptographicResult;
@@ -39,3 +39,10 @@ signature metadata, document permissions, and revision analysis. This package
 owns CMS signature math, signed attributes, certificate chains, timestamps,
 and revocation policy. RFC 3161 token validation uses the typed BCL API on .NET
 8 and later; older targets report that timestamp dimension as indeterminate.
+
+## Dependency footprint
+
+- **External:** `System.Security.Cryptography.Pkcs` for CMS/PKCS operations.
+- **OfficeIMO:** `OfficeIMO.Pdf` owns signature discovery, signed-byte extraction, permissions, and revision analysis.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -21,3 +21,10 @@ The handler emits:
 - slide-aligned ODP chunks with tables and optional speaker notes.
 
 `ReaderOptions.MaxTableRows`, `MaxChars`, `ExcelHeadersInFirstRow`, `ExcelSheetName`, and `IncludePowerPointNotes` apply to the corresponding OpenDocument extraction paths. ODS extraction caps one chunk at 256 columns so repeated or adversarial ranges remain bounded.
+
+## Dependency footprint
+
+- **External:** None; no LibreOffice runtime.
+- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.OpenDocument`; ODT/ODS/ODP parsing stays in the native package.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

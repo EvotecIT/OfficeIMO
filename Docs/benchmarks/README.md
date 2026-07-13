@@ -20,6 +20,7 @@ Reader benchmark code lives in `OfficeIMO.Reader.Benchmarks`.
 - `officeimo.excel.npoi-verification-notes.md`: benchmark-only scope notes for the opt-in NPOI runner.
 - `comparison-current\officeimo.excel.comparison-suite-manifest.json`: release-style suite manifest.
 - `comparison-current\officeimo.excel.comparison-summary.md|csv|json`: one-table decision summary with speed, allocation, and package-size ratios.
+- `readme-current\officeimo.csv.comparison.json|officeimo.excel.comparison.json`: compact, PSPublishModule-compatible selections that generate the package and benchmark README tables.
 - `officeimo.excel.comparison-report.md`: generated website/blog-oriented report distilled from comparison data.
 - `Website\data\benchmarks-excel.json|benchmarks-excel-summary.json|benchmarks-excel-index.json`: generated website-facing benchmark data.
 
@@ -38,3 +39,17 @@ After a suite run, generate the website/blog data layer:
 ```powershell
 .\Build\Generate-ExcelBenchmarkWebsiteData.ps1 -SummaryPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-summary.json -ManifestPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-suite-manifest.json -RunMode quick
 ```
+
+Refresh the marker-delimited CSV and Excel README tables through
+PSPublishModule:
+
+```powershell
+.\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run All
+```
+
+Use `-Run Csv` or `-Run Excel` when only one snapshot needs refreshing. With no
+`-Run` value, the script simply regenerates the tables from the committed
+compact JSON. The focused benchmarks are deliberate local maintainer work and
+are not scheduled in CI. PSPublishModule owns generic Markdown replacement;
+the repository script owns only benchmark invocation and OfficeIMO-specific row
+selection. Generated comparison JSON is committed while raw output is ignored.

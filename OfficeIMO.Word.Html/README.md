@@ -95,3 +95,10 @@ using WordDocument remoteDocument = remote.RequireValue();
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** Open XML SDK already used by the Word package; HTML DOM/CSS parsing comes through `OfficeIMO.Html`.
+- **OfficeIMO:** `OfficeIMO.Word`, `OfficeIMO.Html`, and `OfficeIMO.Drawing`. The bidirectional mapping, resource policy, and diagnostics are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

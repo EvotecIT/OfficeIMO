@@ -1,0 +1,261 @@
+{
+  "metadata": {
+    "generatedAtUtc": "2026-07-13T21:12:56.381843Z",
+    "source": "./.benchmark-artifacts/readme-refresh/excel/officeimo.excel.comparison-summary.json",
+    "note": "Mean/stddev/stderr are from the lightweight rotated local runner. Allocations use GC.GetAllocatedBytesForCurrentThread. Use BenchmarkDotNet-specific classes for publication-grade statistical Error columns."
+  },
+  "comparison": [
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Feature-rich report to XLSX",
+      "operation": "Create",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "OfficeIMO.Excel",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 548.6870556666667,
+      "baseline": 548.6870556666667,
+      "ratio": 1.0,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Feature-rich report to XLSX",
+      "operation": "Create",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "EPPlus",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 367.560944,
+      "baseline": 548.6870556666667,
+      "ratio": 0.6698917720109243,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Styled DataReader table to XLSX",
+      "operation": "Write",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "OfficeIMO.Excel",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 39.150014,
+      "baseline": 39.150014,
+      "ratio": 1.0,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Styled DataReader table to XLSX",
+      "operation": "Write",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "ClosedXML",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 526.6473473333334,
+      "baseline": 39.150014,
+      "ratio": 13.452034712767496,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Styled DataReader table to XLSX",
+      "operation": "Write",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "EPPlus",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 375.99281933333333,
+      "baseline": 39.150014,
+      "ratio": 9.603899996902513,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Typed objects streamed from XLSX",
+      "operation": "Read",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "OfficeIMO.Excel",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 59.664500000000004,
+      "baseline": 59.664500000000004,
+      "ratio": 1.0,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Typed objects streamed from XLSX",
+      "operation": "Read",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "ClosedXML",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 271.760833,
+      "baseline": 59.664500000000004,
+      "ratio": 4.554816230756982,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Typed objects streamed from XLSX",
+      "operation": "Read",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "EPPlus",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 205.00526366666668,
+      "baseline": 59.664500000000004,
+      "ratio": 3.435967177579074,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Typed objects streamed from XLSX",
+      "operation": "Read",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "Sylvan.Data.Excel",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 69.59073566666666,
+      "baseline": 59.664500000000004,
+      "ratio": 1.1663675328992391,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Plain DataReader to XLSX",
+      "operation": "Write",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "OfficeIMO.Excel",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 35.163264,
+      "baseline": 35.163264,
+      "ratio": 1.0,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Plain DataReader to XLSX",
+      "operation": "Write",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "Sylvan.Data.Excel",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 27.773014000000003,
+      "baseline": 35.163264,
+      "ratio": 0.7898303752461662,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Plain DataReader to XLSX",
+      "operation": "Write",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-13",
+        "Runner": "rotated local"
+      },
+      "engine": "LargeXlsx",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 37.173236,
+      "baseline": 35.163264,
+      "ratio": 1.0571611327094097,
+      "metric": "MeanMs"
+    }
+  ]
+}

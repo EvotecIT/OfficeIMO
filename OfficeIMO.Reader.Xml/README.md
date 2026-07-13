@@ -76,3 +76,10 @@ var chunks = reader.Read(stream, "upload.xml", new ReaderOptions {
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** None beyond platform XML APIs.
+- **OfficeIMO:** `OfficeIMO.Reader` owns traversal projection, chunking, limits, locations, and warnings.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

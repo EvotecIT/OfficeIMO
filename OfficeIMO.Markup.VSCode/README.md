@@ -98,3 +98,10 @@ CI packaging and publishing are handled by `.github/workflows/vscode-extension.y
 - Export fidelity belongs in the target exporter packages.
 
 Report bugs and feature requests in the [OfficeIMO issue tracker](https://github.com/EvotecIT/OfficeIMO/issues).
+
+## Dependency footprint
+
+- **External:** VS Code. Mermaid CLI integration is optional.
+- **OfficeIMO:** The extension bundles the repository's self-contained Markup CLI for Windows, Linux, and macOS instead of depending on a separately installed document engine.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

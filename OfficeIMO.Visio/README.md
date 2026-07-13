@@ -220,3 +220,10 @@ document.SaveAsPng("pipeline.png", new VisioPngSaveOptions {
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** `System.IO.Packaging`; Microsoft BCL compatibility packages are used on older targets.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The VSDX model, builders, editing, topology, validation, and PNG/SVG renderers are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

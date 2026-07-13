@@ -113,3 +113,10 @@ The checked producer corpus includes real Microsoft Word 16 and Outlook 16 outpu
 - `OfficeIMO.Reader.Rtf`: bounded chunk and provenance extraction.
 
 See the [living support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.rtf-support-matrix.md) for feature-level boundaries and evidence.
+
+## Dependency footprint
+
+- **External:** No third-party RTF engine. `System.Text.Encoding.CodePages` supplies legacy encodings.
+- **OfficeIMO:** `OfficeIMO.Drawing`. Lexing, parsing, semantic binding, editing, and writing are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

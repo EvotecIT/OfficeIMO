@@ -52,14 +52,14 @@ PdfDocument.Create(new PdfOptions {
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Open("input.pdf")
+PdfDocument.Load("input.pdf")
     .Pages.Extract("1-2,4")
     .MergeWith("appendix.pdf")
     .UpdateMetadata(title: "Merged report")
     .Stamp.Text("Reviewed")
     .Save("output.pdf");
 
-string text = PdfDocument.Open("output.pdf").Read.Text();
+string text = PdfDocument.Load("output.pdf").Read.Text();
 ```
 
 ## Examples
@@ -123,7 +123,7 @@ PdfDocument.Create()
 ```csharp
 using OfficeIMO.Pdf;
 
-using var pdf = PdfDocument.Open("statement.pdf");
+PdfDocument pdf = PdfDocument.Load("statement.pdf");
 
 string text = pdf.Read.Text();
 string firstPages = pdf.Read.Text("1-2");
@@ -172,7 +172,7 @@ PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> safeAttachments = pdf.
 ```csharp
 using OfficeIMO.Pdf;
 
-using var source = PdfDocument.Open("packet.pdf");
+PdfDocument source = PdfDocument.Load("packet.pdf");
 
 source.Pages.Extract("1-3")
     .Save("cover-and-summary.pdf");
@@ -192,7 +192,7 @@ selectedRanges[1].Save("packet-evidence.pdf");
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Open("packet.pdf")
+PdfDocument.Load("packet.pdf")
     .MergeWith("appendix.pdf")
     .Pages.Delete("2,5-6")
     .Pages.Duplicate("1")
@@ -207,7 +207,7 @@ PdfDocument.Open("packet.pdf")
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Open("contract.pdf")
+PdfDocument.Load("contract.pdf")
     .Stamp.Text("Reviewed", new PdfTextStampOptions {
         X = 72,
         Y = 720,
@@ -227,7 +227,7 @@ PdfDocument.Open("contract.pdf")
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument.Open("application-form.pdf")
+PdfDocument.Load("application-form.pdf")
     .Forms.FillAndFlatten(new Dictionary<string, string> {
         ["Applicant.Name"] = "Adele Vance",
         ["Applicant.Email"] = "adele@example.com",
@@ -320,7 +320,7 @@ if (!preflight.Can(PdfPreflightCapability.ManipulatePages)) {
     }
 }
 
-var result = PdfDocument.Open(bytes).Pages.TryExtract("1-2");
+var result = PdfDocument.Load(bytes).Pages.TryExtract("1-2");
 if (result.Succeeded) {
     result.RequireValue().Save("incoming-first-pages.pdf");
 }
@@ -329,7 +329,7 @@ if (result.Succeeded) {
 ### Inspect before automating
 
 ```csharp
-using var pdf = PdfDocument.Open("incoming.pdf");
+PdfDocument pdf = PdfDocument.Load("incoming.pdf");
 
 var inspection = pdf.Inspect();
 Console.WriteLine($"Pages: {inspection.PageCount}");
@@ -395,3 +395,10 @@ For the full capability inventory and roadmap, read [Docs/officeimo.pdf.current-
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None.
+- **OfficeIMO:** `OfficeIMO.Drawing`. PDF parsing, writing, logical recovery, manipulation, forms, diagnostics, and preservation analysis are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

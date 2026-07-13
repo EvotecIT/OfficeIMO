@@ -85,12 +85,12 @@ var slide = presentation.AddSlide();
 slide.AddTitle("Quarterly Review");
 
 slide.AddTextBox("Agenda",
-    PowerPointUnits.Cm(1.5), PowerPointUnits.Cm(2.0),
-    PowerPointUnits.Cm(8.0), PowerPointUnits.Cm(1.0));
+    PowerPointUnits.FromCentimeters(1.5), PowerPointUnits.FromCentimeters(2.0),
+    PowerPointUnits.FromCentimeters(8.0), PowerPointUnits.FromCentimeters(1.0));
 
 var agenda = slide.AddTextBox("Topics",
-    PowerPointUnits.Cm(1.5), PowerPointUnits.Cm(3.0),
-    PowerPointUnits.Cm(10.0), PowerPointUnits.Cm(3.0));
+    PowerPointUnits.FromCentimeters(1.5), PowerPointUnits.FromCentimeters(3.0),
+    PowerPointUnits.FromCentimeters(10.0), PowerPointUnits.FromCentimeters(3.0));
 agenda.AddBullets(new[] { "Intro", "KPIs", "Next steps" });
 ```
 
@@ -101,31 +101,31 @@ using OfficeIMO.PowerPoint;
 using PowerPointImagePartType = OfficeIMO.PowerPoint.ImagePartType;
 
 slide.AddPicture("logo.png",
-    PowerPointUnits.Cm(23), PowerPointUnits.Cm(1.2),
-    PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
+    PowerPointUnits.FromCentimeters(23), PowerPointUnits.FromCentimeters(1.2),
+    PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
 
 using var logo = File.OpenRead("logo.png");
 slide.AddPicture(logo, PowerPointImagePartType.Png,
-    PowerPointUnits.Cm(2), PowerPointUnits.Cm(2),
-    PowerPointUnits.Cm(5), PowerPointUnits.Cm(2));
+    PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(2),
+    PowerPointUnits.FromCentimeters(5), PowerPointUnits.FromCentimeters(2));
 
 slide.AddPicture("diagram.svg",
-    PowerPointUnits.Cm(2), PowerPointUnits.Cm(5),
-    PowerPointUnits.Cm(8), PowerPointUnits.Cm(4));
+    PowerPointUnits.FromCentimeters(2), PowerPointUnits.FromCentimeters(5),
+    PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(4));
 ```
 
 ### Shapes and layout
 
 ```csharp
 slide.AddRectangle(
-        PowerPointUnits.Cm(1), PowerPointUnits.Cm(1),
-        PowerPointUnits.Cm(3), PowerPointUnits.Cm(1))
+        PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(1),
+        PowerPointUnits.FromCentimeters(3), PowerPointUnits.FromCentimeters(1))
     .Fill("#E7F7FF")
     .Stroke("#007ACC");
 
 slide.AddLine(
-        PowerPointUnits.Cm(1), PowerPointUnits.Cm(3),
-        PowerPointUnits.Cm(8), PowerPointUnits.Cm(3))
+        PowerPointUnits.FromCentimeters(1), PowerPointUnits.FromCentimeters(3),
+        PowerPointUnits.FromCentimeters(8), PowerPointUnits.FromCentimeters(3))
     .Stroke("#404040");
 ```
 
@@ -146,10 +146,10 @@ var columns = new[] {
 };
 
 slide.AddTable(rows, columns,
-    left: PowerPointUnits.Cm(1.5),
-    top: PowerPointUnits.Cm(4),
-    width: PowerPointUnits.Cm(20),
-    height: PowerPointUnits.Cm(6));
+    left: PowerPointUnits.FromCentimeters(1.5),
+    top: PowerPointUnits.FromCentimeters(4),
+    width: PowerPointUnits.FromCentimeters(20),
+    height: PowerPointUnits.FromCentimeters(6));
 
 record SalesRow(string Product, int Q1, int Q2);
 ```
@@ -457,3 +457,10 @@ See [the breaking API migration guide](../Docs/officeimo.powerpoint-api-migratio
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`; `net472` is included when building on Windows.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** Open XML SDK for `.pptx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The presentation model, composition system, inspection, encryption workflow, and PNG/SVG export are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

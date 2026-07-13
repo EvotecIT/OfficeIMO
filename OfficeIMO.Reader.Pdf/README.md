@@ -106,3 +106,10 @@ var chunks = reader.ReadFolder("KnowledgeBase", new ReaderFolderOptions {
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages.
+- **OfficeIMO:** `OfficeIMO.Reader` and the first-party `OfficeIMO.Pdf` engine own parsing, logical recovery, chunks, assets, and diagnostics.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
