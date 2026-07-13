@@ -100,6 +100,25 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfOptions_UseTextFallbacksCoversCheckMarkWhenOnlyOneSymbolSlotIsAvailable() {
+        if (!PdfEmbeddedFontFamily.TryFromSystem("Segoe UI Symbol", out _) &&
+            !PdfEmbeddedFontFamily.TryFromSystem("DejaVu Sans", out _)) {
+            return;
+        }
+
+        var options = new PdfOptions();
+        options.UseTextFallbacks(
+            PdfTextFallbackFeatures.SymbolAndEmojiFonts,
+            new[] { PdfStandardFont.Helvetica },
+            allowSystemFontEmbedding: true);
+
+        PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
+        Assert.NotNull(fallbackSet);
+        Assert.Single(fallbackSet!.Candidates);
+        Assert.True(fallbackSet.PlanText("\u2713").IsFullyCovered);
+    }
+
+    [Fact]
     public void PdfOptions_UseTextFallbacksDoesNotAssignAutomaticFallbacksToTimesSlot() {
         if (!DefaultTextSymbolFallbackFontIsAvailable()) {
             return;

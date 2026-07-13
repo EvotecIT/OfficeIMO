@@ -81,6 +81,7 @@ The canonical PDF conversion-result method is `ToPdfDocumentResult()`. Source-ex
 | `PdfSaveResult.ConversionWarnings` / `PdfBytesResult.ConversionWarnings` | `Warnings` and `Report` |
 | `RtfDocument.ToMemoryStream()` | `RtfDocument.ToStream()` |
 | `RtfDocument.ToHtmlMemoryStream()` | `RtfDocument.ToHtmlStream()` |
+| `WordHelpers.ConvertDotXtoDocX(...)` | `WordHelpers.ConvertDotxToDocx(...)` |
 | `ToRtfMemoryStream()` / `ToRtfMemoryStreamAsync()` | `ToRtfStream()` / `ToRtfStreamAsync()` |
 | `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWordFromPdf()` / `SaveAsRtfFromPdf()`; use the `*FromPdfFile()` form for a source path |
 | `SavePdfTablesAsExcel()` / `SavePdfTablesAsWord()` / `SavePdfTablesAsPowerPoint()` | `SaveAsExcelFromPdfTables()` / `SaveAsWordFromPdfTables()` / `SaveAsPowerPointFromPdfTables()` |

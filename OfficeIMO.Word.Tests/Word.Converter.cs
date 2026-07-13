@@ -7,10 +7,10 @@ namespace OfficeIMO.Tests;
 
 public partial class Word {
     [Fact]
-    public void Test_ConvertDotXtoDocX() {
+    public void Test_ConvertDotxToDocx() {
         string filePath = Path.Combine(_directoryDocuments, "ExampleTemplate.dotx");
         string outFilePath = Path.Combine(_directoryWithFiles, "ExampleTemplate.docx");
-        WordHelpers.ConvertDotXtoDocX(filePath, outFilePath);
+        WordHelpers.ConvertDotxToDocx(filePath, outFilePath);
 
         Assert.True(File.Exists(outFilePath));
 
@@ -21,11 +21,11 @@ public partial class Word {
     }
 
     [Fact]
-    public void Test_ConvertDotXtoDocX_ReleasesDocumentStream() {
+    public void Test_ConvertDotxToDocx_ReleasesDocumentStream() {
         string templatePath = Path.Combine(_directoryDocuments, "ExampleTemplate.dotx");
         string outFilePath = Path.Combine(_directoryWithFiles, "ExampleTemplate_Cleanup.docx");
 
-        WordHelpers.ConvertDotXtoDocX(templatePath, outFilePath);
+        WordHelpers.ConvertDotxToDocx(templatePath, outFilePath);
 
         Assert.False(templatePath.IsFileLocked());
         Assert.True(File.Exists(outFilePath));

@@ -4,6 +4,7 @@
 * Standardize document persistence, conversion results, diagnostics, themes, and async I/O across the solution. Compatibility aliases and fake in-memory async methods were removed; see the [breaking API migration guide](Docs/officeimo.breaking-api-migration.md).
 * Rename PDF table export helpers to the destination-first `SaveAs{Format}FromPdfTables` and `To{Format}BytesFromPdfTables` families.
 * Use `Worksheet` consistently across the Excel API and remove the duplicate `WorkSheet`-cased method family; align RTF-to-HTML memory output with `ToHtmlStream()`.
+* Rename `WordHelpers.ConvertDotXtoDocX(...)` to `ConvertDotxToDocx(...)`, make its package rewrite stream expandable on .NET Framework, and prioritize real symbol fonts before Arial in automatic PDF fallbacks.
 
 ### What's Changed
 * Add `OfficeIMO.Drawing` as a shared zero-dependency color and image metadata layer, including header-only detection for PNG, JPEG, GIF, BMP, TIFF, ICO, PCX, EMF, placeable WMF, and SVG.

@@ -1,6 +1,7 @@
 using System.Reflection;
 using OfficeIMO.Excel;
 using OfficeIMO.Html;
+using OfficeIMO.Word;
 using Xunit;
 
 namespace OfficeIMO.Shared.Tests;
@@ -30,5 +31,16 @@ public sealed class PublicApiNamingContracts {
 
         Assert.Contains("ToHtmlStream", methodNames);
         Assert.DoesNotContain("ToHtmlMemoryStream", methodNames);
+    }
+
+    [Fact]
+    public void WordTemplateConversionUsesCanonicalExtensionCasing() {
+        string[] methodNames = typeof(WordHelpers)
+            .GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly)
+            .Select(method => method.Name)
+            .ToArray();
+
+        Assert.Contains("ConvertDotxToDocx", methodNames);
+        Assert.DoesNotContain("ConvertDotXtoDocX", methodNames);
     }
 }

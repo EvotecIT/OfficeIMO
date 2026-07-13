@@ -1,5 +1,5 @@
-using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -7,39 +7,16 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordHelpers {
         /// <summary>
-        /// Converts a DOTX template to a DOCX document.
-        ///
-        /// Based on: https://github.com/onizet/html2openxml/wiki/Convert-.dotx-to-.docx
+        /// Removes headers and footers from the file at <paramref name="filename"/>.
+        /// When no <paramref name="types"/> are provided all headers and footers are removed.
         /// </summary>
-        /// <param name="templatePath">The path to the DOTX template file.</param>
-        /// <param name="outputPath">The path where the converted DOCX file will be saved.</param>
-        public static void ConvertDotXtoDocX(string templatePath, string outputPath) {
-            // Read the DOTX template file into a writable memory stream.
-            using (var documentStream = new MemoryStream(File.ReadAllBytes(templatePath))) {
-                // Open the WordprocessingDocument from the MemoryStream
-                using (WordprocessingDocument template = WordprocessingDocument.Open(documentStream, true)) {
-                    // Change the document type from template to document
-                    template.ChangeDocumentType(DocumentFormat.OpenXml.WordprocessingDocumentType.Document);
-
-                    // Get the main document part
-                    MainDocumentPart mainPart = template.MainDocumentPart ?? throw new InvalidOperationException("MainDocumentPart is missing in template.");
-
-                    // Ensure the DocumentSettingsPart exists
-                    if (mainPart.DocumentSettingsPart == null) {
-                        mainPart.AddNewPart<DocumentSettingsPart>();
-                    }
-
-                    // Add an external relationship to the template
-                    mainPart.DocumentSettingsPart!.AddExternalRelationship(
-                        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/attachedTemplate",
-                        new Uri(templatePath, UriKind.Absolute));
-
-                    // Save the changes to the main document part
-                    mainPart.Document?.Save();
-                }
-
-                // Write the MemoryStream contents to the output file
-                OfficeFileCommit.WriteAllBytes(outputPath, documentStream.ToArray());
+        /// <param name="filename">Path to the document.</param>
+        /// <param name="types">Header or footer types to remove.</param>
+        public static void RemoveHeadersAndFooters(string filename, params HeaderFooterValues[] types) {
+            using (WordprocessingDocument doc = WordprocessingDocument.Open(filename, true)) {
+                WordHeader.RemoveHeaders(doc, types);
+                WordFooter.RemoveFooters(doc, types);
+                doc.MainDocumentPart?.Document?.Save();
             }
         }
     }

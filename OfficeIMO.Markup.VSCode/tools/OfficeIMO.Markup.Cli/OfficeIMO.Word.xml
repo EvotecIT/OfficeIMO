@@ -11551,15 +11551,7 @@
             Provides helper methods for Word document manipulation.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Word.WordHelpers.RemoveHeadersAndFooters(System.String,DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues[])">
-            <summary>
-            Removes headers and footers from the file at <paramref name="filename"/>.
-            When no <paramref name="types"/> are provided all headers and footers are removed.
-            </summary>
-            <param name="filename">Path to the document.</param>
-            <param name="types">Header or footer types to remove.</param>
-        </member>
-        <member name="M:OfficeIMO.Word.WordHelpers.ConvertDotXtoDocX(System.String,System.String)">
+        <member name="M:OfficeIMO.Word.WordHelpers.ConvertDotxToDocx(System.String,System.String)">
              <summary>
              Converts a DOTX template to a DOCX document.
             
@@ -11567,6 +11559,14 @@
              </summary>
              <param name="templatePath">The path to the DOTX template file.</param>
              <param name="outputPath">The path where the converted DOCX file will be saved.</param>
+        </member>
+        <member name="M:OfficeIMO.Word.WordHelpers.RemoveHeadersAndFooters(System.String,DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues[])">
+            <summary>
+            Removes headers and footers from the file at <paramref name="filename"/>.
+            When no <paramref name="types"/> are provided all headers and footers are removed.
+            </summary>
+            <param name="filename">Path to the document.</param>
+            <param name="types">Header or footer types to remove.</param>
         </member>
         <member name="M:OfficeIMO.Word.WordHelpers.GetNextSdtId(OfficeIMO.Word.WordDocument)">
             <summary>
