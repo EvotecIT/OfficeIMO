@@ -401,6 +401,8 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static int SectorOffset(uint sector, int sectorSize) {
+            // CFB version 4 pads the fixed 512-byte header structure to one full 4096-byte header sector.
+            // In every CFB version, sector 0 therefore starts at one declared sector size from the file start.
             return checked(((int)sector + 1) * sectorSize);
         }
 

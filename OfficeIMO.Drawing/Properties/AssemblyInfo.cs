@@ -2,6 +2,7 @@ using System.Runtime.CompilerServices;
 
 [assembly: InternalsVisibleTo("OfficeIMO.CSV")]
 [assembly: InternalsVisibleTo("OfficeIMO.AsciiDoc")]
+[assembly: InternalsVisibleTo("OfficeIMO.Drawing.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Email")]
 [assembly: InternalsVisibleTo("OfficeIMO.Email.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Epub")]

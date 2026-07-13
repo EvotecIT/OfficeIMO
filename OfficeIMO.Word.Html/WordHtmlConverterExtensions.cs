@@ -107,7 +107,7 @@ namespace OfficeIMO.Word.Html {
 
             var section = doc.Sections.LastOrDefault() ?? throw new System.InvalidOperationException("The document does not contain any sections to append HTML to the body.");
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToBodyAsync(doc, section, htmlDocument.CreateDocumentForConversion(), resolved, cancellationToken).ConfigureAwait(false);
+            await converter.AddHtmlToBodyAsync(doc, section, CreateWordSourceDocument(htmlDocument), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -148,7 +148,7 @@ namespace OfficeIMO.Word.Html {
             var header = GetOrCreateHeader(doc, targetSection, headers, type.Value);
 
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToHeaderAsync(doc, header, htmlDocument.CreateDocumentForConversion(), resolved, cancellationToken).ConfigureAwait(false);
+            await converter.AddHtmlToHeaderAsync(doc, header, CreateWordSourceDocument(htmlDocument), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 
@@ -197,7 +197,7 @@ namespace OfficeIMO.Word.Html {
             var footer = GetOrCreateFooter(doc, targetSection, footers, footerType);
 
             var converter = new HtmlToWordConverter();
-            await converter.AddHtmlToFooterAsync(doc, footer, htmlDocument.CreateDocumentForConversion(), resolved, cancellationToken).ConfigureAwait(false);
+            await converter.AddHtmlToFooterAsync(doc, footer, CreateWordSourceDocument(htmlDocument), resolved, cancellationToken).ConfigureAwait(false);
             cancellationToken.ThrowIfCancellationRequested();
         }
 

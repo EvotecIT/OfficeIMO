@@ -148,6 +148,7 @@ namespace OfficeIMO.Drawing {
         /// Flattens <paramref name="item"/> into a dictionary according to <paramref name="opts"/>.
         /// </summary>
         public Dictionary<string, object?> Flatten<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicProperties | DynamicallyAccessedMemberTypes.PublicFields)] T>(T item, ObjectFlattenerOptions opts) {
+            if (opts == null) throw new ArgumentNullException(nameof(opts));
             if (item == null) {
                 return new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
             }
@@ -155,7 +156,14 @@ namespace OfficeIMO.Drawing {
             object source = item!;
             var result = new Dictionary<string, object?>(GetInitialFlattenCapacity(source.GetType(), opts), StringComparer.OrdinalIgnoreCase);
             FlattenInternal(source, result, string.Empty, 0, opts);
-            return result;
+
+            List<string> selectedPaths = ResolvePaths(result.Keys, opts);
+            var selected = new Dictionary<string, object?>(selectedPaths.Count, StringComparer.OrdinalIgnoreCase);
+            foreach (string path in selectedPaths) {
+                selected[path] = result[path];
+            }
+
+            return selected;
         }
 
         /// <summary>
@@ -175,6 +183,10 @@ namespace OfficeIMO.Drawing {
             if (opts == null) throw new ArgumentNullException(nameof(opts));
             List<string> input = paths.Where(path => !string.IsNullOrWhiteSpace(path)).ToList();
             List<string> filtered = ApplySelection(input, opts);
+            if (opts.Columns != null && opts.Columns.Length > 0) {
+                return ApplyExplicitColumnOrdering(filtered, opts.Columns);
+            }
+
             return ApplyOrdering(filtered, opts);
         }
 
@@ -724,10 +736,14 @@ namespace OfficeIMO.Drawing {
 
             if (opts.Ignore.Length == 0
                 && opts.ExcludeProperties.Length == 0
-                && opts.IncludeProperties.Length == 0) {
+                && opts.IncludeProperties.Length == 0
+                && (opts.Columns == null || opts.Columns.Length == 0)) {
                 return new List<string>(input);
             }
 
+            HashSet<string>? columns = opts.Columns != null && opts.Columns.Length > 0
+                ? new HashSet<string>(opts.Columns, StringComparer.OrdinalIgnoreCase)
+                : null;
             HashSet<string>? exclude = opts.ExcludeProperties.Length > 0
                 ? new HashSet<string>(opts.ExcludeProperties, StringComparer.OrdinalIgnoreCase)
                 : null;
@@ -737,6 +753,9 @@ namespace OfficeIMO.Drawing {
             var filtered = new List<string>(input.Count);
             foreach (string path in input) {
                 if (ShouldIgnorePath(path, opts.Ignore)) {
+                    continue;
+                }
+                if (columns != null && !columns.Contains(path)) {
                     continue;
                 }
 
@@ -759,6 +778,19 @@ namespace OfficeIMO.Drawing {
             }
 
             return filtered;
+        }
+
+        private static List<string> ApplyExplicitColumnOrdering(List<string> input, string[] columns) {
+            var result = new List<string>(Math.Min(input.Count, columns.Length));
+            var added = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string column in columns) {
+                string? match = input.FirstOrDefault(path => string.Equals(path, column, StringComparison.OrdinalIgnoreCase));
+                if (match != null && added.Add(match)) {
+                    result.Add(match);
+                }
+            }
+
+            return result;
         }
     }
 }
