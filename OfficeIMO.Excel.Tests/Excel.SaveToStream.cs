@@ -70,6 +70,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_Save_SyncAndAsync_ToNonSeekableStreams_PackagesAreReadable() {
+            using var document = ExcelDocument.Create();
+            document.AddWorksheet("Response").CellValue(1, 1, "Streamed");
+            using var syncOutput = new NonSeekableReadWriteBuffer(new byte[0]);
+            using var asyncOutput = new NonSeekableReadWriteBuffer(new byte[0]);
+
+            document.Save(syncOutput);
+            await document.SaveAsync(asyncOutput);
+
+            using var syncReader = ExcelDocumentReader.Open(syncOutput.ToArray());
+            using var asyncReader = ExcelDocumentReader.Open(asyncOutput.ToArray());
+            Assert.Equal("Streamed", syncReader.GetSheet("Response").ReadRange("A1:A1")[0, 0]);
+            Assert.Equal("Streamed", asyncReader.GetSheet("Response").ReadRange("A1:A1")[0, 0]);
+        }
+
+        [Fact]
         public void Test_Save_ToReusedMemoryStream_ReplacesExistingContent() {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToReusedStream.xlsx");
             try {

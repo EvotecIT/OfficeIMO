@@ -379,6 +379,13 @@ namespace OfficeIMO.Excel {
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
 
+            if (!destination.CanSeek) {
+                using var buffer = new MemoryStream();
+                Save(buffer, format, options);
+                OfficeStreamWriter.WriteAllBytes(destination, buffer.ToArray());
+                return;
+            }
+
             if (TrySaveNativeLegacyXlsToStream(destination, format, options)) {
                 return;
             }
@@ -496,6 +503,13 @@ namespace OfficeIMO.Excel {
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
+
+            if (!destination.CanSeek) {
+                using var buffer = new MemoryStream();
+                await SaveAsync(buffer, format, options, cancellationToken).ConfigureAwait(false);
+                await OfficeStreamWriter.WriteAllBytesAsync(destination, buffer.ToArray(), cancellationToken).ConfigureAwait(false);
+                return;
+            }
 
             if (await TrySaveNativeLegacyXlsToStreamAsync(destination, format, options, cancellationToken).ConfigureAwait(false)) {
                 return;
