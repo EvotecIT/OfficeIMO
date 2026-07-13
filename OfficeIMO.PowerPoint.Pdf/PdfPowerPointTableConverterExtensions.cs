@@ -41,8 +41,9 @@ public static partial class PowerPointPdfConverterExtensions {
         PdfPowerPointTableImportOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (presentationStream == null) throw new ArgumentNullException(nameof(presentationStream));
+        if (!presentationStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(presentationStream));
 
-        using PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create(presentationStream, new PptCore.PowerPointCreateOptions());
+        using PptCore.PowerPointPresentation presentation = PptCore.PowerPointPresentation.Create();
         IReadOnlyList<PdfPowerPointTableImportResult> results = ImportTables(document, presentation, options ?? new PdfPowerPointTableImportOptions());
         presentation.Save(presentationStream);
         return results;

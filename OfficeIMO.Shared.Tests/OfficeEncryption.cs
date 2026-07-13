@@ -54,6 +54,8 @@ namespace OfficeIMO.Shared.Tests {
 
             using (var loaded = WordDocument.LoadEncrypted(path, Password)) {
                 Assert.True(string.IsNullOrEmpty(loaded.FilePath));
+                loaded.AddParagraph("Explicit encrypted edit");
+                Assert.Throws<InvalidOperationException>(() => loaded.Save());
             }
 
             Assert.Throws<NotSupportedException>(() => WordDocument.LoadEncrypted(path, Password, new WordLoadOptions {

@@ -40,10 +40,11 @@ namespace OfficeIMO.Word.Pdf {
             PdfWordTableImportOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (documentStream == null) throw new ArgumentNullException(nameof(documentStream));
+            if (!documentStream.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(documentStream));
 
-            using WordDocument word = WordDocument.Create(documentStream);
+            using WordDocument word = WordDocument.Create();
             IReadOnlyList<PdfWordTableImportResult> results = ImportTables(document, word, options ?? new PdfWordTableImportOptions());
-            word.Save();
+            word.Save(documentStream);
             return results;
         }
 

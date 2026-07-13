@@ -390,11 +390,8 @@ namespace OfficeIMO.Word {
                 encryptedBytes = buffer.ToArray();
             }
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
-            var stream = new MemoryStream(packageBytes);
-            var document = Load(stream, resolved);
-            document.FilePath = string.Empty;
-            document._ownedPackageStream = stream;
-            return document;
+            using var decryptedSource = new MemoryStream(packageBytes, writable: false);
+            return Load(decryptedSource, resolved);
         }
 
         /// <summary>
@@ -417,10 +414,8 @@ namespace OfficeIMO.Word {
             }
             stream.CopyTo(buffer);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(buffer.ToArray(), password);
-            var packageStream = new MemoryStream(packageBytes);
-            var document = Load(packageStream, resolved);
-            document._ownedPackageStream = packageStream;
-            return document;
+            using var decryptedSource = new MemoryStream(packageBytes, writable: false);
+            return Load(decryptedSource, resolved);
         }
 
         private static void EnsureEncryptedLoadUsesExplicitPersistence(WordLoadOptions options) {

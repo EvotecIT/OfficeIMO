@@ -418,19 +418,10 @@ namespace OfficeIMO.Word {
             }
 
             EnsureLegacyDocSaveDoesNotDropImportedContent(options);
-
-            // Clone document once and copy package properties in the same operation
+            byte[] packageBytes = CreateOpenXmlBytesAfterSave();
             PrepareDestinationStreamForWrite(outputStream);
-            using (var clone = this._wordprocessingDocument.Clone(outputStream)) {
-                CopyPackageProperties(_wordprocessingDocument.PackageProperties, clone.PackageProperties);
-            }
-
-            // Keep stream-based saves aligned with file-based saves when the destination
-            // supports the read/write/seek semantics required by Package.Open.
-            if (outputStream.CanRead && outputStream.CanWrite && outputStream.CanSeek) {
-                outputStream.Seek(0, SeekOrigin.Begin);
-                Helpers.MakeOpenOfficeCompatible(outputStream);
-            }
+            outputStream.Write(packageBytes, 0, packageBytes.Length);
+            try { outputStream.Flush(); } catch (NotSupportedException) { }
 
             if (outputStream.CanSeek) {
                 outputStream.Seek(0, SeekOrigin.Begin);
