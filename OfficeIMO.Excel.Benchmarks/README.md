@@ -44,6 +44,18 @@ For release-style evidence:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 1 --iterations 3
 ```
 
+The suite writes JSON, CSV, Markdown, and a manifest. Run the focused README
+comparison and refresh its generated table locally with:
+
+```powershell
+.\Build\Benchmarks\Update-BenchmarkReadmes.ps1 -Run Excel
+```
+
+The script selects documented equivalent workloads, emits PSPublishModule's
+comparison schema, and calls `Update-BenchmarkDocument` for the
+marker-delimited blocks. It runs only when a maintainer invokes it locally;
+benchmark execution is not scheduled in CI.
+
 Focus the package-copy workbook merge scenario:
 
 ```powershell
@@ -62,24 +74,21 @@ Compare the fastest package-native write paths:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-write-25000.json --rows 25000 --scenario write-datareader-compact-package,write-typed-rows-compact-package --skip-legacy-epplus --warmup 7 --iterations 31
 ```
 
-## Current timings
+## Current generated headline comparison
 
-Local 2026-07-10 medians at 25,000 rows. Lower is faster.
+The package README uses this same PSPublishModule-managed snapshot. It combines
+raw data paths with feature-bearing workbook work and only compares libraries
+that expose a directly comparable public API. Lower is faster; results vary by
+machine, runtime, package version, workload, warm-up, and options.
 
-| Read workflow | OfficeIMO.Excel | Sylvan.Data.Excel | ExcelDataReader |
-| --- | ---: | ---: | ---: |
-| Scan rows | **26.17 ms** | 38.28 ms | 91.19 ms |
-| Read first column | **24.33 ms** | 36.90 ms | 97.48 ms |
-| Read all values | **31.21 ms** | 54.77 ms | 93.05 ms |
-| Read typed values | **30.50 ms** | 42.00 ms | 90.05 ms |
-
-The write values pool two independent 31-iteration runs. LargeXlsx uses the
-same date formatting and compact cell-reference setting as OfficeIMO.
-
-| Write workflow | OfficeIMO.Excel | LargeXlsx | Sylvan.Data.Excel |
-| --- | ---: | ---: | ---: |
-| DataReader to compact XLSX | **33.42 ms** | 39.09 ms | 41.89 ms |
-| Typed rows to compact XLSX | **26.39 ms** | 27.80 ms | n/a |
+<!-- officeimo-excel-benchmark-table:start -->
+| Scenario | Variables | Host | Operation | Metric | OfficeIMO.Excel | ClosedXML | EPPlus | LargeXlsx | Sylvan.Data.Excel | Result |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Feature-rich report to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-13 | .NET 8 | Create | MeanMs | 1.00x (549ms) | n/a | 0.67x (368ms) | n/a | n/a | OfficeIMO.Excel slower than EPPlus |
+| Plain DataReader to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-13 | .NET 8 | Write | MeanMs | 1.00x (35ms) | n/a | n/a | 1.06x (37ms) | 0.79x (28ms) | OfficeIMO.Excel slower than Sylvan.Data.Excel |
+| Styled DataReader table to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-13 | .NET 8 | Write | MeanMs | 1.00x (39ms) | 13.45x (527ms) | 9.60x (376ms) | n/a | n/a | OfficeIMO.Excel fastest |
+| Typed objects streamed from XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-13 | .NET 8 | Read | MeanMs | 1.00x (60ms) | 4.55x (272ms) | 3.44x (205ms) | n/a | 1.17x (70ms) | OfficeIMO.Excel fastest |
+<!-- officeimo-excel-benchmark-table:end -->
 
 Use `--skip-legacy-epplus` only when you want a faster local pass without the isolated EPPlus 4.x subprocess:
 

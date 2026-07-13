@@ -171,3 +171,10 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None; no Markdig or other Markdown parser.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The AST, parser, builder, transformations, and HTML renderer are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

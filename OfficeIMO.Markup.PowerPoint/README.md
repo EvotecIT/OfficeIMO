@@ -64,3 +64,10 @@ Set `MermaidRendererPath` in `MarkupToPowerPointOptions`, pass `--mermaid-render
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None by default. Mermaid image export can use a caller-installed Mermaid CLI.
+- **OfficeIMO:** `OfficeIMO.Markup`, `OfficeIMO.PowerPoint`, and `OfficeIMO.Drawing`; the exporter maps semantic nodes to editable slide content.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

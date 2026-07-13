@@ -162,3 +162,10 @@ Use `PdfSaveOptions` when callers need to override page geometry, metadata, page
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages; no browser, native renderer, or commercial PDF SDK.
+- **OfficeIMO:** `OfficeIMO.Word`, `OfficeIMO.Pdf`, and `OfficeIMO.Drawing` own the source model, PDF engine, mapping, and reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

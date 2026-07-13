@@ -125,3 +125,10 @@ result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None.
+- **OfficeIMO:** `OfficeIMO.Markdown` and `OfficeIMO.Drawing`; the semantic authoring model and validation are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

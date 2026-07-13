@@ -141,3 +141,10 @@ using var doc = markdown.LoadFromMarkdown(options);
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages.
+- **OfficeIMO:** `OfficeIMO.Word`, `OfficeIMO.Markdown`, `OfficeIMO.Markdown.Html`, `OfficeIMO.Word.Html`, and `OfficeIMO.Drawing`.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -63,3 +63,10 @@ Console.WriteLine(result.WebViewLink);
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** `System.Text.Json` plus platform HTTP/cryptography through `OfficeIMO.GoogleWorkspace`; no Google client SDK.
+- **OfficeIMO:** `OfficeIMO.Excel` and `OfficeIMO.GoogleWorkspace` own the workbook model, session, translation plan, and reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

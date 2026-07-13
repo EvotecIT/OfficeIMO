@@ -33,3 +33,10 @@ Set `Profile = OfficeHtmlConversionProfile.ExcelVisualReview` to emit review HTM
 ## Targets
 
 `netstandard2.0`, `net8.0`, and `net10.0`; `net472` is included when building on Windows.
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages.
+- **OfficeIMO:** `OfficeIMO.Excel`, `OfficeIMO.Html`, and `OfficeIMO.Drawing` own the workbook, HTML source, mapping, visual review, and reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

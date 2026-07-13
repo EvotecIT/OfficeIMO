@@ -16,3 +16,10 @@ foreach (OdfConversionMapping mapping in result.Report.Mappings) {
 ```
 
 The adapter currently maps ordered body blocks, headings, paragraphs, basic inline formatting, hyperlinks, lists, tables and merges, embedded inline images, page layout, page breaks, bookmarks, and default headers and footers. The report calls out omitted run, paragraph, table, and image-layout details as well as tracked changes, section-specific layout, alternate headers/footers, footnotes, fields, charts, content controls, and other source features that cannot be represented directly.
+
+## Dependency footprint
+
+- **External:** None.
+- **OfficeIMO:** `OfficeIMO.Word` and `OfficeIMO.OpenDocument`; the adapter only owns feature mapping and fidelity reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

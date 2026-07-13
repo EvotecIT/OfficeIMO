@@ -65,6 +65,7 @@ internal static class ExcelBenchmarkScenarioFactory {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorksheet("Data");
             PopulateOfficeImoWorksheet(sheet, rows);
+            document.Save();
         }
 
         return stream.ToArray();

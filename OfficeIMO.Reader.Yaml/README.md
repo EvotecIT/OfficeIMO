@@ -81,3 +81,10 @@ var chunks = reader.Read(stream, "values.yaml", new ReaderOptions {
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** YamlDotNet for YAML representation parsing.
+- **OfficeIMO:** `OfficeIMO.Reader` owns traversal projection, chunking, limits, locations, and warnings.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

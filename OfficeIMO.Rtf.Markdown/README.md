@@ -24,3 +24,10 @@ Footnotes and endnotes become Markdown footnote references and definitions. Tabl
 Convert the other direction with `markdown.ToRtfDocumentFromMarkdown()` or `MarkdownDoc.ToRtfDocument()`.
 
 This bridge converts document meaning, not raw control words. Use `OfficeIMO.Rtf` lossless APIs when the original RTF syntax must remain exact.
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages.
+- **OfficeIMO:** `OfficeIMO.Rtf`, `OfficeIMO.Markdown`, and `OfficeIMO.Drawing` own parsing, semantic mapping, image export hooks, and loss reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

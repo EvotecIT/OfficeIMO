@@ -22,3 +22,10 @@ string asciiDoc = generated.Source;
 The bridge maps typed inline content, metadata, lists and compound children, definitions, admonitions, structured tables and spans, images, code metadata, anchors, and STEM where the target model can carry them. Constructs without a safe equivalent are preserved visibly or omitted according to options, with source-located diagnostics.
 
 The adapter never participates in native AsciiDoc parsing or round-trip writing.
+
+## Dependency footprint
+
+- **External:** None.
+- **OfficeIMO:** `OfficeIMO.AsciiDoc` and `OfficeIMO.Markdown`; the bridge owns typed mapping, canonical generation, and source-located diagnostics.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

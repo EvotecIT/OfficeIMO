@@ -36,6 +36,13 @@ OfficeImageExportResult pngSave = source.SaveAsPng("status.png", options);
 OfficeImageExportResult svgSave = source.SaveAsSvg("status.svg", options);
 ```
 
+## Dependency footprint
+
+- **External:** AngleSharp and AngleSharp.Css for DOM and CSS parsing.
+- **OfficeIMO:** `OfficeIMO.Drawing` and `OfficeIMO.Rtf`. Resource policy, layout scene, rendering, and format mappings are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
+
 `ToPng()` and `ToSvg()` return in-memory output. `ExportImage()` and `ExportImages()` return encoded output plus dimensions and diagnostics. `SaveAsPng()` and `SaveAsSvg()` write to a file or stream and return the same structured evidence.
 
 Add `OfficeIMO.Html.Pdf` for direct PDF output. `HtmlPdfSaveOptions` derives from `HtmlRenderOptions`, so the same configured instance can be used for PDF, PNG, and SVG.

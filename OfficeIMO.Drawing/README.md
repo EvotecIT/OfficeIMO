@@ -163,3 +163,10 @@ if (font != null) {
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None.
+- **OfficeIMO:** This is the shared foundation; it does not depend on another OfficeIMO runtime package.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

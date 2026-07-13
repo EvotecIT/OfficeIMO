@@ -406,3 +406,10 @@ The benchmark corpus is generated deterministically before measurement. Benchmar
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** `System.Text.Json` for schema/result serialization.
+- **OfficeIMO:** Native Word, Excel, PowerPoint, email, Markdown, PDF, and Drawing engines are reused directly; optional formats stay in adapter packages.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

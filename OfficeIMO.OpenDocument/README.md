@@ -109,3 +109,10 @@ Unknown XML, vendor extensions, scripts, embedded content, and unsupported drawi
 - Unknown package entries and extension XML are always preserved by package editing. Explicit format conversion and flat XML projection report content they cannot carry through `OdfConversionReport` and `OdfSaveReport.LossyEntries`.
 
 The package targets `netstandard2.0`, `net8.0`, and `net10.0`, plus `net472` on Windows. CI checks generated ODF 1.3 and 1.4 XML against pinned OASIS Relax NG schemas, then opens and resaves the generated packages with the runner's reported LibreOffice version.
+
+## Dependency footprint
+
+- **External:** None; no OpenDocument SDK and no LibreOffice process.
+- **OfficeIMO:** `OfficeIMO.Drawing`. ODT/ODS/ODP parsing, models, preservation, inspection, and writing are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

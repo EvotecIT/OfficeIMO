@@ -35,3 +35,10 @@ This is deliberately not general TeX expansion. Replacement control words must b
 See the [LaTeX support matrix](https://github.com/EvotecIT/OfficeIMO/blob/master/Docs/officeimo.latex-support-matrix.md) for the exact boundary.
 
 Targets: `netstandard2.0`, `net8.0`, `net10.0`, and `net472` on Windows.
+
+## Dependency footprint
+
+- **External:** None; no TeX runtime, compiler, or parser package.
+- **OfficeIMO:** `OfficeIMO.Drawing`. Parsing, source preservation, bounded macro expansion, and writing are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

@@ -105,3 +105,10 @@ string portableTable = "<table><tr><th>Name</th></tr><tr><td>Value</td></tr></ta
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None beyond `OfficeIMO.Html`, which isolates AngleSharp DOM/CSS parsing.
+- **OfficeIMO:** `OfficeIMO.Html` and `OfficeIMO.Markdown` own the source models, mapping, plug-in hooks, and diagnostics.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

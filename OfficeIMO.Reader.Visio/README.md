@@ -105,3 +105,10 @@ The topology visual is deterministic JSON describing page shapes and connector e
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** `System.IO.Packaging` only through `OfficeIMO.Visio`.
+- **OfficeIMO:** `OfficeIMO.Reader` and `OfficeIMO.Visio` own diagram inspection, topology, chunks, tables, and visuals.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

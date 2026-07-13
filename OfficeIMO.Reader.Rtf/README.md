@@ -104,3 +104,10 @@ foreach (OfficeDocumentAsset asset in document.Assets) {
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages.
+- **OfficeIMO:** `OfficeIMO.Reader` and the first-party `OfficeIMO.Rtf` engine own parsing, semantic binding, chunks, assets, and diagnostics.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

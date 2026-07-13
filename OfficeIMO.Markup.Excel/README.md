@@ -60,3 +60,10 @@ result.Document.SaveAsExcel("revenue.xlsx", new MarkupToExcelOptions {
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
+
+## Dependency footprint
+
+- **External:** None beyond the dependencies of its OfficeIMO format packages.
+- **OfficeIMO:** `OfficeIMO.Markup` and `OfficeIMO.Excel`; the exporter maps semantic nodes to editable workbook content.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

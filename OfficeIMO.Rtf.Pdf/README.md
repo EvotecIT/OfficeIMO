@@ -26,3 +26,10 @@ result.Save("output.pdf");
 For raw RTF strings, bytes, or streams, use source-explicit APIs such as `ToPdfFromRtf()`, `ToPdfDocumentFromRtf()`, and `SaveAsPdfFromRtf()`. Typed `RtfDocument` instances use the standard `ToPdf()`, `ToPdfDocument()`, and destination-only `SaveAsPdf()` names.
 
 PNG, JPEG, and supported DIB images use the shared managed drawing layer. Set `RtfPdfSaveOptions.ImageConverter` when WMF/EMF content must be rasterized; a null or invalid callback result is reported rather than silently treated as an image.
+
+## Dependency footprint
+
+- **External:** None by default. Applications may provide an optional WMF/EMF rasterization callback.
+- **OfficeIMO:** `OfficeIMO.Rtf`, `OfficeIMO.Pdf`, and `OfficeIMO.Drawing` own semantic mapping, rendering, logical import, and reports.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

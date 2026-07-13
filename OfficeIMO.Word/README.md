@@ -256,3 +256,10 @@ document.SaveAsPdf("report.pdf");
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
 Runnable samples live under [OfficeIMO.Examples/Word](../OfficeIMO.Examples/Word).
+
+## Dependency footprint
+
+- **External:** Open XML SDK for `.docx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The fluent model, legacy `.doc` reader/writer, lifecycle, validation, and PNG/SVG export are first-party.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

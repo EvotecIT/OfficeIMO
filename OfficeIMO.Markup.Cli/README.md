@@ -41,3 +41,10 @@ dotnet run --project OfficeIMO.Markup.Cli -- export OfficeIMO.Markup\Examples\do
 
 - Targets: `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** None beyond the OfficeIMO projects it hosts; an optional Mermaid CLI can be configured for diagram export.
+- **OfficeIMO:** Markup parsing, validation, code emission, and Word/Excel/PowerPoint exporters are reused rather than duplicated.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

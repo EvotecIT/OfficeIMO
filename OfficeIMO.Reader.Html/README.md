@@ -109,3 +109,10 @@ foreach (OfficeDocumentLink link in document.Links) {
 
 - Targets: `netstandard2.0`, `net8.0`, `net10.0`.
 - License: MIT.
+
+## Dependency footprint
+
+- **External:** AngleSharp/AngleSharp.Css only through `OfficeIMO.Html`.
+- **OfficeIMO:** `OfficeIMO.Reader`, `OfficeIMO.Html`, `OfficeIMO.Markdown`, and `OfficeIMO.Markdown.Html` own parsing, projection, chunks, and rich results.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

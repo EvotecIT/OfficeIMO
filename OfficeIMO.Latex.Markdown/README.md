@@ -20,3 +20,10 @@ LatexDocument parsed = generated.Document;
 ```
 
 The bridge maps front matter, headings, inline formatting and links, lists and definitions, images/figures, table captions/labels and common spans, theorem callouts with required declarations, verbatim/code, and math transport. Canonical output escapes TeX arguments and deterministically encodes labels. Unrepresented figure/table container source remains visible with diagnostics. It does not promise TeX layout or execute package behavior.
+
+## Dependency footprint
+
+- **External:** None.
+- **OfficeIMO:** `OfficeIMO.Latex` and `OfficeIMO.Markdown`; the bridge owns bounded-profile mapping, canonical generation, and diagnostics.
+
+See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.
