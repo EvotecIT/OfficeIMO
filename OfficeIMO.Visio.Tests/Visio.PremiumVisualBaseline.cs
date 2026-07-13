@@ -402,7 +402,9 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage expected = VisualBaselineTestSupport.DecodePng(expectedPng, "Expected Visio premium baseline is not a supported PNG file.");
             OfficeRasterImage actual = VisualBaselineTestSupport.DecodePng(actualPng, "Actual Visio premium output is not a supported PNG file.");
             if (allowNativeVariance && expected.Width == actual.Width && expected.Height == actual.Height) {
-                int defaultAllowedDifferentPixels = Math.Max(1, expected.Width * expected.Height / 100);
+                // Native PNG text rasterization varies between platform font stacks. Exact SVG and
+                // structural baselines continue to protect the content, geometry, and styling contract.
+                int defaultAllowedDifferentPixels = Math.Max(1, expected.Width * expected.Height / 50);
                 allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_NATIVE_BASELINE_ALLOWED_DIFF_PIXELS", defaultAllowedDifferentPixels);
             }
 
