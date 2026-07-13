@@ -32,15 +32,17 @@ public sealed class HtmlRenderResourceRequest {
 /// Immutable bytes returned by an application-supplied HTML resource resolver.
 /// </summary>
 public sealed class HtmlResolvedResource {
+    private readonly byte[] _bytes;
+
     /// <summary>Creates a resolved resource snapshot.</summary>
     public HtmlResolvedResource(byte[] bytes, string contentType) {
         if (bytes == null || bytes.Length == 0) throw new ArgumentException("Resolved resources require non-empty bytes.", nameof(bytes));
-        Bytes = (byte[])bytes.Clone();
+        _bytes = (byte[])bytes.Clone();
         ContentType = string.IsNullOrWhiteSpace(contentType) ? "application/octet-stream" : contentType.Trim();
     }
 
     /// <summary>Resolved resource bytes.</summary>
-    public byte[] Bytes { get; }
+    public byte[] Bytes => (byte[])_bytes.Clone();
 
     /// <summary>Declared media type.</summary>
     public string ContentType { get; }

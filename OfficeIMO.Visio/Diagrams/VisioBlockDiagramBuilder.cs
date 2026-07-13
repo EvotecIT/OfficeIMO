@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Visio.Stencils;
-using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio.Diagrams {
     /// <summary>
@@ -120,7 +119,8 @@ namespace OfficeIMO.Visio.Diagrams {
         private readonly List<RegionItem> _regions = new List<RegionItem>();
         private readonly List<Link> _links = new List<Link>();
         private readonly List<CalloutItem> _callouts = new List<CalloutItem>();
-        private VisioBlockDiagramTheme _theme = VisioBlockDiagramTheme.TechnicalBlue();
+        private VisioStyleTheme _theme = VisioStyleTheme.Technical();
+        private VisioBlockDiagramLayoutOptions _layoutOptions = new VisioBlockDiagramLayoutOptions();
         private VisioMeasurementUnit _unit = VisioMeasurementUnit.Inches;
         private double _pageWidth = 11;
         private double _pageHeight = 8.5;
@@ -150,19 +150,21 @@ namespace OfficeIMO.Visio.Diagrams {
             return this;
         }
 
-        /// <summary>Sets the visual theme.</summary>
-        public VisioBlockDiagramBuilder Theme(VisioBlockDiagramTheme theme) {
+        /// <summary>Sets the reusable visual theme used for generated shapes and connectors.</summary>
+        public VisioBlockDiagramBuilder Theme(VisioStyleTheme theme) {
             _theme = (theme ?? throw new ArgumentNullException(nameof(theme))).Clone();
             return this;
         }
 
-        /// <summary>Sets the visual theme from a reusable OfficeIMO Visio style theme.</summary>
-        public VisioBlockDiagramBuilder Theme(VisioStyleTheme theme) {
-            if (theme == null) {
-                throw new ArgumentNullException(nameof(theme));
-            }
-
-            return Theme(theme.ToBlockDiagramTheme());
+        /// <summary>Sets block-diagram grid dimensions without introducing a second visual theme.</summary>
+        public VisioBlockDiagramBuilder LayoutOptions(VisioBlockDiagramLayoutOptions options) {
+            if (options == null) throw new ArgumentNullException(nameof(options));
+            ValidatePositive(options.BlockWidth, nameof(options));
+            ValidatePositive(options.BlockHeight, nameof(options));
+            ValidateNonNegative(options.ColumnGap, nameof(options));
+            ValidateNonNegative(options.RowGap, nameof(options));
+            _layoutOptions = options.Clone();
+            return this;
         }
 
         /// <summary>Sets outer page margins used by the grid layout.</summary>
@@ -339,15 +341,10 @@ namespace OfficeIMO.Visio.Diagrams {
                 RegionItem region = _regions[i];
                 double x = GridX(region.Column, region.ColumnSpan);
                 double y = GridY(region.Row, region.RowSpan);
-                double width = region.ColumnSpan * _theme.BlockWidth + (region.ColumnSpan - 1) * _theme.ColumnGap + 0.7;
-                double height = region.RowSpan * _theme.BlockHeight + (region.RowSpan - 1) * _theme.RowGap + 0.55;
+                double width = region.ColumnSpan * _layoutOptions.BlockWidth + (region.ColumnSpan - 1) * _layoutOptions.ColumnGap + 0.7;
+                double height = region.RowSpan * _layoutOptions.BlockHeight + (region.RowSpan - 1) * _layoutOptions.RowGap + 0.55;
                 VisioShape shape = new VisioShape(region.Id, x.ToInches(_unit), y.ToInches(_unit), width.ToInches(_unit), height.ToInches(_unit), string.Empty) { NameU = "Rectangle" };
-                shape.FillColor = _theme.RegionFill;
-                shape.LineColor = _theme.RegionStroke;
-                shape.LineWeight = _theme.LineWeight;
-                if (_theme.RegionTextStyle != null) {
-                    shape.TextStyle = _theme.RegionTextStyle.Clone();
-                }
+                _theme.Container.ApplyTo(shape);
                 shape.SetUserCell(VisioSemanticUserCells.Kind, VisioSemanticUserCells.BackgroundSurfaceKind, "STR", prompt: "OfficeIMO semantic kind");
                 page.Shapes.Add(shape);
                 VisioNetworkDiagramVisuals.AddBackgroundZoneCaption(
@@ -374,34 +371,28 @@ namespace OfficeIMO.Visio.Diagrams {
 
         private VisioShape CreateBlockShape(VisioPage page, BlockItem block, double x, double y) {
             string nameU;
-            double height = _theme.BlockHeight;
+            double height = _layoutOptions.BlockHeight;
             switch (block.Kind) {
                 case VisioBlockShapeKind.Data:
                     nameU = "Data";
                     break;
                 case VisioBlockShapeKind.Decision:
                     nameU = "Decision";
-                    height = _theme.BlockHeight * 1.25;
+                    height = _layoutOptions.BlockHeight * 1.25;
                     break;
                 default:
                     nameU = "Process";
                     break;
             }
 
-            VisioShape shape = page.AddStencilShape(VisioStencils.BlockDiagram, GetBlockStencilId(block.Kind), block.Id, x, y, _theme.BlockWidth, height, block.Text);
+            VisioShape shape = page.AddStencilShape(VisioStencils.BlockDiagram, GetBlockStencilId(block.Kind), block.Id, x, y, _layoutOptions.BlockWidth, height, block.Text);
             shape.NameU = nameU;
             ApplyBlockStyle(shape, block.Emphasis);
             return shape;
         }
 
         private void ApplyBlockStyle(VisioShape shape, bool emphasis) {
-            shape.FillColor = emphasis ? _theme.EmphasisFill : _theme.BlockFill;
-            shape.LineColor = emphasis ? _theme.EmphasisStroke : _theme.BlockStroke;
-            shape.LineWeight = _theme.LineWeight;
-            VisioTextStyle? textStyle = emphasis ? _theme.EmphasisTextStyle : _theme.BlockTextStyle;
-            if (textStyle != null) {
-                shape.TextStyle = textStyle.Clone();
-            }
+            (emphasis ? _theme.Emphasis : _theme.Primary).ApplyTo(shape);
         }
 
         private static string GetBlockStencilId(VisioBlockShapeKind kind) {
@@ -426,20 +417,12 @@ namespace OfficeIMO.Visio.Diagrams {
 
                 ResolveSides(from.Shape, to.Shape, out VisioSide fromSide, out VisioSide toSide);
                 VisioConnector connector = page.AddConnector(from.Shape, to.Shape, ConnectorKind.RightAngle, fromSide, toSide);
-                connector.EndArrow = EndArrow.Triangle;
                 connector.Label = link.Label;
-                connector.LineWeight = _theme.LineWeight;
-                if (link.Kind == VisioBlockConnectorKind.ControlFlow) {
-                    connector.LineColor = _theme.ControlFlowColor;
-                    connector.LinePattern = 2;
-                } else {
-                    connector.LineColor = _theme.DataFlowColor;
-                    connector.LinePattern = 1;
-                }
-
-                if (_theme.ConnectorTextStyle != null) {
-                    connector.TextStyle = _theme.ConnectorTextStyle.Clone();
-                }
+                VisioConnectorStyle style = link.Kind == VisioBlockConnectorKind.ControlFlow
+                    ? _theme.ControlConnector
+                    : _theme.DataConnector;
+                style.ApplyTo(connector);
+                connector.EndArrow = EndArrow.Triangle;
 
                 if (!string.IsNullOrWhiteSpace(link.Label)) {
                     double labelWidth = Math.Max(1.25D, Math.Min(2.2D, link.Label!.Length * 0.14D));
@@ -465,12 +448,16 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioCalloutOptions CreateCalloutOptions() {
+            VisioShapeStyle shapeStyle = _theme.Container.Clone();
+            shapeStyle.LineWeight = Math.Max(0.012D, shapeStyle.LineWeight);
+            VisioConnectorStyle leaderStyle = _theme.DataConnector.Clone();
+            leaderStyle.LineWeight = Math.Max(0.012D, leaderStyle.LineWeight);
+            leaderStyle.LinePattern = 2;
+            leaderStyle.EndArrow = EndArrow.None;
+            leaderStyle.Kind = ConnectorKind.RightAngle;
             return new VisioCalloutOptions {
-                ShapeStyle = new VisioShapeStyle(_theme.RegionFill, _theme.RegionStroke, Math.Max(0.012D, _theme.LineWeight)),
-                LeaderStyle = new VisioConnectorStyle(_theme.DataFlowColor, Math.Max(0.012D, _theme.LineWeight), 2, EndArrow.None) {
-                    Kind = ConnectorKind.RightAngle,
-                    TextStyle = _theme.ConnectorTextStyle?.Clone()
-                },
+                ShapeStyle = shapeStyle,
+                LeaderStyle = leaderStyle,
                 RouteOffset = 0.08D
             };
         }
@@ -479,44 +466,40 @@ namespace OfficeIMO.Visio.Diagrams {
             if (!string.IsNullOrWhiteSpace(_titleText)) {
                 double y = _pageHeight - _topMargin - (_titleHeight / 2D);
                 VisioShape title = page.AddTextBox(_titleId, _pageWidth / 2D, y, Math.Max(1D, _pageWidth - 1.6D), _titleHeight, _titleText, _unit);
-                if (_theme.TitleTextStyle != null) {
-                    title.TextStyle = _theme.TitleTextStyle.Clone();
-                }
+                title.TextStyle = _theme.TitleText.Clone();
                 VisioSemanticUserCells.MarkGeneratedAdornment(title);
             }
 
             if (_showLegend) {
                 double y = _pageHeight - _topMargin - TitleHeaderHeight - (LegendHeaderHeight / 2D);
-                AddLegendItem(page, Math.Max(0.8D, _leftMargin), y, _dataFlowLegendLabel, _theme.DataFlowColor, 1);
-                AddLegendItem(page, Math.Max(0.8D, _pageWidth - 3.1D), y, _controlFlowLegendLabel, _theme.ControlFlowColor, 2);
+                AddLegendItem(page, Math.Max(0.8D, _leftMargin), y, _dataFlowLegendLabel, _theme.DataConnector);
+                AddLegendItem(page, Math.Max(0.8D, _pageWidth - 3.1D), y, _controlFlowLegendLabel, _theme.ControlConnector);
             }
         }
 
-        private void AddLegendItem(VisioPage page, double x, double y, string label, Color color, int linePattern) {
+        private void AddLegendItem(VisioPage page, double x, double y, string label, VisioConnectorStyle style) {
             VisioShape sample = page.AddRectangle(x + 0.32D, y, 0.64D, 0.08D, string.Empty, _unit);
             sample.NameU = "Rectangle";
             sample.FillPattern = 0;
-            sample.LineColor = color;
-            sample.LinePattern = linePattern;
-            sample.LineWeight = Math.Max(0.018D, _theme.LineWeight);
+            sample.LineColor = style.LineColor;
+            sample.LinePattern = style.LinePattern;
+            sample.LineWeight = Math.Max(0.018D, style.LineWeight);
             VisioSemanticUserCells.MarkGeneratedAdornment(sample);
 
             VisioShape text = page.AddTextBox(x + 1.5D, y, 1.4D, 0.28D, label, _unit);
-            if (_theme.LegendTextStyle != null) {
-                text.TextStyle = _theme.LegendTextStyle.Clone();
-            }
+            text.TextStyle = _theme.LegendText.Clone();
             VisioSemanticUserCells.MarkGeneratedAdornment(text);
         }
 
         private double GridX(int column, int span) {
-            double left = _leftMargin + column * (_theme.BlockWidth + _theme.ColumnGap);
-            double width = span * _theme.BlockWidth + (span - 1) * _theme.ColumnGap;
+            double left = _leftMargin + column * (_layoutOptions.BlockWidth + _layoutOptions.ColumnGap);
+            double width = span * _layoutOptions.BlockWidth + (span - 1) * _layoutOptions.ColumnGap;
             return left + width / 2D;
         }
 
         private double GridY(int row, int span) {
-            double top = _pageHeight - _topMargin - HeaderHeight - row * (_theme.BlockHeight + _theme.RowGap);
-            double height = span * _theme.BlockHeight + (span - 1) * _theme.RowGap;
+            double top = _pageHeight - _topMargin - HeaderHeight - row * (_layoutOptions.BlockHeight + _layoutOptions.RowGap);
+            double height = span * _layoutOptions.BlockHeight + (span - 1) * _layoutOptions.RowGap;
             return top - height / 2D;
         }
 
@@ -604,11 +587,7 @@ namespace OfficeIMO.Visio.Diagrams {
         }
 
         private VisioStyleTheme CreateCaptionTheme() {
-            VisioStyleTheme theme = VisioStyleTheme.Fluent();
-            theme.Container = new VisioShapeStyle(_theme.RegionFill, _theme.RegionStroke, _theme.LineWeight) {
-                TextStyle = _theme.RegionTextStyle?.Clone()
-            };
-            return theme;
+            return _theme.Clone();
         }
 
         private static void ValidateGridPosition(int column, int row) {

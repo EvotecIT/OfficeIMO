@@ -1,5 +1,5 @@
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word {
     /// <summary>

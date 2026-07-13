@@ -6,6 +6,9 @@ using System.Linq;
 using System.Runtime.InteropServices;
 using System.Xml;
 using System.Xml.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -29,14 +32,7 @@ namespace OfficeIMO.Visio.Stencils {
         public static void Save(VisioStencilCatalog catalog, string path) {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
-
-            string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
-            if (!string.IsNullOrEmpty(directory)) {
-                Directory.CreateDirectory(directory);
-            }
-
-            using FileStream stream = File.Create(path);
-            Save(catalog, stream);
+            OfficeFileCommit.WriteAllBytes(path, ToBytes(catalog));
         }
 
         /// <summary>
@@ -44,11 +40,36 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         public static void Save(VisioStencilCatalog catalog, Stream stream) {
             if (catalog == null) throw new ArgumentNullException(nameof(catalog));
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+            OfficeStreamWriter.WriteAllBytes(stream, ToBytes(catalog));
+        }
 
-            XDocument document = ToXml(catalog);
-            document.Save(stream, SaveOptions.DisableFormatting);
+        /// <summary>Saves a stencil catalog manifest to a file asynchronously.</summary>
+        public static Task SaveAsync(
+            VisioStencilCatalog catalog,
+            string path,
+            CancellationToken cancellationToken = default) {
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
+            cancellationToken.ThrowIfCancellationRequested();
+            return OfficeFileCommit.WriteAllBytesAsync(path, ToBytes(catalog), cancellationToken: cancellationToken);
+        }
+
+        /// <summary>Saves a stencil catalog manifest to a caller-owned stream asynchronously.</summary>
+        public static Task SaveAsync(
+            VisioStencilCatalog catalog,
+            Stream stream,
+            CancellationToken cancellationToken = default) {
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            cancellationToken.ThrowIfCancellationRequested();
+            return OfficeStreamWriter.WriteAllBytesAsync(stream, ToBytes(catalog), cancellationToken);
+        }
+
+        /// <summary>Serializes a stencil catalog manifest to bytes.</summary>
+        public static byte[] ToBytes(VisioStencilCatalog catalog) {
+            if (catalog == null) throw new ArgumentNullException(nameof(catalog));
+            using var stream = new MemoryStream();
+            ToXml(catalog).Save(stream, SaveOptions.DisableFormatting);
+            return stream.ToArray();
         }
 
         /// <summary>
@@ -81,8 +102,30 @@ namespace OfficeIMO.Visio.Stencils {
             if (stream == null) throw new ArgumentNullException(nameof(stream));
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
-            XDocument document = LoadXml(stream);
+            byte[] bytes = OfficeStreamReader.ReadAllBytes(stream);
+            using var input = new MemoryStream(bytes, writable: false);
+            XDocument document = LoadXml(input);
             return FromXml(document, options);
+        }
+
+        /// <summary>Loads a stencil catalog manifest from a file asynchronously.</summary>
+        public static async Task<VisioStencilCatalog> LoadAsync(
+            string path,
+            VisioStencilCatalogManifestLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Manifest path cannot be null or whitespace.", nameof(path));
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous);
+            return await LoadAsync(stream, CreateOptionsForPath(path, options), cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Loads a stencil catalog manifest from a caller-owned stream asynchronously.</summary>
+        public static async Task<VisioStencilCatalog> LoadAsync(
+            Stream stream,
+            VisioStencilCatalogManifestLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            using var input = new MemoryStream(bytes, writable: false);
+            return FromXml(LoadXml(input), options);
         }
 
         /// <summary>

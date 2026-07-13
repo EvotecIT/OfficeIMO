@@ -52,7 +52,7 @@ public sealed class MarkdownToAsciiDocContractTests {
         }));
         var list = new UnorderedListBlock();
         var item = ListItem.Text("item");
-        item.Children.Add(new CodeBlock("text", "attached"));
+        item.NestedBlocks.Add(new CodeBlock("text", "attached"));
         list.Items.Add(item);
         document.Add(list);
 
@@ -74,7 +74,7 @@ public sealed class MarkdownToAsciiDocContractTests {
 
         Assert.Contains("[source,markdown]", result.Source, StringComparison.Ordinal);
         Assert.Contains("---", result.Source, StringComparison.Ordinal);
-        Assert.Equal(AsciiDocMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Diagnostics).Outcome);
+        Assert.Equal(AsciiDocMarkdownConversionOutcome.SourceFallback, Assert.Single(result.Report.Diagnostics).Outcome);
         Assert.True(result.HasLoss);
     }
 
@@ -97,7 +97,7 @@ public sealed class MarkdownToAsciiDocContractTests {
         Assert.Contains("-----\nbefore\n----\nafter\n-----", result.Source, StringComparison.Ordinal);
         AsciiDocDelimitedBlock block = Assert.Single(result.Value.BlocksOfType<AsciiDocDelimitedBlock>());
         Assert.Equal("before\n----\nafter\n", block.Content);
-        Assert.DoesNotContain(result.Diagnostics, static diagnostic => diagnostic.Feature == "code-delimiter");
+        Assert.DoesNotContain(result.Report.Diagnostics, static diagnostic => diagnostic.Feature == "code-delimiter");
     }
 
     [Fact]

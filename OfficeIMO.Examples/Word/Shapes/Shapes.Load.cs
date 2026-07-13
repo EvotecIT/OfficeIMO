@@ -21,7 +21,8 @@ namespace OfficeIMO.Examples.Word {
                         Console.WriteLine($"Found shape {shape.Width}x{shape.Height}");
                     }
                 }
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

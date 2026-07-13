@@ -12,7 +12,7 @@ public sealed class ReaderAsciiDocModularTests {
         const string source = "= Guide\n\n== Start\nParagraph\n\n* one\n** nested\n";
         AsciiDocDocument document = AsciiDocDocument.Parse(source).Document;
 
-        ReaderChunk[] chunks = DocumentReaderAsciiDocExtensions.ReadAsciiDocDocument(document, "guide.adoc").ToArray();
+        ReaderChunk[] chunks = AsciiDocReaderAdapter.Read(document, "guide.adoc").ToArray();
 
         Assert.Equal(4, chunks.Length);
         Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.AsciiDoc, chunk.Kind));
@@ -44,7 +44,7 @@ public sealed class ReaderAsciiDocModularTests {
     public void ParserRecoveryDiagnostic_IsExposedAsReaderWarning() {
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes("----\nunterminated"), writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderAsciiDocExtensions.ReadAsciiDoc(stream, "broken.adoc"));
+        ReaderChunk chunk = Assert.Single(AsciiDocReaderAdapter.Read(stream, "broken.adoc"));
 
         Assert.NotNull(chunk.Warnings);
         Assert.Contains(chunk.Warnings!, warning => warning.StartsWith("ADOC001:", StringComparison.Ordinal));
@@ -54,7 +54,7 @@ public sealed class ReaderAsciiDocModularTests {
     public void NonSeekableStream_EnforcesReaderInputLimit() {
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes("= Too much content for this limit\n"));
 
-        IOException exception = Assert.Throws<IOException>(() => DocumentReaderAsciiDocExtensions.ReadAsciiDoc(
+        IOException exception = Assert.Throws<IOException>(() => AsciiDocReaderAdapter.Read(
             stream,
             "limited.adoc",
             new ReaderOptions { MaxInputBytes = 8 }).ToArray());
@@ -70,7 +70,7 @@ public sealed class ReaderAsciiDocModularTests {
             "* item\n+\nattached\n\n" +
             "[cols=2*]\n|===\n|A |B\n|===\n";
 
-        ReaderChunk[] chunks = DocumentReaderAsciiDocExtensions.ReadAsciiDocDocument(
+        ReaderChunk[] chunks = AsciiDocReaderAdapter.Read(
             AsciiDocDocument.Parse(source).Document,
             "phase1.adoc").ToArray();
 
@@ -87,7 +87,7 @@ public sealed class ReaderAsciiDocModularTests {
     public void BlockChunks_ResolveDocumentAttributes() {
         const string source = ":product: OfficeIMO\n\nUse {product}.\n";
 
-        ReaderChunk paragraph = Assert.Single(DocumentReaderAsciiDocExtensions.ReadAsciiDocDocument(
+        ReaderChunk paragraph = Assert.Single(AsciiDocReaderAdapter.Read(
             AsciiDocDocument.Parse(source).Document,
             "attributes.adoc"));
 

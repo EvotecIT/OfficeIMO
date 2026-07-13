@@ -74,6 +74,7 @@ public sealed class OfficeChartStyle {
     /// <param name="dataLabelBorderColor">Optional data label box border color.</param>
     /// <param name="dataLabelBorderWidth">Optional data label box border width.</param>
     /// <param name="dataLabelBorderDashStyle">Optional data label box border dash style.</param>
+    /// <param name="showBorder">Whether the chart border should be rendered.</param>
     public OfficeChartStyle(
         IEnumerable<OfficeColor>? palette = null,
         string? fontFamily = null,
@@ -126,7 +127,8 @@ public sealed class OfficeChartStyle {
         OfficeColor? dataLabelFillColor = null,
         OfficeColor? dataLabelBorderColor = null,
         double? dataLabelBorderWidth = null,
-        OfficeStrokeDashStyle? dataLabelBorderDashStyle = null)
+        OfficeStrokeDashStyle? dataLabelBorderDashStyle = null,
+        bool showBorder = true)
         : this(
             showBackground: true,
             palette: palette,
@@ -180,7 +182,8 @@ public sealed class OfficeChartStyle {
             dataLabelFillColor: dataLabelFillColor,
             dataLabelBorderColor: dataLabelBorderColor,
             dataLabelBorderWidth: dataLabelBorderWidth,
-            dataLabelBorderDashStyle: dataLabelBorderDashStyle) {
+            dataLabelBorderDashStyle: dataLabelBorderDashStyle,
+            showBorder: showBorder) {
     }
 
     /// <summary>
@@ -239,6 +242,7 @@ public sealed class OfficeChartStyle {
     /// <param name="dataLabelBorderColor">Optional data label box border color.</param>
     /// <param name="dataLabelBorderWidth">Optional data label box border width.</param>
     /// <param name="dataLabelBorderDashStyle">Optional data label box border dash style.</param>
+    /// <param name="showBorder">Whether the chart border should be rendered.</param>
     public OfficeChartStyle(
         bool showBackground,
         IEnumerable<OfficeColor>? palette = null,
@@ -292,7 +296,8 @@ public sealed class OfficeChartStyle {
         OfficeColor? dataLabelFillColor = null,
         OfficeColor? dataLabelBorderColor = null,
         double? dataLabelBorderWidth = null,
-        OfficeStrokeDashStyle? dataLabelBorderDashStyle = null) {
+        OfficeStrokeDashStyle? dataLabelBorderDashStyle = null,
+        bool showBorder = true) {
         if (chartBorderWidth is <= 0D) {
             throw new ArgumentOutOfRangeException(nameof(chartBorderWidth), "Chart border width must be greater than zero.");
         }
@@ -382,7 +387,7 @@ public sealed class OfficeChartStyle {
         ShowCategoryMinorGridLines = showCategoryMinorGridLines;
         ShowValueMinorGridLines = showValueMinorGridLines;
         ShowBackground = showBackground;
-        ShowBorder = true;
+        ShowBorder = showBorder;
         LegendTextColor = legendTextColor;
         DataLabelTextColor = dataLabelTextColor;
         DataLabelFillColor = dataLabelFillColor;
@@ -554,7 +559,7 @@ public sealed class OfficeChartStyle {
     public bool ShowBackground { get; }
 
     /// <summary>Whether the chart border should be rendered.</summary>
-    public bool ShowBorder { get; set; }
+    public bool ShowBorder { get; }
 
     /// <summary>Gets a palette color for the zero-based series or slice index.</summary>
     public OfficeColor GetSeriesColor(int index) {

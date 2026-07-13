@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf;
 /// Lightweight metadata read from a PDF signature value dictionary and its owning AcroForm signature field.
 /// </summary>
 public sealed class PdfSignatureInfo {
+    private readonly byte[]? _contentsBytes;
+
     internal PdfSignatureInfo(
         int objectNumber,
         int? fieldObjectNumber,
@@ -38,10 +40,10 @@ public sealed class PdfSignatureInfo {
         ContactInfo = contactInfo;
         SigningTimeRaw = signingTimeRaw;
         HasByteRange = hasByteRange;
-        ByteRangeValues = byteRangeValues;
+        ByteRangeValues = byteRangeValues.ToArray();
         ByteRangeValueCount = byteRangeValueCount;
         HasContents = hasContents;
-        ContentsBytes = contentsBytes;
+        _contentsBytes = contentsBytes == null ? null : (byte[])contentsBytes.Clone();
         ContentsSizeBytes = contentsSizeBytes;
         ContentsEncodedSizeBytes = contentsEncodedSizeBytes;
         ReferenceCount = referenceCount;
@@ -123,7 +125,7 @@ public sealed class PdfSignatureInfo {
     public bool HasContents { get; }
 
     /// <summary>Decoded `/Contents` bytes, including reserved padding, when readable.</summary>
-    public byte[]? ContentsBytes { get; }
+    public byte[]? ContentsBytes => _contentsBytes == null ? null : (byte[])_contentsBytes.Clone();
 
     /// <summary>Decoded /Contents byte count when the value could be read as a PDF string.</summary>
     public int? ContentsSizeBytes { get; }
@@ -137,8 +139,8 @@ public sealed class PdfSignatureInfo {
     /// <summary>True when /Contents is a non-empty all-zero reservation ready for external signature bytes.</summary>
     public bool HasUnsignedContentsPlaceholder =>
         HasByteRange &&
-        ContentsBytes is { Length: > 0 } &&
-        ContentsBytes.All(static value => value == 0);
+        _contentsBytes is { Length: > 0 } &&
+        _contentsBytes.All(static value => value == 0);
 
     /// <summary>Number of entries in the signature dictionary /Reference array, when readable.</summary>
     public int ReferenceCount { get; }

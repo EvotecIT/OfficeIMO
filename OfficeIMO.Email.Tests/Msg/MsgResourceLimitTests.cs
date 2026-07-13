@@ -12,7 +12,7 @@ public sealed class MsgResourceLimitTests {
             Content = new byte[1000],
             Length = 1000
         });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).Read(bytes));
@@ -30,7 +30,7 @@ public sealed class MsgResourceLimitTests {
             FileName = "embedded.msg",
             EmbeddedDocument = embedded
         });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 1024)).Read(bytes));
@@ -48,7 +48,7 @@ public sealed class MsgResourceLimitTests {
         source.Attachments.Add(new EmailAttachment {
             FileName = "two.bin", Content = new byte[3000], Length = 3000
         });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(
@@ -67,7 +67,7 @@ public sealed class MsgResourceLimitTests {
             Content = new byte[1024 * 1024],
             Length = 1024 * 1024
         });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(
             maxAttachmentBytes: 2 * 1024 * 1024,

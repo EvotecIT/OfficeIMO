@@ -1,4 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
+using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Word.Pdf;
@@ -12,7 +15,7 @@ public class PdfTableStreamExportContracts {
         PdfLogicalDocument logical = CreateLogicalDocument();
         using var destination = new NonSeekableWriteStream();
 
-        logical.SaveAsWordFromPdfTables(destination);
+        logical.SaveAsWord(destination, PdfWordReadOptions.CreateTablesOnly());
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(destination.ToArray()), false);
         Assert.NotNull(package.MainDocumentPart);
@@ -23,10 +26,55 @@ public class PdfTableStreamExportContracts {
         PdfLogicalDocument logical = CreateLogicalDocument();
         using var destination = new NonSeekableWriteStream();
 
-        logical.SaveAsPowerPointFromPdfTables(destination);
+        logical.SaveAsPowerPoint(destination);
 
         using PresentationDocument package = PresentationDocument.Open(new MemoryStream(destination.ToArray()), false);
         Assert.NotNull(package.PresentationPart);
+    }
+
+    [Fact]
+    public async Task TableConversions_ProvideReportsAndAsyncCallerOwnedStreamWrites() {
+        PdfLogicalDocument logical = CreateLogicalDocument();
+
+        PdfWordConversionResult wordResult = logical.ToWordDocumentResult(PdfWordReadOptions.CreateTablesOnly());
+        PdfExcelConversionResult excelResult = logical.ToExcelDocumentResult();
+        PdfPowerPointConversionResult powerPointResult = logical.ToPowerPointPresentationResult();
+
+        using var wordDocument = wordResult.RequireNoLoss();
+        using var excelDocument = excelResult.RequireNoLoss();
+        using var powerPointPresentation = powerPointResult.RequireNoLoss();
+        Assert.NotEmpty(wordDocument.ToBytes());
+        Assert.NotEmpty(excelDocument.ToBytes());
+        Assert.NotEmpty(powerPointPresentation.ToBytes());
+        Assert.False(wordResult.Report.HasLoss);
+        Assert.False(excelResult.Report.HasLoss);
+        Assert.False(powerPointResult.Report.HasLoss);
+
+        using var wordStream = new MemoryStream();
+        using var excelStream = new MemoryStream();
+        using var powerPointStream = new MemoryStream();
+        await logical.SaveAsWordAsync(wordStream, PdfWordReadOptions.CreateTablesOnly());
+        await logical.SaveAsExcelAsync(excelStream);
+        await logical.SaveAsPowerPointAsync(powerPointStream);
+
+        wordStream.WriteByte(0);
+        excelStream.WriteByte(0);
+        powerPointStream.WriteByte(0);
+        Assert.True(wordStream.Length > 1);
+        Assert.True(excelStream.Length > 1);
+        Assert.True(powerPointStream.Length > 1);
+    }
+
+    [Fact]
+    public async Task TableConversionAsyncWrites_HonorPreCanceledTokens() {
+        PdfLogicalDocument logical = CreateLogicalDocument();
+        using var destination = new MemoryStream();
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            logical.SaveAsWordAsync(destination, PdfWordReadOptions.CreateTablesOnly(), cancellation.Token));
+        Assert.Equal(0, destination.Length);
     }
 
     private static PdfLogicalDocument CreateLogicalDocument() {

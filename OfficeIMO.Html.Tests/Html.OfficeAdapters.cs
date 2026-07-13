@@ -34,7 +34,7 @@ public class HtmlOfficeAdapters {
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
-            Theme = OfficeHtmlDocumentThemeKind.Report
+            Theme = OfficeVisualThemeKind.Report
         });
 
         Assert.Contains("data-officeimo-profile=\"ExcelSemanticTables\"", html, StringComparison.Ordinal);
@@ -194,12 +194,12 @@ public class HtmlOfficeAdapters {
 
         string html = workbook.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
-            Theme = OfficeHtmlDocumentThemeKind.Report
+            Theme = OfficeVisualThemeKind.Report
         });
 
         Assert.Contains("Cell: 1, 5", html, StringComparison.Ordinal);
         Assert.Contains("Size: 280x180", html, StringComparison.Ordinal);
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Roundtrip");
 
@@ -209,7 +209,7 @@ public class HtmlOfficeAdapters {
         Assert.Equal(1, result.Comments);
         Assert.Equal(1, result.Images);
         Assert.Equal(1, result.Charts);
-        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.Report.Diagnostics);
         Assert.True(importedSheet.TryGetCellText(2, 1, out string region));
         Assert.Equal("North", region);
         Assert.Contains(importedSheet.GetFormulaCells(), formula => formula.CellReference == "B5" && formula.Formula == "SUM(B2:B4)");
@@ -230,7 +230,7 @@ public class HtmlOfficeAdapters {
 
         string roundTripHtml = imported.ToHtml(new ExcelHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables,
-            Theme = OfficeHtmlDocumentThemeKind.Report
+            Theme = OfficeVisualThemeKind.Report
         });
 
         Assert.Contains("data-officeimo-profile=\"ExcelSemanticTables\"", roundTripHtml, StringComparison.Ordinal);
@@ -268,13 +268,13 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-y=\"44\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-layer-kind=\"image\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-layer-kind=\"chart\"", html, StringComparison.Ordinal);
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Drawings");
 
         Assert.Equal(1, result.Images);
         Assert.Equal(1, result.Charts);
-        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.Report.Diagnostics);
         ExcelChart importedChart = Assert.Single(importedSheet.Charts);
         ExcelImage importedImage = Assert.Single(importedSheet.Images);
         Assert.True(importedImage.HasAbsoluteAnchor);
@@ -310,12 +310,12 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-to-column=\"5\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-to-offset-x=\"9\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-to-offset-y=\"10\"", html, StringComparison.Ordinal);
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Anchors");
 
         Assert.Equal(1, result.Images);
-        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.Report.Diagnostics);
         ExcelImage importedImage = Assert.Single(importedSheet.Images);
         Assert.True(importedImage.HasTwoCellAnchor);
         Assert.Equal(2, importedImage.RowIndex);
@@ -344,7 +344,7 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-to-row=\"2\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-to-column=\"2\"", html, StringComparison.Ordinal);
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "SameCellAnchor");
 
@@ -372,7 +372,7 @@ public class HtmlOfficeAdapters {
             Profile = OfficeHtmlConversionProfile.ExcelSemanticTables
         });
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = imported.Sheets.Single(importedSheet => importedSheet.Name == "Offset");
 
@@ -397,7 +397,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("No used cells.", html, StringComparison.Ordinal);
         Assert.DoesNotContain("(empty)", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -425,7 +425,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-sheet=\"Hidden\" data-officeimo-range=\"A1:A1\" data-officeimo-visibility=\"hidden\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-sheet=\"VeryHidden\" data-officeimo-range=\"A1:A1\" data-officeimo-visibility=\"veryHidden\"", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedVisible = imported.Sheets.Single(sheet => sheet.Name == "Visible");
         ExcelSheet importedHidden = imported.Sheets.Single(sheet => sheet.Name == "Hidden");
@@ -452,7 +452,7 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-empty=\"true\">(empty)", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -462,7 +462,7 @@ public class HtmlOfficeAdapters {
 
     [Fact]
     public void ExcelHtml_LoadCreatesValidWorkbookWhenNoSheetSectionsExist() {
-        HtmlToExcelResult result = "<main><p>No workbook markup</p></main>".ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>No workbook markup</p></main>").ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
 
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
@@ -471,7 +471,7 @@ public class HtmlOfficeAdapters {
 
         Assert.Equal("Imported", importedSheet.Name);
         Assert.NotEmpty(output.ToArray());
-        HtmlDiagnostic diagnostic = Assert.Single(result.Diagnostics);
+        HtmlDiagnostic diagnostic = Assert.Single(result.Report.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);
         Assert.Equal(HtmlDiagnosticSeverity.Error, diagnostic.Severity);
         Assert.Equal(HtmlConversionLossKind.Failure, diagnostic.LossKind);
@@ -496,7 +496,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -522,7 +522,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -551,7 +551,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-value-kind=\"number\" data-officeimo-value=\"123.45\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-value-kind=\"boolean\" data-officeimo-value=\"1\"", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -578,7 +578,7 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-value-kind=\"error\" data-officeimo-value=\"#DIV/0!\"", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelSheet importedSheet = Assert.Single(imported.Sheets);
 
@@ -637,7 +637,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         using var stream = new MemoryStream();
         imported.Save(stream);
@@ -668,7 +668,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         var comment = Assert.Single(imported.Sheets[0].GetComments());
 
@@ -691,7 +691,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-x=\"1.5\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-x=\"2.5\"", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Scatter").Charts);
         Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -718,7 +718,7 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-x=\"5\"", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Scatter").Charts);
         Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -769,7 +769,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-chart-type=\"ColumnClustered\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-chart-type=\"Line\"", html, StringComparison.Ordinal);
 
-        HtmlToExcelResult result = html.ToExcelDocumentResult();
+        HtmlToExcelResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         ExcelChart chart = Assert.Single(imported.Sheets.Single(sheet => sheet.Name == "Combo").Charts);
         Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
@@ -795,7 +795,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-x=\"1.5\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-x=\"2.5\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -820,7 +820,7 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-x=\"5\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
@@ -1101,7 +1101,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("Position: 72pt, 180pt", html, StringComparison.Ordinal);
         Assert.Contains("Position: 180pt, 130pt", html, StringComparison.Ordinal);
         Assert.Contains("Size: 260pt x 150pt", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointSlide importedSlide = imported.Slides[0];
 
@@ -1111,7 +1111,7 @@ public class HtmlOfficeAdapters {
         Assert.Equal(1, result.Pictures);
         Assert.Equal(1, result.Charts);
         Assert.Equal(1, result.Notes);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("placeholder values", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("placeholder values", StringComparison.Ordinal));
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("Roundtrip Roadmap", StringComparison.Ordinal));
         Assert.Contains(importedSlide.TextBoxes, textBox => textBox.Text.Contains("HTML end to end", StringComparison.Ordinal));
         Assert.Contains(importedSlide.Tables, importedTable => importedTable.GetCell(1, 1).Text == "Rich proof");
@@ -1160,7 +1160,7 @@ public class HtmlOfficeAdapters {
         });
 
         Assert.Contains("Position: -18pt, -12pt", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
 
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
@@ -1190,7 +1190,7 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-flip-horizontal=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-flip-vertical=\"true\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-crop-left=\"0.10000000000000001\"", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
 
         PowerPointPicture importedPicture = Assert.Single(imported.Slides[0].Pictures);
@@ -1232,13 +1232,13 @@ public class HtmlOfficeAdapters {
         Assert.Contains("data-officeimo-layer-kind=\"chart\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-layer-kind=\"picture\"", html, StringComparison.Ordinal);
         Assert.Contains("data-officeimo-rotation=\"18.75\"", html, StringComparison.Ordinal);
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointSlide importedSlide = imported.Slides[0];
 
         Assert.Equal(1, result.Charts);
         Assert.Equal(1, result.Pictures);
-        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.Report.Diagnostics);
         PowerPointChart importedChart = Assert.Single(importedSlide.Charts);
         PowerPointPicture importedPicture = Assert.Single(importedSlide.Pictures);
         Assert.Equal(18.75D, importedChart.Rotation!.Value, 3);
@@ -1271,7 +1271,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
 
         Assert.Equal(2, result.Slides);
@@ -1294,7 +1294,7 @@ public class HtmlOfficeAdapters {
 
         Assert.Contains("data-officeimo-hidden=\"true\"", html, StringComparison.Ordinal);
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
         Assert.True(importedSlide.Hidden);
@@ -1314,7 +1314,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointSlide slide = imported.Slides[0];
         PowerPointTextBox textBox = Assert.Single(slide.TextBoxes);
@@ -1338,7 +1338,7 @@ public class HtmlOfficeAdapters {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
@@ -1367,13 +1367,13 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(new[] { "Q1", string.Empty, "Q3" }, snapshot.Data.Categories);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Message.Contains("placeholder values", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("placeholder values", StringComparison.Ordinal));
     }
 
     [Theory]
@@ -1402,7 +1402,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
@@ -1436,14 +1436,14 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointChart importedChart = Assert.Single(imported.Slides[0].Charts);
 
         Assert.Equal(1, result.Charts);
         Assert.True(importedChart.TryGetOfficeSnapshot(out OfficeChartSnapshot snapshot));
         Assert.Equal(OfficeChartKind.ColumnClustered, snapshot.ChartKind);
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Message.Contains("used chart kind '" + chartKind + "' and was imported as a clustered column fallback", StringComparison.Ordinal));
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Message.Contains("used chart kind '" + chartKind + "' and was imported as a clustered column fallback", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -1465,7 +1465,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
 
         Assert.Equal(1, result.Notes);
@@ -1491,7 +1491,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
 
         string expected = string.Join(Environment.NewLine, "First line", string.Empty, "    Indented line", "Third line");
@@ -1518,7 +1518,7 @@ public class HtmlOfficeAdapters {
             </main>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointPicture picture = Assert.Single(imported.Slides[0].Pictures);
 
@@ -1532,7 +1532,7 @@ public class HtmlOfficeAdapters {
             "<main class=\"officeimo-document\"><p>Styled</p></main>",
             new OfficeHtmlDocumentOptions {
                 Title = "Theme",
-                Theme = OfficeHtmlDocumentThemeKind.Technical
+                Theme = OfficeVisualThemeKind.TechnicalDocument
             });
 
         Assert.Contains("<title>Theme</title>", html, StringComparison.Ordinal);

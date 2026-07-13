@@ -204,7 +204,7 @@ public sealed partial class PdfDocument {
             id,
             operation,
             sourcePdf,
-            pdf => rewrite(Open(pdf)).Snapshot()) {
+            pdf => rewrite(Load(pdf)).Snapshot()) {
                 ExpectedClassification = expectedClassification,
                 PreservationOptions = options
             };

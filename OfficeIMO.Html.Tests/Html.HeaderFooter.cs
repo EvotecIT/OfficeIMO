@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AddHtmlToHeader_PlacesContentInHeader() {
             using WordDocument document = WordDocument.Create();
-            document.AddHtmlToHeader("<p>Header content</p>");
+            document.AddHtmlToHeader(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Header content</p>"));
             using var ms = new System.IO.MemoryStream();
             document.Save(ms);
             ms.Position = 0;
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AddHtmlToHeader_InlineQuoteStaysInHeader() {
             using WordDocument document = WordDocument.Create();
-            document.AddHtmlToHeader("<q>Quoted header</q>");
+            document.AddHtmlToHeader(OfficeIMO.Html.HtmlConversionDocument.Parse("<q>Quoted header</q>"));
 
             string innerText = GetHeaderInnerText(document, HeaderFooterValues.Default);
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void AddHtmlToFooter_PlacesContentInFooter() {
             using WordDocument document = WordDocument.Create();
-            document.AddHtmlToFooter("<p>Footer content</p>");
+            document.AddHtmlToFooter(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Footer content</p>"));
             using var ms = new System.IO.MemoryStream();
             document.Save(ms);
             ms.Position = 0;
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
             configure(document);
 
             string html = $"<p>{expectedText}</p>";
-            document.AddHtmlToFooter(html, footerType);
+            document.AddHtmlToFooter(OfficeIMO.Html.HtmlConversionDocument.Parse(html), footerType);
 
             var section = document.Sections.Last();
             var footers = section.Footer;
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             configure(document);
 
             string html = $"<p>{expectedText}</p>";
-            document.AddHtmlToHeader(html, headerType);
+            document.AddHtmlToHeader(OfficeIMO.Html.HtmlConversionDocument.Parse(html), headerType);
 
             var section = document.Sections.Last();
             var headers = section.Header;

@@ -34,7 +34,7 @@ var options = new GoogleDocsSaveOptions {
     Title = "Quarterly business review"
 };
 
-var plan = document.CreateGoogleDocsTranslationPlan(options);
+var plan = document.BuildGoogleDocsPlan(options);
 var result = await document.ExportToGoogleDocsAsync(session, options);
 
 Console.WriteLine(result.DocumentId);

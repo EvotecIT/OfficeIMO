@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
 
             Assert.True(File.Exists(mdPath));
 
-            await using (var doc = await mdPath.LoadFromMarkdownAsync()) {
+            await using (var doc = (await OfficeIMO.Markdown.MarkdownDoc.LoadAsync(mdPath)).ToWordDocument()) {
                 Assert.True(doc.Paragraphs.Count >= 1);
                 Assert.Contains("Async file", string.Join("\n", doc.Paragraphs.Select(p => p.Text)));
             }
@@ -39,7 +39,7 @@ namespace OfficeIMO.Tests {
             Assert.True(stream.CanRead);
             stream.Position = 0;
 
-            await using var loaded = await stream.LoadFromMarkdownAsync();
+            await using var loaded = (await OfficeIMO.Markdown.MarkdownDoc.LoadAsync(stream)).ToWordDocument();
             Assert.True(loaded.Paragraphs.Count >= 1);
             Assert.Contains("Async stream", string.Join("\n", loaded.Paragraphs.Select(p => p.Text)));
 

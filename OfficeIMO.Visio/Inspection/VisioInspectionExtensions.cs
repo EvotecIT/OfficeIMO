@@ -58,8 +58,8 @@ namespace OfficeIMO.Visio {
             return new VisioInspectionSnapshot(
                 document.Title,
                 document.Author,
-                document.Theme != null
-                    ? string.IsNullOrWhiteSpace(document.Theme.Name) ? document.Theme.GetType().Name : document.Theme.Name
+                document.PackageTheme != null
+                    ? string.IsNullOrWhiteSpace(document.PackageTheme.Name) ? document.PackageTheme.GetType().Name : document.PackageTheme.Name
                     : null,
                 document.UseMastersByDefault,
                 document.WriteMasterDeltasOnly,

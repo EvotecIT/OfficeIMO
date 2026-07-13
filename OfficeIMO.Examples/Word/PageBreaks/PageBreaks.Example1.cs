@@ -70,7 +70,8 @@ namespace OfficeIMO.Examples.Word {
                 // remove first page break
                 document.PageBreaks[0].Remove(true);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

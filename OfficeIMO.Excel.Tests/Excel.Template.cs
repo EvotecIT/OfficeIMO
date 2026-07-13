@@ -1198,13 +1198,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ExcelTemplate_ImageFromUrlDefaultsToSharedPngContentType() {
-            var image = ExcelTemplateImage.FromUrl("https://example.test/logo.png");
-
-            Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Png), image.ContentType);
-        }
-
-        [Fact]
         public void Test_ExcelTemplate_ImageFromBytesNormalizesKnownContentTypeAlias() {
             var image = ExcelTemplateImage.FromBytes(new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 }, " image/jpg; charset=binary ");
 

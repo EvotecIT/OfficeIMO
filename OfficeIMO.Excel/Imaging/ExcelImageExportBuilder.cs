@@ -7,8 +7,8 @@ namespace OfficeIMO.Excel {
     /// Fluent image-export builder for an Excel range.
     /// </summary>
     public sealed class ExcelRangeImageExportBuilder : OfficeImageExportBuilder<ExcelRangeImageExportBuilder, ExcelImageExportOptions> {
-        internal ExcelRangeImageExportBuilder(ExcelRange range)
-            : base(new ExcelImageExportOptions(), range.ExportImage) {
+        internal ExcelRangeImageExportBuilder(ExcelRange range, ExcelImageExportOptions? options = null)
+            : base(options?.Clone() ?? new ExcelImageExportOptions(), range.ExportImage) {
         }
 
         /// <summary>Enables or disables worksheet gridline rendering.</summary>
@@ -67,8 +67,8 @@ namespace OfficeIMO.Excel {
     /// Fluent image-export builder for an Excel worksheet.
     /// </summary>
     public sealed class ExcelWorksheetImageExportBuilder : OfficeImageExportBuilder<ExcelWorksheetImageExportBuilder, ExcelWorksheetImageExportOptions> {
-        internal ExcelWorksheetImageExportBuilder(ExcelSheet sheet)
-            : base(new ExcelWorksheetImageExportOptions(), sheet.ExportImage) {
+        internal ExcelWorksheetImageExportBuilder(ExcelSheet sheet, ExcelWorksheetImageExportOptions? options = null)
+            : base(options?.CloneWorksheet() ?? new ExcelWorksheetImageExportOptions(), sheet.ExportImage) {
         }
 
         /// <summary>Exports an explicit A1 range instead of the worksheet used range.</summary>

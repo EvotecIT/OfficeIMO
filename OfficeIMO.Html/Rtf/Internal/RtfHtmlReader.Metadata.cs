@@ -185,7 +185,7 @@ internal static partial class RtfHtmlReader {
             }
 
             RtfHeaderFooter headerFooter = _document.AddHeaderFooter(kind);
-            RtfDocument contentDocument = html!.ToRtfDocument();
+            RtfDocument contentDocument = HtmlConversionDocument.Parse(html!).ToRtfDocument();
             foreach (RtfParagraph paragraph in contentDocument.Paragraphs) {
                 RtfParagraph target = headerFooter.AddParagraph();
                 CopyParagraphInlines(paragraph, target, contentDocument);

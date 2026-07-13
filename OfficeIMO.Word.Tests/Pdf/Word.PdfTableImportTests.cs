@@ -32,22 +32,11 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> results = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
-            pdf,
-            document,
-            new PdfWordTableImportOptions {
-                LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                    ForceSingleColumn = true
-                }
-            });
-
-        PdfWordTableImportResult result = Assert.Single(results);
-        Assert.Equal(1, result.PageNumber);
-        Assert.Equal(0, result.TableIndex);
-        Assert.Equal(3, result.ColumnCount);
-        Assert.Equal(2, result.RowCount);
-        Assert.False(result.Truncated);
-        Assert.True(result.HeaderRowIncluded);
+        PdfWordConversionResult result = LoadTables(pdf).ToWordDocumentResult(PdfWordReadOptions.CreateTablesOnly());
+        using (result.Value) {
+            result.Value.Save(document);
+        }
+        Assert.False(result.Report.HasLoss);
 
         using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -64,7 +53,6 @@ public partial class Word {
         Assert.Null(ReadCellAlignment(rows[1], 1));
         Assert.Equal(JustificationValues.Right, ReadCellAlignment(rows[1], 2));
         Assert.Equal(JustificationValues.Right, ReadCellAlignment(rows[2], 2));
-        Assert.Contains(body.Descendants<Text>(), text => text.Text == "PDF page 1, table 1");
     }
 
     [Fact]
@@ -92,22 +80,15 @@ public partial class Word {
             .ToBytes();
 
         using var document = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> results = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
-            pdf,
-            document,
-            new PdfWordTableImportOptions {
-                LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                    ForceSingleColumn = true
-                },
-                PageRanges = new[] { PdfCore.PdfPageRange.From(1, 1) },
-                MaxRows = 2,
-                IncludeSourceCaptions = false
-            });
-
-        PdfWordTableImportResult result = Assert.Single(results);
-        Assert.Equal(2, result.RowCount);
-        Assert.Equal(3, result.TotalRowCount);
-        Assert.True(result.Truncated);
+        PdfWordReadOptions tablesOnly = PdfWordReadOptions.CreateTablesOnly();
+        tablesOnly.MaxTableRows = 2;
+        PdfWordConversionResult result = LoadTables(pdf, PdfCore.PdfPageRange.From(1, 1)).ToWordDocumentResult(tablesOnly);
+        using (result.Value) {
+            result.Value.Save(document);
+        }
+        Assert.True(result.Report.HasLoss);
+        Assert.Contains(result.Report.Warnings, warning => warning.Code == "PdfTableTruncated");
+        Assert.Throws<InvalidOperationException>(() => result.Report.RequireNoLoss());
 
         using (WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(document.ToArray()), false)) {
             Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
@@ -120,23 +101,25 @@ public partial class Word {
         }
 
         using var emptyDocument = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> emptyResults = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
-            pdf,
-            emptyDocument,
-            new PdfWordTableImportOptions {
-                LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                    ForceSingleColumn = true
-                },
-                PageRanges = new[] { PdfCore.PdfPageRange.From(2, 2) },
-                EmptyDocumentMessage = "Nothing tabular was detected."
-            });
-
-        Assert.Empty(emptyResults);
+        PdfWordReadOptions emptyOptions = PdfWordReadOptions.CreateTablesOnly();
+        emptyOptions.EmptyDocumentMessage = "Nothing tabular was detected.";
+        PdfWordConversionResult emptyResult = LoadTables(pdf, PdfCore.PdfPageRange.From(2, 2)).ToWordDocumentResult(emptyOptions);
+        using (emptyResult.Value) {
+            emptyResult.Value.Save(emptyDocument);
+        }
+        Assert.False(emptyResult.Report.HasLoss);
         using WordprocessingDocument emptyPackage = WordprocessingDocument.Open(new MemoryStream(emptyDocument.ToArray()), false);
         Assert.Empty(new OpenXmlValidator().Validate(emptyPackage).ToList());
         Body emptyBody = GetBody(emptyPackage);
         Assert.Empty(emptyBody.Descendants<Table>());
         Assert.Contains(emptyBody.Descendants<Text>(), text => text.Text == "Nothing tabular was detected.");
+    }
+
+    private static PdfCore.PdfLogicalDocument LoadTables(byte[] pdf, params PdfCore.PdfPageRange[] ranges) {
+        var layout = new PdfCore.PdfTextLayoutOptions { ForceSingleColumn = true };
+        return ranges.Length == 0
+            ? PdfCore.PdfLogicalDocument.Load(pdf, layout)
+            : PdfCore.PdfLogicalDocument.LoadPageRanges(pdf, layout, ranges);
     }
 
     private static Body GetBody(WordprocessingDocument package) {

@@ -100,12 +100,14 @@ namespace OfficeIMO.Tests
             }
 
             [Fact]
-            public void Test_InformAboutUnprocessableStrings()
+            public void Test_PreserveUnknownFieldCodesAsDiagnostics()
             {
-                Assert.Throws<NotImplementedException>(() => new WordFieldParser("SillyField not known"));
+                var parser = new WordFieldParser("SillyField not known");
+
+                Assert.Null(parser.WordFieldType);
+                Assert.Contains(parser.Diagnostics, diagnostic => diagnostic.Contains("SillyField", StringComparison.Ordinal));
             }
 
         }
     }
 }
-

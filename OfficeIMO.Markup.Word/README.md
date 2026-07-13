@@ -33,8 +33,7 @@ This document was authored as OfficeIMO Markup.
 Generated as an editable Word document.
 """);
 
-new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
-    OutputPath = "status-brief.docx"
+result.Document.SaveAsWord("status-brief.docx", new MarkupToWordOptions {
 });
 ```
 

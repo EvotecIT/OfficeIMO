@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
             VisioDocument document = VisioDocument.Create(filePath);
-            document.Theme = new VisioTheme { Name = "Office Theme" };
+            document.PackageTheme = new VisioPackageTheme { Name = "Office Theme" };
             VisioPage page = document.AddPage("Page-1");
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, string.Empty));
             document.Save();
@@ -29,7 +29,7 @@ namespace OfficeIMO.Tests {
             }
 
             VisioDocument loaded = VisioDocument.Load(filePath);
-            Assert.Equal("Office Theme", loaded.Theme?.Name);
+            Assert.Equal("Office Theme", loaded.PackageTheme?.Name);
 
             using FileStream zipStream = File.OpenRead(filePath);
             using ZipArchive archive = new(zipStream, ZipArchiveMode.Read);

@@ -19,28 +19,8 @@ namespace OfficeIMO.Word.Markdown {
         private const double TwipsPerInch = 1440d;
         private const double PixelsPerInch = 96d;
         private const double MinimumContentWidthPixels = 1d;
-        private static readonly TimeSpan DefaultRemoteImageDownloadTimeout = TimeSpan.FromSeconds(20);
-
-
         // Current footnote definitions map; scoped to this per-conversion converter instance.
         private IReadOnlyDictionary<string, string>? _currentFootnotes;
-
-        public WordDocument Convert(string markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
-            if (markdown == null) {
-                throw new ArgumentNullException(nameof(markdown));
-            }
-
-            options ??= new MarkdownToWordOptions();
-
-            var document = WordDocument.Create();
-            options.ApplyDefaults(document);
-            var pageContentWidthPixels = EstimatePageContentWidthPixels(document);
-
-            var readerOptions = CreateEffectiveReaderOptions(options);
-            var omd = Omd.MarkdownReader.Parse(markdown, readerOptions);
-            RenderDocument(omd, document, options, pageContentWidthPixels, cancellationToken);
-            return document;
-        }
 
         public WordDocument Convert(Omd.MarkdownDoc markdown, MarkdownToWordOptions options, CancellationToken cancellationToken = default) {
             if (markdown == null) {

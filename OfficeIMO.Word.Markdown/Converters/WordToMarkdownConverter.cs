@@ -20,10 +20,6 @@ namespace OfficeIMO.Word.Markdown {
     /// 4. Use paragraph.Bold, paragraph.Italic for inline formatting
     /// </summary>
     internal partial class WordToMarkdownConverter {
-        public string Convert(WordDocument document, WordToMarkdownOptions options, CancellationToken cancellationToken = default) {
-            return NormalizeMarkdownLineEndings(ConvertToDocument(document, options, cancellationToken).ToMarkdown());
-        }
-
         public MarkdownDoc ConvertToDocument(WordDocument document, WordToMarkdownOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToMarkdownOptions();

@@ -5,6 +5,7 @@ namespace OfficeIMO.Html;
 /// </summary>
 public sealed class HtmlCapabilityGalleryResult {
     private readonly List<HtmlCapabilityGalleryArtifact> _artifacts = new List<HtmlCapabilityGalleryArtifact>();
+    private readonly IReadOnlyList<HtmlCapabilityGalleryArtifact> _readOnlyArtifacts;
 
     /// <summary>
     /// Creates a capability-gallery result.
@@ -12,6 +13,7 @@ public sealed class HtmlCapabilityGalleryResult {
     /// <param name="scenario">Scenario proven by the result.</param>
     public HtmlCapabilityGalleryResult(HtmlCapabilityGalleryScenario scenario) {
         Scenario = scenario ?? throw new ArgumentNullException(nameof(scenario));
+        _readOnlyArtifacts = _artifacts.AsReadOnly();
     }
 
     /// <summary>
@@ -22,7 +24,7 @@ public sealed class HtmlCapabilityGalleryResult {
     /// <summary>
     /// Artifacts emitted for the scenario.
     /// </summary>
-    public IReadOnlyList<HtmlCapabilityGalleryArtifact> Artifacts => _artifacts;
+    public IReadOnlyList<HtmlCapabilityGalleryArtifact> Artifacts => _readOnlyArtifacts;
 
     /// <summary>
     /// Shared diagnostics captured while generating the scenario artifacts.

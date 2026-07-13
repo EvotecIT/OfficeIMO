@@ -14,7 +14,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.Background.SetImage(stream, "BackgroundImage.png", 600, 800);
                 document.AddParagraph("Advanced content");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

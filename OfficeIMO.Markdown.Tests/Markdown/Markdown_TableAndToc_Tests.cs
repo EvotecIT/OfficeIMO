@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         [Fact]
         public void ToHtml_Adds_Heading_Ids() {
             var md = MarkdownDoc.Create().H2("Install");
-            var html = md.ToHtml();
+            var html = md.ToHtmlFragment();
             Assert.Contains("<h2 id=\"install\">Install</h2>", html);
         }
 

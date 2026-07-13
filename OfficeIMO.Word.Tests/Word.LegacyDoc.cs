@@ -2,7 +2,7 @@ using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.CustomProperties;
@@ -30,7 +30,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("First paragraph", result.Document.Paragraphs[0].Text);
             Assert.Equal("Second paragraph", result.Document.Paragraphs[1].Text);
             Assert.True(result.Document.SourceFormat == WordFileFormat.Doc);
-            Assert.Equal(string.Empty, result.Document.FilePath);
+            Assert.Null(result.Document.FilePath);
 
             using WordDocument reloaded = WordDocument.Load(new MemoryStream(result.Document.ToBytes()));
             Assert.Equal("First paragraph", reloaded.Paragraphs[0].Text);
@@ -1349,7 +1349,7 @@ namespace OfficeIMO.Tests {
             result.EnsureNoImportErrors();
             Assert.True(result.HasDocument);
             Assert.True(result.Document.SourceFormat == WordFileFormat.Doc);
-            Assert.Equal(string.Empty, result.Document.FilePath);
+            Assert.Null(result.Document.FilePath);
 
             string[] paragraphs = result.Document.Paragraphs
                 .Select(paragraph => paragraph.Text)
@@ -5439,14 +5439,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveAsDocPath_ReturnsDocumentAttachedToSavedPath() {
+        public void LegacyDoc_SaveCopy_PreservesCurrentAssociationAndCreatesLoadableCopy() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddParagraph("Initial SaveAs DOC paragraph");
 
-                    using WordDocument savedDocument = document.SaveCopy(docPath);
+                    document.SaveCopy(docPath);
+                    using WordDocument savedDocument = WordDocument.Load(docPath);
                     Assert.True(savedDocument.SourceFormat == WordFileFormat.Doc);
                     Assert.Equal(docPath, savedDocument.FilePath);
 
@@ -5503,7 +5504,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create()) {
                 document.AddParagraph("Default stream format");
-                document.Save(stream, WordSaveOptions.None);
+                document.Save(stream, new WordSaveOptions());
             }
 
             byte[] bytes = stream.ToArray();

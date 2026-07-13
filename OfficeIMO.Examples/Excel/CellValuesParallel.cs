@@ -28,7 +28,8 @@ namespace OfficeIMO.Examples.Excel {
                     Task.Run(() => sheet.CellValues(column2, ExecutionMode.Parallel))
                 );
 
-                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                document.Save();
+                if (openExcel) document.OpenInApplication();
             }
         }
     }

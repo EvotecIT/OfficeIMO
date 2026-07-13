@@ -3,8 +3,6 @@ using OfficeIMO.Drawing;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Html;
 using System.Collections.Generic;
-using System.Threading;
-using System.Threading.Tasks;
 using Omd = OfficeIMO.Markdown;
 
 namespace OfficeIMO.Word.Markdown {
@@ -38,52 +36,6 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             return contentTwips * PixelsPerInch / TwipsPerInch;
-        }
-
-        private static System.Net.Http.HttpClient CreateRemoteImageClient(TimeSpan timeout, bool bypassProxy = false) {
-            System.Net.Http.HttpClient client;
-            if (bypassProxy) {
-                var handler = new System.Net.Http.HttpClientHandler {
-                    Proxy = null,
-                    UseProxy = false
-                };
-                client = new System.Net.Http.HttpClient(handler, disposeHandler: true);
-            } else {
-                client = new System.Net.Http.HttpClient();
-            }
-
-            client.Timeout = timeout;
-            client.DefaultRequestHeaders.UserAgent.ParseAdd("OfficeIMO.Word.Markdown");
-            return client;
-        }
-
-        private static bool IsLoopbackImageUri(Uri uri) {
-            if (uri == null) {
-                return false;
-            }
-
-            if (uri.IsLoopback) {
-                return true;
-            }
-
-            return string.Equals(uri.Host, "localhost", StringComparison.OrdinalIgnoreCase);
-        }
-
-
-        private static TimeSpan ResolveRemoteImageTimeout(MarkdownToWordOptions options) {
-            if (options.RemoteImageDownloadTimeout <= TimeSpan.Zero) {
-                return DefaultRemoteImageDownloadTimeout;
-            }
-
-            return options.RemoteImageDownloadTimeout;
-        }
-
-
-        private static byte[] DownloadRemoteImageBytes(Uri uri, MarkdownToWordOptions options) {
-            var timeout = ResolveRemoteImageTimeout(options);
-            // Fresh clients avoid stale loopback/proxy behavior on older framework handlers.
-            using var client = CreateRemoteImageClient(timeout, bypassProxy: IsLoopbackImageUri(uri));
-            return client.GetByteArrayAsync(uri).GetAwaiter().GetResult();
         }
 
         private static void RenderMarkdownImageIntoParagraph(
@@ -138,9 +90,17 @@ namespace OfficeIMO.Word.Markdown {
             if (System.Uri.TryCreate(imageSource, System.UriKind.Absolute, out var uri)) {
                 if (options.AllowedImageSchemes.Contains(uri.Scheme) &&
                     (options.ImageUrlValidator == null || options.ImageUrlValidator(uri))) {
-                    if (options.AllowRemoteImages) {
+                    if (options.RemoteImageResolver != null) {
                         try {
-                            var bytes = DownloadRemoteImageBytes(uri, options);
+                            byte[]? resolved = options.RemoteImageResolver(uri);
+                            if (resolved == null) {
+                                throw new InvalidOperationException("The remote image resolver returned no data.");
+                            }
+                            if (options.MaximumRemoteImageBytes >= 0 && resolved.LongLength > options.MaximumRemoteImageBytes) {
+                                throw new InvalidOperationException($"The resolved image is {resolved.LongLength} bytes, exceeding the configured limit of {options.MaximumRemoteImageBytes} bytes.");
+                            }
+
+                            byte[] bytes = (byte[])resolved.Clone();
                             var fileName = System.IO.Path.GetFileName(uri.LocalPath);
                             if (string.IsNullOrWhiteSpace(fileName)) {
                                 fileName = "image";
@@ -175,11 +135,17 @@ namespace OfficeIMO.Word.Markdown {
                                 paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
                             }
                         }
-                    } else if (options.FallbackRemoteImagesToHyperlinks) {
+                    } else {
+                        options.OnWarning?.Invoke($"Remote image '{uri}' was not resolved because MarkdownToWordOptions.RemoteImageResolver is not configured.");
+                        if (options.FallbackRemoteImagesToHyperlinks) {
+                            paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
+                        }
+                    }
+                } else {
+                    options.OnWarning?.Invoke($"Remote image '{uri}' was rejected by the configured URL policy.");
+                    if (options.FallbackRemoteImagesToHyperlinks) {
                         paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
                     }
-                } else if (options.FallbackRemoteImagesToHyperlinks) {
-                    paragraph.AddHyperLink(alt ?? uri.ToString(), uri);
                 }
 
                 return;

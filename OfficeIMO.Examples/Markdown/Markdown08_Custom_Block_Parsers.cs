@@ -24,7 +24,7 @@ This custom block uses the delegate-based block parser API.
 """;
 
             var options = CreateReaderOptions();
-            var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
             var html = result.Document.ToHtmlFragment(new HtmlOptions {
                 Kind = HtmlKind.Fragment,
                 Title = "Custom block parser sample",

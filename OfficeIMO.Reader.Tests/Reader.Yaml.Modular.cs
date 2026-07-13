@@ -32,7 +32,7 @@ public sealed class ReaderYamlModularTests {
             "replicas: 2\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunks = DocumentReaderYamlExtensions.ReadYaml(
+        var chunks = YamlReaderAdapter.Read(
             stream,
             sourceName: "service.yaml",
             yamlOptions: new YamlReadOptions {
@@ -67,7 +67,7 @@ public sealed class ReaderYamlModularTests {
             "implicitEnabled: true\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "tagged.yaml",
             yamlOptions: new YamlReadOptions {
@@ -88,7 +88,7 @@ public sealed class ReaderYamlModularTests {
         const string yaml = "command: \"printf 'a  b\\n'\"\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "quoted.yaml",
             yamlOptions: new YamlReadOptions {
@@ -113,7 +113,7 @@ public sealed class ReaderYamlModularTests {
             "total: 1_000\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "numbers.yaml",
             yamlOptions: new YamlReadOptions {
@@ -127,22 +127,22 @@ public sealed class ReaderYamlModularTests {
     }
 
     [Fact]
-    public void DocumentReaderYaml_ReadYamlStream_EnforcesMaxInputBytesAgainstSeekableRemainingBytes() {
+    public void DocumentReaderYaml_ReadYamlStream_EnforcesMaxInputBytesAgainstCompleteSeekableInput() {
         var prefix = Encoding.UTF8.GetBytes(new string('x', 128));
         var yaml = Encoding.UTF8.GetBytes("metadata:\n  name: officeimo\n");
         using var stream = new MemoryStream(prefix.Concat(yaml).ToArray(), writable: false);
         stream.Position = prefix.Length;
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
-            stream,
-            sourceName: "slice.yaml",
-            readerOptions: new ReaderOptions { MaxInputBytes = yaml.Length },
-            yamlOptions: new YamlReadOptions {
-                ChunkRows = 10,
-                IncludeMarkdown = false
-            }));
-
-        Assert.Contains("$.metadata.name | string | officeimo", chunk.Text ?? string.Empty, StringComparison.Ordinal);
+        Assert.Throws<IOException>(() => YamlReaderAdapter.Read(
+                stream,
+                sourceName: "slice.yaml",
+                readerOptions: new ReaderOptions { MaxInputBytes = yaml.Length },
+                yamlOptions: new YamlReadOptions {
+                    ChunkRows = 10,
+                    IncludeMarkdown = false
+                })
+            .ToList());
+        Assert.Equal(prefix.Length, stream.Position);
     }
 
     [Fact]
@@ -153,7 +153,7 @@ public sealed class ReaderYamlModularTests {
             "  echo second\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "script.yaml",
             yamlOptions: new YamlReadOptions {
@@ -176,7 +176,7 @@ public sealed class ReaderYamlModularTests {
         const string yaml = "'service.name':\n  'port[0]': 443\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunks = DocumentReaderYamlExtensions.ReadYaml(
+        var chunks = YamlReaderAdapter.Read(
             stream,
             sourceName: "service.yaml",
             yamlOptions: new YamlReadOptions {
@@ -196,7 +196,7 @@ public sealed class ReaderYamlModularTests {
             "  name: officeimo\n";
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(yaml));
 
-        var ex = Assert.Throws<IOException>(() => DocumentReaderYamlExtensions.ReadYaml(
+        var ex = Assert.Throws<IOException>(() => YamlReaderAdapter.Read(
             stream,
             sourceName: "service.yaml",
             readerOptions: new ReaderOptions { MaxInputBytes = 16 },
@@ -215,7 +215,7 @@ public sealed class ReaderYamlModularTests {
             File.WriteAllText(path, "metadata: [unterminated");
 
             var warningChunk = Assert.Single(
-                DocumentReaderYamlExtensions.ReadYaml(path, new ReaderOptions { ComputeHashes = true }),
+                YamlReaderAdapter.Read(path, new ReaderOptions { ComputeHashes = true }),
                 c => c.Kind == ReaderInputKind.Yaml &&
                      (c.Warnings?.Any(w => w.Contains("YAML parse error", StringComparison.OrdinalIgnoreCase)) ?? false));
 
@@ -250,7 +250,7 @@ public sealed class ReaderYamlModularTests {
         const string yaml = "root:\n  child:\n    value: 1\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "limited.yaml",
             yamlOptions: new YamlReadOptions {
@@ -272,7 +272,7 @@ public sealed class ReaderYamlModularTests {
             "  - three\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "parse-limited.yaml",
             yamlOptions: new YamlReadOptions {
@@ -289,7 +289,7 @@ public sealed class ReaderYamlModularTests {
         string yaml = "value: " + new string('a', 32) + "\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "scalar-limited.yaml",
             yamlOptions: new YamlReadOptions {
@@ -311,7 +311,7 @@ public sealed class ReaderYamlModularTests {
             "  - four\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "depth-limited.yaml",
             yamlOptions: new YamlReadOptions {
@@ -332,7 +332,7 @@ public sealed class ReaderYamlModularTests {
             ": value\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(yaml), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderYamlExtensions.ReadYaml(
+        var chunk = Assert.Single(YamlReaderAdapter.Read(
             stream,
             sourceName: "complex-key.yaml",
             yamlOptions: new YamlReadOptions {

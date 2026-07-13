@@ -48,9 +48,4 @@
     <Using Include="System.Linq" />
   </ItemGroup>
 
-  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
-    <!-- Required for HttpClient usage in offline asset bundling helpers -->
-    <Reference Include="System.Net.Http" />
-  </ItemGroup>
-
 </Project>

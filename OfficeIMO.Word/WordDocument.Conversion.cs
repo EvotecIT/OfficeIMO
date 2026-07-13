@@ -1,6 +1,5 @@
 using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Shared;
 using OfficeIMO.Word.LegacyDoc;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Threading;
@@ -61,11 +60,11 @@ namespace OfficeIMO.Word {
                     $"The source is already {sourceFormat}. Convert requires different physical source and destination formats.");
             }
 
-            if (assessment.HasDataLoss && options.LossPolicy == WordConversionLossPolicy.Block) {
+            if (assessment.HasLoss && options.LossPolicy == WordConversionLossPolicy.Block) {
                 throw new WordDocumentConversionException(
                     WordDocumentConversionFailureReason.DataLossBlocked,
                     assessment,
-                    $"Word conversion is blocked because {diagnostics.Count(diagnostic => diagnostic.RepresentsDataLoss)} source feature(s) would not survive conversion. Inspect Result.Diagnostics or set LossPolicy to Allow when that loss is intentional.");
+                    $"Word conversion is blocked because {diagnostics.Count(diagnostic => diagnostic.RepresentsDataLoss)} source feature(s) would not survive conversion. Inspect Result.Report.Diagnostics or set LossPolicy to Allow when that loss is intentional.");
             }
 
             if (File.Exists(paths.Destination)
@@ -94,7 +93,7 @@ namespace OfficeIMO.Word {
                     throw new WordDocumentConversionException(
                         WordDocumentConversionFailureReason.DestinationFeatureUnsupported,
                         CreateWordConversionResult(paths, sourceFormat, destinationFormat, diagnostics, false, false),
-                        $"The document contains content that cannot be written as {destinationFormat}. See Result.Diagnostics for the specific unsupported feature.",
+                        $"The document contains content that cannot be written as {destinationFormat}. See Result.Report.Diagnostics for the specific unsupported feature.",
                         exception);
                 }
 
@@ -118,7 +117,6 @@ namespace OfficeIMO.Word {
                         exception);
                 }
 
-                if (options.OpenAfterSave) document.OpenInApplication(paths.Destination);
                 return CreateWordConversionResult(paths, sourceFormat, destinationFormat, diagnostics, true, replacesExistingFile);
             } finally {
                 OfficeFileCommit.DeleteIfExists(stagingPath);

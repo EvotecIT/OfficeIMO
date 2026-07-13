@@ -10,6 +10,7 @@ public sealed class HtmlRenderDocument {
     private readonly ReadOnlyCollection<HtmlRenderPage> _pages;
     private readonly OfficeFontFaceCollection _fonts;
     private readonly ReadOnlyCollection<HtmlRenderHeading> _headings;
+    private readonly HtmlDiagnosticReport _diagnosticReport;
 
     internal HtmlRenderDocument(HtmlRenderMode mode, IEnumerable<HtmlRenderPage> pages, HtmlDiagnosticReport diagnostics, OfficeFontFaceCollection? fonts = null, HtmlRenderMetadata? metadata = null) {
         Mode = mode;
@@ -18,7 +19,7 @@ public sealed class HtmlRenderDocument {
             throw new ArgumentException("A rendered HTML document requires at least one surface.", nameof(pages));
         }
 
-        Diagnostics = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).Clone();
+        _diagnosticReport = (diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).Clone();
         _fonts = fonts?.Clone() ?? new OfficeFontFaceCollection();
         Metadata = metadata ?? new HtmlRenderMetadata(null, null);
         _headings = BuildHeadings(_pages).AsReadOnly();
@@ -31,7 +32,9 @@ public sealed class HtmlRenderDocument {
     public IReadOnlyList<HtmlRenderPage> Pages => _pages;
 
     /// <summary>Diagnostics emitted while parsing, laying out, and preparing paint operations.</summary>
-    public HtmlDiagnosticReport Diagnostics { get; }
+    public IReadOnlyList<HtmlDiagnostic> Diagnostics => _diagnosticReport.Diagnostics;
+
+    internal HtmlDiagnosticReport DiagnosticReport => _diagnosticReport;
 
     /// <summary>Independent snapshot of scoped font faces retained for image and PDF backends.</summary>
     public OfficeFontFaceCollection Fonts => _fonts.Clone();

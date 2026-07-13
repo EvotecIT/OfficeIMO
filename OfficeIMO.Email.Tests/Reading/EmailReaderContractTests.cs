@@ -6,6 +6,17 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailReaderContractTests {
     [Fact]
+    public void EmailDocumentToStreamMatchesToBytesAndStartsAtBeginning() {
+        var document = new EmailDocument { Subject = "Lifecycle" };
+
+        using MemoryStream stream = document.ToStream();
+
+        Assert.Equal(0, stream.Position);
+        Assert.Equal(document.ToBytes(), stream.ToArray());
+        Assert.True(stream.CanWrite);
+    }
+
+    [Fact]
     public void PublicEnumValuesRemainStable() {
         Assert.Equal(1, (int)EmailFileFormat.Eml);
         Assert.Equal(2, (int)EmailFileFormat.OutlookMsg);
@@ -40,7 +51,7 @@ public sealed class EmailReaderContractTests {
         Assert.Equal(EmailFileFormat.Unknown, EmailDocumentReader.DetectFormat(
             new byte[] { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 }));
         EmailDocument msg = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "detect" };
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(msg, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(msg, EmailFileFormat.OutlookMsg);
         Assert.Equal(EmailFileFormat.OutlookMsg, EmailDocumentReader.DetectFormat(bytes));
     }
 
@@ -86,17 +97,29 @@ public sealed class EmailReaderContractTests {
     }
 
     [Fact]
-    public async Task AsyncReadUsesCurrentPositionAndLeavesStreamOpen() {
-        byte[] prefix = { 1, 2, 3 };
+    public async Task AsyncReadUsesWholeSeekableArtifactAndRestoresPosition() {
         byte[] message = Encoding.ASCII.GetBytes("Subject: async\r\n\r\nbody");
-        MemoryStream stream = new MemoryStream(prefix.Concat(message).ToArray());
-        stream.Position = prefix.Length;
+        MemoryStream stream = new MemoryStream(message);
+        stream.Position = 3;
 
         EmailReadResult result = await new EmailDocumentReader().ReadAsync(stream);
 
         Assert.Equal("async", result.Document.Subject);
         Assert.True(stream.CanRead);
+        Assert.Equal(3, stream.Position);
         stream.Dispose();
+    }
+
+    [Fact]
+    public void DetectFormatUsesWholeSeekableArtifactAndRestoresPosition() {
+        byte[] message = Encoding.ASCII.GetBytes("Subject: detect-stream\r\n\r\nbody");
+        using var stream = new MemoryStream(message);
+        stream.Position = 5;
+
+        EmailFileFormat format = EmailDocumentReader.DetectFormat(stream);
+
+        Assert.Equal(EmailFileFormat.Eml, format);
+        Assert.Equal(5, stream.Position);
     }
 
     [Fact]
@@ -155,11 +178,11 @@ public sealed class EmailReaderContractTests {
     [Fact]
     public void EnforcesMapiPropertyAndWriterOutputLimits() {
         EmailDocument source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "bounded" };
-        byte[] msg = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] msg = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentReader(
             new EmailReaderOptions(maxMapiPropertyCount: 1)).Read(msg));
         Assert.Throws<EmailLimitExceededException>(() => new EmailDocumentWriter(
-            new EmailWriterOptions(maxOutputBytes: 10)).WriteToBytes(source, EmailFileFormat.OutlookMsg));
+            new EmailWriterOptions(maxOutputBytes: 10)).ToBytes(source, EmailFileFormat.OutlookMsg));
     }
 }

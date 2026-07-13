@@ -5,12 +5,12 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
-public sealed partial class OfficeMarkupPowerPointExporter {
+internal sealed partial class OfficeMarkupPowerPointExporter {
     private static void AddImage(
         PowerPointSlide slide,
         OfficeMarkupImageBlock image,
         LayoutCursor cursor,
-        OfficeMarkupPowerPointExportOptions options,
+        MarkupToPowerPointOptions options,
         SlideCanvasMetrics metrics) {
         if (TryResolveFilePath(options, image.Source, out var path) && File.Exists(path)) {
             var box = ResolveBox(image.Placement, image.Attributes, cursor, Math.Min(2.2, cursor.RemainingHeight), metrics);
@@ -28,7 +28,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
     }
 
     private static bool TryResolveFilePath(
-        OfficeMarkupPowerPointExportOptions? options,
+        MarkupToPowerPointOptions? options,
         string source,
         out string path) {
         path = source;

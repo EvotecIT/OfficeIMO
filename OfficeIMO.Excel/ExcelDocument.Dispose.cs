@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using System.IO.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -189,7 +189,8 @@ namespace OfficeIMO.Excel {
 
         private void PersistPackageToFilePath() {
             var packageStream = _packageStream ?? throw new InvalidOperationException("Package stream is not available.");
-            if (string.IsNullOrEmpty(FilePath)) {
+            string? filePath = FilePath;
+            if (filePath is null || filePath.Length == 0) {
                 throw new InvalidOperationException("File path is not available.");
             }
 
@@ -197,9 +198,7 @@ namespace OfficeIMO.Excel {
                 packageStream.Seek(0, SeekOrigin.Begin);
             }
 
-            using var targetStream = new FileStream(FilePath, FileMode.Create, FileAccess.Write, FileShare.None);
-            packageStream.CopyTo(targetStream, StreamCopyBufferSize);
-            targetStream.Flush();
+            OfficeFileCommit.Write(filePath, targetStream => packageStream.CopyTo(targetStream, StreamCopyBufferSize));
         }
     }
 }

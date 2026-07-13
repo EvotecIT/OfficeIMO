@@ -7,7 +7,7 @@ using System.Threading;
 namespace OfficeIMO.Reader;
 
 /// <summary>
-/// The detected input kind used by <see cref="DocumentReader"/>.
+/// The detected input kind used by <see cref="OfficeDocumentReader"/>.
 /// </summary>
 public enum ReaderInputKind {
     /// <summary>
@@ -93,7 +93,7 @@ public enum ReaderInputKind {
 }
 
 /// <summary>
-/// A normalized extraction chunk produced by <see cref="DocumentReader"/>.
+/// A normalized extraction chunk produced by <see cref="OfficeDocumentReader"/>.
 /// </summary>
 public sealed class ReaderChunk {
     /// <summary>
@@ -363,7 +363,7 @@ public sealed class ReaderLocation {
     public string? Path { get; set; }
 
     /// <summary>
-    /// Optional emitted chunk index (0-based) in the order produced by <see cref="DocumentReader"/>.
+    /// Optional emitted chunk index (0-based) in the order produced by <see cref="OfficeDocumentReader"/>.
     /// </summary>
     public int? BlockIndex { get; set; }
 

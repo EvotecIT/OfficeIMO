@@ -26,7 +26,8 @@ public class HtmlOfficeAdaptersStreamIO {
         byte[] htmlBytes = htmlStream.ToArray();
         Assert.False(HasUtf8Bom(htmlBytes));
         htmlStream.Position = 0;
-        HtmlToExcelResult result = await htmlStream.ToExcelDocumentResultAsync();
+        HtmlConversionDocument htmlDocument = await HtmlConversionDocument.LoadAsync(htmlStream);
+        HtmlToExcelResult result = htmlDocument.ToExcelDocumentResult();
         using ExcelDocument imported = result.Value;
         Assert.True(result.Succeeded);
         Assert.True(htmlStream.CanRead);
@@ -44,7 +45,8 @@ public class HtmlOfficeAdaptersStreamIO {
         byte[] htmlBytes = htmlStream.ToArray();
         Assert.False(HasUtf8Bom(htmlBytes));
         htmlStream.Position = 0;
-        HtmlToPowerPointResult result = await htmlStream.ToPowerPointPresentationResultAsync();
+        HtmlConversionDocument htmlDocument = await HtmlConversionDocument.LoadAsync(htmlStream);
+        HtmlToPowerPointResult result = htmlDocument.ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         Assert.True(result.Succeeded);
         Assert.True(htmlStream.CanRead);
@@ -52,14 +54,15 @@ public class HtmlOfficeAdaptersStreamIO {
 
     [Fact]
     public async Task SharedHtmlTextIOIsUsedByWordMarkdownAndPdfStreams() {
-        using WordDocument word = "<p>Zażółć</p>".ToWordDocument();
+        using WordDocument word = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Zażółć</p>").ToWordDocument();
         using var wordHtml = new MemoryStream();
         await word.SaveAsHtmlAsync(wordHtml);
         Assert.False(HasUtf8Bom(wordHtml.ToArray()));
         Assert.True(wordHtml.CanWrite);
 
         wordHtml.Position = 0;
-        HtmlToWordResult wordResult = await wordHtml.ToWordDocumentResultAsync();
+        HtmlConversionDocument htmlDocument = await HtmlConversionDocument.LoadAsync(wordHtml);
+        HtmlToWordResult wordResult = await htmlDocument.ToWordDocumentResultAsync();
         using WordDocument importedWord = wordResult.Value;
         Assert.True(wordHtml.CanRead);
         Assert.True(wordResult.Succeeded);
@@ -68,11 +71,13 @@ public class HtmlOfficeAdaptersStreamIO {
             .Concat(Encoding.UTF8.GetBytes("<p>Stream marker</p>"))
             .ToArray();
         using var markdownStream = new MemoryStream(bomHtml);
-        Assert.Contains("Stream marker", markdownStream.ToMarkdown(), StringComparison.Ordinal);
+        HtmlConversionDocument markdownSource = await HtmlConversionDocument.LoadAsync(markdownStream);
+        Assert.Contains("Stream marker", markdownSource.ToMarkdown(), StringComparison.Ordinal);
         Assert.True(markdownStream.CanRead);
 
         using var pdfStream = new MemoryStream(bomHtml);
-        var pdfResult = await pdfStream.ToPdfDocumentResultAsync();
+        HtmlConversionDocument pdfSource = await HtmlConversionDocument.LoadAsync(pdfStream);
+        var pdfResult = await pdfSource.ToPdfDocumentResultAsync();
         Assert.True(pdfStream.CanRead);
         Assert.NotEmpty(pdfResult.ToBytes());
     }

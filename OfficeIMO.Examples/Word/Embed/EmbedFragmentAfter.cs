@@ -14,7 +14,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddEmbeddedFragmentAfter(p1, html);
 
                 Console.WriteLine("Embedded: " + document.EmbeddedDocuments.Count);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

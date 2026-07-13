@@ -29,7 +29,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         Assert.Collection(rtfDocument.Blocks,
             block => Assert.Equal("Before", Assert.IsType<RtfParagraph>(block).ToPlainText()),
@@ -132,7 +132,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
         RtfDocument roundTripRtf = roundTrip.ToRtfDocument();
 
         RtfImage image = Assert.IsType<RtfImage>(Assert.Single(rtfDocument.Blocks));
@@ -170,7 +170,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
         RtfDocument semanticRoundTrip = roundTrip.ToRtfDocument();
 
         RtfParagraph rtfParagraph = Assert.Single(rtfDocument.Paragraphs);
@@ -243,7 +243,7 @@ public partial class WordRtfConverterTests {
 
         RtfDocument rtfDocument = word.ToRtfDocument();
         string rtf = word.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
-        using WordDocument roundTrip = rtf.LoadFromRtf();
+        using WordDocument roundTrip = RtfDocument.Read(rtf).Document.ToWordDocument();
 
         RtfTable rtfTable = Assert.IsType<RtfTable>(Assert.Single(rtfDocument.Blocks));
         Assert.Equal(RtfTableAlignment.Center, rtfTable.Rows[0].Alignment);

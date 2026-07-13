@@ -10,7 +10,7 @@ namespace OfficeIMO.Reader.Tests;
 public class ReaderOpenDocumentModularTests {
     [Fact]
     public void RegisteredAdapterClampsImportedHeadingLevels() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddHeading("Imported heading", 1);
         byte[] package = RewriteHeadingLevel(document.ToBytes(), "11");
 
@@ -25,7 +25,7 @@ public class ReaderOpenDocumentModularTests {
 
     [Fact]
     public void RegisteredAdapterHonorsRequestedOdsRange() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         sheet.Cell(0, 0).SetString("A");
         sheet.Cell(0, 1).SetString("B");
@@ -50,7 +50,7 @@ public class ReaderOpenDocumentModularTests {
 
     [Fact]
     public void RegisteredAdapterEmitsSlideAlignedOdpChunkWithNotesAndTable() {
-        using OdpPresentation document = OdpPresentation.Create();
+        OdpPresentation document = OdpPresentation.Create();
         OdpSlide slide = document.AddSlide("Summary");
         slide.AddTextBox(OdfRect.FromCentimeters(1, 1, 20, 3), "Native presentation");
         OdpTable table = slide.AddTable(OdfRect.FromCentimeters(1, 5, 12, 4), 2, 2, "Metrics");
@@ -73,7 +73,7 @@ public class ReaderOpenDocumentModularTests {
 
     [Fact]
     public void RegisteredAdapterEmitsBoundedOdsSheetTableChunk() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Metrics");
         sheet.Cell(0, 0).SetString("Name");
         sheet.Cell(0, 1).SetString("Value");
@@ -94,7 +94,7 @@ public class ReaderOpenDocumentModularTests {
 
     [Fact]
     public void RegisteredAdapterEmitsOdtHeadingParagraphAndTableChunks() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddHeading("Policy", 1);
         document.AddParagraph("Native OpenDocument text.");
         OdtTable table = document.AddTable(2, 2, "Approvals");

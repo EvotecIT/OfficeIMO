@@ -31,7 +31,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0D, c.Y, 3);
         Assert.Equal(20D, d.Y, 3);
         Assert.All(new[] { a, b, c, d }, shape => Assert.Equal(40D, shape.Width, 3));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
     }
 
     [Fact]
@@ -142,10 +142,10 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, options);
-        string svg = Encoding.UTF8.GetString(html.ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, options);
+        string svg = Encoding.UTF8.GetString(HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, options).Bytes);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions {
             Mode = HtmlRenderMode.Paged,
@@ -153,7 +153,7 @@ public sealed partial class HtmlRenderingTests {
             HonorCssPageRules = false,
             Margins = HtmlRenderMargins.All(0D)
         };
-        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(html.ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
+        string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions)).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(OfficeColor.Red, raster.GetPixel(38, 18));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(98, 18));
@@ -161,7 +161,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("<rect x=\"0\" y=\"0\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("<rect x=\"60\" y=\"0\" width=\"40\" height=\"20\"", svg, StringComparison.Ordinal);
         Assert.Contains("ColPdf", pdfText, StringComparison.Ordinal);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -180,7 +180,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(2, rendered.Pages.Count);
         Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderText>(), text => text.Text.Contains("One", StringComparison.Ordinal));
@@ -191,7 +191,7 @@ public sealed partial class HtmlRenderingTests {
             Assert.Equal(OfficeShapeKind.Line, rule.Shape.Kind);
             Assert.True(rule.Shape.Height > fragment.ClipHeight);
         });
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic =>
             diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
             || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
     }
@@ -201,7 +201,7 @@ public sealed partial class HtmlRenderingTests {
         const string html = "<div id='invalid-columns' style='columns:wide 2;column-fill:spread;column-span:some;column-rule:wavy'>Text</div>";
         HtmlRenderDocument rendered = RenderColumns(html, 120D);
 
-        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
+        HtmlDiagnostic diagnostic = Assert.Single(rendered.Diagnostics, item => item.Code == HtmlRenderDiagnosticCodes.MultiColumnValueUnsupported);
         Assert.Equal("div#invalid-columns", diagnostic.Source);
         Assert.Contains("wide", diagnostic.Detail);
         Assert.Contains("column-fill=spread", diagnostic.Detail);
@@ -228,7 +228,7 @@ public sealed partial class HtmlRenderingTests {
 
         var options = new HtmlRenderOptions { ViewportWidth = 120D, Margins = HtmlRenderMargins.All(0D), MaxColumnCount = 2 };
         HtmlDomLimitException exception = Assert.Throws<HtmlDomLimitException>(() =>
-            HtmlRenderEngine.Render("<div style='column-count:3'>Text</div>", options));
+            HtmlRenderTestDriver.Render("<div style='column-count:3'>Text</div>", options));
         Assert.Equal(HtmlRenderDiagnosticCodes.MultiColumnLimitExceeded, exception.Code);
         Assert.Equal(nameof(HtmlRenderOptions.MaxColumnCount), exception.LimitSource);
         Assert.Equal(3L, exception.Actual);
@@ -236,7 +236,7 @@ public sealed partial class HtmlRenderingTests {
     }
 
     private static HtmlRenderDocument RenderColumns(string html, double viewportWidth) =>
-        HtmlRenderEngine.Render(html, new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
+        HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions { ViewportWidth = viewportWidth, Margins = HtmlRenderMargins.All(0D) });
 
     private static HtmlRenderShape FindColumnShape(HtmlRenderDocument rendered, string source) =>
         Assert.Single(rendered.Pages.SelectMany(page => page.Visuals).OfType<HtmlRenderShape>(), shape => shape.Source == source && shape.Shape.FillColor.HasValue);

@@ -73,7 +73,8 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable.AddRow(5);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

@@ -23,7 +23,8 @@ namespace OfficeIMO.Examples.Word {
                 xml = xml.Replace("Original text", "Text updated via XML");
 
                 document.AddParagraphFromXml(xml);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

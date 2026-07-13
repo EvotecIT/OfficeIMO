@@ -5,11 +5,11 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
-public sealed partial class OfficeMarkupPowerPointExporter {
+internal sealed partial class OfficeMarkupPowerPointExporter {
     private static void ExportBlock(
         PowerPointSlide slide,
         OfficeMarkupBlock block,
-        OfficeMarkupPowerPointExportOptions options,
+        MarkupToPowerPointOptions options,
         SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {
@@ -59,7 +59,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
     private static void ExportExtension(
         PowerPointSlide slide,
         OfficeMarkupExtensionBlock extension,
-        OfficeMarkupPowerPointExportOptions options,
+        MarkupToPowerPointOptions options,
         SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {
@@ -165,7 +165,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         OfficeMarkupDiagramBlock diagram,
         LayoutCursor cursor,
-        OfficeMarkupPowerPointExportOptions options,
+        MarkupToPowerPointOptions options,
         SlideCanvasMetrics metrics,
         OfficeMarkupStyleResolver styleResolver) {
         var box = ResolveBox(diagram.Placement, diagram.Attributes, cursor, Math.Min(2.4, cursor.RemainingHeight), metrics);

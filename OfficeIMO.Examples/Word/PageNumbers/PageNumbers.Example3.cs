@@ -14,7 +14,8 @@ namespace OfficeIMO.Examples.Word {
                 para.AddText("Page ");
                 para.AddPageNumber();
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

@@ -8,7 +8,7 @@ namespace OfficeIMO.OpenDocument.Tests;
 public class OpenDocumentOdsTests {
     [Fact]
     public void MergeRejectsMaterializationBeyondTheConfiguredBoundWithoutMutation() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
 
         InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => sheet.Merge(0, 0, 1_000, 1_000));
@@ -23,7 +23,7 @@ public class OpenDocumentOdsTests {
     [InlineData("microsoft-excel-basic.ods")]
     public void PreservesAuthoredSpreadsheetFixtureOutsideEditedContent(string fixtureName) {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", fixtureName);
-        using OdsDocument document = OdsDocument.Open(path);
+        OdsDocument document = OdsDocument.Load(path);
         var untouched = document.Package.Entries
             .Where(entry => entry.Name != "content.xml" && entry.Name != "META-INF/manifest.xml")
             .ToDictionary(entry => entry.Name, entry => entry.GetOriginalBytes());
@@ -33,7 +33,7 @@ public class OpenDocumentOdsTests {
         sheet.Cell(used.FirstRow, used.FirstColumn).SetString("OfficeIMO");
         byte[] output = document.ToBytes(new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.PreserveSource });
 
-        using OdsDocument reopened = OdsDocument.Open(new MemoryStream(output));
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(output));
         Assert.Equal("OfficeIMO", reopened.GetSheet(sheet.Name)!.GetValue(used.FirstRow, used.FirstColumn).DisplayText);
         foreach (var pair in untouched) Assert.Equal(pair.Value, reopened.Package.GetRequiredEntry(pair.Key).GetOriginalBytes());
     }
@@ -41,7 +41,7 @@ public class OpenDocumentOdsTests {
     [Fact]
     public void OpensStaticExtremeRepeatFixtureWithoutExpansion() {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", "extreme-repeats.ods");
-        using OdsDocument document = OdsDocument.Open(path);
+        OdsDocument document = OdsDocument.Load(path);
         OdsSheet sheet = document.Sheets.Single();
 
         Assert.Equal(3, sheet.RowRuns.Count);
@@ -52,7 +52,7 @@ public class OpenDocumentOdsTests {
 
     [Fact]
     public void EditsExtremeSparseCoordinatesBySplittingRunsWithoutExpansion() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Sparse");
 
         sheet.Cell(1_000_000, 500_000).SetString("edge");
@@ -64,7 +64,7 @@ public class OpenDocumentOdsTests {
         Assert.Equal(new OdsUsedRange(1_000_000, 500_000, 1_000_000, 500_000), sheet.UsedRange);
         Assert.True(document.ToBytes().Length < 10_000);
 
-        using OdsDocument reopened = OdsDocument.Open(new MemoryStream(document.ToBytes()));
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
         OdsSheet reopenedSheet = reopened.Sheets.Single();
         Assert.Equal("edge", reopenedSheet.GetValue(1_000_000, 500_000).DisplayText);
         Assert.Equal(3, reopenedSheet.RowRuns.Count);
@@ -73,7 +73,7 @@ public class OpenDocumentOdsTests {
 
     [Fact]
     public void WritesTypedValuesFormulaStylesMergeRangesAndValidation() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         sheet.Cell(0, 0).SetString("Label");
         sheet.Cell(0, 1).SetDecimal(12.5m);
@@ -103,7 +103,7 @@ public class OpenDocumentOdsTests {
 
         byte[] bytes = document.ToBytes();
         Assert.True(document.Validate().IsValid);
-        using OdsDocument reopened = OdsDocument.Open(new MemoryStream(bytes));
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(bytes));
         OdsSheet actual = reopened.Sheets.Single();
         Assert.Equal(12.5m, actual.GetValue(0, 1).AsDecimal());
         Assert.True(actual.GetValue(0, 2).AsBoolean());

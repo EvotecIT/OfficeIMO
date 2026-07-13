@@ -20,7 +20,8 @@ namespace OfficeIMO.Examples.Word {
                 document.BibliographySources[sourceTag] = source;
 
                 document.AddParagraph("Referenced text: ").AddCitation(sourceTag);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

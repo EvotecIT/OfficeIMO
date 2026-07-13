@@ -66,7 +66,7 @@ internal static class MarkdownAstParityFormatter {
                 .Append(EscapeSingleLine(item.Content.RenderMarkdown()))
                 .AppendLine("\"");
 
-            AppendBlocks(sb, item.Children, indent + 1);
+            AppendBlocks(sb, item.NestedBlocks, indent + 1);
         }
     }
 

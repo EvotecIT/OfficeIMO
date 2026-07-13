@@ -29,7 +29,7 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
             "<link rel='stylesheet' href='https://assets.example.test/css/site.css'><div class='hero'>BackgroundMarker</div>",
             options);
 
@@ -48,10 +48,10 @@ public sealed partial class HtmlRenderingTests {
             "BackgroundMarker",
             string.Concat(rendered.Pages[0].Visuals.OfType<HtmlRenderText>().Select(text => text.Text)),
             StringComparison.Ordinal);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
     [Fact]
@@ -77,7 +77,7 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
             "<link rel='stylesheet' href='https://assets.example.test/css/site.css'><div class='hero'></div>",
             options);
 
@@ -93,8 +93,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.EndsWith(":background-image[0]", layers[1].Source, StringComparison.Ordinal);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(8, 8));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(18, 18));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
     }
 
     [Fact]
@@ -104,10 +104,10 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(7, options.Clone().MaxBackgroundImageLayers);
         Assert.Equal(9, options.Clone().MaxGradientStops);
         options.MaxBackgroundImageLayers = 0;
-        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderEngine.Render("<div></div>", options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<div></div>", options));
         options.MaxBackgroundImageLayers = 7;
         options.MaxGradientStops = 1;
-        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderEngine.Render("<div></div>", options));
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderTestDriver.Render("<div></div>", options));
     }
 
     [Fact]
@@ -122,12 +122,12 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, imageOptions);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), imageOptions);
         HtmlRenderImage background = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, imageOptions);
-        OfficeImageExportResult svg = html.ExportImage(OfficeImageExportFormat.Svg, imageOptions);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, imageOptions);
+        OfficeImageExportResult svg = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Svg, imageOptions);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
 
         Assert.EndsWith(":background-image", background.Source, StringComparison.Ordinal);
         Assert.Equal(30D, background.Width, 3);
@@ -137,9 +137,9 @@ public sealed partial class HtmlRenderingTests {
         string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText().Replace("\r", string.Empty).Replace("\n", string.Empty);
         Assert.Contains("BackgroundOutputMarker", pdfText, StringComparison.Ordinal);
         Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(pdf), image => image.IsImageFile && image.MimeType == "image/png");
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -156,15 +156,15 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderClipGroup pattern = Assert.Single(
             rendered.Pages[0].Visuals.OfType<HtmlRenderClipGroup>(),
             visual => visual.Source != null && visual.Source.Contains(":background-image:pattern-clip", StringComparison.Ordinal));
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = html.ToSvg(options);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
         string pdfText = string.Concat(PdfCore.PdfReadDocument.Load(pdf).ExtractText().Where(character => !char.IsWhiteSpace(character)));
 
         Assert.Equal(8, pattern.Visuals.OfType<HtmlRenderDrawing>().Count());
@@ -176,9 +176,9 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(CountBackgroundOccurrences(svg, "<rect") >= 16);
         Assert.Contains("SvgBgPdf", pdfText, StringComparison.Ordinal);
         Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(pdf));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RasterDecoderUnavailable);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RasterDecoderUnavailable);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.SvgContentUnsupported);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -191,7 +191,7 @@ public sealed partial class HtmlRenderingTests {
             + source
             + "');background-size:unsupported-size;background-repeat:no-repeat\"></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -200,8 +200,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, backgrounds.Count);
         Assert.All(backgrounds, background => Assert.Equal(100D, background.Width, 3));
         Assert.All(backgrounds, background => Assert.Equal(50D, background.Height, 3));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
     [Fact]
@@ -219,12 +219,12 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, imageOptions);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), imageOptions);
         IReadOnlyList<HtmlRenderImage> layers = rendered.Pages[0].Visuals.OfType<HtmlRenderImage>().ToList();
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = html.ToSvg(imageOptions);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(imageOptions);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
 
         Assert.Equal(2, layers.Count);
         Assert.EndsWith(":background-image[1]", layers[0].Source, StringComparison.Ordinal);
@@ -236,7 +236,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, CountBackgroundOccurrences(svg, "data:image/png;base64,"));
         Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Equal(2, PdfCore.PdfImageExtractor.ExtractImages(pdf).Count);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
     }
 
     [Fact]
@@ -252,15 +252,15 @@ public sealed partial class HtmlRenderingTests {
             + green
             + "');background-repeat:no-repeat\"></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 80D,
             Margins = HtmlRenderMargins.All(8D),
             MaxBackgroundImageLayers = 2
         });
 
         Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageLayerLimit);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
     [Fact]
@@ -270,7 +270,7 @@ public sealed partial class HtmlRenderingTests {
             + imageData
             + "');background-position:center;background-size:cover;background-repeat:no-repeat\"></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 140D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -282,7 +282,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(0.25D, background.SourceCrop.Right, 3);
         Assert.Equal(0D, background.SourceCrop.Top, 3);
         Assert.Equal(0D, background.SourceCrop.Bottom, 3);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
     }
 
     [Fact]
@@ -297,13 +297,13 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, imageOptions);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), imageOptions);
         HtmlRenderImagePattern pattern = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
         OfficeDrawing drawing = rendered.Pages[0].CreateDrawing();
-        OfficeImageExportResult png = html.ExportImage(OfficeImageExportFormat.Png, imageOptions);
-        string svg = html.ToSvg(imageOptions);
+        OfficeImageExportResult png = HtmlConversionDocument.Parse(html).ExportImage(OfficeImageExportFormat.Png, imageOptions);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(imageOptions);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
 
         Assert.Equal(9L, pattern.Pattern.EstimatedTileCount);
         Assert.Single(drawing.ImagePatterns);
@@ -312,8 +312,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(1, CountBackgroundOccurrences(svg, "data:image/png;base64,"));
         Assert.Equal(9, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
-        Assert.DoesNotContain(html.ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
+        Assert.DoesNotContain(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(pdfOptions).Report.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
     }
 
     [Fact]
@@ -328,13 +328,13 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderImagePattern pattern = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = html.ToSvg(options);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
 
         Assert.Equal(8D, pattern.Pattern.Tile.Width, 3);
         Assert.Equal(11D, pattern.Pattern.HorizontalStep, 3);
@@ -346,7 +346,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("width=\"8\" height=\"4\"", svg, StringComparison.Ordinal);
         Assert.Equal(3, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
     }
 
     [Fact]
@@ -361,13 +361,13 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderImagePattern pattern = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
         OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
-        string svg = html.ToSvg(options);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        byte[] pdf = html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(pdfOptions);
 
         Assert.Equal(7.5D, pattern.Pattern.Tile.Width, 3);
         Assert.Equal(7.5D, pattern.Pattern.HorizontalStep, 3);
@@ -377,7 +377,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Contains("width=\"7.5\"", svg, StringComparison.Ordinal);
         Assert.Equal(4, PdfCore.PdfImageExtractor.ExtractImagePlacements(pdf).Count);
         Assert.Single(PdfCore.PdfImageExtractor.ExtractImages(pdf));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageRepeatUnsupported);
     }
 
     [Fact]
@@ -387,7 +387,7 @@ public sealed partial class HtmlRenderingTests {
             + imageData
             + "');background-size:8px auto;background-repeat:round no-repeat\"></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 60D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -404,7 +404,7 @@ public sealed partial class HtmlRenderingTests {
             + imageData
             + "');background-size:8px 4px;background-repeat:space no-repeat;background-position:right top\"></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 40D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -422,7 +422,7 @@ public sealed partial class HtmlRenderingTests {
             + imageData
             + "');background-size:1px 1px;background-repeat:repeat\"></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 140D,
             Margins = HtmlRenderMargins.All(8D),
             MaxBackgroundImageTiles = 8
@@ -430,7 +430,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Empty(rendered.Pages[0].Visuals.OfType<HtmlRenderImagePattern>());
         Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageTileLimitExceeded);
     }
 
     [Fact]
@@ -441,7 +441,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options);
         HtmlRenderPage page = Assert.Single(rendered.Pages);
         HtmlRenderShape surface = Assert.IsType<HtmlRenderShape>(page.Visuals[0]);
         HtmlRenderShape rootBackground = Assert.IsType<HtmlRenderShape>(page.Visuals[1]);
@@ -459,7 +459,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_RootBackgroundDoesNotCreateAFalseBlankPageBeforeFirstBreak() {
         const string html = "<style>body{background:#f0f0f0}</style><p style='break-before:page'>FirstPageMarker</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(3D, 2D),
             Margins = HtmlRenderMargins.All(12D)
@@ -477,7 +477,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_PrefersDocumentRootBackgroundForCanvasPropagation() {
         const string html = "<style>html{background:#654321}body{background:#123456}</style><p>DocumentRootMarker</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -492,7 +492,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_NoneDocumentRootLayerDoesNotBlockBodyCanvasPropagation() {
         const string html = "<style>html{background-image:none}body{background:#123456}</style><p>BodyCanvasMarker</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 160D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -510,7 +510,7 @@ public sealed partial class HtmlRenderingTests {
             + imageData
             + "');background-repeat:no-repeat;background-size:16px 16px;background-position:center\">CellMarker</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 180D,
             Margins = HtmlRenderMargins.All(8D)
         });

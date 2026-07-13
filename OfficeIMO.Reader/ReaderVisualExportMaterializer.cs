@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Reader;
 
@@ -124,7 +125,7 @@ public static class ReaderVisualExportMaterializer {
                     continue;
                 }
 
-                File.WriteAllText(outputPath, payload, Utf8NoBom);
+                OfficeFileCommit.WriteAllBytes(outputPath, Utf8NoBom.GetBytes(payload));
                 results.Add(new ReaderVisualMaterializedExport {
                     Export = export,
                     Format = format,

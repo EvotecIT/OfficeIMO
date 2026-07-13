@@ -76,7 +76,7 @@ public class PdfPkcsSignatureValidationTests {
         var provider = new PdfPkcsSignatureCryptographyProvider(new PdfPkcsSignatureValidationOptions {
             ChainEvaluator = (_, _) => true
         });
-        PdfSignatureValidationReport report = completion.OpenDocument().ValidateSignatures(provider);
+        PdfSignatureValidationReport report = completion.ToDocument().ValidateSignatures(provider);
 
         Assert.Equal(signer.Name, completion.SignerName);
         Assert.True(completion.SignatureContentsLength > 0);

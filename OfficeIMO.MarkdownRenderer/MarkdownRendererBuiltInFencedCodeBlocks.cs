@@ -467,7 +467,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
 
         var sb = new StringBuilder(512);
 
-        var cssUrl = ResolveCssHref(network.CssUrl, assetMode);
+        var cssUrl = ResolveCssHref(network.CssUrl, assetMode, options.HtmlOptions?.ExternalTextResolver);
         if (!string.IsNullOrWhiteSpace(cssUrl)) {
             sb.Append("\n<link rel=\"stylesheet\" href=\"")
               .Append(System.Net.WebUtility.HtmlEncode(cssUrl))
@@ -490,7 +490,7 @@ internal static class MarkdownRendererBuiltInFencedCodeBlocks {
 </style>
 """);
 
-        var scriptUrl = ResolveScriptSrc(network.ScriptUrl, assetMode);
+        var scriptUrl = ResolveScriptSrc(network.ScriptUrl, assetMode, options.HtmlOptions?.ExternalTextResolver);
         if (!string.IsNullOrWhiteSpace(scriptUrl)) {
             sb.Append("\n<script defer src=\"")
               .Append(System.Net.WebUtility.HtmlEncode(scriptUrl))
@@ -575,14 +575,14 @@ try {
 """;
     }
 
-    private static string ResolveScriptSrc(string? url, AssetMode assetMode) {
+    private static string ResolveScriptSrc(string? url, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         var value = (url ?? string.Empty).Trim();
         if (value.Length == 0) {
             return string.Empty;
         }
 
         if (assetMode == AssetMode.Offline) {
-            var bundled = MarkdownRenderer.BuildBundledScriptSrc(value, "application/javascript");
+            var bundled = MarkdownRenderer.BuildBundledScriptSrc(value, "application/javascript", resolver);
             if (!string.IsNullOrWhiteSpace(bundled)) {
                 return bundled;
             }
@@ -591,14 +591,14 @@ try {
         return value;
     }
 
-    private static string ResolveCssHref(string? url, AssetMode assetMode) {
+    private static string ResolveCssHref(string? url, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         var value = (url ?? string.Empty).Trim();
         if (value.Length == 0) {
             return string.Empty;
         }
 
         if (assetMode == AssetMode.Offline) {
-            var bundled = MarkdownRenderer.BuildBundledCssHref(value);
+            var bundled = MarkdownRenderer.BuildBundledCssHref(value, resolver);
             if (!string.IsNullOrWhiteSpace(bundled)) {
                 return bundled;
             }

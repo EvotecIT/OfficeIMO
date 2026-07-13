@@ -26,7 +26,7 @@ namespace OfficeIMO.Reader;
 /// Read operations are thread-safe. Use <see cref="OfficeDocumentReaderBuilder"/> when modular handlers
 /// or a processing pipeline are required.
 /// </remarks>
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static readonly string[] DefaultFolderExtensions = {
         ".docx", ".docm", ".doc",
         ".xlsx", ".xlsm", ".xls",
@@ -96,7 +96,8 @@ public static partial class DocumentReader {
             Extensions = new[] { ".eml", ".msg", ".mbox", ".mbx", ".tnef" },
             IsBuiltIn = true,
             SupportsPath = true,
-            SupportsStream = true
+            SupportsStream = true,
+            DefaultMaxInputBytes = OfficeIMO.Email.EmailReaderOptions.Default.MaxInputBytes
         },
         new ReaderHandlerCapability {
             Id = "officeimo.reader.text",

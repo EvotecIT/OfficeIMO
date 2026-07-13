@@ -35,7 +35,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             const string markdown = "&nbsp; &amp; &copy; &AElig; &Dcaron;\n&frac34; &HilbertSpace; &DifferentialD;\n&ClockwiseContourIntegral; &CounterClockwiseContourIntegral; &ngE;\n";
             const string expected = "<p>  &amp; © Æ Ď\n¾ ℋ ⅆ\n∲ ∳ ≧̸</p>\n";
 
-            var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
             var html = document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
 
             Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));
@@ -46,7 +46,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             const string markdown = "&#35; &#1234; &#992; &#0;\n";
             const string expected = "<p># Ӓ Ϡ �</p>\n";
 
-            var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
             var html = document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());
 
             Assert.Equal(CommonMarkHtmlComparison.Normalize(expected), CommonMarkHtmlComparison.Normalize(html));

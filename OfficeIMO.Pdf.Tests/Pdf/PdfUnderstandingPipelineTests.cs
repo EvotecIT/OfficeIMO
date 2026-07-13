@@ -44,7 +44,7 @@ public class PdfUnderstandingPipelineTests {
         var custom = new ReverseReadingOrderStage();
         var options = new PdfUnderstandingPipelineOptions { ReadingOrder = custom };
 
-        PdfUnderstandingPageResult page = Assert.Single(PdfDocument.Open(pdf).Read.Understand(options).Pages);
+        PdfUnderstandingPageResult page = Assert.Single(PdfDocument.Load(pdf).Read.Understand(options).Pages);
 
         Assert.Equal(typeof(ReverseReadingOrderStage), Assert.Single(page.Trace, static trace => trace.Stage == "reading-order").ProviderType);
         Assert.Equal(page.Regions.Reverse().Select(static region => region.Text), page.ReadingOrder.Select(static region => region.Text));

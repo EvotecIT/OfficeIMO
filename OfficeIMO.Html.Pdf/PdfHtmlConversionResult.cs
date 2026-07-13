@@ -21,8 +21,17 @@ public sealed class PdfHtmlConversionResult {
     /// <summary>Conversion report snapshot populated during export.</summary>
     public PdfCore.PdfConversionReport Report { get; }
 
+    /// <summary>True when conversion reported an approximation, omission, or error.</summary>
+    public bool HasLoss => Report.HasLoss;
+
     /// <summary>Returns the generated HTML output.</summary>
     public string RequireValue() => Value;
+
+    /// <summary>Returns the generated HTML only when conversion reported no possible content loss.</summary>
+    public string RequireNoLoss() {
+        Report.RequireNoLoss();
+        return Value;
+    }
 
     private static PdfCore.PdfConversionReport SnapshotReport(PdfCore.PdfConversionReport conversionReport) {
         var snapshot = new PdfCore.PdfConversionReport();

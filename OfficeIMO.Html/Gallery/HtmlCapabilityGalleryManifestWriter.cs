@@ -59,7 +59,7 @@ public static class HtmlCapabilityGalleryManifestWriter {
         }
 
         if (manifest.ResourceManifest != null) {
-            foreach (HtmlDiagnostic diagnostic in manifest.ResourceManifest.Diagnostics.Diagnostics) {
+            foreach (HtmlDiagnostic diagnostic in manifest.ResourceManifest.Diagnostics) {
                 HtmlDiagnosticDefinition definition = HtmlDiagnosticCatalog.GetOrCreateGeneric(diagnostic.Code);
                 builder.AppendLine("- " + diagnostic.Component + ":" + diagnostic.Code + ":" + diagnostic.Severity + ": " + diagnostic.Message + " [" + definition.Category + "]");
             }

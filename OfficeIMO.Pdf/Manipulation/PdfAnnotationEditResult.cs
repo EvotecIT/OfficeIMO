@@ -2,13 +2,15 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Result of a dependency-free PDF annotation edit operation.</summary>
 public sealed class PdfAnnotationEditResult {
+    private readonly byte[] _bytes;
+
     internal PdfAnnotationEditResult(
         byte[] bytes,
         int affectedAnnotationCount,
         PdfMutationPlan mutationPlan,
         PdfSignatureMutationReport? signatureMutationReport = null,
         PdfRewritePreservationReport? rewritePreservationReport = null) {
-        Bytes = bytes;
+        _bytes = (byte[])bytes.Clone();
         AffectedAnnotationCount = affectedAnnotationCount;
         MutationPlan = mutationPlan;
         SignatureMutationReport = signatureMutationReport;
@@ -16,7 +18,7 @@ public sealed class PdfAnnotationEditResult {
     }
 
     /// <summary>Rewritten PDF bytes.</summary>
-    public byte[] Bytes { get; }
+    public byte[] Bytes => (byte[])_bytes.Clone();
 
     /// <summary>Number of annotations removed or updated.</summary>
     public int AffectedAnnotationCount { get; }

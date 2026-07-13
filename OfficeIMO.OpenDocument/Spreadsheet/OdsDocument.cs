@@ -9,14 +9,26 @@ public sealed partial class OdsDocument : OdfDocument {
     /// <summary>Creates an empty ODF 1.4 spreadsheet.</summary>
     public static OdsDocument Create() => new OdsDocument(OdfPackage.Create(OdfDocumentKind.Spreadsheet), null);
 
-    /// <summary>Opens an ODS document from a path.</summary>
-    public static OdsDocument Open(string path, OdfOpenOptions? options = null) {
-        OdfPackage package = OdfPackage.Open(path, options, out string fullPath);
+    /// <summary>Loads an ODS document from a path.</summary>
+    public new static OdsDocument Load(string path, OdfLoadOptions? options = null) {
+        OdfPackage package = OdfPackage.Load(path, options, out string fullPath);
         return new OdsDocument(package, fullPath);
     }
 
-    /// <summary>Opens an ODS document from a stream.</summary>
-    public static OdsDocument Open(Stream stream, OdfOpenOptions? options = null) => new OdsDocument(OdfPackage.Open(stream, options), null);
+    /// <summary>Loads an ODS document from a stream.</summary>
+    public new static OdsDocument Load(Stream stream, OdfLoadOptions? options = null) => new OdsDocument(OdfPackage.Load(stream, options), null);
+
+    /// <summary>Asynchronously loads an ODS document from a path.</summary>
+    public new static async Task<OdsDocument> LoadAsync(string path, OdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        OdfDocument document = await OdfDocument.LoadAsync(path, options, cancellationToken).ConfigureAwait(false);
+        return document as OdsDocument ?? throw new InvalidDataException("Package is not an OpenDocument Spreadsheet document.");
+    }
+
+    /// <summary>Asynchronously loads an ODS document from a caller-owned stream.</summary>
+    public new static async Task<OdsDocument> LoadAsync(Stream stream, OdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        OdfPackage package = await LoadPackageAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        return new OdsDocument(package, null);
+    }
 
     internal XElement SpreadsheetBody => GetBody(OdfNamespaces.Office + "spreadsheet");
 

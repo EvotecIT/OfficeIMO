@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Html;
 
@@ -63,7 +64,7 @@ public sealed class HtmlCapabilityGalleryArtifact {
             Directory.CreateDirectory(directory);
         }
 
-        File.WriteAllText(path, content ?? string.Empty, Encoding.UTF8);
+        OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(content ?? string.Empty));
         return FromFile(id, kind, path, mediaType);
     }
 

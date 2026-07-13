@@ -353,11 +353,11 @@ using OfficeIMO.Word.Pdf;
 using var word = WordDocument.Load("proposal.docx");
 word.SaveAsPdf("proposal.pdf");
 
-PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
+PdfExcelTableConverterExtensions.SaveAsExcel(
     "bank-statement.pdf",
     "bank-statement-tables.xlsx");
 
-PdfHtmlConverter.SaveAsHtml(
+PdfHtmlConverterExtensions.SaveAsHtml(
     "proposal.pdf",
     "proposal-review.html",
     new PdfHtmlSaveOptions {

@@ -21,7 +21,7 @@ public sealed class EmailPerformanceEvidenceTests {
             Subject = "large-body"
         };
         document.Body.Text = new string('x', 1024 * 1024);
-        byte[] source = new EmailDocumentWriter().WriteToBytes(document);
+        byte[] source = new EmailDocumentWriter().ToBytes(document);
         var reader = new EmailDocumentReader(new EmailReaderOptions(maxInputBytes: 8L * 1024L * 1024L));
         reader.Read(Encoding.ASCII.GetBytes("Subject: warmup\r\n\r\nwarmup"));
 
@@ -53,7 +53,7 @@ public sealed class EmailPerformanceEvidenceTests {
             document.Body.Text = string.Concat("body-", index.ToString(CultureInfo.InvariantCulture));
             mailbox.Messages.Add(new EmailMailboxEntry(document) { EnvelopeSender = "sender@example.test" });
         }
-        byte[] source = new EmailMailboxWriter().WriteToBytes(mailbox);
+        byte[] source = new EmailMailboxWriter().ToBytes(mailbox);
         var reader = new EmailMailboxReader(new EmailMailboxReaderOptions(
             new EmailReaderOptions(maxInputBytes: 16L * 1024L * 1024L, includeAttachmentContent: false),
             maxMessageCount: 500));
@@ -86,7 +86,7 @@ public sealed class EmailPerformanceEvidenceTests {
             Content = new byte[1024 * 1024],
             Length = 1024 * 1024
         });
-        byte[] source = new EmailDocumentWriter().WriteToBytes(document, EmailFileFormat.OutlookMsg);
+        byte[] source = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg);
         var reader = new EmailDocumentReader(new EmailReaderOptions(maxInputBytes: 8L * 1024L * 1024L));
 
         long before = GC.GetAllocatedBytesForCurrentThread();

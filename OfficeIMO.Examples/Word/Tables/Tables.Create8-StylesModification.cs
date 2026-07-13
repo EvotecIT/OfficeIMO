@@ -78,7 +78,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Table MarginDefaultLeftWidth: " + styleDetails2.MarginDefaultLeftWidth);
                 Console.WriteLine("Table MarginDefaultRightWidth: " + styleDetails2.MarginDefaultRightWidth);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
 
                 static void SetCellText(WordTable table, int rowIndex, int columnIndex, string text) {
                     var row = Guard.GetRequiredItem(table.Rows, rowIndex, $"Table must contain row index {rowIndex}.");

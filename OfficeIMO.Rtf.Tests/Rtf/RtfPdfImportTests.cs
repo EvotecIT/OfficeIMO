@@ -11,7 +11,7 @@ public class RtfPdfImportTests {
     public void PdfBytes_ToRtfDocument_Imports_Metadata_Headings_Lists_Paragraphs_And_PageBreaks() {
         byte[] pdf = CreateSemanticPdf();
 
-        RtfDocument document = pdf.ToRtfDocumentFromPdf(CreateReadOptions());
+        RtfDocument document = LoadSemanticPdf(pdf).ToRtfDocument(CreateReadOptions());
 
         Assert.Equal("PDF Import Title", document.Info.Title);
         Assert.Equal("OfficeIMO", document.Info.Author);
@@ -44,7 +44,7 @@ public class RtfPdfImportTests {
     public void Pdf_ToRtf_Serializes_And_RoundTrips_Imported_Text() {
         byte[] pdf = CreateSemanticPdf();
 
-        string rtf = pdf.ToRtfFromPdf(CreateReadOptions());
+        string rtf = LoadSemanticPdf(pdf).ToRtfDocument(CreateReadOptions()).ToRtf();
         RtfDocument roundTrip = RtfDocument.Read(rtf).Document;
 
         Assert.Contains("Clinical Summary", rtf, StringComparison.Ordinal);
@@ -65,13 +65,17 @@ public class RtfPdfImportTests {
             File.WriteAllBytes(pdfPath, pdf);
 
             using MemoryStream pdfStream = new MemoryStream(pdf);
-            RtfDocument fromStream = pdfStream.ToRtfDocumentFromPdf(CreateReadOptions());
+            RtfDocument fromStream = PdfCore.PdfLogicalDocument
+                .Load(pdfStream, CreateLayoutOptions())
+                .ToRtfDocument(CreateReadOptions());
             Assert.Contains(fromStream.Paragraphs, paragraph => paragraph.ToPlainText() == "First bullet");
 
-            RtfDocument fromFile = pdfPath.ToRtfDocumentFromPdfFile(CreateReadOptions());
+            RtfDocument fromFile = PdfCore.PdfLogicalDocument
+                .Load(pdfPath, CreateLayoutOptions())
+                .ToRtfDocument(CreateReadOptions());
             Assert.Contains(fromFile.Paragraphs, paragraph => paragraph.ToPlainText() == "Second page body.");
 
-            pdfPath.SaveAsRtfFromPdfFile(rtfPath, CreateReadOptions());
+            fromFile.Save(rtfPath, encoding: Encoding.UTF8);
             RtfDocument saved = RtfDocument.Load(rtfPath, encoding: Encoding.UTF8).Document;
             Assert.Contains(saved.Paragraphs, paragraph => paragraph.ToPlainText() == "Clinical Summary");
         } finally {
@@ -82,28 +86,29 @@ public class RtfPdfImportTests {
     }
 
     [Fact]
-    public void PdfRtfReadOptions_Clone_Does_Not_Share_Layout_Options() {
+    public void PdfRtfReadOptions_Clone_IsIndependent() {
         var options = new PdfRtfReadOptions {
-            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                ForceSingleColumn = true,
-                MarginLeft = 12
-            },
-            PreservePageBreaks = false
+            PreservePageBreaks = false,
+            IncludeMetadata = false
         };
 
         PdfRtfReadOptions clone = options.Clone();
-        clone.LayoutOptions!.ForceSingleColumn = false;
-        clone.LayoutOptions.MarginLeft = 24;
+        clone.PreservePageBreaks = true;
+        clone.IncludeMetadata = true;
 
-        Assert.True(options.LayoutOptions!.ForceSingleColumn);
-        Assert.Equal(12, options.LayoutOptions.MarginLeft);
-        Assert.False(clone.PreservePageBreaks);
+        Assert.False(options.PreservePageBreaks);
+        Assert.False(options.IncludeMetadata);
+        Assert.True(clone.PreservePageBreaks);
+        Assert.True(clone.IncludeMetadata);
     }
 
-    private static PdfRtfReadOptions CreateReadOptions() => new PdfRtfReadOptions {
-        LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-            ForceSingleColumn = true
-        }
+    private static PdfRtfReadOptions CreateReadOptions() => new PdfRtfReadOptions();
+
+    private static PdfCore.PdfLogicalDocument LoadSemanticPdf(byte[] pdf) =>
+        PdfCore.PdfLogicalDocument.Load(pdf, CreateLayoutOptions());
+
+    private static PdfCore.PdfTextLayoutOptions CreateLayoutOptions() => new PdfCore.PdfTextLayoutOptions {
+        ForceSingleColumn = true
     };
 
     private static byte[] CreateSemanticPdf() =>

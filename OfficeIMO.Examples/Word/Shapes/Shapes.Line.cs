@@ -11,7 +11,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var paragraph = document.AddParagraph("Paragraph with line");
                 paragraph.AddLine(0, 0, 100, 0, OfficeIMO.Drawing.OfficeColor.Red, 2);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

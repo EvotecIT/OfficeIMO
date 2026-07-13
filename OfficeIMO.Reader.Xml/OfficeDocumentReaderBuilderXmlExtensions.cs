@@ -29,12 +29,12 @@ public static class OfficeDocumentReaderBuilderXmlExtensions {
             Description = "Modular XML tree parser with path/type/value chunk output.",
             Kind = ReaderInputKind.Xml,
             Extensions = new[] { ".xml" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderXmlExtensions.ReadXml(
+            ReadPath = (path, readerOptions, ct) => XmlReaderAdapter.Read(
                 path: path,
                 readerOptions: readerOptions,
                 xmlOptions: Clone(registered),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderXmlExtensions.ReadXml(
+            ReadStream = (stream, sourceName, readerOptions, ct) => XmlReaderAdapter.Read(
                 stream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

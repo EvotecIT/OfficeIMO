@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
                     e.Style = WordParagraphStyles.Heading1;
                 }
             };
-            using var doc = html.ToWordDocument(options);
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
 
             Assert.True(invoked);
             Assert.Equal(WordParagraphStyles.Heading1, doc.Paragraphs[0].Style);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
                     }
                 }
             };
-            using var doc = html.ToWordDocument(options);
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(options);
 
             Assert.Equal(styleId, doc.Paragraphs[0].StyleId);
         }

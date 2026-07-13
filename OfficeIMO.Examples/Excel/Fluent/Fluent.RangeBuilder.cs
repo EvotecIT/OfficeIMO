@@ -16,9 +16,9 @@ namespace OfficeIMO.Examples.Excel {
                         r.NumberFormat("@");
                     }))
                     .End()
-                    .Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                    .Save();
+                if (openExcel) document.OpenInApplication();
             }
         }
     }
 }
-

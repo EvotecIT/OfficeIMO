@@ -80,7 +80,8 @@ namespace OfficeIMO.Examples.Word {
                 paragraph4.LineSpacingAfter = 0;
                 paragraph4.ParagraphAlignment = JustificationValues.Right;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

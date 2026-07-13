@@ -1,4 +1,3 @@
-using AngleSharp;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 using AngleSharp.Html.Parser;
@@ -13,29 +12,16 @@ namespace OfficeIMO.Word.Html {
     /// </summary>
     internal partial class WordToHtmlConverter {
         public string Convert(WordDocument document, WordToHtmlOptions options) {
-            return ConvertAsync(document, options, CancellationToken.None).GetAwaiter().GetResult();
-        }
-
-        /// <summary>
-        /// Converts the specified document to HTML asynchronously using provided options.
-        /// </summary>
-        /// <param name="document">Document to convert.</param>
-        /// <param name="options">Conversion options controlling HTML output.</param>
-        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        /// <returns>HTML representation of the document.</returns>
-        public async Task<string> ConvertAsync(WordDocument document, WordToHtmlOptions options, CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             options ??= new WordToHtmlOptions();
-            cancellationToken.ThrowIfCancellationRequested();
+            CancellationToken cancellationToken = CancellationToken.None;
 
-            var context = BrowsingContext.New(Configuration.Default);
-            var htmlDoc = await context.OpenNewAsync().ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
+            var htmlDoc = new HtmlParser().ParseDocument("<!DOCTYPE html><html><head></head><body></body></html>");
 
             var head = htmlDoc.Head ?? throw new InvalidOperationException("HTML document missing head element.");
             var body = htmlDoc.Body ?? throw new InvalidOperationException("HTML document missing body element.");
 
-            AppendHeadMetadata(document, htmlDoc, head, options, cancellationToken);
+            AppendHeadMetadata(document, htmlDoc, head, options, CancellationToken.None);
 
             if (!string.IsNullOrEmpty(options.FontFamily)) {
                 body.SetAttribute("style", $"font-family:{options.FontFamily}");

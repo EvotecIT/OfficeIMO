@@ -17,7 +17,8 @@ namespace OfficeIMO.Examples.Word {
                 var images = document.Images;
                 var insertedImage = Guard.GetRequiredItem(images, images.Count - 1, "Document should contain the inserted image before setting transparency.");
                 insertedImage.Transparency = 30;
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 
@@ -31,7 +32,8 @@ namespace OfficeIMO.Examples.Word {
                 var loadedImages = document.Images;
                 var firstImage = Guard.GetRequiredItem(loadedImages, 0, "Template document should contain at least one image before adjusting transparency.");
                 firstImage.Transparency = 75;
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

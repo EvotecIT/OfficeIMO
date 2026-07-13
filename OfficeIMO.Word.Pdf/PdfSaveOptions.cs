@@ -42,7 +42,7 @@ namespace OfficeIMO.Word.Pdf {
         /// <summary>
         /// Optional page orientation for the generated PDF.
         /// </summary>
-        public PdfPageOrientation? Orientation { get; set; }
+        public PdfCore.PdfPageOrientation? Orientation { get; set; }
 
         /// <summary>
         /// Optional default page size applied when creating new documents.

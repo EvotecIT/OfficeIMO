@@ -10,7 +10,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static OfficeDocumentReadResult ApplyPowerPointRichMapping(
         PowerPointPresentation presentation,
         ReaderOptions options,

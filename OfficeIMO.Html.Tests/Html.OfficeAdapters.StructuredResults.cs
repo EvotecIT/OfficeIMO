@@ -9,12 +9,12 @@ namespace OfficeIMO.Tests;
 public class HtmlOfficeAdaptersStructuredResults {
     [Fact]
     public void SharedConversionDocumentFeedsExcelAndPowerPointAdapters() {
-        HtmlConversionDocument excelSource = HtmlConversionDocumentBuilder.Build("""
+        HtmlConversionDocument excelSource = OfficeIMO.Html.HtmlConversionDocument.Parse("""
             <main><section class="officeimo-sheet" data-officeimo-sheet="Data" data-officeimo-range="A1:A1">
               <table><tr><td>42</td></tr></table>
             </section></main>
             """);
-        HtmlConversionDocument powerPointSource = HtmlConversionDocumentBuilder.Build("""
+        HtmlConversionDocument powerPointSource = OfficeIMO.Html.HtmlConversionDocument.Parse("""
             <main><section class="officeimo-slide"><p>Prepared slide</p></section></main>
             """);
 
@@ -35,7 +35,7 @@ public class HtmlOfficeAdaptersStructuredResults {
     [Fact]
     public void ExcelHtml_ConvenienceImportThrowsWhenSemanticEnvelopeIsMissing() {
         HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() =>
-            "<main><p>Not an Excel envelope</p></main>".ToExcelDocument());
+            OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>Not an Excel envelope</p></main>").ToExcelDocument());
 
         HtmlDiagnostic diagnostic = Assert.Single(exception.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);
@@ -46,7 +46,7 @@ public class HtmlOfficeAdaptersStructuredResults {
     [Fact]
     public void PowerPointHtml_ConvenienceImportThrowsWhenSemanticEnvelopeIsMissing() {
         HtmlConversionException exception = Assert.Throws<HtmlConversionException>(() =>
-            "<main><p>Not a PowerPoint envelope</p></main>".ToPowerPointPresentation());
+            OfficeIMO.Html.HtmlConversionDocument.Parse("<main><p>Not a PowerPoint envelope</p></main>").ToPowerPointPresentation());
 
         HtmlDiagnostic diagnostic = Assert.Single(exception.Diagnostics);
         Assert.Equal(HtmlConversionDiagnosticCodes.SemanticContentMissing, diagnostic.Code);

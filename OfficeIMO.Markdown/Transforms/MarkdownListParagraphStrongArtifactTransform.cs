@@ -60,8 +60,8 @@ public sealed class MarkdownListParagraphStrongArtifactTransform : IMarkdownDocu
                 NormalizeSequence(item.AdditionalParagraphs[paragraphIndex]);
             }
 
-            if (item.Children.Count > 0) {
-                NormalizeNestedBlocks(item.Children);
+            if (item.NestedBlocks.Count > 0) {
+                NormalizeNestedBlocks(item.NestedBlocks);
             }
         }
     }

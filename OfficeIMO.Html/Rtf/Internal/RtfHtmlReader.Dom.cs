@@ -4,11 +4,6 @@ using AngleSharp.Html.Dom;
 namespace OfficeIMO.Html;
 
 internal static partial class RtfHtmlReader {
-    private static void ReadDom(string html, HtmlToRtfOptions options, RtfDocument document) {
-        IHtmlDocument htmlDocument = HtmlDocumentParser.ParseDocument(html);
-        ReadDom(htmlDocument, options, document);
-    }
-
     private static void ReadDom(IHtmlDocument htmlDocument, HtmlToRtfOptions options, RtfDocument document) {
         Uri? effectiveBaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(htmlDocument, options.BaseUri);
         var context = new ReadContext(document, options, effectiveBaseUri);

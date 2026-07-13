@@ -34,7 +34,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine(document.Fields.Count);
                 Console.WriteLine("----");
                 // document.Settings.UpdateFieldsOnOpen = true;
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

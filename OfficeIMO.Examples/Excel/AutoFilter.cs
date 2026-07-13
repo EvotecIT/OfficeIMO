@@ -25,7 +25,8 @@ namespace OfficeIMO.Examples.Excel {
                 };
 
                 sheet.AddAutoFilter("A1:B3", criteria);
-                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                document.Save();
+                if (openExcel) document.OpenInApplication();
             }
         }
     }

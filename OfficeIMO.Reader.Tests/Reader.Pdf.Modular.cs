@@ -15,7 +15,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+        var chunks = PdfReaderAdapter.Read(
             stream,
             sourceName: " sample.pdf ",
             readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true }).ToList();
@@ -82,7 +82,7 @@ public sealed class ReaderPdfModularTests {
     public void DocumentReaderPdf_ReadPdfBytes_ProvidesChunksDocumentAndJsonOverloads() {
         byte[] pdf = BuildTwoPagePdf();
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+        var chunks = PdfReaderAdapter.Read(
             pdf,
             sourceName: " bytes.pdf ",
             readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true }).ToList();
@@ -95,7 +95,7 @@ public sealed class ReaderPdfModularTests {
             Assert.False(string.IsNullOrWhiteSpace(chunk.SourceHash));
         });
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             pdf,
             sourceName: " bytes-result.pdf ",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -106,7 +106,7 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(2, result.Pages.Count);
         Assert.Equal(2, result.Chunks.Count);
 
-        string json = DocumentReaderPdfExtensions.ReadPdfDocumentJson(
+        string json = PdfReaderAdapter.ReadDocumentJson(
             pdf,
             sourceName: " bytes-json.pdf ",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -123,7 +123,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+        var chunks = PdfReaderAdapter.Read(
             stream,
             sourceName: "ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -140,7 +140,7 @@ public sealed class ReaderPdfModularTests {
     public void DocumentReaderPdf_ReadPdfLogicalDocument_CanSelectPageRanges() {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPagePdf());
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+        var chunks = PdfReaderAdapter.Read(
             logical,
             sourceName: "logical-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -165,7 +165,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             logical,
             sourceName: "logical-open-action-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -185,13 +185,13 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             stream,
             sourceName: " readback.pdf ",
             readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true });
 
         Assert.Equal(OfficeDocumentReadResultSchema.Id, result.SchemaId);
-        Assert.Equal(OfficeDocumentReadResultSchema.Version, result.SchemaVersion);
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, result.SchemaVersion);
         Assert.Equal(ReaderInputKind.Pdf, result.Kind);
         Assert.Equal("readback.pdf", result.Source.Path);
         Assert.Equal(pdf.Length, result.Source.LengthBytes);
@@ -257,7 +257,7 @@ public sealed class ReaderPdfModularTests {
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
         Assert.Equal("officeimo.document.read-result", root.GetProperty("schemaId").GetString());
-        Assert.Equal(OfficeDocumentReadResultSchema.Version, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("Pdf", root.GetProperty("kind").GetString());
         Assert.Equal("sample.pdf", root.GetProperty("source").GetProperty("path").GetString());
         Assert.Equal("officeimo.reader.pdf", root.GetProperty("capabilitiesUsed")[0].GetString());
@@ -275,7 +275,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        string json = DocumentReaderPdfExtensions.ReadPdfDocumentJson(
+        string json = PdfReaderAdapter.ReadDocumentJson(
             stream,
             sourceName: " json.pdf ",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -301,7 +301,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildOpenAndCatalogActionsPdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        string json = DocumentReaderPdfExtensions.ReadPdfDocumentJson(
+        string json = PdfReaderAdapter.ReadDocumentJson(
             stream,
             sourceName: "open-catalog-actions.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -320,7 +320,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesOpenAndCatalogActionMetadata() {
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(BuildOpenAndCatalogActionsPdf(), writable: false),
             sourceName: "open-catalog-actions.pdf");
 
@@ -338,7 +338,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesAnnotationActionMetadataWithoutPayloads() {
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(BuildAnnotationActionsPdf(), writable: false),
             sourceName: "annotation-actions.pdf");
 
@@ -357,7 +357,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesFreeTextAnnotationAppearanceMetadata() {
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(BuildFreeTextAppearanceMetadataPdf(), writable: false),
             sourceName: "freetext-appearance.pdf");
 
@@ -394,7 +394,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesAnnotationPathGeometryMetadata() {
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(BuildAnnotationPathGeometryMetadataPdf(), writable: false),
             sourceName: "annotation-paths.pdf");
 
@@ -427,7 +427,7 @@ public sealed class ReaderPdfModularTests {
     public void DocumentReaderPdf_ReadPdfDocument_PreservesLogicalPageRangeOrder() {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPagePdf());
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             logical,
             sourceName: "logical-readback.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -463,7 +463,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             stream,
             sourceName: "catalog-navigation.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -517,7 +517,7 @@ public sealed class ReaderPdfModularTests {
             .Paragraph(p => p.Text("Output intent metadata proof."))
             .ToBytes();
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "output-intent.pdf");
 
@@ -566,7 +566,7 @@ public sealed class ReaderPdfModularTests {
             .Paragraph(p => p.Text("Reader tagged paragraph."))
             .ToBytes();
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "tagged-content.pdf");
 
@@ -620,7 +620,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesOptionalContentMetadata() {
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(BuildOptionalContentMetadataPdf(), writable: false),
             sourceName: "optional-content.pdf");
 
@@ -689,7 +689,7 @@ public sealed class ReaderPdfModularTests {
             .Paragraph(p => p.Text("Reader generated XMP readback."))
             .ToBytes();
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "xmp-metadata.pdf");
 
@@ -735,7 +735,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_ExposesSecuritySignatureAndDssMetadata() {
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(BuildSignedSecurityMetadataPdf(), writable: false),
             sourceName: "signed-security.pdf");
 
@@ -829,7 +829,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             logical,
             sourceName: "selected-metadata.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -860,7 +860,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             logical,
             sourceName: "selected-form.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -891,7 +891,7 @@ public sealed class ReaderPdfModularTests {
             .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
             .ToBytes();
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "form-metadata.pdf");
 
@@ -906,7 +906,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_PreservesRemoteLinkDestinations() {
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(BuildRemoteGoToLinkPdf(), writable: false),
             sourceName: "remote-link.pdf");
 
@@ -932,7 +932,7 @@ public sealed class ReaderPdfModularTests {
 
     [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_PreservesInternalLinkDestinationCoordinates() {
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(BuildInternalDestinationLinkPdf(), writable: false),
             sourceName: "internal-link.pdf");
 
@@ -965,7 +965,7 @@ public sealed class ReaderPdfModularTests {
             .Paragraph(p => p.Text("Attachment metadata proof."))
             .ToBytes();
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "attachments.pdf");
 
@@ -1015,35 +1015,32 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
-    public void DocumentReaderPdf_ReadPdfStream_UsesCurrentSeekableStreamPosition() {
+    public void DocumentReaderPdf_ReadPdfStream_ReadsCompleteSeekableInputAndRestoresPosition() {
         byte[] pdf = BuildTwoPagePdf();
-        byte[] prefix = Encoding.ASCII.GetBytes("not-a-pdf-prefix");
-        using var stream = new MemoryStream(prefix.Concat(pdf).ToArray(), writable: false);
-        stream.Position = prefix.Length;
+        using var stream = new MemoryStream(pdf, writable: false);
+        stream.Position = 10;
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(stream, sourceName: "embedded.pdf").ToList();
+        var chunks = PdfReaderAdapter.Read(stream, sourceName: "embedded.pdf").ToList();
 
         Assert.NotEmpty(chunks);
+        Assert.Equal(10, stream.Position);
         Assert.Contains(chunks, c => (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
         Assert.Contains(chunks, c => (c.Markdown ?? c.Text).Contains("Reader PDF page two", StringComparison.Ordinal));
     }
 
     [Fact]
-    public void DocumentReaderPdf_ReadPdfStream_MaxInputBytesUsesCurrentSeekableStreamPosition() {
+    public void DocumentReaderPdf_ReadPdfStream_MaxInputBytesUsesCompleteSeekableInput() {
         byte[] pdf = BuildTwoPagePdf();
         byte[] prefix = Encoding.ASCII.GetBytes("not-a-pdf-prefix-that-is-longer-than-the-limit");
         using var stream = new MemoryStream(prefix.Concat(pdf).ToArray(), writable: false);
         stream.Position = prefix.Length;
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(
-            stream,
-            sourceName: "embedded-limited.pdf",
-            readerOptions: new ReaderOptions { MaxInputBytes = pdf.Length }).ToList();
-
-        Assert.NotEmpty(chunks);
-        Assert.All(chunks, c => Assert.Equal(pdf.Length, c.SourceLengthBytes));
-        Assert.Contains(chunks, c => (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
-        Assert.Contains(chunks, c => (c.Markdown ?? c.Text).Contains("Reader PDF page two", StringComparison.Ordinal));
+        Assert.Throws<IOException>(() => PdfReaderAdapter.Read(
+                stream,
+                sourceName: "embedded-limited.pdf",
+                readerOptions: new ReaderOptions { MaxInputBytes = pdf.Length })
+            .ToList());
+        Assert.Equal(prefix.Length, stream.Position);
     }
 
     [Fact]
@@ -1051,7 +1048,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+        var chunks = PdfReaderAdapter.Read(
             stream,
             sourceName: "duplicate-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1072,7 +1069,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = CreateLinkAnnotationPdf("javascript:alert(1)");
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        var chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "unsafe-link.pdf",
             pdfOptions: ReaderPdfOptions.CreateOfficeIMOProfile()).ToList());
@@ -1087,7 +1084,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildActiveContentPdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             stream,
             sourceName: "active-content.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1125,7 +1122,7 @@ public sealed class ReaderPdfModularTests {
     public void DocumentReaderPdf_ReadPdfLogicalDocument_RangedReadOmitsCatalogActions() {
         PdfLogicalDocument logical = PdfLogicalDocument.Load(BuildTwoPageCatalogActionsPdf());
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             logical,
             sourceName: "partial-catalog-actions.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1170,7 +1167,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        var chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "table.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1245,7 +1242,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             stream,
             sourceName: "table-readback.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1289,7 +1286,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        IReadOnlyList<ReaderTable> tables = DocumentReaderPdfExtensions.ReadPdfTables(
+        IReadOnlyList<ReaderTable> tables = PdfReaderAdapter.ReadTables(
             stream,
             sourceName: "tables-only.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1309,7 +1306,7 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(new[] { "B-200", "Beta", "14" }, table.Rows[1]);
 
         using var exportStream = new MemoryStream(pdf, writable: false);
-        ReaderTableExportBundle export = Assert.Single(DocumentReaderPdfExtensions.ReadPdfTableExports(
+        ReaderTableExportBundle export = Assert.Single(PdfReaderAdapter.ReadTableExports(
             exportStream,
             sourceName: "tables-only.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1322,7 +1319,7 @@ public sealed class ReaderPdfModularTests {
         using JsonDocument exportJson = JsonDocument.Parse(export.Json);
         Assert.True(exportJson.RootElement.GetProperty("diagnostics").GetProperty("hasGeometry").GetBoolean());
 
-        IReadOnlyList<ReaderTable> byteTables = DocumentReaderPdfExtensions.ReadPdfTables(
+        IReadOnlyList<ReaderTable> byteTables = PdfReaderAdapter.ReadTables(
             pdf,
             sourceName: "tables-bytes.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1332,7 +1329,7 @@ public sealed class ReaderPdfModularTests {
             });
         Assert.Equal("tables-bytes.pdf", Assert.Single(byteTables).Location?.Path);
 
-        ReaderTableExportBundle byteExport = Assert.Single(DocumentReaderPdfExtensions.ReadPdfTableExports(
+        ReaderTableExportBundle byteExport = Assert.Single(PdfReaderAdapter.ReadTableExports(
             pdf,
             sourceName: "tables-bytes.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1361,7 +1358,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "form.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1419,7 +1416,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildWidgetAppearanceFormPdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "widget-appearance.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -1465,7 +1462,7 @@ public sealed class ReaderPdfModularTests {
         Assert.True(info.HasAcroFormXfa);
         Assert.Equal(2, info.AcroFormXfa!.PacketCount);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "xfa-form.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1494,11 +1491,11 @@ public sealed class ReaderPdfModularTests {
             ComputeHashes = true
         };
 
-        ReaderChunk first = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk first = Assert.Single(PdfReaderAdapter.Read(
             new MemoryStream(BuildOpenActionHashPdf(120), writable: false),
             sourceName: "action-hash.pdf",
             readerOptions: readerOptions).ToList());
-        ReaderChunk second = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk second = Assert.Single(PdfReaderAdapter.Read(
             new MemoryStream(BuildOpenActionHashPdf(160), writable: false),
             sourceName: "action-hash.pdf",
             readerOptions: readerOptions).ToList());
@@ -1529,7 +1526,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "image-visual.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -1564,7 +1561,7 @@ public sealed class ReaderPdfModularTests {
         Assert.False(string.IsNullOrWhiteSpace(visual.PayloadHash));
         Assert.Contains("Reader PDF visual marker", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
 
-        ReaderVisual extracted = Assert.Single(DocumentReader.ExtractVisuals(new[] { chunk }));
+        ReaderVisual extracted = Assert.Single(OfficeDocumentReader.Default.ExtractVisuals(new[] { chunk }));
         Assert.Equal("image-visual.pdf", extracted.Location?.Path);
         Assert.Equal("image/png", extracted.MimeType);
         Assert.Equal(48D, extracted.PlacedWidth!.Value, 3);
@@ -1583,7 +1580,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildSkewedImagePdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "skewed-image.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -1601,7 +1598,7 @@ public sealed class ReaderPdfModularTests {
         Assert.True(visual.PlacedWidth > 0D);
         Assert.True(visual.PlacedHeight > 0D);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "skewed-image.pdf");
 
@@ -1622,7 +1619,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildPageAdditionalActionsPdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "active.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -1659,7 +1656,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildOpenAndCatalogActionsPdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "open-catalog-actions.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -1704,7 +1701,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildAnnotationActionsPdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "annotation-actions.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -1757,7 +1754,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildRichMediaAnnotationActionPdf();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "rich-media-action.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -1782,7 +1779,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             stream,
             sourceName: "scan-candidate.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1819,7 +1816,7 @@ public sealed class ReaderPdfModularTests {
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
         Assert.Equal(OfficeDocumentReadResultSchema.Id, root.GetProperty("schemaId").GetString());
-        Assert.Equal(OfficeDocumentReadResultSchema.Version, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("ocr-needed", root.GetProperty("diagnostics")[0].GetProperty("code").GetString());
         Assert.Equal(asset.FileName, root.GetProperty("assets")[0].GetProperty("fileName").GetString());
         Assert.True(root.GetProperty("assets")[0].GetProperty("region").GetProperty("width").GetDouble() > 0D);
@@ -1840,7 +1837,7 @@ public sealed class ReaderPdfModularTests {
             .Image(CreateMinimalRgbPng(), 180, 120)
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             stream,
             sourceName: "scan-candidate.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1948,7 +1945,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+        var chunks = PdfReaderAdapter.Read(
             stream,
             sourceName: "duplicate-table-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1999,7 +1996,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        IReadOnlyList<ReaderTableExportBundle> exports = DocumentReaderPdfExtensions.ReadPdfTableExports(
+        IReadOnlyList<ReaderTableExportBundle> exports = PdfReaderAdapter.ReadTableExports(
             stream,
             sourceName: "duplicate-table-ranges.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -2045,7 +2042,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        var chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "table-row-cap.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -2090,7 +2087,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        var chunk = Assert.Single(PdfReaderAdapter.Read(
             stream,
             sourceName: "invoice-facts.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -2129,7 +2126,7 @@ public sealed class ReaderPdfModularTests {
             .ToBytes();
         using var stream = new MemoryStream(pdf, writable: false);
 
-        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+        var chunks = PdfReaderAdapter.Read(
             stream,
             sourceName: "split.pdf",
             readerOptions: new ReaderOptions { MaxChars = 96 }).ToList();
@@ -2192,7 +2189,7 @@ public sealed class ReaderPdfModularTests {
         byte[] pdf = BuildTwoPagePdf();
         using var stream = new NonSeekableReadStream(pdf);
 
-        var ex = Assert.Throws<IOException>(() => DocumentReaderPdfExtensions.ReadPdf(
+        var ex = Assert.Throws<IOException>(() => PdfReaderAdapter.Read(
             stream,
             sourceName: "nonseekable.pdf",
             readerOptions: new ReaderOptions { MaxInputBytes = 16 }).ToList());

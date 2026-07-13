@@ -1,6 +1,8 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
 using A = DocumentFormat.OpenXml.Drawing;
 using Xdr = DocumentFormat.OpenXml.Drawing.Spreadsheet;
 
@@ -48,12 +50,11 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Downloads an image from URL, anchors it to a worksheet cell, and optionally sizes it from its original dimensions.
-        /// Returns null when the image cannot be fetched.
+        /// Asynchronously downloads an image from a URL, anchors it to a worksheet cell, and optionally sizes it from its original dimensions.
         /// </summary>
         /// <param name="row">1-based row index where the top edge of the image will be anchored.</param>
         /// <param name="column">1-based column index where the left edge of the image will be anchored.</param>
-        /// <param name="url">Remote image URL to download. Requests timeout after 5 seconds and must be smaller than 2 MB.</param>
+        /// <param name="url">Remote HTTP or HTTPS image URL.</param>
         /// <param name="widthPixels">Optional exact image width in pixels. Defaults to the image's original width when known.</param>
         /// <param name="heightPixels">Optional exact image height in pixels. Defaults to the image's original height when known.</param>
         /// <param name="scalePercent">Optional percentage of the original image dimensions, for example 20 for 20%.</param>
@@ -64,29 +65,29 @@ namespace OfficeIMO.Excel {
         /// <param name="title">Optional alternative text title.</param>
         /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
         /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
-        public ExcelImage? AddImageFromUrl(int row, int column, string url, int? widthPixels, int? heightPixels,
+        /// <param name="cancellationToken">Token used to cancel the remote request.</param>
+        public async Task<ExcelImage> AddImageFromUrlAsync(int row, int column, string url, int? widthPixels, int? heightPixels,
             double? scalePercent = null, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
-            string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0) {
-            if (string.IsNullOrWhiteSpace(url)) return null;
-            if (!ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var contentType) || bytes == null) {
-                return null;
-            }
-
-            OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info);
+            string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0,
+            CancellationToken cancellationToken = default) {
+            OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
+                url,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            byte[] bytes = remote.ToBytes();
+            OfficeImageReader.TryIdentify(bytes, remote.FileName, out OfficeImageInfo info);
             var (resolvedWidth, resolvedHeight) = ResolveImageSize(info, widthPixels, heightPixels, scalePercent);
-            ExcelImage image = AddImage(row, column, bytes, ResolveImageContentType(contentType, info),
+            ExcelImage image = AddImage(row, column, bytes, ResolveImageContentType(remote.ContentType, info),
                 resolvedWidth, resolvedHeight, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
             ApplyImageMetadata(image, title, rotationDegrees);
             return image;
         }
 
         /// <summary>
-        /// Downloads an image from URL, scales it from its detected dimensions, and anchors it to a worksheet cell.
-        /// Returns null when the image cannot be fetched.
+        /// Asynchronously downloads an image from a URL, scales it from its detected dimensions, and anchors it to a worksheet cell.
         /// </summary>
         /// <param name="row">1-based row index where the top edge of the image will be anchored.</param>
         /// <param name="column">1-based column index where the left edge of the image will be anchored.</param>
-        /// <param name="url">Remote image URL to download. Requests timeout after 5 seconds and must be smaller than 2 MB.</param>
+        /// <param name="url">Remote HTTP or HTTPS image URL.</param>
         /// <param name="scalePercent">Percentage of the original image dimensions, for example 20 for 20%.</param>
         /// <param name="offsetXPixels">Optional horizontal offset in pixels from the cell's left boundary.</param>
         /// <param name="offsetYPixels">Optional vertical offset in pixels from the cell's top boundary.</param>
@@ -95,10 +96,13 @@ namespace OfficeIMO.Excel {
         /// <param name="title">Optional alternative text title.</param>
         /// <param name="lockAspectRatio">Whether Excel should keep the picture aspect ratio locked.</param>
         /// <param name="rotationDegrees">Clockwise image rotation in degrees.</param>
-        public ExcelImage? AddImageFromUrl(int row, int column, string url, double scalePercent,
+        /// <param name="cancellationToken">Token used to cancel the remote request.</param>
+        public Task<ExcelImage> AddImageFromUrlAsync(int row, int column, string url, double scalePercent,
             int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null,
-            string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0)
-            => AddImageFromUrl(row, column, url, null, null, scalePercent, offsetXPixels, offsetYPixels, name, altText, title, lockAspectRatio, rotationDegrees);
+            string? title = null, bool lockAspectRatio = true, double rotationDegrees = 0,
+            CancellationToken cancellationToken = default)
+            => AddImageFromUrlAsync(row, column, url, null, null, scalePercent, offsetXPixels, offsetYPixels, name,
+                altText, title, lockAspectRatio, rotationDegrees, cancellationToken);
 
         /// <summary>
         /// Adds an image anchored to an A1 range using a two-cell anchor. The image moves and sizes with the
@@ -265,18 +269,18 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Downloads an image from URL and anchors it to an A1 range using a two-cell anchor. Returns null when the image cannot be fetched.
+        /// Asynchronously downloads an image from a URL and anchors it to an A1 range using a two-cell anchor.
         /// </summary>
-        public ExcelImage? AddImageFromUrlToRange(string range, string url, int offsetXPixels = 0, int offsetYPixels = 0,
+        public async Task<ExcelImage> AddImageFromUrlToRangeAsync(string range, string url, int offsetXPixels = 0, int offsetYPixels = 0,
             int endOffsetXPixels = 0, int endOffsetYPixels = 0, string? name = null, string? altText = null, string? title = null,
-            bool lockAspectRatio = true, ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0) {
-            if (string.IsNullOrWhiteSpace(url)) return null;
-            if (!ImageDownloader.TryFetch(url, timeoutSeconds: 5, maxBytes: 2_000_000, out var bytes, out var contentType) || bytes == null) {
-                return null;
-            }
-
-            OfficeImageReader.TryIdentify(bytes, null, out OfficeImageInfo info);
-            return AddImageToRange(range, bytes, ResolveImageContentType(contentType, info), offsetXPixels,
+            bool lockAspectRatio = true, ExcelImagePlacement placement = ExcelImagePlacement.MoveAndSize, double rotationDegrees = 0,
+            CancellationToken cancellationToken = default) {
+            OfficeRemoteImage remote = await OfficeRemoteImageLoader.LoadAsync(
+                url,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            byte[] bytes = remote.ToBytes();
+            OfficeImageReader.TryIdentify(bytes, remote.FileName, out OfficeImageInfo info);
+            return AddImageToRange(range, bytes, ResolveImageContentType(remote.ContentType, info), offsetXPixels,
                 offsetYPixels, endOffsetXPixels, endOffsetYPixels, name, altText, title, lockAspectRatio, placement, rotationDegrees);
         }
 

@@ -94,7 +94,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Number of lists - section 1 (after updating existing lists): " + document.Sections[1].Lists.Count);
                 Console.WriteLine("Number of lists - all (after updating existing lists): " + document.Lists.Count);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

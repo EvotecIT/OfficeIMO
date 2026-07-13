@@ -27,7 +27,8 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("+ Tables count: " + document.Tables.Count);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

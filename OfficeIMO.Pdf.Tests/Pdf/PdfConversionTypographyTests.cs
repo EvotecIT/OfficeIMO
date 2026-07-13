@@ -1,6 +1,7 @@
 using System.Text;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.PowerPoint;
@@ -88,7 +89,7 @@ public sealed class PdfConversionTypographyTests {
             PdfOptions = CreatePdfOptions(fontPath)
         };
 
-        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => ("# Missing Glyph\n\nUnsupported " + unsupportedScalar).ToPdfFromMarkdown(options));
+        ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => OfficeIMO.Markdown.MarkdownReader.Parse("# Missing Glyph\n\nUnsupported " + unsupportedScalar).ToPdf(options));
 
         Assert.True(IsMissingEmbeddedGlyphFailure(exception));
         Assert.Contains((string?)exception.Data["code"], new[] { "missing-embedded-font-glyph", "missing-embedded-font-fallback-glyph", "unsupported-text-glyph" });
@@ -256,7 +257,7 @@ public sealed class PdfConversionTypographyTests {
             ApplyDefaultTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
-        PdfCore.PdfDocumentConversionResult result = """
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse("""
 # Converter typography report
 
 Zażółć gęślą jaźń
@@ -265,7 +266,7 @@ Zażółć gęślą jaźń
 | --- | --- |
 | Ελλάδα | Athens |
 | Україна | Київ |
-""".ToPdfDocumentFromMarkdownResult(options);
+""").ToPdfDocumentResult(options);
 
         byte[] pdf = result.ToBytes();
         Assert.False(result.HasWarnings);
@@ -277,7 +278,7 @@ Zażółć gęślą jaźń
             FontFamily = PdfCore.PdfEmbeddedFontFamily.FromFiles(FamilyName, fontPath)
         };
 
-        byte[] pdf = """
+        byte[] pdf = HtmlConversionDocument.Parse("""
 <html>
   <body>
     <h1>Converter typography report</h1>
@@ -289,7 +290,7 @@ Zażółć gęślą jaźń
     </table>
   </body>
 </html>
-""".ToPdfDocumentResult(options).ToBytes();
+""").ToPdfDocumentResult(options).ToBytes();
 
         return pdf;
     }
@@ -371,7 +372,7 @@ Zażółć gęślą jaźń
             ApplyDefaultTheme = false,
             PdfOptions = CreatePdfOptions(fontPath)
         };
-        PdfCore.PdfDocumentConversionResult result = "office cafe\u0301".ToPdfDocumentFromMarkdownResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Markdown.MarkdownReader.Parse("office cafe\u0301").ToPdfDocumentResult(options);
         _ = result.ToBytes();
         return result.Report;
     }
@@ -440,7 +441,7 @@ Zażółć gęślą jaźń
             ApplyDefaultTheme = false
         };
         PdfCore.PdfDocumentConversionResult? result = null;
-        AssertRenderAttempt(() => (result = text.ToPdfDocumentFromMarkdownResult(options)).ToBytes(), allowMissingGlyphFailure);
+        AssertRenderAttempt(() => (result = OfficeIMO.Markdown.MarkdownReader.Parse(text).ToPdfDocumentResult(options)).ToBytes(), allowMissingGlyphFailure);
         return result?.Report ?? new PdfCore.PdfConversionReport();
     }
 

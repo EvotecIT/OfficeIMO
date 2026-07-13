@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Threading;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Reader;
 
@@ -132,7 +133,7 @@ public static class ReaderTableExportMaterializer {
                     continue;
                 }
 
-                File.WriteAllText(outputPath, payload, Utf8NoBom);
+                OfficeFileCommit.WriteAllBytes(outputPath, Utf8NoBom.GetBytes(payload));
                 results.Add(new ReaderTableMaterializedExport {
                     Export = export,
                     Format = format,

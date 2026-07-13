@@ -5,37 +5,37 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownVisualPalette {
     /// <summary>Primary accent color for headings, links, rules, and active UI affordances.</summary>
-    public MarkdownColor Accent { get; set; } = MarkdownColor.Parse("#2563EB");
+    public OfficeColor Accent { get; set; } = OfficeColor.Parse("#2563EB");
 
     /// <summary>Document heading color.</summary>
-    public MarkdownColor Heading { get; set; } = MarkdownColor.Parse("#111827");
+    public OfficeColor Heading { get; set; } = OfficeColor.Parse("#111827");
 
     /// <summary>Main body text color.</summary>
-    public MarkdownColor Text { get; set; } = MarkdownColor.Parse("#1F2937");
+    public OfficeColor Text { get; set; } = OfficeColor.Parse("#1F2937");
 
     /// <summary>Secondary text color for metadata, captions, and muted content.</summary>
-    public MarkdownColor MutedText { get; set; } = MarkdownColor.Parse("#64748B");
+    public OfficeColor MutedText { get; set; } = OfficeColor.Parse("#64748B");
 
     /// <summary>Page or body background color.</summary>
-    public MarkdownColor Background { get; set; } = MarkdownColor.Parse("#FFFFFF");
+    public OfficeColor Background { get; set; } = OfficeColor.Parse("#FFFFFF");
 
     /// <summary>Panel, code, and callout surface color.</summary>
-    public MarkdownColor Surface { get; set; } = MarkdownColor.Parse("#F8FAFC");
+    public OfficeColor Surface { get; set; } = OfficeColor.Parse("#F8FAFC");
 
     /// <summary>Default border and rule color.</summary>
-    public MarkdownColor Border { get; set; } = MarkdownColor.Parse("#CBD5E1");
+    public OfficeColor Border { get; set; } = OfficeColor.Parse("#CBD5E1");
 
     /// <summary>Code block background color.</summary>
-    public MarkdownColor CodeBackground { get; set; } = MarkdownColor.Parse("#F6F8FA");
+    public OfficeColor CodeBackground { get; set; } = OfficeColor.Parse("#F6F8FA");
 
     /// <summary>Table header background color.</summary>
-    public MarkdownColor TableHeaderBackground { get; set; } = MarkdownColor.Parse("#EFF6FF");
+    public OfficeColor TableHeaderBackground { get; set; } = OfficeColor.Parse("#EFF6FF");
 
     /// <summary>Table header text color.</summary>
-    public MarkdownColor TableHeaderText { get; set; } = MarkdownColor.Parse("#0F172A");
+    public OfficeColor TableHeaderText { get; set; } = OfficeColor.Parse("#0F172A");
 
     /// <summary>Alternating table row background color.</summary>
-    public MarkdownColor TableStripeBackground { get; set; } = MarkdownColor.Parse("#F8FAFC");
+    public OfficeColor TableStripeBackground { get; set; } = OfficeColor.Parse("#F8FAFC");
 
     /// <summary>Creates a copy of this palette.</summary>
     public MarkdownVisualPalette Clone() => new MarkdownVisualPalette {

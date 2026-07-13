@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<img id='blocked' src='data:image/png;base64," + png + "'>"
             + "<div id='blocked-background' style=\"width:10px;height:10px;background-image:url('data:image/png;base64," + png + "')\"></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile(),
             ViewportWidth = 40D,
             ViewportHeight = 40D,
@@ -25,13 +25,13 @@ public sealed partial class HtmlRenderingTests {
         Assert.Empty(visuals.OfType<HtmlRenderImage>());
         Assert.Empty(visuals.OfType<HtmlRenderImagePattern>());
         Assert.Empty(visuals.OfType<HtmlRenderDrawing>());
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == "ImageResourceRejectedByPolicy");
     }
 
     [Fact]
     public void HtmlRender_ImageDataUrisHonorPerResourceBudgetsBeforeDecoding() {
         string png = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(8, 8));
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(
             "<img id='oversized' src='data:image/png;base64," + png + "'>",
             new HtmlRenderOptions {
                 MaxResourceBytes = 16L,
@@ -41,7 +41,7 @@ public sealed partial class HtmlRenderingTests {
             });
 
         Assert.Empty(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderImage>());
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
     }
 
     [Fact]
@@ -54,7 +54,7 @@ public sealed partial class HtmlRenderingTests {
             + png
             + "'>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             MaxResourceCount = 1,
             MaxResourceBytes = 1024L * 1024L,
             MaxTotalResourceBytes = 2L * 1024L * 1024L,
@@ -64,7 +64,7 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.Single(rendered.Fonts.Faces);
         Assert.Empty(EnumerateRenderVisuals(rendered.Pages[0].Visuals).OfType<HtmlRenderImage>());
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded);
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(0D)
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
             "<img id='vector' src='image.svg' style='width:10px;height:10px'>"
                 + "<div id='vector-background' style=\"width:10px;height:10px;background:url('background.svg') no-repeat\"></div>",
             options);
@@ -87,6 +87,6 @@ public sealed partial class HtmlRenderingTests {
 
         Assert.True(visuals.OfType<HtmlRenderDrawing>().Count() >= 2);
         Assert.Empty(visuals.OfType<HtmlRenderImage>());
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RasterDecoderUnavailable);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.RasterDecoderUnavailable);
     }
 }

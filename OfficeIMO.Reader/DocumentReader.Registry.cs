@@ -17,7 +17,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static string BuildStableId(string kind, string fileName, int chunkIndex, int? blockIndex) {
         // Keep IDs short, stable and ASCII-only; do not leak full paths.
         var l = blockIndex.HasValue ? blockIndex.Value.ToString(CultureInfo.InvariantCulture) : "na";
@@ -153,6 +153,33 @@ public static partial class DocumentReader {
 
     private static bool TryResolveCustomHandlerByExtension(string ext, out ReaderHandlerDescriptor handler) {
         return GetActiveHandlerRegistry().TryResolve(ext, out handler);
+    }
+
+    private static long? ResolveInitialMaxInputBytes(string? sourceName, ReaderOptions options) {
+        if (options.MaxInputBytes.HasValue) {
+            return options.MaxInputBytes;
+        }
+
+        if (TryResolveCustomHandlerBySourceName(sourceName, out ReaderHandlerDescriptor customHandler)
+            && customHandler.DefaultMaxInputBytes.HasValue) {
+            return customHandler.DefaultMaxInputBytes;
+        }
+
+        string extension = NormalizeExtension(TryGetExtension(sourceName ?? string.Empty));
+        if (extension.Length == 0) {
+            return null;
+        }
+
+        for (int i = 0; i < BuiltInCapabilities.Length; i++) {
+            ReaderHandlerCapability capability = BuiltInCapabilities[i];
+            if (capability.SupportsStream
+                && capability.DefaultMaxInputBytes.HasValue
+                && capability.Extensions.Contains(extension, StringComparer.OrdinalIgnoreCase)) {
+                return capability.DefaultMaxInputBytes;
+            }
+        }
+
+        return null;
     }
 
     private static bool TryResolveCustomHandlerByKind(ReaderInputKind kind, bool pathInput, out ReaderHandlerDescriptor handler) {

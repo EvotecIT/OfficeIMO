@@ -31,23 +31,23 @@ public static class OfficeDocumentReaderBuilderEpubExtensions {
             Description = "Modular EPUB adapter that emits chapter-oriented Reader chunks.",
             Kind = ReaderInputKind.Epub,
             Extensions = new[] { ".epub" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderEpubExtensions.ReadEpub(
+            ReadPath = (path, readerOptions, ct) => EpubReaderAdapter.Read(
                 epubPath: path,
                 readerOptions: readerOptions,
                 epubOptions: Clone(registeredOptions),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderEpubExtensions.ReadEpub(
+            ReadStream = (stream, sourceName, readerOptions, ct) => EpubReaderAdapter.Read(
                 epubStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 epubOptions: Clone(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderEpubExtensions.ReadEpubDocument(
+            ReadDocumentPath = (path, readerOptions, ct) => EpubReaderAdapter.ReadDocument(
                 epubPath: path,
                 readerOptions: readerOptions,
                 epubOptions: Clone(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderEpubExtensions.ReadEpubDocument(
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => EpubReaderAdapter.ReadDocument(
                 epubStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

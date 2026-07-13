@@ -19,6 +19,7 @@ namespace OfficeIMO.GoogleWorkspace {
         public Task<GoogleWorkspaceAccessToken> AcquireAccessTokenAsync(
             IEnumerable<string> scopes,
             CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
             IReadOnlyList<string> effectiveScopes = _scopes ?? scopes?.ToArray() ?? Array.Empty<string>();
 
             return Task.FromResult(new GoogleWorkspaceAccessToken(

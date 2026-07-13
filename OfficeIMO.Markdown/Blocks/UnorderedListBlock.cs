@@ -6,8 +6,6 @@ namespace OfficeIMO.Markdown;
 public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyntaxMarkdownBlock {
     /// <summary>List items.</summary>
     public List<ListItem> Items { get; } = new List<ListItem>();
-    /// <summary>Read-only AST-style view of list items.</summary>
-    public IReadOnlyList<ListItem> ListItems => Items;
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() =>
         MarkdownListRendering.RenderMarkdown(
@@ -26,7 +24,7 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
     internal string RenderHtml(bool renderItemAttributes) =>
         MarkdownListRendering.RenderHtml("ul", Items, Attributes, _ => string.Empty, renderItemAttributes);
 
-    IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => ListItems;
+    IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => Items;
     MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;
     string? IMarkdownListBlock.ListLiteral => null;
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>

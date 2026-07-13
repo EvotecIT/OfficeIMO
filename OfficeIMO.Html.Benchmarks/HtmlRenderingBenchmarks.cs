@@ -49,7 +49,7 @@ public class HtmlRenderingStageBenchmarks {
         _fonts).Render();
 
     [Benchmark]
-    public HtmlRenderDocument ParseStyleAndLayout() => HtmlRenderEngine.Render(_html, _options);
+    public HtmlRenderDocument ParseStyleAndLayout() => HtmlRenderEngine.Render(HtmlConversionDocument.Parse(_html), _options);
 }
 
 /// <summary>Measures shared-scene projection to Drawing, PNG, SVG, and rendered searchable PDF.</summary>
@@ -57,7 +57,7 @@ public class HtmlRenderingStageBenchmarks {
 [BenchmarkCategory("HTML", "Outputs")]
 public class HtmlRenderingOutputBenchmarks {
     private OfficeDrawing _drawing = null!;
-    private string _html = string.Empty;
+    private HtmlConversionDocument _document = null!;
     private HtmlRenderOptions _imageOptions = null!;
     private HtmlPdfSaveOptions _pdfOptions = null!;
     private HtmlRenderPage _renderedPage = null!;
@@ -67,9 +67,9 @@ public class HtmlRenderingOutputBenchmarks {
 
     [GlobalSetup]
     public void Setup() {
-        _html = HtmlBenchmarkCorpus.BuildReport(40, UnicodeText);
+        _document = HtmlConversionDocument.Parse(HtmlBenchmarkCorpus.BuildReport(40, UnicodeText));
         _imageOptions = HtmlBenchmarkCorpus.CreateContinuousOptions();
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(_html, _imageOptions);
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(_document, _imageOptions);
         _renderedPage = rendered.Pages[0];
         _drawing = _renderedPage.CreateDrawing();
         _pdfOptions = new HtmlPdfSaveOptions {
@@ -89,7 +89,7 @@ public class HtmlRenderingOutputBenchmarks {
     public string ExportSvg() => OfficeDrawingSvgExporter.ToSvg(_drawing);
 
     [Benchmark]
-    public byte[] ExportRenderedPdf() => _html.ToPdf(_pdfOptions);
+    public byte[] ExportRenderedPdf() => _document.ToPdf(_pdfOptions);
 }
 
 internal static class HtmlBenchmarkCorpus {

@@ -11,7 +11,8 @@ internal static partial class Paragraphs {
         using (WordDocument document = WordDocument.Create(filePath)) {
             var paragraph = document.AddParagraph();
             InlineRunHelper.AddInlineRuns(paragraph, "Hello **world** and *universe*. Visit https://example.com");
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

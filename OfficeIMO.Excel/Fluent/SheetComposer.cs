@@ -27,7 +27,7 @@ namespace OfficeIMO.Excel.Fluent {
             // Create a sheet-local top anchor so callers/tests can rely on a defined name at A1.
             // Keep it simple and safe: local to this sheet, absolute A1.
             // Use a simple A1 reference so the normalizer can expand to $A$1
-            try { _workbook.SetNamedRange($"top_{SanitizeName(_sheet.Name)}", "A1", _sheet, save: false, hidden: true); } catch { }
+            _workbook.SetNamedRange($"top_{SanitizeName(_sheet.Name)}", "A1", _sheet, save: false, hidden: true);
         }
 
         /// <summary>The underlying sheet created by this composer.</summary>
@@ -109,8 +109,7 @@ namespace OfficeIMO.Excel.Fluent {
             // Read header texts from first row
             var headers = new Dictionary<int, string>(toCol - fromCol + 1);
             for (int c = fromCol; c <= toCol; c++) {
-                string text = string.Empty;
-                try { Sheet.TryGetCellText(fromRow, c, out text); } catch { }
+                Sheet.TryGetCellText(fromRow, c, out string? text);
                 headers[c] = (text ?? string.Empty).Trim();
             }
 
@@ -152,14 +151,12 @@ namespace OfficeIMO.Excel.Fluent {
                 }
 
                 if (width.HasValue) {
-                    try { Sheet.SetColumnWidth(col, width.Value); } catch { }
+                    Sheet.SetColumnWidth(col, width.Value);
                 }
 
                 if (shouldWrap) {
-                    try {
-                        if (width.HasValue) Sheet.WrapCells(fromRow + 1, toRow, col, width.Value);
-                        else Sheet.WrapCells(fromRow + 1, toRow, col);
-                    } catch { }
+                    if (width.HasValue) Sheet.WrapCells(fromRow + 1, toRow, col, width.Value);
+                    else Sheet.WrapCells(fromRow + 1, toRow, col);
                 }
 
                 bool explicitAutoFit = hasHeader && IsMatch(opts.AutoFitHeaders, h);
@@ -169,7 +166,7 @@ namespace OfficeIMO.Excel.Fluent {
             }
 
             if (autoFitTargets.Count > 0) {
-                try { Sheet.AutoFitColumnsFor(autoFitTargets); } catch { }
+                Sheet.AutoFitColumnsFor(autoFitTargets);
             }
             return this;
         }

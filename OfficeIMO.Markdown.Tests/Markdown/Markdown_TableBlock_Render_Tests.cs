@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             table.Rows.Add(new[] { @"\*\*not bold\*\* and \| literal pipe" });
 
             var markdown = ((IMarkdownBlock)table).RenderMarkdown();
-            MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+            MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             TableBlock parsedTable = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
 
             const string expected = "| Header |\n" +
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             table.Rows.Add(new[] { @"Test A \(stacked bar\)" });
 
             var markdown = ((IMarkdownBlock)table).RenderMarkdown();
-            MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+            MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             TableBlock parsedTable = Assert.IsType<TableBlock>(Assert.Single(parsed.Blocks));
 
             const string expected = "| Header |\n" +

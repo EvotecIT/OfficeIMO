@@ -45,11 +45,11 @@ internal static class MarkdownDocumentBlockListExpander {
         Func<IReadOnlyList<IMarkdownBlock>, MarkdownDocumentTransformContext, List<IMarkdownBlock>> blockListRewriter) {
         switch (block) {
             case QuoteBlock quote:
-                RewriteMutableBlockList(quote.Children, context, blockListRewriter);
+                RewriteMutableBlockList(quote.ChildBlocks, context, blockListRewriter);
                 quote.ClearSyntaxCache();
                 return block;
             case DetailsBlock details:
-                RewriteMutableBlockList(details.Children, context, blockListRewriter);
+                RewriteMutableBlockList(details.ChildBlocks, context, blockListRewriter);
                 details.ClearSyntaxCache();
                 return block;
             case OrderedListBlock ordered:
@@ -94,11 +94,11 @@ internal static class MarkdownDocumentBlockListExpander {
         Func<IReadOnlyList<IMarkdownBlock>, MarkdownDocumentTransformContext, List<IMarkdownBlock>> blockListRewriter) {
         for (var i = 0; i < items.Count; i++) {
             var item = items[i];
-            if (item == null || item.Children.Count == 0) {
+            if (item == null || item.NestedBlocks.Count == 0) {
                 continue;
             }
 
-            RewriteMutableBlockList(item.Children, context, blockListRewriter);
+            RewriteMutableBlockList(item.NestedBlocks, context, blockListRewriter);
         }
     }
 
@@ -115,11 +115,11 @@ internal static class MarkdownDocumentBlockListExpander {
 
             for (var definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {
                 var definition = group.Definitions[definitionIndex];
-                if (definition == null || definition.Blocks.Count == 0) {
+                if (definition == null || definition.ChildBlocks.Count == 0) {
                     continue;
                 }
 
-                RewriteMutableBlockList(definition.Blocks, context, blockListRewriter);
+                RewriteMutableBlockList(definition.ChildBlocks, context, blockListRewriter);
             }
         }
 
@@ -149,11 +149,11 @@ internal static class MarkdownDocumentBlockListExpander {
         }
 
         foreach (var cell in cells) {
-            if (cell == null || cell.Blocks.Count == 0) {
+            if (cell == null || cell.ChildBlocks.Count == 0) {
                 continue;
             }
 
-            RewriteMutableBlockList(cell.Blocks, context, blockListRewriter);
+            RewriteMutableBlockList(cell.ChildBlocks, context, blockListRewriter);
         }
     }
 
@@ -161,11 +161,11 @@ internal static class MarkdownDocumentBlockListExpander {
         FootnoteDefinitionBlock block,
         MarkdownDocumentTransformContext context,
         Func<IReadOnlyList<IMarkdownBlock>, MarkdownDocumentTransformContext, List<IMarkdownBlock>> blockListRewriter) {
-        if (block.Blocks.Count == 0) {
+        if (block.ChildBlocks.Count == 0) {
             return block;
         }
 
-        var rewrittenBlocks = RewriteBlocks(block.Blocks, context, blockListRewriter);
+        var rewrittenBlocks = RewriteBlocks(block.ChildBlocks, context, blockListRewriter);
         return new FootnoteDefinitionBlock(block.Label, block.Text, rewrittenBlocks, syntaxChildren: null);
     }
 

@@ -50,7 +50,7 @@ public static partial class MarkdownReader {
             // Nested fenced code block
             int tmp = k;
             if (TryParseNestedFencedCodeBlock(lines, ref tmp, continuationIndent, options, state, out var code) && code != null) {
-                item.Children.Add(code);
+                item.NestedBlocks.Add(code);
                 AddListItemChildSyntaxNode(item, code, lines, continuationIndent, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
@@ -60,7 +60,7 @@ public static partial class MarkdownReader {
             // Nested indented code block
             tmp = k;
             if (TryParseNestedIndentedCodeBlock(lines, ref tmp, continuationIndent, options, out var indented) && indented != null) {
-                item.Children.Add(indented);
+                item.NestedBlocks.Add(indented);
                 AddListItemChildSyntaxNode(item, indented, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
@@ -70,7 +70,7 @@ public static partial class MarkdownReader {
             // Nested blockquote
             tmp = k;
             if (TryParseNestedQuoteBlock(lines, ref tmp, itemLevelAbs, continuationIndent, options, state, out var quote) && quote != null) {
-                item.Children.Add(quote);
+                item.NestedBlocks.Add(quote);
                 AddListItemChildSyntaxNode(item, quote, lines, continuationIndent, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
@@ -80,7 +80,7 @@ public static partial class MarkdownReader {
             // Nested custom container
             tmp = k;
             if (TryParseNestedCustomContainerBlock(lines, ref tmp, continuationIndent, options, state, out var customContainer, out var customContainerSyntaxNode) && customContainer != null) {
-                item.Children.Add(customContainer);
+                item.NestedBlocks.Add(customContainer);
                 if (customContainerSyntaxNode != null) {
                     item.SyntaxChildren.Add(customContainerSyntaxNode);
                 } else {
@@ -94,7 +94,7 @@ public static partial class MarkdownReader {
             // Nested table
             tmp = k;
             if (TryParseNestedTableBlock(lines, ref tmp, continuationIndent, options, state, out var table) && table != null) {
-                item.Children.Add(table);
+                item.NestedBlocks.Add(table);
                 AddListItemChildSyntaxNode(item, table, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
@@ -104,7 +104,7 @@ public static partial class MarkdownReader {
             // Nested HTML blocks (details / raw HTML) when HtmlBlocks are enabled.
             tmp = k;
             if (TryParseNestedHtmlBlock(lines, ref tmp, continuationIndent, options, state, out var htmlBlock) && htmlBlock != null) {
-                item.Children.Add(htmlBlock);
+                item.NestedBlocks.Add(htmlBlock);
                 AddListItemChildSyntaxNode(item, htmlBlock, k, tmp, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = tmp;
@@ -122,7 +122,7 @@ public static partial class MarkdownReader {
                     allowNestedUnordered,
                     out var attributedList,
                     out var attributedListEndIndex)) {
-                item.Children.Add(attributedList);
+                item.NestedBlocks.Add(attributedList);
                 AddListItemChildSyntaxNode(item, attributedList, lines, continuationIndent, k, attributedListEndIndex, state);
                 if (sawBlankLine) item.ForceLoose = true;
                 index = attributedListEndIndex;
@@ -136,7 +136,7 @@ public static partial class MarkdownReader {
                 && IsOrderedListLine(lines[k], options, out int lvlAbsO2, out _, out _, out _)
                 && lvlAbsO2 >= itemLevelAbs + 1) {
                 if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, new OrderedListParser(), out var orderedList, out var orderedEndIndex, out var orderedSyntaxNode)) {
-                    item.Children.Add(orderedList);
+                    item.NestedBlocks.Add(orderedList);
                     if (orderedSyntaxNode != null) {
                         item.SyntaxChildren.Add(orderedSyntaxNode);
                     } else {
@@ -155,7 +155,7 @@ public static partial class MarkdownReader {
                 && IsUnorderedListLine(lines[k], out int lvlAbsU2, out _, out _, out _)
                 && lvlAbsU2 >= itemLevelAbs + 1) {
                 if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, new UnorderedListParser(), out var unorderedList, out var unorderedEndIndex, out var unorderedSyntaxNode)) {
-                    item.Children.Add(unorderedList);
+                    item.NestedBlocks.Add(unorderedList);
                     if (unorderedSyntaxNode != null) {
                         item.SyntaxChildren.Add(unorderedSyntaxNode);
                     } else {
@@ -170,12 +170,12 @@ public static partial class MarkdownReader {
             tmp = k;
             if (TryParseTrailingParagraphsForListItem(lines, ref tmp, itemLevelAbs, continuationIndent, options, state, out var trailingParagraphs, out var trailingSyntaxNodes) && trailingParagraphs.Count > 0) {
                 foreach (var paragraph in trailingParagraphs) {
-                    item.Children.Add(paragraph);
+                    item.NestedBlocks.Add(paragraph);
                 }
                 for (int p = 0; p < trailingSyntaxNodes.Count; p++) {
                     item.SyntaxChildren.Add(trailingSyntaxNodes[p]);
                 }
-                if (sawBlankLine || item.Children.Count > 0) item.ForceLoose = true;
+                if (sawBlankLine || item.NestedBlocks.Count > 0) item.ForceLoose = true;
                 index = tmp;
                 continue;
             }
@@ -189,7 +189,7 @@ public static partial class MarkdownReader {
     private static bool IsStructurallyBlankListItem(ListItem item) {
         return item.Content.Nodes.Count == 0
                && item.AdditionalParagraphs.Count == 0
-               && item.Children.Count == 0;
+               && item.NestedBlocks.Count == 0;
     }
 
     private static bool TryParseNestedListBlock(

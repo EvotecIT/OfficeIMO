@@ -15,7 +15,8 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine($"Replaced: {replaced}");
                 Console.WriteLine("Embedded documents: " + document.EmbeddedDocuments.Count);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

@@ -94,7 +94,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void HtmlDirectRenderer_ProducesManifestedReviewProof() {
         const string linkUri = "https://example.com/pdf-conversion-manifest";
-        byte[] pdf = CreatePracticalHtmlSample(linkUri).ToPdf();
+        byte[] pdf = HtmlConversionDocument.Parse(CreatePracticalHtmlSample(linkUri)).ToPdf();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
@@ -120,15 +120,15 @@ public sealed class PdfConversionScenarioManifestTests {
             IncludeLinkAnnotations = true
         };
 
-        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
         string html = result.Value;
         byte[] activeContentPdf = CreatePdfToHtmlActiveContentProofPdf();
-        PdfHtmlConversionResult activeContentResult = PdfHtmlConverter.ToHtmlResult(activeContentPdf, new PdfHtmlSaveOptions {
+        PdfHtmlConversionResult activeContentResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfLogicalDocument.Load(activeContentPdf), new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.PositionedReview,
             IncludeLinkAnnotations = true
         });
         byte[] xfaPdf = CreateReaderXfaFormCorpusPdf();
-        PdfHtmlConversionResult xfaResult = PdfHtmlConverter.ToHtmlResult(xfaPdf, new PdfHtmlSaveOptions {
+        PdfHtmlConversionResult xfaResult = PdfHtmlConverterExtensions.ToHtmlResult(PdfCore.PdfLogicalDocument.Load(xfaPdf), new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.PositionedReview
         });
 
@@ -236,7 +236,7 @@ public sealed class PdfConversionScenarioManifestTests {
 
     [Fact]
     public void MarkdownInvoiceStatement_ProducesManifestedReviewProof() {
-        byte[] pdf = CreateInvoiceStatementMarkdown().ToPdfFromMarkdown(new MarkdownPdfSaveOptions {
+        byte[] pdf = OfficeIMO.Markdown.MarkdownReader.Parse(CreateInvoiceStatementMarkdown()).ToPdf(new MarkdownPdfSaveOptions {
             ApplyDefaultTheme = true,
             Title = "OfficeIMO invoice statement proof",
             Subject = "Invoice and statement conversion proof"
@@ -268,9 +268,7 @@ public sealed class PdfConversionScenarioManifestTests {
         };
         PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions);
-        RtfDocument imported = pdf.ToRtfDocumentFromPdf(new PdfRtfReadOptions {
-            LayoutOptions = layoutOptions
-        });
+        RtfDocument imported = logical.ToRtfDocument(new PdfRtfReadOptions());
         string importedRtf = imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
         string importedText = string.Join("\n", imported.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
 
@@ -734,12 +732,12 @@ public sealed class PdfConversionScenarioManifestTests {
             IncludeLinkAnnotations = true
         };
 
-        string html = PdfHtmlConverter.ToHtml(logical, options);
+        string html = PdfHtmlConverterExtensions.ToHtml(logical, options);
         PdfCore.PdfLogicalTableExtraction extraction = Assert.Single(PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical));
         PdfCore.PdfLogicalTableColumnProfile scoreProfile = Assert.Single(extraction.Data.ColumnProfiles, profile => profile.Name == "Score");
         PdfCore.PdfLogicalImage wideImage = Assert.Single(logical.Images, image => image.Width == 3 && image.Height == 2);
         PdfCore.PdfLogicalImage tallImage = Assert.Single(logical.Images, image => image.Width == 2 && image.Height == 3);
-        ReaderChunk readerChunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk readerChunk = Assert.Single(PdfReaderAdapter.Read(
             logical,
             sourceName: "pdf-logical-diagnostics-source.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }));
@@ -845,7 +843,7 @@ public sealed class PdfConversionScenarioManifestTests {
     public void PdfReaderPageChunks_DoNotRepeatDocumentCatalogActions() {
         byte[] pdf = CreateCatalogActionsMultiPagePdf();
 
-        List<ReaderChunk> pageChunks = DocumentReaderPdfExtensions.ReadPdf(
+        List<ReaderChunk> pageChunks = PdfReaderAdapter.Read(
             new MemoryStream(pdf, writable: false),
             sourceName: "pdf-catalog-actions-multipage.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
@@ -859,7 +857,7 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.True(chunk.Diagnostics.HasCatalogActions);
         });
 
-        ReaderChunk documentChunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk documentChunk = Assert.Single(PdfReaderAdapter.Read(
             new MemoryStream(pdf, writable: false),
             sourceName: "pdf-catalog-actions-multipage.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 },
@@ -876,7 +874,7 @@ public sealed class PdfConversionScenarioManifestTests {
             ForceSingleColumn = true
         });
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             new MemoryStream(pdf, writable: false),
             sourceName: "pdf-reader-degradation-corpus.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -932,7 +930,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.False(annotationAction.IsChainedAction);
         Assert.False(annotationAction.IsPotentiallyUnsafe);
 
-        OfficeDocumentReadResult readResult = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult readResult = PdfReaderAdapter.ReadDocument(
             logical,
             sourceName: "pdf-reader-degradation-corpus.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1013,12 +1011,12 @@ public sealed class PdfConversionScenarioManifestTests {
             IncludeLinkAnnotations = true
         };
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             logical,
             sourceName: "pdf-reader-hostile-action-corpus.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 },
             pdfOptions: new ReaderPdfOptions { ChunkByPage = false }).ToList());
-        PdfHtmlConversionResult htmlResult = PdfHtmlConverter.ToHtmlResult(logical, htmlOptions);
+        PdfHtmlConversionResult htmlResult = PdfHtmlConverterExtensions.ToHtmlResult(logical, htmlOptions);
 
         string text = chunk.Markdown ?? chunk.Text;
         Assert.Contains("Hostile Action Corpus", text, StringComparison.Ordinal);
@@ -1071,7 +1069,7 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.DoesNotContain("preview.mov", action.ActionType, StringComparison.OrdinalIgnoreCase);
         });
 
-        OfficeDocumentReadResult readResult = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult readResult = PdfReaderAdapter.ReadDocument(
             logical,
             sourceName: "pdf-reader-hostile-action-corpus.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1169,7 +1167,7 @@ public sealed class PdfConversionScenarioManifestTests {
             ForceSingleColumn = false
         });
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             new MemoryStream(pdf, writable: false),
             sourceName: "pdf-reader-hostile-layout-corpus.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
@@ -1248,7 +1246,7 @@ public sealed class PdfConversionScenarioManifestTests {
         });
         IReadOnlyList<PdfCore.PdfLogicalTableExtraction> extractions = PdfCore.PdfLogicalTableAnalysis.ExtractTables(logical);
 
-        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+        ReaderChunk chunk = Assert.Single(PdfReaderAdapter.Read(
             new MemoryStream(pdf, writable: false),
             sourceName: "pdf-reader-hostile-table-corpus.pdf",
             pdfOptions: new ReaderPdfOptions {
@@ -1296,7 +1294,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.True(table.Diagnostics.Confidence < 0.95D);
         Assert.Equal(ReaderTableColumnKind.Numeric, table.ColumnProfiles[2].Kind);
 
-        OfficeDocumentReadResult readResult = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult readResult = PdfReaderAdapter.ReadDocument(
             logical,
             sourceName: "pdf-reader-hostile-table-corpus.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1365,7 +1363,7 @@ public sealed class PdfConversionScenarioManifestTests {
     [Fact]
     public void PdfReaderOcrHandoffCorpus_ProducesManifestedReaderProof() {
         byte[] pdf = CreateReaderOcrHandoffCorpusPdf();
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "pdf-reader-ocr-handoff-corpus.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1522,7 +1520,7 @@ public sealed class PdfConversionScenarioManifestTests {
         byte[] pdf = CreateReaderXfaFormCorpusPdf();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
-        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+        OfficeDocumentReadResult result = PdfReaderAdapter.ReadDocument(
             new MemoryStream(pdf, writable: false),
             sourceName: "pdf-reader-xfa-form-corpus.pdf",
             readerOptions: new ReaderOptions { MaxChars = 8_000 });
@@ -1611,7 +1609,7 @@ public sealed class PdfConversionScenarioManifestTests {
                     : null)
         };
 
-        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(CreateCssResourcePolicyHtml(stylesheetUri)).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
         HtmlPdfResourcePolicySummary policy = options.GetResourcePolicySummary();
@@ -1646,7 +1644,7 @@ public sealed class PdfConversionScenarioManifestTests {
                     : null)
         };
 
-        PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(stylesheetUri).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = HtmlConversionDocument.Parse(CreateCssResourcePolicyHtml(stylesheetUri)).ToPdfDocumentResult(options);
         PdfCore.PdfDocumentConversionResult processed = result.Process(document => document.AppendMetadataRevision(title: "Processed HTML PDF"));
 
         Assert.True(result.HasWarnings);
@@ -1671,7 +1669,7 @@ public sealed class PdfConversionScenarioManifestTests {
         PdfCore.PdfDocumentPreflight readablePreflight = PdfCore.PdfInspector.Preflight(encrypted, readOptions);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(encrypted, readOptions);
         string text = PdfCore.PdfTextExtractor.ExtractAllText(encrypted, (PdfCore.PdfTextLayoutOptions?)null, readOptions);
-        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Open(encrypted, readOptions);
+        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Load(encrypted, readOptions);
         IReadOnlyList<PdfCore.PdfDocument> splitPages = opened.Pages.Split();
         byte[] extractedPage = Assert.Single(splitPages).ToBytes();
 
@@ -1723,28 +1721,22 @@ public sealed class PdfConversionScenarioManifestTests {
     public void HtmlPdfRoundTripProfiles_ProduceManifestedReviewProof() {
         const string linkUri = "https://example.com/html-pdf-roundtrip";
         var htmlOptions = new HtmlPdfSaveOptions();
-        PdfCore.PdfDocumentConversionResult htmlResult = CreatePracticalHtmlSample(linkUri).ToPdfDocumentResult(htmlOptions);
+        PdfCore.PdfDocumentConversionResult htmlResult = HtmlConversionDocument.Parse(CreatePracticalHtmlSample(linkUri)).ToPdfDocumentResult(htmlOptions);
         byte[] pdf = htmlResult.ToBytes();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         });
         var semanticOptions = new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.Semantic,
-            IncludeLinkAnnotations = true,
-            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                ForceSingleColumn = true
-            }
+            IncludeLinkAnnotations = true
         };
         var positionedOptions = new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.PositionedReview,
-            IncludeLinkAnnotations = true,
-            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                ForceSingleColumn = true
-            }
+            IncludeLinkAnnotations = true
         };
 
-        PdfHtmlConversionResult semantic = PdfHtmlConverter.ToHtmlResult(logical, semanticOptions);
-        PdfHtmlConversionResult positioned = PdfHtmlConverter.ToHtmlResult(logical, positionedOptions);
+        PdfHtmlConversionResult semantic = PdfHtmlConverterExtensions.ToHtmlResult(logical, semanticOptions);
+        PdfHtmlConversionResult positioned = PdfHtmlConverterExtensions.ToHtmlResult(logical, positionedOptions);
 
         Assert.True(pdf.Length > 0);
         Assert.True(logical.PageCount >= 2);
@@ -1811,7 +1803,7 @@ public sealed class PdfConversionScenarioManifestTests {
             IncludeLinkAnnotations = true
         };
 
-        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
 
         Assert.Contains("class=\"pdf-link\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", result.Value, StringComparison.Ordinal);
@@ -1834,7 +1826,7 @@ public sealed class PdfConversionScenarioManifestTests {
             IncludeLinkAnnotations = true
         };
 
-        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
+        PdfHtmlConversionResult result = PdfHtmlConverterExtensions.ToHtmlResult(logical, options);
 
         Assert.Contains(logical.GetLinksByDestinationPageNumber(2), link => link.Contents == "Jump to page two");
         Assert.Contains("data-destination-page-number=\"2\"", result.Value, StringComparison.Ordinal);
@@ -1859,80 +1851,64 @@ public sealed class PdfConversionScenarioManifestTests {
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {
             ForceSingleColumn = true
         };
+        PdfCore.PdfLogicalDocument logicalDocument = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions);
 
-        using var wordStream = new MemoryStream();
-        IReadOnlyList<PdfWordTableImportResult> wordResults = PdfWordTableConverterExtensions.SaveAsWordFromPdfTables(
-            pdf,
-            wordStream,
-            new PdfWordTableImportOptions {
-                LayoutOptions = layoutOptions
-            });
         using var semanticWordStream = new MemoryStream();
-        var semanticWordOptions = new PdfWordReadOptions {
-            LayoutOptions = layoutOptions
-        };
-        PdfWordConversionResult semanticWordResult = pdf.ToWordDocumentFromPdfResult(semanticWordOptions);
+        var semanticWordOptions = new PdfWordReadOptions();
+        PdfWordConversionResult semanticWordResult = logicalDocument.ToWordDocumentResult(semanticWordOptions);
         using (OfficeIMO.Word.WordDocument semanticWordDocument = semanticWordResult.Value) {
             semanticWordDocument.Save(semanticWordStream);
         }
 
         using var excelStream = new MemoryStream();
-        IReadOnlyList<PdfExcelTableImportResult> excelResults = PdfExcelTableConverterExtensions.SaveAsExcelFromPdfTables(
-            pdf,
+        PdfExcelConversionReport excelReport = PdfExcelTableConverterExtensions.SaveAsExcel(
+            logicalDocument,
             excelStream,
             new PdfExcelTableImportOptions {
-                LayoutOptions = layoutOptions,
                 AutoFitColumns = false
             });
 
         using var powerPointStream = new MemoryStream();
-        IReadOnlyList<PdfPowerPointTableImportResult> powerPointResults = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
-            pdf,
+        PdfPowerPointConversionReport powerPointReport = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
+            logicalDocument,
             powerPointStream,
-            new PdfPowerPointTableImportOptions {
-                LayoutOptions = layoutOptions
-            });
+            new PdfPowerPointTableImportOptions());
 
-        PdfWordTableImportResult wordResult = Assert.Single(wordResults);
-        PdfExcelTableImportResult excelResult = Assert.Single(excelResults);
-        PdfPowerPointTableImportResult powerPointResult = Assert.Single(powerPointResults);
+        PdfExcelTableImportEntry excelResult = Assert.Single(excelReport.Entries);
+        PdfPowerPointTableImportEntry powerPointResult = Assert.Single(powerPointReport.Entries);
 
-        Assert.Equal(3, wordResult.ColumnCount);
         Assert.Equal(3, excelResult.ColumnCount);
         Assert.Equal(3, powerPointResult.ColumnCount);
-        Assert.Equal(2, wordResult.RowCount);
         Assert.Equal(2, excelResult.RowCount);
         Assert.Equal(2, powerPointResult.RowCount);
-        Assert.True(wordStream.Length > 0);
         Assert.True(semanticWordStream.Length > 0);
         Assert.True(excelStream.Length > 0);
         Assert.True(powerPointStream.Length > 0);
         using (WordprocessingDocument semanticWordPackage = WordprocessingDocument.Open(new MemoryStream(semanticWordStream.ToArray()), false)) {
             Assert.Single(semanticWordPackage.MainDocumentPart!.ImageParts);
             Body body = semanticWordPackage.MainDocumentPart.Document.Body!;
+            Assert.NotEmpty(body.Descendants<Table>());
             Hyperlink internalLink = Assert.Single(body.Descendants<Hyperlink>(), link => !string.IsNullOrWhiteSpace(link.Anchor?.Value));
             string anchor = Assert.IsType<string>(internalLink.Anchor?.Value);
             Assert.StartsWith("OfficeIMO_Pdf_Dest_Details", anchor, StringComparison.Ordinal);
             Assert.Contains(body.Descendants<BookmarkStart>(), bookmark => bookmark.Name?.Value == anchor);
         }
 
-        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfImageEmbedded");
-        Assert.DoesNotContain(semanticWordResult.Warnings, warning => warning.Code == "PdfImagePlaceholder");
-        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
-        Assert.Contains(semanticWordResult.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
-        Assert.DoesNotContain(semanticWordResult.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
+        Assert.Contains(semanticWordResult.Report.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(semanticWordResult.Report.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.Contains(semanticWordResult.Report.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(semanticWordResult.Report.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
+        Assert.DoesNotContain(semanticWordResult.Report.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
 
         var summary = new {
             scenario = "pdf-table-import-editable-office",
-            semanticWordWarningCodes = semanticWordResult.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray(),
-            tableWord = wordResult,
+            semanticWordWarningCodes = semanticWordResult.Report.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray(),
             excel = excelResult,
             powerPoint = powerPointResult
         };
 
         WriteReviewArtifact("pdf-table-import-source.pdf", pdf);
         WriteReviewArtifact("pdf-semantic-import-word.docx", semanticWordStream.ToArray());
-        WriteReviewArtifact("pdf-table-import-word.docx", wordStream.ToArray());
         WriteReviewArtifact("pdf-table-import-excel.xlsx", excelStream.ToArray());
         WriteReviewArtifact("pdf-table-import-powerpoint.pptx", powerPointStream.ToArray());
         WriteReviewArtifact("pdf-table-import-editable-office-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));

@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ObjectFlattenerApplyOrderingPreservesPinsPrioritiesAndDiscoveryOrder() {
+        public void ObjectFlattenerResolvePathsPreservesPinsPrioritiesAndDiscoveryOrder() {
             var input = new List<string> {
                 "Id",
                 "Details.Score",
@@ -42,7 +42,7 @@ namespace OfficeIMO.Tests {
                 .PriorityOrder("Status", "Score")
                 .PinLast("Notes");
 
-            var ordered = ObjectFlattener.ApplyOrdering(input, opts);
+            var ordered = new ObjectFlattener().ResolvePaths(input, opts);
 
             Assert.Equal(new[] {
                 "Name",
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ObjectFlattenerApplySelectionCombinesIgnoreExcludeAndInclude() {
+        public void ObjectFlattenerResolvePathsCombinesIgnoreExcludeAndInclude() {
             var input = new List<string> {
                 "Id",
                 "Details.Score",
@@ -70,7 +70,7 @@ namespace OfficeIMO.Tests {
                 ExcludeProperties = new[] { "Secret" }
             };
 
-            var selected = ObjectFlattener.ApplySelection(input, opts);
+            var selected = new ObjectFlattener().ResolvePaths(input, opts);
 
             Assert.Equal(new[] {
                 "Id",

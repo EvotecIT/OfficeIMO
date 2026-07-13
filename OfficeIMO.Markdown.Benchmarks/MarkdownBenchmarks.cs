@@ -67,16 +67,16 @@ public class MarkdownHtmlBenchmarks {
     }
 
     [Benchmark(Baseline = true)]
-    public string OfficeIMO_ToHtml_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions).ToHtml();
+    public string OfficeIMO_ToHtml_CommonMark() => MarkdownReader.Parse(_markdown, _commonMarkOptions).ToHtmlFragment();
 
     [Benchmark]
     public string Markdig_ToHtml_CommonMark() => Markdig.Markdown.ToHtml(_markdown, MarkdigCommonMarkPipeline);
 
     [Benchmark]
-    public string OfficeIMO_ToHtml_Default() => MarkdownReader.Parse(_markdown).ToHtml();
+    public string OfficeIMO_ToHtml_Default() => MarkdownReader.Parse(_markdown).ToHtmlFragment();
 
     [Benchmark]
-    public string OfficeIMO_ToHtml_Portable() => MarkdownReader.Parse(_markdown, _portableOptions).ToHtml();
+    public string OfficeIMO_ToHtml_Portable() => MarkdownReader.Parse(_markdown, _portableOptions).ToHtmlFragment();
 }
 
 [MemoryDiagnoser]

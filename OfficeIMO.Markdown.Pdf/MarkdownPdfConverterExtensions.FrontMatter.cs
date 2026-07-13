@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderFrontMatter(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+    private static void RenderFrontMatter(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
         if (frontMatter.Entries.Count == 0) {
             return;
         }
@@ -31,7 +31,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderFrontMatterTable(pdf, frontMatter, visualTheme);
     }
 
-    private static bool RenderFrontMatterDocumentHeader(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownPdfVisualTheme visualTheme) {
+    private static bool RenderFrontMatterDocumentHeader(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownDoc document, MarkdownPdfStyle visualTheme) {
         string? title = GetFrontMatterMetadata(frontMatter, "title");
         if (title == null) {
             return false;
@@ -92,7 +92,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return true;
     }
 
-    private static void RenderFrontMatterTable(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownPdfVisualTheme visualTheme) {
+    private static void RenderFrontMatterTable(PdfCore.PdfDocument pdf, FrontMatterBlock frontMatter, MarkdownPdfStyle visualTheme) {
         var rows = new List<PdfCore.PdfKeyValueRow>();
         for (int i = 0; i < frontMatter.Entries.Count; i++) {
             rows.Add(PdfCore.PdfKeyValueRow.Text(frontMatter.Entries[i].Key, ConvertMetadataValue(frontMatter.Entries[i].Value)));

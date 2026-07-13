@@ -234,11 +234,11 @@ namespace OfficeIMO.Examples.Word {
                 File.WriteAllText(sourcePath, scenario.Value, Encoding.UTF8);
 
                 HtmlToWordOptions options = HtmlToWordOptions.CreateUntrustedHtmlProfile();
-                HtmlToWordResult conversion = scenario.Value.ToWordDocumentResult(options);
+                HtmlToWordResult conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Value).ToWordDocumentResult(options);
                 using WordDocument document = conversion.RequireValue();
                 document.Save(docxPath);
                 File.WriteAllText(roundTripPath, document.ToHtml(new WordToHtmlOptions { IncludeDefaultCss = true }), Encoding.UTF8);
-                WriteHtmlDiagnostics(diagnosticsPath, conversion.Diagnostics);
+                WriteHtmlDiagnostics(diagnosticsPath, conversion.Report.Diagnostics);
             }
 
             WriteValidationReport(scenarioPath);
@@ -266,7 +266,7 @@ namespace OfficeIMO.Examples.Word {
                     OnWarning = warnings.Add,
                     PreferNarrativeSingleLineDefinitions = true
                 };
-                using WordDocument document = scenario.Value.LoadFromMarkdown(toWordOptions);
+                using WordDocument document = OfficeIMO.Markdown.MarkdownReader.Parse(scenario.Value, toWordOptions.CreateReaderOptions()).ToWordDocument(toWordOptions);
                 document.Save(docxPath);
 
                 var toMarkdownOptions = new WordToMarkdownOptions {

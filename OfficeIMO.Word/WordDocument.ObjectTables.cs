@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using DocumentFormat.OpenXml.Wordprocessing;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {

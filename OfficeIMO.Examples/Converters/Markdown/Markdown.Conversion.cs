@@ -10,7 +10,7 @@ namespace OfficeIMO.Examples.Markdown {
             string markdown = "# Heading 1\n\nHello **world** and *universe*.";
 
             // Convert Markdown to Word document
-            var doc = markdown.LoadFromMarkdown(new MarkdownToWordOptions { FontFamily = "Calibri" });
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions { FontFamily = "Calibri" });
             
             // Save the Word document
             doc.Save(filePath);

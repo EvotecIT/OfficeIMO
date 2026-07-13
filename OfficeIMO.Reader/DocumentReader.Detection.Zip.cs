@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private const uint ZipCentralDirectoryHeaderSignature = 0x02014B50U;
     private const uint ZipEndOfCentralDirectorySignature = 0x06054B50U;
     private const uint ZipLocalHeaderSignature = 0x04034B50U;

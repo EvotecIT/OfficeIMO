@@ -18,7 +18,7 @@ public sealed class ReaderDetectionTests {
         using var stream = new MemoryStream(bytes, writable: false);
         stream.Position = 6;
 
-        ReaderDetectionResult detection = DocumentReader.Detect(
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
             stream,
             "report.txt",
             new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent });
@@ -37,7 +37,7 @@ public sealed class ReaderDetectionTests {
     public void DocumentReader_Detect_ContentWhenUnknownDoesNotProbeKnownExtension() {
         byte[] bytes = Encoding.ASCII.GetBytes("%PDF-1.7\nbody");
 
-        ReaderDetectionResult detection = DocumentReader.Detect(
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
             bytes,
             "report.txt",
             new ReaderDetectionOptions { Mode = ReaderDetectionMode.ContentWhenUnknown });
@@ -86,7 +86,7 @@ public sealed class ReaderDetectionTests {
         File.WriteAllBytes(path, package.ToArray());
 
         try {
-            ReaderDetectionResult detection = DocumentReader.Detect(path);
+            ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(path);
 
             Assert.Equal(ReaderInputKind.Unknown, detection.ExtensionKind);
             Assert.Equal(ReaderInputKind.Word, detection.ContentKind);
@@ -107,7 +107,7 @@ public sealed class ReaderDetectionTests {
             document.Save();
         }
 
-        ReaderDetectionResult detection = await DocumentReader.DetectAsync(package.ToArray(), "document.blob");
+        ReaderDetectionResult detection = await OfficeDocumentReader.Default.DetectAsync(package.ToArray(), "document.blob");
 
         Assert.Equal(ReaderInputKind.Word, detection.Kind);
         Assert.Equal(ReaderDetectionConfidence.High, detection.Confidence);
@@ -122,7 +122,7 @@ public sealed class ReaderDetectionTests {
             ("word/document.xml", "<document />"));
         Assert.NotEqual(0, BitConverter.ToUInt16(package, 6) & 0x0008);
 
-        ReaderDetectionResult detection = DocumentReader.Detect(package, "document.blob");
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(package, "document.blob");
 
         Assert.Equal(ReaderInputKind.Word, detection.Kind);
         Assert.Equal(ReaderDetectionConfidence.High, detection.Confidence);
@@ -135,7 +135,7 @@ public sealed class ReaderDetectionTests {
             ("notes.txt", "payload mentions word/document.xml but is not an Office package"),
             ("prefixword/document.xmlsuffix", "partial entry-name match"));
 
-        ReaderDetectionResult detection = await DocumentReader.DetectAsync(package, "document.blob");
+        ReaderDetectionResult detection = await OfficeDocumentReader.Default.DetectAsync(package, "document.blob");
 
         Assert.Equal(ReaderInputKind.Zip, detection.Kind);
         Assert.Equal(ReaderInputKind.Zip, detection.ContentKind);
@@ -148,7 +148,7 @@ public sealed class ReaderDetectionTests {
             .Concat(Encoding.Unicode.GetBytes("{\"name\":\"OfficeIMO\"}"))
             .ToArray();
 
-        ReaderDetectionResult detection = DocumentReader.Detect(bytes, "document.blob");
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(bytes, "document.blob");
 
         Assert.Equal(ReaderInputKind.Json, detection.Kind);
         Assert.Equal("application/json", detection.MediaType);
@@ -161,7 +161,7 @@ public sealed class ReaderDetectionTests {
     [InlineData("document.xml", "application/xml")]
     [InlineData("document.yaml", "application/yaml")]
     public void DocumentReader_Detect_PreservesExtensionSpecificMediaTypes(string sourceName, string expectedMediaType) {
-        ReaderDetectionResult detection = DocumentReader.Detect(
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(
             Array.Empty<byte>(),
             sourceName,
             new ReaderDetectionOptions { Mode = ReaderDetectionMode.ExtensionOnly });
@@ -176,7 +176,7 @@ public sealed class ReaderDetectionTests {
         File.WriteAllBytes(path, new byte[257]);
 
         try {
-            IOException exception = Assert.Throws<IOException>(() => DocumentReader.ReadDocument(
+            IOException exception = Assert.Throws<IOException>(() => OfficeDocumentReader.Default.ReadDocument(
                 path,
                 new ReaderOptions {
                     DetectionMode = ReaderDetectionMode.PreferContent,
@@ -232,7 +232,7 @@ public sealed class ReaderDetectionTests {
         File.WriteAllText(path, "# Detected Markdown\n\nBody");
 
         try {
-            OfficeDocumentReadResult result = DocumentReader.ReadDocument(
+            OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(
                 path,
                 new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
 
@@ -263,7 +263,7 @@ public sealed class ReaderDetectionTests {
         File.WriteAllText(path, "# Detected Markdown\n\nBody");
 
         try {
-            OfficeDocumentReadResult result = DocumentReader.ReadDocument(path);
+            OfficeDocumentReadResult result = OfficeDocumentReader.Default.ReadDocument(path);
 
             Assert.Equal(ReaderInputKind.Markdown, result.Kind);
             OfficeDocumentDiagnostic diagnostic = Assert.Single(

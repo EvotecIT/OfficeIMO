@@ -24,7 +24,7 @@ public class RtfHtmlParagraphFrameTests {
 
         Assert.Contains("data-officeimo-rtf-paragraph-frame=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
         Assert.Equal(2, roundTrip.Paragraphs.Count);
         RtfParagraph framed = roundTrip.Paragraphs[0];
         AssertFrame(
@@ -72,7 +72,7 @@ public class RtfHtmlParagraphFrameTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-styles\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
         RtfStyle roundTripStyle = Assert.Single(roundTrip.Styles);
         Assert.Equal(style.Id, roundTripStyle.Id);
         AssertFrame(

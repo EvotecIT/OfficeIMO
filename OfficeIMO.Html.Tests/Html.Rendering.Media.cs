@@ -13,12 +13,12 @@ public sealed partial class HtmlRenderingTests {
             + "@media (min-width:350px) and (max-width:450px){.target{color:#008000}}"
             + "</style><p class='target'>Media marker</p>";
 
-        HtmlRenderDocument medium = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument medium = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 400D,
             ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
-        HtmlRenderDocument wide = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument wide = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 800D,
             ViewportHeight = 600D,
             Margins = HtmlRenderMargins.All(0D)
@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
     [Fact]
     public void HtmlRender_MediaLengthsUseTheActivePagedSurface() {
         const string html = "<style>.target{color:#0000ff}@media print and (max-width:300px){.target{color:#ff0000}}</style><p class='target'>Paged media</p>";
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(4D, 3D),
             HonorCssPageRules = false,

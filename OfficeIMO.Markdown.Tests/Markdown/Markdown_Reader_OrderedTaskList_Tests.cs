@@ -10,7 +10,7 @@ public class Markdown_Reader_OrderedTaskList_Tests {
 1. [ ] Todo
 2. [x] Done
 """;
-        var doc = MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<ol", html, StringComparison.Ordinal);
@@ -26,7 +26,7 @@ public class Markdown_Reader_OrderedTaskList_Tests {
     public void Ordered_Task_List_Markers_Require_Boundary_Whitespace_And_Support_Uppercase_X() {
         var md = "1. [X]\tUpper\n2. [ ]   Open\n3. [x]tight\n";
 
-        var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
 
         Assert.Collection(
@@ -59,7 +59,7 @@ public class Markdown_Reader_OrderedTaskList_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.ListExtras = true;
 
-        var doc = MarkdownReader.Parse(md, options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
         var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
         var item = Assert.Single(list.Items);
 

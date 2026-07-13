@@ -13,7 +13,7 @@ public sealed class PowerPointHtmlCapabilityGalleryOptions {
     public string Title { get; set; } = "PowerPoint Rich Presentation";
 
     /// <summary>Theme applied to generated HTML artifacts.</summary>
-    public OfficeHtmlDocumentThemeKind Theme { get; set; } = OfficeHtmlDocumentThemeKind.Report;
+    public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.Report;
 
     /// <summary>When true, hidden slides are included.</summary>
     public bool IncludeHiddenSlides { get; set; }

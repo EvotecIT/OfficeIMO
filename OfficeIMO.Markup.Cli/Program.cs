@@ -9,6 +9,7 @@ using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
 using OfficeIMO.Markup.PowerPoint;
 using OfficeIMO.Markup.Word;
+using OfficeIMO.Excel;
 
 internal static class Program {
     private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions {
@@ -120,8 +121,7 @@ internal static class Program {
 
                 outputPath = NormalizeWritableFilePath(outputPath);
 
-                new OfficeMarkupPowerPointExporter().Export(result.Document, new OfficeMarkupPowerPointExportOptions {
-                    OutputPath = outputPath!,
+                result.Document.SaveAsPowerPoint(outputPath!, new MarkupToPowerPointOptions {
                     BaseDirectory = inputPath == null
                         ? Directory.GetCurrentDirectory()
                         : Path.GetDirectoryName(inputPath),
@@ -140,8 +140,7 @@ internal static class Program {
 
                 workbookOutputPath = NormalizeWritableFilePath(workbookOutputPath);
 
-                new OfficeMarkupExcelExporter().Export(result.Document, new OfficeMarkupExcelExportOptions {
-                    OutputPath = workbookOutputPath!,
+                result.Document.SaveAsExcel(workbookOutputPath!, saveOptions: new ExcelSaveOptions {
                     SafePreflight = options.WorkbookSafePreflight,
                     ValidateOpenXml = options.WorkbookValidateOpenXml,
                     SafeRepairDefinedNames = options.WorkbookRepairDefinedNames
@@ -159,8 +158,7 @@ internal static class Program {
 
                 documentOutputPath = NormalizeWritableFilePath(documentOutputPath);
 
-                new OfficeMarkupWordExporter().Export(result.Document, new OfficeMarkupWordExportOptions {
-                    OutputPath = documentOutputPath!,
+                result.Document.SaveAsWord(documentOutputPath!, new MarkupToWordOptions {
                     BaseDirectory = documentInputPath == null
                         ? Environment.CurrentDirectory
                         : Path.GetDirectoryName(documentInputPath)

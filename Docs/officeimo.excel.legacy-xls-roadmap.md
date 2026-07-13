@@ -107,7 +107,8 @@ Use `load.AdvancedWorkbook` and `load.CreateAdvancedImportReport()` for corpus-g
 | `WasLoadedFromLegacyXls` | `SourceFormat == ExcelFileFormat.Xls` |
 | `MaxWorkbookStreamBytes` | `MaxInputBytes` |
 | `ReportUnsupportedRecords` | `ReportUnsupportedContent` |
-| overwrite/open conversion Booleans | `FileConflictPolicy` and `OpenAfterSave` |
+| overwrite conversion Boolean | `FileConflictPolicy` |
+| save-triggered application launch | Call `OpenInApplication(path)` explicitly after a successful save |
 | lossy conversion/save Boolean | `LossPolicy` |
 | implicit stream format option | `Save(stream, ExcelFileFormat, options)` or `ToXlsx/ToXls` |
 

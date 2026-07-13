@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Severity assigned to a deck preflight finding.</summary>
@@ -164,7 +165,7 @@ namespace OfficeIMO.PowerPoint {
                 Directory.CreateDirectory(directory!);
             }
 
-            File.WriteAllText(fullPath, ToJson(indented), new UTF8Encoding(encoderShouldEmitUTF8Identifier: false));
+            OfficeFileCommit.WriteAllBytes(fullPath, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false).GetBytes(ToJson(indented)));
         }
 
         private int Count(PowerPointDeckPreflightSeverity severity) {

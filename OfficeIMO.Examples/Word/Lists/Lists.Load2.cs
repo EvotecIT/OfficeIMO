@@ -51,7 +51,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("+ List element 0 text: " + document.Lists[0].ListItems[0].Text);
                 Console.WriteLine("+ List element 1 text: " + document.Lists[0].ListItems[1].Text);
                 Console.WriteLine("+ List element 2 text: " + document.Lists[0].ListItems[2].Text);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

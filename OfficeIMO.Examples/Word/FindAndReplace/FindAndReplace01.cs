@@ -55,7 +55,8 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine(document.Paragraphs[0].Text == "Production Section" ? "OK" : "FAIL");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Html;
 using System.Collections.Generic;
@@ -26,7 +27,7 @@ namespace OfficeIMO.Word.Markdown {
                 var htmlOptions = HtmlToMarkdownOptions.CreateOfficeIMOProfile();
                 htmlOptions.PreserveUnsupportedBlocks = false;
                 htmlOptions.PreserveUnsupportedInlineHtml = false;
-                htmlDocument = html.ToMarkdownDocument(htmlOptions);
+                htmlDocument = HtmlConversionDocument.Parse(html).ToMarkdownDocument(htmlOptions);
             } catch {
                 return false;
             }
@@ -212,12 +213,12 @@ namespace OfficeIMO.Word.Markdown {
             int quoteDepth,
             double pageContentWidthPixels,
             Omd.ColumnAlignment alignment) {
-            if (tableCell == null || tableCell.Blocks.Count == 0) {
+            if (tableCell == null || tableCell.ChildBlocks.Count == 0) {
                 return;
             }
 
             var host = new TableCellWordBlockRenderHost(wordCell);
-            RenderSharedBlocksOmd(tableCell.Blocks, host, options, document, quoteDepth: quoteDepth, pageContentWidthPixels: pageContentWidthPixels, alignment: alignment);
+            RenderSharedBlocksOmd(tableCell.ChildBlocks, host, options, document, quoteDepth: quoteDepth, pageContentWidthPixels: pageContentWidthPixels, alignment: alignment);
         }
 
         private void RenderSharedBlocksOmd(
@@ -325,7 +326,7 @@ namespace OfficeIMO.Word.Markdown {
                     var alignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : Omd.ColumnAlignment.None;
                     var cellHost = new TableCellWordBlockRenderHost(wordTable.Rows[rowIndex].Cells[columnIndex]);
                     RenderSharedBlocksOmd(
-                        headerCells[columnIndex].Blocks,
+                        headerCells[columnIndex].ChildBlocks,
                         cellHost,
                         options,
                         document,
@@ -342,7 +343,7 @@ namespace OfficeIMO.Word.Markdown {
                     var alignment = columnIndex < table.Alignments.Count ? table.Alignments[columnIndex] : Omd.ColumnAlignment.None;
                     var cellHost = new TableCellWordBlockRenderHost(wordTable.Rows[rowIndex].Cells[columnIndex]);
                     RenderSharedBlocksOmd(
-                        row[columnIndex].Blocks,
+                        row[columnIndex].ChildBlocks,
                         cellHost,
                         options,
                         document,
@@ -366,7 +367,7 @@ namespace OfficeIMO.Word.Markdown {
             Omd.ColumnAlignment alignment) {
             var titleParagraph = host.CreateParagraph();
             ApplyBlockParagraphFormatting(titleParagraph, quoteDepth, alignment);
-            if (callout.TitleInlines != null && (callout.TitleInlines.Items?.Count ?? 0) > 0) {
+            if (callout.TitleInlines != null && callout.TitleInlines.Nodes.Count > 0) {
                 ProcessInlinesOmd(callout.TitleInlines, titleParagraph, options, document, _currentFootnotes);
                 foreach (var run in titleParagraph.GetRuns()) {
                     run.SetBold();

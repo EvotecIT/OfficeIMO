@@ -16,7 +16,7 @@ dotnet add package OfficeIMO.Epub
 ```csharp
 using OfficeIMO.Epub;
 
-EpubDocument book = EpubReader.Read("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
     PreferSpineOrder = true,
     IncludeRawHtml = false,
     MaxChapters = 100
@@ -37,7 +37,7 @@ foreach (string warning in book.Warnings) {
 ### Inspect bounded manifest resources
 
 ```csharp
-EpubDocument book = EpubReader.Read("book.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("book.epub", new EpubReadOptions {
     IncludeResourceData = true,
     MaxResources = 500,
     MaxResourceBytes = 4L * 1024L * 1024L,
@@ -68,7 +68,7 @@ Manifest metadata is returned even when payload loading is disabled. Payload inc
 ```csharp
 using OfficeIMO.Epub;
 
-EpubDocument book = EpubReader.Read("handbook.epub", new EpubReadOptions {
+EpubDocument book = EpubDocument.Load("handbook.epub", new EpubReadOptions {
     PreferSpineOrder = true,
     IncludeNonLinearSpineItems = false,
     MaxChapters = 50
@@ -88,7 +88,7 @@ foreach (var chapter in book.Chapters) {
 ```csharp
 using OfficeIMO.Epub;
 
-var book = EpubReader.Read("book.epub", new EpubReadOptions {
+var book = EpubDocument.Load("book.epub", new EpubReadOptions {
     IncludeRawHtml = true,
     MaxChapterBytes = 2L * 1024L * 1024L
 });
@@ -110,7 +110,7 @@ foreach (var chapter in book.Chapters) {
 using OfficeIMO.Epub;
 
 await using var stream = File.OpenRead("upload.epub");
-EpubDocument book = EpubReader.Read(stream, new EpubReadOptions {
+EpubDocument book = EpubDocument.Load(stream, new EpubReadOptions {
     FallbackToHtmlScan = true,
     DeterministicOrder = true
 });

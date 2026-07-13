@@ -16,7 +16,8 @@ namespace OfficeIMO.Examples.Word {
                 numbers.AddItem("First");
                 numbers.AddItem("Second");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

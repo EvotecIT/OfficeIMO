@@ -6,32 +6,37 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Canonical OfficeIMO HTML conversion document shared by target adapters.
 /// </summary>
-public sealed class HtmlConversionDocument {
+public sealed partial class HtmlConversionDocument {
+    private readonly IHtmlDocument _sourceDocumentForConversion;
+    private readonly IHtmlDocument _defaultDocumentForConversion;
+
     internal HtmlConversionDocument(
         string sourceHtml,
-        IHtmlDocument sourceDocument,
+        IHtmlDocument sourceDocumentForConversion,
         IHtmlDocument adapterDocument,
         IHtmlDocument documentForConversion,
         HtmlConversionProfileContract profileContract,
         HtmlInputTrust trust,
         HtmlLogicalDocument logicalDocument,
-        IReadOnlyDictionary<IElement, HtmlComputedStyle> computedStyles,
         HtmlComputedStyleSummary styleSummary,
         HtmlResourceManifest resourceManifest,
         HtmlResourceDependencyPlan resourcePlan,
+        Uri? baseUri,
+        Uri? fallbackBaseUri,
         string normalizedHtml,
         string adapterHtml) {
         SourceHtml = sourceHtml ?? throw new ArgumentNullException(nameof(sourceHtml));
-        SourceDocument = sourceDocument ?? throw new ArgumentNullException(nameof(sourceDocument));
+        _sourceDocumentForConversion = sourceDocumentForConversion ?? throw new ArgumentNullException(nameof(sourceDocumentForConversion));
         AdapterDocument = adapterDocument ?? throw new ArgumentNullException(nameof(adapterDocument));
-        DocumentForConversion = documentForConversion ?? throw new ArgumentNullException(nameof(documentForConversion));
+        _defaultDocumentForConversion = documentForConversion ?? throw new ArgumentNullException(nameof(documentForConversion));
         ProfileContract = profileContract ?? throw new ArgumentNullException(nameof(profileContract));
         Trust = trust;
         LogicalDocument = logicalDocument ?? throw new ArgumentNullException(nameof(logicalDocument));
-        ComputedStyles = computedStyles ?? throw new ArgumentNullException(nameof(computedStyles));
         StyleSummary = styleSummary ?? throw new ArgumentNullException(nameof(styleSummary));
         ResourceManifest = resourceManifest ?? throw new ArgumentNullException(nameof(resourceManifest));
         ResourcePlan = resourcePlan ?? throw new ArgumentNullException(nameof(resourcePlan));
+        BaseUri = baseUri;
+        FallbackBaseUri = fallbackBaseUri;
         NormalizedHtml = normalizedHtml ?? string.Empty;
         AdapterHtml = adapterHtml ?? string.Empty;
     }
@@ -39,13 +44,12 @@ public sealed class HtmlConversionDocument {
     /// <summary>Original HTML supplied by the caller.</summary>
     public string SourceHtml { get; }
 
-    /// <summary>Parsed source DOM used by logical, style, and resource analysis.</summary>
-    public IHtmlDocument SourceDocument { get; }
-
-    /// <summary>Policy-normalized DOM filtered for the conversion profile's default media context.</summary>
-    public IHtmlDocument DocumentForConversion { get; }
-
     private IHtmlDocument AdapterDocument { get; }
+
+    /// <summary>
+    /// Creates an independent policy-normalized DOM for the conversion profile's default media context.
+    /// </summary>
+    public IHtmlDocument CreateDocumentForConversion() => HtmlDocumentParser.CloneDocument(_defaultDocumentForConversion);
 
     /// <summary>
     /// Creates a policy-normalized DOM filtered for a target media context without reparsing source HTML or mutating shared state.
@@ -58,6 +62,20 @@ public sealed class HtmlConversionDocument {
         return document;
     }
 
+    /// <summary>
+    /// Creates an independent clone of the canonical source DOM for adapters that must apply
+    /// their own element filters before URL resolution. Parsing remains owned by OfficeIMO.Html.
+    /// </summary>
+    internal IHtmlDocument CreateSourceDocumentForConversion() =>
+        HtmlDocumentParser.CloneDocument(_sourceDocumentForConversion);
+
+    /// <summary>
+    /// Creates an unfiltered policy-normalized DOM for renderers that evaluate media queries
+    /// against their concrete viewport or page dimensions.
+    /// </summary>
+    internal IHtmlDocument CreateDocumentForRendering() =>
+        HtmlDocumentParser.CloneDocument(AdapterDocument);
+
     /// <summary>Profile contract advertised to target adapters and galleries.</summary>
     public HtmlConversionProfileContract ProfileContract { get; }
 
@@ -67,9 +85,6 @@ public sealed class HtmlConversionDocument {
     /// <summary>Normalized logical structure used for semantic scoring and adapter planning.</summary>
     public HtmlLogicalDocument LogicalDocument { get; }
 
-    /// <summary>Computed styles keyed by parsed source elements.</summary>
-    public IReadOnlyDictionary<IElement, HtmlComputedStyle> ComputedStyles { get; }
-
     /// <summary>Compact computed-style capability summary.</summary>
     public HtmlComputedStyleSummary StyleSummary { get; }
 
@@ -78,6 +93,12 @@ public sealed class HtmlConversionDocument {
 
     /// <summary>Resource dependency plan grouped for adapters, reports, and gallery manifests.</summary>
     public HtmlResourceDependencyPlan ResourcePlan { get; }
+
+    /// <summary>Effective base URI used to resolve relative resources, including a document <c>base</c> element when present.</summary>
+    public Uri? BaseUri { get; }
+
+    /// <summary>Caller-provided page URI before a document <c>base</c> element is applied.</summary>
+    internal Uri? FallbackBaseUri { get; }
 
     /// <summary>Policy-aware normalized HTML, or an empty string when normalization was disabled.</summary>
     public string NormalizedHtml { get; }

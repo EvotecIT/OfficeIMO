@@ -138,7 +138,7 @@ public class RtfNestedTableTests {
     public void Html_Reader_Preserves_Nested_Table_And_Following_Outer_Cell_Content() {
         const string html = "<table><tr><td><p>Outer before</p><table><tr><td>Inner A</td><td>Inner B</td></tr></table><p>Outer after</p></td></tr></table>";
 
-        RtfDocument document = html.ToRtfDocument();
+        RtfDocument document = HtmlConversionDocument.Parse(html).ToRtfDocument();
 
         RtfTable outer = Assert.IsType<RtfTable>(Assert.Single(document.Blocks));
         RtfTableCell outerCell = Assert.Single(Assert.Single(outer.Rows).Cells);

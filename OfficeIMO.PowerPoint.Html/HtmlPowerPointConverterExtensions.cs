@@ -11,14 +11,6 @@ namespace OfficeIMO.PowerPoint.Html;
 /// </summary>
 public static partial class HtmlPowerPointConverterExtensions {
     /// <summary>
-    /// Imports semantic OfficeIMO PowerPoint HTML into a native presentation.
-    /// </summary>
-    /// <example><code>using PowerPointPresentation presentation = html.ToPowerPointPresentation();</code></example>
-    public static PptCore.PowerPointPresentation ToPowerPointPresentation(this string html, HtmlToPowerPointOptions? options = null) {
-        return GetPresentationOrThrow(ToPowerPointPresentationResult(html, options));
-    }
-
-    /// <summary>
     /// Imports a prepared shared HTML conversion document without reparsing its adapter DOM.
     /// </summary>
     public static PptCore.PowerPointPresentation ToPowerPointPresentation(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
@@ -26,20 +18,11 @@ public static partial class HtmlPowerPointConverterExtensions {
     }
 
     /// <summary>
-    /// Imports semantic OfficeIMO PowerPoint HTML into a native presentation and returns import evidence.
-    /// </summary>
-    /// <example><code>HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();</code></example>
-    public static HtmlToPowerPointResult ToPowerPointPresentationResult(this string html, HtmlToPowerPointOptions? options = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        return ImportDocument(HtmlDocumentParser.ParseDocument(html), options ?? new HtmlToPowerPointOptions());
-    }
-
-    /// <summary>
     /// Imports a prepared shared HTML conversion document and returns the presentation plus structured evidence.
     /// </summary>
     public static HtmlToPowerPointResult ToPowerPointPresentationResult(this HtmlConversionDocument document, HtmlToPowerPointOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        return ImportDocument(document.DocumentForConversion, options ?? new HtmlToPowerPointOptions());
+        return ImportDocument(document.CreateDocumentForConversion(HtmlCssMediaContext.Screen), options ?? new HtmlToPowerPointOptions());
     }
 
     private static HtmlToPowerPointResult ImportDocument(IHtmlDocument document, HtmlToPowerPointOptions options) {
@@ -68,7 +51,7 @@ public static partial class HtmlPowerPointConverterExtensions {
         if (result.Succeeded) return result.Value;
 
         result.Value.Dispose();
-        throw new HtmlConversionException(result.Diagnostics);
+        throw new HtmlConversionException(result.Report.Diagnostics);
     }
 
     private static void ImportSlide(IElement section, PptCore.PowerPointSlide slide, HtmlToPowerPointOptions options, HtmlToPowerPointResult result) {

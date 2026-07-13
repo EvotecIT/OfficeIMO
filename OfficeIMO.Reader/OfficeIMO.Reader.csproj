@@ -62,5 +62,17 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.AsciiDoc" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Csv" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Epub" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Json" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.OpenDocument" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Rtf" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Visio" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Xml" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Yaml" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Zip" />
   </ItemGroup>
 </Project>

@@ -13,7 +13,7 @@ public sealed class ExcelHtmlCapabilityGalleryOptions {
     public string Title { get; set; } = "Excel Rich Workbook";
 
     /// <summary>Theme applied to generated HTML artifacts.</summary>
-    public OfficeHtmlDocumentThemeKind Theme { get; set; } = OfficeHtmlDocumentThemeKind.Report;
+    public OfficeVisualThemeKind Theme { get; set; } = OfficeVisualThemeKind.Report;
 
     /// <summary>Options used by the visual SVG export lane.</summary>
     public ExcelWorkbookImageExportOptions? VisualOptions { get; set; }

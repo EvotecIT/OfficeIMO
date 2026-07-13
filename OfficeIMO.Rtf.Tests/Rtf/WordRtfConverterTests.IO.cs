@@ -32,21 +32,21 @@ public partial class WordRtfConverterTests {
         Assert.Equal(bytes, saved);
         Assert.Equal(rtf, Encoding.UTF8.GetString(saved));
 
-        using WordDocument fromBytes = bytes.LoadFromRtf();
+        using WordDocument fromBytes = RtfDocument.Load(bytes).Document.ToWordDocument();
         Assert.Contains("Clinical ż", string.Concat(fromBytes.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
         using var input = new MemoryStream();
         input.WriteByte(0x2A);
         input.Write(bytes, 0, bytes.Length);
         input.Position = 1;
-        using WordDocument fromStream = input.LoadFromRtf();
-        Assert.Equal(input.Length, input.Position);
+        using WordDocument fromStream = RtfDocument.Load(input).Document.ToWordDocument();
+        Assert.Equal(1, input.Position);
         Assert.Contains("Clinical ż", string.Concat(fromStream.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
 
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".rtf");
         try {
             File.WriteAllBytes(path, bytes);
-            using WordDocument fromFile = WordRtfConverterExtensions.LoadFromRtfFile(path);
+            using WordDocument fromFile = RtfDocument.Load(path).Document.ToWordDocument();
             Assert.Contains("Clinical ż", string.Concat(fromFile.Paragraphs.Select(paragraph => paragraph.Text)), StringComparison.Ordinal);
         } finally {
             if (File.Exists(path)) {

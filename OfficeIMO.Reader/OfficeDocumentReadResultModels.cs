@@ -12,10 +12,6 @@ public static partial class OfficeDocumentReadResultSchema {
     /// </summary>
     public const string Id = "officeimo.document.read-result";
 
-    /// <summary>
-    /// Current schema version. Retained as the original compatibility name for <see cref="CurrentVersion"/>.
-    /// </summary>
-    public const int Version = CurrentVersion;
 }
 
 /// <summary>
@@ -30,7 +26,7 @@ public sealed class OfficeDocumentReadResult {
     /// <summary>
     /// Result schema version.
     /// </summary>
-    public int SchemaVersion { get; set; } = OfficeDocumentReadResultSchema.Version;
+    public int SchemaVersion { get; set; } = OfficeDocumentReadResultSchema.CurrentVersion;
 
     /// <summary>
     /// Source input kind that produced this result.

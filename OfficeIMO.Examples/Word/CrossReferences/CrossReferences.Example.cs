@@ -15,7 +15,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("See chapter: ").AddCrossReference("Intro", WordCrossReferenceType.Heading).AddText(" for more information.");
 
                 document.UpdateFields();
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

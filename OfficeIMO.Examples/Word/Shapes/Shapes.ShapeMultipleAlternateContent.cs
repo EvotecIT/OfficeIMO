@@ -59,7 +59,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Console.WriteLine($"Shapes count: {document.Shapes.Count}");
                 Console.WriteLine($"TextBoxes count: {document.TextBoxes.Count}");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

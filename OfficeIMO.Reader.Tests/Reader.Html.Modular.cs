@@ -37,7 +37,7 @@ public sealed class ReaderHtmlModularTests {
         Assert.Equal(image.PayloadHash, visual.PayloadHash);
         stream.Position = 0;
         OfficeDocumentReadResult jsonResult = OfficeDocumentReadResultJson.Deserialize(
-            DocumentReaderHtmlExtensions.ReadHtmlDocumentJson(stream, "rich.html"));
+            HtmlReaderAdapter.ReadDocumentJson(stream, "rich.html"));
         Assert.Equal(ReaderInputKind.Html, jsonResult.Kind);
         Assert.Contains("officeimo.reader.html.rich-v5", result.CapabilitiesUsed);
     }
@@ -46,7 +46,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_RichDispatch_AppliesConfiguredUrlPolicyToLinks() {
         const string html = "<p><a href=\"javascript:alert(1)\">Unsafe</a> <a href=\"https://example.test/safe\">Safe</a></p>";
 
-        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "links.html");
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "links.html");
 
         OfficeDocumentLink link = Assert.Single(result.Links);
         Assert.Equal("https://example.test/safe", link.Uri);
@@ -58,7 +58,7 @@ public sealed class ReaderHtmlModularTests {
         const string html = "<html><head><base href=\"https://example.test/docs/\"></head>"
             + "<body><a href=\"guide.html\">Guide</a></body></html>";
 
-        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "guide.html");
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "guide.html");
 
         Assert.Equal("https://example.test/docs/guide.html", Assert.Single(result.Links).Uri);
     }
@@ -68,7 +68,7 @@ public sealed class ReaderHtmlModularTests {
         const string html = "<p>This input exceeds its configured bound.</p>";
 
         ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() =>
-            DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+            HtmlReaderAdapter.ReadContentDocument(
                 html,
                 "bounded-rich.html",
                 htmlOptions: ReaderHtmlOptions.CreateUntrustedHtmlProfile(12)));
@@ -90,7 +90,7 @@ public sealed class ReaderHtmlModularTests {
                 }
             };
 
-            OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+            OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(
                 html,
                 "inline-image.html",
                 htmlOptions: options);
@@ -109,7 +109,7 @@ public sealed class ReaderHtmlModularTests {
             + "<table><caption>Inner</caption><tr><th>Code</th></tr><tr><td>Nested</td></tr></table>"
             + "</td></tr></table>";
 
-        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "nested.html");
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "nested.html");
 
         Assert.Equal(2, result.Tables.Count);
         ReaderTable outer = Assert.Single(result.Tables, table => table.Title == "Outer");
@@ -124,7 +124,7 @@ public sealed class ReaderHtmlModularTests {
         const string html = "<table><tr><th>Name</th></tr><tr><td>Row 1</td></tr>"
             + "<tr><td>Row 2</td></tr><tr><td>Row 3</td></tr></table>";
 
-        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(
             html,
             "bounded.html",
             new ReaderOptions { MaxTableRows = 1 });
@@ -145,7 +145,7 @@ public sealed class ReaderHtmlModularTests {
             + "<img alt=\"Lazy\" data-src=\"lazy.png\"/>"
             + "<picture><source srcset=\"picture.png 1x\"/></picture>";
 
-        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "responsive.html");
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "responsive.html");
 
         OfficeDocumentFormField form = Assert.Single(result.Forms, item => item.Name == "comments");
         Assert.Equal("Hello there", form.Value);
@@ -159,7 +159,7 @@ public sealed class ReaderHtmlModularTests {
         const string html = "<form><select name=\"status\"><option value=\"draft\">Draft</option>"
             + "<option value=\"approved\" selected>Approved</option></select></form>";
 
-        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "select.html");
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "select.html");
 
         OfficeDocumentFormField form = Assert.Single(result.Forms);
         Assert.Equal("status", form.Name);
@@ -176,7 +176,7 @@ public sealed class ReaderHtmlModularTests {
             + "<input type=\"radio\" name=\"choice\" value=\"b\" checked>"
             + "</form>";
 
-        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "controls.html");
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "controls.html");
 
         Assert.Null(Assert.Single(result.Forms, form => form.Name == "unchecked").Value);
         Assert.Equal("yes", Assert.Single(result.Forms, form => form.Name == "checked").Value);
@@ -188,7 +188,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_RichProjection_PreservesHeaderlessTableRows() {
         const string html = "<table><tr><td>A</td></tr><tr><td>B</td></tr></table>";
 
-        ReaderTable table = Assert.Single(DocumentReaderHtmlExtensions.ReadHtmlStringDocument(html, "headerless.html").Tables);
+        ReaderTable table = Assert.Single(HtmlReaderAdapter.ReadContentDocument(html, "headerless.html").Tables);
 
         Assert.Equal(new[] { "Column 1" }, table.Columns);
         Assert.Equal(2, table.TotalRowCount);
@@ -209,7 +209,7 @@ public sealed class ReaderHtmlModularTests {
         });
         var options = new ReaderHtmlOptions { HtmlToMarkdownOptions = markdownOptions };
 
-        OfficeDocumentReadResult result = DocumentReaderHtmlExtensions.ReadHtmlStringDocument(
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(
             html,
             "filtered.html",
             htmlOptions: options);
@@ -226,7 +226,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_ReadHtmlString_EmitsChunks() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p></body></html>";
 
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunks = HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: "inline.html",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
@@ -251,7 +251,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_ReadHtmlString_TrimsLogicalSourceName() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p></body></html>";
 
-        var chunk = Assert.Single(DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunk = Assert.Single(HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: " inline.html ",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }));
@@ -263,7 +263,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_ReadHtmlString_UsesHeadingAwareLocations() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p><h2>Second</h2><p>More.</p></body></html>";
 
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunks = HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: "headings.html",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
@@ -277,7 +277,7 @@ public sealed class ReaderHtmlModularTests {
     [Fact]
     public void DocumentReaderHtml_PreservesLiteralHeadingDisplayAndHierarchy() {
         const string title = "Q1 > Q2\\Back";
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunks = HtmlReaderAdapter.ReadContent(
             html: "<html><body><h1>Q1 &gt; Q2\\Back</h1><p>Body.</p></body></html>",
             sourceName: "literal-heading.html",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
@@ -296,7 +296,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_ReadHtmlString_CanDisableHeadingChunking() {
         var html = "<html><body><h1>Hello HTML</h1><p>Body text.</p><h2>Second</h2><p>More.</p></body></html>";
 
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunks = HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: "headings-disabled.html",
             readerOptions: new ReaderOptions {
@@ -312,7 +312,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_ReadHtmlString_SplitsByMaxChars() {
         var largeHtml = "<html><body><p>" + new string('a', 2048) + "</p></body></html>";
 
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunks = HtmlReaderAdapter.ReadContent(
             html: largeHtml,
             sourceName: "large.html",
             readerOptions: new ReaderOptions { MaxChars = 128 }).ToList();
@@ -328,7 +328,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_ReadHtmlString_HeadingSplits_DoNotEmitMaxCharsWarning() {
         var html = "<html><body><h1>One</h1><p>Alpha.</p><h1>Two</h1><p>Beta.</p></body></html>";
 
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunks = HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: "headings-only.html",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList();
@@ -346,7 +346,7 @@ public sealed class ReaderHtmlModularTests {
             "<tbody><tr><td>Paper</td><td>10</td></tr><tr><td>Ink</td><td>2</td></tr></tbody>" +
             "</table></body></html>";
 
-        var chunk = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunk = HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: "inventory.html",
             readerOptions: new ReaderOptions { MaxChars = 8_000 }).Single(c => (c.Tables?.Count ?? 0) > 0);
@@ -374,7 +374,7 @@ public sealed class ReaderHtmlModularTests {
             "<tbody>" + rows + "</tbody>" +
             "</table></body></html>";
 
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunks = HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: "large-table.html",
             readerOptions: new ReaderOptions { MaxChars = 128 }).ToList();
@@ -389,7 +389,7 @@ public sealed class ReaderHtmlModularTests {
 
     [Fact]
     public void DocumentReaderHtml_ReadHtmlString_EmitsWarningForEmptyContent() {
-        var chunks = DocumentReaderHtmlExtensions.ReadHtmlString(
+        var chunks = HtmlReaderAdapter.ReadContent(
             html: "<html><body></body></html>",
             sourceName: "empty.html").ToList();
 
@@ -410,7 +410,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_ReadHtmlString_PreservesConfiguredMaxInputCharacters() {
         var html = "<html><body><p>Too much content for this limit.</p></body></html>";
 
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => DocumentReaderHtmlExtensions.ReadHtmlString(
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: "limited.html",
             htmlOptions: new ReaderHtmlOptions {
@@ -468,7 +468,7 @@ public sealed class ReaderHtmlModularTests {
     public void DocumentReaderHtml_ReadHtmlString_UntrustedProfileEnforcesMaxInputCharacters() {
         var html = "<html><body><p>Too much content for this profile limit.</p></body></html>";
 
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => DocumentReaderHtmlExtensions.ReadHtmlString(
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => HtmlReaderAdapter.ReadContent(
             html: html,
             sourceName: "profile-limited.html",
             htmlOptions: ReaderHtmlOptions.CreateUntrustedHtmlProfile(12)).ToList());
@@ -481,7 +481,7 @@ public sealed class ReaderHtmlModularTests {
         var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(html), writable: false);
 
-        var chunks = DocumentReaderHtmlExtensions.ReadHtml(
+        var chunks = HtmlReaderAdapter.Read(
             stream,
             sourceName: " metadata.html ",
             readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true }).ToList();
@@ -504,7 +504,7 @@ public sealed class ReaderHtmlModularTests {
         try {
             File.WriteAllText(path, "<html><body><h1>File HTML</h1><p>Body text.</p></body></html>");
 
-            var chunks = DocumentReaderHtmlExtensions.ReadHtmlFile(
+            var chunks = HtmlReaderAdapter.Read(
                 path,
                 readerOptions: new ReaderOptions { ComputeHashes = true, MaxChars = 8_000 }).ToList();
 
@@ -559,7 +559,7 @@ public sealed class ReaderHtmlModularTests {
         var html = "<html><body><h2>Registry HTML</h2><p>From stream.</p></body></html>";
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(html));
 
-        var ex = Assert.Throws<IOException>(() => DocumentReaderHtmlExtensions.ReadHtml(
+        var ex = Assert.Throws<IOException>(() => HtmlReaderAdapter.Read(
             stream,
             sourceName: "nonseekable.html",
             readerOptions: new ReaderOptions { MaxInputBytes = 16 }).ToList());
@@ -573,7 +573,7 @@ public sealed class ReaderHtmlModularTests {
         try {
             File.WriteAllText(path, "<html><body><p>" + new string('a', 256) + "</p></body></html>");
 
-            var ex = Assert.Throws<IOException>(() => DocumentReaderHtmlExtensions.ReadHtmlFile(
+            var ex = Assert.Throws<IOException>(() => HtmlReaderAdapter.Read(
                 path,
                 readerOptions: new ReaderOptions { MaxInputBytes = 32 }).ToList());
 

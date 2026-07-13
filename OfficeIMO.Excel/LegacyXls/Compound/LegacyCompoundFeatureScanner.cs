@@ -1,6 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Excel.LegacyXls.Compound {
     internal static class LegacyCompoundFeatureScanner {

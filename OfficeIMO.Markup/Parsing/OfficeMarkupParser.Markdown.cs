@@ -57,10 +57,10 @@ public static partial class OfficeMarkupParser {
                 };
 
             case UnorderedListBlock unordered:
-                return MapList(unordered.ListItems, ordered: false, start: 1, profile, diagnostics, markdownBlock.RenderMarkdown());
+                return MapList(unordered.Items, ordered: false, start: 1, profile, diagnostics, markdownBlock.RenderMarkdown());
 
             case OrderedListBlock ordered:
-                return MapList(ordered.ListItems, ordered: true, start: ordered.Start, profile, diagnostics, markdownBlock.RenderMarkdown());
+                return MapList(ordered.Items, ordered: true, start: ordered.Start, profile, diagnostics, markdownBlock.RenderMarkdown());
 
             case CodeBlock code when IsMermaid(code.Language):
                 return new OfficeMarkupDiagramBlock("mermaid", code.Content) {

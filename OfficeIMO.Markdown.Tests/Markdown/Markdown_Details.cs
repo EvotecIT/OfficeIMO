@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
 
             var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
             Assert.False(details.Open);
-            Assert.Equal("More info", Assert.IsType<TextRun>(details.Summary!.Inlines.Items[0]).Text);
+            Assert.Equal("More info", Assert.IsType<TextRun>(details.Summary!.Inlines.Nodes[0]).Text);
             var child = Assert.Single(details.ChildBlocks);
             Assert.IsType<ParagraphBlock>(child);
             Assert.Equal("<details>\n<summary>More info</summary>\n\nHidden text\n</details>", ((IMarkdownBlock)details).RenderMarkdown());
@@ -21,11 +21,11 @@ namespace OfficeIMO.Tests {
         public void Reader_RoundTrips_Details_Html() {
             string markdown = "<details open>\n<summary>  Expand  </summary>\n\nParagraph text\n</details>";
 
-            var doc = MarkdownReader.Parse(markdown);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
 
             var details = Assert.IsType<DetailsBlock>(doc.Blocks[0]);
             Assert.True(details.Open);
-            var summaryText = Assert.IsType<TextRun>(details.Summary!.Inlines.Items[0]);
+            var summaryText = Assert.IsType<TextRun>(details.Summary!.Inlines.Nodes[0]);
             Assert.Equal("Expand", summaryText.Text);
             Assert.Equal("<details open>", details.OpeningTag);
             Assert.Equal("</details>", details.ClosingTag);
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
         public void Reader_Preserves_Details_Same_Line_Body_Source_Column() {
             string markdown = "<details>body</details>";
 
-            var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
             var details = Assert.IsType<DetailsBlock>(Assert.Single(result.Document.Blocks));
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(details.ChildBlocks));
 

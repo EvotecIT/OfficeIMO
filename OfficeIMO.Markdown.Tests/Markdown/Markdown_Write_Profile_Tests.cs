@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public class Markdown_Write_Profile_Tests {
     [Fact]
     public void Portable_Write_Profile_Degrades_Callouts_To_Quoted_Markdown() {
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > [!NOTE] Example
 > Body text
 """);
@@ -20,7 +20,7 @@ public class Markdown_Write_Profile_Tests {
 
     [Fact]
     public void Portable_Callout_Html_Fallback_Removes_OfficeImo_Callout_Chrome() {
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > [!NOTE] Example
 > Body text
 """);
@@ -37,7 +37,7 @@ public class Markdown_Write_Profile_Tests {
 
     [Fact]
     public void Markdig_Alert_Html_Fallback_Renders_GitHub_Alert_Chrome() {
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > [!NOTE]
 > Body text
 """);
@@ -61,7 +61,7 @@ public class Markdown_Write_Profile_Tests {
 
     [Fact]
     public void Markdig_Alert_Html_Fallback_Leaves_Custom_Kinds_Untitled() {
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > [!CUSTOM]
 > Body text
 """);
@@ -83,7 +83,7 @@ public class Markdown_Write_Profile_Tests {
 
     [Fact]
     public void Markdig_Alert_Html_Fallback_Preserves_OfficeImo_Title_Inlines() {
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > [!NOTE] **Example**
 > Body text
 """);
@@ -141,7 +141,7 @@ public class Markdown_Write_Profile_Tests {
 
     [Fact]
     public void Portable_Html_Fallbacks_Render_Footnotes_Without_OfficeImo_Section_Chrome() {
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 Lead[^1]
 
 [^1]: Footnote text
@@ -293,7 +293,7 @@ Lead[^1]
     public void CommonMark_Write_Profile_Renders_Attributed_Blocks_As_Raw_Html() {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.GenericAttributes = true;
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 # Title {#intro .lead}
 
 {#para .note}
@@ -324,7 +324,7 @@ Text
         readerOptions.Inserted = true;
         readerOptions.Superscript = true;
         readerOptions.Subscript = true;
-        var sequenceDoc = MarkdownReader.Parse("++added **bold**++ ^up **bold**^ ~down **bold**~", readerOptions);
+        var sequenceDoc = OfficeIMO.Markdown.MarkdownReader.Parse("++added **bold**++ ^up **bold**^ ~down **bold**~", readerOptions);
 
         var sequenceMarkdown = sequenceDoc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -340,7 +340,7 @@ Text
     public void CommonMark_Write_Profile_Renders_InlineFallbackAttributes_As_HtmlAttributes() {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.GenericAttributes = true;
-        var doc = MarkdownReader.Parse("~~old~~{#gone .muted}", readerOptions);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("~~old~~{#gone .muted}", readerOptions);
 
         var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -352,7 +352,7 @@ Text
     public void CommonMark_Write_Profile_Renders_Attributed_CommonMark_Inlines_As_Raw_Html() {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.GenericAttributes = true;
-        var doc = MarkdownReader.Parse("**bold**{#strong .lead} [link](https://example.test){.go}", readerOptions);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("**bold**{#strong .lead} [link](https://example.test){.go}", readerOptions);
 
         var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -366,7 +366,7 @@ Text
     public void CommonMark_Write_Profile_Renders_Attributed_ListItems_As_Raw_Html() {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.GenericAttributes = true;
-        var doc = MarkdownReader.Parse("- Item {#one .picked}", readerOptions);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("- Item {#one .picked}", readerOptions);
 
         var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
 
@@ -378,10 +378,10 @@ Text
     public void CommonMark_Write_Profile_Renders_Nested_Child_ListItem_Attributes_As_Raw_Html() {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.GenericAttributes = true;
-        var childDocument = MarkdownReader.Parse("- Child {#child .picked}", readerOptions);
+        var childDocument = OfficeIMO.Markdown.MarkdownReader.Parse("- Child {#child .picked}", readerOptions);
         var childList = Assert.IsType<UnorderedListBlock>(Assert.Single(childDocument.Blocks));
         var parentItem = ListItem.Text("Parent");
-        parentItem.Children.Add(childList);
+        parentItem.NestedBlocks.Add(childList);
         var outerList = new UnorderedListBlock();
         outerList.Items.Add(parentItem);
         var doc = MarkdownDoc.Create().Add(outerList);
@@ -409,7 +409,7 @@ Text
     public void CommonMark_Write_Profile_Omits_AbbreviationDefinitions() {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.Abbreviations = true;
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 HTML text
 
 *[HTML]: Hyper Text Markup Language
@@ -497,7 +497,7 @@ HTML text
     public void GitHubFlavoredMarkdown_Write_Profile_Renders_Attributed_Blocks_As_Raw_Html() {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.GenericAttributes = true;
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 # Title {#intro .lead}
 
 {#para .note}
@@ -516,7 +516,7 @@ Text
     public void GitHubFlavoredMarkdown_Write_Profile_Omits_AbbreviationDefinitions() {
         var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
         readerOptions.Abbreviations = true;
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 HTML text
 
 *[HTML]: Hyper Text Markup Language
@@ -658,7 +658,7 @@ HTML text
     public void Markdown_Block_Render_Extension_Can_Read_Final_Syntax_Node_And_Source_Slices() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
         var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
         MarkdownSyntaxNode? seenSyntax = null;
         MarkdownSourceSlice normalizedSlice = default;
         MarkdownSourceSlice originalSlice = default;
@@ -698,7 +698,7 @@ HTML text
     public void Markdown_Syntax_Block_Render_Extension_Can_Read_Final_Syntax_Node_And_Source_Slices() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
         var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
         MarkdownSyntaxNode? seenSyntax = null;
         MarkdownSourceSlice originalSlice = default;
         var originalOk = false;
@@ -727,7 +727,7 @@ HTML text
     public void Markdown_Syntax_Inline_Render_Extension_Runs_Before_Type_Extension_And_Can_Read_Source_Slice() {
         const string markdown = "Use `code` now.";
         var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
         MarkdownSourceSlice sourceSlice = default;
         var sourceOk = false;
 
@@ -756,7 +756,7 @@ HTML text
     public void Html_Syntax_Block_Render_Extension_Can_Read_Final_Syntax_Node_And_Source_Slices() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
         var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
         MarkdownSourceSlice originalSlice = default;
         var originalOk = false;
 
@@ -781,7 +781,7 @@ HTML text
     public void Html_Syntax_Inline_Render_Extension_Runs_Before_Type_Extension_And_Can_Read_Source_Slice() {
         const string markdown = "Use `code` now.";
         var readerOptions = new MarkdownReaderOptions { PreserveTrivia = true };
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
         MarkdownSourceSlice sourceSlice = default;
         var sourceOk = false;
 
@@ -809,7 +809,7 @@ HTML text
     [Fact]
     public void Markdown_Syntax_Block_Render_Extension_Applies_To_Nested_Quote_Children() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
 
         var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
         options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockMarkdownRenderExtension.CreateContextual(
@@ -829,7 +829,7 @@ HTML text
     [Fact]
     public void Markdown_Type_Block_Render_Extension_Applies_To_Nested_Quote_Children() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
 
         var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
         options.BlockRenderExtensions.Add(MarkdownBlockMarkdownRenderExtension.CreateContextual(
@@ -849,7 +849,7 @@ HTML text
     [Fact]
     public void Html_Syntax_Block_Render_Extension_Applies_To_Nested_Quote_Children() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
 
         var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
         options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockHtmlRenderExtension.CreateContextual(
@@ -869,7 +869,7 @@ HTML text
     [Fact]
     public void Html_Type_Block_Render_Extension_Applies_To_Nested_Quote_Children() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
 
         var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
         options.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
@@ -889,7 +889,7 @@ HTML text
     [Fact]
     public void Markdown_Write_Context_Can_Render_Custom_Container_Children_Through_Overrides() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
 
         var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
         options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockMarkdownRenderExtension.CreateContextual(
@@ -915,7 +915,7 @@ HTML text
     [Fact]
     public void Html_Render_Context_Can_Render_Custom_Container_Children_Through_Overrides() {
         const string markdown = "> Alpha\r\n> Beta\r\n\r\nTail\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
 
         var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
         options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockHtmlRenderExtension.CreateContextual(
@@ -956,7 +956,7 @@ HTML text
 
         var readerOptions = MarkdownReaderOptions.CreatePortableProfile();
         readerOptions.CustomContainers = true;
-        var reparsed = MarkdownReader.Parse(written, readerOptions);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, readerOptions);
 
         var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsed.Blocks));
         var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(outer.ChildBlocks));
@@ -968,7 +968,7 @@ HTML text
     [Fact]
     public void Markdown_Writer_Lengthens_Custom_Container_Fence_Around_List_Item_Custom_Container() {
         var item = ListItem.Text("item");
-        item.Children.Add(new CustomContainerBlock(
+        item.NestedBlocks.Add(new CustomContainerBlock(
             "inner",
             new IMarkdownBlock[] {
                 new ParagraphBlock(new InlineSequence().Text("hello"))
@@ -985,12 +985,12 @@ HTML text
 
         var readerOptions = MarkdownReaderOptions.CreatePortableProfile();
         readerOptions.CustomContainers = true;
-        var reparsed = MarkdownReader.Parse(written, readerOptions);
+        var reparsed = OfficeIMO.Markdown.MarkdownReader.Parse(written, readerOptions);
 
         var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsed.Blocks));
         var reparsedList = Assert.IsType<UnorderedListBlock>(Assert.Single(outer.ChildBlocks));
         var reparsedItem = Assert.Single(reparsedList.Items);
-        var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsedItem.Children));
+        var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsedItem.NestedBlocks));
         Assert.Equal("outer", outer.Name);
         Assert.Equal("inner", inner.Name);
         Assert.Equal("hello", Assert.IsType<ParagraphBlock>(Assert.Single(inner.ChildBlocks)).Inlines.RenderMarkdown());
@@ -1020,7 +1020,7 @@ HTML text
   hello
   :::
 """;
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
             PreserveTrivia = true,
             CustomContainers = true
         }).Document;
@@ -1058,7 +1058,7 @@ HTML text
   hello
   :::
 """;
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
             PreserveTrivia = true,
             CustomContainers = true
         }).Document;
@@ -1081,7 +1081,7 @@ HTML text
     [Fact]
     public void Markdown_Block_Render_Extension_Can_Create_Source_Slices_From_Token_Source_Spans() {
         const string markdown = "> [!TIP] Heads up\r\n> Body\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
         MarkdownSourceSlice openingMarkerSlice = default;
         MarkdownSourceSlice kindSlice = default;
         MarkdownSourceSlice closingMarkerSlice = default;
@@ -1127,7 +1127,7 @@ HTML text
     [Fact]
     public void Html_Block_Render_Extension_Can_Create_Source_Slices_From_Token_Source_Spans() {
         const string markdown = "> [!TIP] Heads up\r\n> Body\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
         MarkdownSourceSlice openingMarkerSlice = default;
         MarkdownSourceSlice kindSlice = default;
         MarkdownSourceSlice closingMarkerSlice = default;
@@ -1173,7 +1173,7 @@ HTML text
     [Fact]
     public void Html_Block_Render_Extension_Can_Use_Active_NonAscii_Encoding_Helpers() {
         const string markdown = "> åAlpha\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
         MarkdownSourceSlice originalSlice = default;
         var originalOk = false;
 
@@ -1203,7 +1203,7 @@ HTML text
     [Fact]
     public void Block_Render_Extensions_Report_Original_Source_Slice_Failure_Reasons() {
         const string markdown = "> Alpha\r\n";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown).Document;
         MarkdownOriginalSourceSliceFailureReason markdownReason = MarkdownOriginalSourceSliceFailureReason.None;
         MarkdownOriginalSourceSliceFailureReason htmlReason = MarkdownOriginalSourceSliceFailureReason.None;
 
@@ -1238,7 +1238,7 @@ HTML text
     [Fact]
     public void Inline_Render_Extensions_Report_Original_Source_Slice_Failure_Reasons() {
         const string markdown = "Use `code` now.";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown).Document;
         MarkdownOriginalSourceSliceFailureReason markdownReason = MarkdownOriginalSourceSliceFailureReason.None;
         MarkdownOriginalSourceSliceFailureReason htmlReason = MarkdownOriginalSourceSliceFailureReason.None;
 
@@ -1273,7 +1273,7 @@ HTML text
     [Fact]
     public void Markdown_Inline_Render_Extension_Can_Create_Source_Slices_From_Metadata_Source_Spans() {
         const string markdown = "Go [there](https://example.com \"Example\") now.";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
         MarkdownSourceSlice targetSlice = default;
         MarkdownSourceSlice titleSlice = default;
         var targetOk = false;
@@ -1307,7 +1307,7 @@ HTML text
     [Fact]
     public void Html_Inline_Render_Extension_Can_Use_Active_NonAscii_Encoding_Helpers() {
         const string markdown = "Use `åcode` now.";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
         MarkdownSourceSlice sourceSlice = default;
         var sourceOk = false;
 
@@ -1337,7 +1337,7 @@ HTML text
     [Fact]
     public void Html_Inline_Render_Extension_Can_Create_Source_Slices_From_Metadata_Source_Spans() {
         const string markdown = "Go [there](https://example.com \"Example\") now.";
-        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
         MarkdownSourceSlice targetSlice = default;
         MarkdownSourceSlice titleSlice = default;
         var targetOk = false;
@@ -1370,7 +1370,7 @@ HTML text
 
     [Fact]
     public void Markdown_Block_Render_Extension_Legacy_Constructor_Still_Uses_Options_And_Applies() {
-        var doc = MarkdownReader.Parse("""
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > [!NOTE] Example
 > Body text
 """);

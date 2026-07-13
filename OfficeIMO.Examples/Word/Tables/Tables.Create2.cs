@@ -113,7 +113,8 @@ namespace OfficeIMO.Examples.Word {
 
                 section.AddHorizontalLine(BorderValues.BalloonsHotAir, null, 24, 24);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

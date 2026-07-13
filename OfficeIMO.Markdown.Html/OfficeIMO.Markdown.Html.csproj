@@ -28,7 +28,7 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
+  <ItemGroup>
         <None Include="..\Assets\OfficeIMO.png">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
@@ -37,7 +37,12 @@
             <Pack>True</Pack>
             <PackagePath>README.md</PackagePath>
         </None>
-    </ItemGroup>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Markdown.Benchmarks" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+  </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Html\OfficeIMO.Html.csproj" />

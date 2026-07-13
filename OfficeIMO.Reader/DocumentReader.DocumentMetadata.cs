@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildChunkDocumentMetadata(
         ReaderInputKind kind,
         IReadOnlyList<ReaderChunk> chunks,

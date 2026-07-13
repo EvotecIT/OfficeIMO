@@ -15,7 +15,7 @@ public sealed class MsgSerializationRegressionTests {
         source.MessageMetadata.OwnerReactionType = "like";
         source.MessageMetadata.Categories.Add("retained category");
         source.Headers.Add(new EmailHeader("X-Retained", "value"));
-        byte[] first = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] first = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailDocument edited = new EmailDocumentReader().Read(first).Document;
 
         edited.Subject = null;
@@ -26,7 +26,7 @@ public sealed class MsgSerializationRegressionTests {
         edited.MessageMetadata.OwnerReactionType = null;
         edited.MessageMetadata.Categories.Clear();
         edited.Headers.Clear();
-        byte[] second = new EmailDocumentWriter().WriteToBytes(edited, EmailFileFormat.OutlookMsg);
+        byte[] second = new EmailDocumentWriter().ToBytes(edited, EmailFileFormat.OutlookMsg);
         EmailDocument roundTrip = new EmailDocumentReader().Read(second).Document;
 
         Assert.Null(roundTrip.Subject);
@@ -58,13 +58,13 @@ public sealed class MsgSerializationRegressionTests {
             Length = 4
         });
         EmailDocument edited = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg)).Document;
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
         EmailAttachment attachment = Assert.Single(edited.Attachments);
         attachment.Content = null;
         attachment.Length = 0;
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(edited, EmailFileFormat.OutlookMsg)).Document;
+            new EmailDocumentWriter().ToBytes(edited, EmailFileFormat.OutlookMsg)).Document;
 
         EmailAttachment cleared = Assert.Single(roundTrip.Attachments);
         Assert.Null(cleared.Content);
@@ -80,7 +80,7 @@ public sealed class MsgSerializationRegressionTests {
             "decoded",
             "ok\r\nBcc: injected@example.com"));
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
         MapiProperty transportHeaders = roundTrip.MapiProperties.Single(property => property.PropertyId == 0x007D);
 
@@ -100,7 +100,7 @@ public sealed class MsgSerializationRegressionTests {
         source.Headers.Add(new EmailHeader("Bcc", "Hidden <hidden@example.com>"));
         source.Headers.Add(new EmailHeader("Reply-To", "Replies <reply@example.com>"));
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
 
         Assert.Equal(4, roundTrip.Recipients.Count);
@@ -124,7 +124,7 @@ public sealed class MsgSerializationRegressionTests {
         source.Attachments.Add(new EmailAttachment {
             FileName = "two.dat", ContentType = "application/ms-tnef", Content = tnef, Length = tnef.Length
         });
-        byte[] msg = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] msg = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(maxTnefAttributeCount: 1)).Read(msg));

@@ -162,13 +162,13 @@ namespace OfficeIMO.Word.Markdown {
         private static bool IsPositiveFinite(double value) =>
             !double.IsNaN(value) && !double.IsInfinity(value) && value > 0;
 
-        private static void ApplyCellFillColor(WordTableCell cell, Omd.MarkdownColor color) {
+        private static void ApplyCellFillColor(WordTableCell cell, OfficeColor color) {
             if (color.A > 0) {
                 cell.ShadingFillColorHex = color.ToRgbHex();
             }
         }
 
-        private static void ApplyCellRunColor(WordTableCell cell, Omd.MarkdownColor color) {
+        private static void ApplyCellRunColor(WordTableCell cell, OfficeColor color) {
             if (color.A == 0) {
                 return;
             }

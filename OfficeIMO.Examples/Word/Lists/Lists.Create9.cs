@@ -52,7 +52,8 @@ namespace OfficeIMO.Examples.Word {
                 wordList4.AddItem("Text 8.5", 0);
                 wordList4.AddItem("Text 8.6", 1);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

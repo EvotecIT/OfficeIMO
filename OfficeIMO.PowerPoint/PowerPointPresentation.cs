@@ -8,7 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
@@ -79,24 +79,19 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static byte[] ReadAllBytes(Stream stream) {
-            long originalPosition = stream.CanSeek ? stream.Position : 0L;
-            try {
-                if (stream.CanSeek) {
-                    stream.Seek(0, SeekOrigin.Begin);
-                }
-
-                using var buffer = new MemoryStream();
-                stream.CopyTo(buffer);
-                return buffer.ToArray();
-            } finally {
-                if (stream.CanSeek) {
-                    stream.Seek(originalPosition, SeekOrigin.Begin);
-                }
-            }
+            return OfficeStreamReader.ReadAllBytes(stream);
         }
 
         /// <summary>Gets the destination path associated with the presentation, if any.</summary>
         public string? FilePath => string.IsNullOrEmpty(_filePath) ? null : _filePath;
+
+        /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
+        public PresentationDocument OpenXmlDocument {
+            get {
+                ThrowIfDisposed();
+                return _document!;
+            }
+        }
 
         /// <summary>Gets the configured persistence behavior.</summary>
         public DocumentPersistenceMode PersistenceMode => _persistenceMode;

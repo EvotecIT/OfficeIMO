@@ -1,9 +1,11 @@
 namespace OfficeIMO.Epub;
 
+using OfficeIMO.Drawing.Internal;
+
 /// <summary>
 /// Standards-based EPUB extractor using container/OPF/spine/navigation metadata.
 /// </summary>
-public static class EpubReader {
+internal static class EpubReader {
     /// <summary>
     /// Reads an EPUB document from disk.
     /// </summary>
@@ -22,6 +24,13 @@ public static class EpubReader {
     public static EpubDocument Read(Stream epubStream, EpubReadOptions? options = null) {
         if (epubStream == null) throw new ArgumentNullException(nameof(epubStream));
         if (!epubStream.CanRead) throw new IOException("EPUB stream must be readable.");
+
+        return ReadBytes(OfficeStreamReader.ReadAllBytes(epubStream), options);
+    }
+
+    internal static EpubDocument ReadBytes(byte[] bytes, EpubReadOptions? options = null) {
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        using var epubStream = new MemoryStream(bytes, writable: false);
 
         var effective = Normalize(options);
         var warnings = new List<string>();
@@ -78,9 +87,9 @@ public static class EpubReader {
             Language = package?.Language,
             Creator = package?.Creator,
             OpfPath = package?.OpfPath,
-            Chapters = chapters,
-            Resources = resources,
-            Warnings = warnings
+            Chapters = chapters.ToArray(),
+            Resources = resources.ToArray(),
+            Warnings = warnings.ToArray()
         };
     }
 

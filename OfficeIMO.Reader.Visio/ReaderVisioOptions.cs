@@ -3,7 +3,7 @@ using OfficeIMO.Visio;
 namespace OfficeIMO.Reader.Visio;
 
 /// <summary>
-/// Options for Visio ingestion through <see cref="DocumentReaderVisioExtensions"/>.
+/// Options for Visio ingestion registered through <see cref="OfficeDocumentReaderBuilderVisioExtensions"/>.
 /// </summary>
 public sealed class ReaderVisioOptions {
     /// <summary>

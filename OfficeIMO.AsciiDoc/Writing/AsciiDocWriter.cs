@@ -1,9 +1,9 @@
 namespace OfficeIMO.AsciiDoc;
 
 /// <summary>Writes source-backed AsciiDoc documents.</summary>
-public static class AsciiDocWriter {
+internal static class AsciiDocWriter {
     /// <summary>Writes a document using preserve or canonical mode.</summary>
-    public static string Write(AsciiDocDocument document, AsciiDocWriterOptions? options = null) {
+    internal static string Write(AsciiDocDocument document, AsciiDocWriterOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new AsciiDocWriterOptions();
 

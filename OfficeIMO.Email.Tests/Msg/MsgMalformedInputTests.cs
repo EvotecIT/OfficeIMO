@@ -1,5 +1,5 @@
 using OfficeIMO.Email;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using Xunit;
 
 namespace OfficeIMO.Email.Tests;
@@ -13,7 +13,7 @@ public sealed class MsgMalformedInputTests {
         };
         source.MapiProperties.Add(new MapiProperty(0x8000, MapiPropertyType.Unicode, "custom",
             name: new MapiNamedProperty(MsgProjection.PsetidCommon, 0x85FF)));
-        byte[] valid = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] valid = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         Assert.True(OfficeCompoundFileReader.TryRead(valid, out OfficeCompoundFile? compound, out string? error), error);
         byte[] entries = compound!.Streams["__nameid_version1.0/__substg1.0_00030102"];
         entries[4] = 0;
@@ -36,7 +36,7 @@ public sealed class MsgMalformedInputTests {
         };
         source.MapiProperties.Add(new MapiProperty(0x8000, MapiPropertyType.Unicode, "custom",
             name: new MapiNamedProperty(MsgProjection.PsetidCommon, 0x85FF)));
-        byte[] valid = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] valid = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         Assert.True(OfficeCompoundFileReader.TryRead(valid, out OfficeCompoundFile? compound, out string? error), error);
         byte[] entries = compound!.Streams["__nameid_version1.0/__substg1.0_00030102"];
         entries[6] = 0xFF;
@@ -55,7 +55,7 @@ public sealed class MsgMalformedInputTests {
     [Fact]
     public void TruncatedCompoundFileReturnsStructuredErrors() {
         var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "truncated" };
-        byte[] valid = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] valid = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailReadResult result = new EmailDocumentReader().Read(valid.Take(100).ToArray());
 
@@ -77,7 +77,7 @@ public sealed class MsgMalformedInputTests {
             Content = new byte[] { 1, 2, 3 },
             Length = 3
         });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
 
         EmailDocument result = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false))
             .Read(bytes).Document;

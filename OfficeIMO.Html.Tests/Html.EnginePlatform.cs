@@ -142,7 +142,7 @@ public partial class Html {
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "ImageResourceRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "HyperlinkRejectedByPolicy");
         Assert.Contains(resourceManifest.Resources, resource => resource.DiagnosticCode == "ScriptResourceRejectedByPolicy");
-        Assert.Contains(resourceManifest.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == "HyperlinkRejectedByPolicy");
+        Assert.Contains(resourceManifest.Diagnostics, diagnostic => diagnostic.Code == "HyperlinkRejectedByPolicy");
 
         HtmlRoundTripScore score = HtmlRoundTripScorer.Compare(sourceHtml, roundTripHtml);
         Assert.InRange(score.Score, 0.55D, 1.00D);
@@ -209,8 +209,8 @@ public partial class Html {
 
         HtmlToWordOptions untrusted = HtmlToWordOptions.CreateUntrustedHtmlProfile();
         HtmlToWordOptions trusted = HtmlToWordOptions.CreateTrustedDocumentProfile();
-        Assert.Equal(HtmlConversionProfile.Semantic, untrusted.ConversionProfile);
-        Assert.Equal(HtmlConversionProfile.Document, trusted.Clone().ConversionProfile);
+        Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, untrusted.ImageProcessing);
+        Assert.True(trusted.Clone().AllowDocumentStylesheetLinks);
     }
 
     [Fact]
@@ -299,7 +299,7 @@ public partial class Html {
             </html>
             """;
 
-        HtmlConversionDocument conversion = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+        HtmlConversionDocument conversion = OfficeIMO.Html.HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
             Profile = HtmlConversionProfile.Document,
             BaseUri = new Uri("https://example.test/reports/"),
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
@@ -341,18 +341,17 @@ public partial class Html {
 
         string markdown = conversion.ToMarkdown();
         Assert.Contains("# Canonical Contract", markdown);
-        HtmlToWordOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(conversion.ProfileContract.Profile);
+        HtmlToWordOptions sharedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument();
         Assert.Equal(ImageProcessingMode.EmbedDataUriOnly, sharedWordDefaults.ImageProcessing);
         Assert.False(sharedWordDefaults.AllowDocumentStylesheetLinks);
         HtmlToWordOptions trustedWordDefaults = WordHtmlConverterExtensions.CreateWordOptionsForSharedDocument(
-            conversion.ProfileContract.Profile,
             HtmlInputTrust.Trusted);
         Assert.Equal(ImageProcessingMode.Embed, trustedWordDefaults.ImageProcessing);
         Assert.True(trustedWordDefaults.AllowDocumentStylesheetLinks);
         using var wordDocument = WordHtmlConverterExtensions.ToWordDocument(conversion);
         Assert.NotNull(wordDocument);
 
-        HtmlConversionDocument nullPolicyConversion = HtmlConversionDocumentBuilder.Build(
+        HtmlConversionDocument nullPolicyConversion = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<main><img src=\"chart.png\" alt=\"Chart\"></main>",
             new HtmlConversionDocumentOptions {
                 BaseUri = new Uri("https://example.test/reports/"),
@@ -360,7 +359,7 @@ public partial class Html {
             });
         Assert.Contains("https://example.test/reports/chart.png", nullPolicyConversion.NormalizedHtml);
 
-        HtmlConversionDocument adapterOnlyConversion = HtmlConversionDocumentBuilder.Build(
+        HtmlConversionDocument adapterOnlyConversion = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<main onclick=\"alert(1)\"><img src=\"file:///secret/chart.png\"><a href=\"javascript:alert(1)\">Unsafe</a></main>",
             new HtmlConversionDocumentOptions {
                 IncludeNormalizedHtml = false,
@@ -371,7 +370,7 @@ public partial class Html {
         Assert.DoesNotContain("javascript:", adapterOnlyConversion.HtmlForConversion, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("file:///secret", adapterOnlyConversion.HtmlForConversion, StringComparison.OrdinalIgnoreCase);
 
-        HtmlConversionDocument reviewOnlyNormalization = HtmlConversionDocumentBuilder.Build(
+        HtmlConversionDocument reviewOnlyNormalization = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<html><head><style>.keep { color: red; }</style></head><body><p class=\"keep\">Styled</p></body></html>",
             new HtmlConversionDocumentOptions {
                 NormalizationOptions = new HtmlNormalizationOptions {
@@ -390,13 +389,13 @@ public partial class Html {
             NormalizationOptions = new HtmlNormalizationOptions()
         };
 
-        HtmlConversionDocument first = HtmlConversionDocumentBuilder.Build(
+        HtmlConversionDocument first = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<html><head><base href=\"https://first.example.test/assets/\"></head><body><img src=\"chart.png\"></body></html>",
             sharedOptions);
-        HtmlConversionDocument second = HtmlConversionDocumentBuilder.Build(
+        HtmlConversionDocument second = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<html><head><base href=\"https://second.example.test/assets/\"></head><body><img src=\"chart.png\"></body></html>",
             sharedOptions);
-        HtmlConversionDocument relativeBase = HtmlConversionDocumentBuilder.Build(
+        HtmlConversionDocument relativeBase = OfficeIMO.Html.HtmlConversionDocument.Parse(
             "<html><head><base href=\"assets/\"></head><body><img src=\"chart.png\"></body></html>",
             new HtmlConversionDocumentOptions {
                 BaseUri = new Uri("https://example.test/root/page.html"),
@@ -455,11 +454,11 @@ public partial class Html {
             </html>
             """;
 
-        HtmlConversionDocument screen = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+        HtmlConversionDocument screen = OfficeIMO.Html.HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
             Profile = HtmlConversionProfile.Semantic,
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         });
-        HtmlConversionDocument print = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+        HtmlConversionDocument print = OfficeIMO.Html.HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
             Profile = HtmlConversionProfile.HighFidelityPrint,
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         });
@@ -472,8 +471,8 @@ public partial class Html {
         Assert.DoesNotContain(print.ResourceManifest.Resources, resource => resource.Source == "file:///secret/print-future.png");
         Assert.Contains("background-image", print.StyleSummary.PropertyNames);
 
-        string screenWordHtml = screen.DocumentForConversion.DocumentElement?.OuterHtml ?? string.Empty;
-        string printWordHtml = print.DocumentForConversion.DocumentElement?.OuterHtml ?? string.Empty;
+        string screenWordHtml = screen.CreateDocumentForConversion().DocumentElement?.OuterHtml ?? string.Empty;
+        string printWordHtml = print.CreateDocumentForConversion().DocumentElement?.OuterHtml ?? string.Empty;
         string screenRetargetedToPrint = screen.CreateDocumentForConversion(HtmlCssMediaContext.Print).DocumentElement?.OuterHtml ?? string.Empty;
         Assert.Contains("https://example.test/images/screen-chart.png", screenWordHtml);
         Assert.DoesNotContain("https://example.test/images/print-chart.png", screenWordHtml);
@@ -526,7 +525,7 @@ public partial class Html {
             </html>
             """;
 
-        HtmlConversionDocument document = HtmlConversionDocumentBuilder.Build(html, new HtmlConversionDocumentOptions {
+        HtmlConversionDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
             Profile = HtmlConversionProfile.Semantic,
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         });

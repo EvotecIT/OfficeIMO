@@ -13,7 +13,7 @@ public class Markdown_Renderer_Tests {
     [Fact]
     public void Reader_Disallows_Javascript_Links_ByDefault() {
         var md = "[x](javascript:alert(1))";
-        var doc = MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("javascript:", html, StringComparison.OrdinalIgnoreCase);
@@ -27,7 +27,7 @@ public class Markdown_Renderer_Tests {
 - outer
   > [x](file:///c:/test)
 """;
-        var doc = MarkdownReader.Parse(md, options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("file:", html, StringComparison.OrdinalIgnoreCase);
@@ -732,7 +732,7 @@ public class Markdown_Renderer_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
 
-        MarkdownDoc document = MarkdownReader.Parse("System {{status:Healthy}} now", options);
+        MarkdownDoc document = OfficeIMO.Markdown.MarkdownReader.Parse("System {{status:Healthy}} now", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var highlight = Assert.IsType<HighlightInline>(Assert.Single(paragraph.Inlines.Nodes.OfType<HighlightInline>()));
@@ -748,7 +748,7 @@ public class Markdown_Renderer_Tests {
             NormalizeTightColonSpacing = true
         }));
 
-        var document = MarkdownReader.Parse("# Key:value {#heading}", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("# Key:value {#heading}", options);
 
         var heading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
         Assert.Equal("heading", heading.Attributes.ElementId);
@@ -1957,7 +1957,7 @@ Visit https://example.com now.
 - [ ] Todo
 - [x] Done
 """;
-        var doc = MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("contains-task-list", html, StringComparison.Ordinal);

@@ -209,15 +209,14 @@ public sealed class CsvLoadOptions
     /// </summary>
     public CsvLoadOptions Clone()
     {
-        if (CollectParseErrors && ParseErrors is null)
-        {
-            ParseErrors = new List<CsvParseError>();
-        }
-
         var clone = (CsvLoadOptions)MemberwiseClone();
         clone.Header = Header is null ? null : (string[])Header.Clone();
         clone.DateTimeFormats = DateTimeFormats is null ? null : (string[])DateTimeFormats.Clone();
         clone.DelimiterCandidates = DelimiterCandidates is null ? null : (char[])DelimiterCandidates.Clone();
+        // ParseErrors is an output sink rather than configuration. Preserve a caller-provided
+        // collection so errors produced through an internal options snapshot remain observable,
+        // but do not mutate the source options merely to create a default sink.
+        clone.ParseErrors = ParseErrors ?? (CollectParseErrors ? new List<CsvParseError>() : null);
         if (StaticColumns is not null)
         {
             var staticColumns = new Dictionary<string, object?>(StaticColumns.Count);

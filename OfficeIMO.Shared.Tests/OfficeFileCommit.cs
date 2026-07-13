@@ -1,7 +1,6 @@
 using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
-using OfficeIMO.Shared;
 using System.Threading.Tasks;
 using Xunit;
 

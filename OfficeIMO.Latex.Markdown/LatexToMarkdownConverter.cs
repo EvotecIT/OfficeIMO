@@ -1,9 +1,9 @@
 namespace OfficeIMO.Latex.Markdown;
 
 /// <summary>Converts the bounded OfficeIMO LaTeX profile to typed Markdown.</summary>
-public static class LatexToMarkdownConverter {
+internal static class LatexToMarkdownConverter {
     /// <summary>Converts recognized semantics and diagnoses source fallbacks.</summary>
-    public static LatexToMarkdownResult Convert(
+    internal static LatexToMarkdownResult Convert(
         LatexDocument document,
         LatexToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));

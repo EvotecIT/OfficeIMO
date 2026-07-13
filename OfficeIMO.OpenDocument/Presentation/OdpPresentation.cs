@@ -9,14 +9,26 @@ public sealed partial class OdpPresentation : OdfDocument {
     /// <summary>Creates an empty ODF 1.4 presentation.</summary>
     public static OdpPresentation Create() => new OdpPresentation(OdfPackage.Create(OdfDocumentKind.Presentation), null);
 
-    /// <summary>Opens an ODP document from a path.</summary>
-    public static OdpPresentation Open(string path, OdfOpenOptions? options = null) {
-        OdfPackage package = OdfPackage.Open(path, options, out string fullPath);
+    /// <summary>Loads an ODP document from a path.</summary>
+    public new static OdpPresentation Load(string path, OdfLoadOptions? options = null) {
+        OdfPackage package = OdfPackage.Load(path, options, out string fullPath);
         return new OdpPresentation(package, fullPath);
     }
 
-    /// <summary>Opens an ODP document from a stream.</summary>
-    public static OdpPresentation Open(Stream stream, OdfOpenOptions? options = null) => new OdpPresentation(OdfPackage.Open(stream, options), null);
+    /// <summary>Loads an ODP document from a stream.</summary>
+    public new static OdpPresentation Load(Stream stream, OdfLoadOptions? options = null) => new OdpPresentation(OdfPackage.Load(stream, options), null);
+
+    /// <summary>Asynchronously loads an ODP document from a path.</summary>
+    public new static async Task<OdpPresentation> LoadAsync(string path, OdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        OdfDocument document = await OdfDocument.LoadAsync(path, options, cancellationToken).ConfigureAwait(false);
+        return document as OdpPresentation ?? throw new InvalidDataException("Package is not an OpenDocument Presentation document.");
+    }
+
+    /// <summary>Asynchronously loads an ODP document from a caller-owned stream.</summary>
+    public new static async Task<OdpPresentation> LoadAsync(Stream stream, OdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        OdfPackage package = await LoadPackageAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        return new OdpPresentation(package, null);
+    }
 
     internal XElement PresentationBody => GetBody(OdfNamespaces.Office + "presentation");
 

@@ -9,7 +9,8 @@ internal static class OpenDocumentMilestones {
         string output = Path.Combine(folderPath, "OpenDocument");
         Directory.CreateDirectory(output);
 
-        using (OdtDocument text = OdtDocument.Create()) {
+        {
+            OdtDocument text = OdtDocument.Create();
             text.AddHeading("Native OpenDocument", 1);
             text.AddTrackedParagraphInsertion("This paragraph is tracked.", "OfficeIMO").Accept();
             text.AddParagraph("The same document can be written as packaged ODT or flat FODT XML.");
@@ -17,7 +18,8 @@ internal static class OpenDocumentMilestones {
             text.SaveFlatXml(Path.Combine(output, "native-text.fodt"));
         }
 
-        using (OdsDocument spreadsheet = OdsDocument.Create()) {
+        {
+            OdsDocument spreadsheet = OdsDocument.Create();
             OdsSheet data = spreadsheet.AddSheet("Data");
             data.Cell(0, 0).SetNumber(20D);
             data.Cell(1, 0).SetNumber(22D);
@@ -27,7 +29,8 @@ internal static class OpenDocumentMilestones {
             spreadsheet.Save(Path.Combine(output, "native-sheet.ods"));
         }
 
-        using (OdpPresentation presentation = OdpPresentation.Create()) {
+        {
+            OdpPresentation presentation = OdpPresentation.Create();
             OdpSlide slide = presentation.AddSlide("Animation");
             OdpRectangle panel = slide.AddRectangle(OdfRect.FromCentimeters(2, 2, 8, 4));
             slide.AddFadeInAnimation(panel, TimeSpan.FromSeconds(1));
@@ -37,7 +40,7 @@ internal static class OpenDocumentMilestones {
         using (WordDocument word = WordDocument.Create()) {
             word.AddParagraph("Explicit Word to ODT conversion").Style = WordParagraphStyles.Heading1;
             OdfConversionResult<OdtDocument> conversion = word.ToOpenDocumentResult();
-            using OdtDocument converted = conversion.Value;
+            OdtDocument converted = conversion.Value;
             converted.Save(Path.Combine(output, "converted-from-word.odt"));
             File.WriteAllLines(Path.Combine(output, "converted-from-word.mapping.txt"), conversion.Report.Mappings
                 .Select(mapping => $"{mapping.Feature}: {mapping.Status} ({mapping.Count})"));

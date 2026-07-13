@@ -9,14 +9,14 @@ public sealed class HtmlToRtfResult : HtmlConversionResult<RtfDocument> {
         RtfConversionReport report) : base(document) {
         AddDiagnostics(diagnostics);
         RtfDiagnostics = Array.AsReadOnly(rtfDiagnostics.ToArray());
-        Report = Snapshot(report);
+        RtfReport = Snapshot(report);
     }
 
     /// <summary>RTF-specific diagnostics in emission order.</summary>
     public IReadOnlyList<HtmlRtfConversionDiagnostic> RtfDiagnostics { get; }
 
     /// <summary>Shared RTF fidelity report for this operation.</summary>
-    public RtfConversionReport Report { get; }
+    public RtfConversionReport RtfReport { get; }
 
     private static RtfConversionReport Snapshot(RtfConversionReport report) {
         var snapshot = new RtfConversionReport();
@@ -34,14 +34,14 @@ public sealed class RtfToHtmlResult : HtmlConversionResult<string> {
         RtfConversionReport report) : base(html) {
         AddDiagnostics(diagnostics);
         RtfDiagnostics = Array.AsReadOnly(rtfDiagnostics.ToArray());
-        Report = Snapshot(report);
+        RtfReport = Snapshot(report);
     }
 
     /// <summary>RTF-specific diagnostics in emission order.</summary>
     public IReadOnlyList<HtmlRtfConversionDiagnostic> RtfDiagnostics { get; }
 
     /// <summary>Shared RTF fidelity report for this operation.</summary>
-    public RtfConversionReport Report { get; }
+    public RtfConversionReport RtfReport { get; }
 
     private static RtfConversionReport Snapshot(RtfConversionReport report) {
         var snapshot = new RtfConversionReport();

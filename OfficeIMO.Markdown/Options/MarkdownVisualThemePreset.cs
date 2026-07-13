@@ -5,7 +5,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class MarkdownVisualThemePreset {
     internal MarkdownVisualThemePreset(
-        MarkdownVisualThemeKind kind,
+        OfficeVisualThemeKind kind,
         string name,
         string description,
         HtmlStyle htmlStyle,
@@ -18,7 +18,7 @@ public sealed class MarkdownVisualThemePreset {
     }
 
     /// <summary>Built-in theme kind used to create the preset.</summary>
-    public MarkdownVisualThemeKind Kind { get; }
+    public OfficeVisualThemeKind Kind { get; }
 
     /// <summary>Stable display/API name for the preset.</summary>
     public string Name { get; }

@@ -9,11 +9,8 @@ namespace OfficeIMO.Excel.Fluent {
         public SheetComposer SectionWithAnchor(string text, string? anchorName = null, bool backToTopLink = true, string backToTopText = "↑ Top") {
             Section(text);
             if (backToTopLink) {
-                try {
-                    string topName = SanitizeName($"top_{Sheet.Name}");
-                    Sheet.SetInternalLink(_row, 1, Sheet, "A1", backToTopText);
-                    _row++;
-                } catch { }
+                Sheet.SetInternalLink(_row, 1, Sheet, "A1", backToTopText);
+                _row++;
             }
             return this;
         }

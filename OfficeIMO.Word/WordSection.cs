@@ -654,12 +654,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Exposes the footers available for this section.
         /// </summary>
-        public WordFooters Footer = new WordFooters();
+        public WordFooters Footer { get; internal set; } = new WordFooters();
 
         /// <summary>
         /// Exposes the headers available for this section.
         /// </summary>
-        public WordHeaders Header = new WordHeaders();
+        public WordHeaders Header { get; internal set; } = new WordHeaders();
 
         /// <summary>
         /// Provides access to page border settings for this section.

@@ -45,7 +45,8 @@ namespace OfficeIMO.Examples.Word {
 
                 document.CustomDocumentProperties["MyName"].Value = "Przemysław Kłys";
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

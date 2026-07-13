@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -110,32 +110,32 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Collection of sections contained in the document.
         /// </summary>
-        public List<WordSection> Sections = new List<WordSection>();
+        public List<WordSection> Sections { get; } = new List<WordSection>();
 
         /// <summary>
         /// Path to the file backing this document.
         /// </summary>
-        public string FilePath { get; set; } = null!;
+        public string? FilePath { get; internal set; }
 
         /// <summary>
         /// Original stream where this document was created / loaded from.
         /// </summary>
-        internal Stream OriginalStream { get; set; } = null!;
+        internal Stream? OriginalStream { get; set; }
 
         /// <summary>
         /// Provides access to document settings.
         /// </summary>
-        public WordSettings Settings = null!;
+        public WordSettings Settings { get; internal set; } = null!;
 
         /// <summary>
         /// Manages application related properties.
         /// </summary>
-        public ApplicationProperties ApplicationProperties = null!;
+        public ApplicationProperties ApplicationProperties { get; internal set; } = null!;
 
         /// <summary>
         /// Provides access to built-in document properties.
         /// </summary>
-        public BuiltinDocumentProperties BuiltinDocumentProperties = null!;
+        public BuiltinDocumentProperties BuiltinDocumentProperties { get; internal set; } = null!;
 
         private WordCoverPageProperties? _coverPageProperties;
 
@@ -147,7 +147,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Collection of custom document properties.
         /// </summary>
-        public readonly Dictionary<string, WordCustomProperty> CustomDocumentProperties = new Dictionary<string, WordCustomProperty>();
+        public Dictionary<string, WordCustomProperty> CustomDocumentProperties { get; } = new Dictionary<string, WordCustomProperty>();
         /// <summary>
         /// Collection of document variables accessible via <see cref="WordFieldType.DocVariable"/> fields.
         /// </summary>
@@ -174,17 +174,15 @@ namespace OfficeIMO.Word {
         public bool AutoUpdateToc { get; set; }
 
 
-        // we expose them to help with integration
-        /// <summary>
-        /// Underlying Open XML word processing document.
-        /// </summary>
-        public WordprocessingDocument _wordprocessingDocument = null!;
+        internal WordprocessingDocument _wordprocessingDocument = null!;
 
         /// <summary>
         /// Root document element.
         /// </summary>
-        public Document _document = null!;
-        //public WordCustomProperties _customDocumentProperties;
+        internal Document _document = null!;
+
+        /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
+        public WordprocessingDocument OpenXmlDocument => _wordprocessingDocument;
 
 
         /// <summary>

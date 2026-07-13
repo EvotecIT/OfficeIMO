@@ -16,7 +16,8 @@ namespace OfficeIMO.Examples.Word {
                 if (document.Comments.Count > 0) {
                     document.Comments[0].Remove();
                 }
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

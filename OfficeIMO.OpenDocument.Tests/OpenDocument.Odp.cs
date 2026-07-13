@@ -12,7 +12,7 @@ public class OpenDocumentOdpTests {
     [InlineData("microsoft-powerpoint-basic.odp")]
     public void PreservesAuthoredPresentationFixtureOutsideEditedContent(string fixtureName) {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", fixtureName);
-        using OdpPresentation presentation = OdpPresentation.Open(path);
+        OdpPresentation presentation = OdpPresentation.Load(path);
         var untouched = presentation.Package.Entries
             .Where(entry => entry.Name != "content.xml" && entry.Name != "META-INF/manifest.xml")
             .ToDictionary(entry => entry.Name, entry => entry.GetOriginalBytes());
@@ -20,7 +20,7 @@ public class OpenDocumentOdpTests {
         presentation.Slides[0].AddTextBox(OdfRect.FromCentimeters(1, 1, 8, 2), "OfficeIMO fixture edit", "OfficeIMOProof");
         byte[] output = presentation.ToBytes(new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.PreserveSource });
 
-        using OdpPresentation reopened = OdpPresentation.Open(new MemoryStream(output));
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(output));
         Assert.Contains(reopened.Slides[0].Shapes.OfType<OdpTextBox>(), textBox =>
             textBox.Paragraphs.Any(paragraph => paragraph.Text == "OfficeIMO fixture edit"));
         foreach (var pair in untouched) Assert.Equal(pair.Value, reopened.Package.GetRequiredEntry(pair.Key).GetOriginalBytes());
@@ -29,7 +29,7 @@ public class OpenDocumentOdpTests {
     [Fact]
     public void WritesAndReopensSlidesShapesTextImagesTablesAndNotes() {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpPresentation presentation = OdpPresentation.Create();
         presentation.PageWidth = OdfLength.Centimeters(33.867);
         presentation.PageHeight = OdfLength.Centimeters(19.05);
         OdpMasterPage master = presentation.AddMasterPage("Brand");
@@ -78,7 +78,7 @@ public class OpenDocumentOdpTests {
 
         byte[] bytes = presentation.ToBytes();
         Assert.True(presentation.Validate().IsValid);
-        using OdpPresentation reopened = OdpPresentation.Open(new MemoryStream(bytes));
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(bytes));
 
         Assert.Equal(2, reopened.Slides.Count);
         Assert.Equal("Appendix", reopened.Slides[0].Name);
@@ -98,7 +98,7 @@ public class OpenDocumentOdpTests {
 
     [Fact]
     public void RepeatedPresentationTableCellsAreLogicalCellsAndSplitWhenEdited() {
-        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpPresentation presentation = OdpPresentation.Create();
         OdpTable table = presentation.AddSlide("Repeated").AddTable(
             OdfRect.FromCentimeters(1, 1, 10, 3), 1, 1, "Repeated");
         table.Cell(0, 0).Text = "Same";
@@ -106,7 +106,7 @@ public class OpenDocumentOdpTests {
         cell.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
         presentation.MarkPartDirty("content.xml");
 
-        using OdpPresentation reopened = OdpPresentation.Open(new MemoryStream(presentation.ToBytes()));
+        OdpPresentation reopened = OdpPresentation.Load(new MemoryStream(presentation.ToBytes()));
         OdpTable actual = reopened.Slides.Single().Shapes.OfType<OdpTable>().Single();
 
         Assert.Equal(3, actual.Rows.Single().Cells.Count);
@@ -115,7 +115,7 @@ public class OpenDocumentOdpTests {
         Assert.Equal(new[] { "Same", "Changed", "Same" }, actual.Rows.Single().Cells.Select(item => item.Text));
         Assert.True(reopened.Validate().IsValid);
 
-        using OdpPresentation roundTrip = OdpPresentation.Open(new MemoryStream(reopened.ToBytes()));
+        OdpPresentation roundTrip = OdpPresentation.Load(new MemoryStream(reopened.ToBytes()));
         OdpTable persisted = roundTrip.Slides.Single().Shapes.OfType<OdpTable>().Single();
         Assert.Equal(new[] { "Same", "Changed", "Same" }, persisted.Rows.Single().Cells.Select(item => item.Text));
     }

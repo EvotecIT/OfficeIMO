@@ -11,7 +11,7 @@ public sealed class Markdown_Document_Transform_Tests {
         options.DocumentTransforms.Add(new AppendParagraphTransform("first"));
         options.DocumentTransforms.Add(new AppendParagraphTransform("second"));
 
-        var document = MarkdownReader.Parse("Base paragraph.", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Base paragraph.", options);
 
         Assert.Equal(
             NormalizeMarkdown("""
@@ -84,7 +84,7 @@ second
     [Fact]
     public void MarkdownDocumentTransformPipeline_Collects_AffectedSourceSpan_When_SyntaxTree_Is_Available() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
-        var parseResult = MarkdownReader.ParseWithSyntaxTree("previous shutdown was unexpected### Reason", options);
+        var parseResult = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("previous shutdown was unexpected### Reason", options);
         var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
         var transforms = new IMarkdownDocumentTransform[] {
             new MarkdownCompactHeadingBoundaryTransform()
@@ -118,7 +118,7 @@ second
     [Fact]
     public void MarkdownDocumentTransformPipeline_Collects_IndividualAffectedSourceSpans() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
-        var parseResult = MarkdownReader.ParseWithSyntaxTree("""
+        var parseResult = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 alpha
 
 beta
@@ -172,7 +172,7 @@ BETA
             return document;
         }));
 
-        MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("alpha\r\n\r\n", options);
+        OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("alpha\r\n\r\n", options);
 
         Assert.True(normalizedOk);
         Assert.Equal(MarkdownSourceTextKind.Normalized, normalizedSlice.TextKind);
@@ -190,7 +190,7 @@ BETA
             NormalizeTightStrongBoundaries = true
         }));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Prefix **bold**suffix", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Prefix **bold**suffix", options);
 
         var diagnostic = Assert.Single(result.TransformDiagnostics);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 21), diagnostic.AffectedSourceSpan);
@@ -208,7 +208,7 @@ BETA
             NormalizeTightColonSpacing = true
         }));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
 > [!NOTE] Why it matters
 > coverage:missing evidence
 """, options);
@@ -232,7 +232,7 @@ BETA
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("previous shutdown was unexpected### Reason", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("previous shutdown was unexpected### Reason", options);
 
         Assert.Equal(2, result.Document.Blocks.Count);
         Assert.Single(result.TransformDiagnostics);
@@ -245,7 +245,7 @@ BETA
         options.DocumentTransforms.Add(
             new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.IntelligenceXAliasFence));
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 ```json
 {"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}
 ```
@@ -262,7 +262,7 @@ BETA
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(transform);
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 ```json
 {"nodes":[{"id":"A","label":"Root"}],"edges":[{"from":"A","to":"B"}]}
 ```
@@ -282,7 +282,7 @@ BETA
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownStandaloneHashHeadingSeparatorTransform());
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 #
 
 ## Result
@@ -301,7 +301,7 @@ BETA
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownStandaloneHashHeadingSeparatorTransform());
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 #
 
 Paragraph body.
@@ -321,7 +321,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
 
-        var document = MarkdownReader.Parse("previous shutdown was unexpected### Reason", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("previous shutdown was unexpected### Reason", options);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -340,7 +340,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactHeadingBoundaryTransform());
 
-        var document = MarkdownReader.Parse("Use `unexpected### Reason` as captured text.", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Use `unexpected### Reason` as captured text.", options);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -354,7 +354,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownColonListBoundaryTransform());
 
-        var document = MarkdownReader.Parse("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Następny najlepszy krok:- **`ad_domain_controller_facts`**", options);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -373,7 +373,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownColonListBoundaryTransform());
 
-        var document = MarkdownReader.Parse("Use `Next step:- **Item**` as captured text.", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Use `Next step:- **Item**` as captured text.", options);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -387,7 +387,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownHeadingListBoundaryTransform());
 
-        var document = MarkdownReader.Parse("## Summary- **Replication:** healthy", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("## Summary- **Replication:** healthy", options);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -407,7 +407,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownHeadingListBoundaryTransform());
 
-        var document = MarkdownReader.Parse("## Summary `- **Replication:**` tail", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("## Summary `- **Replication:**` tail", options);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -421,7 +421,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactStrongLabelListBoundaryTransform());
 
-        var document = MarkdownReader.Parse("- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("- **Replication:** wcześniej zdrowa ✅- **FSMO:** technicznie OK", options);
 
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         Assert.Equal(2, list.Items.Count);
@@ -434,7 +434,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownCompactStrongLabelListBoundaryTransform());
 
-        var document = MarkdownReader.Parse("✅`- **FSMO:**` tail", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("✅`- **FSMO:**` tail", options);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -452,7 +452,7 @@ Paragraph body.
             NormalizeMetricValueStrongRuns = true
         }));
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 - Overall health ****healthy****
 - Overall health ✅ Healthy****
 - Overall health ******healthy**
@@ -474,7 +474,7 @@ Paragraph body.
             NormalizeDanglingTrailingStrongListClosers = true
         }));
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 - Signal **Current comparison used **System** log only.**
 - [ ] task
 """, options);
@@ -498,9 +498,9 @@ Paragraph body.
         options.DocumentTransforms.Add(
             new MarkdownJsonVisualCodeBlockTransform(MarkdownVisualFenceLanguageMode.GenericSemanticFence));
 
-        var document = """
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse("""
 <pre><code class="language-json">{"type":"bar","data":{"labels":["A"],"datasets":[{"label":"Count","data":[1]}]}}</code></pre>
-""".ToMarkdownDocument(options);
+""").ToMarkdownDocument(options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
@@ -522,10 +522,10 @@ Paragraph body.
             NormalizeTightColonSpacing = true
         }));
 
-        var document = """
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse("""
 <p><strong>Deleted object remnants</strong>(SID left in ACL path)</p>
 <p>Why it matters:missing evidence</p>
-""".ToMarkdownDocument(options);
+""").ToMarkdownDocument(options);
 
         var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<strong>Deleted object remnants</strong> (SID left in ACL path)", html, StringComparison.Ordinal);
@@ -539,9 +539,9 @@ Paragraph body.
             NormalizeLooseStrongDelimiters = true
         }));
 
-        var document = """
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse("""
 <p><strong> LDAP/Kerberos health on all DCs </strong> next</p>
-""".ToMarkdownDocument(options);
+""").ToMarkdownDocument(options);
 
         var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", html, StringComparison.Ordinal);
@@ -554,9 +554,9 @@ Paragraph body.
             NormalizeTightArrowStrongBoundaries = true
         }));
 
-        var document = """
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse("""
 <p>Signal -&gt;<strong>Why it matters:</strong> coverage is thin</p>
-""".ToMarkdownDocument(options);
+""").ToMarkdownDocument(options);
 
         Assert.Contains("Signal -> **Why it matters:** coverage is thin", document.ToMarkdown(), StringComparison.Ordinal);
     }
@@ -566,7 +566,7 @@ Paragraph body.
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 Status: healthy
 Impact: none
 """, options);
@@ -588,12 +588,12 @@ Impact: none
         var document = MarkdownDoc.Create();
         var definitions = new DefinitionListBlock();
         definitions.AddEntry(new DefinitionListEntry(
-            MarkdownReader.ParseInlineText("Status"),
-            new IMarkdownBlock[] { new ParagraphBlock(MarkdownReader.ParseInlineText("healthy")) }));
+            OfficeIMO.Markdown.MarkdownReader.ParseInlineText("Status"),
+            new IMarkdownBlock[] { new ParagraphBlock(OfficeIMO.Markdown.MarkdownReader.ParseInlineText("healthy")) }));
         definitions.AddEntry(new DefinitionListEntry(
-            MarkdownReader.ParseInlineText("Evidence"),
+            OfficeIMO.Markdown.MarkdownReader.ParseInlineText("Evidence"),
             new IMarkdownBlock[] {
-                new ParagraphBlock(MarkdownReader.ParseInlineText("See logs")),
+                new ParagraphBlock(OfficeIMO.Markdown.MarkdownReader.ParseInlineText("See logs")),
                 new QuoteBlock(new[] { "quoted context" })
             }));
         document.Add(definitions);
@@ -620,12 +620,12 @@ Impact: none
         var options = new HtmlToMarkdownOptions();
         options.DocumentTransforms.Add(new MarkdownSimpleDefinitionListParagraphTransform());
 
-        var document = """
+        var document = OfficeIMO.Html.HtmlConversionDocument.Parse("""
 <dl>
   <dt>Status</dt><dd>healthy</dd>
   <dt>Impact</dt><dd>none</dd>
 </dl>
-""".ToMarkdownDocument(options);
+""").ToMarkdownDocument(options);
 
         var markdown = NormalizeMarkdown(document.ToMarkdown());
         var html = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -648,7 +648,7 @@ Impact: none
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.DocumentTransforms.Add(transform);
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 Signal **Deleted object remnants**(SID left in ACL path)
 
 Why it matters:missing evidence
@@ -670,7 +670,7 @@ Why it matters:missing evidence
             NormalizeTightColonSpacing = true
         }));
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 Lead[^1]
 
 [^1]: Why it matters:missing evidence
@@ -709,7 +709,7 @@ Lead[^1]
             NormalizeTightColonSpacing = true
         }));
 
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > [!NOTE] Why it matters
 > coverage:missing evidence
 """, options);

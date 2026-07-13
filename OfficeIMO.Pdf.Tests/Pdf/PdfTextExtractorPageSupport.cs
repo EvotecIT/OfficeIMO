@@ -118,8 +118,8 @@ public partial class PdfTextExtractorPageTests {
     private static string GetOutputText(MemoryStream output, int prefixLength) {
         byte[] bytes = output.ToArray();
         Assert.True(bytes.Length > prefixLength);
-        Assert.Equal("output-prefix", Encoding.ASCII.GetString(bytes, 0, prefixLength));
-        return Encoding.UTF8.GetString(bytes, prefixLength, bytes.Length - prefixLength);
+        Assert.Equal(0, output.Position);
+        return Encoding.UTF8.GetString(bytes);
     }
 
     private static string Normalize(string text) {

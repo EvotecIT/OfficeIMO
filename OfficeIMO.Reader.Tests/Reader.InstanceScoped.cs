@@ -153,7 +153,7 @@ public sealed class ReaderInstanceScopedTests {
 
     private static IEnumerable<ReaderChunk> DetectKindForEachChunk(string extension) {
         for (int index = 0; index < 2; index++) {
-            ReaderInputKind detected = DocumentReader.DetectKind("nested" + extension);
+            ReaderInputKind detected = DocumentReaderEngine.DetectKind("nested" + extension);
             yield return new ReaderChunk {
                 Id = "nested:" + index,
                 Kind = detected,

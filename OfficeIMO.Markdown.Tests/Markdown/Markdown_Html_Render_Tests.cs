@@ -147,7 +147,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 .H1("Legacy colors")
                 .ToHtmlDocument(new HtmlOptions {
                     Title = "Custom colors",
-                    ColorOverrides = new ThemeColors {
+                    ColorOverrides = new MarkdownHtmlColorOverrides {
                         HeadingLight = "SeaGreen",
                         AccentLight = "#123456"
                     },
@@ -237,7 +237,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void HtmlOptions_Can_Disable_Automatic_Heading_Identifiers() {
-            var doc = MarkdownReader.Parse("# Alpha");
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("# Alpha");
 
             string html = doc.ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
@@ -260,7 +260,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 # a_b c.d
 """;
 
-            string html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+            string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
                 CssDelivery = CssDelivery.None,
                 BodyClass = null,
@@ -276,7 +276,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void HtmlOptions_Applies_Heading_Identifier_Style_To_Nested_Headings() {
             const string markdown = "- # a_b c.d";
 
-            string html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+            string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
                 CssDelivery = CssDelivery.None,
                 BodyClass = null,
@@ -299,12 +299,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 ```
 """;
 
-            var defaultHtml = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+            var defaultHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
                 CssDelivery = CssDelivery.None,
                 BodyClass = null
             });
-            var markdigStyleHtml = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+            var markdigStyleHtml = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
                 CssDelivery = CssDelivery.None,
                 BodyClass = null,
@@ -365,7 +365,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             });
             Assert.Contains("<title>åDocument</title>", documentHtml, StringComparison.Ordinal);
 
-            string blockedLinkedImage = MarkdownReader.Parse("[![åBadge](https://img.example/badge.svg)](https://example.com)")
+            string blockedLinkedImage = OfficeIMO.Markdown.MarkdownReader.Parse("[![åBadge](https://img.example/badge.svg)](https://example.com)")
                 .ToHtmlFragment(new HtmlOptions {
                     Style = HtmlStyle.Plain,
                     CssDelivery = CssDelivery.None,
@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Link_Html_Preserves_Ipv6_Authority_Brackets() {
             const string markdown = "[loopback](http://[::1]/)";
 
-            string html = MarkdownReader.Parse(markdown)
+            string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown)
                 .ToHtmlFragment(new HtmlOptions {
                     Style = HtmlStyle.Plain,
                     CssDelivery = CssDelivery.None,
@@ -526,7 +526,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 """;
 
             var options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
-            string html = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
+            string html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
                 .ToHtmlFragment(options);
 
             Assert.True(options.AutoHeadingIdentifiers);
@@ -685,7 +685,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
   hello from list
   ```
 """;
-            var doc = MarkdownReader.Parse(markdown);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var html = doc.ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
                 CssDelivery = CssDelivery.None,

@@ -3,6 +3,13 @@
 <Suppressions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.DocumentReader</Target>
+    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
+    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.ReaderHandlerRegistrarAttribute</Target>
     <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
@@ -38,6 +45,13 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.DocumentReader</Target>
+    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
+    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.ReaderHandlerRegistrarAttribute</Target>
     <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
@@ -73,6 +87,13 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.DocumentReader</Target>
+    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
+    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.ReaderHandlerRegistrarAttribute</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
@@ -108,336 +129,42 @@
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},OfficeIMO.Reader.ReaderHostBootstrapOptions)</Target>
+    <Target>F:OfficeIMO.Reader.OfficeDocumentReadResultSchema.Version</Target>
     <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},OfficeIMO.Reader.ReaderHostBootstrapProfile,System.Boolean)</Target>
+    <Target>M:OfficeIMO.Reader.ReaderInputLimits.EnforceSeekableStreamRemainingSize(System.IO.Stream,System.Nullable{System.Int64})</Target>
     <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromLoadedAssemblies(OfficeIMO.Reader.ReaderHostBootstrapProfile,System.String,System.Boolean)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromLoadedAssemblies(System.String,OfficeIMO.Reader.ReaderHostBootstrapOptions)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrars(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrars(System.Reflection.Assembly[])</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrarsFromLoadedAssemblies(System.String)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilities(System.Boolean,System.Boolean)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilityManifest(System.Boolean,System.Boolean)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilityManifestJson(System.Boolean,System.Boolean,System.Boolean)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandler(OfficeIMO.Reader.ReaderHandlerRegistration,System.Boolean)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(OfficeIMO.Reader.ReaderHandlerRegistration,System.Boolean)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromAssemblies(System.Boolean,System.Reflection.Assembly[])</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},System.Boolean)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromLoadedAssemblies(System.Boolean,System.String)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.UnregisterHandler(System.String)</Target>
-    <Left>lib/net10.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net10.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},OfficeIMO.Reader.ReaderHostBootstrapOptions)</Target>
+    <Target>F:OfficeIMO.Reader.OfficeDocumentReadResultSchema.Version</Target>
     <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},OfficeIMO.Reader.ReaderHostBootstrapProfile,System.Boolean)</Target>
+    <Target>M:OfficeIMO.Reader.ReaderInputLimits.EnforceSeekableStreamRemainingSize(System.IO.Stream,System.Nullable{System.Int64})</Target>
     <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromLoadedAssemblies(OfficeIMO.Reader.ReaderHostBootstrapProfile,System.String,System.Boolean)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromLoadedAssemblies(System.String,OfficeIMO.Reader.ReaderHostBootstrapOptions)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrars(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrars(System.Reflection.Assembly[])</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrarsFromLoadedAssemblies(System.String)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilities(System.Boolean,System.Boolean)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilityManifest(System.Boolean,System.Boolean)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilityManifestJson(System.Boolean,System.Boolean,System.Boolean)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandler(OfficeIMO.Reader.ReaderHandlerRegistration,System.Boolean)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(OfficeIMO.Reader.ReaderHandlerRegistration,System.Boolean)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromAssemblies(System.Boolean,System.Reflection.Assembly[])</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},System.Boolean)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromLoadedAssemblies(System.Boolean,System.String)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.UnregisterHandler(System.String)</Target>
-    <Left>lib/net8.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/net8.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},OfficeIMO.Reader.ReaderHostBootstrapOptions)</Target>
+    <Target>F:OfficeIMO.Reader.OfficeDocumentReadResultSchema.Version</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
   </Suppression>
   <Suppression>
     <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},OfficeIMO.Reader.ReaderHostBootstrapProfile,System.Boolean)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromLoadedAssemblies(OfficeIMO.Reader.ReaderHostBootstrapProfile,System.String,System.Boolean)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.BootstrapHostFromLoadedAssemblies(System.String,OfficeIMO.Reader.ReaderHostBootstrapOptions)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrars(System.Collections.Generic.IEnumerable{System.Reflection.Assembly})</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrars(System.Reflection.Assembly[])</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.DiscoverHandlerRegistrarsFromLoadedAssemblies(System.String)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilities(System.Boolean,System.Boolean)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilityManifest(System.Boolean,System.Boolean)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.GetCapabilityManifestJson(System.Boolean,System.Boolean,System.Boolean)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandler(OfficeIMO.Reader.ReaderHandlerRegistration,System.Boolean)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlerPreservingExistingCustomExtensions(OfficeIMO.Reader.ReaderHandlerRegistration,System.Boolean)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromAssemblies(System.Boolean,System.Reflection.Assembly[])</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromAssemblies(System.Collections.Generic.IEnumerable{System.Reflection.Assembly},System.Boolean)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.RegisterHandlersFromLoadedAssemblies(System.Boolean,System.String)</Target>
-    <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
-    <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
-    <IsBaselineSuppression>true</IsBaselineSuppression>
-  </Suppression>
-  <Suppression>
-    <DiagnosticId>CP0002</DiagnosticId>
-    <Target>M:OfficeIMO.Reader.DocumentReader.UnregisterHandler(System.String)</Target>
+    <Target>M:OfficeIMO.Reader.ReaderInputLimits.EnforceSeekableStreamRemainingSize(System.IO.Stream,System.Nullable{System.Int64})</Target>
     <Left>lib/netstandard2.0/OfficeIMO.Reader.dll</Left>
     <Right>lib/netstandard2.0/OfficeIMO.Reader.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

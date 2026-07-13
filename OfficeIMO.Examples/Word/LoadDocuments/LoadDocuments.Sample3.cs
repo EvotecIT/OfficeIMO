@@ -19,7 +19,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Sections count: " + document.Sections.Count);
                 Console.WriteLine("Tables count: " + document.Tables.Count);
                 Console.WriteLine("Paragraphs count: " + document.Paragraphs.Count);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

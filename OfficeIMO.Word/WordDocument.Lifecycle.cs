@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Word.Fluent;
 using System.IO;
 using System.Text.RegularExpressions;
@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Releases resources associated with the document asynchronously.
         /// </summary>
-        public async Task DisposeAsync() {
+        public async ValueTask DisposeAsync() {
             if (this._disposed) {
                 return;
             }

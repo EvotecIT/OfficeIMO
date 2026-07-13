@@ -66,14 +66,21 @@ public sealed class MarkdownToLatexOptions {
 public sealed class LatexToMarkdownResult {
     internal LatexToMarkdownResult(MarkdownDoc value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
         Value = value ?? throw new ArgumentNullException(nameof(value));
-        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        Report = new LatexToMarkdownReport(diagnostics);
     }
     /// <summary>Converted Markdown document.</summary>
     public MarkdownDoc Value { get; }
-    /// <summary>Loss diagnostics.</summary>
-    public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
+    /// <summary>Snapshot of conversion diagnostics and loss state.</summary>
+    public LatexToMarkdownReport Report { get; }
     /// <summary>True when any feature was not exactly converted.</summary>
-    public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
+    public bool HasLoss => Report.HasLoss;
+    /// <summary>Returns the converted document.</summary>
+    public MarkdownDoc RequireValue() => Value;
+    /// <summary>Returns the converted document only when no lossy mapping was reported.</summary>
+    public MarkdownDoc RequireNoLoss() {
+        Report.RequireNoLoss();
+        return Value;
+    }
 }
 
 /// <summary>Canonical LaTeX result from Markdown.</summary>
@@ -81,14 +88,51 @@ public sealed class MarkdownToLatexResult {
     internal MarkdownToLatexResult(string source, LatexDocument value, IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
         Source = source;
         Value = value ?? throw new ArgumentNullException(nameof(value));
-        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        Report = new MarkdownToLatexReport(diagnostics);
     }
     /// <summary>Generated source.</summary>
     public string Source { get; }
     /// <summary>Lossless parsed generated source.</summary>
     public LatexDocument Value { get; }
-    /// <summary>Loss diagnostics.</summary>
-    public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
+    /// <summary>Snapshot of conversion diagnostics and loss state.</summary>
+    public MarkdownToLatexReport Report { get; }
     /// <summary>True when any feature was not exactly converted.</summary>
+    public bool HasLoss => Report.HasLoss;
+    /// <summary>Returns the converted document.</summary>
+    public LatexDocument RequireValue() => Value;
+    /// <summary>Returns the converted document only when no lossy mapping was reported.</summary>
+    public LatexDocument RequireNoLoss() {
+        Report.RequireNoLoss();
+        return Value;
+    }
+}
+
+/// <summary>LaTeX-to-Markdown conversion diagnostics captured for one operation.</summary>
+public sealed class LatexToMarkdownReport {
+    internal LatexToMarkdownReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
+        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+    }
+    /// <summary>Loss, fallback, and omission diagnostics.</summary>
+    public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
+    /// <summary>True when at least one feature was not converted exactly.</summary>
     public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
+    /// <summary>Throws when the conversion reported a lossy mapping.</summary>
+    public void RequireNoLoss() {
+        if (HasLoss) throw new InvalidOperationException("LaTeX-to-Markdown conversion reported one or more lossy mappings.");
+    }
+}
+
+/// <summary>Markdown-to-LaTeX conversion diagnostics captured for one operation.</summary>
+public sealed class MarkdownToLatexReport {
+    internal MarkdownToLatexReport(IReadOnlyList<LatexMarkdownConversionDiagnostic> diagnostics) {
+        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+    }
+    /// <summary>Loss, fallback, and omission diagnostics.</summary>
+    public IReadOnlyList<LatexMarkdownConversionDiagnostic> Diagnostics { get; }
+    /// <summary>True when at least one feature was not converted exactly.</summary>
+    public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != LatexMarkdownConversionOutcome.Converted);
+    /// <summary>Throws when the conversion reported a lossy mapping.</summary>
+    public void RequireNoLoss() {
+        if (HasLoss) throw new InvalidOperationException("Markdown-to-LaTeX conversion reported one or more lossy mappings.");
+    }
 }

@@ -19,7 +19,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static List<MarkdownChunkBlock> ParseMarkdownBlocksForChunking(string text, ReaderOptions opt, CancellationToken ct) {
         var markdownReaderOptions = CreateMarkdownReaderOptions(opt);
         var parseResult = markdownReaderOptions == null

@@ -1,5 +1,6 @@
 using OfficeIMO.Markdown;
-using OfficeIMO.Markdown.Html;
+using OfficeIMO.Drawing.Internal;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -14,10 +15,11 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="document">The <see cref="WordDocument"/> to convert to Markdown.</param>
         /// <param name="path">Destination file path.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void SaveAsMarkdown(this WordDocument document, string path, WordToMarkdownOptions? options = null) {
+        public static WordToMarkdownResult SaveAsMarkdown(this WordDocument document, string path, WordToMarkdownOptions? options = null) {
             var effectiveOptions = CreateFileSaveOptions(path, options);
-            var markdown = new WordToMarkdownConverter().Convert(document, effectiveOptions);
-            File.WriteAllText(path, markdown, Encoding.UTF8);
+            WordToMarkdownResult result = ConvertToMarkdownResult(document, effectiveOptions);
+            OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(RenderMarkdown(result.Value)));
+            return result;
         }
 
         /// <summary>
@@ -26,10 +28,10 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="document">The <see cref="WordDocument"/> to convert to Markdown.</param>
         /// <param name="stream">Target stream.</param>
         /// <param name="options">Optional conversion options.</param>
-        public static void SaveAsMarkdown(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null) {
-            var markdown = new WordToMarkdownConverter().Convert(document, options ?? new WordToMarkdownOptions());
-            var bytes = Encoding.UTF8.GetBytes(markdown);
-            stream.Write(bytes, 0, bytes.Length);
+        public static WordToMarkdownResult SaveAsMarkdown(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null) {
+            WordToMarkdownResult result = ConvertToMarkdownResult(document, CopyOptions(options ?? new WordToMarkdownOptions()));
+            OfficeStreamWriter.WriteAllBytes(stream, Encoding.UTF8.GetBytes(RenderMarkdown(result.Value)));
+            return result;
         }
 
         /// <summary>
@@ -40,16 +42,15 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A task representing the asynchronous save operation.</returns>
-        public static async Task SaveAsMarkdownAsync(this WordDocument document, string path, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
+        public static async Task<WordToMarkdownResult> SaveAsMarkdownAsync(this WordDocument document, string path, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             var effectiveOptions = CreateFileSaveOptions(path, options);
             cancellationToken.ThrowIfCancellationRequested();
-            var markdown = new WordToMarkdownConverter().Convert(document, effectiveOptions, cancellationToken);
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            await File.WriteAllTextAsync(path, markdown, Encoding.UTF8, cancellationToken).ConfigureAwait(false);
-#else
-            using var writer = new StreamWriter(path, false, Encoding.UTF8);
-            await writer.WriteAsync(markdown).ConfigureAwait(false);
-#endif
+            WordToMarkdownResult result = ConvertToMarkdownResult(document, effectiveOptions, cancellationToken);
+            await OfficeFileCommit.WriteAllBytesAsync(
+                path,
+                Encoding.UTF8.GetBytes(RenderMarkdown(result.Value)),
+                cancellationToken: cancellationToken).ConfigureAwait(false);
+            return result;
         }
 
         /// <summary>
@@ -60,16 +61,17 @@ namespace OfficeIMO.Word.Markdown {
         /// <param name="options">Optional conversion options.</param>
         /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
         /// <returns>A task representing the asynchronous save operation.</returns>
-        public static async Task SaveAsMarkdownAsync(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
-            options ??= new WordToMarkdownOptions();
+        public static async Task<WordToMarkdownResult> SaveAsMarkdownAsync(this WordDocument document, Stream stream, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
             cancellationToken.ThrowIfCancellationRequested();
-            var markdown = new WordToMarkdownConverter().Convert(document, options, cancellationToken);
-            var bytes = Encoding.UTF8.GetBytes(markdown);
-#if NETSTANDARD2_1_OR_GREATER || NETCOREAPP3_0_OR_GREATER
-            await stream.WriteAsync(bytes, cancellationToken).ConfigureAwait(false);
-#else
-            await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-#endif
+            WordToMarkdownResult result = ConvertToMarkdownResult(
+                document,
+                CopyOptions(options ?? new WordToMarkdownOptions()),
+                cancellationToken);
+            await OfficeStreamWriter.WriteAllBytesAsync(
+                stream,
+                Encoding.UTF8.GetBytes(RenderMarkdown(result.Value)),
+                cancellationToken).ConfigureAwait(false);
+            return result;
         }
 
         private static WordToMarkdownOptions CreateFileSaveOptions(string markdownPath, WordToMarkdownOptions? options) {
@@ -118,6 +120,31 @@ namespace OfficeIMO.Word.Markdown {
             };
         }
 
+        private static WordToMarkdownResult ConvertToMarkdownResult(
+            WordDocument document,
+            WordToMarkdownOptions effectiveOptions,
+            CancellationToken cancellationToken = default) {
+            var diagnostics = new List<WordMarkdownConversionDiagnostic>();
+            Action<string>? callerWarning = effectiveOptions.OnWarning;
+            effectiveOptions.OnWarning = message => {
+                diagnostics.Add(new WordMarkdownConversionDiagnostic(
+                    "WordToMarkdownWarning",
+                    message,
+                    WordMarkdownConversionLossKind.Approximation));
+                callerWarning?.Invoke(message);
+            };
+
+            MarkdownDoc value = new WordToMarkdownConverter().ConvertToDocument(document, effectiveOptions, cancellationToken);
+            return new WordToMarkdownResult(value, new WordMarkdownConversionReport(diagnostics));
+        }
+
+        private static string RenderMarkdown(MarkdownDoc document) {
+            string markdown = document.ToMarkdown();
+            return string.IsNullOrEmpty(markdown)
+                ? string.Empty
+                : markdown.Replace("\r\n", "\n").TrimEnd('\n');
+        }
+
         private static string MakeMarkdownRelativePath(string baseDirectory, string targetDirectory) {
             try {
                 string baseFullPath = Path.GetFullPath(baseDirectory);
@@ -143,10 +170,20 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         /// <param name="document">Document to convert.</param>
         /// <param name="options">Optional conversion options.</param>
+        /// <param name="cancellationToken">Token to monitor during conversion.</param>
         /// <returns>Markdown representation of the document.</returns>
-        public static string ToMarkdown(this WordDocument document, WordToMarkdownOptions? options = null) {
-            var converter = new WordToMarkdownConverter();
-            return converter.Convert(document, options ?? new WordToMarkdownOptions());
+        public static string ToMarkdown(this WordDocument document, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
+            return RenderMarkdown(document.ToMarkdownDocumentResult(options, cancellationToken).Value);
+        }
+
+        /// <summary>
+        /// Converts the Word document to a typed Markdown document with a structured fidelity report.
+        /// </summary>
+        public static WordToMarkdownResult ToMarkdownDocumentResult(
+            this WordDocument document,
+            WordToMarkdownOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            return ConvertToMarkdownResult(document, CopyOptions(options ?? new WordToMarkdownOptions()), cancellationToken);
         }
 
         /// <summary>
@@ -154,43 +191,32 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         /// <param name="document">Document to convert.</param>
         /// <param name="options">Optional conversion options.</param>
+        /// <param name="cancellationToken">Token to monitor during conversion.</param>
         /// <returns>Typed markdown document.</returns>
-        public static MarkdownDoc ToMarkdownDocument(this WordDocument document, WordToMarkdownOptions? options = null) {
-            var converter = new WordToMarkdownConverter();
-            return converter.ConvertToDocument(document, options ?? new WordToMarkdownOptions());
+        public static MarkdownDoc ToMarkdownDocument(this WordDocument document, WordToMarkdownOptions? options = null, CancellationToken cancellationToken = default) {
+            return document.ToMarkdownDocumentResult(options, cancellationToken).Value;
         }
 
         /// <summary>
-        /// Creates a new document from a Markdown string.
+        /// Converts a typed Markdown document to Word with a structured fidelity report.
         /// </summary>
-        /// <param name="markdown">Markdown content to convert.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadFromMarkdown(this string markdown, MarkdownToWordOptions? options = null) {
-            var converter = new MarkdownToWordConverter();
-            return converter.Convert(markdown, options ?? new MarkdownToWordOptions());
-        }
+        public static MarkdownToWordResult ToWordDocumentResult(
+            this MarkdownDoc markdown,
+            MarkdownToWordOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            MarkdownToWordOptions effectiveOptions = CopyOptions(options ?? new MarkdownToWordOptions());
+            var diagnostics = new List<WordMarkdownConversionDiagnostic>();
+            Action<string>? callerWarning = effectiveOptions.OnWarning;
+            effectiveOptions.OnWarning = message => {
+                diagnostics.Add(new WordMarkdownConversionDiagnostic(
+                    "MarkdownToWordWarning",
+                    message,
+                    WordMarkdownConversionLossKind.Approximation));
+                callerWarning?.Invoke(message);
+            };
 
-        /// <summary>
-        /// Creates a Word document from Markdown by inserting the generated content into an existing template document.
-        /// The template retains its styles, sections, headers, footers, table of contents and other package settings.
-        /// </summary>
-        /// <param name="markdown">Markdown content to insert.</param>
-        /// <param name="templatePath">Path to the Word template document to copy and populate.</param>
-        /// <param name="options">Template insertion options.</param>
-        /// <returns>A populated <see cref="WordDocument"/> instance backed by an in-memory copy of the template.</returns>
-        public static WordDocument LoadFromMarkdownTemplate(this string markdown, string templatePath, MarkdownToWordTemplateOptions? options = null) {
-            if (string.IsNullOrWhiteSpace(templatePath)) {
-                throw new ArgumentException("Template path cannot be null or empty.", nameof(templatePath));
-            }
-
-            using var file = File.OpenRead(templatePath);
-            var stream = new MemoryStream();
-            file.CopyTo(stream);
-            stream.Position = 0;
-            var document = WordDocument.Load(stream);
-            var converter = new MarkdownToWordConverter();
-            return converter.ConvertIntoTemplate(markdown, document, options ?? new MarkdownToWordTemplateOptions());
+            WordDocument value = new MarkdownToWordConverter().Convert(markdown, effectiveOptions, cancellationToken);
+            return new MarkdownToWordResult(value, new WordMarkdownConversionReport(diagnostics));
         }
 
         /// <summary>
@@ -198,10 +224,44 @@ namespace OfficeIMO.Word.Markdown {
         /// </summary>
         /// <param name="markdown">Typed markdown document to convert.</param>
         /// <param name="options">Optional conversion options.</param>
+        /// <param name="cancellationToken">Token to monitor during conversion.</param>
         /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument ToWordDocument(this MarkdownDoc markdown, MarkdownToWordOptions? options = null) {
-            var converter = new MarkdownToWordConverter();
-            return converter.Convert(markdown, options ?? new MarkdownToWordOptions());
+        public static WordDocument ToWordDocument(this MarkdownDoc markdown, MarkdownToWordOptions? options = null, CancellationToken cancellationToken = default) {
+            return markdown.ToWordDocumentResult(options, cancellationToken).Value;
+        }
+
+        private static MarkdownToWordOptions CopyOptions(MarkdownToWordOptions source) {
+            var copy = new MarkdownToWordOptions {
+                Theme = source.Theme,
+                ApplyDefaultTheme = source.ApplyDefaultTheme,
+                FontFamily = source.FontFamily,
+                BaseUri = source.BaseUri,
+                OnWarning = source.OnWarning,
+                DefaultPageSize = source.DefaultPageSize,
+                DefaultOrientation = source.DefaultOrientation,
+                AllowLocalImages = source.AllowLocalImages,
+                RemoteImageResolver = source.RemoteImageResolver,
+                AllowDataUriImages = source.AllowDataUriImages,
+                MaxDataUriImageBytes = source.MaxDataUriImageBytes,
+                MaximumRemoteImageBytes = source.MaximumRemoteImageBytes,
+                ImageUrlValidator = source.ImageUrlValidator,
+                FallbackRemoteImagesToHyperlinks = source.FallbackRemoteImagesToHyperlinks,
+                OnImageLayoutDiagnostic = source.OnImageLayoutDiagnostic,
+                PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
+                ReaderOptions = source.ReaderOptions?.Clone(),
+                RenderFrontMatter = source.RenderFrontMatter
+            };
+
+            foreach (string directory in source.AllowedImageDirectories) copy.AllowedImageDirectories.Add(directory);
+            copy.AllowedImageSchemes.Clear();
+            foreach (string scheme in source.AllowedImageSchemes) copy.AllowedImageSchemes.Add(scheme);
+            copy.ImageLayout.FitMode = source.ImageLayout.FitMode;
+            copy.ImageLayout.HintPrecedence = source.ImageLayout.HintPrecedence;
+            copy.ImageLayout.MaxWidthPixels = source.ImageLayout.MaxWidthPixels;
+            copy.ImageLayout.MaxHeightPixels = source.ImageLayout.MaxHeightPixels;
+            copy.ImageLayout.MaxWidthPercentOfContent = source.ImageLayout.MaxWidthPercentOfContent;
+            copy.ImageLayout.AllowUpscale = source.ImageLayout.AllowUpscale;
+            return copy;
         }
 
         /// <summary>
@@ -214,140 +274,6 @@ namespace OfficeIMO.Word.Markdown {
         public static WordDocument ToWordDocument(this MarkdownDoc markdown, WordDocument templateDocument, MarkdownToWordTemplateOptions? options = null) {
             var converter = new MarkdownToWordConverter();
             return converter.ConvertIntoTemplate(markdown, templateDocument, options ?? new MarkdownToWordTemplateOptions());
-        }
-
-        /// <summary>
-        /// Creates a new Word document from HTML by first converting to a typed <see cref="MarkdownDoc"/> and then rendering that AST directly.
-        /// </summary>
-        /// <param name="html">HTML fragment or document to convert.</param>
-        /// <param name="htmlOptions">Optional HTML-to-Markdown conversion options.</param>
-        /// <param name="wordOptions">Optional Word conversion options.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument ToWordDocumentViaMarkdown(this string html, HtmlToMarkdownOptions? htmlOptions = null, MarkdownToWordOptions? wordOptions = null) {
-            var markdown = html.ToMarkdownDocument(htmlOptions);
-            return markdown.ToWordDocument(wordOptions);
-        }
-
-        /// <summary>
-        /// Creates a new Word document from HTML read from a stream by first converting to a typed <see cref="MarkdownDoc"/> and then rendering that AST directly.
-        /// </summary>
-        /// <param name="htmlStream">Readable stream containing HTML markup.</param>
-        /// <param name="htmlOptions">Optional HTML-to-Markdown conversion options.</param>
-        /// <param name="wordOptions">Optional Word conversion options.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument ToWordDocumentViaMarkdown(this Stream htmlStream, HtmlToMarkdownOptions? htmlOptions = null, MarkdownToWordOptions? wordOptions = null) {
-            if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
-            using var reader = new StreamReader(htmlStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-            return reader.ReadToEnd().ToWordDocumentViaMarkdown(htmlOptions, wordOptions);
-        }
-
-        /// <summary>
-        /// Creates a new document from a Markdown stream.
-        /// </summary>
-        /// <param name="markdownStream">Stream containing Markdown content.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadFromMarkdown(this Stream markdownStream, MarkdownToWordOptions? options = null) {
-            using var reader = new StreamReader(markdownStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-            string markdown = reader.ReadToEnd();
-            return new MarkdownToWordConverter().Convert(markdown, options ?? new MarkdownToWordOptions());
-        }
-
-        /// <summary>
-        /// Creates a new document from a Markdown file.
-        /// </summary>
-        /// <param name="path">Path to the Markdown file.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <param name="encoding">Encoding to use when reading the file. If <c>null</c>, the encoding is automatically detected from the file's byte order mark.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static WordDocument LoadFromMarkdown(string path, MarkdownToWordOptions? options = null, Encoding? encoding = null) {
-            using var reader = new StreamReader(path, encoding ?? Encoding.UTF8, detectEncodingFromByteOrderMarks: encoding == null);
-            string markdown = reader.ReadToEnd();
-            var converter = new MarkdownToWordConverter();
-            return converter.Convert(markdown, options ?? new MarkdownToWordOptions());
-        }
-
-        /// <summary>
-        /// Asynchronously creates a new document from a Markdown string read from the specified path.
-        /// </summary>
-        /// <param name="path">Path to the Markdown file.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static async Task<WordDocument> LoadFromMarkdownAsync(this string path, MarkdownToWordOptions? options = null, CancellationToken cancellationToken = default) {
-#if NET8_0_OR_GREATER
-            using var reader = new StreamReader(path, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            var markdown = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-#else
-            using var reader = new StreamReader(path, Encoding.UTF8, detectEncodingFromByteOrderMarks: true);
-            var markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-#endif
-            var converter = new MarkdownToWordConverter();
-            cancellationToken.ThrowIfCancellationRequested();
-            return converter.Convert(markdown, options ?? new MarkdownToWordOptions(), cancellationToken);
-        }
-
-        /// <summary>
-        /// Asynchronously creates a new document from a Markdown stream.
-        /// </summary>
-        /// <param name="markdownStream">Stream containing Markdown content.</param>
-        /// <param name="options">Optional conversion options.</param>
-        /// <param name="cancellationToken">Token to monitor for cancellation requests.</param>
-        /// <returns>A new <see cref="WordDocument"/> instance.</returns>
-        public static async Task<WordDocument> LoadFromMarkdownAsync(this Stream markdownStream, MarkdownToWordOptions? options = null, CancellationToken cancellationToken = default) {
-            using var reader = new StreamReader(markdownStream, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, bufferSize: 1024, leaveOpen: true);
-#if NET8_0_OR_GREATER
-            string markdown = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
-#else
-            string markdown = await reader.ReadToEndAsync().ConfigureAwait(false);
-            cancellationToken.ThrowIfCancellationRequested();
-#endif
-            var converter = new MarkdownToWordConverter();
-            return converter.Convert(markdown, options ?? new MarkdownToWordOptions(), cancellationToken);
-        }
-
-        // HTML via OfficeIMO.Markdown (Word -> Markdown -> HTML)
-
-        /// <summary>
-        /// Converts the document to a full HTML5 document via OfficeIMO.Markdown.
-        /// </summary>
-        public static string ToHtmlViaMarkdown(this WordDocument document, HtmlOptions? options = null) {
-            options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
-            options.Kind = HtmlKind.Document;
-            if (options.Style == default) options.Style = HtmlStyle.Word;
-            var model = document.ToMarkdownDocument();
-            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
-                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
-            }
-            return model.ToHtmlDocument(options);
-        }
-
-        /// <summary>
-        /// Converts the document to an embeddable HTML fragment via OfficeIMO.Markdown.
-        /// </summary>
-        public static string ToHtmlFragmentViaMarkdown(this WordDocument document, HtmlOptions? options = null) {
-            options ??= new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.Word };
-            if (options.Style == default) options.Style = HtmlStyle.Word;
-            var model = document.ToMarkdownDocument();
-            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
-                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
-            }
-            return model.ToHtmlFragment(options);
-        }
-
-        /// <summary>
-        /// Saves the document as HTML via OfficeIMO.Markdown. Supports external CSS sidecar when configured in <see cref="HtmlOptions"/>.
-        /// </summary>
-        public static void SaveAsHtmlViaMarkdown(this WordDocument document, string path, HtmlOptions? options = null) {
-            options ??= new HtmlOptions { Kind = HtmlKind.Document, Style = HtmlStyle.Word };
-            options.Kind = HtmlKind.Document;
-            if (options.Style == default) options.Style = HtmlStyle.Word;
-            var model = document.ToMarkdownDocument();
-            if (options.InjectTocAtTop && !model.Blocks.Any(b => string.Equals(b.GetType().Name, "TocPlaceholderBlock", System.StringComparison.Ordinal))) {
-                model.TocAtTop(options.InjectTocTitle, options.InjectTocMinLevel, options.InjectTocMaxLevel, options.InjectTocOrdered, options.InjectTocTitleLevel);
-            }
-            model.SaveAsHtml(path, options);
         }
 
     }

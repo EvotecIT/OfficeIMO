@@ -29,11 +29,7 @@ string html = document.ToHtml();
 Console.WriteLine(html);
 ```
 
-### Async Conversion
-
-```csharp
-string html = await document.ToHtmlAsync();
-```
+HTML generation is an in-memory conversion and is synchronous. Use `SaveAsHtmlAsync` when writing to a file or stream asynchronously.
 
 ### Save as HTML File
 
@@ -81,6 +77,7 @@ string html = document.ToHtml(options);
 ### Create a Word Document from HTML
 
 ```csharp
+using OfficeIMO.Html;
 using OfficeIMO.Word.Html;
 using System.Net;
 
@@ -98,14 +95,17 @@ string html = """
 &lt;/html&gt;
 """;
 
-using var document = WebUtility.HtmlDecode(html).ToWordDocument();
+HtmlConversionDocument source = HtmlConversionDocument.Parse(WebUtility.HtmlDecode(html));
+using var document = source.ToWordDocument();
 document.Save("from-html.docx");
 ```
 
 ### Async HTML to Word
 
 ```csharp
-using var document = await html.ToWordDocumentAsync();
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+var options = HtmlToWordOptions.CreateTrustedDocumentProfile();
+using var document = await source.ToWordDocumentAsync(options);
 document.Save("from-html.docx");
 ```
 
@@ -120,7 +120,8 @@ var options = new HtmlToWordOptions {
     BasePath = AppContext.BaseDirectory
 };
 
-using var document = html.ToWordDocument(options);
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+using var document = source.ToWordDocument(options);
 ```
 
 ## Adding HTML to an Existing Document

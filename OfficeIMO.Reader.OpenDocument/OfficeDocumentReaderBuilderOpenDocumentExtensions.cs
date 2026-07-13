@@ -23,9 +23,9 @@ public static class OfficeDocumentReaderBuilderOpenDocumentExtensions {
             Kind = ReaderInputKind.OpenDocument,
             Extensions = new[] { ".odt", ".ods", ".odp" },
             ReadPath = (path, options, cancellationToken) =>
-                DocumentReaderOpenDocumentExtensions.ReadOpenDocument(path, options, cancellationToken),
+                OpenDocumentReaderAdapter.Read(path, options, cancellationToken),
             ReadStream = (stream, sourceName, options, cancellationToken) =>
-                DocumentReaderOpenDocumentExtensions.ReadOpenDocument(stream, sourceName, options, cancellationToken),
+                OpenDocumentReaderAdapter.Read(stream, sourceName, options, cancellationToken),
             DeterministicOutput = true
         };
     }

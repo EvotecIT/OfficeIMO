@@ -85,7 +85,8 @@ namespace OfficeIMO.Examples.Word {
                 document.Settings.ProtectionPassword = "ThisIsTest";
                 document.Settings.ProtectionType = DocumentProtectionValues.ReadOnly;
                 document.Settings.RemoveProtection();
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

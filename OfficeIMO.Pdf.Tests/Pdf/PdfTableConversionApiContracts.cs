@@ -8,23 +8,25 @@ namespace OfficeIMO.Pdf.Tests;
 
 public sealed class PdfTableConversionApiContracts {
     [Theory]
-    [InlineData(typeof(PdfExcelTableConverterExtensions), "SaveAsExcelFromPdfTables", "ToExcelBytesFromPdfTables", "SavePdfTablesAsExcel", "ToExcelTableWorkbookBytes")]
-    [InlineData(typeof(PdfWordTableConverterExtensions), "SaveAsWordFromPdfTables", "ToWordBytesFromPdfTables", "SavePdfTablesAsWord", "ToWordTableDocumentBytes")]
-    [InlineData(typeof(PowerPointPdfConverterExtensions), "SaveAsPowerPointFromPdfTables", "ToPowerPointBytesFromPdfTables", "SavePdfTablesAsPowerPoint", "ToPowerPointTablePresentationBytes")]
-    public void TableConversionApisUseDestinationFirstNames(
+    [InlineData(typeof(PdfExcelTableConverterExtensions), "SaveAsExcel", "ToExcelDocument", "ToExcelDocumentResult")]
+    [InlineData(typeof(PdfWordConverterExtensions), "SaveAsWord", "ToWordDocument", "ToWordDocumentResult")]
+    [InlineData(typeof(PowerPointPdfConverterExtensions), "SaveAsPowerPoint", "ToPowerPointPresentation", "ToPowerPointPresentationResult")]
+    public void PdfToOfficeApisUseTheSameFluentShape(
         Type converterType,
         string saveName,
-        string bytesName,
-        string removedSaveName,
-        string removedBytesName) {
-        string[] methodNames = converterType
+        string conversionName,
+        string resultName) {
+        MethodInfo[] methods = converterType
             .GetMethods(BindingFlags.Public | BindingFlags.Static)
-            .Select(method => method.Name)
             .ToArray();
+        string[] methodNames = methods.Select(method => method.Name).ToArray();
 
-        Assert.Equal(5, methodNames.Count(name => name == saveName));
-        Assert.Single(methodNames, name => name == bytesName);
-        Assert.DoesNotContain(removedSaveName, methodNames);
-        Assert.DoesNotContain(removedBytesName, methodNames);
+        Assert.Equal(2, methodNames.Count(name => name == saveName));
+        Assert.Equal(2, methodNames.Count(name => name == saveName + "Async"));
+        Assert.Single(methodNames, name => name == conversionName);
+        Assert.Single(methodNames, name => name == resultName);
+        Assert.All(
+            methods.Where(method => method.Name == saveName || method.Name == saveName + "Async" || method.Name == conversionName || method.Name == resultName),
+            method => Assert.Equal(typeof(PdfLogicalDocument), method.GetParameters()[0].ParameterType));
     }
 }

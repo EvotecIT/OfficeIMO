@@ -37,7 +37,7 @@ namespace OfficeIMO.Examples.Word.Converters {
                 AllowLocalImages = true
             };
             importOptions.AllowedImageDirectories.Add(Path.GetFullPath(resourcesPath));
-            using var roundTrip = markdown.LoadFromMarkdown(importOptions);
+            using var roundTrip = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(importOptions);
             roundTrip.Save(roundTripPath);
 
             Console.WriteLine($"  Source Word:      {sourcePath}");

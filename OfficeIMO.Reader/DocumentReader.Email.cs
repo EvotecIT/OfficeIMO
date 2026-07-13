@@ -7,7 +7,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static IEnumerable<ReaderChunk> ReadEmail(string path, ReaderOptions opt, CancellationToken cancellationToken) {
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         EmailExtraction extraction = ExtractEmail(stream, path, opt, cancellationToken);
@@ -109,7 +109,7 @@ public static partial class DocumentReader {
     private static MemoryStream CopyEmailToMemory(Stream stream, ReaderOptions opt,
         CancellationToken cancellationToken) {
         long maxInputBytes = GetEffectiveEmailMaxInputBytes(opt);
-        ReaderInputLimits.EnforceSeekableStreamRemainingSize(stream, maxInputBytes);
+        ReaderInputLimits.EnforceSeekableStreamSize(stream, maxInputBytes);
         return CopyToMemory(stream, cancellationToken, maxInputBytes);
     }
 

@@ -25,7 +25,6 @@
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
-    <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
   </PropertyGroup>
 
   <ItemGroup>

@@ -14,7 +14,7 @@ public sealed class ReaderVisioModularTests {
     public void DocumentReaderVisio_ReadVisio_EmitsPageChunkWithShapeDataTable() {
         using MemoryStream stream = BuildSampleVisio();
 
-        List<ReaderChunk> chunks = DocumentReaderVisioExtensions.ReadVisio(
+        List<ReaderChunk> chunks = VisioReaderAdapter.Read(
             stream,
             sourceName: " topology.vsdx ",
             readerOptions: new ReaderOptions { ComputeHashes = true }).ToList();
@@ -38,7 +38,7 @@ public sealed class ReaderVisioModularTests {
     public void DocumentReaderVisio_ReadVisioDocument_MapsBlocksLinksTablesAndPreviewAssets() {
         using MemoryStream stream = BuildSampleVisio();
 
-        OfficeDocumentReadResult result = DocumentReaderVisioExtensions.ReadVisioDocument(
+        OfficeDocumentReadResult result = VisioReaderAdapter.ReadDocument(
             stream,
             sourceName: "topology.vsdx",
             readerOptions: new ReaderOptions { ComputeHashes = true },
@@ -82,7 +82,7 @@ public sealed class ReaderVisioModularTests {
     public void DocumentReaderVisio_ReadVisioTables_ReturnsShapeDataTablesOnly() {
         using MemoryStream stream = BuildSampleVisio();
 
-        IReadOnlyList<ReaderTable> tables = DocumentReaderVisioExtensions.ReadVisioTables(
+        IReadOnlyList<ReaderTable> tables = VisioReaderAdapter.ReadTables(
             stream,
             sourceName: "tables-only.vsdx");
 
@@ -94,7 +94,7 @@ public sealed class ReaderVisioModularTests {
         Assert.Contains(table.Rows, row => row[0] == "connector" && row[3] == "Protocol" && row[5] == "TLS");
 
         using MemoryStream exportStream = BuildSampleVisio();
-        ReaderTableExportBundle export = Assert.Single(DocumentReaderVisioExtensions.ReadVisioTableExports(
+        ReaderTableExportBundle export = Assert.Single(VisioReaderAdapter.ReadTableExports(
             exportStream,
             sourceName: "tables-only.vsdx"));
         Assert.Equal("tables-only-page-0001-table-0000", export.Id);
@@ -105,7 +105,7 @@ public sealed class ReaderVisioModularTests {
     public void DocumentReaderVisio_ReadVisio_HonorsMaxCharsForPageChunks() {
         using MemoryStream stream = BuildLargeTextVisio();
 
-        List<ReaderChunk> chunks = DocumentReaderVisioExtensions.ReadVisio(
+        List<ReaderChunk> chunks = VisioReaderAdapter.Read(
             stream,
             sourceName: "large.vsdx",
             readerOptions: new ReaderOptions { MaxChars = 256 }).ToList();
@@ -122,7 +122,7 @@ public sealed class ReaderVisioModularTests {
     public void DocumentReaderVisio_ReadVisioTables_RespectsMaxTableRows() {
         using MemoryStream stream = BuildManyShapeDataRowsVisio();
 
-        IReadOnlyList<ReaderTable> tables = DocumentReaderVisioExtensions.ReadVisioTables(
+        IReadOnlyList<ReaderTable> tables = VisioReaderAdapter.ReadTables(
             stream,
             sourceName: "shape-data.vsdx",
             readerOptions: new ReaderOptions { MaxTableRows = 2 });
@@ -138,7 +138,7 @@ public sealed class ReaderVisioModularTests {
     public void DocumentReaderVisio_ReadVisioDocumentJson_EmitsStableTransportShape() {
         using MemoryStream stream = BuildSampleVisio();
 
-        string json = DocumentReaderVisioExtensions.ReadVisioDocumentJson(
+        string json = VisioReaderAdapter.ReadDocumentJson(
             stream,
             sourceName: "topology.vsdx",
             visioOptions: new ReaderVisioOptions { IncludeSvgPreviewAssets = true });
@@ -146,7 +146,7 @@ public sealed class ReaderVisioModularTests {
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
         Assert.Equal(OfficeDocumentReadResultSchema.Id, root.GetProperty("schemaId").GetString());
-        Assert.Equal(OfficeDocumentReadResultSchema.Version, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("Visio", root.GetProperty("kind").GetString());
         Assert.Equal("Topology", root.GetProperty("source").GetProperty("title").GetString());
         Assert.Equal(1, root.GetProperty("pages").GetArrayLength());
@@ -160,7 +160,7 @@ public sealed class ReaderVisioModularTests {
     public void DocumentReaderVisio_ReadVisioDocument_AlignsLinksAndAssetsWithSnapshotPageOrder() {
         using MemoryStream stream = BuildOutOfOrderVisioPages();
 
-        OfficeDocumentReadResult result = DocumentReaderVisioExtensions.ReadVisioDocument(
+        OfficeDocumentReadResult result = VisioReaderAdapter.ReadDocument(
             stream,
             sourceName: "out-of-order.vsdx",
             visioOptions: new ReaderVisioOptions { IncludeSvgPreviewAssets = true });

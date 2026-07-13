@@ -157,10 +157,8 @@ namespace OfficeIMO.Excel {
                 categoryMinorGridLineDashStyle: categoryMinorGridLineDashStyle,
                 valueMinorGridLineDashStyle: valueMinorGridLineDashStyle,
                 showCategoryMinorGridLines: showCategoryMinorGridLines,
-                showValueMinorGridLines: showValueMinorGridLines);
-            if (hasNoChartLine) {
-                style.ShowBorder = false;
-            }
+                showValueMinorGridLines: showValueMinorGridLines,
+                showBorder: !hasNoChartLine);
 
             return style;
         }

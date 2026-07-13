@@ -19,6 +19,12 @@ public sealed class HtmlNormalizationOptions {
     /// <summary>When true, comments are preserved. The default keeps normalized output document-focused.</summary>
     public bool PreserveComments { get; set; }
 
+    /// <summary>
+    /// When true, non-rendered elements such as <c>script</c> and <c>template</c> are retained as empty marker nodes.
+    /// Target adapters use the markers to report skipped source content without receiving executable or hidden payload text.
+    /// </summary>
+    public bool PreserveSkippedElementMarkers { get; set; }
+
     /// <summary>When true, CSS style elements are preserved as normalized text content.</summary>
     public bool PreserveStyleElements { get; set; } = true;
 

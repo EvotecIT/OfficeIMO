@@ -6,7 +6,7 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 public class Markdown_Reader_Autolinks_Tests {
     [Fact]
     public void Autolinks_Http_Inside_Text() {
-        var doc = MarkdownReader.Parse("See https://example.com.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See https://example.com.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"https://example.com\">https://example.com</a>", html, StringComparison.Ordinal);
@@ -15,7 +15,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Trim_Trailing_Bang_And_Question() {
-        var doc = MarkdownReader.Parse("See https://example.com! And https://example.com?");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See https://example.com! And https://example.com?");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"https://example.com\">https://example.com</a>!", html, StringComparison.Ordinal);
@@ -26,7 +26,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Keep_Balanced_Parentheses_In_Http_Urls() {
-        var doc = MarkdownReader.Parse("See https://en.wikipedia.org/wiki/Function_(mathematics) and continue.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See https://en.wikipedia.org/wiki/Function_(mathematics) and continue.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains(
@@ -37,7 +37,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Http_Urls_After_Open_Paren() {
-        var doc = MarkdownReader.Parse("See (https://en.wikipedia.org/wiki/Function_(mathematics)) now.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See (https://en.wikipedia.org/wiki/Function_(mathematics)) now.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://en.wikipedia.org/wiki/Function_(mathematics)\"", html, StringComparison.Ordinal);
@@ -46,7 +46,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Ambiguous_Paren_Suffixed_Urls() {
-        var doc = MarkdownReader.Parse("Visit https://example.com/path_(x)).");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit https://example.com/path_(x)).");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com/path_(x)\"", html, StringComparison.Ordinal);
@@ -55,7 +55,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Balanced_Paren_Urls_With_Trailing_Comma() {
-        var doc = MarkdownReader.Parse("Visit https://example.com/path_(x), ok");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit https://example.com/path_(x), ok");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com/path_(x)\"", html, StringComparison.Ordinal);
@@ -64,7 +64,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Www_Balanced_Paren_Urls_With_Trailing_Dot() {
-        var doc = MarkdownReader.Parse("Visit www.example.com/path_(x).");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit www.example.com/path_(x).");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://www.example.com/path_(x)\"", html, StringComparison.Ordinal);
@@ -73,7 +73,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Www_Inside_Text() {
-        var doc = MarkdownReader.Parse("See www.example.com, thanks.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See www.example.com, thanks.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"https://www.example.com\">www.example.com</a>", html, StringComparison.Ordinal);
@@ -82,7 +82,7 @@ public class Markdown_Reader_Autolinks_Tests {
     [Fact]
     public void Gfm_Autolinks_Allow_Bracketed_Ipv6_Hosts() {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
-        var html = MarkdownReader.Parse("http://[::1]/", options).ToHtmlFragment(new HtmlOptions {
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse("http://[::1]/", options).ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
             BodyClass = null
@@ -93,7 +93,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Keep_Balanced_Parentheses_In_Www_Urls() {
-        var doc = MarkdownReader.Parse("See www.example.com/path_(demo) next.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See www.example.com/path_(demo) next.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains(
@@ -104,7 +104,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Http_Urls_With_Query_Parentheses() {
-        var doc = MarkdownReader.Parse("Visit https://example.com/search?q=(x) now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit https://example.com/search?q=(x) now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com/search?q=(x)\"", html, StringComparison.Ordinal);
@@ -113,7 +113,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Www_Urls_With_Query_Parentheses() {
-        var doc = MarkdownReader.Parse("Visit www.example.com/search?q=(x) now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit www.example.com/search?q=(x) now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://www.example.com/search?q=(x)\"", html, StringComparison.Ordinal);
@@ -122,7 +122,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Still_Link_Path_Parentheses_Before_Query_String() {
-        var doc = MarkdownReader.Parse("Visit https://example.com/path_(demo)?q=value now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit https://example.com/path_(demo)?q=value now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains(
@@ -133,7 +133,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Http_Urls_With_Query_Ampersands() {
-        var doc = MarkdownReader.Parse("Visit https://example.com/path?q=1&next=2 now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit https://example.com/path?q=1&next=2 now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com/path?q=1&amp;next=2\"", html, StringComparison.Ordinal);
@@ -144,7 +144,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Gfm_Autolinks_Link_Query_And_Fragment_Special_Characters_With_Source_Metadata() {
         const string markdown = "Visit https://example.com/path?q=1&next=2 now\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, EscapeNonAsciiText = false });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -168,7 +168,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Gfm_Autolinks_Render_Unicode_Http_Domain_As_Idn_While_Preserving_Source_Metadata() {
         const string markdown = "Visit https://пример.рф/path now\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, EscapeNonAsciiText = false });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -198,7 +198,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Protocol_Relative_Links_Render_Unicode_Domain_As_Idn() {
         const string markdown = "[site](//éxample.com/a) ![alt](//пример.рф/img.png)";
 
-        var html = MarkdownReader.Parse(markdown)
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(markdown)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("href=\"//xn--xample-9ua.com/a\"", html, StringComparison.Ordinal);
@@ -210,7 +210,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Gfm_Autolinks_Render_Unicode_Ftp_Domain_As_Idn_While_Preserving_Source_Metadata() {
         const string markdown = "Visit ftp://пример.рф/path now\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, EscapeNonAsciiText = false });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -240,7 +240,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Gfm_Autolinks_Render_Unicode_Http_Path_As_PercentEncoded_Href_While_Preserving_Display_And_Source() {
         const string markdown = "Visit https://example.com/ścieżka?q=zażółć now\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, EscapeNonAsciiText = false });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -270,7 +270,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Markdig_Autolinks_Can_PercentEncode_Tilde_In_Href_While_Preserving_Display_Source_And_Writer() {
         const string markdown = "Visit https://example.com/path~tilde now\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var defaultHtml = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var markdigHtml = result.Document.ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,
@@ -311,7 +311,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkRejectUserInfoAuthority = true;
         options.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
@@ -336,7 +336,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkRejectUnderscoreInUrlHost = true;
         options.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
@@ -362,7 +362,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkValidPreviousCharacters = "_('";
         options.AutolinkBareSchemePrefixes = new[] { "mailto:", "ftp://", "tel:" };
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
@@ -386,7 +386,7 @@ public class Markdown_Reader_Autolinks_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.AutolinkAllowClosingBracketInUrl = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -419,7 +419,7 @@ public class Markdown_Reader_Autolinks_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.AutolinkKeepTrailingQuotePunctuation = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -453,7 +453,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkKeepTrailingQuotePunctuation = true;
         options.AutolinkValidPreviousCharacters = "_('";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
@@ -478,7 +478,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         options.AutolinkKeepTrailingSemicolonPunctuation = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -512,7 +512,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkBareMailtoMarkdigSemicolonHandling = true;
         options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -546,7 +546,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkBareMailtoMarkdigSemicolonHandling = true;
         options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -576,7 +576,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Gfm_Autolinks_Render_Unicode_Www_Domain_As_Idn_While_Preserving_Source_Literal() {
         const string markdown = "Visit www.пример.рф/path now\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -606,7 +606,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Gfm_Autolinks_Link_Balanced_Parentheses_Before_Trailing_Punctuation_With_Source_Metadata() {
         const string markdown = "Visit https://example.com/path_(x)). now\n";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -640,7 +640,7 @@ public class Markdown_Reader_Autolinks_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -674,7 +674,7 @@ public class Markdown_Reader_Autolinks_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -709,7 +709,7 @@ public class Markdown_Reader_Autolinks_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = true;
 
-        var doc = MarkdownReader.Parse(markdown, options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains(expectedHtml, html, StringComparison.Ordinal);
@@ -722,7 +722,7 @@ public class Markdown_Reader_Autolinks_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var links = paragraph.Children.Where(node => node.Kind == MarkdownSyntaxKind.InlineLink).ToList();
@@ -756,7 +756,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
         options.AutolinkRejectUnderscoreInWwwHost = true;
 
-        var doc = MarkdownReader.Parse("Visit www.exa_mple.com and www.example.com_ now", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit www.exa_mple.com and www.example.com_ now", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("Visit www.exa_mple.com and", html, StringComparison.Ordinal);
@@ -770,7 +770,7 @@ public class Markdown_Reader_Autolinks_Tests {
             AutolinkRejectUnderscoreInWwwHost = false
         };
 
-        var doc = MarkdownReader.Parse("Visit www.foo.bar_baz.com now", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit www.foo.bar_baz.com now", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"https://www.foo.bar_baz.com\">www.foo.bar_baz.com</a>", html, StringComparison.Ordinal);
@@ -779,9 +779,9 @@ public class Markdown_Reader_Autolinks_Tests {
     [Fact]
     public void Gfm_Autolinks_Require_Lowercase_Www_Prefix_But_Allow_Mixed_Case_Host() {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
-        var upperPrefix = MarkdownReader.Parse("Visit WWW.example.com now", options)
+        var upperPrefix = OfficeIMO.Markdown.MarkdownReader.Parse("Visit WWW.example.com now", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-        var mixedHost = MarkdownReader.Parse("Visit www.Example.com now", options)
+        var mixedHost = OfficeIMO.Markdown.MarkdownReader.Parse("Visit www.Example.com now", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=", upperPrefix, StringComparison.Ordinal);
@@ -829,7 +829,7 @@ public class Markdown_Reader_Autolinks_Tests {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.AutolinkBareMailtoDisplayAddressOnly = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -862,7 +862,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkBareMailtoDisplayAddressOnly = true;
         options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -896,7 +896,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkBareMailtoMarkdigSemicolonHandling = true;
         options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var semanticParagraph = Assert.Single(result.Document.Blocks.OfType<ParagraphBlock>());
@@ -921,7 +921,7 @@ public class Markdown_Reader_Autolinks_Tests {
         options.AutolinkBareMailtoMarkdigSemicolonHandling = true;
         options.AutolinkTrimSingleTrailingPunctuationOrUnderscore = true;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineLink);
@@ -949,7 +949,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Http_Urls_With_Fragment_Ampersands() {
-        var doc = MarkdownReader.Parse("Visit https://example.com/path#frag&next now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit https://example.com/path#frag&next now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com/path#frag&amp;next\"", html, StringComparison.Ordinal);
@@ -961,7 +961,7 @@ public class Markdown_Reader_Autolinks_Tests {
     [InlineData("Visit /https://example.com now")]
     [InlineData("Visit &https://example.com now")]
     public void Autolinks_DoNot_Link_Http_Urls_After_Invalid_Left_Boundaries(string markdown) {
-        var doc = MarkdownReader.Parse(markdown);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
@@ -978,7 +978,7 @@ public class Markdown_Reader_Autolinks_Tests {
     [InlineData("Visit (https://example.com) now")]
     [InlineData("Visit [https://example.com now")]
     public void Autolinks_DoNot_Link_Http_Urls_After_Common_Prefix_Punctuation(string markdown) {
-        var doc = MarkdownReader.Parse(markdown);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
@@ -987,7 +987,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Http_Urls_After_Apostrophe() {
-        var doc = MarkdownReader.Parse("Visit 'https://example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit 'https://example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
@@ -996,7 +996,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Www_Urls_With_Query_Ampersands() {
-        var doc = MarkdownReader.Parse("Visit www.example.com/path?q=1&next=2 now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit www.example.com/path?q=1&next=2 now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://www.example.com/path?q=1&amp;next=2\"", html, StringComparison.Ordinal);
@@ -1005,7 +1005,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Www_Urls_After_Invalid_Left_Boundaries() {
-        var doc = MarkdownReader.Parse("Visit _www.example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit _www.example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
@@ -1014,7 +1014,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Www_Urls_After_Ampersand() {
-        var doc = MarkdownReader.Parse("Visit &www.example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit &www.example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
@@ -1030,7 +1030,7 @@ public class Markdown_Reader_Autolinks_Tests {
     [InlineData("Visit (www.example.com) now")]
     [InlineData("Visit [www.example.com now")]
     public void Autolinks_DoNot_Link_Www_Urls_After_Common_Prefix_Punctuation(string markdown) {
-        var doc = MarkdownReader.Parse(markdown);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
@@ -1039,7 +1039,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Www_Urls_After_Apostrophe() {
-        var doc = MarkdownReader.Parse("Visit 'www.example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Visit 'www.example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://www.example.com\"", html, StringComparison.Ordinal);
@@ -1049,7 +1049,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Email_Inside_Text() {
-        var doc = MarkdownReader.Parse("Email user@example.com.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Email user@example.com.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"mailto:user@example.com\">user@example.com</a>", html, StringComparison.Ordinal);
@@ -1057,7 +1057,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Mailto_Email_Tokens() {
-        var doc = MarkdownReader.Parse("Contact mailto:user@example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact mailto:user@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1066,7 +1066,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_After_Slash() {
-        var doc = MarkdownReader.Parse("Contact /user@example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact /user@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1075,7 +1075,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_After_Colon() {
-        var doc = MarkdownReader.Parse("Contact foo:user@example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact foo:user@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1084,7 +1084,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_After_Equals() {
-        var doc = MarkdownReader.Parse("Contact foo=user@example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact foo=user@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1093,7 +1093,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_After_Open_Bracket() {
-        var doc = MarkdownReader.Parse("Contact [user@example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact [user@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1102,7 +1102,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_After_Ampersand() {
-        var doc = MarkdownReader.Parse("Contact &user@example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact &user@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1111,7 +1111,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_After_Open_Paren() {
-        var doc = MarkdownReader.Parse("Contact (user@example.com) now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact (user@example.com) now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1122,7 +1122,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Gfm_Autolinks_DoNot_Crash_On_Upstream_Ignored_Email_Case() {
         const string markdown = "This shouldn't crash everything: (_A_@_.A";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(
             markdown,
             MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = result.Document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -1136,7 +1136,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_After_Apostrophe() {
-        var doc = MarkdownReader.Parse("Contact 'user@example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact 'user@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1145,7 +1145,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_With_Path_Suffixes() {
-        var doc = MarkdownReader.Parse("Contact user@example.com/path now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact user@example.com/path now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1154,7 +1154,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_DoNot_Link_Plain_Emails_With_Fragment_Suffixes() {
-        var doc = MarkdownReader.Parse("Contact user@example.com#frag now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact user@example.com#frag now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1163,7 +1163,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Link_Plain_Emails_With_Plus_Tags() {
-        var doc = MarkdownReader.Parse("Contact user.name+tag@example.com now");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact user.name+tag@example.com now");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains(
@@ -1174,7 +1174,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Angle_Autolinks_Explicit_Mailto_Are_Supported() {
-        var doc = MarkdownReader.Parse("Contact <mailto:user@example.com>.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact <mailto:user@example.com>.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"mailto:user@example.com\">mailto:user@example.com</a>", html, StringComparison.Ordinal);
@@ -1186,7 +1186,7 @@ public class Markdown_Reader_Autolinks_Tests {
             RestrictUrlSchemes = true,
             AllowedUrlSchemes = new[] { "http", "https" }
         };
-        var doc = MarkdownReader.Parse("Contact <mailto:user@example.com>.", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Contact <mailto:user@example.com>.", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"mailto:user@example.com\"", html, StringComparison.Ordinal);
@@ -1195,7 +1195,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Angle_Autolinks_Explicit_Absolute_Uris_Are_Supported() {
-        var doc = MarkdownReader.Parse("Fetch <ftp://example.com/file.txt>.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Fetch <ftp://example.com/file.txt>.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"ftp://example.com/file.txt\">ftp://example.com/file.txt</a>", html, StringComparison.Ordinal);
@@ -1203,7 +1203,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Angle_Autolinks_Explicit_Tel_Uris_Are_Supported() {
-        var doc = MarkdownReader.Parse("Call <tel:+123456789>.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Call <tel:+123456789>.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"tel:+123456789\">tel:+123456789</a>", html, StringComparison.Ordinal);
@@ -1211,7 +1211,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Angle_Autolinks_Explicit_Urn_Uris_Are_Supported() {
-        var doc = MarkdownReader.Parse("Lookup <urn:isbn:9780143127741>.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Lookup <urn:isbn:9780143127741>.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"urn:isbn:9780143127741\">urn:isbn:9780143127741</a>", html, StringComparison.Ordinal);
@@ -1223,7 +1223,7 @@ public class Markdown_Reader_Autolinks_Tests {
             RestrictUrlSchemes = true,
             AllowedUrlSchemes = new[] { "http", "https" }
         };
-        var doc = MarkdownReader.Parse("Fetch <ftp://example.com/file.txt>.", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Fetch <ftp://example.com/file.txt>.", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"ftp://example.com/file.txt\"", html, StringComparison.Ordinal);
@@ -1236,7 +1236,7 @@ public class Markdown_Reader_Autolinks_Tests {
             RestrictUrlSchemes = true,
             AllowedUrlSchemes = new[] { "http", "https" }
         };
-        var doc = MarkdownReader.Parse("Call <tel:+123456789>.", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Call <tel:+123456789>.", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"tel:+123456789\"", html, StringComparison.Ordinal);
@@ -1245,7 +1245,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Bare_Scheme_Autolinks_Are_Opt_In_For_Ftp_And_Tel() {
-        var doc = MarkdownReader.Parse("Fetch ftp://example.com/file.txt and call tel:+123456789.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Fetch ftp://example.com/file.txt and call tel:+123456789.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"ftp://example.com/file.txt\"", html, StringComparison.Ordinal);
@@ -1257,7 +1257,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Gfm_Autolinks_Link_Markdig_Ftp_And_Tel_Bare_Schemes() {
         const string markdown = "Fetch ftp://example.com/file.txt and call tel:+123-456.";
 
-        var doc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"ftp://example.com/file.txt\">ftp://example.com/file.txt</a>", html, StringComparison.Ordinal);
@@ -1266,7 +1266,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Gfm_Autolinks_Reject_Ftp_Domain_Without_Period() {
-        var doc = MarkdownReader.Parse("Fetch ftp://localhost/file and ftp://example.com/file", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Fetch ftp://localhost/file and ftp://example.com/file", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"ftp://localhost/file\"", html, StringComparison.Ordinal);
@@ -1283,7 +1283,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
 - Email user@example.com
 """;
-        var doc = MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"https://www.example.com\">www.example.com</a>", html, StringComparison.Ordinal);
@@ -1296,7 +1296,7 @@ public class Markdown_Reader_Autolinks_Tests {
             AutolinkAllowDomainWithoutPeriod = false
         };
 
-        var doc = MarkdownReader.Parse(
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(
             "See https://localhost and www.local and https://example.com and www.example.com",
             options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -1309,7 +1309,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Default_Profile_Preserves_Domain_Without_Period_Legacy_Behavior() {
-        var doc = MarkdownReader.Parse("See https://localhost and www.local");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See https://localhost and www.local");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<a href=\"https://localhost\">https://localhost</a>", html, StringComparison.Ordinal);
@@ -1322,7 +1322,7 @@ public class Markdown_Reader_Autolinks_Tests {
             AutolinkValidPreviousCharacters = "_('"
         };
 
-        var doc = MarkdownReader.Parse("See _https://example.com and (www.example.com) and 'user@example.com", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See _https://example.com and (www.example.com) and 'user@example.com", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("_<a href=\"https://example.com\">https://example.com</a>", html, StringComparison.Ordinal);
@@ -1342,7 +1342,7 @@ public class Markdown_Reader_Autolinks_Tests {
             AutolinkAllowDomainWithoutPeriod = false
         };
 
-        var doc = MarkdownReader.Parse(markdown, options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://localhost\"", html, StringComparison.Ordinal);
@@ -1357,7 +1357,7 @@ public class Markdown_Reader_Autolinks_Tests {
             AutolinkWwwUrls = false,
             AutolinkEmails = false
         };
-        var doc = MarkdownReader.Parse("See https://example.com and www.example.com and user@example.com", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See https://example.com and www.example.com and user@example.com", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
@@ -1368,7 +1368,7 @@ public class Markdown_Reader_Autolinks_Tests {
     [Fact]
     public void Autolinks_Can_Use_Portable_Profile() {
         var options = MarkdownReaderOptions.CreatePortableProfile();
-        var doc = MarkdownReader.Parse("See https://example.com and www.example.com and user@example.com and <angle@example.com>", options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("See https://example.com and www.example.com and user@example.com and <angle@example.com>", options);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
@@ -1381,9 +1381,9 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Portable_Profile_Disables_Callouts_And_Task_Checkboxes() {
         var options = MarkdownReaderOptions.CreatePortableProfile();
 
-        var callout = MarkdownReader.Parse("> [!NOTE]\n> body", options)
+        var callout = OfficeIMO.Markdown.MarkdownReader.Parse("> [!NOTE]\n> body", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-        var taskList = MarkdownReader.Parse("- [ ] task", options)
+        var taskList = OfficeIMO.Markdown.MarkdownReader.Parse("- [ ] task", options)
             .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("class=\"callout", callout, StringComparison.Ordinal);
@@ -1394,7 +1394,7 @@ public class Markdown_Reader_Autolinks_Tests {
 
     [Fact]
     public void Autolinks_Require_Left_Boundary() {
-        var doc = MarkdownReader.Parse("prefixhttps://example.com should not linkify.");
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse("prefixhttps://example.com should not linkify.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.DoesNotContain("href=\"https://example.com\"", html, StringComparison.Ordinal);
@@ -1404,7 +1404,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Autolinks_RenderMarkdown_Preserves_Source_Backed_Bare_And_Angle_Spelling() {
         const string markdown = "See https://example.com and www.example.com and user@example.com and <https://example.com/docs> and mailto:team@example.com and ftp://example.com/file.txt and tel:+123-456.";
 
-        var doc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var written = doc.ToMarkdown().Replace("\r\n", "\n").Trim();
 
         Assert.Equal(markdown, written);
@@ -1421,7 +1421,7 @@ public class Markdown_Reader_Autolinks_Tests {
     public void Explicit_Links_RenderMarkdown_Do_Not_Become_Autolinks() {
         const string markdown = "[https://example.com](https://example.com) and [www.example.com](https://www.example.com)";
 
-        var doc = MarkdownReader.Parse(markdown);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
         var written = doc.ToMarkdown().Replace("\r\n", "\n").Trim();
 
         Assert.Equal(markdown, written);

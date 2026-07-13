@@ -1,5 +1,3 @@
-using PdfCore = OfficeIMO.Pdf;
-
 namespace OfficeIMO.Rtf.Pdf;
 
 /// <summary>
@@ -11,9 +9,6 @@ namespace OfficeIMO.Rtf.Pdf;
 /// it is not a visual reconstruction of arbitrary fixed-layout PDF content.
 /// </remarks>
 public sealed class PdfRtfReadOptions {
-    /// <summary>Logical PDF layout options used while grouping positioned PDF text into semantic objects.</summary>
-    public PdfCore.PdfTextLayoutOptions? LayoutOptions { get; set; }
-
     /// <summary>Whether PDF Info dictionary metadata should be copied into the RTF info destination.</summary>
     public bool IncludeMetadata { get; set; } = true;
 
@@ -34,7 +29,6 @@ public sealed class PdfRtfReadOptions {
 
     /// <summary>Creates a reusable copy of this option set.</summary>
     public PdfRtfReadOptions Clone() => new PdfRtfReadOptions {
-        LayoutOptions = CloneLayoutOptions(LayoutOptions),
         IncludeMetadata = IncludeMetadata,
         PreservePageBreaks = PreservePageBreaks,
         IncludeEmptyPages = IncludeEmptyPages,
@@ -43,24 +37,4 @@ public sealed class PdfRtfReadOptions {
         CreateHeadingStyles = CreateHeadingStyles
     };
 
-    private static PdfCore.PdfTextLayoutOptions? CloneLayoutOptions(PdfCore.PdfTextLayoutOptions? options) {
-        if (options is null) {
-            return null;
-        }
-
-        return new PdfCore.PdfTextLayoutOptions {
-            MarginLeft = options.MarginLeft,
-            MarginRight = options.MarginRight,
-            BinWidth = options.BinWidth,
-            MinGutterWidth = options.MinGutterWidth,
-            LineMergeToleranceEm = options.LineMergeToleranceEm,
-            LineMergeMaxPoints = options.LineMergeMaxPoints,
-            ForceSingleColumn = options.ForceSingleColumn,
-            JoinHyphenationAcrossLines = options.JoinHyphenationAcrossLines,
-            IgnoreHeaderHeight = options.IgnoreHeaderHeight,
-            IgnoreFooterHeight = options.IgnoreFooterHeight,
-            GapSpaceThresholdEm = options.GapSpaceThresholdEm,
-            GapGlyphFactor = options.GapGlyphFactor
-        };
-    }
 }

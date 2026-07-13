@@ -24,7 +24,8 @@ namespace OfficeIMO.Examples.Word {
             }
 
             image.Save(fileToSave);
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

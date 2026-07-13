@@ -174,7 +174,7 @@ public sealed class ReaderAsyncTests {
         File.WriteAllText(file, "built-in async fallback");
 
         try {
-            IReadOnlyList<ReaderChunk> chunks = await DocumentReader.ReadAsync(file);
+            IReadOnlyList<ReaderChunk> chunks = await OfficeDocumentReader.Default.ReadAsync(file);
 
             Assert.Contains(chunks, chunk => chunk.Text.Contains("built-in async fallback", StringComparison.Ordinal));
         } finally {

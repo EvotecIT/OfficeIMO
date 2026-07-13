@@ -50,4 +50,7 @@
     <Using Include="System.Text.Json" />
     <Using Include="System.Threading" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+  </ItemGroup>
 </Project>

@@ -14,7 +14,7 @@ public class OpenDocumentOdtTests {
     [InlineData("microsoft-word-basic.odt")]
     public void PreservesAuthoredFixtureOutsideEditedContent(string fixtureName) {
         string path = Path.Combine(AppContext.BaseDirectory, "Fixtures", fixtureName);
-        using OdtDocument document = OdtDocument.Open(path);
+        OdtDocument document = OdtDocument.Load(path);
         var untouched = document.Package.Entries
             .Where(entry => entry.Name != "content.xml" && entry.Name != "META-INF/manifest.xml")
             .ToDictionary(entry => entry.Name, entry => entry.GetOriginalBytes());
@@ -23,7 +23,7 @@ public class OpenDocumentOdtTests {
         paragraph.Text = paragraph.Text + " [OfficeIMO]";
         byte[] output = document.ToBytes(new OdfSaveOptions { CompatibilityProfile = OdfCompatibilityProfile.PreserveSource });
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(output));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(output));
         Assert.Contains(reopened.Paragraphs, item => item.Text.EndsWith("[OfficeIMO]", StringComparison.Ordinal));
         foreach (var pair in untouched) {
             Assert.Equal(pair.Value, reopened.Package.GetRequiredEntry(pair.Key).GetOriginalBytes());
@@ -32,7 +32,7 @@ public class OpenDocumentOdtTests {
 
     [Fact]
     public void WritesAndReopensUsefulTextDocumentWithoutFlatteningStructure() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.Metadata.Title = "Native ODT";
         document.AddHeading("Quarterly report", 1);
         OdtParagraph paragraph = document.AddParagraph("Revenue  increased\t12%\nYear over year.");
@@ -63,7 +63,7 @@ public class OpenDocumentOdtTests {
 
         byte[] bytes = document.ToBytes();
         Assert.True(document.Validate().IsValid);
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(bytes));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(bytes));
 
         Assert.Equal("Native ODT", reopened.Metadata.Title);
         Assert.Contains(reopened.Paragraphs, item => item.IsHeading && item.Text == "Quarterly report");
@@ -79,7 +79,7 @@ public class OpenDocumentOdtTests {
 
     [Fact]
     public void PreservesUnknownXmlAndEntriesDuringTargetedOdtEdit() {
-        using OdtDocument source = OdtDocument.Create();
+        OdtDocument source = OdtDocument.Create();
         source.AddParagraph("Before");
         XNamespace vendor = "urn:vendor:test";
         XElement foreign = new XElement(vendor + "payload", new XAttribute(vendor + "mode", "keep"), "opaque");
@@ -87,11 +87,11 @@ public class OpenDocumentOdtTests {
         source.MarkPartDirty("content.xml");
         source.Package.AddOrReplaceEntry("Vendor/data.dat", new byte[] { 4, 2, 1 }, "application/octet-stream");
 
-        using OdtDocument edited = OdtDocument.Open(new MemoryStream(source.ToBytes()));
+        OdtDocument edited = OdtDocument.Load(new MemoryStream(source.ToBytes()));
         edited.Paragraphs.Single().Text = "After";
         byte[] output = edited.ToBytes();
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(output));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(output));
         Assert.Equal("After", reopened.Paragraphs.Single().Text);
         Assert.Equal("opaque", reopened.TextBody.Element(vendor + "payload")?.Value);
         Assert.Equal(new byte[] { 4, 2, 1 }, reopened.Package.GetRequiredEntry("Vendor/data.dat").GetOriginalBytes());
@@ -100,7 +100,7 @@ public class OpenDocumentOdtTests {
     [Fact]
     public void AddsEmbeddedImageAndManifestMediaType() {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtImage image = document.AddParagraph().AddImage(png, "pixel.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
         byte[] bytes = document.ToBytes();

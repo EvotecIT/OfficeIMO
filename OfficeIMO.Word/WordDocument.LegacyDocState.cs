@@ -48,7 +48,7 @@ namespace OfficeIMO.Word {
             _legacyDocUnsupportedFeatures = document.UnsupportedFeatures.ToArray();
             FilePath = attachSourcePathForSave && sourcePath != null
                 ? sourcePath
-                : string.Empty;
+                : null;
         }
 
         private bool HasLossyLegacyDocImportState() {

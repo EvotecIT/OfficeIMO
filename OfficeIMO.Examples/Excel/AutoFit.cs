@@ -39,7 +39,8 @@ namespace OfficeIMO.Examples.Excel {
                 s3.AutoFitColumns();
                 s3.AutoFitRows();
 
-                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                document.Save();
+                if (openExcel) document.OpenInApplication();
             }
         }
     }

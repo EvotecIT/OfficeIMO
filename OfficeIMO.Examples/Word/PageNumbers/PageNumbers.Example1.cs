@@ -88,7 +88,8 @@ namespace OfficeIMO.Examples.Word {
                 }
 
                 document.Settings.UpdateFieldsOnOpen = true;
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

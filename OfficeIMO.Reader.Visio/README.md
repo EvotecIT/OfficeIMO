@@ -75,7 +75,7 @@ var chunks = reader.ReadFolder("Architecture",
 
 ```csharp
 OfficeDocumentReadResult document =
-    DocumentReaderVisioExtensions.ReadVisioDocument("network.vsdx");
+    VisioReaderAdapter.ReadDocument("network.vsdx");
 
 foreach (ReaderVisual topology in document.Visuals) {
     Console.WriteLine($"Page {topology.Location.Page}: {topology.Content}");

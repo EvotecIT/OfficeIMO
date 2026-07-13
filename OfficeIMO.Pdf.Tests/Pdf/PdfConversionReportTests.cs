@@ -528,7 +528,7 @@ public sealed class PdfConversionReportTests {
 
     [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesOptionalContentLayers() {
-        using PdfDocument document = PdfDocument.Open(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
+        PdfDocument document = PdfDocument.Load(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
         var result = new PdfDocumentConversionResult(document, new PdfConversionReport());
 
         PdfConversionProofReport proof = result.AssessProof(new PdfConversionProofOptions()

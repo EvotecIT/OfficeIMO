@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DfnIsItalicAndRoundsTrip() {
             const string html = "<p>A <dfn>term</dfn> appears.</p>";
-            using var doc = html.ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
             Assert.Equal("HtmlDfn", runs[1].CharacterStyleId);
             Assert.True(runs[1].Italic);
@@ -25,7 +25,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DefinitionListImportsValidDocxAndRoundTripsAsDefinitionList() {
             const string html = "<dl><dt>Term</dt><dd>Definition</dd></dl>";
-            using var doc = html.ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
 
             Assert.Equal("HtmlDefinitionTerm", doc.Paragraphs[0].StyleId);
             Assert.Equal("HtmlDefinitionDescription", doc.Paragraphs[1].StyleId);
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void DefinitionListInTableCellRoundsTripAsDefinitionList() {
             const string html = "<table><tr><td><dl><dt>Metric</dt><dd>Value</dd></dl></td></tr></table>";
-            using var doc = html.ToWordDocument();
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
             var cell = doc.Tables[0].Rows[0].Cells[0];
 
             Assert.Contains(cell.Paragraphs, paragraph => paragraph.Text == "Metric" && paragraph.StyleId == "HtmlDefinitionTerm");

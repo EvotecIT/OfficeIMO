@@ -73,7 +73,7 @@ public sealed class ReaderZipModularTests {
                 WriteTextEntry(archive, "big.txt", new string('x', 2048));
             }
 
-            var chunks = DocumentReaderZipExtensions.ReadZip(
+            var chunks = ZipReaderAdapter.Read(
                 zipPath,
                 readerOptions: new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000 },
                 zipOptions: new ZipTraversalOptions { DeterministicOrder = true },
@@ -101,7 +101,7 @@ public sealed class ReaderZipModularTests {
         var zipBytes = BuildSimpleZipBytes();
         using var stream = new NonSeekableReadStream(zipBytes);
 
-        var chunks = DocumentReaderZipExtensions.ReadZip(
+        var chunks = ZipReaderAdapter.Read(
             stream,
             sourceName: "nonseekable.zip",
             readerOptions: new ReaderOptions { MaxChars = 8_000 },
@@ -119,7 +119,7 @@ public sealed class ReaderZipModularTests {
         var zipBytes = BuildSimpleZipBytes();
         using var stream = new NonSeekableReadStream(zipBytes);
 
-        var ex = Assert.Throws<IOException>(() => DocumentReaderZipExtensions.ReadZip(
+        var ex = Assert.Throws<IOException>(() => ZipReaderAdapter.Read(
             stream,
             sourceName: "nonseekable.zip",
             readerOptions: new ReaderOptions { MaxInputBytes = 16, MaxChars = 8_000 },
@@ -135,14 +135,14 @@ public sealed class ReaderZipModularTests {
         using var first = new MemoryStream(zipBytes, writable: false);
         using var second = new MemoryStream(zipBytes, writable: false);
 
-        var firstChunk = DocumentReaderZipExtensions.ReadZip(
+        var firstChunk = ZipReaderAdapter.Read(
             first,
             sourceName: "first.zip",
             readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
             zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
             .Single(c => c.Kind == ReaderInputKind.Markdown);
 
-        var secondChunk = DocumentReaderZipExtensions.ReadZip(
+        var secondChunk = ZipReaderAdapter.Read(
             second,
             sourceName: "second.zip",
             readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
@@ -167,14 +167,14 @@ public sealed class ReaderZipModularTests {
         using var first = new MemoryStream(zipBytes, writable: false);
         using var second = new MemoryStream(zipBytes, writable: false);
 
-        var firstWarning = DocumentReaderZipExtensions.ReadZip(
+        var firstWarning = ZipReaderAdapter.Read(
             first,
             sourceName: "first.zip",
             readerOptions: new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000, ComputeHashes = true },
             zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
             .Single(c => c.Kind == ReaderInputKind.Zip && (c.Warnings?.Count ?? 0) > 0);
 
-        var secondWarning = DocumentReaderZipExtensions.ReadZip(
+        var secondWarning = ZipReaderAdapter.Read(
             second,
             sourceName: "second.zip",
             readerOptions: new ReaderOptions { MaxInputBytes = 512, MaxChars = 8_000, ComputeHashes = true },
@@ -203,7 +203,7 @@ public sealed class ReaderZipModularTests {
 
         using var stream = new MemoryStream(zipBytes, writable: false);
 
-        var chunks = DocumentReaderZipExtensions.ReadZip(
+        var chunks = ZipReaderAdapter.Read(
             stream,
             sourceName: "case-sensitive.zip",
             readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
@@ -234,13 +234,13 @@ public sealed class ReaderZipModularTests {
                 var relativePath = Path.GetFileName(zipPath);
                 var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
 
-                var relativeChunk = DocumentReaderZipExtensions.ReadZip(
+                var relativeChunk = ZipReaderAdapter.Read(
                     relativePath,
                     readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
                     zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
                     .Single(c => c.Kind == ReaderInputKind.Markdown);
 
-                var fullChunk = DocumentReaderZipExtensions.ReadZip(
+                var fullChunk = ZipReaderAdapter.Read(
                     zipPath,
                     readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
                     zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
@@ -270,7 +270,7 @@ public sealed class ReaderZipModularTests {
                 WriteBytesEntry(archive, "nested/archive.zip", nestedZipBytes);
             }
 
-            var warningChunk = DocumentReaderZipExtensions.ReadZip(
+            var warningChunk = ZipReaderAdapter.Read(
                 zipPath,
                 readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
                 zipOptions: new ZipTraversalOptions { DeterministicOrder = true },
@@ -300,7 +300,7 @@ public sealed class ReaderZipModularTests {
                 WriteBytesEntry(archive, "nested/archive.zip", nestedZipBytes);
             }
 
-            var warningChunk = DocumentReaderZipExtensions.ReadZip(
+            var warningChunk = ZipReaderAdapter.Read(
                 zipPath,
                 readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
                 zipOptions: new ZipTraversalOptions { DeterministicOrder = true },

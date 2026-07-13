@@ -10,7 +10,7 @@ public static partial class MarkdownPdfConverterExtensions {
     private const double MinimumChartWidth = 240D;
     private const double MinimumChartHeight = 150D;
 
-    private static bool TryRenderChartFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+    private static bool TryRenderChartFencedBlock(PdfCore.PdfDocument pdf, SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
         if (!IsChartSemanticFence(semantic)) {
             return false;
         }
@@ -39,7 +39,7 @@ public static partial class MarkdownPdfConverterExtensions {
     private static bool IsChartSemanticFence(SemanticFencedBlock semantic) =>
         string.Equals(semantic.SemanticKind, MarkdownSemanticKinds.Chart, StringComparison.OrdinalIgnoreCase);
 
-    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage, MarkdownPdfVisualTheme? visualTheme = null) {
+    internal static bool TryCreateChartSnapshot(SemanticFencedBlock semantic, MarkdownPdfSaveOptions options, out OfficeChartSnapshot? snapshot, out string? warningMessage, MarkdownPdfStyle? visualTheme = null) {
         snapshot = null;
         warningMessage = null;
         if (string.IsNullOrWhiteSpace(semantic.Content)) {
@@ -212,7 +212,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 return false;
             }
 
-            MarkdownPdfVisualTheme resolvedVisualTheme = ResolveChartVisualTheme(options, visualTheme);
+            MarkdownPdfStyle resolvedVisualTheme = ResolveChartVisualTheme(options, visualTheme);
             if (TryGetAvailableChartContentHeight(options, resolvedVisualTheme, out double availableHeight) && availableHeight < MinimumChartHeight) {
                 warningMessage = "The Markdown chart fence needs at least 150 PDF points of content height after figure spacing for native rendering and is rendered as a semantic code panel.";
                 return false;
@@ -780,28 +780,28 @@ public static partial class MarkdownPdfConverterExtensions {
 
     private static bool IsFiniteChartValue(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 
-    private static MarkdownPdfVisualTheme ResolveChartVisualTheme(MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme? visualTheme) {
+    private static MarkdownPdfStyle ResolveChartVisualTheme(MarkdownPdfSaveOptions options, MarkdownPdfStyle? visualTheme) {
         if (visualTheme != null) {
             return visualTheme.Clone();
         }
 
-        MarkdownPdfVisualTheme? explicitTheme = options.PdfTheme;
+        MarkdownPdfStyle? explicitTheme = options.Style;
         if (explicitTheme != null) {
             return explicitTheme;
         }
 
         MarkdownVisualTheme? sharedTheme = options.ThemeSnapshot;
         if (sharedTheme != null) {
-            return MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+            return MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
         }
 
         MarkdownVisualTheme? defaultTheme = MarkdownVisualTheme.ResolveOrDefault(null, options.ApplyDefaultTheme);
         return defaultTheme != null
-            ? MarkdownPdfVisualTheme.FromMarkdownTheme(defaultTheme)
-            : MarkdownPdfVisualTheme.Plain();
+            ? MarkdownPdfStyle.FromMarkdownTheme(defaultTheme)
+            : MarkdownPdfStyle.Plain();
     }
 
-    private static void FitChartToPageFrame(MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme, ref double width, ref double height) {
+    private static void FitChartToPageFrame(MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme, ref double width, ref double height) {
         if (!TryGetAvailablePdfContentWidth(options, out double availableWidth)) {
             availableWidth = width;
         }
@@ -833,7 +833,7 @@ public static partial class MarkdownPdfConverterExtensions {
         return availableHeight > 0D && !double.IsNaN(availableHeight) && !double.IsInfinity(availableHeight);
     }
 
-    private static bool TryGetAvailableChartContentHeight(MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme, out double availableHeight) {
+    private static bool TryGetAvailableChartContentHeight(MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme, out double availableHeight) {
         if (!TryGetAvailablePdfContentHeight(options, out availableHeight)) {
             return false;
         }

@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_DivStyles_TextAlign() {
             string html = "<div style=\"text-align:center\"><p>Centered</p></div>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal(JustificationValues.Center, paragraph.ParagraphAlignment);
@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
         public void HtmlToWord_DivStyles_Margins() {
             string html = "<div style=\"margin-left:20pt;padding-left:10pt\"><p>Indented</p></div>";
 
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var paragraph = doc.Paragraphs[0];
 
             Assert.Equal(30d, paragraph.IndentationBeforePoints);

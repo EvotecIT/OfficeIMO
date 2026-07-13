@@ -176,7 +176,7 @@ public static partial class MarkdownReader {
         }
 
         var item = listBlock.ListItems[listBlock.ListItems.Count - 1];
-        item.Children.Add(block);
+        item.NestedBlocks.Add(block);
         return true;
     }
 

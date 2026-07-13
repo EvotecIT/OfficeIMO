@@ -1,6 +1,5 @@
 using OfficeIMO.Drawing.Internal;
 using DocumentFormat.OpenXml.Packaging;
-using OfficeIMO.Shared;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;
 using System.Threading;
@@ -61,11 +60,11 @@ namespace OfficeIMO.Excel {
                     $"The source is already {sourceFormat}. Convert requires different physical source and destination formats.");
             }
 
-            if (assessment.HasDataLoss && options.LossPolicy == ExcelConversionLossPolicy.Block) {
+            if (assessment.HasLoss && options.LossPolicy == ExcelConversionLossPolicy.Block) {
                 throw new ExcelDocumentConversionException(
                     ExcelDocumentConversionFailureReason.DataLossBlocked,
                     assessment,
-                    $"Excel conversion is blocked because {diagnostics.Count(diagnostic => diagnostic.RepresentsDataLoss)} source feature(s) would not survive conversion. Inspect Result.Diagnostics or set LossPolicy to Allow when that loss is intentional.");
+                    $"Excel conversion is blocked because {diagnostics.Count(diagnostic => diagnostic.RepresentsDataLoss)} source feature(s) would not survive conversion. Inspect Result.Report.Diagnostics or set LossPolicy to Allow when that loss is intentional.");
             }
 
             if (File.Exists(paths.Destination)
@@ -94,7 +93,7 @@ namespace OfficeIMO.Excel {
                     throw new ExcelDocumentConversionException(
                         ExcelDocumentConversionFailureReason.DestinationFeatureUnsupported,
                         CreateExcelConversionResult(paths, sourceFormat, destinationFormat, diagnostics, false, false),
-                        $"The workbook contains content that cannot be written as {destinationFormat}. See Result.Diagnostics for the specific unsupported feature.",
+                        $"The workbook contains content that cannot be written as {destinationFormat}. See Result.Report.Diagnostics for the specific unsupported feature.",
                         exception);
                 }
 
@@ -118,7 +117,6 @@ namespace OfficeIMO.Excel {
                         exception);
                 }
 
-                if (options.OpenAfterSave) document.OpenInApplication(paths.Destination);
                 return CreateExcelConversionResult(paths, sourceFormat, destinationFormat, diagnostics, true, replacesExistingFile);
             } finally {
                 OfficeFileCommit.DeleteIfExists(stagingPath);

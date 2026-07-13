@@ -503,7 +503,7 @@ public static partial class MarkdownReader {
         if (TryParseListItemLeadSetextBlocks(lines, options, state, lineOffset, out var leadBlocks)) {
             var headingItem = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
             for (int i = 0; i < leadBlocks.Count; i++) {
-                headingItem.Children.Add(leadBlocks[i]);
+                headingItem.NestedBlocks.Add(leadBlocks[i]);
             }
             return AttachLeadingAbbreviationSyntax(headingItem);
         }
@@ -559,7 +559,7 @@ public static partial class MarkdownReader {
                 }
 
                 for (int i = 0; i < trailingBlocksFromSource.Count; i++) {
-                    mixedItem.Children.Add(trailingBlocksFromSource[i]);
+                    mixedItem.NestedBlocks.Add(trailingBlocksFromSource[i]);
                 }
                 mixedItem.ForceLoose = true;
                 return AttachLeadingAbbreviationSyntax(mixedItem);
@@ -570,7 +570,7 @@ public static partial class MarkdownReader {
         if (mixedItem.TryAbsorbTrailingParagraphBlocks(trailingBlocks)) return AttachLeadingAbbreviationSyntax(mixedItem);
 
         for (int i = 0; i < trailingBlocks.Count; i++) {
-            mixedItem.Children.Add(trailingBlocks[i]);
+            mixedItem.NestedBlocks.Add(trailingBlocks[i]);
         }
         mixedItem.ForceLoose = true;
         return AttachLeadingAbbreviationSyntax(mixedItem);
@@ -763,7 +763,7 @@ public static partial class MarkdownReader {
 
         var blockLeadItem = isTask ? ListItem.TaskInlines(new InlineSequence(), done) : new ListItem(new InlineSequence());
         for (int i = 0; i < leadBlocks.Count; i++) {
-            blockLeadItem.Children.Add(leadBlocks[i]);
+            blockLeadItem.NestedBlocks.Add(leadBlocks[i]);
         }
         for (int i = 0; i < leadSyntax.Count; i++) {
             blockLeadItem.SyntaxChildren.Add(leadSyntax[i]);

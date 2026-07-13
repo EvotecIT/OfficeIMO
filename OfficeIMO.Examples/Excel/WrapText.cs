@@ -79,7 +79,8 @@ namespace OfficeIMO.Examples.Excel {
                 opts.NumericHeaders.Add("Number");
             });
 
-            document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+            document.Save();
+            if (openExcel) document.OpenInApplication();
         }
     }
 }

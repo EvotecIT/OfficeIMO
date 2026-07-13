@@ -65,26 +65,5 @@ namespace OfficeIMO.PowerPoint {
         /// </summary>
         public static double ToMillimeters(long emus) => emus / EmusPerMillimeter;
 
-        // Short aliases for call sites (e.g., PowerPointUnits.Cm(2.5))
-
-        /// <summary>
-        ///     Alias for <see cref="FromInches(double)"/>.
-        /// </summary>
-        public static long Inches(double inches) => FromInches(inches);
-
-        /// <summary>
-        ///     Alias for <see cref="FromPoints(double)"/>.
-        /// </summary>
-        public static long Points(double points) => FromPoints(points);
-
-        /// <summary>
-        ///     Alias for <see cref="FromCentimeters(double)"/>.
-        /// </summary>
-        public static long Cm(double centimeters) => FromCentimeters(centimeters);
-
-        /// <summary>
-        ///     Alias for <see cref="FromMillimeters(double)"/>.
-        /// </summary>
-        public static long Mm(double millimeters) => FromMillimeters(millimeters);
     }
 }

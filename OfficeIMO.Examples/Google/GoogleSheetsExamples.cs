@@ -20,7 +20,7 @@ namespace OfficeIMO.Examples.Google {
             summary.CellValue(3, 2, 151500);
             workbook.Save();
 
-            var plan = workbook.CreateGoogleSheetsTranslationPlan(new GoogleSheetsSaveOptions {
+            var plan = workbook.BuildGoogleSheetsPlan(new GoogleSheetsSaveOptions {
                 Title = "OfficeIMO Google Sheets plan"
             });
 

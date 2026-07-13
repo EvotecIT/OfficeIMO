@@ -17,7 +17,8 @@ internal static partial class Embed {
 
             document.AddEmbeddedObject(excelFilePath, imageFilePath);
 
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

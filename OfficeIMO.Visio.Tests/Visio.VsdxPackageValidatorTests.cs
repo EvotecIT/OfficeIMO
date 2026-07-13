@@ -85,7 +85,7 @@ namespace OfficeIMO.Tests {
             try {
                 VisioDocument document = VisioDocument.Create(inputPath);
                 document.UseMastersByDefault = true;
-                document.Theme = new VisioTheme { Name = "Validator Theme" };
+                document.PackageTheme = new VisioPackageTheme { Name = "Validator Theme" };
                 VisioPage page = document.AddPage("Page-1", 8.5, 11, VisioMeasurementUnit.Inches);
                 page.AddRectangle(1, 1, 2, 1, "Sample");
                 document.Save();
@@ -120,4 +120,3 @@ namespace OfficeIMO.Tests {
         }
     }
 }
-

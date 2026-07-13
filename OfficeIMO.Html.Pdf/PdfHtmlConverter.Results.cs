@@ -3,55 +3,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
 
-public static partial class PdfHtmlConverter {
-    /// <summary>
-    /// Converts PDF bytes to HTML and returns a machine-readable export summary.
-    /// </summary>
-    public static PdfHtmlConversionResult ToHtmlResult(byte[] pdf, PdfHtmlSaveOptions? options = null) {
-        if (pdf == null) {
-            throw new ArgumentNullException(nameof(pdf));
-        }
-
-        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
-        return RenderLogicalDocumentResult(LoadLogicalResult(pdf, options), options, applyPageRanges: false);
-    }
-
-    /// <summary>
-    /// Converts a PDF file to HTML and returns a machine-readable export summary.
-    /// </summary>
-    public static PdfHtmlConversionResult ToHtmlResult(string path, PdfHtmlSaveOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            throw new ArgumentException("PDF path cannot be empty.", nameof(path));
-        }
-
-        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
-        return RenderLogicalDocumentResult(LoadLogicalResult(path, options), options, applyPageRanges: false);
-    }
-
-    /// <summary>
-    /// Converts PDF stream content to HTML and returns a machine-readable export summary.
-    /// </summary>
-    public static PdfHtmlConversionResult ToHtmlResult(Stream stream, PdfHtmlSaveOptions? options = null) {
-        if (stream == null) {
-            throw new ArgumentNullException(nameof(stream));
-        }
-
-        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
-        return RenderLogicalDocumentResult(LoadLogicalResult(stream, options), options, applyPageRanges: false);
-    }
-
-    /// <summary>
-    /// Renders an already parsed PDF document as HTML and returns a machine-readable export summary.
-    /// </summary>
-    public static PdfHtmlConversionResult ToHtmlResult(this PdfCore.PdfReadDocument document, PdfHtmlSaveOptions? options = null) {
-        if (document == null) {
-            throw new ArgumentNullException(nameof(document));
-        }
-
-        options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
-        return RenderLogicalDocumentResult(LoadLogicalResult(document, options), options, applyPageRanges: false);
-    }
-
+public static partial class PdfHtmlConverterExtensions {
     /// <summary>
     /// Renders an already loaded logical PDF model as HTML and returns a machine-readable export summary.
     /// </summary>
@@ -61,40 +13,13 @@ public static partial class PdfHtmlConverter {
         }
 
         options = (options ?? new PdfHtmlSaveOptions()).CloneForConversion();
-        return RenderLogicalDocumentResult(new LogicalResultSource(document, document.PageCount), options, applyPageRanges: true);
-    }
-
-    private static PdfHtmlConversionResult RenderLogicalDocumentResult(LogicalResultSource source, PdfHtmlSaveOptions options, bool applyPageRanges) {
-        PdfCore.PdfLogicalDocument document = source.Document;
-        IReadOnlyList<PdfCore.PdfLogicalPage> pages = applyPageRanges
-            ? GetRenderPages(document, options)
-            : document.Pages;
+        IReadOnlyList<PdfCore.PdfLogicalPage> pages = GetRenderPages(document, options);
         string html = options.Profile switch {
             PdfHtmlProfile.Semantic => RenderSemanticDocument(document, pages, options),
             PdfHtmlProfile.PositionedReview => RenderPositionedReviewDocument(document, pages, options),
             _ => throw new ArgumentOutOfRangeException(nameof(options.Profile), options.Profile, "Unsupported PDF HTML profile.")
         };
-        return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, source.SourcePageCount), options.Report);
-    }
-
-    private static LogicalResultSource LoadLogicalResult(byte[] pdf, PdfHtmlSaveOptions options) {
-        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(pdf, options.ReadOptions), options);
-    }
-
-    private static LogicalResultSource LoadLogicalResult(string path, PdfHtmlSaveOptions options) {
-        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(path, options.ReadOptions), options);
-    }
-
-    private static LogicalResultSource LoadLogicalResult(Stream stream, PdfHtmlSaveOptions options) {
-        return LoadLogicalResult(PdfCore.PdfReadDocument.Load(stream, options.ReadOptions), options);
-    }
-
-    private static LogicalResultSource LoadLogicalResult(PdfCore.PdfReadDocument document, PdfHtmlSaveOptions options) {
-        PdfCore.PdfPageRange[] ranges = CopyPageRanges(options);
-        PdfCore.PdfLogicalDocument logical = ranges.Length > 0
-            ? PdfCore.PdfLogicalDocument.FromPageRanges(document, options.LayoutOptions, ranges)
-            : PdfCore.PdfLogicalDocument.From(document, options.LayoutOptions);
-        return new LogicalResultSource(logical, document.Pages.Count);
+        return new PdfHtmlConversionResult(html, BuildExportSummary(document, pages, options, document.PageCount), options.Report);
     }
 
     private static PdfHtmlExportSummary BuildExportSummary(PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options, int sourcePageCount) {
@@ -383,14 +308,4 @@ public static partial class PdfHtmlConverter {
         }
     }
 
-    private readonly struct LogicalResultSource {
-        public LogicalResultSource(PdfCore.PdfLogicalDocument document, int sourcePageCount) {
-            Document = document;
-            SourcePageCount = sourcePageCount;
-        }
-
-        public PdfCore.PdfLogicalDocument Document { get; }
-
-        public int SourcePageCount { get; }
-    }
 }

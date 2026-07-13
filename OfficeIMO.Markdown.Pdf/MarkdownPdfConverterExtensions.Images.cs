@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    private static void RenderImageBlock(PdfCore.PdfDocument pdf, ImageBlock image, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+    private static void RenderImageBlock(PdfCore.PdfDocument pdf, ImageBlock image, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
         if (!TryReadImageBytes(image.Path, options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage)) {
             AddWarning(options, warningCode, image.Path, warningMessage);
             RenderImagePlaceholder(pdf, image.PlainAlt ?? image.Alt ?? image.Path, visualTheme);
@@ -29,7 +29,7 @@ public static partial class MarkdownPdfConverterExtensions {
             visualTheme);
     }
 
-    private static bool TryRenderImageOnlyParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme) {
+    private static bool TryRenderImageOnlyParagraph(PdfCore.PdfDocument pdf, InlineSequence inlines, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme) {
         if (inlines.Nodes.Count != 1) {
             return false;
         }
@@ -55,7 +55,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string? linkUrl,
         string? linkTitle,
         MarkdownPdfSaveOptions options,
-        MarkdownPdfVisualTheme visualTheme) {
+        MarkdownPdfStyle visualTheme) {
         if (!TryReadImageBytes(source, options, out byte[] bytes, out string sourceName, out string warningCode, out string warningMessage)) {
             AddWarning(options, warningCode, source, warningMessage);
             RenderImagePlaceholder(pdf, altText ?? source, visualTheme);
@@ -87,7 +87,7 @@ public static partial class MarkdownPdfConverterExtensions {
         string? linkUri,
         string? linkContents,
         MarkdownPdfSaveOptions options,
-        MarkdownPdfVisualTheme visualTheme) {
+        MarkdownPdfStyle visualTheme) {
         if (!PdfCore.PdfDocument.TryValidateImageBytes(bytes, out OfficeImageInfo? info, out string? unsupportedReason)) {
             AddWarning(options, "UnsupportedImage", sourceName, "The Markdown image bytes are not supported by the PDF image renderer. " + unsupportedReason);
             RenderImagePlaceholder(pdf, altText ?? sourceName, visualTheme);
@@ -104,7 +104,7 @@ public static partial class MarkdownPdfConverterExtensions {
         RenderFigureCaption(pdf, caption, figureStyle);
     }
 
-    private static void RenderImagePlaceholder(PdfCore.PdfDocument pdf, string? label, MarkdownPdfVisualTheme visualTheme) {
+    private static void RenderImagePlaceholder(PdfCore.PdfDocument pdf, string? label, MarkdownPdfStyle visualTheme) {
         if (string.IsNullOrWhiteSpace(label)) {
             label = "Image";
         }

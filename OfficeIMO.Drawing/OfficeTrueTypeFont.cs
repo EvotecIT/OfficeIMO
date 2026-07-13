@@ -70,7 +70,7 @@ public sealed class OfficeTrueTypeFont {
     /// </summary>
     public static OfficeTrueTypeFont? TryLoadDefault(out string? resolvedPath) {
         foreach (var path in CandidatePaths()) {
-            var font = TryLoadFromPath(path);
+            var font = TryLoad(path);
             if (font != null && font.HasGlyphs("OfficeIMO 0123456789")) {
                 resolvedPath = path;
                 return font;
@@ -109,11 +109,11 @@ public sealed class OfficeTrueTypeFont {
         return resolved.Font;
     }
 
-    public static OfficeTrueTypeFont? TryLoadFromPath(string? path) => TryLoadFromPath(path, null, null);
+    public static OfficeTrueTypeFont? TryLoad(string? path) => TryLoad(path, null, null);
 
-    public static OfficeTrueTypeFont? TryLoadFromPath(string? path, int? collectionIndex) => TryLoadFromPath(path, collectionIndex, null);
+    public static OfficeTrueTypeFont? TryLoad(string? path, int? collectionIndex) => TryLoad(path, collectionIndex, null);
 
-    public static OfficeTrueTypeFont? TryLoadFromPath(string? path, int? collectionIndex, string? faceName) {
+    public static OfficeTrueTypeFont? TryLoad(string? path, int? collectionIndex, string? faceName) {
         if (string.IsNullOrWhiteSpace(path)) return null;
         try {
             var fullPath = Path.GetFullPath(path);
@@ -770,9 +770,9 @@ public sealed class OfficeTrueTypeFont {
 
         foreach (string family in ExpandFontFamilyFallbacks(fontFamily!)) {
             foreach (string path in CandidateFamilyPaths(family)) {
-                OfficeTrueTypeFont? font = TryLoadFromPath(path, null, family);
+                OfficeTrueTypeFont? font = TryLoad(path, null, family);
                 if (font == null) {
-                    font = TryLoadFromPath(path);
+                    font = TryLoad(path);
                 }
 
                 if (font != null && font.HasGlyphs("OfficeIMO 0123456789")) {

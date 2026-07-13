@@ -23,9 +23,9 @@ public sealed class HtmlPdfTests {
             Scale = 1D
         };
 
-        byte[] png = html.ToPng(options);
-        string svg = html.ToSvg(options);
-        byte[] pdf = html.ToPdf(options);
+        byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options);
 
         Assert.True(png.Length > 8);
         Assert.True(pdf.Length > 8);
@@ -38,8 +38,8 @@ public sealed class HtmlPdfTests {
         const string html = "<p><img src='https://example.invalid/missing.png'>Report</p>";
         var options = new HtmlPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult first = html.ToPdfDocumentResult(options);
-        PdfCore.PdfDocumentConversionResult second = "<p>Clean</p>".ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult first = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult second = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Clean</p>").ToPdfDocumentResult(options);
 
         Assert.Contains(first.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
         Assert.DoesNotContain(second.Report.Warnings, warning => warning.Code == HtmlRenderDiagnosticCodes.ExternalImagePending);
@@ -51,11 +51,11 @@ public sealed class HtmlPdfTests {
         const string html = "<article><h1>API contract</h1><p>One direct renderer.</p></article>";
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".pdf");
         try {
-            byte[] bytes = html.ToPdf();
-            using PdfCore.PdfDocument document = html.ToPdfDocument();
+            byte[] bytes = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf();
+            PdfCore.PdfDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocument();
             using var stream = new MemoryStream();
-            await html.SaveAsPdfAsync(stream);
-            html.SaveAsPdf(path);
+            await OfficeIMO.Html.HtmlConversionDocument.Parse(html).SaveAsPdfAsync(stream);
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).SaveAsPdf(path);
 
             Assert.Equal((byte)'%', bytes[0]);
             Assert.True(document.ToBytes().Length > 8);
@@ -70,8 +70,8 @@ public sealed class HtmlPdfTests {
     public void Html_OfficeProjections_AreExplicitTargets() {
         const string html = "<article><h1>Projection</h1><p>Explicit conversion.</p></article>";
 
-        using OfficeIMO.Word.WordDocument word = html.ToWordDocument();
-        OfficeIMO.Markdown.MarkdownDoc markdown = html.ToMarkdownDocument();
+        using OfficeIMO.Word.WordDocument word = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+        OfficeIMO.Markdown.MarkdownDoc markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.NotNull(word);
         Assert.Contains("Projection", markdown.ToMarkdown(), StringComparison.Ordinal);
@@ -104,14 +104,14 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_SemanticProfile_ExportsLogicalStructure() {
         byte[] pdf = CreateLogicalSamplePdf();
+        var layoutOptions = new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
         var options = new PdfHtmlSaveOptions {
-            Profile = PdfHtmlProfile.Semantic,
-            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                ForceSingleColumn = true
-            }
+            Profile = PdfHtmlProfile.Semantic
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtml(options);
 
         Assert.Contains("<title>Logical PDF sample</title>", html, StringComparison.Ordinal);
         Assert.Contains("<h1>Logical Heading</h1>", html, StringComparison.Ordinal);
@@ -129,14 +129,14 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtml_PositionedReviewProfile_ExportsPageGeometryAndTextBlocks() {
         byte[] pdf = CreateLogicalSamplePdf();
+        var layoutOptions = new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
         var options = new PdfHtmlSaveOptions {
-            Profile = PdfHtmlProfile.PositionedReview,
-            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                ForceSingleColumn = true
-            }
+            Profile = PdfHtmlProfile.PositionedReview
         };
 
-        string html = PdfHtmlConverter.ToHtml(PdfCore.PdfReadDocument.Load(pdf), options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtml(options);
 
         Assert.Contains(".pdf-page{position:relative", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:420pt;height:360pt;\"", html, StringComparison.Ordinal);
@@ -148,15 +148,15 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_PositionedReviewProfile_ReportsExportSummary() {
         byte[] pdf = CreatePdfHtmlSummarySamplePdf("https://example.com/summary");
+        var layoutOptions = new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
         var options = new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.PositionedReview,
-            IncludeLinkAnnotations = true,
-            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                ForceSingleColumn = true
-            }
+            IncludeLinkAnnotations = true
         };
 
-        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtmlResult(options);
 
         Assert.False(result.Report.HasWarnings);
         Assert.Contains("Logical Heading", result.Value, StringComparison.Ordinal);
@@ -182,14 +182,14 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_PositionedReviewProfile_RendersOutlinesAsNavigationMetadata() {
         byte[] pdf = CreateOutlineSamplePdf();
+        var layoutOptions = new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
         var options = new PdfHtmlSaveOptions {
-            Profile = PdfHtmlProfile.PositionedReview,
-            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                ForceSingleColumn = true
-            }
+            Profile = PdfHtmlProfile.PositionedReview
         };
 
-        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtmlResult(options);
 
         Assert.Contains("class=\"pdf-outline\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("aria-label=\"PDF outline\"", result.Value, StringComparison.Ordinal);
@@ -211,15 +211,15 @@ public sealed class HtmlPdfTests {
     [Fact]
     public void Pdf_ToHtmlResult_CanSuppressOutlineNavigation() {
         byte[] pdf = CreateOutlineSamplePdf();
+        var layoutOptions = new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
         var options = new PdfHtmlSaveOptions {
             Profile = PdfHtmlProfile.PositionedReview,
-            IncludeOutlines = false,
-            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
-                ForceSingleColumn = true
-            }
+            IncludeOutlines = false
         };
 
-        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions).ToHtmlResult(options);
 
         Assert.DoesNotContain("class=\"pdf-outline\"", result.Value, StringComparison.Ordinal);
         Assert.Equal(3, result.Summary.OutlineCount);
@@ -233,7 +233,7 @@ public sealed class HtmlPdfTests {
             Profile = PdfHtmlProfile.PositionedReview
         };
 
-        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf).ToHtmlResult(options);
 
         Assert.Contains("class=\"pdf-xfa-notice\"", result.Value, StringComparison.Ordinal);
         Assert.Contains("data-xfa-packet-count=\"2\"", result.Value, StringComparison.Ordinal);
@@ -258,11 +258,11 @@ public sealed class HtmlPdfTests {
             MaxEmbeddedImageBytes = 0
         };
 
-        PdfHtmlConversionResult imageResult = PdfHtmlConverter.ToHtmlResult(imagePdf, options);
+        PdfHtmlConversionResult imageResult = PdfCore.PdfLogicalDocument.Load(imagePdf).ToHtmlResult(options);
         PdfCore.PdfConversionWarning warning = Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
         Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
 
-        PdfHtmlConversionResult textResult = PdfHtmlConverter.ToHtmlResult(textPdf, options);
+        PdfHtmlConversionResult textResult = PdfCore.PdfLogicalDocument.Load(textPdf).ToHtmlResult(options);
 
         Assert.Single(imageResult.Report.Warnings, item => item.Code == "ImageDataTooLarge");
         Assert.False(textResult.Report.HasWarnings);
@@ -289,45 +289,14 @@ public sealed class HtmlPdfTests {
             }
         };
 
-        string path = Path.Combine(Path.GetTempPath(), "officeimo-pdf-html-result-" + Guid.NewGuid().ToString("N") + ".pdf");
-        File.WriteAllBytes(path, pdf);
-        PdfHtmlConversionResult byteResult = PdfHtmlConverter.ToHtmlResult(pdf, options);
-        PdfHtmlConversionResult streamResult;
-        using (var stream = new MemoryStream(pdf, writable: false)) {
-            streamResult = PdfHtmlConverter.ToHtmlResult(stream, options);
-        }
-
-        PdfHtmlConversionResult pathResult = PdfHtmlConverter.ToHtmlResult(path, options);
-        PdfHtmlConversionResult readDocumentResult = PdfCore.PdfReadDocument.Load(pdf).ToHtmlResult(options);
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
-        PdfHtmlConversionResult logicalResult = logical.ToHtmlResult(options);
-        File.Delete(path);
+        PdfHtmlConversionResult result = logical.ToHtmlResult(options);
 
-        Assert.Equal(2, byteResult.Summary.SourcePageCount);
-        Assert.Equal(1, byteResult.Summary.RenderedPageCount);
-        Assert.Equal(new[] { 2 }, byteResult.Summary.PageNumbers);
-        Assert.Equal(1, byteResult.Summary.FormFieldCount);
-        Assert.Equal(1, byteResult.Summary.FormWidgetCount);
-        Assert.Equal(2, streamResult.Summary.SourcePageCount);
-        Assert.Equal(1, streamResult.Summary.RenderedPageCount);
-        Assert.Equal(new[] { 2 }, streamResult.Summary.PageNumbers);
-        Assert.Equal(1, streamResult.Summary.FormFieldCount);
-        Assert.Equal(1, streamResult.Summary.FormWidgetCount);
-        Assert.Equal(2, pathResult.Summary.SourcePageCount);
-        Assert.Equal(1, pathResult.Summary.RenderedPageCount);
-        Assert.Equal(new[] { 2 }, pathResult.Summary.PageNumbers);
-        Assert.Equal(1, pathResult.Summary.FormFieldCount);
-        Assert.Equal(1, pathResult.Summary.FormWidgetCount);
-        Assert.Equal(2, readDocumentResult.Summary.SourcePageCount);
-        Assert.Equal(1, readDocumentResult.Summary.RenderedPageCount);
-        Assert.Equal(new[] { 2 }, readDocumentResult.Summary.PageNumbers);
-        Assert.Equal(1, readDocumentResult.Summary.FormFieldCount);
-        Assert.Equal(1, readDocumentResult.Summary.FormWidgetCount);
-        Assert.Equal(2, logicalResult.Summary.SourcePageCount);
-        Assert.Equal(1, logicalResult.Summary.RenderedPageCount);
-        Assert.Equal(new[] { 2 }, logicalResult.Summary.PageNumbers);
-        Assert.Equal(1, logicalResult.Summary.FormFieldCount);
-        Assert.Equal(1, logicalResult.Summary.FormWidgetCount);
+        Assert.Equal(2, result.Summary.SourcePageCount);
+        Assert.Equal(1, result.Summary.RenderedPageCount);
+        Assert.Equal(new[] { 2 }, result.Summary.PageNumbers);
+        Assert.Equal(1, result.Summary.FormFieldCount);
+        Assert.Equal(1, result.Summary.FormWidgetCount);
     }
 
     [Fact]
@@ -338,7 +307,7 @@ public sealed class HtmlPdfTests {
             EmitDocumentShell = false
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
 
         Assert.DoesNotContain("<!doctype html>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<style>", html, StringComparison.Ordinal);
@@ -364,7 +333,7 @@ public sealed class HtmlPdfTests {
             Profile = PdfHtmlProfile.PositionedReview
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
 
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"position:absolute;left:40pt;top:50pt;width:60pt;height:30pt;\"", html, StringComparison.Ordinal);
@@ -380,7 +349,7 @@ public sealed class HtmlPdfTests {
             ImageExportMode = PdfHtmlImageExportMode.PlaceholderOnly
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
 
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("<figcaption>Image:", html, StringComparison.Ordinal);
@@ -424,7 +393,7 @@ public sealed class HtmlPdfTests {
             Profile = PdfHtmlProfile.Semantic
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
 
         Assert.Contains("<figure class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
         Assert.Contains("<img src=\"data:image/png;base64,", html, StringComparison.Ordinal);
@@ -452,7 +421,7 @@ public sealed class HtmlPdfTests {
             }
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
 
         Assert.DoesNotContain("First PDF page", html, StringComparison.Ordinal);
         Assert.Contains("Second PDF page", html, StringComparison.Ordinal);
@@ -478,7 +447,7 @@ public sealed class HtmlPdfTests {
             }
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
 
         Assert.Equal(2, CountOrdinal(html, "<section class=\"pdf-page\""));
         Assert.Equal(2, CountOrdinal(html, "Duplicated selected page"));
@@ -520,7 +489,7 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
 
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:220pt;height:320pt;\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:38pt;top:40pt;width:22pt;height:140pt\"", html, StringComparison.Ordinal);
@@ -535,7 +504,7 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        string html = PdfHtmlConverter.ToHtml(pdf, options);
+        string html = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(options);
 
         Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:320pt;height:220pt;\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:140pt;top:38pt;width:140pt;height:22pt\"", html, StringComparison.Ordinal);
@@ -555,8 +524,8 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        string semanticHtml = PdfHtmlConverter.ToHtml(pdf, semanticOptions);
-        string positionedHtml = PdfHtmlConverter.ToHtml(pdf, positionedOptions);
+        string semanticHtml = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(semanticOptions);
+        string positionedHtml = PdfCore.PdfLogicalDocument.Load(pdf).ToHtml(positionedOptions);
 
         Assert.DoesNotContain("<a href=\"javascript:", semanticHtml, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", semanticHtml, StringComparison.Ordinal);
@@ -572,7 +541,7 @@ public sealed class HtmlPdfTests {
             IncludeLinkAnnotations = true
         };
 
-        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+        PdfHtmlConversionResult result = PdfCore.PdfLogicalDocument.Load(pdf).ToHtmlResult(options);
 
         Assert.True(result.Summary.HasOpenAction);
         Assert.True(result.Summary.HasCatalogActions);
@@ -602,8 +571,8 @@ public sealed class HtmlPdfTests {
         Directory.CreateDirectory(directory);
 
         try {
-            CreatePracticalHtmlSample(linkUri).SaveAsPdf(pdfPath, new HtmlPdfSaveOptions());
-            PdfHtmlConverter.SaveAsHtml(pdfPath, htmlPath, new PdfHtmlSaveOptions {
+            OfficeIMO.Html.HtmlConversionDocument.Parse(CreatePracticalHtmlSample(linkUri)).SaveAsPdf(pdfPath, new HtmlPdfSaveOptions());
+            PdfCore.PdfLogicalDocument.Load(pdfPath).SaveAsHtml(htmlPath, new PdfHtmlSaveOptions {
                 Profile = PdfHtmlProfile.PositionedReview,
                 IncludeLinkAnnotations = true
             });

@@ -79,7 +79,8 @@ word.SaveCopy(docxPath);
                 Theme = theme,
                 FontFamily = "Aptos"
             });
-            word.SaveCopy(docxPath, new WordSaveOptions { OpenAfterSave = openWord });
+            word.SaveCopy(docxPath);
+            if (openWord) word.OpenInApplication(docxPath);
 
             Console.WriteLine($"✓ Markdown: {mdPath}");
             Console.WriteLine($"✓ HTML:     {htmlPath}");

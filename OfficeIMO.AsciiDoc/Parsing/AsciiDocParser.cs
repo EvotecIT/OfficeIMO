@@ -1,7 +1,7 @@
 namespace OfficeIMO.AsciiDoc;
 
 /// <summary>Dependency-free, lossless AsciiDoc parser.</summary>
-public static class AsciiDocParser {
+internal static class AsciiDocParser {
     /// <summary>Parses source into a lossless syntax tree and typed semantic blocks.</summary>
     public static AsciiDocParseResult Parse(string source, AsciiDocParseOptions? options = null) {
         if (source == null) throw new ArgumentNullException(nameof(source));

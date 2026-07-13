@@ -4,6 +4,7 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
 using System.Text;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>Severity assigned to an accessibility finding.</summary>
@@ -174,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
             string fullPath = Path.GetFullPath(path);
             string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrWhiteSpace(directory)) Directory.CreateDirectory(directory!);
-            File.WriteAllText(fullPath, ToJson(indented), new UTF8Encoding(false));
+            OfficeFileCommit.WriteAllBytes(fullPath, new UTF8Encoding(false).GetBytes(ToJson(indented)));
         }
 
         private int Count(PowerPointAccessibilitySeverity severity) {

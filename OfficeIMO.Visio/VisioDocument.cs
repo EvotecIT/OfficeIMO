@@ -6,7 +6,6 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using System.Xml.Linq;
-using OfficeIMO.Shared;
 using OfficeIMO.Visio.Stencils;
 
 namespace OfficeIMO.Visio {
@@ -98,6 +97,9 @@ namespace OfficeIMO.Visio {
         internal IList<XElement> PreservedAdditionalStyleSheets { get; } = new List<XElement>();
         private static readonly IReadOnlyDictionary<string, BuiltinMasterDefinition> BuiltinMasterDefinitions = CreateBuiltinMasterDefinitions();
 
+        /// <summary>Gets the file path associated with the document, if any.</summary>
+        public string? FilePath => string.IsNullOrEmpty(_filePath) ? null : _filePath;
+
         private const string DocumentRelationshipType = "http://schemas.microsoft.com/visio/2010/relationships/document";
         private const string DocumentContentType = "application/vnd.ms-visio.drawing.main+xml";
         private const string VisioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
@@ -126,9 +128,9 @@ namespace OfficeIMO.Visio {
         public IReadOnlyCollection<VisioMaster> Masters => _registeredMasters.ToList().AsReadOnly();
 
         /// <summary>
-        /// Gets or sets the theme applied to the document.
+        /// Gets or sets package-level theme metadata preserved in the document.
         /// </summary>
-        public VisioTheme? Theme { get; set; }
+        public VisioPackageTheme? PackageTheme { get; set; }
 
         /// <summary>
         /// Gets or sets the title of the document.
@@ -338,11 +340,15 @@ namespace OfficeIMO.Visio {
             _requestRecalcOnOpen = true;
         }
 
+        /// <summary>Creates a detached document that must be saved explicitly to a path or stream.</summary>
+        public static VisioDocument Create() => new VisioDocument();
+
         /// <summary>
         /// Creates a new <see cref="VisioDocument"/> with the given save path.
         /// </summary>
         /// <param name="path">Path where the document will be saved.</param>
         public static VisioDocument Create(string path) {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
             return new VisioDocument { _filePath = path };
         }
 
@@ -386,8 +392,8 @@ namespace OfficeIMO.Visio {
                 ImportStyleSheets(documentRoot.Element(ns + "StyleSheets"), ns);
             }
 
-            if (Theme == null && context.ThemeXml?.Root != null) {
-                Theme = new VisioTheme {
+            if (PackageTheme == null && context.ThemeXml?.Root != null) {
+                PackageTheme = new VisioPackageTheme {
                     Name = context.ThemeXml.Root.Attribute("name")?.Value,
                     TemplateXml = new XDocument(context.ThemeXml)
                 };

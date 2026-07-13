@@ -8,10 +8,10 @@ public sealed class Markdown_Reader_Performance_Contract_Tests {
     [Fact]
     public void TableHeavyParse_DoesNotRebindTheGrowingDocumentForEveryBlock() {
         string markdown = BuildTableHeavyMarkdown(sectionCount: 80);
-        _ = MarkdownReader.ParseWithSyntaxTree("# Warmup\n\n| A | B |\n| - | - |\n| 1 | 2 |");
+        _ = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("# Warmup\n\n| A | B |\n| - | - |\n| 1 | 2 |");
 
         long allocatedBefore = GC.GetAllocatedBytesForCurrentThread();
-        MarkdownParseResult result = MarkdownReader.ParseWithSyntaxTree(markdown);
+        MarkdownParseResult result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown);
         long allocatedBytes = GC.GetAllocatedBytesForCurrentThread() - allocatedBefore;
 
         Assert.Equal(160, result.Document.Blocks.Count);

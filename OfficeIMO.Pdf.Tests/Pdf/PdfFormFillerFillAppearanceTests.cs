@@ -677,7 +677,7 @@ public partial class PdfFormFillerTests {
             .UseAppearanceFontFile("OfficeIMO Fill Font", fontPath);
 
         byte[] filled = PdfDocument
-            .Open(BuildTextWidgetFormPdf())
+            .Load(BuildTextWidgetFormPdf())
             .Forms
             .Fill(new Dictionary<string, string> {
                 ["Name"] = "Łódź"

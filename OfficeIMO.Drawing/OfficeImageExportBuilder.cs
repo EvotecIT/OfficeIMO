@@ -1,6 +1,8 @@
 using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Drawing;
 
@@ -40,6 +42,10 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
 
     /// <summary>Configures the output image format.</summary>
     public TBuilder As(OfficeImageExportFormat format) {
+        if (!Enum.IsDefined(typeof(OfficeImageExportFormat), format)) {
+            throw new ArgumentOutOfRangeException(nameof(format));
+        }
+
         _format = format;
         return This;
     }
@@ -97,6 +103,30 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
     public OfficeImageExportResult Save(Stream stream) {
         OfficeImageExportResult result = Export();
         OfficeStreamWriter.WriteAllBytes(stream, result.Bytes);
+        return result;
+    }
+
+    /// <summary>Asynchronously saves the exported image to a file path.</summary>
+    public async Task<OfficeImageExportResult> SaveAsync(
+        string path,
+        CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(path)) {
+            throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeImageExportResult result = Export();
+        await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+        return result;
+    }
+
+    /// <summary>Asynchronously writes the exported image to a stream.</summary>
+    public async Task<OfficeImageExportResult> SaveAsync(
+        Stream stream,
+        CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        OfficeImageExportResult result = Export();
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
         return result;
     }
 

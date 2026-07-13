@@ -7,7 +7,7 @@ namespace OfficeIMO.Html;
 /// <summary>
 /// Shared document parsing and base URI helpers for OfficeIMO HTML ingestion packages.
 /// </summary>
-public static class HtmlDocumentParser {
+internal static class HtmlDocumentParser {
     /// <summary>
     /// Parses an HTML fragment or document into an AngleSharp document.
     /// </summary>
@@ -53,9 +53,16 @@ public static class HtmlDocumentParser {
             return resolvedFromFallback;
         }
 
-        return Uri.TryCreate(baseHref, UriKind.Absolute, out var absoluteBaseUri)
-            ? absoluteBaseUri
-            : fallbackBaseUri;
+        if (!Uri.TryCreate(baseHref, UriKind.Absolute, out var absoluteBaseUri)) {
+            return fallbackBaseUri;
+        }
+
+        // Uri treats rooted POSIX paths such as "/assets/" as file URIs. In HTML they are
+        // origin-relative references and require a caller/page URI before they can be absolute.
+        return absoluteBaseUri.IsFile
+               && !baseHref.StartsWith(Uri.UriSchemeFile + ":", StringComparison.OrdinalIgnoreCase)
+            ? fallbackBaseUri
+            : absoluteBaseUri;
     }
 
     private static Uri? ResolveProtocolRelativeBaseUri(string baseHref, Uri? fallbackBaseUri) {

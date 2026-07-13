@@ -82,10 +82,14 @@ namespace OfficeIMO.Word {
                 WordDocument readOnlyDocument = Load(packageStream, new WordLoadOptions {
                     AccessMode = DocumentAccessMode.ReadOnly
                 });
-                readOnlyDocument.OriginalStream = null!;
-                readOnlyDocument._ownedPackageStream = packageStream;
-                readOnlyDocument.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave: sourcePath != null);
-                return readOnlyDocument;
+                packageStream.Dispose();
+                try {
+                    readOnlyDocument.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave: sourcePath != null);
+                    return readOnlyDocument;
+                } catch {
+                    readOnlyDocument.Dispose();
+                    throw;
+                }
             } catch {
                 packageStream.Dispose();
                 projectedDocument.Dispose();

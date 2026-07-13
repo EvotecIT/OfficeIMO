@@ -5,14 +5,14 @@ namespace OfficeIMO.Word.GoogleDocs {
     public static class WordGoogleDocsExtensions {
         private static readonly IGoogleDocsExporter DefaultExporter = new GoogleDocsExporter();
 
-        public static GoogleDocsTranslationPlan CreateGoogleDocsTranslationPlan(
+        public static GoogleDocsTranslationPlan BuildGoogleDocsPlan(
             this WordDocument document,
             GoogleDocsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return DefaultExporter.BuildPlan(document, options);
         }
 
-        public static GoogleDocsBatch CreateGoogleDocsBatch(
+        public static GoogleDocsBatch BuildGoogleDocsBatch(
             this WordDocument document,
             GoogleDocsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));

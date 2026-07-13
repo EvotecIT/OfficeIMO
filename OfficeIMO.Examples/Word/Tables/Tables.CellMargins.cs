@@ -20,7 +20,8 @@ namespace OfficeIMO.Examples.Word {
                 cell2.AddParagraph("Top margin 0.5 cm");
                 cell2.MarginTopCentimeters = 0.5;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

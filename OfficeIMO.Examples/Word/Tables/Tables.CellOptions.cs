@@ -27,7 +27,8 @@ namespace OfficeIMO.Examples.Word {
                 cell4.WrapText = false;
                 cell4.FitText = true;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

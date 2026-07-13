@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
 
             MarkdownDoc markdown = doc.ToMarkdownDocument(new WordToMarkdownOptions());
             var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(markdown.Blocks, block => block is FootnoteDefinitionBlock));
-            var code = Assert.IsType<CodeBlock>(Assert.Single(footnote.Blocks));
+            var code = Assert.IsType<CodeBlock>(Assert.Single(footnote.ChildBlocks));
 
             Assert.Equal("csharp", code.Language);
             Assert.Equal("Console.WriteLine(1);", code.Content);
@@ -149,7 +149,7 @@ namespace OfficeIMO.Tests {
             var markdownCell = Assert.Single(Assert.Single(table.RowCells));
 
             Assert.Collection(
-                markdownCell.Blocks,
+                markdownCell.ChildBlocks,
                 block => Assert.Equal("Before nested", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => {
                     var innerTable = Assert.IsType<TableBlock>(block);
@@ -245,7 +245,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("[TOC min=2 max=5 title=\"Contents\" titleLevel=2]", markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("- [Region]", markdown, StringComparison.Ordinal);
 
-            using var restored = markdown.LoadFromMarkdown(new MarkdownToWordOptions());
+            using var restored = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions());
             Assert.NotNull(restored.TableOfContent);
             Assert.Equal(2, restored.TableOfContent!.MinLevel);
             Assert.Equal(5, restored.TableOfContent.MaxLevel);
@@ -340,7 +340,7 @@ namespace OfficeIMO.Tests {
             };
 
             string renderedMarkdown = doc.ToMarkdown(options);
-            MarkdownDoc parsed = MarkdownReader.Parse(renderedMarkdown, options.CreateReaderOptions());
+            MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(renderedMarkdown, options.CreateReaderOptions());
 
             Assert.Collection(
                 parsed.Blocks,
@@ -495,6 +495,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_Result_Reports_Fidelity_Loss() {
+            using var document = WordDocument.Create();
+            document.AddShape(ShapeType.Rectangle, 60, 30);
+
+            WordToMarkdownResult result = document.ToMarkdownDocumentResult(new WordToMarkdownOptions {
+                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
+            });
+
+            Assert.True(result.Succeeded);
+            Assert.True(result.HasLoss);
+            Assert.Contains(result.Report.Diagnostics, diagnostic =>
+                diagnostic.Code == "WordToMarkdownWarning" &&
+                diagnostic.LossKind == WordMarkdownConversionLossKind.Approximation);
+            Assert.Throws<WordMarkdownConversionException>(() => result.RequireNoLoss());
+        }
+
+        [Fact]
         public void WordToMarkdown_UnsupportedContentMode_Emits_Placeholders_For_Mixed_Paragraph_Content() {
             using var doc = WordDocument.Create();
             var paragraph = doc.AddParagraph("Before");
@@ -531,7 +548,7 @@ namespace OfficeIMO.Tests {
                 After
                 """;
 
-            using var restored = markdown.LoadFromMarkdown();
+            using var restored = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions()).ToWordDocument();
 
             Assert.Contains(restored.Paragraphs, paragraph => paragraph.Text.Trim() == "Before");
             Assert.Contains(restored.Paragraphs, paragraph => paragraph.PageBreak?.BreakType == BreakValues.Page);
@@ -547,7 +564,7 @@ namespace OfficeIMO.Tests {
                 - next item
                 """;
 
-            MarkdownDoc parsed = MarkdownReader.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions());
+            MarkdownDoc parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions());
             var list = Assert.IsType<UnorderedListBlock>(Assert.Single(parsed.Blocks));
 
             Assert.Collection(
@@ -568,7 +585,7 @@ namespace OfficeIMO.Tests {
                 IncludeHeadersAndFootersAsSemanticBlocks = true
             });
 
-            using var restored = markdown.LoadFromMarkdown();
+            using var restored = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, WordMarkdownSemanticBlocks.CreateReaderOptions()).ToWordDocument();
 
             Assert.Equal("Header line", restored.Header!.Default!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
             Assert.Equal("Footer line", restored.Footer!.Default!.Paragraphs.Single(paragraph => !string.IsNullOrWhiteSpace(paragraph.Text)).Text.Trim());
@@ -625,11 +642,10 @@ namespace OfficeIMO.Tests {
                     - Second
                     """;
 
-                using var document = markdown.LoadFromMarkdownTemplate(
-                    templatePath,
-                    new MarkdownToWordTemplateOptions {
-                        BookmarkName = "MainContent"
-                    });
+                var options = new MarkdownToWordTemplateOptions { BookmarkName = "MainContent" };
+                MarkdownDoc source = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions());
+                WordDocument templateDocument = WordDocument.Load(templatePath);
+                using var document = source.ToWordDocument(templateDocument, options);
 
                 var paragraphTexts = document.Paragraphs
                     .Select(paragraph => paragraph.Text.Trim())
@@ -667,11 +683,10 @@ namespace OfficeIMO.Tests {
                     ## Details
                     """;
 
-                using var document = markdown.LoadFromMarkdownTemplate(
-                    templatePath,
-                    new MarkdownToWordTemplateOptions {
-                        BookmarkName = "MainContent"
-                    });
+                var options = new MarkdownToWordTemplateOptions { BookmarkName = "MainContent" };
+                MarkdownDoc source = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options.CreateReaderOptions());
+                WordDocument templateDocument = WordDocument.Load(templatePath);
+                using var document = source.ToWordDocument(templateDocument, options);
 
                 Assert.NotNull(document.TableOfContent);
                 Assert.Equal("Contents", document.TableOfContent!.Text);

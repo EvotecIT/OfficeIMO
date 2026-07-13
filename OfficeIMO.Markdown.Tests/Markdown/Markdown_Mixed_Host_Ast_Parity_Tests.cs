@@ -101,8 +101,8 @@ public sealed class Markdown_Mixed_Host_Ast_Parity_Tests {
     }
 
     private static void AssertDocumentAstParity(string markdown, string html, MarkdownReaderOptions? options = null) {
-        var markdownDocument = MarkdownReader.Parse(markdown, options);
-        var htmlDocument = html.ToMarkdownDocument();
+        var markdownDocument = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
+        var htmlDocument = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.Equal(
             MarkdownAstParityFormatter.DescribeBlocks(markdownDocument.Blocks),

@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void HtmlToWord_SupSub_RoundTrip() {
             string html = "<p>H<sub>2</sub>O</p><p>Note<sup>1</sup></p>";
-            var doc = html.ToWordDocument(new HtmlToWordOptions());
+            var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var docRuns = doc.Paragraphs;
 
             var subRun = docRuns.First(r => r.Text == "2");

@@ -496,13 +496,14 @@ namespace OfficeIMO.Word {
             value = null;
             status = WordFieldUpdateStatus.Skipped;
 
-            if (string.IsNullOrWhiteSpace(document.FilePath)) {
+            string? filePath = document.FilePath;
+            if (string.IsNullOrWhiteSpace(filePath)) {
                 message = "FILENAME cannot be evaluated because the document has no backing file path.";
                 return false;
             }
 
             bool includePath = parsed.Switches.Any(fieldSwitch => string.Equals(fieldSwitch, "\\p", StringComparison.OrdinalIgnoreCase));
-            string source = includePath ? document.FilePath : Path.GetFileName(document.FilePath);
+            string source = includePath ? filePath! : Path.GetFileName(filePath!);
             if (!TryApplyReferenceTextFormat(parsed.FormatSwitches, source, out string formattedValue, out string? unsupportedFormat)) {
                 value = null;
                 status = WordFieldUpdateStatus.Unsupported;

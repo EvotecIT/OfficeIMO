@@ -46,6 +46,7 @@
     <Using Include="System.IO" />
     <Using Include="System.Linq" />
     <Using Include="System.Text" />
+    <Using Include="OfficeIMO.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />

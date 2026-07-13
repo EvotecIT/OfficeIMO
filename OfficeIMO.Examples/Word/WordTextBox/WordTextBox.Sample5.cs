@@ -23,7 +23,8 @@ namespace OfficeIMO.Examples.Word {
 
                 Console.WriteLine("[i] TextBox2 (square): " + textBox.WrapText);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

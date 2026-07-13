@@ -38,7 +38,7 @@ public class RtfHtmlFontTableTests {
 
         Assert.Contains("<meta name=\"officeimo-rtf-fonts\" content=\"", html, StringComparison.Ordinal);
 
-        RtfDocument roundTrip = html.ToRtfDocument();
+        RtfDocument roundTrip = HtmlConversionDocument.Parse(html).ToRtfDocument();
         Assert.Equal(monospaceFontId, roundTrip.Settings.DefaultFontId);
         RtfFont roundTripDefault = roundTrip.Fonts.Single(font => font.Id == 0);
         Assert.Equal(RtfFontFamily.Swiss, roundTripDefault.Family);

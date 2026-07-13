@@ -12,29 +12,40 @@ public abstract class HtmlConversionResult<T> {
     protected HtmlConversionResult(T value) {
         Value = value ?? throw new ArgumentNullException(nameof(value));
         _readOnlyDiagnostics = _diagnostics.AsReadOnly();
+        Report = new HtmlConversionReport(_readOnlyDiagnostics);
     }
 
     /// <summary>Value produced by the conversion.</summary>
     public T Value { get; }
 
-    /// <summary>Structured conversion diagnostics in emission order.</summary>
-    public IReadOnlyList<HtmlDiagnostic> Diagnostics => _readOnlyDiagnostics;
+    /// <summary>Diagnostics and fidelity outcome for this conversion.</summary>
+    public HtmlConversionReport Report { get; }
 
     /// <summary>Whether conversion completed without an error diagnostic.</summary>
-    public bool Succeeded => !_diagnostics.Any(static diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+    public bool Succeeded => Report.Succeeded;
 
     /// <summary>Whether the conversion approximated, omitted, or failed any source content.</summary>
-    public bool HasLoss => _diagnostics.Any(static diagnostic => diagnostic.LossKind != HtmlConversionLossKind.None);
+    public bool HasLoss => Report.HasLoss;
 
     /// <summary>
     /// Returns the native artifact when conversion succeeded, or throws a structured conversion exception.
     /// </summary>
     public T RequireValue() {
-        if (!Succeeded) {
-            throw new HtmlConversionException(_readOnlyDiagnostics);
+        if (!Report.Succeeded) {
+            throw new HtmlConversionException(Report.Diagnostics);
         }
 
         return Value;
+    }
+
+    /// <summary>
+    /// Returns the native artifact only when conversion completed successfully and without approximation,
+    /// omission, or failure diagnostics.
+    /// </summary>
+    public T RequireNoLoss() {
+        T value = RequireValue();
+        Report.RequireNoLoss();
+        return value;
     }
 
     /// <summary>Adds one diagnostic while the result is being constructed.</summary>

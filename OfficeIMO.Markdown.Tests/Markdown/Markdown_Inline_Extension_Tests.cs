@@ -19,7 +19,7 @@ public sealed class Markdown_Inline_Extension_Tests {
                 return TryParseClaimInline(context, "second", out result);
             }));
 
-        var document = MarkdownReader.Parse("Lead {{core}} tail", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead {{core}} tail", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var custom = Assert.IsType<TestClaimInline>(paragraph.Inlines.Nodes[1]);
@@ -40,7 +40,7 @@ public sealed class Markdown_Inline_Extension_Tests {
             }));
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("second-claim", TryParseSecondClaimInline));
 
-        var document = MarkdownReader.Parse("Lead {{core}} tail", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead {{core}} tail", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var custom = Assert.IsType<TestClaimInline>(paragraph.Inlines.Nodes[1]);
@@ -61,7 +61,7 @@ public sealed class Markdown_Inline_Extension_Tests {
             },
             _ => false));
 
-        var document = MarkdownReader.Parse("Lead **bold** tail", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead **bold** tail", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.IsType<BoldSequenceInline>(paragraph.Inlines.Nodes[1]);
@@ -94,7 +94,7 @@ public sealed class Markdown_Inline_Extension_Tests {
                 return true;
             }));
 
-        var document = MarkdownReader.Parse("Lead {{core}}\r\n", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead {{core}}\r\n", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var custom = Assert.IsType<TestClaimInline>(paragraph.Inlines.Nodes[1]);
@@ -136,7 +136,7 @@ public sealed class Markdown_Inline_Extension_Tests {
                 return sequence;
             }));
 
-        var document = MarkdownReader.Parse("Lead **bold**", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead **bold**", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
@@ -157,7 +157,7 @@ public sealed class Markdown_Inline_Extension_Tests {
                 return sequence;
             }));
 
-        var document = MarkdownReader.Parse("> core", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("> core", options);
 
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
@@ -184,7 +184,7 @@ public sealed class Markdown_Inline_Extension_Tests {
                 return sequence;
             }));
 
-        var document = MarkdownReader.Parse("Lead **Bold**\r\n", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead **Bold**\r\n", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.IsType<BoldSequenceInline>(paragraph.Inlines.Nodes[1]);
@@ -204,7 +204,7 @@ public sealed class Markdown_Inline_Extension_Tests {
             "noop",
             static (_, _) => null));
 
-        var document = MarkdownReader.Parse("original", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("original", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
@@ -223,7 +223,7 @@ public sealed class Markdown_Inline_Extension_Tests {
             },
             _ => false));
 
-        var document = MarkdownReader.Parse("Lead **bold** tail", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead **bold** tail", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         Assert.IsType<BoldSequenceInline>(paragraph.Inlines.Nodes[1]);
@@ -248,7 +248,7 @@ public sealed class Markdown_Inline_Extension_Tests {
                 return sequence;
             }));
 
-        var document = MarkdownReader.Parse("Lead {{core}} tail", options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("Lead {{core}} tail", options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var custom = Assert.IsType<DoubleBraceInline>(paragraph.Inlines.Nodes[1]);
@@ -272,7 +272,7 @@ public sealed class Markdown_Inline_Extension_Tests {
                 return sequence;
             }));
 
-        var result = MarkdownReader.ParseWithSyntaxTree("Lead **Bold**", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("Lead **Bold**", options);
 
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(new[] {
@@ -289,7 +289,7 @@ public sealed class Markdown_Inline_Extension_Tests {
         var options = new MarkdownReaderOptions();
         options.InlineParserExtensions.Add(new MarkdownInlineParserExtension("angle-claim", TryParseAngleClaimInline));
 
-        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Lead <<**core**>> tail", options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Lead <<**core**>> tail", options);
         var paragraphSyntax = Assert.Single(result.SyntaxTree.Children);
         var customSyntax = Assert.Single(paragraphSyntax.Children, node => node.CustomKind == "angle-claim-inline");
 
@@ -345,7 +345,7 @@ public sealed class Markdown_Inline_Extension_Tests {
     public void InlineMarkdownRenderExtensions_Contextual_Renderer_Can_Read_Document_Context_And_SourceSpan() {
         var readerOptions = new MarkdownReaderOptions();
         readerOptions.InlineParserExtensions.Add(new MarkdownInlineParserExtension("double-brace", TryParseDoubleBraceInline));
-        var document = MarkdownReader.ParseWithSyntaxTree("""
+        var document = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree("""
 ## Intro
 
 Lead {{core}} tail

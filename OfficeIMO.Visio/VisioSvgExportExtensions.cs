@@ -1,6 +1,10 @@
 using System;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -11,74 +15,136 @@ namespace OfficeIMO.Visio {
         /// Renders the selected document page to SVG without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static string ToSvg(this VisioDocument document, VisioSvgSaveOptions? options = null) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            options ??= new VisioSvgSaveOptions();
-            if (document.Pages.Count == 0) {
-                throw new InvalidOperationException("The document does not contain any pages to export.");
-            }
-
-            if (options.PageIndex < 0 || options.PageIndex >= document.Pages.Count) {
-                throw new ArgumentOutOfRangeException(nameof(options), "PageIndex is outside the document page collection.");
-            }
-
-            return VisioSvgRenderer.Render(document.Pages[options.PageIndex], options);
+            return Encoding.UTF8.GetString(CreateResult(document, options).Bytes);
         }
 
         /// <summary>
         /// Renders a page to SVG without requiring Microsoft Visio desktop automation.
         /// </summary>
         public static string ToSvg(this VisioPage page, VisioSvgSaveOptions? options = null) {
-            if (page == null) throw new ArgumentNullException(nameof(page));
-            return VisioSvgRenderer.Render(page, options ?? new VisioSvgSaveOptions());
+            return Encoding.UTF8.GetString(CreateResult(page, options).Bytes);
         }
 
         /// <summary>
         /// Saves the selected document page as SVG without requiring Microsoft Visio desktop automation.
         /// </summary>
-        public static void SaveAsSvg(this VisioDocument document, string path, VisioSvgSaveOptions? options = null) {
+        public static OfficeImageExportResult SaveAsSvg(this VisioDocument document, string path, VisioSvgSaveOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("SVG path cannot be null or whitespace.", nameof(path));
-            string svg = document.ToSvg(options);
-            WriteSvg(path, svg);
+            OfficeImageExportResult result = CreateResult(document, options);
+            OfficeFileCommit.WriteAllBytes(path, result.Bytes);
+            return result;
         }
 
         /// <summary>
         /// Saves a page as SVG without requiring Microsoft Visio desktop automation.
         /// </summary>
-        public static void SaveAsSvg(this VisioPage page, string path, VisioSvgSaveOptions? options = null) {
+        public static OfficeImageExportResult SaveAsSvg(this VisioPage page, string path, VisioSvgSaveOptions? options = null) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("SVG path cannot be null or whitespace.", nameof(path));
-            string svg = page.ToSvg(options);
-            WriteSvg(path, svg);
+            OfficeImageExportResult result = CreateResult(page, options);
+            OfficeFileCommit.WriteAllBytes(path, result.Bytes);
+            return result;
         }
 
         /// <summary>
         /// Writes the selected document page as SVG to a stream without requiring Microsoft Visio desktop automation.
         /// </summary>
-        public static void SaveAsSvg(this VisioDocument document, Stream stream, VisioSvgSaveOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            WriteSvg(stream, document.ToSvg(options));
+        public static OfficeImageExportResult SaveAsSvg(this VisioDocument document, Stream stream, VisioSvgSaveOptions? options = null) {
+            OfficeImageExportResult result = CreateResult(document, options);
+            OfficeStreamWriter.WriteAllBytes(stream, result.Bytes);
+            return result;
         }
 
         /// <summary>
         /// Writes a page as SVG to a stream without requiring Microsoft Visio desktop automation.
         /// </summary>
-        public static void SaveAsSvg(this VisioPage page, Stream stream, VisioSvgSaveOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            WriteSvg(stream, page.ToSvg(options));
+        public static OfficeImageExportResult SaveAsSvg(this VisioPage page, Stream stream, VisioSvgSaveOptions? options = null) {
+            OfficeImageExportResult result = CreateResult(page, options);
+            OfficeStreamWriter.WriteAllBytes(stream, result.Bytes);
+            return result;
         }
 
-        private static void WriteSvg(string path, string svg) {
-            string fullPath = Path.GetFullPath(path);
-            string? directory = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrWhiteSpace(directory)) {
-                Directory.CreateDirectory(directory!);
+        /// <summary>
+        /// Asynchronously saves the selected document page as SVG without requiring Microsoft Visio desktop automation.
+        /// </summary>
+        public static async Task<OfficeImageExportResult> SaveAsSvgAsync(
+            this VisioDocument document,
+            string path,
+            VisioSvgSaveOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("SVG path cannot be null or whitespace.", nameof(path));
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeImageExportResult result = CreateResult(document, options);
+            await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return result;
+        }
+
+        /// <summary>
+        /// Asynchronously saves a page as SVG without requiring Microsoft Visio desktop automation.
+        /// </summary>
+        public static async Task<OfficeImageExportResult> SaveAsSvgAsync(
+            this VisioPage page,
+            string path,
+            VisioSvgSaveOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("SVG path cannot be null or whitespace.", nameof(path));
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeImageExportResult result = CreateResult(page, options);
+            await OfficeFileCommit.WriteAllBytesAsync(path, result.Bytes, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return result;
+        }
+
+        /// <summary>
+        /// Asynchronously writes the selected document page as SVG to a stream without closing it.
+        /// </summary>
+        public static async Task<OfficeImageExportResult> SaveAsSvgAsync(
+            this VisioDocument document,
+            Stream stream,
+            VisioSvgSaveOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeImageExportResult result = CreateResult(document, options);
+            await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
+            return result;
+        }
+
+        /// <summary>
+        /// Asynchronously writes a page as SVG to a stream without closing it.
+        /// </summary>
+        public static async Task<OfficeImageExportResult> SaveAsSvgAsync(
+            this VisioPage page,
+            Stream stream,
+            VisioSvgSaveOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeImageExportResult result = CreateResult(page, options);
+            await OfficeStreamWriter.WriteAllBytesAsync(stream, result.Bytes, cancellationToken).ConfigureAwait(false);
+            return result;
+        }
+
+        private static OfficeImageExportResult CreateResult(VisioDocument document, VisioSvgSaveOptions? options) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            VisioSvgSaveOptions resolved = options ?? new VisioSvgSaveOptions();
+            if (document.Pages.Count == 0) {
+                throw new InvalidOperationException("The document does not contain any pages to export.");
             }
 
-            File.WriteAllText(fullPath, svg, Encoding.UTF8);
+            if (resolved.PageIndex < 0 || resolved.PageIndex >= document.Pages.Count) {
+                throw new ArgumentOutOfRangeException(nameof(options), "PageIndex is outside the document page collection.");
+            }
+
+            return CreateResult(document.Pages[resolved.PageIndex], resolved);
         }
 
-        private static void WriteSvg(Stream stream, string svg) {
-            byte[] bytes = Encoding.UTF8.GetBytes(svg);
-            stream.Write(bytes, 0, bytes.Length);
+        private static OfficeImageExportResult CreateResult(VisioPage page, VisioSvgSaveOptions? options) {
+            if (page == null) throw new ArgumentNullException(nameof(page));
+            VisioSvgSaveOptions resolved = options ?? new VisioSvgSaveOptions();
+            byte[] bytes = Encoding.UTF8.GetBytes(VisioSvgRenderer.Render(page, resolved));
+            return new OfficeImageExportResult(
+                OfficeImageExportFormat.Svg,
+                Math.Max(1, (int)Math.Ceiling(Math.Max(page.Width, 0.01D) * resolved.PixelsPerInch)),
+                Math.Max(1, (int)Math.Ceiling(Math.Max(page.Height, 0.01D) * resolved.PixelsPerInch)),
+                bytes,
+                page.Name);
         }
     }
 }

@@ -21,7 +21,8 @@ namespace OfficeIMO.Examples.Word {
             }
 
             using WordDocument result = WordDocumentComparer.Compare(sourcePath, targetPath);
-            result.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            result.Save();
+            if (openWord) result.OpenInApplication();
 
             WordComparisonResult structuredResult = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
             foreach (WordComparisonFinding finding in structuredResult.Findings) {

@@ -9,8 +9,8 @@ public sealed partial class TableBlock {
         var blocks = new List<IMarkdownBlock>();
         var headerCells = HeaderCells;
         for (int i = 0; i < headerCells.Count; i++) {
-            for (int j = 0; j < headerCells[i].Blocks.Count; j++) {
-                blocks.Add(headerCells[i].Blocks[j]);
+            for (int j = 0; j < headerCells[i].ChildBlocks.Count; j++) {
+                blocks.Add(headerCells[i].ChildBlocks[j]);
             }
         }
 
@@ -18,8 +18,8 @@ public sealed partial class TableBlock {
         for (int rowIndex = 0; rowIndex < rowCells.Count; rowIndex++) {
             for (int cellIndex = 0; cellIndex < rowCells[rowIndex].Count; cellIndex++) {
                 var cell = rowCells[rowIndex][cellIndex];
-                for (int blockIndex = 0; blockIndex < cell.Blocks.Count; blockIndex++) {
-                    blocks.Add(cell.Blocks[blockIndex]);
+                for (int blockIndex = 0; blockIndex < cell.ChildBlocks.Count; blockIndex++) {
+                    blocks.Add(cell.ChildBlocks[blockIndex]);
                 }
             }
         }

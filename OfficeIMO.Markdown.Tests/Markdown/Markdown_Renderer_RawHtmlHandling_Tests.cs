@@ -9,7 +9,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     public void HtmlOptions_Can_Strip_RawHtml_Blocks() {
         var md = "<div>hi</div>\n\nParagraph";
         var opts = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, RawHtmlHandling = RawHtmlHandling.Strip };
-        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
 
         Assert.DoesNotContain("<div>hi</div>", html, StringComparison.Ordinal);
         Assert.Contains("Paragraph", html, StringComparison.Ordinal);
@@ -19,7 +19,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     public void HtmlOptions_Can_Escape_RawHtml_Blocks() {
         var md = "<script>alert(1)</script>";
         var opts = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, RawHtmlHandling = RawHtmlHandling.Escape };
-        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
 
         Assert.DoesNotContain("<script>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;", html, StringComparison.OrdinalIgnoreCase);
@@ -36,7 +36,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
             EscapeNonAsciiText = false
         };
 
-        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
 
         Assert.Contains("Before &lt;span&gt;åinline&lt;/span&gt; after", html, StringComparison.Ordinal);
         Assert.Contains("&lt;div&gt;åblock&lt;/div&gt;", html, StringComparison.Ordinal);
@@ -47,7 +47,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
     public void HtmlOptions_Can_Sanitize_RawHtml_Blocks_With_Allowlist() {
         var md = "<details open onclick=\"alert(1)\"><summary>Title</summary><script>alert(1)</script><u>ok</u><br></details>";
         var opts = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, RawHtmlHandling = RawHtmlHandling.Sanitize };
-        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
 
         Assert.Contains("<details open>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<summary>Title</summary>", html, StringComparison.OrdinalIgnoreCase);
@@ -69,7 +69,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
             EscapeNonAsciiText = false
         };
 
-        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
 
         Assert.Contains("<summary>åTitle</summary>", html, StringComparison.Ordinal);
         Assert.Contains("<u>åok</u>", html, StringComparison.Ordinal);
@@ -88,7 +88,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
             EscapeNonAsciiText = false
         };
 
-        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
 
         Assert.Contains("Before &lt;span&gt;åbad&lt;/span&gt; and <u>åok</u>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
@@ -108,7 +108,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
         string unsafeFragment,
         string escapedFragment) {
         string markdown = rawMarkdown + "\n\nParagraph";
-        var doc = MarkdownReader.Parse(markdown);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
 
         var stripped = doc.ToHtmlFragment(CreatePlainHtmlOptions(RawHtmlHandling.Strip));
         Assert.DoesNotContain(unsafeFragment, stripped, StringComparison.OrdinalIgnoreCase);
@@ -138,7 +138,7 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
             GitHubHtmlTagFilter = true
         };
 
-        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+        var html = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToHtmlFragment(opts);
 
         Assert.Contains("&lt;xmp>bad&lt;/xmp>", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("<strong>ok</strong>", html, StringComparison.OrdinalIgnoreCase);
@@ -158,7 +158,7 @@ Inline <xmp>bad</xmp>.
 <script>alert(1)</script>
 """;
 
-        var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
 
         var html = document.ToHtmlFragment(options);

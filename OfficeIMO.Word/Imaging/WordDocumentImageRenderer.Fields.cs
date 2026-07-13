@@ -303,7 +303,8 @@ namespace OfficeIMO.Word {
             WordFieldInventory.ParsedFieldInstruction parsed,
             out string? text) {
             text = null;
-            if (string.IsNullOrWhiteSpace(document.FilePath)) {
+            string? filePath = document.FilePath;
+            if (string.IsNullOrWhiteSpace(filePath)) {
                 return false;
             }
 
@@ -315,7 +316,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            string source = includePath ? document.FilePath : Path.GetFileName(document.FilePath);
+            string source = includePath ? filePath! : Path.GetFileName(filePath!);
             return TryResolveTextFieldValue(source, parsed, out text);
         }
 

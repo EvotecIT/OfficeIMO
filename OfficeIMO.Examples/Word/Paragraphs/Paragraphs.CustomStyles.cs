@@ -24,7 +24,8 @@ internal static partial class Paragraphs {
 
         using (WordDocument document = WordDocument.Create(filePath)) {
             document.AddParagraph("Hello world").SetStyleId("MyStyle");
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 
@@ -53,7 +54,8 @@ internal static partial class Paragraphs {
         using (WordDocument document = WordDocument.Create(filePath)) {
             document.AddParagraph("This paragraph is centered and red").SetStyleId("CenteredRed");
             document.AddParagraph("This paragraph is indented and green").SetStyleId("GreenIndented");
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 
@@ -71,7 +73,8 @@ internal static partial class Paragraphs {
 
         using (WordDocument document = WordDocument.Create(filePath)) {
             document.AddParagraph("Paragraph with overridden Normal style");
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
 
         WordParagraphStyle.OverrideBuiltInStyle(WordParagraphStyles.Normal, original);

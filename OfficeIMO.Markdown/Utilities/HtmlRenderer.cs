@@ -1,6 +1,3 @@
-using System.Net.Http;
-using System.Threading;
-
 namespace OfficeIMO.Markdown;
 
 /// <summary>
@@ -67,7 +64,7 @@ internal static class HtmlRenderer {
             }
         } else {
             foreach (var js in options.AdditionalJsHrefs.Where(u => !string.IsNullOrWhiteSpace(u))) {
-                var code = TryDownloadText(js);
+                var code = ResolveExternalText(js, options.ExternalTextResolver);
                 if (!string.IsNullOrEmpty(code)) scripts.Append(code).Append('\n');
             }
         }
@@ -81,7 +78,12 @@ internal static class HtmlRenderer {
             var prismCssDelivery = (options.AssetMode == AssetMode.Online && options.Prism.Theme == PrismTheme.GithubAuto)
                 ? CssDelivery.LinkHref
                 : options.CssDelivery;
-            var assets = AssetFactory.PrismAssets(options.Prism, options.AssetMode, prismCssDelivery, options.CssScopeSelector);
+            var assets = AssetFactory.PrismAssets(
+                options.Prism,
+                options.AssetMode,
+                prismCssDelivery,
+                options.CssScopeSelector,
+                options.ExternalTextResolver);
             foreach (var a in assets) parts.Assets.Add(a);
             if (options.EmitMode == AssetEmitMode.Emit) {
                 foreach (var a in parts.Assets) {
@@ -237,8 +239,8 @@ internal static class HtmlRenderer {
     }
 
     private static IReadOnlyList<IMarkdownBlock> GetFootnoteBlocksForRender(FootnoteDefinitionBlock footnote) {
-        if (footnote.Blocks.Count > 0) {
-            return footnote.Blocks;
+        if (footnote.ChildBlocks.Count > 0) {
+            return footnote.ChildBlocks;
         }
 
         if (footnote.ParagraphBlocks.Count > 0) {
@@ -345,7 +347,7 @@ internal static class HtmlRenderer {
 
         if (options.CssDelivery == CssDelivery.LinkHref && !string.IsNullOrWhiteSpace(options.CssHref) && options.AssetMode == AssetMode.Offline) {
             // Attempt to download provided CSS and inline
-            var downloaded = TryDownloadText(options.CssHref!);
+            var downloaded = ResolveExternalText(options.CssHref!, options.ExternalTextResolver);
             if (!string.IsNullOrEmpty(downloaded)) cssBuilder.Append(downloaded).Append('\n');
         }
         // Additional CSS URLs
@@ -353,7 +355,7 @@ internal static class HtmlRenderer {
             if (options.AssetMode == AssetMode.Online && options.CssDelivery == CssDelivery.LinkHref) {
                 headLinks.Append($"<link rel=\"stylesheet\" href=\"{HtmlAttributeUrlEncoder.Encode(href, options)}\">\n");
             } else {
-                var downloaded = TryDownloadText(href);
+                var downloaded = ResolveExternalText(href, options.ExternalTextResolver);
                 if (!string.IsNullOrEmpty(downloaded)) cssBuilder.Append(downloaded).Append('\n');
             }
         }
@@ -393,7 +395,7 @@ internal static class HtmlRenderer {
     }
 
     private static string BuildThemeOverrides(HtmlOptions options, MarkdownVisualTheme? theme) {
-        ThemeColors t = BuildEffectiveThemeColors(options, theme);
+        MarkdownHtmlColorOverrides t = BuildEffectiveThemeColors(options, theme);
         bool any = theme != null
                  || !string.IsNullOrWhiteSpace(t.AccentLight) || !string.IsNullOrWhiteSpace(t.AccentDark)
                  || !string.IsNullOrWhiteSpace(t.HeadingLight) || !string.IsNullOrWhiteSpace(t.HeadingDark)
@@ -458,8 +460,8 @@ internal static class HtmlRenderer {
         return sb.ToString();
     }
 
-    private static ThemeColors BuildEffectiveThemeColors(HtmlOptions options, MarkdownVisualTheme? visualTheme) {
-        var colors = new ThemeColors();
+    private static MarkdownHtmlColorOverrides BuildEffectiveThemeColors(HtmlOptions options, MarkdownVisualTheme? visualTheme) {
+        var colors = new MarkdownHtmlColorOverrides();
         if (visualTheme != null) {
             MarkdownVisualPalette palette = visualTheme.PaletteSnapshot;
             colors.AccentLight = palette.Accent.ToCssColor();
@@ -488,7 +490,7 @@ internal static class HtmlRenderer {
         sb.Append(" }\n");
     }
 
-    private static void ApplyColorOverrides(ThemeColors target, ThemeColors? overrides) {
+    private static void ApplyColorOverrides(MarkdownHtmlColorOverrides target, MarkdownHtmlColorOverrides? overrides) {
         if (overrides == null) {
             return;
         }
@@ -506,45 +508,17 @@ internal static class HtmlRenderer {
     }
 
     private static string NormalizeCssColor(string value) =>
-        MarkdownColor.TryParse(value, out MarkdownColor color) ? color.ToCssColor() : value;
+        OfficeColor.TryParse(value, out OfficeColor color) ? color.ToCssColor() : value;
 
-    internal static string TryDownloadText(string? url) {
-        try {
-            if (string.IsNullOrWhiteSpace(url)) return string.Empty;
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return string.Empty;
-            if (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) return string.Empty;
+    internal static string ResolveExternalText(string? url, MarkdownExternalTextResolver? resolver) {
+        if (string.IsNullOrWhiteSpace(url)
+            || !Uri.TryCreate(url, UriKind.Absolute, out Uri? uri)
+            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
+            || resolver == null) {
+            return string.Empty;
+        }
 
-            const long MaxBytes = 1_000_000; // 1MB guardrail
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(8));
-            var handler = new HttpClientHandler { AutomaticDecompression = System.Net.DecompressionMethods.GZip | System.Net.DecompressionMethods.Deflate };
-            using var client = new HttpClient(handler);
-            using var resp = client.GetAsync(uri, HttpCompletionOption.ResponseHeadersRead, cts.Token).GetAwaiter().GetResult();
-            if (!resp.IsSuccessStatusCode) return string.Empty;
-            var ct = resp.Content.Headers.ContentType?.MediaType?.ToLowerInvariant();
-            bool okType = false;
-            if (ct == null) okType = true;
-            else if (ct.StartsWith("text/")) okType = true;
-            else if (ct.IndexOf("javascript", StringComparison.Ordinal) >= 0 || ct.IndexOf("ecmascript", StringComparison.Ordinal) >= 0 || ct.IndexOf("css", StringComparison.Ordinal) >= 0) okType = true;
-            if (!okType) return string.Empty;
-            var len = resp.Content.Headers.ContentLength;
-            if (len.HasValue && len.Value > MaxBytes) return string.Empty;
-            using var stream = resp.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
-            using var mem = new System.IO.MemoryStream(len.HasValue ? (int)Math.Min(len.Value, MaxBytes) : 64 * 1024);
-            var buffer = new byte[81920];
-            long total = 0;
-            while (true) {
-                int read = stream.Read(buffer, 0, buffer.Length);
-                if (read <= 0) break;
-                total += read;
-                if (total > MaxBytes) return string.Empty;
-                mem.Write(buffer, 0, read);
-            }
-            var charset = resp.Content.Headers.ContentType?.CharSet;
-            Encoding enc;
-            try { enc = !string.IsNullOrWhiteSpace(charset) ? Encoding.GetEncoding(charset!) : new UTF8Encoding(false); } catch { enc = new UTF8Encoding(false); }
-            return enc.GetString(mem.ToArray());
-        } catch { return string.Empty; }
+        return resolver(uri) ?? string.Empty;
     }
 
     internal static string ScopeCss(string? css, string? scopeSelector) {

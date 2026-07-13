@@ -1,7 +1,7 @@
 namespace OfficeIMO.Latex;
 
 /// <summary>Parsed LaTeX document with lossless syntax and bounded profile semantics.</summary>
-public sealed class LatexDocument {
+public sealed partial class LatexDocument {
     private readonly IReadOnlyList<LatexToken> _tokens;
     private readonly IReadOnlyList<LatexDiagnostic> _diagnostics;
     private readonly IReadOnlyList<LatexCommand> _commands;
@@ -104,21 +104,15 @@ public sealed class LatexDocument {
     public static LatexParseResult Parse(string source, LatexParseOptions? options = null) => LatexParser.Parse(source, options);
 
     /// <summary>Loads decoded text using runtime UTF-8 BOM detection.</summary>
-    public static LatexParseResult Load(string path, LatexParseOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        return Parse(File.ReadAllText(path), options);
+    public static LatexParseResult Load(string path, LatexParseOptions? options = null, Encoding? encoding = null) {
+        if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("File path cannot be empty.", nameof(path));
+        return Parse(File.ReadAllText(path, encoding ?? Utf8WithoutBom), options);
     }
 
     /// <summary>Writes in preserve mode.</summary>
     public string ToLatex() => LatexWriter.Write(this, null);
     /// <summary>Writes using explicit options.</summary>
     public string ToLatex(LatexWriterOptions? options) => LatexWriter.Write(this, options);
-    /// <summary>Saves current text using runtime UTF-8 behavior.</summary>
-    public void Save(string path, LatexWriterOptions? options = null) {
-        if (path == null) throw new ArgumentNullException(nameof(path));
-        File.WriteAllText(path, ToLatex(options));
-    }
-
     /// <summary>Explicitly expands structurally safe simple definitions when enabled by parse options.</summary>
     public LatexMacroExpansionResult ExpandSimpleMacros(string value) {
         if (_options.MacroExpansion != LatexMacroExpansion.SafeSimpleDefinitions) {

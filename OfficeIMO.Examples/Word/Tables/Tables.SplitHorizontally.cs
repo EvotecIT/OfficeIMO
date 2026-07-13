@@ -20,7 +20,8 @@ namespace OfficeIMO.Examples.Word {
                 table.Rows[0].Cells[1].SplitHorizontally(2);
                 Console.WriteLine($"Merged after split: {table.Rows[0].Cells[1].HasHorizontalMerge}");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

@@ -50,6 +50,13 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Html.Benchmarks" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Excel.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Html.Pdf" />
+    <InternalsVisibleTo Include="OfficeIMO.Markdown.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Html" />
+    <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
   </ItemGroup>
 
   <ItemGroup>
@@ -62,6 +69,7 @@
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
     <Using Include="AngleSharp.Dom" />
+    <Using Include="OfficeIMO.Drawing" />
     <Using Include="OfficeIMO.Rtf" />
   </ItemGroup>
 

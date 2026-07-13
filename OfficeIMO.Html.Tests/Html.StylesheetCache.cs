@@ -35,9 +35,9 @@ namespace OfficeIMO.Tests {
                 var key = ComputeHash(css);
                 cache.Remove(key);
                 var html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
-                html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 var first = cache[key];
-                html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 Assert.Same(first, cache[key]);
             } finally {
                 File.Delete(path);
@@ -50,11 +50,11 @@ namespace OfficeIMO.Tests {
             string html = $"<link rel=\"stylesheet\" href=\"{path}\" /><p>Test</p>";
             try {
                 File.WriteAllText(path, "p { color:#111111; }");
-                var firstDoc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var firstDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
                 Assert.Equal("111111", firstDoc.Paragraphs[0].GetRuns().First().ColorHex);
 
                 File.WriteAllText(path, "p { color:#222222; }");
-                var secondDoc = html.ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
+                var secondDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions { AllowDocumentStylesheetLinks = true });
 
                 Assert.Equal("222222", secondDoc.Paragraphs[0].GetRuns().First().ColorHex);
             } finally {
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void HtmlToWord_StylesheetCache_DoesNotReuseStaleRules_WhenRemoteContentChanges() {
+        public async Task HtmlToWord_StylesheetCache_DoesNotReuseStaleRules_WhenRemoteContentChanges() {
             var call = 0;
             using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(_ => {
                 call++;
@@ -78,8 +78,8 @@ namespace OfficeIMO.Tests {
                 HttpClient = httpClient
             };
 
-            var firstDoc = html.ToWordDocument(options);
-            var secondDoc = html.ToWordDocument(options);
+            var firstDoc = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentAsync(options);
+            var secondDoc = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentAsync(options);
 
             Assert.Equal("333333", firstDoc.Paragraphs[0].GetRuns().First().ColorHex);
             Assert.Equal("444444", secondDoc.Paragraphs[0].GetRuns().First().ColorHex);
@@ -93,9 +93,9 @@ namespace OfficeIMO.Tests {
             var cache = GetCache();
             cache.Remove(key);
             var html = $"<style>{css}</style><p>Test</p>";
-            html.ToWordDocument(new HtmlToWordOptions());
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             var first = cache[key];
-            html.ToWordDocument(new HtmlToWordOptions());
+            OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             Assert.Same(first, cache[key]);
         }
     }

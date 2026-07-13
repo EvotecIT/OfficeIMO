@@ -1,9 +1,9 @@
 namespace OfficeIMO.AsciiDoc.Markdown;
 
 /// <summary>Loss-aware AsciiDoc to Markdown conversion engine.</summary>
-public static class AsciiDocToMarkdownConverter {
+internal static class AsciiDocToMarkdownConverter {
     /// <summary>Converts recognized AsciiDoc semantics and reports every fallback or omission.</summary>
-    public static AsciiDocToMarkdownResult Convert(
+    internal static AsciiDocToMarkdownResult Convert(
         AsciiDocDocument document,
         AsciiDocToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -167,7 +167,7 @@ public static class AsciiDocToMarkdownConverter {
             var temporary = MarkdownDoc.Create();
             AddBlock(temporary, source.AttachedBlocks[index], attributes, options, diagnostics);
             for (int childIndex = 0; childIndex < temporary.Blocks.Count; childIndex++) {
-                target.Children.Add(temporary.Blocks[childIndex]);
+                target.NestedBlocks.Add(temporary.Blocks[childIndex]);
             }
         }
     }

@@ -1,9 +1,9 @@
 namespace OfficeIMO.Latex.Markdown;
 
 /// <summary>Generates canonical bounded-profile LaTeX from typed Markdown.</summary>
-public static class MarkdownToLatexConverter {
+internal static class MarkdownToLatexConverter {
     /// <summary>Converts a Markdown semantic document and reparses generated LaTeX losslessly.</summary>
-    public static MarkdownToLatexResult Convert(
+    internal static MarkdownToLatexResult Convert(
         MarkdownDoc document,
         MarkdownToLatexOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
@@ -109,7 +109,7 @@ public static class MarkdownToLatexConverter {
         }
 
         try {
-            IReadOnlyList<IMarkdownBlock> blocks = definition!.Blocks;
+            IReadOnlyList<IMarkdownBlock> blocks = definition!.ChildBlocks;
             if (blocks.Count == 0) return MarkdownInlineToLatexConverter.EscapeText(definition.Text);
             return string.Join(state.LineEnding + state.LineEnding,
                 blocks.Select(block => ConvertBlock(block, state.Options, state, diagnostics)).Where(static value => value.Length > 0));
@@ -129,8 +129,8 @@ public static class MarkdownToLatexConverter {
         for (int index = 0; index < items.Count; index++) {
             ListItem item = items[index];
             output.Append("\\item ").Append(MarkdownInlineToLatexConverter.Convert(item.Content, state, diagnostics, item));
-            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
-                output.Append(options.LineEnding).Append(ConvertBlock(item.Children[childIndex], options, state, diagnostics));
+            for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
+                output.Append(options.LineEnding).Append(ConvertBlock(item.NestedBlocks[childIndex], options, state, diagnostics));
             }
             output.Append(options.LineEnding);
         }
@@ -199,13 +199,13 @@ public static class MarkdownToLatexConverter {
         MarkdownToLatexOptions options,
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
-        if (cell.Blocks.Count == 1 && cell.Blocks[0] is ParagraphBlock paragraph) {
+        if (cell.ChildBlocks.Count == 1 && cell.ChildBlocks[0] is ParagraphBlock paragraph) {
             string value = MarkdownInlineToLatexConverter.Convert(paragraph.Inlines, state, diagnostics, paragraph);
             if (cell.Bold || cell.IsHeader) value = "\\textbf{" + value + "}";
             if (cell.Italic) value = "\\emph{" + value + "}";
             return value;
         }
-        return string.Join(" ", cell.Blocks.Select(block => ConvertBlock(block, options, state, diagnostics)));
+        return string.Join(" ", cell.ChildBlocks.Select(block => ConvertBlock(block, options, state, diagnostics)));
     }
 
     private static string ConvertImage(
@@ -252,7 +252,7 @@ public static class MarkdownToLatexConverter {
         ConversionState state,
         List<LatexMarkdownConversionDiagnostic> diagnostics) {
         var body = new List<string>();
-        if (source.Children.Count > 0) body.AddRange(source.Children.Select(block => ConvertBlock(block, options, state, diagnostics)));
+        if (source.ChildBlocks.Count > 0) body.AddRange(source.ChildBlocks.Select(block => ConvertBlock(block, options, state, diagnostics)));
         else body.AddRange(source.Lines.Select(MarkdownInlineToLatexConverter.EscapeText));
         return "\\begin{quote}" + options.LineEnding + string.Join(options.LineEnding, body) + options.LineEnding + "\\end{quote}";
     }

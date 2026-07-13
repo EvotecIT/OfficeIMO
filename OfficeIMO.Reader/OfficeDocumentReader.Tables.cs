@@ -6,12 +6,35 @@ using System.Threading;
 namespace OfficeIMO.Reader;
 
 public sealed partial class OfficeDocumentReader {
+    /// <summary>Extracts Markdown tables using the configured reader parsing contract.</summary>
+    public IReadOnlyList<ReaderTable> ExtractMarkdownTables(
+        string markdown,
+        ReaderOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        return DocumentReaderEngine.ExtractMarkdownTables(markdown, options, cancellationToken);
+    }
+
+    /// <summary>Extracts tables from already-read chunks.</summary>
+    public IReadOnlyList<ReaderTable> ExtractTables(
+        IEnumerable<ReaderChunk> chunks,
+        CancellationToken cancellationToken = default) {
+        return DocumentReaderEngine.ExtractTables(chunks, cancellationToken);
+    }
+
+    /// <summary>Exports tables as deterministic CSV, Markdown, and JSON payloads.</summary>
+    public IReadOnlyList<ReaderTableExportBundle> ExportTables(
+        IEnumerable<ReaderTable> tables,
+        bool indentedJson = false,
+        CancellationToken cancellationToken = default) {
+        return DocumentReaderEngine.ExportTables(tables, indentedJson, cancellationToken);
+    }
+
     /// <summary>Reads a file and returns discovered tables in source order.</summary>
     public IReadOnlyList<ReaderTable> ReadTables(
         string path,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        return DocumentReader.ExtractTables(Read(path, options, cancellationToken), cancellationToken);
+        return DocumentReaderEngine.ExtractTables(Read(path, options, cancellationToken), cancellationToken);
     }
 
     /// <summary>Reads a caller-owned stream and returns discovered tables in source order.</summary>
@@ -20,7 +43,7 @@ public sealed partial class OfficeDocumentReader {
         string? sourceName = null,
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
-        return DocumentReader.ExtractTables(Read(stream, sourceName, options, cancellationToken), cancellationToken);
+        return DocumentReaderEngine.ExtractTables(Read(stream, sourceName, options, cancellationToken), cancellationToken);
     }
 
     /// <summary>Reads bytes and returns discovered tables in source order.</summary>
@@ -30,7 +53,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        return DocumentReader.ExtractTables(Read(bytes, sourceName, options, cancellationToken), cancellationToken);
+        return DocumentReaderEngine.ExtractTables(Read(bytes, sourceName, options, cancellationToken), cancellationToken);
     }
 
     /// <summary>Reads a file and exports its tables as deterministic CSV, Markdown, and JSON payloads.</summary>
@@ -39,7 +62,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         bool indentedJson = false,
         CancellationToken cancellationToken = default) {
-        return DocumentReader.ExportTables(ReadTables(path, options, cancellationToken), indentedJson, cancellationToken);
+        return DocumentReaderEngine.ExportTables(ReadTables(path, options, cancellationToken), indentedJson, cancellationToken);
     }
 
     /// <summary>Reads a caller-owned stream and exports its tables as deterministic CSV, Markdown, and JSON payloads.</summary>
@@ -49,7 +72,7 @@ public sealed partial class OfficeDocumentReader {
         ReaderOptions? options = null,
         bool indentedJson = false,
         CancellationToken cancellationToken = default) {
-        return DocumentReader.ExportTables(
+        return DocumentReaderEngine.ExportTables(
             ReadTables(stream, sourceName, options, cancellationToken),
             indentedJson,
             cancellationToken);
@@ -63,7 +86,7 @@ public sealed partial class OfficeDocumentReader {
         bool indentedJson = false,
         CancellationToken cancellationToken = default) {
         if (bytes == null) throw new ArgumentNullException(nameof(bytes));
-        return DocumentReader.ExportTables(
+        return DocumentReaderEngine.ExportTables(
             ReadTables(bytes, sourceName, options, cancellationToken),
             indentedJson,
             cancellationToken);

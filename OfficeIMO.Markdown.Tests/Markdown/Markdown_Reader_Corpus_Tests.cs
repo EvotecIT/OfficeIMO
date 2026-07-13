@@ -30,7 +30,7 @@ public class Markdown_Reader_Corpus_Tests {
 
         for (int i = 0; i < samples.Length; i++) {
             var md = samples[i];
-            var doc = MarkdownReader.Parse(md, readerOptions);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, readerOptions);
             var html = doc.ToHtmlFragment(htmlOptions);
 
             Assert.False(string.IsNullOrWhiteSpace(html));

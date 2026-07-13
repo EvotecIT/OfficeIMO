@@ -20,6 +20,9 @@ public delegate string? MarkdownTocHtmlRenderer(TocOptions tocOptions, IReadOnly
 /// </summary>
 public delegate string? MarkdownFootnoteSectionHtmlRenderer(IReadOnlyList<FootnoteDefinitionBlock> footnotes, HtmlOptions options);
 
+/// <summary>Resolves an explicitly requested external CSS or JavaScript resource for offline rendering.</summary>
+public delegate string? MarkdownExternalTextResolver(Uri uri);
+
 /// <summary>
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
@@ -59,6 +62,11 @@ public sealed class HtmlOptions {
     public List<string> AdditionalCssHrefs { get; } = new();
     /// <summary>Additional JS URLs to include (script src or inline depending on <see cref="AssetMode"/>).</summary>
     public List<string> AdditionalJsHrefs { get; } = new();
+    /// <summary>
+    /// Optional caller-owned resolver used to inline HTTP or HTTPS CSS and JavaScript in offline mode.
+    /// OfficeIMO never performs hidden synchronous network requests; return <see langword="null"/> to omit a resource.
+    /// </summary>
+    public MarkdownExternalTextResolver? ExternalTextResolver { get; set; }
     /// <summary>Page title for full document rendering. Default: "Document".</summary>
     public string Title { get; set; } = "Document";
     /// <summary>Wrap content in &lt;article&gt; with this CSS class. Set to null to avoid wrapper. Default: "markdown-body".</summary>
@@ -271,7 +279,7 @@ public sealed class HtmlOptions {
     /// Optional additional color overrides for links, headings, and TOC.
     /// Values set here override colors derived from <see cref="Theme"/>.
     /// </summary>
-    public ThemeColors ColorOverrides { get; set; } = new ThemeColors();
+    public MarkdownHtmlColorOverrides ColorOverrides { get; set; } = new MarkdownHtmlColorOverrides();
 
     // TOC injection (used by higher-level pipelines like Word→Markdown→HTML)
     /// <summary>
@@ -297,6 +305,7 @@ public sealed class HtmlOptions {
             CssDelivery = CssDelivery,
             AssetMode = AssetMode,
             CssHref = CssHref,
+            ExternalTextResolver = ExternalTextResolver,
             Title = Title,
             BodyClass = BodyClass,
             AutoHeadingIdentifiers = AutoHeadingIdentifiers,
@@ -335,7 +344,7 @@ public sealed class HtmlOptions {
             ImagesReferrerPolicy = ImagesReferrerPolicy,
             Theme = Theme?.Clone(),
             ApplyDefaultTheme = ApplyDefaultTheme,
-            ColorOverrides = ColorOverrides?.CloneForRender() ?? new ThemeColors(),
+            ColorOverrides = ColorOverrides?.CloneForRender() ?? new MarkdownHtmlColorOverrides(),
             InjectTocAtTop = InjectTocAtTop,
             InjectTocTitle = InjectTocTitle,
             InjectTocMinLevel = InjectTocMinLevel,

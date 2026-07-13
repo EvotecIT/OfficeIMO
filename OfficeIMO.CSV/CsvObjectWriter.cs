@@ -3,7 +3,7 @@
 using System.Globalization;
 using System.Data;
 using System.Text;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.CSV;
 

@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
-using System.Net.Http;
+using OfficeIMO.Drawing;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -57,19 +57,6 @@ namespace OfficeIMO.Word.Fluent {
             return Add(ms, fileName);
         }
 
-        private const int MaxImageBytes = 10 * 1024 * 1024;
-        private static readonly HttpClient _httpClient = new HttpClient();
-
-        /// <summary>
-        /// Downloads and adds an image from a URL.
-        /// </summary>
-        /// <param name="url">Image URL.</param>
-        /// <param name="cancellationToken">Token used to cancel the download operation.</param>
-        /// <returns>The current <see cref="ImageBuilder"/>.</returns>
-        public ImageBuilder AddFromUrl(string url, CancellationToken cancellationToken = default) {
-            return AddFromUrlAsync(url, cancellationToken).GetAwaiter().GetResult();
-        }
-
         /// <summary>
         /// Asynchronously downloads and adds an image from a URL.
         /// </summary>
@@ -77,45 +64,8 @@ namespace OfficeIMO.Word.Fluent {
         /// <param name="cancellationToken">Token used to cancel the download operation.</param>
         /// <returns>The current <see cref="ImageBuilder"/>.</returns>
         public async Task<ImageBuilder> AddFromUrlAsync(string url, CancellationToken cancellationToken = default) {
-            ValidateUrl(url);
-
-            try {
-                using var response = await _httpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken).ConfigureAwait(false);
-                response.EnsureSuccessStatusCode();
-
-                var mediaType = response.Content.Headers.ContentType?.MediaType;
-                if (mediaType == null || !mediaType.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
-                    throw new InvalidOperationException("URL did not return an image.");
-                }
-
-                using var ms = new MemoryStream();
-                using var stream = await response.Content.ReadAsStreamAsync().ConfigureAwait(false);
-                var buffer = new byte[81920];
-                long totalRead = 0;
-                int read;
-                while ((read = await stream.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false)) > 0) {
-                    totalRead += read;
-                    if (totalRead > MaxImageBytes) {
-                        throw new InvalidOperationException($"Image exceeds maximum allowed size of {MaxImageBytes} bytes.");
-                    }
-                    await ms.WriteAsync(buffer, 0, read, cancellationToken).ConfigureAwait(false);
-                }
-
-                ms.Position = 0;
-                string fileName = GetFileName(url);
-                return Add(ms, fileName);
-            } catch (OperationCanceledException) {
-                throw;
-            } catch (Exception ex) {
-                throw new InvalidOperationException($"Failed to download image from '{url}'.", ex);
-            }
-        }
-
-        private static void ValidateUrl(string url) {
-            var uri = new Uri(url, UriKind.Absolute);
-            if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) {
-                throw new ArgumentException("Only HTTP/HTTPS URLs are allowed.", nameof(url));
-            }
+            OfficeRemoteImage image = await OfficeRemoteImageLoader.LoadAsync(url, cancellationToken: cancellationToken).ConfigureAwait(false);
+            return Add(image.ToBytes(), image.FileName);
         }
 
         /// <summary>
@@ -254,14 +204,5 @@ namespace OfficeIMO.Word.Fluent {
             return this;
         }
 
-        private static string GetFileName(string url) {
-            try {
-                var uri = new Uri(url);
-                var fileName = Path.GetFileName(uri.LocalPath);
-                return string.IsNullOrEmpty(fileName) ? "image" : fileName;
-            } catch (UriFormatException) {
-                return "image";
-            }
-        }
     }
 }

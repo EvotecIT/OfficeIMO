@@ -11,7 +11,8 @@ namespace OfficeIMO.Examples.Word {
             document.AddParagraph("Between diagrams");
             document.AddSmartArt(SmartArtType.Cycle);
             document.AddSmartArt(SmartArtType.PictureOrgChart);
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
             OfficeIMO.Examples.Utils.Validation.ValidateDoc(filePath);
         }
     }

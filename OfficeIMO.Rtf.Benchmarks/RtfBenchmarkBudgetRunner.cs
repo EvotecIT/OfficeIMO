@@ -95,6 +95,10 @@ internal static class RtfBenchmarkBudgetRunner {
         RtfPdfSaveOptions? preparedPdfOptions = string.Equals(operation, "Pdf", StringComparison.OrdinalIgnoreCase)
             ? RtfBenchmarkSupport.CreatePdfSaveOptions()
             : null;
+        OfficeDocumentReader? preparedReader = string.Equals(operation, "Reader", StringComparison.OrdinalIgnoreCase)
+            ? new OfficeDocumentReaderBuilder().AddRtfHandler().Build()
+            : null;
+        byte[]? preparedReaderInput = preparedReader == null ? null : preparedDocument!.ToBytes();
         GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
         long allocatedBefore = GC.GetTotalAllocatedBytes(precise: true);
         var stopwatch = Stopwatch.StartNew();
@@ -121,7 +125,7 @@ internal static class RtfBenchmarkBudgetRunner {
             using MemoryStream stream = word.ToStream();
             outputBytes = stream.Length;
         } else {
-            ReaderChunk[] chunks = DocumentReaderRtfExtensions.ReadRtfDocument(preparedDocument!).ToArray();
+            ReaderChunk[] chunks = preparedReader!.Read(preparedReaderInput!, "benchmark.rtf").ToArray();
             outputBytes = chunks.Sum(chunk => Encoding.UTF8.GetByteCount(chunk.Markdown ?? chunk.Text ?? string.Empty));
         }
 

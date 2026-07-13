@@ -7,7 +7,7 @@ namespace OfficeIMO.Shared.Tests {
     public class ConverterExceptions {
         [Fact]
         public void ToWordDocument_NullHtml_ThrowsArgumentNullException() {
-            Assert.Throws<ArgumentNullException>(() => ((string)null!).ToWordDocument());
+            Assert.Throws<ArgumentNullException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse((string)null!));
         }
 
         [Fact]
@@ -17,7 +17,7 @@ namespace OfficeIMO.Shared.Tests {
 
         [Fact]
         public void LoadFromMarkdown_NullMarkdown_ThrowsArgumentNullException() {
-            Assert.Throws<ArgumentNullException>(() => ((string)null!).LoadFromMarkdown());
+            Assert.Throws<ArgumentNullException>(() => OfficeIMO.Markdown.MarkdownReader.Parse((string)null!));
         }
 
         [Fact]
@@ -26,4 +26,3 @@ namespace OfficeIMO.Shared.Tests {
         }
     }
 }
-

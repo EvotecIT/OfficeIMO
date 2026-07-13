@@ -7,13 +7,13 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     internal const int DefaultMaxConcurrentReads = 4;
     internal const int MaximumConcurrentReads = 64;
 
     /// <summary>
     /// Asynchronously reads a file into normalized chunks. Native async handlers are awaited directly;
-    /// synchronous format engines are scheduled on a worker thread.
+    /// synchronous format parsing runs after the input has been read asynchronously.
     /// </summary>
     public static async Task<IReadOnlyList<ReaderChunk>> ReadAsync(
         string path,
@@ -21,7 +21,7 @@ public static partial class DocumentReader {
         CancellationToken cancellationToken = default) {
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
-        EnforceFileSize(path, opt.MaxInputBytes);
+        EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
 
         HandlerDetectionResolution resolution = await ResolvePathHandlerAsync(path, opt, cancellationToken).ConfigureAwait(false);
         if (resolution.Handler?.ReadDocumentPathAsync != null) {
@@ -34,9 +34,11 @@ public static partial class DocumentReader {
             return EnrichChunks(result.Chunks, source, opt.ComputeHashes, cancellationToken);
         }
 
-        return await Task.Run<IReadOnlyList<ReaderChunk>>(
-            () => Read(path, opt, cancellationToken).ToArray(),
-            cancellationToken).ConfigureAwait(false);
+        if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
+            throw CreateSynchronousOnlyHandlerException(resolution.Handler.Id, "path");
+        }
+        using var stream = OpenAsyncReadStream(path);
+        return await ReadAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -54,7 +56,7 @@ public static partial class DocumentReader {
         cancellationToken.ThrowIfCancellationRequested();
         Stream readStream = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
             stream,
-            opt.MaxInputBytes,
+            ResolveInitialMaxInputBytes(logicalSourceName, opt),
             cancellationToken).ConfigureAwait(false);
         bool ownsReadStream = !ReferenceEquals(readStream, stream);
         try {
@@ -72,9 +74,7 @@ public static partial class DocumentReader {
                 return EnrichChunks(result.Chunks, source, opt.ComputeHashes, cancellationToken);
             }
 
-            return await Task.Run<IReadOnlyList<ReaderChunk>>(
-                () => Read(readStream, logicalSourceName, opt, cancellationToken).ToArray(),
-                cancellationToken).ConfigureAwait(false);
+            return Read(readStream, logicalSourceName, opt, cancellationToken).ToArray();
         } finally {
             if (ownsReadStream) {
                 readStream.Dispose();
@@ -104,7 +104,7 @@ public static partial class DocumentReader {
         CancellationToken cancellationToken = default) {
         ValidateFilePath(path);
         ReaderOptions opt = NormalizeOptions(options);
-        EnforceFileSize(path, opt.MaxInputBytes);
+        EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
 
         HandlerDetectionResolution resolution = await ResolvePathHandlerAsync(path, opt, cancellationToken).ConfigureAwait(false);
         if (resolution.Handler?.ReadDocumentPathAsync != null) {
@@ -116,9 +116,11 @@ public static partial class DocumentReader {
             return ApplyDetectionDiagnostics(result, resolution.Detection);
         }
 
-        return await Task.Run(
-            () => ReadDocument(path, opt, cancellationToken),
-            cancellationToken).ConfigureAwait(false);
+        if (resolution.Handler != null && !resolution.Handler.SupportsStreamInput) {
+            throw CreateSynchronousOnlyHandlerException(resolution.Handler.Id, "path");
+        }
+        using var stream = OpenAsyncReadStream(path);
+        return await ReadDocumentAsync(stream, path, opt, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -136,7 +138,7 @@ public static partial class DocumentReader {
         cancellationToken.ThrowIfCancellationRequested();
         Stream readStream = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
             stream,
-            opt.MaxInputBytes,
+            ResolveInitialMaxInputBytes(logicalSourceName, opt),
             cancellationToken).ConfigureAwait(false);
         bool ownsReadStream = !ReferenceEquals(readStream, stream);
         try {
@@ -153,9 +155,7 @@ public static partial class DocumentReader {
                 return ApplyDetectionDiagnostics(result, resolution.Detection);
             }
 
-            return await Task.Run(
-                () => ReadDocument(readStream, logicalSourceName, opt, cancellationToken),
-                cancellationToken).ConfigureAwait(false);
+            return ReadDocument(readStream, logicalSourceName, opt, cancellationToken);
         } finally {
             if (ownsReadStream) {
                 readStream.Dispose();
@@ -227,6 +227,19 @@ public static partial class DocumentReader {
         return new InvalidOperationException(
             $"Reader handler '{handlerId}' only provides asynchronous {inputKind} reading. Use ReadAsync(...) or ReadDocumentAsync(...).");
     }
+
+    private static InvalidOperationException CreateSynchronousOnlyHandlerException(string handlerId, string inputKind) {
+        return new InvalidOperationException(
+            $"Reader handler '{handlerId}' only provides synchronous {inputKind} reading. Register an asynchronous handler or a stream handler before using ReadAsync(...).");
+    }
+
+    private static FileStream OpenAsyncReadStream(string path) => new FileStream(
+        path,
+        FileMode.Open,
+        FileAccess.Read,
+        FileShare.ReadWrite | FileShare.Delete,
+        bufferSize: 64 * 1024,
+        useAsync: true);
 
     private static async Task<OfficeDocumentReadResult> ValidateDocumentTaskAsync(
         Task<OfficeDocumentReadResult>? task,

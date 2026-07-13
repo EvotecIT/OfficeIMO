@@ -141,7 +141,7 @@ namespace OfficeIMO.Excel {
             throw new NotSupportedException($"Saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content.{details} Review LegacyXlsUnsupportedFeatures, LegacyXlsPreservedFeatures, LegacyXlsUnsupportedSheets, and LegacyXlsCompoundFeatures, or set ExcelSaveOptions.LossPolicy to ExcelConversionLossPolicy.Allow when that loss is intentional.");
         }
 
-        private bool TrySaveNativeLegacyXlsToFile(string path, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+        private bool TrySaveNativeLegacyXlsToFile(string path, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             if (!ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
                 return false;
             }
@@ -176,14 +176,10 @@ namespace OfficeIMO.Excel {
 
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
 
-            if (openExcel) {
-                OfficeFileLauncher.Open(path);
-            }
-
             return true;
         }
 
-        private async Task<bool> TrySaveNativeLegacyXlsToFileAsync(string path, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
+        private async Task<bool> TrySaveNativeLegacyXlsToFileAsync(string path, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {
             if (!ExcelDocumentLoadRouting.HasLegacyXlsExtension(path)) {
                 return false;
             }
@@ -217,10 +213,6 @@ namespace OfficeIMO.Excel {
             }
 
             LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Native XLS save used the first-party BIFF8 writer.");
-
-            if (openExcel) {
-                OpenInApplication(path);
-            }
 
             return true;
         }

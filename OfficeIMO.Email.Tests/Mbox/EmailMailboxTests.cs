@@ -5,6 +5,17 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailMailboxTests {
     [Fact]
+    public void MailboxToStreamMatchesToBytesAndStartsAtBeginning() {
+        var mailbox = new EmailMailbox();
+
+        using MemoryStream stream = mailbox.ToStream();
+
+        Assert.Equal(0, stream.Position);
+        Assert.Equal(mailbox.ToBytes(), stream.ToArray());
+        Assert.True(stream.CanWrite);
+    }
+
+    [Fact]
     public void ReadsAndWritesMboxrdWithEnvelopeAndFromLineEscaping() {
         const string source = "From first@example.com Fri Jul 10 12:00:00 2026\n" +
             "From: first@example.com\nSubject: First\nContent-Type: text/plain; charset=utf-8\n\n" +
@@ -24,7 +35,7 @@ public sealed class EmailMailboxTests {
 
         var writerOptions = new EmailMailboxWriterOptions(
             new EmailWriterOptions(usePreservedRawSource: true), MboxVariant.Mboxrd);
-        byte[] rewritten = new EmailMailboxWriter(writerOptions).WriteToBytes(result.Mailbox);
+        byte[] rewritten = new EmailMailboxWriter(writerOptions).ToBytes(result.Mailbox);
         EmailMailboxReadResult reparsed = reader.Read(rewritten);
         Assert.Equal(2, reparsed.Mailbox.Messages.Count);
         Assert.Contains("From escaped separator", reparsed.Mailbox.Messages[0].Document.Body.Text);
@@ -37,11 +48,13 @@ public sealed class EmailMailboxTests {
             "From a@example.com Fri Jul 10 12:00:00 2026\nSubject: A\n\nA\n" +
             "From b@example.com Fri Jul 10 13:00:00 2026\nSubject: B\n\nB\n");
         MemoryStream stream = new MemoryStream(source);
+        stream.Position = 7;
 
         EmailMailboxReadResult result = await new EmailMailboxReader().ReadAsync(stream);
 
         Assert.Equal(2, result.Mailbox.Messages.Count);
         Assert.True(stream.CanRead);
+        Assert.Equal(7, stream.Position);
         Assert.Throws<EmailLimitExceededException>(() => new EmailMailboxReader(
             new EmailMailboxReaderOptions(maxMessageCount: 1)).Read(source));
         stream.Dispose();
@@ -68,14 +81,14 @@ public sealed class EmailMailboxTests {
         first.Body.Text = new string('a', 40);
         var second = new EmailDocument { Subject = "second" };
         second.Body.Text = new string('b', 40);
-        Assert.True(new EmailDocumentWriter(messageOptions).WriteToBytes(first).Length < 220);
-        Assert.True(new EmailDocumentWriter(messageOptions).WriteToBytes(second).Length < 220);
+        Assert.True(new EmailDocumentWriter(messageOptions).ToBytes(first).Length < 220);
+        Assert.True(new EmailDocumentWriter(messageOptions).ToBytes(second).Length < 220);
         var mailbox = new EmailMailbox();
         mailbox.Messages.Add(new EmailMailboxEntry(first));
         mailbox.Messages.Add(new EmailMailboxEntry(second));
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
-            new EmailMailboxWriter(new EmailMailboxWriterOptions(messageOptions)).WriteToBytes(mailbox));
+            new EmailMailboxWriter(new EmailMailboxWriterOptions(messageOptions)).ToBytes(mailbox));
 
         Assert.Equal(nameof(EmailWriterOptions.MaxOutputBytes), exception.LimitName);
         Assert.Equal(220, exception.MaximumValue);

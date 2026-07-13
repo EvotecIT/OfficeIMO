@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Visio {
     /// <summary>
@@ -142,7 +143,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
             }
 
-            File.WriteAllText(path, ToMarkdown());
+            OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(ToMarkdown()));
         }
 
         /// <summary>
@@ -154,7 +155,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
             }
 
-            File.WriteAllText(path, ToJson());
+            OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(ToJson()));
         }
 
         /// <summary>
@@ -166,7 +167,7 @@ namespace OfficeIMO.Visio {
                 throw new ArgumentException("Path cannot be null or whitespace.", nameof(path));
             }
 
-            File.WriteAllText(path, ToHtml());
+            OfficeFileCommit.WriteAllBytes(path, Encoding.UTF8.GetBytes(ToHtml()));
         }
 
         internal static string GetDisplayName(string relativePath) {

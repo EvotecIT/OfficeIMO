@@ -28,18 +28,15 @@ public sealed class MarkdownPdfSaveOptions {
     /// </summary>
     public bool AllowSystemFontEmbedding { get; set; } = true;
 
-    /// <summary>Markdown reader options used by string and file overloads.</summary>
-    public MarkdownReaderOptions? ReaderOptions { get; set; }
-
     /// <summary>Applies the built-in Word-like PDF theme before rendering Markdown blocks.</summary>
     public bool ApplyDefaultTheme { get; set; } = true;
 
     private MarkdownVisualTheme? _theme;
-    private MarkdownPdfVisualTheme? _pdfTheme;
+    private MarkdownPdfStyle? _style;
 
     /// <summary>
     /// Shared Markdown visual theme used to align PDF output with HTML and Word exporters.
-    /// When set, this is translated into the PDF-specific visual theme unless <see cref="PdfTheme"/> is also set.
+    /// When set, this is translated into PDF-specific styling unless <see cref="Style"/> is also set.
     /// </summary>
     public MarkdownVisualTheme? Theme {
         get => _theme?.Clone();
@@ -49,12 +46,12 @@ public sealed class MarkdownPdfSaveOptions {
     internal MarkdownVisualTheme? ThemeSnapshot => _theme?.Clone();
 
     /// <summary>
-    /// PDF-specific visual theme override. Prefer <see cref="Theme"/> for new code when the same visual profile
-    /// should be reused across Markdown HTML, PDF, and Word exports.
+    /// PDF-specific layout and rendering style overrides. Preset selection belongs to <see cref="Theme"/> so
+    /// HTML, PDF, and Word share one visual-theme catalog.
     /// </summary>
-    public MarkdownPdfVisualTheme? PdfTheme {
-        get => _pdfTheme?.Clone();
-        set => _pdfTheme = value?.Clone();
+    public MarkdownPdfStyle? Style {
+        get => _style?.Clone();
+        set => _style = value?.Clone();
     }
 
     /// <summary>Use <c>theme</c>, <c>visualTheme</c>, <c>pdfTheme</c>, or equivalent front matter values as the visual profile when no explicit theme is set.</summary>
@@ -200,7 +197,7 @@ public sealed class MarkdownPdfSaveOptions {
     internal MarkdownPdfSaveOptions CloneForConversion() {
         var clone = (MarkdownPdfSaveOptions)MemberwiseClone();
         clone._theme = _theme?.Clone();
-        clone._pdfTheme = _pdfTheme?.Clone();
+        clone._style = _style?.Clone();
         clone.Warnings = new List<MarkdownPdfExportWarning>();
         clone.Report = new PdfCore.PdfConversionReport();
         return clone;

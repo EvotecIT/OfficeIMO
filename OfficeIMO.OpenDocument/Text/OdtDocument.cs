@@ -9,14 +9,26 @@ public sealed partial class OdtDocument : OdfDocument {
     /// <summary>Creates an empty ODF 1.4 text document.</summary>
     public static OdtDocument Create() => new OdtDocument(OdfPackage.Create(OdfDocumentKind.Text), null);
 
-    /// <summary>Opens an ODT document from a path.</summary>
-    public static OdtDocument Open(string path, OdfOpenOptions? options = null) {
-        OdfPackage package = OdfPackage.Open(path, options, out string fullPath);
+    /// <summary>Loads an ODT document from a path.</summary>
+    public new static OdtDocument Load(string path, OdfLoadOptions? options = null) {
+        OdfPackage package = OdfPackage.Load(path, options, out string fullPath);
         return new OdtDocument(package, fullPath);
     }
 
-    /// <summary>Opens an ODT document from a stream.</summary>
-    public static OdtDocument Open(Stream stream, OdfOpenOptions? options = null) => new OdtDocument(OdfPackage.Open(stream, options), null);
+    /// <summary>Loads an ODT document from a stream.</summary>
+    public new static OdtDocument Load(Stream stream, OdfLoadOptions? options = null) => new OdtDocument(OdfPackage.Load(stream, options), null);
+
+    /// <summary>Asynchronously loads an ODT document from a path.</summary>
+    public new static async Task<OdtDocument> LoadAsync(string path, OdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        OdfDocument document = await OdfDocument.LoadAsync(path, options, cancellationToken).ConfigureAwait(false);
+        return document as OdtDocument ?? throw new InvalidDataException("Package is not an OpenDocument Text document.");
+    }
+
+    /// <summary>Asynchronously loads an ODT document from a caller-owned stream.</summary>
+    public new static async Task<OdtDocument> LoadAsync(Stream stream, OdfLoadOptions? options = null, CancellationToken cancellationToken = default) {
+        OdfPackage package = await LoadPackageAsync(stream, options, cancellationToken).ConfigureAwait(false);
+        return new OdtDocument(package, null);
+    }
 
     internal XElement TextBody => GetBody(OdfNamespaces.Office + "text");
 

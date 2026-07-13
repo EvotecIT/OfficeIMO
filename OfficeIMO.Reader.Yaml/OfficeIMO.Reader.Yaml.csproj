@@ -52,4 +52,7 @@
     <Using Include="YamlDotNet.Core.Events" />
     <Using Include="YamlDotNet.RepresentationModel" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+  </ItemGroup>
 </Project>

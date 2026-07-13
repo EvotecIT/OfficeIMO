@@ -11,7 +11,7 @@ namespace OfficeIMO.Word.Pdf {
                 return existingLayout;
             }
 
-            List<IReadOnlyList<WordTableCell>> rows = TableBuilder.Map(table).ToList();
+            List<IReadOnlyList<WordTableCell>> rows = WordTableMatrix.Map(table).ToList();
             int[] rowStartColumns = ResolveRowGridOffsets(table, rows.Count, before: true);
             int[] rowTrailingColumns = ResolveRowGridOffsets(table, rows.Count, before: false);
             int columnCount = ResolveColumnCount(table, rows, rowStartColumns, rowTrailingColumns);
@@ -135,4 +135,3 @@ namespace OfficeIMO.Word.Pdf {
             cell.Width.Value > 0;
     }
 }
-

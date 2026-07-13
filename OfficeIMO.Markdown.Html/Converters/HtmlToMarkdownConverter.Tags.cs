@@ -3,7 +3,7 @@ using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     private static string GetEffectiveTagName(IElement element, ConversionContext? context) {
         string tagName = element?.TagName ?? string.Empty;
         if (context?.Options.TagAliases == null || context.Options.TagAliases.Count == 0) {

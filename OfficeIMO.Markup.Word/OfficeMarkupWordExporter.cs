@@ -4,7 +4,7 @@ using OfficeColor = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Markup.Word;
 
-public sealed class OfficeMarkupWordExporter {
+internal sealed class OfficeMarkupWordExporter {
     private static readonly OfficeColor[] ChartColors = new[] {
         OfficeColor.CornflowerBlue,
         OfficeColor.SeaGreen,
@@ -14,7 +14,7 @@ public sealed class OfficeMarkupWordExporter {
         OfficeColor.DarkCyan
     };
 
-    public void Export(OfficeMarkupDocument document, OfficeMarkupWordExportOptions options) {
+    public WordDocument Convert(OfficeMarkupDocument document, MarkupToWordOptions options) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -27,22 +27,18 @@ public sealed class OfficeMarkupWordExporter {
             throw new InvalidOperationException("Word export requires the Document OfficeIMO markup profile.");
         }
 
-        if (string.IsNullOrWhiteSpace(options.OutputPath)) {
-            throw new InvalidOperationException("Word export requires an output path.");
-        }
+        WordDocument word = WordDocument.Create();
+        try {
+            var context = new WordExportContext(word, options);
+            foreach (var block in document.Blocks) {
+                ExportBlock(context, block);
+            }
 
-        var directory = Path.GetDirectoryName(Path.GetFullPath(options.OutputPath));
-        if (!string.IsNullOrEmpty(directory)) {
-            Directory.CreateDirectory(directory);
+            return word;
+        } catch {
+            word.Dispose();
+            throw;
         }
-
-        using var word = WordDocument.Create(options.OutputPath);
-        var context = new WordExportContext(word, options);
-        foreach (var block in document.Blocks) {
-            ExportBlock(context, block);
-        }
-
-        word.Save();
     }
 
     private static void ExportBlock(WordExportContext context, OfficeMarkupBlock block) {
@@ -303,7 +299,7 @@ public sealed class OfficeMarkupWordExporter {
         return new ChartData(categories, series);
     }
 
-    private static bool TryResolveImagePath(OfficeMarkupWordExportOptions options, string source, out string path) {
+    private static bool TryResolveImagePath(MarkupToWordOptions options, string source, out string path) {
         path = string.Empty;
         if (string.IsNullOrWhiteSpace(source)) {
             return false;
@@ -371,13 +367,13 @@ public sealed class OfficeMarkupWordExporter {
         (value ?? string.Empty).Trim().Replace("-", string.Empty).Replace("_", string.Empty).Replace(" ", string.Empty).ToLowerInvariant();
 
     private sealed class WordExportContext {
-        public WordExportContext(WordDocument document, OfficeMarkupWordExportOptions options) {
+        public WordExportContext(WordDocument document, MarkupToWordOptions options) {
             Document = document;
             Options = options;
         }
 
         public WordDocument Document { get; }
-        public OfficeMarkupWordExportOptions Options { get; }
+        public MarkupToWordOptions Options { get; }
         public WordSection? CurrentSection { get; set; }
 
         public WordParagraph AddParagraph(string text = "") =>

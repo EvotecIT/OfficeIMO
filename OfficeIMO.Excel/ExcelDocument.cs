@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using System.IO.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -322,7 +322,10 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Underlying Open XML spreadsheet document instance.
         /// </summary>
-        public SpreadsheetDocument _spreadSheetDocument = null!;
+        internal SpreadsheetDocument _spreadSheetDocument = null!;
+
+        /// <summary>Gets the underlying Open XML package for advanced integration scenarios.</summary>
+        public SpreadsheetDocument OpenXmlDocument => _spreadSheetDocument;
         private WorkbookPart _workBookPart = null!;
         private SharedStringTablePart? _sharedStringTablePart;
         private bool _sharedStringTableDirty;

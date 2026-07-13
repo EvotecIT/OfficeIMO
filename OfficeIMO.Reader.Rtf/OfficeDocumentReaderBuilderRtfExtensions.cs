@@ -28,23 +28,23 @@ public static class OfficeDocumentReaderBuilderRtfExtensions {
             Description = "Modular RTF adapter using OfficeIMO.Rtf semantic read model.",
             Kind = ReaderInputKind.Rtf,
             Extensions = new[] { ".rtf" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderRtfExtensions.ReadRtfFile(
+            ReadPath = (path, readerOptions, ct) => RtfReaderAdapter.Read(
                 rtfPath: path,
                 readerOptions: readerOptions,
                 rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderRtfExtensions.ReadRtf(
+            ReadStream = (stream, sourceName, readerOptions, ct) => RtfReaderAdapter.Read(
                 rtfStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,
                 rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentPath = (path, readerOptions, ct) => DocumentReaderRtfExtensions.ReadRtfDocumentResult(
+            ReadDocumentPath = (path, readerOptions, ct) => RtfReaderAdapter.ReadDocument(
                 rtfPath: path,
                 readerOptions: readerOptions,
                 rtfOptions: ReaderRtfOptionsCloner.CloneNullable(registeredOptions),
                 cancellationToken: ct),
-            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => DocumentReaderRtfExtensions.ReadRtfDocumentResult(
+            ReadDocumentStream = (stream, sourceName, readerOptions, ct) => RtfReaderAdapter.ReadDocument(
                 rtfStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

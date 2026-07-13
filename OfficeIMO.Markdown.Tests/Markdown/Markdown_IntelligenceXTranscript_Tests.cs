@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
     public class Markdown_IntelligenceXTranscript_Tests {
         [Fact]
         public void HtmlStyle_ChatAuto_EmitsChatMarkerAndAutoThemeCss() {
-            var doc = MarkdownReader.Parse("Hello");
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Hello");
             var parts = doc.ToHtmlParts(new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.ChatAuto });
 
             Assert.Contains("omd-chat", parts.Css);
@@ -985,7 +985,7 @@ Dataview preview:
 
         [Fact]
         public void HtmlStyle_ChatAuto_Includes_Bubble_Css_Classes() {
-            var doc = MarkdownReader.Parse("Hello");
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Hello");
             var parts = doc.ToHtmlParts(new HtmlOptions { Kind = HtmlKind.Fragment, Style = HtmlStyle.ChatAuto });
 
             Assert.Contains(".omd-chat-bubble", parts.Css, StringComparison.Ordinal);

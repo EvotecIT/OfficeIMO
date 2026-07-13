@@ -70,7 +70,7 @@ public sealed class MsgMetadataRoundTripTests {
             LinkedPath = "images/logo.png"
         });
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailReadResult result = new EmailDocumentReader().Read(bytes);
         EmailDocument parsed = result.Document;
 
@@ -142,14 +142,14 @@ public sealed class MsgMetadataRoundTripTests {
             RawData = shiftJis
         });
 
-        byte[] first = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg);
+        byte[] first = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg);
         EmailDocument parsed = new EmailDocumentReader().Read(first).Document;
         MapiProperty property = parsed.MapiProperties.Single(item => item.PropertyId == 0x66AB);
 
         Assert.Equal("日本", property.Value);
         Assert.Equal(shiftJis, property.RawData);
 
-        byte[] second = new EmailDocumentWriter().WriteToBytes(parsed, EmailFileFormat.OutlookMsg);
+        byte[] second = new EmailDocumentWriter().ToBytes(parsed, EmailFileFormat.OutlookMsg);
         MapiProperty reparsed = new EmailDocumentReader().Read(second).Document.MapiProperties
             .Single(item => item.PropertyId == 0x66AB);
         Assert.Equal("日本", reparsed.Value);
@@ -167,7 +167,7 @@ public sealed class MsgMetadataRoundTripTests {
         source.MapiProperties.Add(new MapiProperty(0x66AB, MapiPropertyType.String8, "日本"));
 
         EmailReadResult result = new EmailDocumentReader().Read(
-            new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.OutlookMsg));
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg));
 
         Assert.Equal(932, result.Document.OutlookCodePage);
         Assert.Equal("<p>日本</p>", result.Document.Body.Html);

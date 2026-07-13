@@ -19,7 +19,7 @@ public sealed class EmailDocumentWriter {
     /// <summary>Writes an artifact to a file.</summary>
     public EmailWriteResult Write(EmailDocument document, string filePath, EmailFileFormat format = EmailFileFormat.Eml) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-        byte[] data = WriteToBytes(document, format, out EmailWriteResult result);
+        byte[] data = ToBytes(document, format, out EmailWriteResult result);
         OfficeFileCommit.WriteAllBytes(filePath, data);
         return result;
     }
@@ -28,14 +28,14 @@ public sealed class EmailDocumentWriter {
     public EmailWriteResult Write(EmailDocument document, Stream stream, EmailFileFormat format = EmailFileFormat.Eml) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
-        byte[] data = WriteToBytes(document, format, out EmailWriteResult result);
-        stream.Write(data, 0, data.Length);
+        byte[] data = ToBytes(document, format, out EmailWriteResult result);
+        OfficeStreamWriter.WriteAllBytes(stream, data);
         return result;
     }
 
     /// <summary>Writes an artifact to memory.</summary>
-    public byte[] WriteToBytes(EmailDocument document, EmailFileFormat format = EmailFileFormat.Eml) {
-        return WriteToBytes(document, format, out _);
+    public byte[] ToBytes(EmailDocument document, EmailFileFormat format = EmailFileFormat.Eml) {
+        return ToBytes(document, format, out _);
     }
 
     /// <summary>Asynchronously writes an artifact to a file.</summary>
@@ -43,12 +43,10 @@ public sealed class EmailDocumentWriter {
         EmailFileFormat format = EmailFileFormat.Eml, CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] data = WriteToBytes(document, format, out EmailWriteResult result);
+        byte[] data = ToBytes(document, format, out EmailWriteResult result);
         cancellationToken.ThrowIfCancellationRequested();
-        using (FileStream stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None,
-            81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-            await stream.WriteAsync(data, 0, data.Length, cancellationToken).ConfigureAwait(false);
-        }
+        await OfficeFileCommit.WriteAllBytesAsync(filePath, data, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
         return result;
     }
 
@@ -58,13 +56,13 @@ public sealed class EmailDocumentWriter {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] data = WriteToBytes(document, format, out EmailWriteResult result);
+        byte[] data = ToBytes(document, format, out EmailWriteResult result);
         cancellationToken.ThrowIfCancellationRequested();
-        await stream.WriteAsync(data, 0, data.Length, cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, data, cancellationToken).ConfigureAwait(false);
         return result;
     }
 
-    internal byte[] WriteToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
+    internal byte[] ToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg && format != EmailFileFormat.Tnef) {
             throw new NotSupportedException("The requested email artifact format cannot be serialized.");

@@ -1,4 +1,4 @@
-using OfficeIMO.Shared.Packaging;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Zip;
 

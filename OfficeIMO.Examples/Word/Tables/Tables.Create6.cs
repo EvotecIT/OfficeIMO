@@ -44,7 +44,8 @@ namespace OfficeIMO.Examples.Word {
                 // lets overwrite style
                 wordTable.Style = WordTableStyle.GridTable6ColorfulAccent1;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

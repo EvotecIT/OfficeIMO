@@ -4,7 +4,7 @@ using System.Globalization;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     private static TableBlock ConvertTableElement(IElement element, ConversionContext context) {
         var table = new TableBlock();
         bool headerWritten = false;

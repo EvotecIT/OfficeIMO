@@ -13,7 +13,8 @@ namespace OfficeIMO.Examples.Word {
                 var list = document.AddPictureBulletList(imagePath);
                 list.AddItem("Picture item 1");
                 list.AddItem("Picture item 2");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

@@ -178,29 +178,5 @@ namespace OfficeIMO.Tests {
                 sourceCopy.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
         }
 
-        [Fact]
-        public void SaveCopy_StreamDoesNotRedirectLaterSourceSavesToTheCopy() {
-            using var source = new MemoryStream();
-            using var document = WordDocument.Create(source);
-            document.AddParagraph("Shared");
-            document.Save();
-
-            using var copyStream = new MemoryStream();
-            using (WordDocument copy = document.SaveCopy(copyStream)) {
-                Assert.Equal("Shared", Assert.Single(copy.Paragraphs).Text);
-            }
-
-            document.AddParagraph("Source only");
-            document.Save();
-
-            copyStream.Position = 0;
-            using WordDocument reopenedCopy = WordDocument.Load(copyStream, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
-            Assert.Single(reopenedCopy.Paragraphs);
-            Assert.Equal("Shared", reopenedCopy.Paragraphs[0].Text);
-
-            source.Position = 0;
-            using WordDocument reopenedSource = WordDocument.Load(source, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
-            Assert.Equal(new[] { "Shared", "Source only" }, reopenedSource.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
-        }
     }
 }

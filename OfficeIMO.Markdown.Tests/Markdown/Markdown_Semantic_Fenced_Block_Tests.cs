@@ -14,7 +14,7 @@ public class Markdown_Semantic_Fenced_Block_Tests {
 _Chart caption_
 """;
 
-        var doc = MarkdownReader.Parse(markdown, options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(doc.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
@@ -32,7 +32,7 @@ _Chart caption_
 > ```
 """;
 
-        var doc = MarkdownReader.Parse(markdown, options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
 
         var quote = Assert.IsType<QuoteBlock>(Assert.Single(doc.Blocks));
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(quote.ChildBlocks));
@@ -49,7 +49,7 @@ _Chart caption_
 ```
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var block = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.SemanticFencedBlock, block.Kind);
@@ -75,7 +75,7 @@ _Chart caption_
 ```
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(result.Document.Blocks));
         Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 3), block.SourceSpan);
@@ -90,7 +90,7 @@ _Chart caption_
 ```
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(result.Document.Blocks));
         Assert.Equal("chart", block.Attributes.ElementId);
@@ -201,7 +201,7 @@ _Chart caption_
 ```
 """;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var html = document.ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
@@ -224,7 +224,7 @@ hello
 ```
 """;
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, options);
 
         var syntaxBlock = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.Unknown, syntaxBlock.Kind);
@@ -260,7 +260,7 @@ hello
 ```
 """;
 
-        var document = MarkdownReader.Parse(markdown, options);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, options);
         var html = document.ToHtmlFragment(new HtmlOptions {
             Kind = HtmlKind.Fragment,
             Title = "custom-title"

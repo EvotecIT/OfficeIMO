@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Threading;
+using System.Threading.Tasks;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Drawing;
 
@@ -41,6 +44,10 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
 
     /// <summary>Configures the output image format.</summary>
     public TBuilder As(OfficeImageExportFormat format) {
+        if (!Enum.IsDefined(typeof(OfficeImageExportFormat), format)) {
+            throw new ArgumentOutOfRangeException(nameof(format));
+        }
+
         _format = format;
         return This;
     }
@@ -97,7 +104,37 @@ public abstract class OfficeImageExportBatchBuilder<TBuilder, TOptions>
                 ? "image-" + (i + 1).ToString(CultureInfo.InvariantCulture)
                 : result.Name!;
             string fileName = GetUniqueFileName(SanitizeFileName(name), extension, usedFileNames);
-            File.WriteAllBytes(Path.Combine(fullFolder, fileName), result.Bytes);
+            OfficeFileCommit.WriteAllBytes(Path.Combine(fullFolder, fileName), result.Bytes);
+        }
+
+        return results;
+    }
+
+    /// <summary>Asynchronously saves all selected images to a folder.</summary>
+    public async Task<IReadOnlyList<OfficeImageExportResult>> SaveAsync(
+        string folderPath,
+        CancellationToken cancellationToken = default) {
+        if (string.IsNullOrWhiteSpace(folderPath)) {
+            throw new ArgumentException("Output folder cannot be null or whitespace.", nameof(folderPath));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        string fullFolder = Path.GetFullPath(folderPath);
+        Directory.CreateDirectory(fullFolder);
+        IReadOnlyList<OfficeImageExportResult> results = Export();
+        string extension = _format == OfficeImageExportFormat.Svg ? ".svg" : ".png";
+        var usedFileNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        for (int i = 0; i < results.Count; i++) {
+            cancellationToken.ThrowIfCancellationRequested();
+            OfficeImageExportResult result = results[i];
+            string name = string.IsNullOrWhiteSpace(result.Name)
+                ? "image-" + (i + 1).ToString(CultureInfo.InvariantCulture)
+                : result.Name!;
+            string fileName = GetUniqueFileName(SanitizeFileName(name), extension, usedFileNames);
+            await OfficeFileCommit.WriteAllBytesAsync(
+                Path.Combine(fullFolder, fileName),
+                result.Bytes,
+                cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         return results;

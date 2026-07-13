@@ -19,7 +19,7 @@ namespace OfficeIMO.Word {
         /// This determines how <see cref="Value"/> is interpreted when reading or
         /// writing the property to a document.
         /// </remarks>
-        public PropertyTypes PropertyType;
+        public PropertyTypes PropertyType { get; set; }
 
         /// <summary>
         /// Gets the value as a <see cref="DateTime"/> when the property type is a date.

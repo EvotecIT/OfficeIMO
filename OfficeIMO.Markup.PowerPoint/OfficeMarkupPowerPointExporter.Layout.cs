@@ -5,7 +5,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
-public sealed partial class OfficeMarkupPowerPointExporter {
+internal sealed partial class OfficeMarkupPowerPointExporter {
     private static LayoutCursor ResolveBox(
         OfficeMarkupPlacement? placement,
         IDictionary<string, string> attributes,

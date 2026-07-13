@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Fluent;
+using OfficeIMO.Drawing;
 using System.Threading.Tasks;
 
 namespace OfficeIMO.Examples.Excel {
@@ -30,7 +31,7 @@ namespace OfficeIMO.Examples.Excel {
             string[] References
         );
 
-        public static void Example(string folderPath, bool openExcel) {
+        public static async Task Example(string folderPath, bool openExcel) {
             Console.WriteLine("[*] Excel - Domain Detective Sheets (Excelish) demo");
             string filePath = Path.Combine(folderPath, "DomainDetective.Report.Sheets.xlsx");
             var rows = GenerateFakeData(50, seed: 42);
@@ -51,9 +52,9 @@ namespace OfficeIMO.Examples.Excel {
             overview.Title("Domain Detective — Overview", $"Generated {DateTime.Now:yyyy-MM-dd HH:mm}");
             // Header/footer with Evotec logo + page text (fixed URL)
             const string logoUrl = "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png";
-            overview.HeaderLogoUrl(logoUrl, OfficeIMO.Excel.HeaderFooterPosition.Center, 120, 40, leftText: "Page &P of &N");
+            await overview.HeaderLogoFromUrlAsync(logoUrl, OfficeIMO.Excel.HeaderFooterPosition.Center, 120, 40, leftText: "Page &P of &N");
             // Also place the logo inside the sheet (first page) via URL
-            overview.ImageFromUrlAt(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
+            await overview.ImageFromUrlAtAsync(row: 1, column: 6, url: logoUrl, widthPixels: 120, heightPixels: 40);
 
             int totalWarnings = rows.Sum(x => x.WarningCount);
             int totalErrors = rows.Sum(x => x.ErrorCount);
@@ -153,7 +154,7 @@ namespace OfficeIMO.Examples.Excel {
             overview.Finish(autoFitColumns: false);
 
             // One detail sheet per domain (sequential by default)
-            foreach (var d in rows) BuildDomainSheet(doc, d);
+            foreach (var d in rows) await BuildDomainSheet(doc, d);
 
             // Build Index/TOC last so it includes every sheet, then add back-links
             SheetIndex.Add(doc, sheetName: "Index", placeFirst: true, includeNamedRanges: false);
@@ -161,10 +162,8 @@ namespace OfficeIMO.Examples.Excel {
 
             // Add header logo to Index (Left) with page number on Right for variety
             var idx = doc["Index"]; if (idx != null) {
-                idx.HeaderFooter(h => {
-                    h.Right("Page &P of &N");
-                    h.LeftImageUrl(logoUrl, widthPoints: 96, heightPoints: 32);
-                });
+                idx.SetHeaderFooter(headerRight: "Page &P of &N");
+                await idx.SetHeaderImageFromUrlAsync(HeaderFooterPosition.Left, logoUrl, widthPoints: 96, heightPoints: 32);
             }
 
             var errors = doc.ValidateOpenXml();
@@ -174,14 +173,14 @@ namespace OfficeIMO.Examples.Excel {
             if (openExcel) doc.OpenInApplication(filePath);
         }
 
-        private static void BuildDomainSheet(ExcelDocument doc, DomainRow d) {
+        private static async Task BuildDomainSheet(ExcelDocument doc, DomainRow d) {
             var s = new SheetComposer(doc, d.Domain);
             s.Title($"Mail Classification — {d.Domain}", d.Summary)
              .Callout(d.ErrorCount > 0 ? "error" : (string.Equals(d.Status, "Warning", StringComparison.OrdinalIgnoreCase) ? "warning" : "info"),
                       "Status",
                       $"Status: {d.Status}; Findings: {d.WarningCount} warning(s), {d.ErrorCount} error(s).")
              .SectionWithAnchor("Overview")
-             .DefinitionList(new (string, object?)[] {
+             .PropertiesGrid(new (string, object?)[] {
                  ("Domain", d.Domain),
                  ("Classification", d.Classification),
                  ("Confidence", d.Confidence),
@@ -210,10 +209,11 @@ namespace OfficeIMO.Examples.Excel {
                 };
             });
             // Header logo on the Right, page number on Left (complements Index/Overview)
-            s.HeaderLogoUrl("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png",
-                            OfficeIMO.Excel.HeaderFooterPosition.Right, 96, 32, leftText: "Page &P of &N");
+            await s.HeaderLogoFromUrlAsync("https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png",
+                OfficeIMO.Excel.HeaderFooterPosition.Right, 96, 32, leftText: "Page &P of &N");
             // Optional: embed the Evotec logo on each detail sheet near the title
-            s.ImageFromUrlAt(row: 1, column: 5, url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPixels: 100, heightPixels: 34);
+            await s.ImageFromUrlAtAsync(row: 1, column: 5,
+                url: "https://evotec.pl/wp-content/uploads/2015/05/Logo-evotec-012.png", widthPixels: 100, heightPixels: 34);
 
             // Legend per domain (reusable SectionLegend)
             {

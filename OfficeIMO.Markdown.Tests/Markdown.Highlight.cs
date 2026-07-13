@@ -8,7 +8,7 @@ namespace OfficeIMO.Tests {
     public partial class Markdown {
         [Fact]
         public void MarkdownReader_RendersHighlightInlineToHtml() {
-            var doc = MarkdownReader.Parse("Paragraph with ==highlight== and ==**nested**==.");
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse("Paragraph with ==highlight== and ==**nested**==.");
 
             var html = doc.ToHtmlFragment();
 
@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         public void Markdown_Highlight_RoundTrip_PreservesNestedFormatting() {
             const string md = "Text ==highlighted== and ==**important**==.";
 
-            using var doc = md.LoadFromMarkdown();
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
             var runs = doc.Paragraphs[0].GetRuns().ToList();
 
             Assert.Contains(runs, r => r.Text == "highlighted" && r.Highlight == HighlightColorValues.Yellow);

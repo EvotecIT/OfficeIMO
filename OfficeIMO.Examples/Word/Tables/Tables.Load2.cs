@@ -28,7 +28,8 @@ namespace OfficeIMO.Examples.Word {
                 wordTable = document.AddTable(3, 4, WordTableStyle.GridTable1LightAccent6);
                 wordTable.Rows[0].Cells[0].Paragraphs[0].Text = "Test 1";
 
-                document.SaveCopy(filePath2, new WordSaveOptions { OpenAfterSave = openWord });
+                document.SaveCopy(filePath2);
+                if (openWord) document.OpenInApplication(filePath2);
             }
         }
     }

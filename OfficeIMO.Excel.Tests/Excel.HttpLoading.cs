@@ -57,25 +57,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadWrite, document.AccessMode);
             Assert.Equal("Remote", document.Sheets[0].Name);
-            Assert.Equal(string.Empty, document.FilePath);
-        }
-
-        [Fact]
-        public void ExcelHttpDocumentLoadRejectsSaveOnDisposeBeforeDownloading() {
-            int requestCount = 0;
-            using var handler = new FakeWorkbookHttpMessageHandler((_, _) => {
-                requestCount++;
-                return Task.FromResult(CreateWorkbookResponse(CreateRemoteWorkbookBytes()));
-            });
-
-            ArgumentException exception = Assert.Throws<ArgumentException>(() => ExcelDocument.Load(
-                new Uri("https://example.test/workbook.xlsx"),
-                new ExcelHttpLoadOptions { HttpMessageHandler = handler },
-                new ExcelLoadOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose }));
-
-            Assert.Equal("options", exception.ParamName);
-            Assert.Contains("detached", exception.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Equal(0, requestCount);
+            Assert.Null(document.FilePath);
         }
 
         [Fact]

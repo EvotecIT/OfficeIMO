@@ -1,5 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
+using OfficeIMO.Pdf;
 using System;
 using System.IO;
 

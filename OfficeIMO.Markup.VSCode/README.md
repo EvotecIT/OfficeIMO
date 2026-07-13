@@ -71,7 +71,7 @@ npm run compile
 npm run package
 ```
 
-`npm run package` refreshes the bundled `OfficeIMO.Markup.Cli` runtimes, compiles the extension JavaScript, and writes `dist/officeimo-markup-<version>.vsix`. Use it instead of raw `vsce package` so the bundled CLI does not go stale.
+`npm run package` builds fresh `OfficeIMO.Markup.Cli` runtimes into the VSIX, compiles the extension JavaScript, and writes `dist/officeimo-markup-<version>.vsix`. The generated CLI binaries are removed after packaging and are not committed, so source and shipped tooling cannot drift apart. Use this command instead of raw `vsce package`.
 
 For packaged Insiders installation:
 

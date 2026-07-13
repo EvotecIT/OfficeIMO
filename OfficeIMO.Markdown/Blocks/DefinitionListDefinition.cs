@@ -10,8 +10,8 @@ public sealed class DefinitionListDefinition : MarkdownObject {
     private readonly List<MarkdownSourceSpan> _blankLineSourceSpans = new List<MarkdownSourceSpan>();
     private readonly List<MarkdownSourceSpan> _continuationIndentSourceSpans = new List<MarkdownSourceSpan>();
 
-    /// <summary>Structured markdown blocks that belong to this definition body.</summary>
-    public List<IMarkdownBlock> Blocks => _blocks;
+    /// <summary>Structured child blocks that belong to this definition body.</summary>
+    public List<IMarkdownBlock> ChildBlocks => _blocks;
     /// <summary>Source spans for blank separator lines that belong to this definition body.</summary>
     public IReadOnlyList<MarkdownSourceSpan> BlankLineSourceSpans => _blankLineSourceSpans;
     /// <summary>Source spans for indentation stripped from definition continuation lines.</summary>

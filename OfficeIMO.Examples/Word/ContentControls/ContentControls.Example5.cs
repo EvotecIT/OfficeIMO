@@ -31,7 +31,8 @@ namespace OfficeIMO.Examples.Word {
                     .SetColorHex("C00000")
                     .SetHighlight(HighlightColorValues.LightGray);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
@@ -42,7 +43,8 @@ namespace OfficeIMO.Examples.Word {
                 fluent.SetUnderline(UnderlineValues.Double)
                     .SetColorHex("0070C0");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

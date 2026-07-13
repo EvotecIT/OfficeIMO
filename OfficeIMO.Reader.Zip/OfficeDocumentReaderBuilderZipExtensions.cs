@@ -35,13 +35,13 @@ public static class OfficeDocumentReaderBuilderZipExtensions {
             Description = "Modular ZIP adapter that traverses archives and emits Reader chunks.",
             Kind = ReaderInputKind.Zip,
             Extensions = new[] { ".zip" },
-            ReadPath = (path, readerOptions, ct) => DocumentReaderZipExtensions.ReadZip(
+            ReadPath = (path, readerOptions, ct) => ZipReaderAdapter.Read(
                 zipPath: path,
                 readerOptions: readerOptions,
                 zipOptions: Clone(registeredZipOptions),
                 readerZipOptions: Clone(registeredReaderZipOptions),
                 cancellationToken: ct),
-            ReadStream = (stream, sourceName, readerOptions, ct) => DocumentReaderZipExtensions.ReadZip(
+            ReadStream = (stream, sourceName, readerOptions, ct) => ZipReaderAdapter.Read(
                 zipStream: stream,
                 sourceName: sourceName,
                 readerOptions: readerOptions,

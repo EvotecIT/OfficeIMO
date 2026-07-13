@@ -90,12 +90,12 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Built-in recipes suitable for generating varied deck alternatives.
         /// </summary>
-        public static IReadOnlyList<PowerPointDesignRecipe> BuiltIn { get; } = new[] {
+        public static IReadOnlyList<PowerPointDesignRecipe> BuiltIn { get; } = Array.AsReadOnly(new[] {
             ConsultingPortfolio,
             ExecutiveBrief,
             TechnicalProposal,
             TransformationRoadmap
-        };
+        });
 
         /// <summary>
         ///     Creates a reusable design recipe from one or more directions.

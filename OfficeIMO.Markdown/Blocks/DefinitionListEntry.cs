@@ -24,7 +24,7 @@ public sealed class DefinitionListEntry : MarkdownObject {
     }
 
     /// <summary>Structured definition content for this term.</summary>
-    public List<IMarkdownBlock> DefinitionBlocks => _definition.Blocks;
+    public List<IMarkdownBlock> DefinitionBlocks => _definition.ChildBlocks;
 
     internal DefinitionListDefinition Definition => _definition;
 

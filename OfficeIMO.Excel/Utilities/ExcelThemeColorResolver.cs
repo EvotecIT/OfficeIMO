@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Excel.Utilities {

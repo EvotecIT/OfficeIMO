@@ -5,29 +5,12 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Word.Html;
 
 public static partial class WordHtmlConverterExtensions {
-    /// <summary>Imports HTML into Word and returns the document plus structured conversion evidence.</summary>
-    public static HtmlToWordResult ToWordDocumentResult(this string html, HtmlToWordOptions? options = null) =>
-        ToWordDocumentResultAsync(html, options).GetAwaiter().GetResult();
-
     /// <summary>Imports a prepared shared HTML document into Word and returns structured evidence.</summary>
-    public static HtmlToWordResult ToWordDocumentResult(this HtmlConversionDocument document, HtmlToWordOptions? options = null) =>
-        ToWordDocumentResultAsync(document, options).GetAwaiter().GetResult();
-
-    /// <summary>Reads HTML from a stream, imports it into Word, and returns structured evidence.</summary>
-    public static HtmlToWordResult ToWordDocumentResult(this Stream htmlStream, HtmlToWordOptions? options = null) =>
-        ToWordDocumentResultAsync(htmlStream, options).GetAwaiter().GetResult();
-
-    /// <summary>Asynchronously imports HTML into Word and returns structured evidence.</summary>
-    public static async Task<HtmlToWordResult> ToWordDocumentResultAsync(
-        this string html,
-        HtmlToWordOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        cancellationToken.ThrowIfCancellationRequested();
-        HtmlToWordOptions resolved = (options ?? new HtmlToWordOptions()).Clone();
-        var converter = new HtmlToWordConverter();
-        WordDocument document = await converter.ConvertAsync(html, resolved, cancellationToken).ConfigureAwait(false);
-        return CreateResult(document, resolved);
+    public static HtmlToWordResult ToWordDocumentResult(this HtmlConversionDocument document, HtmlToWordOptions? options = null) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
+        EnsureOfflineSynchronousImport(document, resolved);
+        return ToWordDocumentResultAsync(document, resolved).GetAwaiter().GetResult();
     }
 
     /// <summary>Asynchronously imports a prepared shared HTML document into Word and returns structured evidence.</summary>
@@ -37,28 +20,37 @@ public static partial class WordHtmlConverterExtensions {
         CancellationToken cancellationToken = default) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.ProfileContract.Profile, document.Trust)).Clone();
-        resolved.ConversionProfile = document.ProfileContract.Profile;
+        HtmlToWordOptions resolved = (options ?? CreateWordOptionsForSharedDocument(document.Trust)).Clone();
         var converter = new HtmlToWordConverter();
         WordDocument wordDocument = await converter.ConvertAsync(
-            HtmlDocumentParser.CloneDocument(document.DocumentForConversion),
+            CreateWordSourceDocument(document),
             resolved,
             cancellationToken).ConfigureAwait(false);
         return CreateResult(wordDocument, resolved);
     }
 
-    /// <summary>Asynchronously reads a stream, imports it into Word, and returns structured evidence.</summary>
-    public static async Task<HtmlToWordResult> ToWordDocumentResultAsync(
-        this Stream htmlStream,
-        HtmlToWordOptions? options = null,
-        CancellationToken cancellationToken = default) {
-        if (htmlStream == null) throw new ArgumentNullException(nameof(htmlStream));
-        cancellationToken.ThrowIfCancellationRequested();
-        string html = await HtmlTextIO.ReadAsync(htmlStream, cancellationToken).ConfigureAwait(false);
-        return await html.ToWordDocumentResultAsync(options, cancellationToken).ConfigureAwait(false);
-    }
-
     private static HtmlToWordResult CreateResult(WordDocument document, HtmlToWordOptions options) {
         return new HtmlToWordResult(document, options.ConversionReport);
+    }
+
+    private static void EnsureOfflineSynchronousImport(HtmlConversionDocument document, HtmlToWordOptions options) {
+        if (HtmlToWordConverter.RequiresRemoteAccess(CreateWordSourceDocument(document), options)) {
+            throw new InvalidOperationException(
+                "Synchronous HTML-to-Word import is offline-only. Use the Async method when images or stylesheets require HTTP access.");
+        }
+    }
+
+    private static AngleSharp.Html.Dom.IHtmlDocument CreateWordSourceDocument(HtmlConversionDocument document) {
+        AngleSharp.Html.Dom.IHtmlDocument source = document.CreateSourceDocumentForConversion();
+        if (document.BaseUri != null && source.QuerySelector("base[href]") == null) {
+            AngleSharp.Dom.IElement baseElement = source.CreateElement("base");
+            baseElement.SetAttribute("href", document.BaseUri.AbsoluteUri);
+            source.Head?.Prepend(baseElement);
+        }
+        HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
+            ? HtmlCssMediaContext.Print
+            : HtmlCssMediaContext.Screen;
+        HtmlActiveMediaFilter.Filter(source, mediaContext);
+        return source;
     }
 }

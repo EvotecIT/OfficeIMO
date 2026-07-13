@@ -38,4 +38,28 @@ public sealed class HtmlConversionDocumentOptions {
                 : HtmlCssMediaContext.Screen
         };
     }
+
+    /// <summary>Creates an independent options snapshot that can be safely adjusted for one load operation.</summary>
+    public HtmlConversionDocumentOptions Clone() {
+        HtmlNormalizationOptions normalization = NormalizationOptions ?? new HtmlNormalizationOptions();
+        return new HtmlConversionDocumentOptions {
+            Profile = Profile,
+            Trust = Trust,
+            BaseUri = BaseUri,
+            UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            UseBodyContentsOnly = UseBodyContentsOnly,
+            IncludeNormalizedHtml = IncludeNormalizedHtml,
+            NormalizationOptions = new HtmlNormalizationOptions {
+                BaseUri = normalization.BaseUri,
+                BaseElementBaseUri = normalization.BaseElementBaseUri,
+                UrlPolicy = (normalization.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+                UseBodyContentsOnly = normalization.UseBodyContentsOnly,
+                PreserveComments = normalization.PreserveComments,
+                PreserveSkippedElementMarkers = normalization.PreserveSkippedElementMarkers,
+                PreserveStyleElements = normalization.PreserveStyleElements,
+                RemoveEventHandlerAttributes = normalization.RemoveEventHandlerAttributes,
+                CollapseTextWhitespace = normalization.CollapseTextWhitespace
+            }
+        };
+    }
 }

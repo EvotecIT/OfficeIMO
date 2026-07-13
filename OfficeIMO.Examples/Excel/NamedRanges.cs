@@ -22,7 +22,8 @@ namespace OfficeIMO.Examples.Excel {
                     Console.WriteLine($"Worksheet named range {pair.Key}: {pair.Value}");
                 }
 
-                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                document.Save();
+                if (openExcel) document.OpenInApplication();
             }
         }
     }

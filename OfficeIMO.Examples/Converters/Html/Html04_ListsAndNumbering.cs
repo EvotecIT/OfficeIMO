@@ -13,7 +13,7 @@ namespace OfficeIMO.Examples.Html {
                 throw new FileNotFoundException($"Missing test input: {htmlPath}");
             string html = File.ReadAllText(htmlPath);
 
-            using var doc = html.ToWordDocument(new HtmlToWordOptions());
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
             string docxPath = Path.Combine(folderPath, "Html04_ListsAndNumbering.docx");
             doc.Save(docxPath);
 

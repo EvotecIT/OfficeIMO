@@ -33,7 +33,6 @@
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <LangVersion>Latest</LangVersion>
         <Nullable>enable</Nullable>
-        <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
     </PropertyGroup>
 
     <PropertyGroup
@@ -66,26 +65,15 @@
     </ItemGroup>
 
     <ItemGroup>
-        <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.cs" Link="Shared\OfficeEncryption.cs" />
-        <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.AgileDescriptor.cs" Link="Shared\OfficeEncryption.AgileDescriptor.cs" />
-        <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.CompoundFile.cs" Link="Shared\OfficeEncryption.CompoundFile.cs" />
-        <Compile Include="..\OfficeIMO.Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="Shared\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFile.cs" Link="Shared\Compound\OfficeCompoundFile.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileEntry.cs" Link="Shared\Compound\OfficeCompoundFileEntry.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileReader.cs" Link="Shared\Compound\OfficeCompoundFileReader.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundDocumentDetector.cs" Link="Shared\Compound\OfficeCompoundDocumentDetector.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileWriter.cs" Link="Shared\Compound\OfficeCompoundFileWriter.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundWriterLayout.cs" Link="Shared\Compound\OfficeCompoundWriterLayout.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySection.cs" Link="Shared\Ole\OfficeOlePropertySection.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetReader.cs" Link="Shared\Ole\OfficeOlePropertySetReader.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetWriter.cs" Link="Shared\Ole\OfficeOlePropertySetWriter.cs" />
-        <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertyValue.cs" Link="Shared\Ole\OfficeOlePropertyValue.cs" />
-        <Compile Include="..\OfficeIMO.Shared\OfficePackageSignatureInfo.cs" Link="Shared\OfficePackageSignatureInfo.cs" />
-        <Compile Include="..\OfficeIMO.Shared\OfficePackageSignatureWriter.cs" Link="Shared\OfficePackageSignatureWriter.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+    </ItemGroup>
+
+    <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
     </ItemGroup>
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
@@ -113,6 +101,7 @@
         <InternalsVisibleTo Include="OfficeIMO.Word.Markdown" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Rtf" />
+        <InternalsVisibleTo Include="OfficeIMO.VerifyTests" />
     </ItemGroup>
 
 </Project>

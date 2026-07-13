@@ -15,7 +15,7 @@ namespace OfficeIMO.Examples.Word.Converters {
             string markdownPath = Path.Combine(folderPath, "AsyncMarkdown.md");
             await doc.SaveAsMarkdownAsync(markdownPath);
 
-            using var loaded = await markdownPath.LoadFromMarkdownAsync();
+            using var loaded = (await OfficeIMO.Markdown.MarkdownDoc.LoadAsync(markdownPath)).ToWordDocument();
             Console.WriteLine($"Loaded paragraphs: {loaded.Paragraphs.Count}");
 
             Console.WriteLine($"✓ Created: {markdownPath}");
@@ -26,4 +26,3 @@ namespace OfficeIMO.Examples.Word.Converters {
         }
     }
 }
-

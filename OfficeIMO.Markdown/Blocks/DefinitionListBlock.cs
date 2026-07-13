@@ -14,9 +14,6 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     /// <summary>Typed definition list entries.</summary>
     public IReadOnlyList<DefinitionListEntry> Entries => _entries;
 
-    /// <summary>Legacy tuple-based view over the definition list items.</summary>
-    public IList<(string Term, string Definition)> Items { get; }
-
     /// <summary>Parsed inline representation of the current definition list items.</summary>
     public IReadOnlyList<DefinitionListInlineItem> InlineItems => BuildInlineItems();
     /// <summary>Structured definition body blocks flattened across all groups and definitions.</summary>
@@ -27,7 +24,6 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
 
     /// <summary>Creates a definition list block.</summary>
     public DefinitionListBlock() {
-        Items = new LegacyDefinitionListItemList(this);
     }
 
     internal void SetParsingContext(MarkdownReaderOptions options, MarkdownReaderState state) {
@@ -102,6 +98,11 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         AddGroup(new DefinitionListGroup(
             new[] { safeEntry.Term },
             new[] { safeEntry.Definition }));
+    }
+
+    /// <summary>Adds a definition-list entry parsed from Markdown term and definition text.</summary>
+    public void AddEntry(string? term, string? definition) {
+        AddEntry(CreateEntry(term, definition));
     }
 
     /// <summary>Adds a semantic definition-list group.</summary>
@@ -217,11 +218,11 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         DefinitionListDefinition definition,
         MarkdownReaderOptions options,
         MarkdownReaderState state) {
-        if (definition == null || definition.Blocks.Count == 0) {
+        if (definition == null || definition.ChildBlocks.Count == 0) {
             return new InlineSequence();
         }
 
-        if (definition.Blocks.Count == 1 && definition.Blocks[0] is ParagraphBlock paragraph) {
+        if (definition.ChildBlocks.Count == 1 && definition.ChildBlocks[0] is ParagraphBlock paragraph) {
             return paragraph.Inlines;
         }
 
@@ -240,15 +241,15 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         for (int i = 0; i < _groups.Count; i++) {
             var definitions = _groups[i].Definitions;
             for (int j = 0; j < definitions.Count; j++) {
-                for (int k = 0; k < definitions[j].Blocks.Count; k++) {
-                    blocks.Add(definitions[j].Blocks[k]);
+                for (int k = 0; k < definitions[j].ChildBlocks.Count; k++) {
+                    blocks.Add(definitions[j].ChildBlocks[k]);
                 }
             }
         }
         return blocks;
     }
 
-    private DefinitionListEntry CreateEntryFromLegacyItem(string term, string definition) {
+    private DefinitionListEntry CreateEntry(string? term, string? definition) {
         var options = ReaderOptions ?? new MarkdownReaderOptions();
         var state = ReaderState ?? new MarkdownReaderState();
         var termInlines = string.IsNullOrEmpty(term)
@@ -256,13 +257,8 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             : MarkdownReader.ParseInlineText(term, options, state);
         var blocks = string.IsNullOrWhiteSpace(definition)
             ? Array.Empty<IMarkdownBlock>()
-            : MarkdownReader.ParseBlockFragment(definition, options, state);
+            : MarkdownReader.ParseBlockFragment(definition!, options, state);
         return new DefinitionListEntry(termInlines, blocks);
-    }
-
-    private (string Term, string Definition) GetLegacyItem(int index) {
-        var entry = _entries[index];
-        return (entry.TermMarkdown, entry.DefinitionMarkdown);
     }
 
     private static void AppendGroupMarkdown(
@@ -347,7 +343,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     }
 
     private static void AppendMarkerDefinitionMarkdown(StringBuilder sb, DefinitionListDefinition? definition) {
-        var blocks = definition?.Blocks;
+        var blocks = definition?.ChildBlocks;
         if (blocks == null || blocks.Count == 0) {
             sb.Append(":   ");
             return;
@@ -376,7 +372,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         DefinitionListDefinition? definition) {
         IReadOnlyList<IMarkdownBlock> blocks = definition == null
             ? Array.Empty<IMarkdownBlock>()
-            : definition.Blocks;
+            : definition.ChildBlocks;
         sb.Append(termMarkdown ?? string.Empty).Append(':');
         if (blocks.Count == 0) {
             var definitionMarkdown = definition?.Markdown;
@@ -486,7 +482,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             if (item.DefinitionLazyParagraphTailContinuation &&
                 itemLineCount > 1 &&
                 item.AdditionalParagraphs.Count == 0 &&
-                item.Children.Count == 0) {
+                item.NestedBlocks.Count == 0) {
                 lineIndex = currentLine + 1;
                 return true;
             }
@@ -527,7 +523,7 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                 var cachedMarker = FindCachedDefinitionMarker(cachedGroup, definitionIndex, cachedDefinition);
                 var definitionChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(
                     cachedDefinition?.Children,
-                    definition.Blocks);
+                    definition.ChildBlocks);
 
                 if (definitionChildren.Count == 0 && !string.IsNullOrEmpty(definitionLiteral)) {
                     var fallbackInlines = BuildDefinitionInline(definition, ReaderOptions ?? new MarkdownReaderOptions(), ReaderState ?? new MarkdownReaderState());
@@ -725,80 +721,6 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
             children: MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this),
             associatedObject: this);
 
-    private sealed class LegacyDefinitionListItemList : IList<(string Term, string Definition)> {
-        private readonly DefinitionListBlock _owner;
-
-        public LegacyDefinitionListItemList(DefinitionListBlock owner) {
-            _owner = owner;
-        }
-
-        public int Count => _owner._entries.Count;
-        public bool IsReadOnly => false;
-
-        public (string Term, string Definition) this[int index] {
-            get => _owner.GetLegacyItem(index);
-            set {
-                _owner._entries[index] = _owner.CreateEntryFromLegacyItem(value.Term, value.Definition);
-                _owner.RebuildGroupsFromEntries();
-            }
-        }
-
-        public void Add((string Term, string Definition) item) {
-            _owner._entries.Add(_owner.CreateEntryFromLegacyItem(item.Term, item.Definition));
-            _owner.RebuildGroupsFromEntries();
-        }
-
-        public void Clear() {
-            _owner._entries.Clear();
-            _owner.RebuildGroupsFromEntries();
-        }
-
-        public bool Contains((string Term, string Definition) item) => IndexOf(item) >= 0;
-
-        public void CopyTo((string Term, string Definition)[] array, int arrayIndex) {
-            for (int i = 0; i < _owner._entries.Count; i++) {
-                array[arrayIndex + i] = _owner.GetLegacyItem(i);
-            }
-        }
-
-        public IEnumerator<(string Term, string Definition)> GetEnumerator() {
-            for (int i = 0; i < _owner._entries.Count; i++) {
-                yield return _owner.GetLegacyItem(i);
-            }
-        }
-
-        public int IndexOf((string Term, string Definition) item) {
-            for (int i = 0; i < _owner._entries.Count; i++) {
-                if (_owner.GetLegacyItem(i).Equals(item)) {
-                    return i;
-                }
-            }
-            return -1;
-        }
-
-        public void Insert(int index, (string Term, string Definition) item) {
-            _owner._entries.Insert(index, _owner.CreateEntryFromLegacyItem(item.Term, item.Definition));
-            _owner.RebuildGroupsFromEntries();
-        }
-
-        public bool Remove((string Term, string Definition) item) {
-            int index = IndexOf(item);
-            if (index < 0) {
-                return false;
-            }
-
-            RemoveAt(index);
-            return true;
-        }
-
-        public void RemoveAt(int index) {
-            _owner._entries.RemoveAt(index);
-            _owner.RebuildGroupsFromEntries();
-        }
-
-        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
-    }
-
     private void AddGroupCore(DefinitionListGroup group) {
         _groups.Add(group);
 
@@ -812,17 +734,4 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
         }
     }
 
-    private void RebuildGroupsFromEntries() {
-        _groups.Clear();
-        for (int i = 0; i < _entries.Count; i++) {
-            var entry = _entries[i] ?? new DefinitionListEntry();
-            var group = new DefinitionListGroup(
-                new[] { entry.Term },
-                new[] { entry.Definition });
-            _groups.Add(group);
-            entry.BindToDefinitionList(this, group, 0);
-        }
-
-        SyntaxItems.Clear();
-    }
 }

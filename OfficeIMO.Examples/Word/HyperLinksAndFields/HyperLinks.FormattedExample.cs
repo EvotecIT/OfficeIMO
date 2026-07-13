@@ -17,7 +17,8 @@ namespace OfficeIMO.Examples.Word {
 
                 reference.InsertFormattedHyperlinkAfter("Bing", new Uri("https://bing.com"));
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

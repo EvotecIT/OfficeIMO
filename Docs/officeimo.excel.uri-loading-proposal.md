@@ -1,157 +1,66 @@
-# OfficeIMO.Excel URI Loading Proposal
+# OfficeIMO.Excel remote loading
 
-## Summary
+OfficeIMO.Excel owns remote workbook loading because HTTP policy, download safety, and package validation belong next to the workbook engine. Consumers should not duplicate download, temporary-file, redirect, or content-validation logic.
 
-ExcelFast's URL support is useful, but it is transport glue in front of a local-file loader. OfficeIMO.Excel should treat remote workbook loading as an engine feature instead of pushing that concern into PSWriteOffice. The engine already owns workbook stream and reader semantics, so it is the right place to own HTTP policy, download safety, cleanup, and the transition into the existing Open XML load path.
+## Public API
 
-This branch implements the first slice as a bounded, memory-backed remote loader. It deliberately does not add temp-file mode or remote save semantics.
-
-The recommended public surface is:
+Remote I/O is asynchronous only:
 
 ```csharp
-ExcelDocument.Load(Uri uri, ExcelHttpLoadOptions? httpOptions = null, bool readOnly = true, OpenSettings? openSettings = null)
-ExcelDocument.LoadAsync(Uri uri, ExcelHttpLoadOptions? httpOptions = null, bool readOnly = true, OpenSettings? openSettings = null, CancellationToken cancellationToken = default)
+using OfficeIMO.Excel;
 
-ExcelDocumentReader.Open(Uri uri, ExcelReadOptions? readOptions = null, ExcelHttpLoadOptions? httpOptions = null)
-ExcelDocumentReader.OpenAsync(Uri uri, ExcelReadOptions? readOptions = null, ExcelHttpLoadOptions? httpOptions = null, CancellationToken cancellationToken = default)
+Uri uri = new("https://example.test/report.xlsx");
+
+using ExcelDocument workbook = await ExcelDocument.LoadAsync(
+    uri,
+    new ExcelHttpLoadOptions {
+        MaxBytes = 100L * 1024L * 1024L
+    },
+    cancellationToken: cancellationToken);
+
+using ExcelDocumentReader reader = await ExcelDocumentReader.OpenAsync(
+    uri,
+    cancellationToken: cancellationToken);
 ```
 
-PSWriteOffice can then expose a thin wrapper:
+There are no synchronous `Load(Uri)` or `Open(Uri)` counterparts. A remote request cannot complete synchronously, and hiding it behind a synchronous API would create blocking and cancellation problems. Local path, stream, and byte-array inputs retain their synchronous entry points.
 
-```powershell
-Import-OfficeExcel -Uri https://example.test/report.xlsx
-Get-OfficeExcel -Uri https://example.test/report.xlsx
-```
+## Default policy
 
-No PSWriteOffice downloader, temp-file policy, retry policy, or content validation should be needed.
+- HTTPS is required by default. Plain HTTP requires an explicit `ExcelUriSchemePolicy.HttpAndHttps` opt-in.
+- The response is downloaded completely before Open XML parsing. XLSX packages require seekable ZIP access; the API does not pretend to stream rows directly from HTTP.
+- `MaxBytes` is checked against `Content-Length`, when present, and against the bytes actually read.
+- Timeout and caller cancellation are both observed.
+- Redirects are followed manually so the target scheme is revalidated at every hop.
+- Custom headers are removed after a redirect to another host.
+- ZIP header validation is enabled by default. Content-type validation is optional because real file hosts often use generic MIME types.
+- Remote loads are detached. They never imply upload or save-back behavior.
 
-## Current Fit
+Options are snapshotted when the operation starts, so mutating the caller-owned options object does not alter an in-flight request.
 
-OfficeIMO.Excel already has:
+## Lifecycle and ownership
 
-- `ExcelDocument.Load(string)` and `LoadAsync(string)` for path-backed workbooks.
-- `ExcelDocument.Load(Stream)` and `LoadAsync(Stream)` for caller-provided streams.
-- `ExcelDocumentReader.Open(string)`, `Open(Stream)`, and `Open(byte[])` for read-only reader workflows.
-- Existing byte materialization and package content-type normalization before `SpreadsheetDocument.Open(...)`.
-- Cancellation-aware async helpers in the load and read paths.
+The loader materializes a bounded, seekable package in memory and hands it to the same native Open XML load path used by byte-array input. No temporary file or hidden path becomes associated with the returned document.
 
-That means the first implementation does not need a new workbook parser. It needs a careful HTTP fetch helper that produces a bounded, seekable workbook package and then calls the existing byte or stream loader.
-
-## Proposed Types
+The caller owns the returned `ExcelDocument` or `ExcelDocumentReader` and must dispose it. To persist a remote workbook locally, choose the destination explicitly:
 
 ```csharp
-public sealed class ExcelHttpLoadOptions {
-    public ExcelUriSchemePolicy SchemePolicy { get; set; } = ExcelUriSchemePolicy.HttpsOnly;
-    public long MaxBytes { get; set; } = 100L * 1024L * 1024L;
-    public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(100);
-    public string? UserAgent { get; set; } = "OfficeIMO.Excel";
-    public IDictionary<string, string> Headers { get; } = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-    public bool ValidateZipHeader { get; set; } = true;
-    public bool ValidateContentTypeWhenPresent { get; set; } = false;
-    public ISet<string> AllowedContentTypes { get; } = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "application/vnd.ms-excel.sheet.macroenabled.12",
-        "application/vnd.openxmlformats-officedocument.spreadsheetml.template",
-        "application/vnd.ms-excel.template.macroenabled.12",
-        "application/vnd.ms-excel.addin.macroenabled.12",
-        "application/vnd.ms-excel",
-        "application/octet-stream"
-    };
-    public IProgress<ExcelHttpLoadProgress>? Progress { get; set; }
-}
-
-public enum ExcelUriSchemePolicy {
-    HttpsOnly,
-    HttpAndHttps
-}
-
-public readonly struct ExcelHttpLoadProgress {
-    public long BytesRead { get; }
-    public long? ContentLength { get; }
-}
+using ExcelDocument workbook = await ExcelDocument.LoadAsync(uri, cancellationToken: cancellationToken);
+workbook.SaveCopy("report.xlsx");
 ```
 
-The implementation should clone option values at operation start so callers cannot mutate active requests midway.
+`DocumentPersistenceMode.SaveOnDispose` is rejected for remote loads because a detached remote document has no writable destination. Remote upload is a separate concern and is not inferred from the source URI.
 
-## Default Policy
+## Thin consumer surfaces
 
-- `https` only by default. Plain `http` requires `SchemePolicy = HttpAndHttps`.
-- Full response download before Open XML parsing. This matches current package-opening reality and avoids pretending the parser can stream XLSX row data directly from HTTP.
-- `MaxBytes` enforced against `Content-Length` when present and against the running byte count while copying.
-- `Timeout` and `CancellationToken` both respected.
-- Caller headers and user-agent supported without adding a dependency on any auth framework.
-- Optional content-type validation because real file hosts often return generic values. ZIP header validation is the stronger default check for `.xlsx`.
-- The internally owned client uses the configured timeout, disables automatic redirects, follows redirects manually, revalidates the target URI scheme at each hop, and strips custom headers after a host change.
-- The internally owned client enables gzip/deflate response decompression. The first public slice deliberately does not accept caller-supplied `HttpClient`, because an already-created client can auto-follow redirects before OfficeIMO can enforce scheme and header policy.
-- Remote load is read-only by default. It should not imply remote save or upload semantics.
+A PowerShell or CLI wrapper should expose an asynchronous command surface and map its parameters directly to `ExcelHttpLoadOptions`. The wrapper may present values such as URI, maximum bytes, timeout, headers, user agent, and HTTP opt-in, but it should not implement its own downloader, retry policy, redirect handling, ZIP validation, or temporary-file cleanup.
 
-## Ownership And Cleanup
+Authentication in this contract is explicit through request headers. Richer transport customization should be added only if OfficeIMO can continue enforcing redirect, scheme, byte-limit, and credential-forwarding policy.
 
-Remote loading should not leak temp files or hidden state.
+## Non-goals
 
-For this first slice, use memory for all supported downloads and pass bytes into existing load/open methods. This keeps ownership simple and mirrors the current local file and stream loaders, which already materialize package bytes.
-
-For a future slice, add temp-file support only if it reduces real memory pressure in the underlying Open XML path. If used:
-
-- Create temp files under an explicit option directory or `Path.GetTempPath()`.
-- Use a package-owned cleanup scope so files are deleted when `ExcelDocument` or `ExcelDocumentReader` is disposed.
-- Never expose the temp path as `FilePath`, because remote load does not have local save-back semantics.
-- Do not copy back to the temp file on dispose unless the caller explicitly saves to a chosen destination.
-
-## Implementation Plan
-
-1. Add `ExcelHttpLoadOptions`, `ExcelUriSchemePolicy`, and `ExcelHttpLoadProgress` under `OfficeIMO.Excel`.
-2. Add an internal `ExcelHttpWorkbookLoader` that:
-   - validates the URI scheme,
-   - sends a GET request with `ResponseHeadersRead`,
-   - checks success status,
-   - enforces timeout, cancellation, and byte limit,
-   - copies to memory,
-   - follows redirects manually with scheme revalidation,
-   - strips custom headers after redirected host changes,
-   - applies the configured timeout and enables gzip/deflate decompression for the internally created client,
-   - validates ZIP magic bytes when enabled,
-   - reports progress during copy.
-3. Add `ExcelDocument.Load(Uri, ...)` and `LoadAsync(Uri, ...)`.
-   - Do not expose `autoSave` for URI loads. Remote save belongs to an explicit upload API later, not this convenience loader.
-   - Call `LoadFromByteArray(...)` with `filePath: null` and `preferFilePathOnFallback: false`.
-4. Add `ExcelDocumentReader.Open(Uri, ...)` and `OpenAsync(Uri, ...)`.
-   - Call the existing `Open(byte[], ExcelReadOptions?)` path.
-5. Add unit tests with an in-process HTTP server or internal injectable handler:
-   - HTTPS-only default rejects `http`.
-   - Opt-in `http` works.
-   - headers/user-agent are sent.
-   - custom headers are not forwarded across redirected hosts.
-   - HTTPS-to-HTTP redirects are rejected by default.
-   - max byte limit rejects oversized responses before and during copy.
-   - cancellation is observed while downloading.
-   - content-type validation is opt-in.
-   - macro-enabled workbook MIME types are accepted by default.
-   - invalid ZIP header is rejected.
-   - reader and document paths both open a valid downloaded workbook.
-
-## PSWriteOffice Surface
-
-After the engine API exists, PSWriteOffice should only map PowerShell parameters to OfficeIMO options:
-
-- `-Uri` as a separate parameter set from `-Path`.
-- `-AllowHttp` maps to `SchemePolicy = HttpAndHttps`.
-- `-Header` maps to `ExcelHttpLoadOptions.Headers`.
-- `-TimeoutSeconds`, `-MaximumBytes`, and `-UserAgent` map directly.
-- Progress can be wired to PowerShell progress from `ExcelHttpLoadProgress`.
-
-Anything beyond that, including retries, cache policy, temp-file cleanup, and package validation, should remain in OfficeIMO.Excel. Auth for this slice should use explicit headers; richer transport customization can come later only if it preserves OfficeIMO-owned redirect and scheme enforcement.
-
-## Non-Goals
-
-- No streaming XLSX parsing directly from HTTP in the first slice.
-- No remote save/upload behavior.
-- No cookie jar or browser-session semantics.
-- No automatic credential discovery.
-- No wrapper-side fallback downloader in PSWriteOffice.
-
-## Future Questions
-
-- Should a future temp-file mode be added after measuring whether it reduces real memory pressure in the current Open XML path?
-- Should `MaxBytes` stay at `100 MB`, move to `256 MB`, or become unlimited with a documented recommendation? A bounded default is safer, but large operational workbooks may need an easy override.
-- Should content-type validation stay opt-in forever, or become a warn-only diagnostic hook once OfficeIMO has a broader diagnostics surface?
+- Streaming XLSX row parsing directly from HTTP.
+- Implicit remote save or upload.
+- Browser-session or cookie-jar behavior.
+- Automatic credential discovery.
+- Consumer-side fallback downloaders.

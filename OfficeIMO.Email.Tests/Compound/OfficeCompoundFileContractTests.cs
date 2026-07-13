@@ -1,4 +1,4 @@
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using OpenMcdf;
 using Xunit;
 

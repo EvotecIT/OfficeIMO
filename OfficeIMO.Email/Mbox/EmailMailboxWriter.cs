@@ -19,7 +19,7 @@ public sealed class EmailMailboxWriter {
     /// <summary>Writes a mailbox to a file.</summary>
     public EmailWriteResult Write(EmailMailbox mailbox, string filePath) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
-        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
+        byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
         OfficeFileCommit.WriteAllBytes(filePath, bytes);
         return result;
     }
@@ -28,24 +28,22 @@ public sealed class EmailMailboxWriter {
     public EmailWriteResult Write(EmailMailbox mailbox, Stream stream) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
-        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
-        stream.Write(bytes, 0, bytes.Length);
+        byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
+        OfficeStreamWriter.WriteAllBytes(stream, bytes);
         return result;
     }
 
     /// <summary>Writes a mailbox to memory.</summary>
-    public byte[] WriteToBytes(EmailMailbox mailbox) => WriteToBytes(mailbox, out _, CancellationToken.None);
+    public byte[] ToBytes(EmailMailbox mailbox) => ToBytes(mailbox, out _, CancellationToken.None);
 
     /// <summary>Asynchronously writes a mailbox file.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailMailbox mailbox, string filePath,
         CancellationToken cancellationToken = default) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, cancellationToken);
-        using (FileStream stream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None,
-            81920, FileOptions.Asynchronous | FileOptions.SequentialScan)) {
-            await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
-        }
+        byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, cancellationToken);
+        await OfficeFileCommit.WriteAllBytesAsync(filePath, bytes, cancellationToken: cancellationToken)
+            .ConfigureAwait(false);
         return result;
     }
 
@@ -55,13 +53,13 @@ public sealed class EmailMailboxWriter {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
-        byte[] bytes = WriteToBytes(mailbox, out EmailWriteResult result, cancellationToken);
+        byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, cancellationToken);
         cancellationToken.ThrowIfCancellationRequested();
-        await stream.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
+        await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
         return result;
     }
 
-    private byte[] WriteToBytes(EmailMailbox mailbox, out EmailWriteResult result, CancellationToken cancellationToken) {
+    private byte[] ToBytes(EmailMailbox mailbox, out EmailWriteResult result, CancellationToken cancellationToken) {
         if (mailbox == null) throw new ArgumentNullException(nameof(mailbox));
         cancellationToken.ThrowIfCancellationRequested();
         var diagnostics = new List<EmailDiagnostic>();

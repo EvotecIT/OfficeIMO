@@ -2,7 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls.Model;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using System.Globalization;
 using System.Text;
 

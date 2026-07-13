@@ -11,7 +11,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var list = Guard.NotNull(document.GetDropDownListByTag("ListTag"), "Dropdown list with tag 'ListTag' was not found.");
                 Console.WriteLine($"Item count: {list.Items.Count}");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

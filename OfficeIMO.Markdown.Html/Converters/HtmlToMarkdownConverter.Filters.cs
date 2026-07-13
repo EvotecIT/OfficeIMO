@@ -2,7 +2,7 @@ using AngleSharp.Dom;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     private static void ApplyHtmlFilters(IElement? root, HtmlToMarkdownOptions options) {
         if (root == null || options == null) {
             return;

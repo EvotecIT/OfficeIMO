@@ -6,11 +6,11 @@ using System.Linq;
 using System.Runtime.ExceptionServices;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
@@ -129,12 +129,8 @@ namespace OfficeIMO.PowerPoint {
         /// <see cref="Save()"/> is called or SaveOnDispose is explicitly enabled.
         /// </summary>
         public static PowerPointPresentation Create(Stream stream, PowerPointCreateOptions? options = null) {
-            if (stream == null) throw new ArgumentNullException(nameof(stream));
-            if (!stream.CanWrite) throw new ArgumentException("Stream must be writable.", nameof(stream));
+            OfficeDocumentLifecycle.EnsureAssociatedDestination(stream, nameof(stream));
             PowerPointCreateOptions resolved = options ?? new PowerPointCreateOptions();
-            if (!OfficeStreamWriter.CanReplaceContents(stream)) {
-                throw new ArgumentException("Stream must support seeking when used as an associated destination.", nameof(stream));
-            }
             return CreateInternal(filePath: null, stream, resolved);
         }
 
@@ -188,15 +184,46 @@ namespace OfficeIMO.PowerPoint {
             if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
 
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
-            ValidateLifecycle(resolved.AccessMode, resolved.PersistenceMode);
-            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !stream.CanWrite) {
-                throw new ArgumentException("Stream must be writable when SaveOnDispose is enabled.", nameof(stream));
-            }
-            if (resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !stream.CanSeek) {
-                throw new ArgumentException("Stream must support seeking when SaveOnDispose is enabled.", nameof(stream));
-            }
+            OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
+            OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
             return LoadPackage(ReadAllBytes(stream), filePath: null, stream, resolved);
+        }
+
+        /// <summary>Asynchronously loads an existing presentation into detached memory.</summary>
+        public static async Task<PowerPointPresentation> LoadAsync(
+            string filePath,
+            PowerPointLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            string fullPath = Path.GetFullPath(filePath);
+            if (!File.Exists(fullPath)) {
+                throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
+            }
+
+            using var source = new FileStream(
+                fullPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete,
+                81920,
+                useAsync: true);
+            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
+            return LoadPackage(bytes, fullPath, sourceStream: null, options ?? new PowerPointLoadOptions());
+        }
+
+        /// <summary>Asynchronously loads a presentation from a caller-owned stream.</summary>
+        public static async Task<PowerPointPresentation> LoadAsync(
+            Stream stream,
+            PowerPointLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+            PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
+            OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
+            OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
+            byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            return LoadPackage(bytes, filePath: null, stream, resolved);
         }
 
         /// <summary>Loads a password-encrypted presentation into detached memory.</summary>
@@ -213,6 +240,48 @@ namespace OfficeIMO.PowerPoint {
             PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(File.ReadAllBytes(filePath), password);
+            return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+        }
+
+        /// <summary>Asynchronously loads a password-encrypted presentation into detached memory.</summary>
+        public static async Task<PowerPointPresentation> LoadEncryptedAsync(
+            string filePath,
+            string password,
+            PowerPointLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (filePath == null) throw new ArgumentNullException(nameof(filePath));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            string fullPath = Path.GetFullPath(filePath);
+            if (!File.Exists(fullPath)) {
+                throw new FileNotFoundException($"File '{fullPath}' doesn't exist.", fullPath);
+            }
+            PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
+            using var source = new FileStream(
+                fullPath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete,
+                81920,
+                useAsync: true);
+            byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
+            return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
+        }
+
+        /// <summary>Asynchronously loads a password-encrypted presentation stream into detached memory.</summary>
+        public static async Task<PowerPointPresentation> LoadEncryptedAsync(
+            Stream stream,
+            string password,
+            PowerPointLoadOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (stream == null) throw new ArgumentNullException(nameof(stream));
+            if (password == null) throw new ArgumentNullException(nameof(password));
+            if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
+            PowerPointLoadOptions resolved = options ?? new PowerPointLoadOptions();
+            EnsureEncryptedLoadUsesExplicitPersistence(resolved);
+            byte[] encryptedBytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadPackage(packageBytes, filePath: null, sourceStream: null, resolved);
         }
 
@@ -236,12 +305,11 @@ namespace OfficeIMO.PowerPoint {
             string? filePath,
             Stream? sourceStream,
             PowerPointLoadOptions options) {
-            ValidateLifecycle(options.AccessMode, options.PersistenceMode);
+            OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "presentation");
             bool editable = options.AccessMode == DocumentAccessMode.ReadWrite;
-            Stream? associatedStream = editable && sourceStream != null &&
-                                       OfficeStreamWriter.CanReplaceContents(sourceStream)
-                ? sourceStream
-                : null;
+            Stream? associatedStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(
+                sourceStream,
+                options.AccessMode);
             var packageStream = new MemoryStream(bytes.Length + StreamBufferSize);
             packageStream.Write(bytes, 0, bytes.Length);
             packageStream.Position = 0;
@@ -275,15 +343,6 @@ namespace OfficeIMO.PowerPoint {
                 MarkupCompatibilityProcessSettings = openSettings.MarkupCompatibilityProcessSettings,
                 MaxCharactersInPart = openSettings.MaxCharactersInPart
             };
-        }
-
-        private static void ValidateLifecycle(
-            DocumentAccessMode accessMode,
-            DocumentPersistenceMode persistenceMode) {
-            if (accessMode == DocumentAccessMode.ReadOnly &&
-                persistenceMode == DocumentPersistenceMode.SaveOnDispose) {
-                throw new ArgumentException("A read-only presentation cannot use SaveOnDispose persistence.");
-            }
         }
 
         private static void EnsureEncryptedLoadUsesExplicitPersistence(PowerPointLoadOptions options) {

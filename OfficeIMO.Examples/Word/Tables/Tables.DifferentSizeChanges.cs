@@ -211,7 +211,8 @@ internal static partial class Tables {
             Console.WriteLine($"Table 18 - Column Percentages: {string.Join(", ", wordTable17.ColumnWidth!)}");
             document.AddParagraph();
 
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

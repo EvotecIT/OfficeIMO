@@ -1,6 +1,8 @@
 using System.IO;
 using System.Linq;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Drawing;
@@ -352,15 +354,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_ExcelImage_FromUrl_AllowsScaleOnlyCallShape() {
+        public async Task Test_ExcelImage_FromUrl_PropagatesCancellation() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelImage.FromUrl.ScaleOnly.xlsx");
 
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorksheet("Images");
 
-            ExcelImage? image = sheet.AddImageFromUrl(2, 2, "http://127.0.0.1:1/not-found.png", scalePercent: 25);
-
-            Assert.Null(image);
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                sheet.AddImageFromUrlAsync(2, 2, "http://127.0.0.1:1/not-found.png", scalePercent: 25,
+                    cancellationToken: cancellation.Token));
         }
     }
 }

@@ -175,11 +175,11 @@ public sealed class ReaderHierarchicalChunkingTests {
     [Fact]
     public void MarkdownRead_PreservesRawHeadingPathWhileHierarchyKeepsLiteralDelimiter() {
         byte[] markdown = Encoding.UTF8.GetBytes("# Q1 > Q2\\Back\n\nBody");
-        ReaderChunk normal = Assert.Single(DocumentReader.Read(markdown, "note.md"));
+        ReaderChunk normal = Assert.Single(OfficeDocumentReader.Default.Read(markdown, "note.md"));
 
         Assert.Equal("Q1 > Q2\\Back", normal.Location.HeadingPath);
 
-        ReaderChunkHierarchyResult hierarchy = DocumentReader.ReadHierarchical(
+        ReaderChunkHierarchyResult hierarchy = OfficeDocumentReader.Default.ReadHierarchical(
             markdown,
             "note.md",
             chunkingOptions: new ReaderHierarchicalChunkingOptions {
@@ -196,7 +196,7 @@ public sealed class ReaderHierarchicalChunkingTests {
 
     [Fact]
     public void Chunk_UsesProcessorUpdatedPublicHeadingPathInsteadOfStaleHint() {
-        ReaderChunk chunk = Assert.Single(DocumentReader.Read(
+        ReaderChunk chunk = Assert.Single(OfficeDocumentReader.Default.Read(
             Encoding.UTF8.GetBytes("# Original > Literal\n\nBody"),
             "note.md"));
         chunk.Location.HeadingPath = "Processed";
@@ -924,8 +924,8 @@ public sealed class ReaderHierarchicalChunkingTests {
             IncludeContextInText = false
         };
 
-        ReaderChunkHierarchyResult staticSync = DocumentReader.ReadHierarchical(markdown, "note.md", chunkingOptions: options);
-        ReaderChunkHierarchyResult staticAsync = await DocumentReader.ReadHierarchicalAsync(markdown, "note.md", chunkingOptions: options);
+        ReaderChunkHierarchyResult staticSync = OfficeDocumentReader.Default.ReadHierarchical(markdown, "note.md", chunkingOptions: options);
+        ReaderChunkHierarchyResult staticAsync = await OfficeDocumentReader.Default.ReadHierarchicalAsync(markdown, "note.md", chunkingOptions: options);
         Assert.Equal(staticSync.ToJson(), staticAsync.ToJson());
 
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()

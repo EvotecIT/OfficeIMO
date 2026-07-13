@@ -44,7 +44,8 @@ namespace OfficeIMO.Examples.Word {
             WordDocument document1 = WordDocument.Load(filePathOutput);
 
             document1.AddParagraph("This is my test in document 2");
-            document1.SaveCopy(filePathOutput2, new WordSaveOptions { OpenAfterSave = openWord });
+            document1.SaveCopy(filePathOutput2);
+            if (openWord) document1.OpenInApplication(filePathOutput2);
         }
 
 
@@ -59,7 +60,8 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddParagraph("This is my test in document");
 
-            document.SaveCopy(filePath, new WordSaveOptions { OpenAfterSave = openWord });
+            document.SaveCopy(filePath);
+            if (openWord) document.OpenInApplication(filePath);
         }
 
         public static void Example_BasicDocumentSaveAs3(string folderPath, bool openWord) {
@@ -83,7 +85,8 @@ namespace OfficeIMO.Examples.Word {
 
             document.AddParagraph("This is my test in document 3");
 
-            document.SaveCopy(filePath3, new WordSaveOptions { OpenAfterSave = openWord });
+            document.SaveCopy(filePath3);
+            if (openWord) document.OpenInApplication(filePath3);
         }
     }
 }

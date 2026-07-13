@@ -16,7 +16,7 @@ public class PdfBookmarkEditorTests {
             .Paragraph(p => p.Text("Page two"))
             .ToBytes();
 
-        PdfBookmarkEditResult edited = PdfDocument.Open(source).Bookmarks.Edit(session => {
+        PdfBookmarkEditResult edited = PdfDocument.Load(source).Bookmarks.Edit(session => {
             PdfBookmarkNode first = session.Roots[0];
             PdfBookmarkNode second = session.Roots[1];
             session.Rename(first.Id, "Renamed first");
@@ -30,9 +30,9 @@ public class PdfBookmarkEditorTests {
         Assert.Equal("Renamed first", edited.Outlines[0].Title);
         Assert.Equal(1, edited.Outlines[1].PageNumber);
         Assert.Equal("Added", Assert.Single(edited.Outlines[1].Children).Title);
-        Assert.Empty(edited.OpenDocument().Bookmarks.Validate());
+        Assert.Empty(edited.ToDocument().Bookmarks.Validate());
 
-        PdfBookmarkEditResult rebuilt = edited.OpenDocument().Bookmarks.Edit(session => session.RebuildFromHeadings());
+        PdfBookmarkEditResult rebuilt = edited.ToDocument().Bookmarks.Edit(session => session.RebuildFromHeadings());
         Assert.Contains(rebuilt.Outlines, static outline => outline.Title == "First");
         Assert.Contains(rebuilt.Outlines, static outline => outline.Title == "Second");
         Assert.Contains(rebuilt.Outlines.SelectMany(static outline => outline.Children), static outline => outline.Title == "Detail");

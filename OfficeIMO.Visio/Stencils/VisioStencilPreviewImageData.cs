@@ -2,6 +2,8 @@ using OfficeIMO.Drawing.Internal;
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -42,8 +44,11 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>Embedded preview image byte length.</summary>
         public int ByteLength => _data.Length;
 
-        /// <summary>Copy of the embedded preview image bytes.</summary>
-        public byte[] Data => _data.ToArray();
+        /// <summary>Returns a copy of the embedded preview image bytes.</summary>
+        public byte[] ToBytes() => _data.ToArray();
+
+        /// <summary>Returns the embedded preview image in a new stream positioned at the beginning.</summary>
+        public MemoryStream ToStream() => new MemoryStream(ToBytes());
 
         /// <summary>Stable file name suitable for saving the extracted preview payload.</summary>
         public string SuggestedFileName {
@@ -60,14 +65,21 @@ namespace OfficeIMO.Visio.Stencils {
         /// </summary>
         public void Save(string path) {
             if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
-
-            string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
-            if (!string.IsNullOrWhiteSpace(directory)) {
-                Directory.CreateDirectory(directory!);
-            }
-
             OfficeFileCommit.WriteAllBytes(path, _data);
         }
+
+        /// <summary>Saves the preview payload to a caller-owned stream.</summary>
+        public void Save(Stream stream) => OfficeStreamWriter.WriteAllBytes(stream, _data);
+
+        /// <summary>Saves the preview payload to a file asynchronously.</summary>
+        public Task SaveAsync(string path, CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
+            return OfficeFileCommit.WriteAllBytesAsync(path, _data, cancellationToken: cancellationToken);
+        }
+
+        /// <summary>Saves the preview payload to a caller-owned stream asynchronously.</summary>
+        public Task SaveAsync(Stream stream, CancellationToken cancellationToken = default) =>
+            OfficeStreamWriter.WriteAllBytesAsync(stream, _data, cancellationToken);
 
         /// <summary>
         /// Saves the preview payload to a directory using <see cref="SuggestedFileName"/>.
@@ -78,6 +90,19 @@ namespace OfficeIMO.Visio.Stencils {
             Directory.CreateDirectory(directoryPath);
             string path = Path.Combine(directoryPath, SuggestedFileName);
             Save(path);
+            return path;
+        }
+
+        /// <summary>Saves the preview payload to a directory using <see cref="SuggestedFileName"/> asynchronously.</summary>
+        public async Task<string> SaveToDirectoryAsync(
+            string directoryPath,
+            CancellationToken cancellationToken = default) {
+            if (string.IsNullOrWhiteSpace(directoryPath)) throw new ArgumentException("Output directory cannot be null or whitespace.", nameof(directoryPath));
+
+            cancellationToken.ThrowIfCancellationRequested();
+            Directory.CreateDirectory(directoryPath);
+            string path = Path.Combine(directoryPath, SuggestedFileName);
+            await SaveAsync(path, cancellationToken).ConfigureAwait(false);
             return path;
         }
 

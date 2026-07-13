@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var original = MarkdownDoc.Create().Code("bash", snippet);
 
             var markdown = original.ToMarkdown();
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
 
             var block = Assert.Single(parsed.Blocks);
             var code = Assert.IsType<CodeBlock>(block);

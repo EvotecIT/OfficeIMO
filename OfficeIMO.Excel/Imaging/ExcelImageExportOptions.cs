@@ -109,6 +109,27 @@ namespace OfficeIMO.Excel {
         /// Single-image worksheet export keeps one result and emits a diagnostic instead of splitting.
         /// </summary>
         public bool SplitByManualPageBreaks { get; set; }
+
+        internal ExcelWorksheetImageExportOptions CloneWorksheet() => new ExcelWorksheetImageExportOptions {
+            Scale = Scale,
+            BackgroundColor = BackgroundColor,
+            GridlineColor = GridlineColor,
+            ShowGridlines = ShowGridlines,
+            IncludeHidden = IncludeHidden,
+            IncludeImages = IncludeImages,
+            IncludeCharts = IncludeCharts,
+            IncludeDrawingObjects = IncludeDrawingObjects,
+            IncludeConditionalFormatting = IncludeConditionalFormatting,
+            ConditionalFormattingDate = ConditionalFormattingDate,
+            ShowHyperlinkHints = ShowHyperlinkHints,
+            ShowCommentBodies = ShowCommentBodies,
+            DefaultColumnWidthPixels = DefaultColumnWidthPixels,
+            DefaultRowHeightPixels = DefaultRowHeightPixels,
+            Range = Range,
+            HeaderFooterDateTime = HeaderFooterDateTime,
+            UsePrintArea = UsePrintArea,
+            SplitByManualPageBreaks = SplitByManualPageBreaks
+        };
     }
 
     /// <summary>

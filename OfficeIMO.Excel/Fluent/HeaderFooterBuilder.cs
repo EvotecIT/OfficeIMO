@@ -9,7 +9,6 @@ namespace OfficeIMO.Excel.Fluent {
             public bool Header { get; set; }
             public HeaderFooterPosition Position { get; set; }
             public byte[]? Bytes { get; set; }
-            public string? Url { get; set; }
             public string? ContentType { get; set; }
             public double? W { get; set; }
             public double? H { get; set; }
@@ -67,47 +66,11 @@ namespace OfficeIMO.Excel.Fluent {
             return this;
         }
 
-        /// <summary>Adds a centered header image from URL (downloaded on apply).</summary>
-        public HeaderFooterBuilder CenterImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
-            => ImageUrl(true, HeaderFooterPosition.Center, url, widthPoints, heightPoints);
-        /// <summary>Adds a left header image from URL (downloaded on apply).</summary>
-        /// <param name="url">Direct URL to an image (PNG/JPEG/GIF/BMP).</param>
-        /// <param name="widthPoints">Optional width in points; inferred from image when null.</param>
-        /// <param name="heightPoints">Optional height in points; inferred from image when null.</param>
-        public HeaderFooterBuilder LeftImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
-            => ImageUrl(true, HeaderFooterPosition.Left, url, widthPoints, heightPoints);
-        /// <summary>Adds a right header image from URL (downloaded on apply).</summary>
-        public HeaderFooterBuilder RightImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
-            => ImageUrl(true, HeaderFooterPosition.Right, url, widthPoints, heightPoints);
-        /// <summary>Adds a centered footer image from URL (downloaded on apply).</summary>
-        public HeaderFooterBuilder FooterCenterImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
-            => ImageUrl(false, HeaderFooterPosition.Center, url, widthPoints, heightPoints);
-        /// <summary>Adds a left footer image from URL (downloaded on apply).</summary>
-        public HeaderFooterBuilder FooterLeftImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
-            => ImageUrl(false, HeaderFooterPosition.Left, url, widthPoints, heightPoints);
-        /// <summary>Adds a right footer image from URL (downloaded on apply).</summary>
-        public HeaderFooterBuilder FooterRightImageUrl(string url, double? widthPoints = null, double? heightPoints = null)
-            => ImageUrl(false, HeaderFooterPosition.Right, url, widthPoints, heightPoints);
-
-        private HeaderFooterBuilder ImageUrl(bool header, HeaderFooterPosition pos, string url, double? w, double? h) {
-            if (string.IsNullOrWhiteSpace(url)) return this;
-            _images.Add(new ImageRequest { Header = header, Position = pos, Url = url, W = w, H = h });
-            return this;
-        }
-
         internal void Apply(ExcelSheet sheet) {
             sheet.SetHeaderFooter(_hl, _hc, _hr, _fl, _fc, _fr, _diffFirst, _diffOddEven, _alignMargins, _scaleWithDoc);
             foreach (var img in _images) {
                 byte[]? bytes = img.Bytes;
                 string? contentType = img.ContentType;
-                if (bytes == null && !string.IsNullOrWhiteSpace(img.Url)) {
-                    if (ImageDownloader.TryFetch(img.Url!, 5, 2_000_000, out var fetched, out var fetchedContentType)) {
-                        bytes = fetched;
-                        if (!string.IsNullOrWhiteSpace(fetchedContentType)) {
-                            contentType = ExcelSheet.NormalizeImageContentType(fetchedContentType, nameof(fetchedContentType));
-                        }
-                    }
-                }
                 contentType = ExcelSheet.NormalizeImageContentType(contentType, nameof(contentType));
                 if (bytes == null) continue;
                 if (img.Header) sheet.SetHeaderImage(img.Position, bytes, contentType, img.W, img.H);

@@ -105,8 +105,8 @@ namespace OfficeIMO.Tests {
                 var regex = new Regex(@"Item \d{3}");
                 var result = document.Find(regex);
 
-                Assert.Equal(2, result.Found);
-                Assert.Equal(2, result.Paragraphs.Count);
+                Assert.Equal(2, result.MatchCount);
+                Assert.Equal(2, result.BodyParagraphs.Count);
 
                 document.Save();
             }
@@ -115,8 +115,8 @@ namespace OfficeIMO.Tests {
                 var regex = new Regex(@"Item \d{3}");
                 var result = document.Find(regex);
 
-                Assert.Equal(2, result.Found);
-                Assert.Equal(2, result.Paragraphs.Count);
+                Assert.Equal(2, result.MatchCount);
+                Assert.Equal(2, result.BodyParagraphs.Count);
             }
         }
 

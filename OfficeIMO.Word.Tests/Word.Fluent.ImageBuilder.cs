@@ -31,15 +31,18 @@ namespace OfficeIMO.Tests {
             });
 
             using (var document = WordDocument.Create(filePath)) {
-                document.AsFluent()
+                WordFluentDocument fluent = document.AsFluent()
                     .Image(i => i.Add(imagePath).Size(50, 50).Wrap(WrapTextImage.Square).Align(HorizontalAlignment.Center))
                     .Image(i => {
                         using var stream = File.OpenRead(imagePath);
                         i.Add(stream, "stream.jpg").Size(60, 60).Align(HorizontalAlignment.Right);
                     })
-                    .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70).Align(HorizontalAlignment.Left))
-                    .Image(i => i.AddFromUrl($"http://localhost:{port}/").Size(80, 80).Align(HorizontalAlignment.Center))
-                    .End();
+                    .Image(i => i.Add(bytes, "bytes.jpg").Size(70, 70).Align(HorizontalAlignment.Left));
+                await fluent.ImageAsync(async i => {
+                    await i.AddFromUrlAsync($"http://localhost:{port}/");
+                    i.Size(80, 80).Align(HorizontalAlignment.Center);
+                });
+                fluent.End();
 
                 // Validate in-memory instead of reloading from disk
                 Assert.Equal(4, document.Images.Count);
@@ -103,7 +106,7 @@ namespace OfficeIMO.Tests {
 
             using var document = WordDocument.Create(filePath);
 
-            await Assert.ThrowsAsync<InvalidOperationException>(async () => {
+            await Assert.ThrowsAsync<InvalidDataException>(async () => {
                 await document.AsFluent().ImageAsync(async i => {
                     await i.AddFromUrlAsync($"http://localhost:{port}/");
                 });

@@ -30,7 +30,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Book reference: ").AddCitation(bookTag);
                 document.AddParagraph("Article reference: ").AddCitation(articleTag);
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

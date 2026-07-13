@@ -31,7 +31,7 @@ public class RtfHtmlEncapsulationTests {
         Assert.DoesNotContain("Plain fallback", html, StringComparison.Ordinal);
         Assert.DoesNotContain("javascript", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(result.RtfDiagnostics, diagnostic => diagnostic.Code == "RtfHtmlEncapsulatedHtmlUsed");
-        Assert.Contains(result.RtfDiagnostics, diagnostic => diagnostic.Code == "HtmlRtfHyperlinkRejected");
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == "HyperlinkRejectedByPolicy");
     }
 
     [Fact]

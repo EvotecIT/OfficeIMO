@@ -11,7 +11,7 @@ namespace OfficeIMO.Examples.Word.Converters {
             string mdPath = Path.Combine(folderPath, "Sample.md");
             File.WriteAllText(mdPath, "# Title\n\nLoaded from file");
 
-            using var document = WordMarkdownConverterExtensions.LoadFromMarkdown(mdPath, encoding: null);
+            using var document = OfficeIMO.Markdown.MarkdownDoc.Load(mdPath).ToWordDocument();
             string outputPath = Path.Combine(folderPath, "LoadFromFile.docx");
             document.Save(outputPath);
 
@@ -23,4 +23,3 @@ namespace OfficeIMO.Examples.Word.Converters {
         }
     }
 }
-

@@ -2,7 +2,7 @@ using OfficeIMO.Html;
 
 namespace OfficeIMO.Markdown.Html;
 
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     private static bool TryApplyBase64ImageHandling(ref string source, ConversionContext context) {
         string originalSource = source;
         if (!HtmlImageDataUri.TryParse(source, out var dataUri) || !dataUri.IsBase64) {

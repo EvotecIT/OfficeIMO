@@ -7,8 +7,6 @@ namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         private int _nextConditionalFormattingPriority;
 
-        private static readonly List<string> EmptyReferenceList = new List<string>(0);
-
         /// <summary>
         /// Lists conditional formatting rules on the worksheet.
         /// </summary>
@@ -950,7 +948,7 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            remaining = EmptyReferenceList;
+            remaining = new List<string>(0);
             return false;
         }
 

@@ -15,7 +15,8 @@ namespace OfficeIMO.Examples.Word {
                 shape.Remove();
 
                 p.AddShape(60, 30, "#FF9900");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

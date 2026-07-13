@@ -27,7 +27,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.Shared\Packaging\OfficeArchiveSafety.cs" Link="Shared\Packaging\OfficeArchiveSafety.cs" />
     <None Include="..\Assets\OfficeIMO.png">
       <Pack>True</Pack>
       <PackagePath>\</PackagePath>

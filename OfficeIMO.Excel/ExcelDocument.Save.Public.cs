@@ -4,7 +4,6 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
-using OfficeIMO.Shared;
 using System.IO.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -18,11 +17,11 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Opens the associated workbook in the operating system's registered application.</summary>
         public void OpenInApplication(string? filePath = null) {
-            string target = string.IsNullOrEmpty(filePath) ? FilePath : filePath!;
+            string? target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
             if (string.IsNullOrEmpty(target)) {
                 throw new InvalidOperationException("The workbook has no associated file path.");
             }
-            OfficeFileLauncher.Open(target);
+            OfficeFileLauncher.Open(target!);
         }
 
         /// <summary>
@@ -89,12 +88,12 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Saves the document with typed options and no positional Boolean.</summary>
         /// <param name="filePath">Path to save to.</param>
-        /// <param name="options">Optional save settings, including <see cref="ExcelSaveOptions.OpenAfterSave"/>.</param>
+        /// <param name="options">Optional save policy settings.</param>
         public void Save(string filePath, ExcelSaveOptions? options) {
             SaveFileCore(filePath, options);
         }
 
-        private void SaveFileCore(string filePath, ExcelSaveOptions? options) {
+        private void SaveFileCore(string? filePath, ExcelSaveOptions? options) {
             EnsureWritableForSave();
             if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath)) {
                 if (_sourceStream != null) {
@@ -105,7 +104,8 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
             }
 
-            var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+            string path = (string.IsNullOrEmpty(filePath) ? FilePath : filePath)
+                ?? throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
@@ -114,15 +114,11 @@ namespace OfficeIMO.Excel {
             EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
-            if (TrySaveNativeLegacyXlsToFile(path, options?.OpenAfterSave == true, options)) {
+            if (TrySaveNativeLegacyXlsToFile(path, options)) {
                 return;
             }
 
             if (TrySaveDirectDataSetPackageToFile(path, options, CancellationToken.None, out _)) {
-                if (options?.OpenAfterSave == true) {
-                    OfficeFileLauncher.Open(path);
-                }
-
                 return;
             }
 
@@ -134,10 +130,6 @@ namespace OfficeIMO.Excel {
             string? extendedPackageSkipReason = null;
             if (preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
-                if (options?.OpenAfterSave == true) {
-                    OfficeFileLauncher.Open(path);
-                }
-
                 return;
             }
 
@@ -147,19 +139,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (TrySaveWithSimplePackageToFile(path, options, out string? fastPackageSkipReason, alreadyPrepared: true)) {
-                if (options?.OpenAfterSave == true) {
-                    OfficeFileLauncher.Open(path);
-                }
-
                 return;
             }
 
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(path, options, out extendedPackageSkipReason)) {
-                if (options?.OpenAfterSave == true) {
-                    OfficeFileLauncher.Open(path);
-                }
-
                 return;
             }
 
@@ -171,10 +155,6 @@ namespace OfficeIMO.Excel {
                 ReloadFromBytes(finalizedBytes);
                 FilePath = path;
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
-
-                if (options?.OpenAfterSave == true) {
-                    OfficeFileLauncher.Open(path);
-                }
             } catch {
                 TryRestoreDocumentState(payload);
                 FilePath = originalFilePath;
@@ -195,7 +175,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call SaveEncrypted(Stream, ...).");
             }
 
-            var path = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+            string path = string.IsNullOrEmpty(filePath) ? FilePath! : filePath;
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
             EnsureLegacyBinaryEncryptedSaveTargetSupported(path);
@@ -211,10 +191,6 @@ namespace OfficeIMO.Excel {
                 ReloadFromBytes(finalizedBytes);
                 FilePath = path;
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard("Encrypted saves use the standard package finalization path.");
-
-                if (saveOptions?.OpenAfterSave == true) {
-                    OfficeFileLauncher.Open(path);
-                }
             } catch {
                 TryRestoreDocumentState(payload);
                 FilePath = originalFilePath;
@@ -251,10 +227,10 @@ namespace OfficeIMO.Excel {
         /// Asynchronously saves the document.
         /// </summary>
         /// <param name="filePath">Optional path to save to.</param>
-        /// <param name="options">Optional save settings, including whether to open the saved file.</param>
+        /// <param name="options">Optional save policy settings.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         /// <returns>A task representing the asynchronous operation.</returns>
-        private async Task SaveFileAsyncCore(string filePath, ExcelSaveOptions? options, CancellationToken cancellationToken) {
+        private async Task SaveFileAsyncCore(string? filePath, ExcelSaveOptions? options, CancellationToken cancellationToken) {
             EnsureWritableForSave();
             if (string.IsNullOrEmpty(filePath) && string.IsNullOrEmpty(FilePath)) {
                 if (_sourceStream != null) {
@@ -265,22 +241,19 @@ namespace OfficeIMO.Excel {
                 throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
             }
 
-            var target = string.IsNullOrEmpty(filePath) ? FilePath : filePath;
+            string target = (string.IsNullOrEmpty(filePath) ? FilePath : filePath)
+                ?? throw new InvalidOperationException("This workbook is not associated with a file path. Provide a file path or call Save(Stream).");
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
             EnsureDestinationFileWritable(target);
             EnsureDirectoryWritable(target);
 
-            if (await TrySaveNativeLegacyXlsToFileAsync(target, options?.OpenAfterSave == true, options, cancellationToken).ConfigureAwait(false)) {
+            if (await TrySaveNativeLegacyXlsToFileAsync(target, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
 
             if (TrySaveDirectDataSetPackageToFile(target, options, cancellationToken, out _)) {
-                if (options?.OpenAfterSave == true) {
-                    OpenInApplication(target);
-                }
-
                 return;
             }
 
@@ -293,10 +266,6 @@ namespace OfficeIMO.Excel {
             string? extendedPackageSkipReason = null;
             if (preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(target, options, out extendedPackageSkipReason, cancellationToken)) {
-                if (options?.OpenAfterSave == true) {
-                    OpenInApplication(target);
-                }
-
                 return;
             }
 
@@ -306,19 +275,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (TrySaveWithSimplePackageToFile(target, options, out string? fastPackageSkipReason, cancellationToken, alreadyPrepared: true)) {
-                if (options?.OpenAfterSave == true) {
-                    OpenInApplication(target);
-                }
-
                 return;
             }
 
             if (!preferExtendedPackageWriter
                 && TrySaveWithExtendedPackageToFile(target, options, out extendedPackageSkipReason, cancellationToken)) {
-                if (options?.OpenAfterSave == true) {
-                    OpenInApplication(target);
-                }
-
                 return;
             }
 
@@ -330,10 +291,6 @@ namespace OfficeIMO.Excel {
                 ReloadFromBytes(finalizedBytes);
                 FilePath = target;
                 LastSaveDiagnostics = ExcelSaveDiagnostics.Standard(extendedPackageSkipReason ?? fastPackageSkipReason);
-
-                if (options?.OpenAfterSave == true) {
-                    OpenInApplication(target);
-                }
             } catch {
                 TryRestoreDocumentState(payload);
                 FilePath = originalFilePath;
@@ -374,6 +331,11 @@ namespace OfficeIMO.Excel {
         /// <param name="format">Physical XLSX or XLS format.</param>
         /// <param name="options">Optional save settings.</param>
         public void Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null) {
+            SaveToStreamCore(destination, format, options);
+            if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
+        }
+
+        private void SaveToStreamCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureWritableForSave();
@@ -499,6 +461,11 @@ namespace OfficeIMO.Excel {
         /// <param name="options">Optional save settings.</param>
         /// <param name="cancellationToken">Cancellation token.</param>
         public async Task SaveAsync(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null, CancellationToken cancellationToken = default) {
+            await SaveToStreamAsyncCore(destination, format, options, cancellationToken).ConfigureAwait(false);
+            if (destination.CanSeek) destination.Seek(0, SeekOrigin.Begin);
+        }
+
+        private async Task SaveToStreamAsyncCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options, CancellationToken cancellationToken) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
             EnsureWritableForSave();

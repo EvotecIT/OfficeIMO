@@ -19,7 +19,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static IEnumerable<ReaderChunk> ChunkPlainTextByParagraphs(
         string path,
         ReaderOptions opt,
@@ -455,7 +455,7 @@ public static partial class DocumentReader {
         List<ReaderChunk>? chunks = null;
         string? warning = null;
         try {
-            EnforceFileSize(path, opt.MaxInputBytes);
+            EnforceFileSize(path, ResolveInitialMaxInputBytes(path, opt));
             chunks = ReadPathCore(path, opt, source, cancellationToken).ToList();
             if (opt.ComputeHashes) {
                 source.SourceHash = TryComputeFileSha256(path);

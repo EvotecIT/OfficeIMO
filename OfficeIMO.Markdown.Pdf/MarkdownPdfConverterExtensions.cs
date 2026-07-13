@@ -1,4 +1,6 @@
 using OfficeIMO.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
 using PdfCore = OfficeIMO.Pdf;
 using PdfTextRun = OfficeIMO.Pdf.TextRun;
 
@@ -8,68 +10,6 @@ namespace OfficeIMO.Markdown.Pdf;
 /// First-party Markdown to PDF conversion helpers.
 /// </summary>
 public static partial class MarkdownPdfConverterExtensions {
-    /// <summary>Parses Markdown text and converts it to a first-party PDF document model.</summary>
-    /// <remarks>The source suffix keeps this API unambiguous when HTML and Markdown converters are imported together.</remarks>
-    /// <example><code>PdfDocument pdf = markdown.ToPdfDocumentFromMarkdown();</code></example>
-    public static PdfCore.PdfDocument ToPdfDocumentFromMarkdown(this string markdown, MarkdownPdfSaveOptions? options = null) {
-        return markdown.ToPdfDocumentFromMarkdownResult(options).Value;
-    }
-
-    /// <summary>Parses Markdown text and returns a PDF document plus conversion diagnostics.</summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentFromMarkdownResult(this string markdown, MarkdownPdfSaveOptions? options = null) {
-        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
-        MarkdownPdfSaveOptions operation = (options ?? new MarkdownPdfSaveOptions()).CloneForConversion();
-        MarkdownDoc document = MarkdownReader.Parse(markdown, ResolveReaderOptions(operation));
-        PdfCore.PdfDocument pdf = ConvertToPdfDocument(document, operation);
-        return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
-    }
-
-    /// <summary>
-    /// Converts a Markdown file to a first-party OfficeIMO PDF document model.
-    /// </summary>
-    public static PdfCore.PdfDocument ToPdfDocumentFromMarkdownFile(this string path, MarkdownPdfSaveOptions? options = null) {
-        return path.ToPdfDocumentFromMarkdownFileResult(options).Value;
-    }
-
-    /// <summary>
-    /// Converts a Markdown file to a PDF document and returns conversion diagnostics with it.
-    /// </summary>
-    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentFromMarkdownFileResult(this string path, MarkdownPdfSaveOptions? options = null) {
-        if (string.IsNullOrWhiteSpace(path)) {
-            throw new ArgumentException("Markdown file path cannot be empty.", nameof(path));
-        }
-
-        MarkdownPdfSaveOptions operation = (options ?? new MarkdownPdfSaveOptions()).CloneForConversion();
-        string fullPath = Path.GetFullPath(path);
-        string markdown = File.ReadAllText(fullPath, Encoding.UTF8);
-        PdfCore.PdfDocument pdf = MarkdownPdfConverter.ConvertFileMarkdown(markdown, fullPath, operation);
-        return new PdfCore.PdfDocumentConversionResult(pdf, operation.Report);
-    }
-
-    /// <summary>Converts a Markdown file to PDF bytes.</summary>
-    public static byte[] ToPdfFromMarkdownFile(this string path, MarkdownPdfSaveOptions? options = null) =>
-        path.ToPdfDocumentFromMarkdownFile(options).ToBytes();
-
-    /// <summary>Saves a Markdown file as PDF.</summary>
-    public static void SaveAsPdfFromMarkdownFile(this string markdownPath, string pdfPath, MarkdownPdfSaveOptions? options = null) =>
-        markdownPath.ToPdfDocumentFromMarkdownFile(options).Save(pdfPath);
-
-    /// <summary>Writes a Markdown file as PDF to a caller-owned stream.</summary>
-    public static void SaveAsPdfFromMarkdownFile(this string markdownPath, Stream stream, MarkdownPdfSaveOptions? options = null) =>
-        markdownPath.ToPdfDocumentFromMarkdownFile(options).Save(stream);
-
-    /// <summary>Attempts to save a Markdown file as PDF and returns diagnostics instead of throwing.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdownFile(this string markdownPath, string pdfPath, MarkdownPdfSaveOptions? options = null) {
-        try { return markdownPath.ToPdfDocumentFromMarkdownFileResult(options).TrySave(pdfPath); }
-        catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(pdfPath, ex); }
-    }
-
-    /// <summary>Attempts to write a Markdown file as PDF and returns diagnostics instead of throwing.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdownFile(this string markdownPath, Stream stream, MarkdownPdfSaveOptions? options = null) {
-        try { return markdownPath.ToPdfDocumentFromMarkdownFileResult(options).TrySave(stream); }
-        catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
-    }
-
     /// <summary>
     /// Converts a Markdown document model to a first-party OfficeIMO PDF document model.
     /// </summary>
@@ -91,7 +31,7 @@ public static partial class MarkdownPdfConverterExtensions {
             pdfOptions.CreateOutlineFromHeadings = true;
         }
 
-        MarkdownPdfVisualTheme visualTheme = ResolveVisualTheme(document, options);
+        MarkdownPdfStyle visualTheme = ResolveVisualTheme(document, options);
         PdfCore.PdfDocument pdf = PdfCore.PdfDocument.Create(pdfOptions);
         PdfCore.PdfTheme? documentTheme = visualTheme.DocumentThemeSnapshot;
         if (documentTheme != null) {
@@ -130,38 +70,6 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    internal static MarkdownReaderOptions ResolveReaderOptions(MarkdownPdfSaveOptions options) {
-        if (options.ReaderOptions != null) {
-            return options.ReaderOptions;
-        }
-
-        MarkdownReaderOptions readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
-        readerOptions.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
-            "OfficeIMO Markdown PDF visual fences",
-            new[] { "chart", "ix-chart", "mermaid", "network", "visnetwork", "ix-network", "dataview", "ix-dataview" },
-            static context => new SemanticFencedBlock(ResolveVisualFenceSemanticKind(context.Language), context.InfoString, context.Content, context.Caption)));
-        return readerOptions;
-    }
-
-    private static string ResolveVisualFenceSemanticKind(string? language) {
-        switch ((language ?? string.Empty).Trim().ToLowerInvariant()) {
-            case "chart":
-            case "ix-chart":
-                return MarkdownSemanticKinds.Chart;
-            case "mermaid":
-                return MarkdownSemanticKinds.Mermaid;
-            case "network":
-            case "visnetwork":
-            case "ix-network":
-                return MarkdownSemanticKinds.Network;
-            case "dataview":
-            case "ix-dataview":
-                return MarkdownSemanticKinds.DataView;
-            default:
-                return MarkdownSemanticKinds.Custom;
-        }
-    }
-
     private static IReadOnlyList<IMarkdownBlock> GetPdfTopLevelBlocks(MarkdownDoc document) {
         var (blocks, _) = document.GetBlocksAndHeadingSlugs();
         if (document.DocumentHeader == null) {
@@ -183,37 +91,11 @@ public static partial class MarkdownPdfConverterExtensions {
         return document.ToPdfDocument(options).ToBytes();
     }
 
-    /// <summary>Parses Markdown text and converts it to PDF bytes.</summary>
-    /// <example><code>byte[] pdf = markdown.ToPdfFromMarkdown();</code></example>
-    public static byte[] ToPdfFromMarkdown(this string markdown, MarkdownPdfSaveOptions? options = null) =>
-        markdown.ToPdfDocumentFromMarkdown(options).ToBytes();
-
-    /// <summary>Parses Markdown text and saves it as a PDF file.</summary>
-    public static void SaveAsPdfFromMarkdown(this string markdown, string path, MarkdownPdfSaveOptions? options = null) =>
-        markdown.ToPdfDocumentFromMarkdown(options).Save(path);
-
-    /// <summary>Parses Markdown text and writes it as PDF to a stream.</summary>
-    public static void SaveAsPdfFromMarkdown(this string markdown, Stream stream, MarkdownPdfSaveOptions? options = null) =>
-        markdown.ToPdfDocumentFromMarkdown(options).Save(stream);
-
-    /// <summary>Attempts to parse Markdown text and save it as a PDF file.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdown(this string markdown, string path, MarkdownPdfSaveOptions? options = null) {
-        try { return markdown.ToPdfDocumentFromMarkdownResult(options).TrySave(path); }
-        catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(path, ex); }
-    }
-
-    /// <summary>Attempts to parse Markdown text and write it as PDF to a stream.</summary>
-    public static PdfCore.PdfSaveResult TrySaveAsPdfFromMarkdown(this string markdown, Stream stream, MarkdownPdfSaveOptions? options = null) {
-        try { return markdown.ToPdfDocumentFromMarkdownResult(options).TrySave(stream); }
-        catch (Exception ex) { return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex); }
-    }
-
     /// <summary>
     /// Saves a Markdown document model as a PDF file.
     /// </summary>
-    public static void SaveAsPdf(this MarkdownDoc document, string path, MarkdownPdfSaveOptions? options = null) {
-        document.ToPdfDocument(options).Save(path);
-    }
+    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this MarkdownDoc document, string path, MarkdownPdfSaveOptions? options = null) =>
+        document.ToPdfDocumentResult(options).Save(path);
 
     /// <summary>
     /// Attempts to save a Markdown document model as a PDF file and returns output diagnostics instead of throwing.
@@ -229,9 +111,8 @@ public static partial class MarkdownPdfConverterExtensions {
     /// <summary>
     /// Writes a Markdown document model as PDF to a stream.
     /// </summary>
-    public static void SaveAsPdf(this MarkdownDoc document, Stream stream, MarkdownPdfSaveOptions? options = null) {
-        document.ToPdfDocument(options).Save(stream);
-    }
+    public static PdfCore.PdfDocumentConversionResult SaveAsPdf(this MarkdownDoc document, Stream stream, MarkdownPdfSaveOptions? options = null) =>
+        document.ToPdfDocumentResult(options).Save(stream);
 
     /// <summary>
     /// Attempts to write a Markdown document model as PDF to a stream and returns output diagnostics instead of throwing.
@@ -244,22 +125,72 @@ public static partial class MarkdownPdfConverterExtensions {
         }
     }
 
-    private static MarkdownPdfVisualTheme ResolveVisualTheme(MarkdownDoc document, MarkdownPdfSaveOptions options) {
-        MarkdownPdfVisualTheme? explicitTheme = options.PdfTheme;
+    /// <summary>Asynchronously saves a Markdown document model as PDF at the specified path.</summary>
+    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+        this MarkdownDoc document,
+        string path,
+        MarkdownPdfSaveOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        document.ToPdfDocumentResult(options).SaveAsync(path, cancellationToken);
+
+    /// <summary>Asynchronously saves a Markdown document model as PDF to a caller-owned stream.</summary>
+    public static Task<PdfCore.PdfDocumentConversionResult> SaveAsPdfAsync(
+        this MarkdownDoc document,
+        Stream stream,
+        MarkdownPdfSaveOptions? options = null,
+        CancellationToken cancellationToken = default) =>
+        document.ToPdfDocumentResult(options).SaveAsync(stream, cancellationToken);
+
+    /// <summary>Attempts to asynchronously save a Markdown document model as PDF at the specified path.</summary>
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(
+        this MarkdownDoc document,
+        string path,
+        MarkdownPdfSaveOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        try {
+            return await document.ToPdfDocumentResult(options)
+                .TrySaveAsync(path, cancellationToken)
+                .ConfigureAwait(false);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        } catch (Exception ex) {
+            return PdfCore.PdfSaveResult.FromFailure(path, ex);
+        }
+    }
+
+    /// <summary>Attempts to asynchronously save a Markdown document model as PDF to a caller-owned stream.</summary>
+    public static async Task<PdfCore.PdfSaveResult> TrySaveAsPdfAsync(
+        this MarkdownDoc document,
+        Stream stream,
+        MarkdownPdfSaveOptions? options = null,
+        CancellationToken cancellationToken = default) {
+        try {
+            return await document.ToPdfDocumentResult(options)
+                .TrySaveAsync(stream, cancellationToken)
+                .ConfigureAwait(false);
+        } catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) {
+            throw;
+        } catch (Exception ex) {
+            return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
+        }
+    }
+
+    private static MarkdownPdfStyle ResolveVisualTheme(MarkdownDoc document, MarkdownPdfSaveOptions options) {
+        MarkdownPdfStyle? explicitTheme = options.Style;
         if (explicitTheme != null) {
             return explicitTheme;
         }
 
         MarkdownVisualTheme? sharedTheme = options.ThemeSnapshot;
         if (sharedTheme != null) {
-            return MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
+            return MarkdownPdfStyle.FromMarkdownTheme(sharedTheme);
         }
 
         if (options.UseFrontMatterTheme && document.DocumentHeader != null) {
             string? frontMatterPdfTheme = GetFrontMatterMetadata(document.DocumentHeader, "pdfTheme")
                 ?? GetFrontMatterMetadata(document.DocumentHeader, "pdf-theme");
             if (frontMatterPdfTheme != null) {
-                if (TryResolveSharedOrPdfTheme(frontMatterPdfTheme, sharedFirst: false, out MarkdownPdfVisualTheme? theme)) {
+                if (TryResolveTheme(frontMatterPdfTheme, out MarkdownPdfStyle? theme)) {
                     return theme!;
                 }
 
@@ -270,7 +201,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 ?? GetFrontMatterMetadata(document.DocumentHeader, "visualTheme")
                 ?? GetFrontMatterMetadata(document.DocumentHeader, "visual-theme");
             if (frontMatterTheme != null) {
-                if (TryResolveSharedOrPdfTheme(frontMatterTheme, sharedFirst: true, out MarkdownPdfVisualTheme? theme)) {
+                if (TryResolveTheme(frontMatterTheme, out MarkdownPdfStyle? theme)) {
                     return theme!;
                 }
 
@@ -280,30 +211,20 @@ public static partial class MarkdownPdfConverterExtensions {
 
         MarkdownVisualTheme? defaultTheme = MarkdownVisualTheme.ResolveOrDefault(null, options.ApplyDefaultTheme);
         return defaultTheme != null
-            ? MarkdownPdfVisualTheme.FromMarkdownTheme(defaultTheme)
-            : MarkdownPdfVisualTheme.Plain();
+            ? MarkdownPdfStyle.FromMarkdownTheme(defaultTheme)
+            : MarkdownPdfStyle.Plain();
     }
 
-    private static bool TryResolveSharedOrPdfTheme(string themeName, bool sharedFirst, out MarkdownPdfVisualTheme? theme) {
+    private static bool TryResolveTheme(string themeName, out MarkdownPdfStyle? theme) {
         theme = null;
-        if (sharedFirst && MarkdownVisualTheme.TryCreate(themeName, out MarkdownVisualTheme? markdownTheme)) {
-            theme = MarkdownPdfVisualTheme.FromMarkdownTheme(markdownTheme!);
+        if (MarkdownVisualTheme.TryCreate(themeName, out MarkdownVisualTheme? markdownTheme)) {
+            theme = MarkdownPdfStyle.FromMarkdownTheme(markdownTheme!);
             return true;
         }
-
-        if (MarkdownPdfVisualTheme.TryCreate(themeName, out theme)) {
-            return true;
-        }
-
-        if (!sharedFirst && MarkdownVisualTheme.TryCreate(themeName, out MarkdownVisualTheme? fallbackMarkdownTheme)) {
-            theme = MarkdownPdfVisualTheme.FromMarkdownTheme(fallbackMarkdownTheme!);
-            return true;
-        }
-
         return false;
     }
 
-    private static void RenderBlocks(PdfCore.PdfDocument pdf, IEnumerable<IMarkdownBlock> blocks, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme, string? skipFirstHeadingTitle = null) {
+    private static void RenderBlocks(PdfCore.PdfDocument pdf, IEnumerable<IMarkdownBlock> blocks, MarkdownDoc document, MarkdownPdfSaveOptions options, MarkdownPdfStyle visualTheme, string? skipFirstHeadingTitle = null) {
         bool skippedPromotedHeading = false;
         var materializedBlocks = blocks as IReadOnlyList<IMarkdownBlock> ?? blocks.ToList();
         for (int i = 0; i < materializedBlocks.Count; i++) {

@@ -11,12 +11,6 @@ namespace OfficeIMO.Word.Pdf {
     /// placeholders, but it is not a pixel-perfect fixed-layout PDF to DOCX renderer.
     /// </remarks>
     public sealed class PdfWordReadOptions {
-        /// <summary>Logical PDF layout options used while grouping positioned PDF text into semantic objects.</summary>
-        public PdfCore.PdfTextLayoutOptions? LayoutOptions { get; set; }
-
-        /// <summary>Optional inclusive one-based source page ranges used by direct PDF loading overloads.</summary>
-        public IReadOnlyList<PdfCore.PdfPageRange>? PageRanges { get; set; }
-
         /// <summary>Whether PDF Info dictionary metadata should be copied into Word built-in properties.</summary>
         public bool IncludeMetadata { get; set; } = true;
 
@@ -86,10 +80,26 @@ namespace OfficeIMO.Word.Pdf {
 
         internal PdfCore.PdfConversionReport Report { get; } = new PdfCore.PdfConversionReport();
 
+        /// <summary>Creates an import profile that reconstructs only detected PDF tables.</summary>
+        public static PdfWordReadOptions CreateTablesOnly() => new PdfWordReadOptions {
+            IncludeMetadata = false,
+            PreservePageBreaks = false,
+            IncludeEmptyPages = false,
+            ImportHeadings = false,
+            ImportParagraphs = false,
+            ImportLists = false,
+            ImportTables = true,
+            ImportUriLinks = false,
+            ImportInternalLinks = false,
+            ImportImages = false,
+            PreserveImagePlacementSize = false,
+            IncludeImagePlaceholders = false,
+            IncludeFormFieldPlaceholders = false,
+            EmptyDocumentMessage = "No PDF tables detected."
+        };
+
         /// <summary>Creates a reusable copy of this option set.</summary>
         public PdfWordReadOptions Clone() => new PdfWordReadOptions {
-            LayoutOptions = CloneLayoutOptions(LayoutOptions),
-            PageRanges = PageRanges == null ? null : PageRanges.ToArray(),
             IncludeMetadata = IncludeMetadata,
             PreservePageBreaks = PreservePageBreaks,
             IncludeEmptyPages = IncludeEmptyPages,
@@ -113,27 +123,6 @@ namespace OfficeIMO.Word.Pdf {
         }.CopyAllowedHyperlinkUriSchemesFrom(AllowedHyperlinkUriSchemes);
 
         internal PdfWordReadOptions CloneForConversion() => Clone();
-
-        private static PdfCore.PdfTextLayoutOptions? CloneLayoutOptions(PdfCore.PdfTextLayoutOptions? options) {
-            if (options is null) {
-                return null;
-            }
-
-            return new PdfCore.PdfTextLayoutOptions {
-                MarginLeft = options.MarginLeft,
-                MarginRight = options.MarginRight,
-                BinWidth = options.BinWidth,
-                MinGutterWidth = options.MinGutterWidth,
-                LineMergeToleranceEm = options.LineMergeToleranceEm,
-                LineMergeMaxPoints = options.LineMergeMaxPoints,
-                ForceSingleColumn = options.ForceSingleColumn,
-                JoinHyphenationAcrossLines = options.JoinHyphenationAcrossLines,
-                IgnoreHeaderHeight = options.IgnoreHeaderHeight,
-                IgnoreFooterHeight = options.IgnoreFooterHeight,
-                GapSpaceThresholdEm = options.GapSpaceThresholdEm,
-                GapGlyphFactor = options.GapGlyphFactor
-            };
-        }
 
         private PdfWordReadOptions CopyAllowedHyperlinkUriSchemesFrom(IEnumerable<string> schemes) {
             AllowedHyperlinkUriSchemes.Clear();

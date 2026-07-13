@@ -24,13 +24,13 @@ public sealed class OpenDocumentConversionContracts {
         sourceTable.Rows[1].Cells[1].Paragraphs[0].Text = "B";
 
         OdfConversionResult<OdtDocument> toOdt = source.ToOpenDocumentResult();
-        using OdtDocument odt = toOdt.Value;
+        OdtDocument odt = toOdt.Value;
         Assert.True(odt.Validate().IsValid);
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "headings");
         Assert.Contains(toOdt.Report.Mappings, mapping => mapping.Feature == "tables");
 
         using var package = new MemoryStream(odt.ToBytes());
-        using OdtDocument reopened = OdtDocument.Open(package);
+        OdtDocument reopened = OdtDocument.Load(package);
         Assert.Contains(reopened.ContentBlocks, block => block.Paragraph?.Text == "Native OpenDocument conversion");
         Assert.Contains(reopened.ContentBlocks, block => block.Table != null);
 
@@ -58,14 +58,14 @@ public sealed class OpenDocumentConversionContracts {
         source.SetNamedRange("Amounts", "'Data'!$A$2:$A$2", save: false);
 
         OdfConversionResult<OdsDocument> toOds = source.ToOpenDocumentResult();
-        using OdsDocument ods = toOds.Value;
+        OdsDocument ods = toOds.Value;
         Assert.True(ods.Validate().IsValid);
         Assert.Equal(12.5m, ods.GetSheet("Data")!.Cell(1, 0).Value.AsDecimal());
         Assert.StartsWith("of:=", ods.GetSheet("Data")!.Cell(1, 1).Formula);
         Assert.Contains(toOds.Report.Mappings, mapping => mapping.Feature == "formulas" && mapping.Status == OdfConversionMappingStatus.Approximated);
 
         using var package = new MemoryStream(ods.ToBytes());
-        using OdsDocument reopened = OdsDocument.Open(package);
+        OdsDocument reopened = OdsDocument.Load(package);
         OdfConversionResult<ExcelDocument> toExcel = reopened.ToExcelDocumentResult(new ExcelOpenDocumentConversionOptions {
             MaximumExpandedCells = 1000
         });
@@ -93,7 +93,7 @@ public sealed class OpenDocumentConversionContracts {
         slide.Transition = SlideTransition.Fade;
 
         OdfConversionResult<OdpPresentation> toOdp = source.ToOpenDocumentResult();
-        using OdpPresentation odp = toOdp.Value;
+        OdpPresentation odp = toOdp.Value;
         Assert.True(odp.Validate().IsValid);
         OdpSlide odpSlide = Assert.Single(odp.Slides);
         Assert.Contains(odpSlide.Shapes, shape => shape is OdpTextBox);
@@ -102,7 +102,7 @@ public sealed class OpenDocumentConversionContracts {
         Assert.Contains(toOdp.Report.Mappings, mapping => mapping.Feature == "slide-transitions");
 
         using var package = new MemoryStream(odp.ToBytes());
-        using OdpPresentation reopened = OdpPresentation.Open(package);
+        OdpPresentation reopened = OdpPresentation.Load(package);
         OdfConversionResult<PowerPointPresentation> toPowerPoint = reopened.ToPowerPointPresentationResult();
         using PowerPointPresentation roundTrip = toPowerPoint.Value;
         Assert.Throws<InvalidOperationException>(() => roundTrip.Save());

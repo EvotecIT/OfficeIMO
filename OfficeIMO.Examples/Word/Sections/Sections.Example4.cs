@@ -70,7 +70,8 @@ namespace OfficeIMO.Examples.Word {
                 Console.WriteLine("Section 5 - Text 2: " + document.Sections[5].Paragraphs[2].Text);
                 Console.WriteLine("Section 3 - Text 1: " + document.Sections[3].Paragraphs[1].Text);
                 Console.WriteLine("Section 3 - Text 2: " + document.Sections[3].Paragraphs[2].Text);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
 

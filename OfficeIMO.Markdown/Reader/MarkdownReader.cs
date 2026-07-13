@@ -17,6 +17,7 @@ public static partial class MarkdownReader {
     /// Parses Markdown text into a <see cref="MarkdownDoc"/> with typed blocks and basic inlines.
     /// </summary>
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();
@@ -55,6 +56,7 @@ public static partial class MarkdownReader {
     /// Parses Markdown text into both the object model and a lightweight syntax tree with source spans.
     /// </summary>
     public static MarkdownParseResult ParseWithSyntaxTree(string markdown, MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();
@@ -83,6 +85,7 @@ public static partial class MarkdownReader {
     /// Parses Markdown text into the object model, original syntax tree, and document-transform diagnostics.
     /// </summary>
     public static MarkdownParseResult ParseWithSyntaxTreeAndDiagnostics(string markdown, MarkdownReaderOptions? options = null) {
+        if (markdown == null) throw new ArgumentNullException(nameof(markdown));
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
         var syntaxNodes = new List<MarkdownSyntaxNode>();
@@ -114,12 +117,6 @@ public static partial class MarkdownReader {
             diagnostics,
             SnapshotReferenceLinkDefinitions(state),
             SnapshotAbbreviationDefinitions(state));
-    }
-
-    /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
-    public static MarkdownDoc ParseFile(string path, MarkdownReaderOptions? options = null) {
-        string text = File.ReadAllText(path, Encoding.UTF8);
-        return Parse(text, options);
     }
 
     internal static IReadOnlyList<IMarkdownBlock> ParseBlockFragment(

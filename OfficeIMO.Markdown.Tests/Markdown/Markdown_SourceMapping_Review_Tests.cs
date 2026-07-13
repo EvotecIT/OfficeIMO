@@ -41,7 +41,7 @@ public sealed class Markdown_SourceMapping_Review_Tests {
     public void UnterminatedHtmlComment_Does_Not_Expose_Synthetic_Marker_SourceFields() {
         const string markdown = "<!-- unfinished";
 
-        var result = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
+        var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
             PreserveTrivia = true
         });
         var native = MarkdownNativeDocument.Parse(markdown, new MarkdownReaderOptions {

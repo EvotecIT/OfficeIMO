@@ -8,7 +8,7 @@ namespace OfficeIMO.Markdown.Html;
 /// <summary>
 /// Converts HTML fragments or documents into OfficeIMO.Markdown documents.
 /// </summary>
-public sealed partial class HtmlToMarkdownConverter {
+internal sealed partial class HtmlToMarkdownConverter {
     internal sealed class ConversionContext {
         public ConversionContext(HtmlToMarkdownOptions options) {
             Options = options ?? throw new ArgumentNullException(nameof(options));
@@ -20,19 +20,6 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     /// <summary>
-    /// Converts HTML into Markdown text.
-    /// </summary>
-    /// <param name="html">HTML fragment or document to convert.</param>
-    /// <param name="options">
-    /// Optional conversion options. When omitted, <see cref="HtmlToMarkdownOptions"/> defaults are used.
-    /// </param>
-    /// <returns>Markdown text produced from the supplied HTML.</returns>
-    public string Convert(string html, HtmlToMarkdownOptions? options = null) {
-        var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
-        return ConvertToDocument(html, effectiveOptions).ToMarkdown(effectiveOptions.MarkdownWriteOptions);
-    }
-
-    /// <summary>
     /// Converts a prepared HTML DOM into Markdown text without reparsing source text.
     /// </summary>
     public string Convert(IHtmlDocument document, HtmlToMarkdownOptions? options = null) {
@@ -41,33 +28,27 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     /// <summary>
-    /// Converts HTML into a Markdown document model.
-    /// </summary>
-    /// <param name="html">HTML fragment or document to convert.</param>
-    /// <param name="options">
-    /// Optional conversion options. When omitted, <see cref="HtmlToMarkdownOptions"/> defaults are used.
-    /// </param>
-    /// <returns>
-    /// A <see cref="MarkdownDoc"/> that preserves the converted block structure before rendering to Markdown text.
-    /// </returns>
-    public MarkdownDoc ConvertToDocument(string html, HtmlToMarkdownOptions? options = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
-        IHtmlDocument document = ParseFilteredDocumentCore(html, effectiveOptions);
-        return ConvertFilteredDocument(document, effectiveOptions);
-    }
-
-    /// <summary>
     /// Converts a prepared HTML DOM into a Markdown document without mutating the caller's DOM.
     /// </summary>
     public MarkdownDoc ConvertToDocument(IHtmlDocument document, HtmlToMarkdownOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         var effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
+        IHtmlDocument filteredDocument = PrepareDocument(document, effectiveOptions);
+        return ConvertFilteredDocument(filteredDocument, effectiveOptions);
+    }
+
+    /// <summary>
+    /// Creates the filtered, caller-independent DOM used by the converter and internal
+    /// projection consumers without introducing a second HTML parsing path.
+    /// </summary>
+    internal static IHtmlDocument PrepareDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions) {
+        if (document == null) throw new ArgumentNullException(nameof(document));
+        if (effectiveOptions == null) throw new ArgumentNullException(nameof(effectiveOptions));
         IHtmlDocument filteredDocument = HtmlDocumentParser.CloneDocument(document);
         string source = filteredDocument.DocumentElement?.OuterHtml ?? string.Empty;
         ValidateInputLength(source, effectiveOptions.MaxInputCharacters, nameof(document));
         ApplyHtmlFilters(filteredDocument.DocumentElement, effectiveOptions);
-        return ConvertFilteredDocument(filteredDocument, effectiveOptions);
+        return filteredDocument;
     }
 
     private MarkdownDoc ConvertFilteredDocument(IHtmlDocument document, HtmlToMarkdownOptions effectiveOptions) {
@@ -85,25 +66,6 @@ public sealed partial class HtmlToMarkdownConverter {
             markdown,
             effectiveOptions.DocumentTransforms,
             new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.HtmlToMarkdown, effectiveOptions));
-    }
-
-    /// <summary>
-    /// Parses HTML and applies the same selector and element filters used by Markdown conversion.
-    /// </summary>
-    /// <param name="html">HTML fragment or document.</param>
-    /// <param name="options">Optional conversion options containing exclusion filters.</param>
-    /// <returns>The filtered parsed HTML document.</returns>
-    public IHtmlDocument ParseFilteredDocument(string html, HtmlToMarkdownOptions? options = null) {
-        if (html == null) throw new ArgumentNullException(nameof(html));
-        HtmlToMarkdownOptions effectiveOptions = options?.Clone() ?? new HtmlToMarkdownOptions();
-        return ParseFilteredDocumentCore(html, effectiveOptions);
-    }
-
-    private static IHtmlDocument ParseFilteredDocumentCore(string html, HtmlToMarkdownOptions effectiveOptions) {
-        ValidateInputLength(html, effectiveOptions.MaxInputCharacters, nameof(html));
-        IHtmlDocument document = HtmlDocumentParser.ParseDocument(html);
-        ApplyHtmlFilters(document.DocumentElement, effectiveOptions);
-        return document;
     }
 
     private static bool ShouldIgnoreElement(IElement element, ConversionContext context) {

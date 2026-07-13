@@ -1,3 +1,6 @@
+using System.Threading;
+using System.Threading.Tasks;
+
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
         /// <summary>
@@ -11,13 +14,14 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Convenience: sets a header logo from URL in the given position. Optional page text can be supplied.
+        /// Asynchronously sets a header logo from a URL in the given position. Optional page text can be supplied.
         /// </summary>
-        public void HeaderLogoUrl(string url, HeaderFooterPosition position = HeaderFooterPosition.Right,
+        public async Task HeaderLogoFromUrlAsync(string url, HeaderFooterPosition position = HeaderFooterPosition.Right,
                                   double? widthPoints = null, double? heightPoints = null,
-                                  string? leftText = null, string? centerText = null, string? rightText = null) {
+                                  string? leftText = null, string? centerText = null, string? rightText = null,
+                                  CancellationToken cancellationToken = default) {
             SetHeaderFooter(leftText, centerText, rightText);
-            SetHeaderImageUrl(position, url, widthPoints, heightPoints);
+            await SetHeaderImageFromUrlAsync(position, url, widthPoints, heightPoints, cancellationToken).ConfigureAwait(false);
         }
     }
 }

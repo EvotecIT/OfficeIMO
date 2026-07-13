@@ -1,6 +1,7 @@
-using OfficeIMO.Drawing.Internal;
 using System.IO;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
@@ -35,26 +36,54 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Saves this range as a PNG file.
         /// </summary>
-        public void SaveAsPng(string path, ExcelImageExportOptions? options = null) =>
-            WriteFile(path, ToPng(options));
+        public OfficeImageExportResult SaveAsPng(string path, ExcelImageExportOptions? options = null) =>
+            new ExcelRangeImageExportBuilder(this, options).AsPng().Save(path);
 
         /// <summary>
         /// Saves this range as an SVG file.
         /// </summary>
-        public void SaveAsSvg(string path, ExcelImageExportOptions? options = null) =>
-            WriteFile(path, Encoding.UTF8.GetBytes(ToSvg(options)));
+        public OfficeImageExportResult SaveAsSvg(string path, ExcelImageExportOptions? options = null) =>
+            new ExcelRangeImageExportBuilder(this, options).AsSvg().Save(path);
 
         /// <summary>
         /// Writes this range as PNG to a stream.
         /// </summary>
-        public void SaveAsPng(Stream stream, ExcelImageExportOptions? options = null) =>
-            WriteStream(stream, ToPng(options));
+        public OfficeImageExportResult SaveAsPng(Stream stream, ExcelImageExportOptions? options = null) =>
+            new ExcelRangeImageExportBuilder(this, options).AsPng().Save(stream);
 
         /// <summary>
         /// Writes this range as SVG to a stream.
         /// </summary>
-        public void SaveAsSvg(Stream stream, ExcelImageExportOptions? options = null) =>
-            WriteStream(stream, Encoding.UTF8.GetBytes(ToSvg(options)));
+        public OfficeImageExportResult SaveAsSvg(Stream stream, ExcelImageExportOptions? options = null) =>
+            new ExcelRangeImageExportBuilder(this, options).AsSvg().Save(stream);
+
+        /// <summary>Asynchronously saves this range as a PNG file.</summary>
+        public Task<OfficeImageExportResult> SaveAsPngAsync(
+            string path,
+            ExcelImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelRangeImageExportBuilder(this, options).AsPng().SaveAsync(path, cancellationToken);
+
+        /// <summary>Asynchronously saves this range as an SVG file.</summary>
+        public Task<OfficeImageExportResult> SaveAsSvgAsync(
+            string path,
+            ExcelImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelRangeImageExportBuilder(this, options).AsSvg().SaveAsync(path, cancellationToken);
+
+        /// <summary>Asynchronously writes this range as PNG to a stream.</summary>
+        public Task<OfficeImageExportResult> SaveAsPngAsync(
+            Stream stream,
+            ExcelImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelRangeImageExportBuilder(this, options).AsPng().SaveAsync(stream, cancellationToken);
+
+        /// <summary>Asynchronously writes this range as SVG to a stream.</summary>
+        public Task<OfficeImageExportResult> SaveAsSvgAsync(
+            Stream stream,
+            ExcelImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelRangeImageExportBuilder(this, options).AsSvg().SaveAsync(stream, cancellationToken);
 
         private static ExcelImageExportOptions NormalizeOptions(ExcelImageExportOptions? options) {
             ExcelImageExportOptions resolved = options?.Clone() ?? new ExcelImageExportOptions();
@@ -64,26 +93,5 @@ namespace OfficeIMO.Excel {
             return resolved;
         }
 
-        private static void WriteFile(string path, byte[] bytes) {
-            if (string.IsNullOrWhiteSpace(path)) {
-                throw new ArgumentException("Output path cannot be null or whitespace.", nameof(path));
-            }
-
-            string fullPath = Path.GetFullPath(path);
-            string? directory = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrWhiteSpace(directory)) {
-                Directory.CreateDirectory(directory!);
-            }
-
-            OfficeFileCommit.WriteAllBytes(fullPath, bytes);
-        }
-
-        private static void WriteStream(Stream stream, byte[] bytes) {
-            if (stream == null) {
-                throw new ArgumentNullException(nameof(stream));
-            }
-
-            stream.Write(bytes, 0, bytes.Length);
-        }
     }
 }

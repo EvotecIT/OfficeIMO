@@ -4,7 +4,6 @@ namespace OfficeIMO.OpenDocument;
 public abstract partial class OdfDocument {
     /// <summary>Projects this package into a single flat OpenDocument XML tree.</summary>
     public XDocument ToFlatXml() {
-        ThrowIfDisposed();
         XElement root = new XElement(OdfNamespaces.Office + "document");
         OdfXmlCodec.AddStandardNamespaces(root);
         root.SetAttributeValue(OdfNamespaces.Office + "version", Version.ToToken());
@@ -29,28 +28,16 @@ public abstract partial class OdfDocument {
         return new XDocument(new XDeclaration("1.0", "UTF-8", null), root);
     }
 
-    /// <summary>Writes flat OpenDocument XML without closing the destination stream.</summary>
-    public void SaveFlatXml(Stream destination) {
-        _ = SaveFlatXmlResult(destination);
-    }
-
     /// <summary>Writes flat OpenDocument XML and returns the serialized bytes with projection diagnostics.</summary>
-    public OdfSaveResult SaveFlatXmlResult(Stream destination) {
-        ThrowIfDisposed();
+    public OdfSaveResult SaveFlatXml(Stream destination) {
         XDocument flat = ToFlatXml();
         byte[] bytes = OdfXmlCodec.Save(flat);
         OfficeStreamWriter.WriteAllBytes(destination, bytes);
         return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 
-    /// <summary>Writes flat OpenDocument XML to a path.</summary>
-    public void SaveFlatXml(string path) {
-        _ = SaveFlatXmlResult(path);
-    }
-
     /// <summary>Writes flat OpenDocument XML to a path and returns the serialized bytes with projection diagnostics.</summary>
-    public OdfSaveResult SaveFlatXmlResult(string path) {
-        ThrowIfDisposed();
+    public OdfSaveResult SaveFlatXml(string path) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
         XDocument flat = ToFlatXml();
@@ -59,26 +46,26 @@ public abstract partial class OdfDocument {
         return new OdfSaveResult(bytes, CreateFlatXmlSaveReport());
     }
 
-    /// <summary>Opens a flat ODT, ODS, or ODP XML document.</summary>
-    public static OdfDocument OpenFlatXml(Stream stream, OdfOpenOptions? options = null) {
+    /// <summary>Loads a flat ODT, ODS, or ODP XML document.</summary>
+    public static OdfDocument LoadFlatXml(Stream stream, OdfLoadOptions? options = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Flat OpenDocument stream must be readable.", nameof(stream));
-        OdfOpenOptions effective = (options ?? new OdfOpenOptions()).Normalize();
-        byte[] bytes = ReadFlatBytes(stream, effective.MaxPackageBytes);
+        OdfLoadOptions effective = (options ?? new OdfLoadOptions()).Normalize();
+        byte[] bytes = OfficeStreamReader.ReadAllBytes(stream, effective.MaxPackageBytes);
         XDocument flat = OdfXmlCodec.Load(bytes, "flat-document.xml", effective.MaxXmlCharacters, effective.MaxXmlDepth);
-        return OpenFlatXml(flat, effective);
+        return LoadFlatXml(flat, effective);
     }
 
-    /// <summary>Opens a flat ODT, ODS, or ODP XML document from a path.</summary>
-    public static OdfDocument OpenFlatXml(string path, OdfOpenOptions? options = null) {
+    /// <summary>Loads a flat ODT, ODS, or ODP XML document from a path.</summary>
+    public static OdfDocument LoadFlatXml(string path, OdfLoadOptions? options = null) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         string fullPath = Path.GetFullPath(path);
         if (!File.Exists(fullPath)) throw new FileNotFoundException("Flat OpenDocument file does not exist.", fullPath);
         using var stream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        return OpenFlatXml(stream, options);
+        return LoadFlatXml(stream, options);
     }
 
-    private static OdfDocument OpenFlatXml(XDocument flat, OdfOpenOptions options) {
+    private static OdfDocument LoadFlatXml(XDocument flat, OdfLoadOptions options) {
         XElement root = flat.Root ?? throw new InvalidDataException("Flat OpenDocument XML has no root element.");
         if (root.Name != OdfNamespaces.Office + "document") throw new InvalidDataException("Flat OpenDocument root must be office:document.");
         string mediaType = (string?)root.Attribute(OdfNamespaces.Office + "mimetype") ?? string.Empty;
@@ -110,7 +97,7 @@ public abstract partial class OdfDocument {
         package.AddOrReplaceEntry("styles.xml", OdfXmlCodec.Save(styles), "text/xml");
         package.AddOrReplaceEntry("meta.xml", OdfXmlCodec.Save(meta), "text/xml");
         package.AddOrReplaceEntry("settings.xml", OdfXmlCodec.Save(settings), "text/xml");
-        package = OdfPackage.Open(package.Write(new OdfSaveOptions {
+        package = OdfPackage.Load(package.Write(new OdfSaveOptions {
             CompatibilityProfile = OdfCompatibilityProfile.PreserveSource
         }), options);
         return CreateForPackage(package, null);
@@ -133,7 +120,7 @@ public abstract partial class OdfDocument {
         }
     }
 
-    private static void ExtractFlatBinaryData(XElement flatRoot, OdfPackage package, OdfOpenOptions options) {
+    private static void ExtractFlatBinaryData(XElement flatRoot, OdfPackage package, OdfLoadOptions options) {
         int index = 1;
         foreach (XElement image in flatRoot.Descendants(OdfNamespaces.Draw + "image").ToList()) {
             XElement? binary = image.Element(OdfNamespaces.Office + "binary-data");
@@ -289,42 +276,31 @@ public abstract partial class OdfDocument {
         if (root.Elements().Any(element => !projected.Contains(element.Name))) lossy.Add(partPath);
     }
 
-    private static byte[] ReadFlatBytes(Stream stream, long maxBytes) {
-        if (stream.CanSeek && stream.Length - stream.Position > maxBytes) throw new InvalidDataException("Flat OpenDocument stream exceeds MaxPackageBytes.");
-        using var output = new MemoryStream();
-        var buffer = new byte[81920]; long total = 0; int read;
-        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0) {
-            total += read;
-            if (total > maxBytes) throw new InvalidDataException("Flat OpenDocument stream exceeds MaxPackageBytes.");
-            output.Write(buffer, 0, read);
-        }
-        return output.ToArray();
-    }
 }
 
 public sealed partial class OdtDocument {
-    /// <summary>Opens a flat OpenDocument Text XML stream.</summary>
-    public new static OdtDocument OpenFlatXml(Stream stream, OdfOpenOptions? options = null) =>
-        OdfDocument.OpenFlatXml(stream, options) as OdtDocument ?? throw new InvalidDataException("Flat document is not an OpenDocument Text document.");
-    /// <summary>Opens a flat OpenDocument Text XML path.</summary>
-    public new static OdtDocument OpenFlatXml(string path, OdfOpenOptions? options = null) =>
-        OdfDocument.OpenFlatXml(path, options) as OdtDocument ?? throw new InvalidDataException("Flat document is not an OpenDocument Text document.");
+    /// <summary>Loads a flat OpenDocument Text XML stream.</summary>
+    public new static OdtDocument LoadFlatXml(Stream stream, OdfLoadOptions? options = null) =>
+        OdfDocument.LoadFlatXml(stream, options) as OdtDocument ?? throw new InvalidDataException("Flat document is not an OpenDocument Text document.");
+    /// <summary>Loads a flat OpenDocument Text XML path.</summary>
+    public new static OdtDocument LoadFlatXml(string path, OdfLoadOptions? options = null) =>
+        OdfDocument.LoadFlatXml(path, options) as OdtDocument ?? throw new InvalidDataException("Flat document is not an OpenDocument Text document.");
 }
 
 public sealed partial class OdsDocument {
-    /// <summary>Opens a flat OpenDocument Spreadsheet XML stream.</summary>
-    public new static OdsDocument OpenFlatXml(Stream stream, OdfOpenOptions? options = null) =>
-        OdfDocument.OpenFlatXml(stream, options) as OdsDocument ?? throw new InvalidDataException("Flat document is not an OpenDocument Spreadsheet document.");
-    /// <summary>Opens a flat OpenDocument Spreadsheet XML path.</summary>
-    public new static OdsDocument OpenFlatXml(string path, OdfOpenOptions? options = null) =>
-        OdfDocument.OpenFlatXml(path, options) as OdsDocument ?? throw new InvalidDataException("Flat document is not an OpenDocument Spreadsheet document.");
+    /// <summary>Loads a flat OpenDocument Spreadsheet XML stream.</summary>
+    public new static OdsDocument LoadFlatXml(Stream stream, OdfLoadOptions? options = null) =>
+        OdfDocument.LoadFlatXml(stream, options) as OdsDocument ?? throw new InvalidDataException("Flat document is not an OpenDocument Spreadsheet document.");
+    /// <summary>Loads a flat OpenDocument Spreadsheet XML path.</summary>
+    public new static OdsDocument LoadFlatXml(string path, OdfLoadOptions? options = null) =>
+        OdfDocument.LoadFlatXml(path, options) as OdsDocument ?? throw new InvalidDataException("Flat document is not an OpenDocument Spreadsheet document.");
 }
 
 public sealed partial class OdpPresentation {
-    /// <summary>Opens a flat OpenDocument Presentation XML stream.</summary>
-    public new static OdpPresentation OpenFlatXml(Stream stream, OdfOpenOptions? options = null) =>
-        OdfDocument.OpenFlatXml(stream, options) as OdpPresentation ?? throw new InvalidDataException("Flat document is not an OpenDocument Presentation document.");
-    /// <summary>Opens a flat OpenDocument Presentation XML path.</summary>
-    public new static OdpPresentation OpenFlatXml(string path, OdfOpenOptions? options = null) =>
-        OdfDocument.OpenFlatXml(path, options) as OdpPresentation ?? throw new InvalidDataException("Flat document is not an OpenDocument Presentation document.");
+    /// <summary>Loads a flat OpenDocument Presentation XML stream.</summary>
+    public new static OdpPresentation LoadFlatXml(Stream stream, OdfLoadOptions? options = null) =>
+        OdfDocument.LoadFlatXml(stream, options) as OdpPresentation ?? throw new InvalidDataException("Flat document is not an OpenDocument Presentation document.");
+    /// <summary>Loads a flat OpenDocument Presentation XML path.</summary>
+    public new static OdpPresentation LoadFlatXml(string path, OdfLoadOptions? options = null) =>
+        OdfDocument.LoadFlatXml(path, options) as OdpPresentation ?? throw new InvalidDataException("Flat document is not an OpenDocument Presentation document.");
 }

@@ -38,7 +38,8 @@ namespace OfficeIMO.Examples.Excel {
             sheet.Cell(1, 1, "Hello");
             sheet.Cell(2, 1, "World");
 
-            doc.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+            doc.Save();
+            if (openExcel) doc.OpenInApplication();
         }
     }
 }

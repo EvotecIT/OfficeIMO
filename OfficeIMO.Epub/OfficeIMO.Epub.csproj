@@ -25,6 +25,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="README.md">
       <Pack>True</Pack>
       <PackagePath>README.md</PackagePath>

@@ -6,7 +6,7 @@ using System.Linq;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static OfficeDocumentReadResult BuildEmailDocumentResult(
         EmailExtraction extraction,
         string sourceName,

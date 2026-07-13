@@ -7,7 +7,7 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
     [Fact]
     public void Link_Label_Can_Contain_Emphasis() {
         var md = "[*x*](https://example.com)";
-        var doc = MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
 
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<a href=\"https://example.com\"><em>x</em></a>", html, StringComparison.Ordinal);
@@ -23,7 +23,7 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
 
 [r]: https://example.com
 """;
-        var doc = MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<a href=\"https://example.com\"><em>x</em></a>", html, StringComparison.Ordinal);
     }
@@ -31,7 +31,7 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
     [Fact]
     public void Strong_Can_Wrap_Inline_Link() {
         const string md = "**[Installation](/docs/installation/)**";
-        var doc = MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
 
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<strong><a href=\"/docs/installation/\">Installation</a></strong>", html, StringComparison.Ordinal);
@@ -47,7 +47,7 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
 
 [install]: /docs/installation/
 """;
-        var doc = MarkdownReader.Parse(md);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
 
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         Assert.Contains("<strong><a href=\"/docs/installation/\">Installation</a></strong>", html, StringComparison.Ordinal);
@@ -60,11 +60,11 @@ public class Markdown_Reader_LinkLabelInlines_Tests {
 bar>)
 """;
 
-        var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
 
-        Assert.Empty(paragraph.Inlines.Items.OfType<LinkInline>());
-        var rawHtml = Assert.Single(paragraph.Inlines.Items.OfType<HtmlRawInline>());
+        Assert.Empty(paragraph.Inlines.Nodes.OfType<LinkInline>());
+        var rawHtml = Assert.Single(paragraph.Inlines.Nodes.OfType<HtmlRawInline>());
         Assert.Equal("<foo\nbar>", rawHtml.Html);
 
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -77,11 +77,11 @@ bar>)
         var options = MarkdownReaderOptions.CreateCommonMarkProfile();
         options.InlineHtml = false;
 
-        var doc = MarkdownReader.Parse(md, options);
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
-        var link = Assert.Single(paragraph.Inlines.Items.OfType<LinkInline>());
+        var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
         Assert.Equal("</u>", link.Text);
         Assert.Contains("[&lt;u&gt;", html, StringComparison.Ordinal);
         Assert.Contains("<a href=\"url\">&lt;/u&gt;</a>", html, StringComparison.Ordinal);

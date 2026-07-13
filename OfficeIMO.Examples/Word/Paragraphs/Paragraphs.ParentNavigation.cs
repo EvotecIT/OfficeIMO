@@ -25,7 +25,8 @@ internal static partial class Paragraphs {
                 Console.WriteLine($"Table style: {parentTable.Style}");
             }
 
-            document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+            document.Save();
+            if (openWord) document.OpenInApplication();
         }
     }
 }

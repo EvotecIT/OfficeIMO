@@ -70,8 +70,11 @@ namespace OfficeIMO.Word.Markdown {
         public bool AllowLocalImages { get; set; }
         /// <summary>Restrict local images to these directories (optional). Paths are normalized for comparison.</summary>
         public System.Collections.Generic.HashSet<string> AllowedImageDirectories { get; } = new System.Collections.Generic.HashSet<string>(System.StringComparer.OrdinalIgnoreCase);
-        /// <summary>Allow downloading remote images. Default: false.</summary>
-        public bool AllowRemoteImages { get; set; }
+        /// <summary>
+        /// Optional resolver for remote image bytes. The converter never performs network requests itself;
+        /// callers own download, cache, authentication, and trust policy.
+        /// </summary>
+        public Func<Uri, byte[]?>? RemoteImageResolver { get; set; }
         /// <summary>
         /// Allow embedding base64 <c>data:image/*</c> Markdown images. Default: true so the
         /// default Word-to-Markdown image export mode can round-trip back into Word.
@@ -87,8 +90,8 @@ namespace OfficeIMO.Word.Markdown {
         public Func<System.Uri, bool>? ImageUrlValidator { get; set; }
         /// <summary>When remote images are not allowed or validation fails, insert a hyperlink instead of image. Default: true.</summary>
         public bool FallbackRemoteImagesToHyperlinks { get; set; } = true;
-        /// <summary>Timeout applied to remote image downloads. Default: 20 seconds.</summary>
-        public TimeSpan RemoteImageDownloadTimeout { get; set; } = TimeSpan.FromSeconds(20);
+        /// <summary>Maximum byte length accepted from <see cref="RemoteImageResolver"/> for one image.</summary>
+        public long MaximumRemoteImageBytes { get; set; } = 5L * 1024L * 1024L;
 
         /// <summary>
         /// Optional callback receiving per-image layout diagnostics.
@@ -111,6 +114,31 @@ namespace OfficeIMO.Word.Markdown {
         /// When omitted, the converter uses the default OfficeIMO reader profile.
         /// </summary>
         public OfficeIMO.Markdown.MarkdownReaderOptions? ReaderOptions { get; set; }
+
+        /// <summary>
+        /// Creates the effective Markdown reader options for a Word import, including the
+        /// Word semantic fenced-block extensions and this instance's base URI settings.
+        /// </summary>
+        public OfficeIMO.Markdown.MarkdownReaderOptions CreateReaderOptions() {
+            OfficeIMO.Markdown.MarkdownReaderOptions effective;
+            if (ReaderOptions == null) {
+                effective = new OfficeIMO.Markdown.MarkdownReaderOptions {
+                    BaseUri = BaseUri,
+                    PreferNarrativeSingleLineDefinitions = PreferNarrativeSingleLineDefinitions
+                };
+            } else {
+                effective = ReaderOptions.Clone();
+                if (string.IsNullOrWhiteSpace(effective.BaseUri) && !string.IsNullOrWhiteSpace(BaseUri)) {
+                    effective.BaseUri = BaseUri;
+                }
+                if (!effective.PreferNarrativeSingleLineDefinitions && PreferNarrativeSingleLineDefinitions) {
+                    effective.PreferNarrativeSingleLineDefinitions = true;
+                }
+            }
+
+            WordMarkdownSemanticBlocks.ConfigureReaderOptions(effective);
+            return effective;
+        }
 
         /// <summary>
         /// Controls whether front matter is rendered as visible Word content.

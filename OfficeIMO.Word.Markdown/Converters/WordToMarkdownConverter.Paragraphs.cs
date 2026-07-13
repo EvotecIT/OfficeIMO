@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word.Markdown {
     internal partial class WordToMarkdownConverter {
@@ -229,7 +230,7 @@ namespace OfficeIMO.Word.Markdown {
                 if (!string.IsNullOrEmpty(image.FilePath) && File.Exists(image.FilePath)) {
                     File.Copy(image.FilePath, targetPath, true);
                 } else {
-                    File.WriteAllBytes(targetPath, image.ToBytes());
+                    OfficeFileCommit.WriteAllBytes(targetPath, image.ToBytes());
                 }
 
                 return $"![{alt}]({fileName})";

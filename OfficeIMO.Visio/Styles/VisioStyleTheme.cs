@@ -36,6 +36,25 @@ namespace OfficeIMO.Visio {
         /// <summary>Control-flow connector style.</summary>
         public VisioConnectorStyle ControlConnector { get; set; } = CreateConnector(Color.FromRgb(0, 146, 203), 0.018, 2, Color.FromRgb(0, 106, 160));
 
+        /// <summary>Diagram title text style.</summary>
+        public VisioTextStyle TitleText { get; set; } = new VisioTextStyle {
+            FontFamily = "Aptos Display",
+            Color = Color.FromRgb(0, 0, 0),
+            Size = 22,
+            Bold = true,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Center,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle
+        };
+
+        /// <summary>Diagram legend text style.</summary>
+        public VisioTextStyle LegendText { get; set; } = new VisioTextStyle {
+            FontFamily = "Aptos",
+            Color = Color.FromRgb(20, 75, 120),
+            Size = 10,
+            HorizontalAlignment = VisioTextHorizontalAlignment.Left,
+            VerticalAlignment = VisioTextVerticalAlignment.Middle
+        };
+
         /// <summary>Creates a detached copy of the theme.</summary>
         public VisioStyleTheme Clone() {
             return new VisioStyleTheme {
@@ -48,49 +67,9 @@ namespace OfficeIMO.Visio {
                 Container = Container.Clone(),
                 Connector = Connector.Clone(),
                 DataConnector = DataConnector.Clone(),
-                ControlConnector = ControlConnector.Clone()
-            };
-        }
-
-        /// <summary>Converts this authoring style theme into a flowchart builder theme.</summary>
-        public OfficeIMO.Visio.Diagrams.VisioFlowchartTheme ToFlowchartTheme() {
-            return new OfficeIMO.Visio.Diagrams.VisioFlowchartTheme {
-                ProcessFill = Primary.FillColor,
-                ProcessStroke = Primary.LineColor,
-                DecisionFill = Decision.FillColor,
-                DecisionStroke = Decision.LineColor,
-                TerminatorFill = Success.FillColor,
-                TerminatorStroke = Success.LineColor,
-                MarkerFill = Marker.FillColor,
-                MarkerStroke = Marker.LineColor,
-                ConnectorColor = Connector.LineColor,
-                LineWeight = Primary.LineWeight,
-                ProcessTextStyle = Primary.TextStyle?.Clone(),
-                DecisionTextStyle = Decision.TextStyle?.Clone(),
-                TerminatorTextStyle = Success.TextStyle?.Clone(),
-                MarkerTextStyle = Marker.TextStyle?.Clone(),
-                ConnectorTextStyle = Connector.TextStyle?.Clone(),
-                TitleTextStyle = Emphasis.TextStyle?.Clone()
-            };
-        }
-
-        /// <summary>Converts this authoring style theme into a block diagram builder theme.</summary>
-        public OfficeIMO.Visio.Diagrams.VisioBlockDiagramTheme ToBlockDiagramTheme() {
-            return new OfficeIMO.Visio.Diagrams.VisioBlockDiagramTheme {
-                BlockFill = Primary.FillColor,
-                BlockStroke = Primary.LineColor,
-                EmphasisFill = Emphasis.FillColor,
-                EmphasisStroke = Emphasis.LineColor,
-                RegionFill = Container.FillColor,
-                RegionStroke = Container.LineColor,
-                DataFlowColor = DataConnector.LineColor,
-                ControlFlowColor = ControlConnector.LineColor,
-                LineWeight = Primary.LineWeight,
-                BlockTextStyle = Primary.TextStyle?.Clone(),
-                EmphasisTextStyle = Emphasis.TextStyle?.Clone(),
-                RegionTextStyle = Container.TextStyle?.Clone(),
-                ConnectorTextStyle = Connector.TextStyle?.Clone(),
-                LegendTextStyle = DataConnector.TextStyle?.Clone()
+                ControlConnector = ControlConnector.Clone(),
+                TitleText = TitleText.Clone(),
+                LegendText = LegendText.Clone()
             };
         }
 

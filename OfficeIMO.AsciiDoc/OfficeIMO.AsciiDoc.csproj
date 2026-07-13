@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Dependency-free, source-preserving AsciiDoc parser, semantic model, and writer for .NET.</Description>
+    <Description>Source-preserving AsciiDoc parser, semantic model, and writer for .NET.</Description>
     <AssemblyName>OfficeIMO.AsciiDoc</AssemblyName>
     <AssemblyTitle>OfficeIMO.AsciiDoc</AssemblyTitle>
     <VersionPrefix>0.1.0</VersionPrefix>
@@ -24,8 +24,11 @@
     <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
-    <EnableTrimmingPolyfills>true</EnableTrimmingPolyfills>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+  </ItemGroup>
 
   <ItemGroup>
     <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />

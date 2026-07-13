@@ -4,7 +4,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 using System.IO.Packaging;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,22 +19,22 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Path to the file backing this document.
         /// </summary>
-        public string FilePath = string.Empty;
+        public string? FilePath { get; internal set; }
 
         /// <summary>
         /// Built-in (core) document properties (Title, Creator, etc.).
         /// </summary>
-        public BuiltinDocumentProperties BuiltinDocumentProperties = null!;
+        public BuiltinDocumentProperties BuiltinDocumentProperties { get; internal set; } = null!;
 
         /// <summary>
         /// Extended (application) properties (Company, Manager, etc.).
         /// </summary>
-        public ApplicationProperties ApplicationProperties = null!;
+        public ApplicationProperties ApplicationProperties { get; internal set; } = null!;
 
         /// <summary>
         /// Custom workbook properties keyed by property name.
         /// </summary>
-        public readonly ExcelCustomDocumentPropertyCollection CustomDocumentProperties = new ExcelCustomDocumentPropertyCollection();
+        public ExcelCustomDocumentPropertyCollection CustomDocumentProperties { get; } = new ExcelCustomDocumentPropertyCollection();
 
         /// <summary>
         /// FileOpenAccess of the document

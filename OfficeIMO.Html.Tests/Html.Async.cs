@@ -11,19 +11,10 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Html {
         [Fact]
-        public async Task ToHtmlAsync_EqualsSync() {
-            using var doc = WordDocument.Create();
-            doc.AddParagraph("Async test");
-            string sync = doc.ToHtml();
-            string asyncResult = await doc.ToHtmlAsync();
-            Assert.Equal(sync, asyncResult);
-        }
-
-        [Fact]
         public async Task ToWordDocumentAsync_EqualsSync() {
             string html = "<p>Hello</p>";
-            using var syncDoc = html.ToWordDocument();
-            using var asyncDoc = await html.ToWordDocumentAsync();
+            using var syncDoc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+            using var asyncDoc = await OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocumentAsync();
             Assert.Equal(syncDoc.Paragraphs.Count, asyncDoc.Paragraphs.Count);
             Assert.Equal(syncDoc.Paragraphs.First().Text, asyncDoc.Paragraphs.First().Text);
         }
@@ -52,16 +43,16 @@ namespace OfficeIMO.Tests {
             using var docSync = WordDocument.Create();
             using var docAsync = WordDocument.Create();
             string fragment = "<p>Header</p>";
-            docSync.AddHtmlToHeader(fragment);
+            docSync.AddHtmlToHeader(OfficeIMO.Html.HtmlConversionDocument.Parse(fragment));
             var syncHeader = RequireSectionHeader(docSync, 0, HeaderFooterValues.Default);
-            await docAsync.AddHtmlToHeaderAsync(fragment);
+            await docAsync.AddHtmlToHeaderAsync(OfficeIMO.Html.HtmlConversionDocument.Parse(fragment));
             var asyncHeader = RequireSectionHeader(docAsync, 0, HeaderFooterValues.Default);
             Assert.Equal(syncHeader.Paragraphs[0].Text, asyncHeader.Paragraphs[0].Text);
 
             string footerFrag = "<p>Footer</p>";
-            docSync.AddHtmlToFooter(footerFrag);
+            docSync.AddHtmlToFooter(OfficeIMO.Html.HtmlConversionDocument.Parse(footerFrag));
             var syncFooter = RequireSectionFooter(docSync, 0, HeaderFooterValues.Default);
-            await docAsync.AddHtmlToFooterAsync(footerFrag);
+            await docAsync.AddHtmlToFooterAsync(OfficeIMO.Html.HtmlConversionDocument.Parse(footerFrag));
             var asyncFooter = RequireSectionFooter(docAsync, 0, HeaderFooterValues.Default);
             Assert.Equal(syncFooter.Paragraphs[0].Text, asyncFooter.Paragraphs[0].Text);
         }
@@ -91,7 +82,7 @@ namespace OfficeIMO.Tests {
             configure(doc);
 
             string html = $"<p>{expectedText}</p>";
-            await doc.AddHtmlToFooterAsync(html, footerType);
+            await doc.AddHtmlToFooterAsync(OfficeIMO.Html.HtmlConversionDocument.Parse(html), footerType);
 
             int sectionIndex = doc.Sections.Count - 1;
             WordFooter footer = RequireSectionFooter(doc, sectionIndex, footerType);
@@ -109,7 +100,7 @@ namespace OfficeIMO.Tests {
             configure(doc);
 
             string html = $"<p>{expectedText}</p>";
-            await doc.AddHtmlToHeaderAsync(html, headerType);
+            await doc.AddHtmlToHeaderAsync(OfficeIMO.Html.HtmlConversionDocument.Parse(html), headerType);
 
             int sectionIndex = doc.Sections.Count - 1;
             WordHeader header = RequireSectionHeader(doc, sectionIndex, headerType);
@@ -233,11 +224,10 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             var cts = new CancellationTokenSource();
             cts.Cancel();
-            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.ToHtmlAsync(cancellationToken: cts.Token));
-            await Assert.ThrowsAsync<OperationCanceledException>(() => "<p>a</p>".ToWordDocumentAsync(cancellationToken: cts.Token));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse("<p>a</p>").ToWordDocumentAsync(cancellationToken: cts.Token));
             await Assert.ThrowsAsync<OperationCanceledException>(() => doc.SaveAsHtmlAsync("foo.html", cancellationToken: cts.Token));
-            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToHeaderAsync("<p>h</p>", cancellationToken: cts.Token));
-            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToFooterAsync("<p>f</p>", cancellationToken: cts.Token));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToHeaderAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>h</p>"), cancellationToken: cts.Token));
+            await Assert.ThrowsAsync<OperationCanceledException>(() => doc.AddHtmlToFooterAsync(OfficeIMO.Html.HtmlConversionDocument.Parse("<p>f</p>"), cancellationToken: cts.Token));
         }
     }
 }

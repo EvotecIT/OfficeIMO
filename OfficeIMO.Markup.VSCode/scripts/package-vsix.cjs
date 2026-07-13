@@ -190,6 +190,7 @@ fs.mkdirSync(publishRoot, { recursive: true });
 const bundledCli = assertChildPath(path.join(extensionRoot, 'tools', 'OfficeIMO.Markup.Cli'), extensionRoot);
 removeDirectory(bundledCli);
 fs.mkdirSync(bundledCli, { recursive: true });
+process.once('exit', () => removeDirectory(bundledCli));
 
 const commonDotnetArgs = [
   'publish',
@@ -212,7 +213,7 @@ if (options.skipRestore) {
 const portablePublishRoot = assertChildPath(path.join(publishRoot, 'portable'), publishRoot);
 fs.mkdirSync(portablePublishRoot, { recursive: true });
 console.log(`Publishing OfficeIMO.Markup.Cli (${options.configuration}, ${options.framework}, portable fallback)...`);
-run('dotnet', [...commonDotnetArgs, '-o', portablePublishRoot], { cwd: extensionRoot });
+run('dotnet', [...commonDotnetArgs, '-p:UseAppHost=false', '-o', portablePublishRoot], { cwd: extensionRoot });
 copyDirectoryContents(portablePublishRoot, bundledCli);
 
 for (const rid of options.runtimeIdentifiers) {

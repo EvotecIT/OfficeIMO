@@ -1,5 +1,6 @@
 using OfficeIMO.Word;
 using OfficeIMO.Word.Pdf;
+using OfficeIMO.Pdf;
 using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word.Html;
 using System;
@@ -88,7 +89,7 @@ namespace OfficeIMO.Examples.Word {
             try {
                 string outputPath = Path.Combine(folderPath, "README_from_markdown.docx");
                 
-                using (var document = markdown.LoadFromMarkdown(new MarkdownToWordOptions {
+                using (var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown).ToWordDocument(new MarkdownToWordOptions {
                     FontFamily = "Calibri"
                 })) {
                     document.Save(outputPath);
@@ -230,7 +231,7 @@ namespace OfficeIMO.Examples.Word {
 ";
             
             try {
-                using (var document = sampleHtml.ToWordDocument(new HtmlToWordOptions {
+                using (var document = OfficeIMO.Html.HtmlConversionDocument.Parse(sampleHtml).ToWordDocument(new HtmlToWordOptions {
                     FontFamily = "Calibri"
                 })) {
                     string outputPath = Path.Combine(folderPath, "README_from_html.docx");
@@ -260,7 +261,7 @@ namespace OfficeIMO.Examples.Word {
             // Test Markdown -> Word -> Markdown
             try {
                 Console.WriteLine("Testing: Markdown → Word → Markdown");
-                using (var document = markdown.Substring(0, Math.Min(500, markdown.Length)).LoadFromMarkdown()) {
+                using (var document = OfficeIMO.Markdown.MarkdownReader.Parse(markdown.Substring(0, Math.Min(500, markdown.Length))).ToWordDocument()) {
                     string backToMarkdown = document.ToMarkdown();
                     Console.WriteLine($"  • Original length: {markdown.Length}");
                     Console.WriteLine($"  • Round-trip length: {backToMarkdown.Length}");

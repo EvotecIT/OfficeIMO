@@ -69,13 +69,13 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         ///     Built-in directions used by deck alternatives.
         /// </summary>
-        public static IReadOnlyList<PowerPointDesignDirection> BuiltIn { get; } = new[] {
+        public static IReadOnlyList<PowerPointDesignDirection> BuiltIn { get; } = Array.AsReadOnly(new[] {
             Structured,
             Editorial,
             Quiet,
             Signal,
             Executive
-        };
+        });
 
         /// <summary>
         ///     Creates a reusable direction definition.

@@ -112,7 +112,7 @@ public class PdfEncryptedWriteTests {
         var readOptions = new PdfReadOptions { Password = "open" };
         PdfDocumentPreflight preflight = PdfInspector.Preflight(pdf, readOptions);
         string text = PdfTextExtractor.ExtractAllText(pdf, (PdfTextLayoutOptions?)null, readOptions);
-        PdfDocument opened = PdfDocument.Open(pdf, readOptions);
+        PdfDocument opened = PdfDocument.Load(pdf, readOptions);
         string fluentText = opened.Read.Text();
         PdfOperationResult<string> tryText = opened.Read.TryText();
 

@@ -1,6 +1,6 @@
 using DocumentFormat.OpenXml.Drawing;
 using OfficeIMO.Drawing;
-using OfficeIMO.Shared.OpenXml;
+using OfficeIMO.OpenXml.Internal;
 using Xunit;
 
 namespace OfficeIMO.Tests;

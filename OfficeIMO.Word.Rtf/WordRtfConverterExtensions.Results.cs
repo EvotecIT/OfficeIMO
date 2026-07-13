@@ -26,6 +26,18 @@ public static partial class WordRtfConverterExtensions {
         return new RtfConversionResult<WordDocument>(converted, report);
     }
 
+    /// <summary>Converts a native RTF read result to Word while preserving parser and bridge diagnostics.</summary>
+    public static RtfConversionResult<WordDocument> ToWordDocumentResult(
+        this RtfReadResult readResult,
+        string? sourcePath = null) {
+        if (readResult == null) throw new ArgumentNullException(nameof(readResult));
+        RtfConversionResult<WordDocument> converted = readResult.Document.ToWordDocumentResult();
+        var report = new RtfConversionReport();
+        report.AddReadDiagnostics(readResult.Diagnostics, sourcePath);
+        report.Merge(converted.Report);
+        return new RtfConversionResult<WordDocument>(converted.Value, report);
+    }
+
     private static void AddRtfToWordDiagnostics(RtfDocument document, RtfConversionReport report) {
         if (document.Styles.Count > 0) {
             report.Add(

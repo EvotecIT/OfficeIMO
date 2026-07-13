@@ -17,9 +17,9 @@ public sealed class LatexWriterOptions {
 }
 
 /// <summary>Applies non-overlapping semantic source edits without reformatting untouched syntax.</summary>
-public static class LatexWriter {
+internal static class LatexWriter {
     /// <summary>Writes a document.</summary>
-    public static string Write(LatexDocument document, LatexWriterOptions? options = null) {
+    internal static string Write(LatexDocument document, LatexWriterOptions? options = null) {
         if (document == null) throw new ArgumentNullException(nameof(document));
         options ??= new LatexWriterOptions();
         string lineEnding = options.LineEnding ?? document.Source.PreferredLineEnding;

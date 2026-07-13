@@ -380,8 +380,8 @@ public static class MarkdownBlockRenderBuiltInExtensions {
                 return true;
             }
 
-            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
-                if (item.Children[childIndex] is IMarkdownListBlock childList
+            for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
+                if (item.NestedBlocks[childIndex] is IMarkdownListBlock childList
                     && ContainsTaskListItem(childList.ListItems)) {
                     return true;
                 }
@@ -406,8 +406,8 @@ public static class MarkdownBlockRenderBuiltInExtensions {
                 return true;
             }
 
-            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
-                if (item.Children[childIndex] is IMarkdownListBlock childList
+            for (int childIndex = 0; childIndex < item.NestedBlocks.Count; childIndex++) {
+                if (item.NestedBlocks[childIndex] is IMarkdownListBlock childList
                     && ContainsAttributedListItem(childList.ListItems)) {
                     return true;
                 }

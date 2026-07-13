@@ -35,23 +35,18 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         }
     }
     /// <summary>
-    /// Parsed child blocks of the footnote definition.
+    /// Structured child blocks that form the canonical footnote body.
     /// Paragraph-only footnotes keep this aligned with <see cref="ParagraphBlocks"/>, while richer
     /// producers can preserve headings, code blocks, and other block types here.
     /// </summary>
-    public IReadOnlyList<IMarkdownBlock> Blocks => _blocks;
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => _blocks;
     /// <summary>
-    /// Structured child blocks that form the canonical footnote body.
-    /// This is the AST-style alias for <see cref="Blocks"/> used by child-container consumers.
-    /// </summary>
-    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Blocks;
-    /// <summary>
-    /// Parsed paragraphs of the footnote definition, derived from <see cref="Blocks"/>.
+    /// Parsed paragraphs of the footnote definition, derived from <see cref="ChildBlocks"/>.
     /// When empty, renderers may fall back to parsing <see cref="Text"/> as a single inline sequence.
     /// </summary>
     public IReadOnlyList<InlineSequence> Paragraphs => CreateParagraphInlines(ParagraphBlocks);
     /// <summary>
-    /// Parsed paragraph blocks of the footnote definition, derived from <see cref="Blocks"/>.
+    /// Parsed paragraph blocks of the footnote definition, derived from <see cref="ChildBlocks"/>.
     /// This exposes footnote content as owned block children for AST-style consumers.
     /// </summary>
     public IReadOnlyList<ParagraphBlock> ParagraphBlocks => CreateParagraphBlocks(_blocks);
@@ -203,7 +198,7 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
-        return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, Blocks);
+        return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {

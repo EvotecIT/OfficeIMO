@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
 
             using var document = BuildGoogleDocsSampleDocument(filePath, imagePath);
 
-            var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+            var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                 Title = "OfficeIMO Docs Export"
             });
 
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsSampleDocument(filePath, imagePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Payload Export"
                 });
                 var imageParagraph = Assert.IsType<GoogleDocsInsertParagraphRequest>(batch.Requests[1]);
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsListDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "List Export"
                 });
 
@@ -201,7 +201,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsHighlightDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Highlight Export"
                 });
 
@@ -228,7 +228,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsBaselineDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Baseline Export"
                 });
 
@@ -252,7 +252,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsSmallCapsDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "SmallCaps Export"
                 });
 
@@ -278,7 +278,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsFontFamilyDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Font Export"
                 });
 
@@ -302,7 +302,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsParagraphLayoutDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Paragraph Layout Export"
                 });
 
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsRightToLeftParagraphDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "RTL Paragraph Export"
                 });
 
@@ -359,7 +359,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsParagraphPaginationDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Paragraph Pagination Export"
                 });
 
@@ -389,7 +389,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsParagraphTabStopsDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Paragraph Tab Stops Export"
                 });
 
@@ -418,7 +418,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsSectionLayoutDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Section Layout Export"
                 });
 
@@ -457,7 +457,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsSectionColumnsDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Section Columns Export"
                 });
 
@@ -486,7 +486,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsAutoLineSpacingDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Line Spacing Export"
                 });
 
@@ -509,7 +509,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsExactLineSpacingDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Exact Line Spacing Export"
                 });
 
@@ -533,7 +533,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsAtLeastLineSpacingDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "AtLeast Line Spacing Export"
                 });
 
@@ -553,7 +553,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsParagraphShadingDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Paragraph Shading Export"
                 });
 
@@ -579,7 +579,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsParagraphBorderDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Paragraph Border Export"
                 });
 
@@ -613,7 +613,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsPageBreakDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Page Break Export"
                 });
 
@@ -643,7 +643,7 @@ namespace OfficeIMO.Tests {
                 Assert.Single(footnoteRun.Footnote!.Paragraphs);
                 Assert.Equal("Footnote text", footnoteRun.Footnote.Paragraphs[0].Text);
 
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Footnote Export"
                 });
 
@@ -673,7 +673,7 @@ namespace OfficeIMO.Tests {
                 var internalLinkRun = Assert.Single(sourceParagraph.Runs, run => !string.IsNullOrWhiteSpace(run.HyperlinkAnchor));
                 Assert.Equal("TargetBookmark", internalLinkRun.HyperlinkAnchor);
 
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Bookmark Export"
                 });
 
@@ -700,7 +700,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsFootnoteDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Footnote Export"
                 });
 
@@ -722,7 +722,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsBookmarkDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Bookmark Export"
                 });
 
@@ -745,7 +745,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsFootnoteBookmarkDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Footnote Bookmark Export"
                 });
 
@@ -772,7 +772,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsTableBookmarkDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Table Bookmark Export"
                 });
 
@@ -798,7 +798,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsHeaderBookmarkDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Header Bookmark Export"
                 });
 
@@ -822,7 +822,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsSampleDocument(filePath, imagePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Section Break Export"
                 });
 
@@ -850,7 +850,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsLeadingTableSectionDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Section Break Leading Table Export"
                 });
 
@@ -886,7 +886,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Header text", snapshot.Sections[0].DefaultHeader!.Paragraphs[0].Text);
                 Assert.Equal("Footer text", snapshot.Sections[0].DefaultFooter!.Paragraphs[0].Text);
 
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Header Footer Export"
                 });
 
@@ -920,7 +920,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("H1", headerSnapshot.Tables[0].Rows[0].Cells[0].Paragraphs[0].Text);
                 Assert.Equal("H4", headerSnapshot.Tables[0].Rows[1].Cells[1].Paragraphs[0].Text);
 
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Header Table Export"
                 });
 
@@ -964,7 +964,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("First header text", snapshot.Sections[0].FirstHeader!.Paragraphs[0].Text);
                 Assert.Equal("First footer text", snapshot.Sections[0].FirstFooter!.Paragraphs[0].Text);
 
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "First Page Header Footer Export"
                 });
 
@@ -995,7 +995,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Even header text", snapshot.Sections[0].EvenHeader!.Paragraphs[0].Text);
                 Assert.Equal("Even footer text", snapshot.Sections[0].EvenFooter!.Paragraphs[0].Text);
 
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Even Page Header Footer Export"
                 });
 
@@ -1019,7 +1019,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsHeaderTableBookmarkDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Header Table Bookmark Export"
                 });
 
@@ -1052,7 +1052,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsStyledTableDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Styled Table Cell Export"
                 });
 
@@ -1087,7 +1087,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsStyledTableDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Styled Table Cell Export"
                 });
 
@@ -1141,7 +1141,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsHeaderTableDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Header Table Export"
                 });
 
@@ -1178,7 +1178,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsTableFootnoteDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Table Footnote Export"
                 });
 
@@ -2189,7 +2189,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = BuildGoogleDocsMergedTableDocument(filePath);
-                var batch = document.CreateGoogleDocsBatch(new GoogleDocsSaveOptions {
+                var batch = document.BuildGoogleDocsBatch(new GoogleDocsSaveOptions {
                     Title = "Merged Table Export"
                 });
 

@@ -49,6 +49,9 @@ public sealed class PdfConversionReport {
     /// <summary>True when at least one error-severity warning was recorded.</summary>
     public bool HasErrors => Warnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error);
 
+    /// <summary>True when conversion reported an approximation, omission, or error.</summary>
+    public bool HasLoss => Warnings.Any(static warning => warning.Severity != PdfConversionWarningSeverity.Information);
+
     /// <summary>
     /// Builds a stable count summary for proof packs, logs, wrapper routing, and user-facing diagnostics.
     /// </summary>
@@ -62,6 +65,20 @@ public sealed class PdfConversionReport {
     public PdfConversionReport RequireNoWarnings() {
         if (HasWarnings) {
             throw new InvalidOperationException(CreateFailureMessage("PDF conversion produced warnings.", Warnings));
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Throws when conversion reported an approximation, omission, or error; informational diagnostics are allowed.
+    /// </summary>
+    public PdfConversionReport RequireNoLoss() {
+        PdfConversionWarning[] lossWarnings = Warnings
+            .Where(static warning => warning.Severity != PdfConversionWarningSeverity.Information)
+            .ToArray();
+        if (lossWarnings.Length > 0) {
+            throw new InvalidOperationException(CreateFailureMessage("PDF conversion reported possible content loss.", lossWarnings));
         }
 
         return this;

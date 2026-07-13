@@ -18,7 +18,7 @@ public class Markdown_Reader_Callout_RichBody_Tests {
 > ```
 """;
 
-        var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("blockquote class=\"callout note\"", html, StringComparison.OrdinalIgnoreCase);
@@ -55,7 +55,7 @@ Console.WriteLine("x");
 > Body
 """;
 
-        var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
         var markdown = doc.ToMarkdown();
 
@@ -75,7 +75,7 @@ Body
 # Next
 """;
 
-        var document = MarkdownReader.Parse(md);
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse(md);
 
         Assert.Collection(document.Blocks,
             block => {
@@ -96,7 +96,7 @@ Body
 > Body
 """;
 
-        var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong><img src=\"/icon.svg\" alt=\"\"", html, StringComparison.Ordinal);
@@ -114,7 +114,7 @@ Body
 > Body
 """;
 
-        var doc = MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
+        var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, new MarkdownReaderOptions { HtmlBlocks = false, InlineHtml = false });
 
         var callout = Assert.IsType<CalloutBlock>(Assert.Single(doc.Blocks));
         Assert.Equal("Use linked code", callout.Title);
@@ -126,7 +126,7 @@ Body
 
     [Fact]
     public void Callout_Body_Is_Derived_From_ChildBlocks_When_BlockContent_Is_Available() {
-        var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh body"));
+        var paragraph = new ParagraphBlock(OfficeIMO.Markdown.MarkdownReader.ParseInlineText("fresh body"));
         var callout = new CalloutBlock("note", new InlineSequence().Text("Heads up"), new IMarkdownBlock[] { paragraph });
 
         Assert.Equal("Heads up", callout.Title);
@@ -136,9 +136,9 @@ Body
 
     [Fact]
     public void Callout_Public_Structured_Constructor_Uses_ChildBlocks_As_Primary_Body() {
-        var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh body"));
+        var paragraph = new ParagraphBlock(OfficeIMO.Markdown.MarkdownReader.ParseInlineText("fresh body"));
         var list = new UnorderedListBlock();
-        list.Items.Add(new ListItem(MarkdownReader.ParseInlineText("first")));
+        list.Items.Add(new ListItem(OfficeIMO.Markdown.MarkdownReader.ParseInlineText("first")));
         var callout = new CalloutBlock("note", "Heads up", new IMarkdownBlock[] {
             paragraph,
             list

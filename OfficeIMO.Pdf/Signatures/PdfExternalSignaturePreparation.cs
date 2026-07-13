@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Prepared PDF bytes and byte ranges for an external signing operation.</summary>
 public sealed class PdfExternalSignaturePreparation {
+    private readonly byte[] _preparedPdf;
+
     internal PdfExternalSignaturePreparation(
         byte[] preparedPdf,
         string fieldName,
@@ -14,19 +16,19 @@ public sealed class PdfExternalSignaturePreparation {
         int contentsHexOffset,
         int contentsHexLength,
         int reservedSignatureContentsBytes) {
-        PreparedPdf = preparedPdf;
+        _preparedPdf = (byte[])preparedPdf.Clone();
         FieldName = fieldName;
         Filter = filter;
         SubFilter = subFilter;
         Profile = profile;
-        ByteRangeValues = byteRangeValues;
+        ByteRangeValues = byteRangeValues.ToArray();
         ContentsHexOffset = contentsHexOffset;
         ContentsHexLength = contentsHexLength;
         ReservedSignatureContentsBytes = reservedSignatureContentsBytes;
     }
 
     /// <summary>PDF bytes containing a patched /ByteRange and zero-filled reserved /Contents placeholder.</summary>
-    public byte[] PreparedPdf { get; }
+    public byte[] PreparedPdf => (byte[])_preparedPdf.Clone();
 
     /// <summary>Name of the AcroForm signature field appended to the document.</summary>
     public string FieldName { get; }
@@ -56,8 +58,8 @@ public sealed class PdfExternalSignaturePreparation {
     public byte[] SignedContent {
         get {
             using var stream = new MemoryStream();
-            stream.Write(PreparedPdf, (int)ByteRangeValues[0], (int)ByteRangeValues[1]);
-            stream.Write(PreparedPdf, (int)ByteRangeValues[2], (int)ByteRangeValues[3]);
+            stream.Write(_preparedPdf, (int)ByteRangeValues[0], (int)ByteRangeValues[1]);
+            stream.Write(_preparedPdf, (int)ByteRangeValues[2], (int)ByteRangeValues[3]);
             return stream.ToArray();
         }
     }

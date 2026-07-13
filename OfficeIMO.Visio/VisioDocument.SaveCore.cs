@@ -8,7 +8,6 @@ using System.Linq;
 using System.Text;
 using System.Xml;
 using System.Xml.Linq;
-using OfficeIMO.Shared;
 using Color = OfficeIMO.Drawing.OfficeColor;
 
 namespace OfficeIMO.Visio {
@@ -31,7 +30,7 @@ namespace OfficeIMO.Visio {
         /// </summary>
         /// <param name="destination">Target stream.</param>
         private void SaveInternalCore(Stream destination) {
-            bool includeTheme = Theme != null;
+            bool includeTheme = PackageTheme != null;
             List<VisioPage> pagesToSave = _pages.Count > 0 ? _pages : new List<VisioPage> { new VisioPage("Page-1") { Id = 0 } };
             bool includeComments = pagesToSave.Any(page => page.Comments.Count > 0);
             PrepareTextFontFaceNames(pagesToSave);
@@ -140,11 +139,11 @@ namespace OfficeIMO.Visio {
 
                 const string ns = VisioNamespace;
 
-                if (themePart != null && Theme != null) {
-                    if (Theme.TemplateXml != null) {
-                        XDocument themeXml = new(Theme.TemplateXml);
+                if (themePart != null && PackageTheme != null) {
+                    if (PackageTheme.TemplateXml != null) {
+                        XDocument themeXml = new(PackageTheme.TemplateXml);
                         if (themeXml.Root != null) {
-                            themeXml.Root.SetAttributeValue("name", Theme.Name);
+                            themeXml.Root.SetAttributeValue("name", PackageTheme.Name);
                         }
 
                         using Stream s = themePart.GetStream(FileMode.Create, FileAccess.Write);
@@ -154,8 +153,8 @@ namespace OfficeIMO.Visio {
                         using (XmlWriter writer = XmlWriter.Create(themePart.GetStream(FileMode.Create, FileAccess.Write), settings)) {
                             writer.WriteStartDocument();
                             writer.WriteStartElement("a", "theme", "http://schemas.openxmlformats.org/drawingml/2006/main");
-                            if (!string.IsNullOrEmpty(Theme.Name)) {
-                                writer.WriteAttributeString("name", Theme.Name);
+                            if (!string.IsNullOrEmpty(PackageTheme.Name)) {
+                                writer.WriteAttributeString("name", PackageTheme.Name);
                             }
                             writer.WriteEndElement();
                             writer.WriteEndDocument();

@@ -80,7 +80,8 @@ namespace OfficeIMO.Examples.Word {
 
                 wordTable2.LayoutType = TableLayoutValues.Fixed;
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

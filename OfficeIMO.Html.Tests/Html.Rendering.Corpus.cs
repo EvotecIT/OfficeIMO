@@ -23,7 +23,7 @@ public sealed partial class HtmlRenderingTests {
         HtmlRenderingCorpusCase scenario = CorpusCases.Single(item => item.Id == scenarioId);
         HtmlRenderOptions options = scenario.CreateOptions();
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(scenario.Html, options);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(scenario.Html, options);
 
         Assert.Equal(scenario.Mode, rendered.Mode);
         Assert.Equal(scenario.ExpectedPageCount, rendered.Pages.Count);
@@ -36,9 +36,9 @@ public sealed partial class HtmlRenderingTests {
         string logicalText = NormalizeCorpusWhitespace(rendered.Text);
         foreach (string marker in scenario.TextMarkers) Assert.Contains(NormalizeCorpusWhitespace(marker), logicalText, StringComparison.Ordinal);
         foreach (string code in scenario.DiagnosticCodes) {
-            Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == code);
+            Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == code);
         }
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Severity == HtmlDiagnosticSeverity.Error);
         if (scenario.LinkUri != null) {
             Assert.Contains(rendered.Pages.SelectMany(page => page.Visuals), visual => visual.LinkUri == scenario.LinkUri);
         }
@@ -55,7 +55,7 @@ public sealed partial class HtmlRenderingTests {
 
         HtmlPdfSaveOptions pdfOptions = new HtmlPdfSaveOptions();
         pdfOptions = new HtmlPdfSaveOptions(options);
-        byte[] pdf = scenario.Html.ToPdf(pdfOptions);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(scenario.Html).ToPdf(pdfOptions);
         PdfCore.PdfDocumentInfo pdfInfo = PdfCore.PdfInspector.Inspect(pdf);
         string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
 

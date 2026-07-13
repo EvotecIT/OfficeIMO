@@ -11,13 +11,13 @@ namespace OfficeIMO.OpenDocument.Tests;
 public sealed class OpenDocumentCurrentReviewRegressionTests {
     [Fact]
     public void TextAndPresentationTablesIncludeHeaderRowsInSourceOrder() {
-        using OdtDocument text = OdtDocument.Create();
+        OdtDocument text = OdtDocument.Create();
         OdtTable textTable = text.AddTable(2, 1, "TextTable");
         textTable.Cell(0, 0).Text = "Text header";
         textTable.Cell(1, 0).Text = "Text body";
         WrapFirstRowAsHeader(textTable.Element);
 
-        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpPresentation presentation = OdpPresentation.Create();
         OdpTable presentationTable = presentation.AddSlide("Table").AddTable(
             OdfRect.FromCentimeters(1, 1, 8, 4), 2, 1, "PresentationTable");
         presentationTable.Cell(0, 0).Text = "Slide header";
@@ -30,7 +30,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void NewOdsColumnsStayAtTableScopeWhenHeaderRowsComeFirst() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         sheet.Cell(0, 0).SetString("Header");
         sheet.Cell(1, 0).SetString("Body");
@@ -49,15 +49,15 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void FlatExportTreatsMissingStylesPartAsEmptyStyles() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddParagraph("Minimal flat document");
         document.Package.RemoveEntry("styles.xml");
         using var stream = new MemoryStream();
 
-        OdfSaveResult save = document.SaveFlatXmlResult(stream);
+        OdfSaveResult save = document.SaveFlatXml(stream);
 
         stream.Position = 0;
-        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
         Assert.Equal("Minimal flat document", reopened.Paragraphs.Single().Text);
         Assert.DoesNotContain("styles.xml", save.Report.RewrittenEntries);
     }
@@ -65,14 +65,14 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
     [Fact]
     public void FlatImageExtractionPreservesSupportedMimeType() {
         byte[] webp = { 0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddParagraph().AddImage(webp, "pixel.webp",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
         using var stream = new MemoryStream();
 
         document.SaveFlatXml(stream);
         stream.Position = 0;
-        using OdtDocument reopened = OdtDocument.OpenFlatXml(stream);
+        OdtDocument reopened = OdtDocument.LoadFlatXml(stream);
 
         OdtImage image = reopened.Paragraphs.Single().Images.Single();
         Assert.EndsWith(".webp", image.Path, StringComparison.OrdinalIgnoreCase);
@@ -81,11 +81,11 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void PackageVersionFallsBackToContentPartWhenManifestVersionIsMissing() {
-        using OdtDocument source = OdtDocument.Create();
+        OdtDocument source = OdtDocument.Create();
         source.AddParagraph("ODF 1.3");
         byte[] package = RewriteWithoutManifestVersion(source.ToBytes(), "1.3");
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(package));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(package));
 
         Assert.Equal(OdfVersion.V1_3, reopened.Version);
         Assert.DoesNotContain(reopened.Diagnostics, diagnostic => diagnostic.Id == "ODF003");
@@ -93,7 +93,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void GraphicColorsAreHiddenWhenFillOrStrokeModeIsNone() {
-        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpPresentation presentation = OdpPresentation.Create();
         OdpRectangle rectangle = presentation.AddSlide("Shape").AddRectangle(
             OdfRect.FromCentimeters(1, 1, 4, 2));
         rectangle.FillColor = OdfColor.Parse("#112233");
@@ -112,7 +112,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void PresentationBackgroundsHonorFillModeAndReferencedMasterPageLayout() {
-        using OdpPresentation presentation = OdpPresentation.Create();
+        OdpPresentation presentation = OdpPresentation.Create();
         OdpMasterPage unused = presentation.AddMasterPage("Unused");
         OdpMasterPage selected = presentation.AddMasterPage("Selected");
         OdpSlide slide = presentation.AddSlide("Slide");
@@ -140,7 +140,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void SpreadsheetDataStylesTolerateMissingStylesPart() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         document.AddNumberStyle("Amount", 2);
         document.Package.RemoveEntry("styles.xml");
 
@@ -149,7 +149,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void SpreadsheetMergeValidationIncludesHeaderRows() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         sheet.Cell(0, 0).SetString("Anchor");
         sheet.Cell(0, 1).SetString("Not covered");
@@ -164,7 +164,7 @@ public sealed class OpenDocumentCurrentReviewRegressionTests {
 
     [Fact]
     public void DrawableNamesDoNotSatisfyMissingStyleReferences() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddParagraph("Styled");
         XDocument content = document.Package.GetXml("content.xml");
         content.Descendants(OdfNamespaces.Text + "p").Single()

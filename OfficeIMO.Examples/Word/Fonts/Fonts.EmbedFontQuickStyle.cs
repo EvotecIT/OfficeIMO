@@ -19,7 +19,8 @@ namespace OfficeIMO.Examples.Word {
                 document.AddParagraph("Paragraph using registered style").SetStyleId("DejaVuStyle");
                 document.AddParagraph("Fallback paragraph");
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

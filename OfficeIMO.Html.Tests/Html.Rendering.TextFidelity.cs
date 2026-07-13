@@ -24,8 +24,8 @@ public sealed partial class HtmlRenderingTests {
         OfficeDrawing drawing = rendered.Pages[0].CreateDrawing();
         IReadOnlyList<HtmlRenderText> renderedText = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
         IReadOnlyList<OfficeDrawingText> textElements = drawing.Elements.OfType<OfficeDrawingText>().ToList();
-        string svg = html.ToSvg(options);
-        byte[] png = html.ToPng(options);
+        string svg = HtmlConversionDocument.Parse(html).ToSvg(options);
+        byte[] png = HtmlConversionDocument.Parse(html).ToPng(options);
         XNamespace ns = "http://www.w3.org/2000/svg";
         XDocument svgDocument = XDocument.Parse(svg);
         IReadOnlyList<XElement> svgText = svgDocument.Descendants(ns + "text").ToList();
@@ -77,7 +77,7 @@ public sealed partial class HtmlRenderingTests {
             .First(item => item.Text == text.Text && Math.Abs(item.X - text.X) < 0.000001D && Math.Abs(item.Y - text.Y) < 0.000001D);
         Assert.Equal(text.Width, drawingText.Width, 6);
         Assert.Equal(advance, Assert.IsType<double>(drawingText.TextAdvanceWidth), 6);
-        Assert.NotEmpty(html.ToPng(options));
-        Assert.StartsWith("<svg", html.ToSvg(options), StringComparison.Ordinal);
+        Assert.NotEmpty(HtmlConversionDocument.Parse(html).ToPng(options));
+        Assert.StartsWith("<svg", HtmlConversionDocument.Parse(html).ToSvg(options), StringComparison.Ordinal);
     }
 }

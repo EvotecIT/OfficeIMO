@@ -1,4 +1,4 @@
-using OfficeIMO.Shared;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Email;
 
@@ -35,7 +35,10 @@ public sealed class EmailDocumentReader {
         return Parse(data, cancellationToken);
     }
 
-    /// <summary>Reads an artifact from the stream's current position without closing it.</summary>
+    /// <summary>
+    /// Reads a complete artifact without closing the stream. Seekable streams are read from the beginning and
+    /// restored to their original position; non-seekable streams are read forward from their current position.
+    /// </summary>
     public EmailReadResult Read(Stream stream, CancellationToken cancellationToken = default) {
         return Parse(EmailByteReader.ReadAll(stream, _options.MaxInputBytes, cancellationToken), cancellationToken);
     }
@@ -49,7 +52,10 @@ public sealed class EmailDocumentReader {
         }
     }
 
-    /// <summary>Asynchronously reads an artifact from the stream's current position without closing it.</summary>
+    /// <summary>
+    /// Asynchronously reads a complete artifact without closing the stream. Seekable streams are read from the
+    /// beginning and restored to their original position; non-seekable streams are read forward.
+    /// </summary>
     public async Task<EmailReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
         byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxInputBytes, cancellationToken).ConfigureAwait(false);
         return Parse(data, cancellationToken);
@@ -72,8 +78,8 @@ public sealed class EmailDocumentReader {
     }
 
     /// <summary>
-    /// Detects an artifact from the stream's current position. Seekable MSG inputs are classified by
-    /// inspecting only the compound directory, and the original stream position is restored.
+    /// Detects an artifact from the beginning of a seekable stream and restores its original position.
+    /// Non-seekable streams are inspected forward from their current position.
     /// </summary>
     public static EmailFileFormat DetectFormat(Stream stream, EmailReaderOptions? options = null) {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
@@ -86,11 +92,12 @@ public sealed class EmailDocumentReader {
 
         long position = stream.Position;
         try {
-            long remaining = Math.Max(0L, stream.Length - position);
-            if (remaining > effectiveOptions.MaxInputBytes) return EmailFileFormat.Unknown;
-            byte[] signature = new byte[(int)Math.Min(8L, remaining)];
+            stream.Position = 0;
+            long length = stream.Length;
+            if (length > effectiveOptions.MaxInputBytes) return EmailFileFormat.Unknown;
+            byte[] signature = new byte[(int)Math.Min(8L, length)];
             int read = stream.Read(signature, 0, signature.Length);
-            stream.Position = position;
+            stream.Position = 0;
             if (read == CompoundSignature.Length && StartsWith(signature, CompoundSignature)) {
                 bool inspected = OfficeCompoundFileReader.TryContainsStreamPath(stream,
                     "__properties_version1.0", effectiveOptions.MaxInputBytes,

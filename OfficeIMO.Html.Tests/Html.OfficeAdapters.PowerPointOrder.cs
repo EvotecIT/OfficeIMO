@@ -17,7 +17,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
 
@@ -28,7 +28,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         Assert.Equal(0D, importedText.TopPoints, 3);
         Assert.Equal(0D, importedTable.LeftPoints, 3);
         Assert.Equal(0D, importedTable.TopPoints, 3);
-        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.Report.Diagnostics);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         string html = presentation.ToHtml(new PowerPointHtmlSaveOptions {
             Profile = OfficeHtmlConversionProfile.PowerPointSemanticSlides
         });
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointSlide importedSlide = Assert.Single(imported.Slides);
         PowerPointShape[] orderedShapes = importedSlide.Shapes.OrderBy(shape => shape.DrawingOrder).ToArray();
@@ -66,6 +66,6 @@ public class HtmlOfficeAdaptersPowerPointOrder {
         PowerPointTextBox importedLastText = Assert.IsType<PowerPointTextBox>(orderedShapes[3]);
         Assert.Equal(120D, importedLastText.LeftPoints, 3);
         Assert.Equal(230D, importedLastText.TopPoints, 3);
-        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.Report.Diagnostics);
     }
 }

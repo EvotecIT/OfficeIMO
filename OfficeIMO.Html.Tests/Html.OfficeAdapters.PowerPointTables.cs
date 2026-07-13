@@ -17,7 +17,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         table.MergeCells(2, 1, 2, 2);
 
         string html = presentation.ToHtml();
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation imported = result.Value;
         PowerPointTable importedTable = Assert.Single(Assert.Single(imported.Slides).Tables);
 
@@ -27,7 +27,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Equal((2, 2), importedTable.GetCell(0, 0).Merge);
         Assert.True(importedTable.GetCell(0, 1).IsMergedCell);
         Assert.Equal((1, 2), importedTable.GetCell(2, 1).Merge);
-        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.Report.Diagnostics);
     }
 
     [Fact]
@@ -43,7 +43,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
             </section>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult();
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult();
         using PowerPointPresentation presentation = result.Value;
         PowerPointTable table = Assert.Single(Assert.Single(presentation.Slides).Tables);
 
@@ -54,7 +54,7 @@ public class HtmlOfficeAdaptersPowerPointTables {
         Assert.Equal(234D, table.TopPoints, 3);
         Assert.Equal(345D, table.WidthPoints, 3);
         Assert.Equal(156D, table.HeightPoints, 3);
-        Assert.Empty(result.Diagnostics);
+        Assert.Empty(result.Report.Diagnostics);
     }
 
     [Fact]
@@ -65,10 +65,10 @@ public class HtmlOfficeAdaptersPowerPointTables {
             </section>
             """;
 
-        HtmlToPowerPointResult result = html.ToPowerPointPresentationResult(new HtmlToPowerPointOptions { MaxTableCells = 4 });
+        HtmlToPowerPointResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPowerPointPresentationResult(new HtmlToPowerPointOptions { MaxTableCells = 4 });
         using PowerPointPresentation presentation = result.Value;
 
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
+        Assert.Contains(result.Report.Diagnostics, diagnostic => diagnostic.Code == HtmlConversionDiagnosticCodes.TargetLimitExceeded);
         Assert.Equal((1, 1), Assert.Single(Assert.Single(presentation.Slides).Tables).GetCell(0, 0).Merge);
     }
 }

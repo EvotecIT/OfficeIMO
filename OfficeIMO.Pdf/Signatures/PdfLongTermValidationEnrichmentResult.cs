@@ -2,6 +2,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Append-only DSS/VRI enrichment output and its validation proofs.</summary>
 public sealed class PdfLongTermValidationEnrichmentResult {
+    private readonly byte[] _pdf;
+
     internal PdfLongTermValidationEnrichmentResult(
         byte[] pdf,
         string vriKey,
@@ -12,19 +14,19 @@ public sealed class PdfLongTermValidationEnrichmentResult {
         IReadOnlyList<int> certificateObjectNumbers,
         IReadOnlyList<int> ocspObjectNumbers,
         IReadOnlyList<int> crlObjectNumbers) {
-        Pdf = pdf;
+        _pdf = (byte[])pdf.Clone();
         VriKey = vriKey;
         Evidence = evidence;
         ValidationBefore = validationBefore;
         ValidationAfter = validationAfter;
         MutationReport = mutationReport;
-        CertificateObjectNumbers = certificateObjectNumbers;
-        OcspObjectNumbers = ocspObjectNumbers;
-        CrlObjectNumbers = crlObjectNumbers;
+        CertificateObjectNumbers = certificateObjectNumbers.ToArray();
+        OcspObjectNumbers = ocspObjectNumbers.ToArray();
+        CrlObjectNumbers = crlObjectNumbers.ToArray();
     }
 
     /// <summary>PDF bytes with the appended DSS/VRI revision.</summary>
-    public byte[] Pdf { get; }
+    public byte[] Pdf => (byte[])_pdf.Clone();
 
     /// <summary>Uppercase SHA-1 VRI key derived from the signature's complete hexadecimal Contents value.</summary>
     public string VriKey { get; }

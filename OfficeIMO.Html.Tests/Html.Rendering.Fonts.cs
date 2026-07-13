@@ -19,7 +19,7 @@ public sealed partial class HtmlRenderingTests {
             + "p{font-family:'Emoji Demo','Hebrew Demo',sans-serif;font-size:20px;line-height:24px}"
             + "</style><p>" + emoji + "\u05D0" + emoji + "</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         IReadOnlyList<HtmlRenderText> textRuns = rendered.Pages[0].Visuals.OfType<HtmlRenderText>().ToList();
 
         Assert.Collection(
@@ -36,10 +36,10 @@ public sealed partial class HtmlRenderingTests {
                 Assert.Equal(emoji, run.Text);
                 Assert.Equal("Emoji Demo", run.Font.FamilyName);
             });
-        string svg = html.ToSvg();
+        string svg = HtmlConversionDocument.Parse(html).ToSvg();
         Assert.Contains("font-family=\"Emoji Demo\"", svg, StringComparison.Ordinal);
         Assert.Contains("font-family=\"Hebrew Demo\"", svg, StringComparison.Ordinal);
-        Assert.True(html.ToPng().Length > 8);
+        Assert.True(HtmlConversionDocument.Parse(html).ToPng().Length > 8);
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed partial class HtmlRenderingTests {
             + ".fallback{font-family:Arial,sans-serif;font-size:100px;line-height:1}"
             + "</style><p style='margin:0'><span class='scoped'>" + emoji + emoji + "</span><span class='fallback'>BB</span></p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 500D,
             Margins = HtmlRenderMargins.All(8D)
         });
@@ -62,8 +62,8 @@ public sealed partial class HtmlRenderingTests {
         Assert.Single(rendered.Fonts.Faces);
         Assert.Single(rendered.Pages[0].Fonts.Faces);
         Assert.Equal(100D, fallback.X - scoped.X, 6);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
 
         OfficeDrawing drawing = rendered.Pages[0].CreateDrawing();
         Assert.Single(drawing.Fonts.Faces);
@@ -95,7 +95,7 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
             "<link rel='stylesheet' href='https://assets.example.test/css/site.css'><p class='remote'>" + emoji + emoji + "</p>",
             options);
 
@@ -106,8 +106,8 @@ public sealed partial class HtmlRenderingTests {
         OfficeFontFace face = Assert.Single(rendered.Fonts.Faces);
         Assert.Equal("Remote Demo", face.FamilyName);
         Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == emoji + emoji && text.Font.FamilyName.Contains("Remote Demo", StringComparison.Ordinal));
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
-        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
+        Assert.DoesNotContain(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
     [Fact]
@@ -117,13 +117,13 @@ public sealed partial class HtmlRenderingTests {
                 new HtmlResolvedResource(new byte[] { 0x77, 0x4F, 0x46, 0x32, 1, 2, 3, 4 }, "font/woff2"))
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
             "<style>@font-face{font-family:Unsupported;src:url('https://assets.example.test/font.woff2') format('woff2')}p{font-family:Unsupported}</style><p>Fallback</p>",
             options);
 
         Assert.Empty(rendered.Fonts.Faces);
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
-        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFormatUnsupported);
+        Assert.Contains(rendered.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FontFaceUnavailable);
     }
 
     [Fact]
@@ -133,14 +133,14 @@ public sealed partial class HtmlRenderingTests {
             + data
             + "\")}p{font-family:TooLarge}</style><p>Fallback</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             MaxResourceBytes = 32L,
             MaxTotalResourceBytes = 32L
         });
 
         Assert.Empty(rendered.Fonts.Faces);
         HtmlDiagnostic diagnostic = Assert.Single(
-            rendered.Diagnostics.Diagnostics,
+            rendered.Diagnostics,
             item => item.Code == HtmlRenderDiagnosticCodes.ResourceByteLimitExceeded);
         Assert.NotNull(diagnostic.Source);
         Assert.True(diagnostic.Source!.Length < 256);
@@ -166,7 +166,7 @@ public sealed partial class HtmlRenderingTests {
             + "\") format('truetype')}p{font-family:'Pdf Web Demo',sans-serif}</style><p>EmbeddedWebFontMarker</p>";
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = html.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains("EmbeddedWebFontMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
@@ -194,10 +194,10 @@ public sealed partial class HtmlRenderingTests {
             + "\") format('truetype')}</style><img style='width:180px;height:30px;border-radius:10px' src='data:image/svg+xml;base64,"
             + Convert.ToBase64String(Encoding.UTF8.GetBytes(svg))
             + "' alt='clipped font sample'>";
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html);
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html));
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = html.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
 
         Assert.Contains(EnumerateRenderVisuals(rendered.Pages[0].Visuals), visual => visual is HtmlRenderPathClipGroup);
@@ -225,7 +225,7 @@ public sealed partial class HtmlRenderingTests {
             + "</style><p class='one'>Web one</p><p class='two'>Web two</p><p class='serif'>Standard serif</p><p class='mono'>Standard mono</p>";
         HtmlPdfSaveOptions options = new HtmlPdfSaveOptions();
 
-        PdfCore.PdfDocumentConversionResult result = html.ToPdfDocumentResult(options);
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdfDocumentResult(options);
         byte[] pdf = result.ToBytes();
         string rawPdf = Encoding.ASCII.GetString(pdf);
 

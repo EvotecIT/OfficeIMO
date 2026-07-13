@@ -9,7 +9,7 @@ using System.Threading;
 
 namespace OfficeIMO.Reader;
 
-public static partial class DocumentReader {
+internal static partial class DocumentReaderEngine {
     private static void BuildEmailChunks(EmailExtraction extraction, ReaderOptions opt, CancellationToken cancellationToken) {
         var context = new EmailChunkContext(extraction, opt, cancellationToken);
         for (int messageIndex = 0; messageIndex < extraction.Documents.Count; messageIndex++) {

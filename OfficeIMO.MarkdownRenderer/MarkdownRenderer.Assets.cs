@@ -28,7 +28,7 @@ public static partial class MarkdownRenderer {
         return sb.ToString();
     }
 
-    private static string BuildMermaidBootstrap(MermaidOptions o, AssetMode assetMode) {
+    private static string BuildMermaidBootstrap(MermaidOptions o, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         // Mermaid bootstrap:
         // - Online: ESM import (default)
         // - Offline: non-module script (easier to bundle/host locally)
@@ -45,7 +45,7 @@ public static partial class MarkdownRenderer {
         dark = ReplaceScriptCloseSequence(dark);
 
         if (assetMode == AssetMode.Offline && !string.IsNullOrEmpty(scriptUrl)) {
-            string src = BuildBundledScriptSrc(scriptUrl, mime: "application/javascript");
+            string src = BuildBundledScriptSrc(scriptUrl, mime: "application/javascript", resolver);
             if (string.IsNullOrEmpty(src)) src = scriptUrl;
             src = System.Net.WebUtility.HtmlEncode(src);
             return $@"
@@ -79,17 +79,17 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         return value.Replace("</", "<\\/");
     }
 
-    private static string BuildChartBootstrap(ChartOptions o, AssetMode assetMode) {
+    private static string BuildChartBootstrap(ChartOptions o, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         string url = (o?.ScriptUrl ?? string.Empty).Trim();
         if (string.IsNullOrEmpty(url)) return string.Empty;
 
-        string src = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(url, mime: "application/javascript") : string.Empty;
+        string src = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(url, mime: "application/javascript", resolver) : string.Empty;
         if (string.IsNullOrEmpty(src)) src = url;
         src = System.Net.WebUtility.HtmlEncode(src);
         return $"\n<script defer src=\"{src}\"></script>\n";
     }
 
-    private static string BuildMathBootstrap(MathOptions o, AssetMode assetMode) {
+    private static string BuildMathBootstrap(MathOptions o, AssetMode assetMode, MarkdownExternalTextResolver? resolver) {
         string css = (o?.CssUrl ?? string.Empty).Trim();
         string js = (o?.ScriptUrl ?? string.Empty).Trim();
         string ar = (o?.AutoRenderScriptUrl ?? string.Empty).Trim();
@@ -97,15 +97,15 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
 
         // KaTeX should be ready before we render content via updateContent(...). Use defer so it doesn't block HTML parse,
         // and call renderMathInElement from updateContent after DOM updates.
-        string cssHref = assetMode == AssetMode.Offline ? BuildBundledCssHref(css) : string.Empty;
+        string cssHref = assetMode == AssetMode.Offline ? BuildBundledCssHref(css, resolver) : string.Empty;
         if (string.IsNullOrEmpty(cssHref)) cssHref = css;
         cssHref = System.Net.WebUtility.HtmlEncode(cssHref);
 
-        string jsSrc = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(js, mime: "application/javascript") : string.Empty;
+        string jsSrc = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(js, mime: "application/javascript", resolver) : string.Empty;
         if (string.IsNullOrEmpty(jsSrc)) jsSrc = js;
         jsSrc = System.Net.WebUtility.HtmlEncode(jsSrc);
 
-        string arSrc = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(ar, mime: "application/javascript") : string.Empty;
+        string arSrc = assetMode == AssetMode.Offline ? BuildBundledScriptSrc(ar, mime: "application/javascript", resolver) : string.Empty;
         if (string.IsNullOrEmpty(arSrc)) arSrc = ar;
         arSrc = System.Net.WebUtility.HtmlEncode(arSrc);
 
@@ -161,10 +161,10 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         }
     }
 
-    internal static string BuildBundledScriptSrc(string hrefOrPath, string mime) {
+    internal static string BuildBundledScriptSrc(string hrefOrPath, string mime, MarkdownExternalTextResolver? resolver) {
         // Only used by shell building logic. This should never throw.
         try {
-            var text = TryLoadTextAsset(hrefOrPath);
+            var text = TryLoadTextAsset(hrefOrPath, resolver);
             if (string.IsNullOrEmpty(text)) return string.Empty;
             var bytes = Encoding.UTF8.GetBytes(text);
             var b64 = Convert.ToBase64String(bytes);
@@ -172,9 +172,9 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         } catch { return string.Empty; }
     }
 
-    internal static string BuildBundledCssHref(string hrefOrPath) {
+    internal static string BuildBundledCssHref(string hrefOrPath, MarkdownExternalTextResolver? resolver) {
         try {
-            var text = TryLoadTextAsset(hrefOrPath);
+            var text = TryLoadTextAsset(hrefOrPath, resolver);
             if (string.IsNullOrEmpty(text)) return string.Empty;
             var bytes = Encoding.UTF8.GetBytes(text);
             var b64 = Convert.ToBase64String(bytes);
@@ -182,7 +182,7 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         } catch { return string.Empty; }
     }
 
-    private static string TryLoadTextAsset(string hrefOrPath) {
+    private static string TryLoadTextAsset(string hrefOrPath, MarkdownExternalTextResolver? resolver) {
         try {
             if (string.IsNullOrWhiteSpace(hrefOrPath)) return string.Empty;
             string v = hrefOrPath.Trim();
@@ -195,7 +195,7 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
 
                 if (string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
                     string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) {
-                    return TryDownloadTextBounded(uri);
+                    return TryResolveTextBounded(uri, resolver);
                 }
 
                 // Unknown scheme (e.g., custom WebView virtual hosts) cannot be resolved by this process.
@@ -222,32 +222,12 @@ mermaid.initialize({{ startOnLoad: false, theme: window.matchMedia('(prefers-col
         }
     }
 
-    private static string TryDownloadTextBounded(Uri uri) {
+    private static string TryResolveTextBounded(Uri uri, MarkdownExternalTextResolver? resolver) {
         try {
-            if (uri == null) return string.Empty;
-
-            const long MaxBytes = 10_000_000; // 10MB guardrail
-            using var cts = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(8));
-            using var client = new System.Net.Http.HttpClient();
-
-            using var resp = client.GetAsync(uri, System.Net.Http.HttpCompletionOption.ResponseHeadersRead, cts.Token).GetAwaiter().GetResult();
-            if (!resp.IsSuccessStatusCode) return string.Empty;
-
-            var len = resp.Content.Headers.ContentLength;
-            if (len.HasValue && len.Value > MaxBytes) return string.Empty;
-
-            using var stream = resp.Content.ReadAsStreamAsync().GetAwaiter().GetResult();
-            using var mem = new System.IO.MemoryStream(len.HasValue ? (int)Math.Min(len.Value, MaxBytes) : 64 * 1024);
-            var buffer = new byte[81920];
-            long total = 0;
-            while (true) {
-                int read = stream.Read(buffer, 0, buffer.Length);
-                if (read <= 0) break;
-                total += read;
-                if (total > MaxBytes) return string.Empty;
-                mem.Write(buffer, 0, read);
-            }
-            return Encoding.UTF8.GetString(mem.ToArray());
+            if (uri == null || resolver == null) return string.Empty;
+            const int MaxCharacters = 10_000_000;
+            string? text = resolver(uri);
+            return text != null && text.Length <= MaxCharacters ? text : string.Empty;
         } catch {
             return string.Empty;
         }

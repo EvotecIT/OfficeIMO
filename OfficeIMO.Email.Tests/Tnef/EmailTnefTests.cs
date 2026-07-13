@@ -34,8 +34,8 @@ public sealed class EmailTnefTests {
         storage.StructuredStorageStreams["Contents"] = new byte[] { 9, 8, 7 };
         source.Attachments.Add(storage);
 
-        byte[] first = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
-        byte[] second = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        byte[] first = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
+        byte[] second = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
         EmailReadResult result = new EmailDocumentReader().Read(first);
 
         Assert.Equal(first, second);
@@ -61,7 +61,7 @@ public sealed class EmailTnefTests {
         EmailDocument source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "oracle" };
         source.Body.Text = "body";
         source.Attachments.Add(new EmailAttachment { FileName = "a.txt", Content = Encoding.UTF8.GetBytes("a"), Length = 1 });
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
 
         using MemoryStream stream = new MemoryStream(bytes);
         using var reader = new global::MimeKit.Tnef.TnefReader(stream);
@@ -86,7 +86,7 @@ public sealed class EmailTnefTests {
         var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "rtf" };
         source.Body.Rtf = rtf;
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
         EmailReadResult result = new EmailDocumentReader().Read(bytes);
 
         Assert.Equal(rtf, result.Document.Body.Rtf);
@@ -97,7 +97,7 @@ public sealed class EmailTnefTests {
     [Fact]
     public void ReportsChecksumDamageAndEnforcesAttributeLimit() {
         EmailDocument source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "checksum" };
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
         bytes[bytes.Length - 1] ^= 0x01;
 
         EmailReadResult damaged = new EmailDocumentReader().Read(bytes);
@@ -134,7 +134,7 @@ public sealed class EmailTnefTests {
         source.Headers.Add(new EmailHeader("To", "Primary <primary@example.test>"));
         source.Headers.Add(new EmailHeader("Cc", "Copy <copy@example.test>"));
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
         EmailDocument document = new EmailDocumentReader().Read(bytes).Document;
 
         Assert.Contains(document.Recipients, recipient => recipient.Kind == EmailRecipientKind.To &&
@@ -176,7 +176,7 @@ public sealed class EmailTnefTests {
         child.Body.Text = "inside";
         var parent = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "parent" };
         parent.Attachments.Add(new EmailAttachment { FileName = "child.dat", EmbeddedDocument = child });
-        byte[] source = new EmailDocumentWriter().WriteToBytes(parent, EmailFileFormat.Tnef);
+        byte[] source = new EmailDocumentWriter().ToBytes(parent, EmailFileFormat.Tnef);
 
         EmailReadResult limited = new EmailDocumentReader(new EmailReaderOptions(maxNestedMessageDepth: 0)).Read(source);
         EmailAttachment opaque = Assert.Single(limited.Document.Attachments);
@@ -190,11 +190,11 @@ public sealed class EmailTnefTests {
         Assert.Null(metadataOnly.Content);
         Assert.True(metadataOnly.Length > 0);
 
-        byte[] rewrittenTnef = new EmailDocumentWriter().WriteToBytes(limited.Document, EmailFileFormat.Tnef);
+        byte[] rewrittenTnef = new EmailDocumentWriter().ToBytes(limited.Document, EmailFileFormat.Tnef);
         EmailAttachment tnefRoundTrip = Assert.Single(new EmailDocumentReader().Read(rewrittenTnef).Document.Attachments);
         Assert.Equal("opaque TNEF child", tnefRoundTrip.EmbeddedDocument!.Subject);
 
-        byte[] rewrittenMsg = new EmailDocumentWriter().WriteToBytes(
+        byte[] rewrittenMsg = new EmailDocumentWriter().ToBytes(
             limited.Document, EmailFileFormat.OutlookMsg, out EmailWriteResult msgWriteResult);
         EmailAttachment msgRoundTrip = Assert.Single(new EmailDocumentReader().Read(rewrittenMsg).Document.Attachments);
         Assert.DoesNotContain(msgWriteResult.Diagnostics,
@@ -211,7 +211,7 @@ public sealed class EmailTnefTests {
         };
         source.Attachments.Add(new EmailAttachment { FileName = "資料.txt", Content = new byte[] { 1 }, Length = 1 });
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+        byte[] bytes = new EmailDocumentWriter().ToBytes(
             source, EmailFileFormat.Tnef, out EmailWriteResult writeResult);
         EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
 
@@ -230,7 +230,7 @@ public sealed class EmailTnefTests {
         };
         source.MapiProperties.Add(new MapiProperty(0x66AB, MapiPropertyType.String8, "日本"));
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+        byte[] bytes = new EmailDocumentWriter().ToBytes(
             source, EmailFileFormat.Tnef, out EmailWriteResult writeResult);
         MapiProperty property = new EmailDocumentReader().Read(bytes).Document.MapiProperties
             .Single(item => item.PropertyId == 0x66AB);
@@ -248,7 +248,7 @@ public sealed class EmailTnefTests {
             Subject = "unsupported code page"
         };
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
         EmailDocument roundTrip = new EmailDocumentReader().Read(bytes).Document;
 
         Assert.Equal(1252, roundTrip.OutlookCodePage);
@@ -318,7 +318,7 @@ public sealed class EmailTnefTests {
         source.MapiProperties.Add(new MapiProperty(0x8001, MapiPropertyType.Unicode, "invalid"));
         source.MapiProperties.Add(new MapiProperty(0x66AA, MapiPropertyType.Integer32, 42));
 
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(
+        byte[] bytes = new EmailDocumentWriter().ToBytes(
             source, EmailFileFormat.Tnef, out EmailWriteResult writeResult);
         EmailReadResult readResult = new EmailDocumentReader().Read(bytes);
 
@@ -336,7 +336,7 @@ public sealed class EmailTnefTests {
         var attachment = new EmailAttachment { FileName = "object.ole", MapiAttachMethod = 6 };
         attachment.StructuredStorageStreams["Contents"] = new byte[] { 1, 2, 3 };
         source.Attachments.Add(attachment);
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
 
         EmailReadResult result = new EmailDocumentReader(
             new EmailReaderOptions(maxCompoundDirectoryEntries: 1)).Read(bytes);
@@ -353,7 +353,7 @@ public sealed class EmailTnefTests {
         Assert.Null(metadataOnly.Content);
         Assert.True(metadataOnly.Length > 0);
 
-        byte[] rewritten = new EmailDocumentWriter().WriteToBytes(result.Document, EmailFileFormat.Tnef);
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(result.Document, EmailFileFormat.Tnef);
         EmailAttachment reparsed = Assert.Single(new EmailDocumentReader(
             new EmailReaderOptions(maxCompoundDirectoryEntries: 1)).Read(rewritten).Document.Attachments);
         Assert.Equal(parsed.Content, reparsed.Content);
@@ -365,7 +365,7 @@ public sealed class EmailTnefTests {
         var attachment = new EmailAttachment { FileName = "object.ole", MapiAttachMethod = 6 };
         attachment.StructuredStorageStreams["Contents"] = new byte[] { 1, 2, 3 };
         source.Attachments.Add(attachment);
-        byte[] bytes = new EmailDocumentWriter().WriteToBytes(source, EmailFileFormat.Tnef);
+        byte[] bytes = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
 
         EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
             new EmailDocumentReader(new EmailReaderOptions(maxAttachmentBytes: 512)).Read(bytes));

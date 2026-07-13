@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 "Here is a ref[^1].\n\n" +
                 "[^1]: Footnote body.";
 
-            using var doc = md.LoadFromMarkdown();
+            using var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
             var md2 = doc.ToMarkdown(new WordToMarkdownOptions { EnableUnderline = true });
 
             Assert.Contains("# Report", md2);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("`C`", md);
             Assert.Contains("| Name | Score |", md);
 
-            using var doc2 = md.LoadFromMarkdown();
+            using var doc2 = OfficeIMO.Markdown.MarkdownReader.Parse(md).ToWordDocument();
             // Verify checkbox restored
             var checkboxParagraph = doc2.Paragraphs.FirstOrDefault(p => p.IsCheckBox);
             Assert.NotNull(checkboxParagraph);

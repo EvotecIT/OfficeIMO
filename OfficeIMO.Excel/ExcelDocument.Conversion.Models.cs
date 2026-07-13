@@ -77,7 +77,7 @@ namespace OfficeIMO.Excel {
         public bool RepresentsDataLoss { get; }
     }
 
-    /// <summary>Reports the outcome and fidelity findings of an Excel file conversion.</summary>
+    /// <summary>Represents the destination artifact and report produced by an Excel file conversion.</summary>
     public sealed class ExcelDocumentConversionResult {
         internal ExcelDocumentConversionResult(
             string sourcePath,
@@ -87,14 +87,51 @@ namespace OfficeIMO.Excel {
             IReadOnlyList<ExcelConversionDiagnostic> diagnostics,
             bool outputCreated,
             bool replacedExistingFile) {
+            Value = outputCreated ? destinationPath : null;
+            Report = new ExcelDocumentConversionReport(
+                sourcePath,
+                destinationPath,
+                sourceFormat,
+                destinationFormat,
+                diagnostics,
+                replacedExistingFile);
+        }
+
+        /// <summary>Gets the normalized destination path when the artifact was committed; otherwise, <see langword="null"/>.</summary>
+        public string? Value { get; }
+
+        /// <summary>Gets the immutable conversion assessment.</summary>
+        public ExcelDocumentConversionReport Report { get; }
+
+        /// <summary>Gets whether the conversion reported known content loss.</summary>
+        public bool HasLoss => Report.HasLoss;
+
+        /// <summary>Returns the committed destination path or throws when no artifact was produced.</summary>
+        public string RequireValue() => Value
+            ?? throw new InvalidOperationException("The Excel conversion did not produce a destination artifact.");
+
+        /// <summary>Returns the committed destination path only when no content loss was reported.</summary>
+        public string RequireNoLoss() {
+            Report.RequireNoLoss();
+            return RequireValue();
+        }
+    }
+
+    /// <summary>Describes formats, paths, diagnostics, and commit behavior for one Excel conversion.</summary>
+    public sealed class ExcelDocumentConversionReport {
+        internal ExcelDocumentConversionReport(
+            string sourcePath,
+            string destinationPath,
+            ExcelFileFormat sourceFormat,
+            ExcelFileFormat destinationFormat,
+            IReadOnlyList<ExcelConversionDiagnostic> diagnostics,
+            bool replacedExistingFile) {
             SourcePath = sourcePath;
             DestinationPath = destinationPath;
             SourceFormat = sourceFormat;
             DestinationFormat = destinationFormat;
-            Diagnostics = diagnostics;
-            OutputCreated = outputCreated;
+            Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
             ReplacedExistingFile = replacedExistingFile;
-            HasDataLoss = diagnostics.Any(diagnostic => diagnostic.RepresentsDataLoss);
         }
 
         /// <summary>Gets the normalized source path.</summary>
@@ -109,17 +146,19 @@ namespace OfficeIMO.Excel {
         /// <summary>Gets the requested destination physical format.</summary>
         public ExcelFileFormat DestinationFormat { get; }
 
-        /// <summary>Gets compact conversion diagnostics.</summary>
+        /// <summary>Gets a snapshot of conversion diagnostics.</summary>
         public IReadOnlyList<ExcelConversionDiagnostic> Diagnostics { get; }
 
-        /// <summary>Gets whether the conversion intentionally omitted known source content.</summary>
-        public bool HasDataLoss { get; }
-
-        /// <summary>Gets whether the destination artifact was committed successfully.</summary>
-        public bool OutputCreated { get; }
+        /// <summary>Gets whether the conversion reported known content loss.</summary>
+        public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.RepresentsDataLoss);
 
         /// <summary>Gets whether a pre-existing destination file was replaced.</summary>
         public bool ReplacedExistingFile { get; }
+
+        /// <summary>Throws when the conversion reported known content loss.</summary>
+        public void RequireNoLoss() {
+            if (HasLoss) throw new InvalidOperationException("Excel conversion reported one or more lossy mappings.");
+        }
     }
 
     /// <summary>Identifies why an Excel conversion was rejected.</summary>
@@ -160,9 +199,6 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Gets or sets how known conversion loss is handled. The default is to block it.</summary>
         public ExcelConversionLossPolicy LossPolicy { get; set; } = ExcelConversionLossPolicy.Block;
-
-        /// <summary>Gets or sets whether to open the destination after a successful commit.</summary>
-        public bool OpenAfterSave { get; set; }
 
         /// <summary>
         /// Gets or sets optional Open XML load settings for XLSX sources. Conversion always disables

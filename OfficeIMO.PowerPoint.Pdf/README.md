@@ -122,13 +122,13 @@ result.Report.RequireNoErrorWarnings();
 
 ## PDF table import
 
-`SaveAsPowerPointFromPdfTables(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. This is useful for review decks and migration workflows where the source PDF has table-like content that should become editable again.
+`SaveAsPowerPoint(...)` extracts logical tables from a PDF and writes editable PowerPoint table slides. This is useful for review decks and migration workflows where the source PDF has table-like content that should become editable again.
 
 ```csharp
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Pdf;
 
-var imported = PowerPointPdfConverterExtensions.SaveAsPowerPointFromPdfTables(
+var imported = PowerPointPdfConverterExtensions.SaveAsPowerPoint(
     "financial-statement.pdf",
     "financial-statement-tables.pptx",
     new PdfPowerPointTableImportOptions {

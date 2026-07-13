@@ -6,7 +6,7 @@ using PdfCore = OfficeIMO.Pdf;
 
 namespace OfficeIMO.Html.Pdf;
 
-public static partial class PdfHtmlConverter {
+public static partial class PdfHtmlConverterExtensions {
     private static void AppendPositionedPage(StringBuilder builder, IReadOnlyList<PdfCore.PdfLogicalPage> pages, int renderIndex, PdfHtmlSaveOptions options) {
         PdfCore.PdfLogicalPage page = pages[renderIndex];
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);

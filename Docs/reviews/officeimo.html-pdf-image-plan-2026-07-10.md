@@ -153,18 +153,19 @@ The shared result must retain more than pixels. It needs positioned text runs, f
 
 ### Public API direction
 
-The final names should follow existing OfficeIMO image-export conventions. The intended shape is:
+The public names follow the shared OfficeIMO image-export conventions:
 
 ```csharp
-byte[] png = html.ToPng(options);
-string svg = html.ToSvg(options);
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+byte[] png = source.ToPng(options);
+string svg = source.ToSvg(options);
 
 IReadOnlyList<OfficeImageExportResult> pages =
-    html.ExportImages(OfficeImageExportFormat.Png, pagedOptions);
+    source.ExportImages(OfficeImageExportFormat.Png, pagedOptions);
 
-PdfDocument pdf = html.ToPdfDocument(pdfOptions);
-byte[] pdfBytes = html.ToPdf(pdfOptions);
-html.SaveAsPdf("report.pdf", pdfOptions);
+PdfDocument pdf = source.ToPdfDocument(pdfOptions);
+byte[] pdfBytes = source.ToPdf(pdfOptions);
+source.SaveAsPdf("report.pdf", pdfOptions);
 ```
 
 The image surface belongs to `OfficeIMO.Html`; the PDF extension surface remains in `OfficeIMO.Html.Pdf`. `To...` returns in-memory output, `To...Document` returns a typed model, and `SaveAs...` requires a file or stream destination. Async variants use the same names with `Async`, with cancellation and timeout carried through the whole operation.

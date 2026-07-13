@@ -12,7 +12,8 @@ namespace OfficeIMO.Examples.Word {
                 numbering.AddLevel(new WordListLevel(WordListLevelKind.Decimal));
                 var retrieved = Guard.NotNull(document.GetNumberingDefinition(numbering.AbstractNumberId), "Numbering definition should be retrievable after creation.");
                 Console.WriteLine("Numbering levels: " + retrieved.Levels.Count);
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

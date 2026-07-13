@@ -5,20 +5,26 @@ using OfficeIMO.Markdown.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Reflection;
 using Xunit;
 
 namespace OfficeIMO.Tests;
 
 public sealed class HtmlApiConsistencyTests {
     [Fact]
-    public void DirectHtmlOutputs_UseTargetOrDestinationNaming() {
+    public void DirectHtmlOutputs_RequireTheNativeHtmlSourceModel() {
         Type pdfExtensions = typeof(HtmlPdfConverterExtensions);
         Type imageExtensions = typeof(HtmlImageExportExtensions);
 
         Assert.Contains(pdfExtensions.GetMethods(), method =>
             method.Name == nameof(HtmlPdfConverterExtensions.ToPdf)
             && method.ReturnType == typeof(byte[])
-            && method.GetParameters()[0].ParameterType == typeof(string));
+            && method.GetParameters()[0].ParameterType == typeof(HtmlConversionDocument));
+
+        Assert.DoesNotContain(pdfExtensions.GetMethods(), method =>
+            method.GetParameters().Length > 0
+            && (method.GetParameters()[0].ParameterType == typeof(string)
+                || method.GetParameters()[0].ParameterType == typeof(Stream)));
 
         Assert.DoesNotContain(pdfExtensions.GetMethods(), method =>
             method.Name == nameof(HtmlPdfConverterExtensions.SaveAsPdf)
@@ -28,45 +34,40 @@ public sealed class HtmlApiConsistencyTests {
             pdfExtensions.GetMethods().Where(method => method.Name == nameof(HtmlPdfConverterExtensions.SaveAsPdf)),
             method => Assert.Contains(method.GetParameters()[1].ParameterType, new[] { typeof(string), typeof(Stream) }));
 
-        Type[] sources = { typeof(string), typeof(HtmlConversionDocument), typeof(Stream) };
-        foreach (Type source in sources) {
-            Assert.Contains(pdfExtensions.GetMethods(), method =>
-                method.Name == nameof(HtmlPdfConverterExtensions.TrySaveAsPdfAsync)
-                && method.GetParameters()[0].ParameterType == source
-                && method.GetParameters()[1].ParameterType == typeof(string));
-            Assert.Contains(pdfExtensions.GetMethods(), method =>
-                method.Name == nameof(HtmlPdfConverterExtensions.TrySaveAsPdfAsync)
-                && method.GetParameters()[0].ParameterType == source
-                && method.GetParameters()[1].ParameterType == typeof(Stream));
+        Assert.Contains(pdfExtensions.GetMethods(), method =>
+            method.Name == nameof(HtmlPdfConverterExtensions.TrySaveAsPdfAsync)
+            && method.GetParameters()[0].ParameterType == typeof(HtmlConversionDocument)
+            && method.GetParameters()[1].ParameterType == typeof(string));
+        Assert.Contains(pdfExtensions.GetMethods(), method =>
+            method.Name == nameof(HtmlPdfConverterExtensions.TrySaveAsPdfAsync)
+            && method.GetParameters()[0].ParameterType == typeof(HtmlConversionDocument)
+            && method.GetParameters()[1].ParameterType == typeof(Stream));
 
-            Assert.Contains(imageExtensions.GetMethods(), method =>
-                method.Name == nameof(HtmlImageExportExtensions.ToPngResult)
-                && method.ReturnType == typeof(OfficeImageExportResult)
-                && method.GetParameters()[0].ParameterType == source);
-            Assert.Contains(imageExtensions.GetMethods(), method =>
-                method.Name == nameof(HtmlImageExportExtensions.ToSvgResult)
-                && method.ReturnType == typeof(OfficeImageExportResult)
-                && method.GetParameters()[0].ParameterType == source);
-            Assert.Contains(imageExtensions.GetMethods(), method =>
-                method.Name == nameof(HtmlImageExportExtensions.ToPngResultsAsync)
-                && method.GetParameters()[0].ParameterType == source);
-            Assert.Contains(imageExtensions.GetMethods(), method =>
-                method.Name == nameof(HtmlImageExportExtensions.ToSvgResultsAsync)
-                && method.GetParameters()[0].ParameterType == source);
-        }
+        MethodInfo[] imageMethods = imageExtensions.GetMethods(BindingFlags.Public | BindingFlags.Static | BindingFlags.DeclaredOnly);
+        Assert.All(
+            imageMethods.Where(method => method.GetParameters().Length > 0),
+            method => Assert.Equal(typeof(HtmlConversionDocument), method.GetParameters()[0].ParameterType));
+        Assert.DoesNotContain(imageMethods, method =>
+            method.Name.Contains("Result", StringComparison.Ordinal));
+        Assert.All(
+            imageMethods.Where(method => method.Name is "SaveAsPng" or "SaveAsSvg"),
+            method => Assert.Equal(typeof(OfficeImageExportResult), method.ReturnType));
+        Assert.All(
+            imageMethods.Where(method => method.Name is "SaveAsPngAsync" or "SaveAsSvgAsync"),
+            method => Assert.Equal(typeof(Task<OfficeImageExportResult>), method.ReturnType));
     }
 
     [Fact]
     public async Task PdfPngAndSvg_AcceptTheSameHtmlSources() {
         const string html = "<h1>Source parity</h1><p>String, document, and stream.</p>";
-        HtmlConversionDocument document = HtmlConversionDocumentBuilder.Build(html);
+        HtmlConversionDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html);
         var options = new HtmlPdfSaveOptions();
 
         Assert.NotEmpty(document.ToPdf(options));
         Assert.NotEmpty(document.ToPng(options));
         Assert.StartsWith("<svg", document.ToSvg(options), StringComparison.Ordinal);
-        OfficeImageExportResult pngResult = document.ToPngResult(options);
-        OfficeImageExportResult svgResult = document.ToSvgResult(options);
+        OfficeImageExportResult pngResult = document.ExportImage(OfficeImageExportFormat.Png, options);
+        OfficeImageExportResult svgResult = document.ExportImage(OfficeImageExportFormat.Svg, options);
         Assert.Equal(OfficeImageExportFormat.Png, pngResult.Format);
         Assert.Equal(OfficeImageExportFormat.Svg, svgResult.Format);
         Assert.NotEmpty(pngResult.Bytes);
@@ -80,11 +81,16 @@ public sealed class HtmlApiConsistencyTests {
         using var pngResultSource = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
         using var svgResultSource = new MemoryStream(System.Text.Encoding.UTF8.GetBytes(html));
 
-        Assert.NotEmpty(await pdfSource.ToPdfAsync(options));
-        Assert.NotEmpty(await pngSource.ToPngAsync(options));
-        Assert.StartsWith("<svg", await svgSource.ToSvgAsync(options), StringComparison.Ordinal);
-        Assert.Equal(OfficeImageExportFormat.Png, (await pngResultSource.ToPngResultAsync(options)).Format);
-        Assert.Equal(OfficeImageExportFormat.Svg, (await svgResultSource.ToSvgResultAsync(options)).Format);
+        HtmlConversionDocument pdfDocument = await HtmlConversionDocument.LoadAsync(pdfSource);
+        HtmlConversionDocument pngDocument = await HtmlConversionDocument.LoadAsync(pngSource);
+        HtmlConversionDocument svgDocument = await HtmlConversionDocument.LoadAsync(svgSource);
+        HtmlConversionDocument pngResultDocument = await HtmlConversionDocument.LoadAsync(pngResultSource);
+        HtmlConversionDocument svgResultDocument = await HtmlConversionDocument.LoadAsync(svgResultSource);
+        Assert.NotEmpty(await pdfDocument.ToPdfAsync(options));
+        Assert.NotEmpty(await pngDocument.ToPngAsync(options));
+        Assert.StartsWith("<svg", await svgDocument.ToSvgAsync(options), StringComparison.Ordinal);
+        Assert.Equal(OfficeImageExportFormat.Png, (await pngResultDocument.ExportImageAsync(OfficeImageExportFormat.Png, options)).Format);
+        Assert.Equal(OfficeImageExportFormat.Svg, (await svgResultDocument.ExportImageAsync(OfficeImageExportFormat.Svg, options)).Format);
     }
 
     [Fact]
@@ -101,10 +107,10 @@ public sealed class HtmlApiConsistencyTests {
 
         Assert.Equal(HtmlRenderMode.Continuous, clone.Mode);
         Assert.Equal(HtmlRenderMode.Continuous, copied.Mode);
-        Assert.Single(HtmlRenderEngine.Render(html, options).Pages);
-        Assert.Single(html.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, options));
-        Assert.Single(html.ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options));
-        Assert.True(OfficeIMO.Pdf.PdfInspector.Inspect(html.ToPdf(options)).PageCount > 1);
+        Assert.Single(HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), options).Pages);
+        Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Png, options));
+        Assert.Single(HtmlConversionDocument.Parse(html).ExportImages(OfficeIMO.Drawing.OfficeImageExportFormat.Svg, options));
+        Assert.True(OfficeIMO.Pdf.PdfInspector.Inspect(OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options)).PageCount > 1);
     }
 
     [Fact]
@@ -128,7 +134,7 @@ public sealed class HtmlApiConsistencyTests {
 
     [Fact]
     public void HtmlPdf_ByteSerializationHonorsCancellation() {
-        PdfCore.PdfDocumentConversionResult result = "<p>Cancellation contract</p>".ToPdfDocumentResult();
+        PdfCore.PdfDocumentConversionResult result = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Cancellation contract</p>").ToPdfDocumentResult();
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
@@ -138,12 +144,9 @@ public sealed class HtmlApiConsistencyTests {
     }
 
     [Fact]
-    public void RawTextConverters_UseSourceExplicitPdfNames() {
+    public void MarkdownPdfConverter_RequiresTypedMarkdownDocuments() {
         Assert.DoesNotContain(typeof(MarkdownPdfConverterExtensions).GetMethods(), method =>
-            method.Name == "ToPdf" && method.GetParameters()[0].ParameterType == typeof(string));
-        Assert.Contains(typeof(MarkdownPdfConverterExtensions).GetMethods(), method =>
-            method.Name == "ToPdfFromMarkdown" && method.GetParameters()[0].ParameterType == typeof(string));
-
+            method.GetParameters().Length > 0 && method.GetParameters()[0].ParameterType == typeof(string));
     }
 
     [Fact]

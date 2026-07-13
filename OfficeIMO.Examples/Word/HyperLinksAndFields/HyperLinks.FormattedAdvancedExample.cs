@@ -35,7 +35,8 @@ namespace OfficeIMO.Examples.Word {
                 var gitHubLink = Guard.NotNull(gitHub.Hyperlink, "Expected GitHub hyperlink to be created.");
                 gitHubLink.InsertFormattedHyperlinkBefore("GitLab", new Uri("https://gitlab.com"));
 
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }

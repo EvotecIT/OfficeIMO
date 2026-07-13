@@ -14,7 +14,7 @@ public sealed class ReaderCsvModularTests {
             "Bob,2\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
 
-        var chunks = DocumentReaderCsvExtensions.ReadCsv(
+        var chunks = CsvReaderAdapter.Read(
             stream,
             sourceName: "users.csv",
             csvOptions: new CsvReadOptions {
@@ -49,7 +49,7 @@ public sealed class ReaderCsvModularTests {
             "Bob,Ops\n";
         using var stream = new NonSeekableReadStream(Encoding.UTF8.GetBytes(csv));
 
-        var ex = Assert.Throws<IOException>(() => DocumentReaderCsvExtensions.ReadCsv(
+        var ex = Assert.Throws<IOException>(() => CsvReaderAdapter.Read(
             stream,
             sourceName: "users.csv",
             readerOptions: new ReaderOptions { MaxInputBytes = 16 },
@@ -68,7 +68,7 @@ public sealed class ReaderCsvModularTests {
             "Alice,,Admin\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+        var chunk = Assert.Single(CsvReaderAdapter.Read(
             stream,
             sourceName: "users.csv",
             csvOptions: new CsvReadOptions {
@@ -89,7 +89,7 @@ public sealed class ReaderCsvModularTests {
             "Alice,Alias,Admin\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+        var chunk = Assert.Single(CsvReaderAdapter.Read(
             stream,
             sourceName: "users.csv",
             csvOptions: new CsvReadOptions {
@@ -110,7 +110,7 @@ public sealed class ReaderCsvModularTests {
             "Alice,10\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+        var chunk = Assert.Single(CsvReaderAdapter.Read(
             stream,
             sourceName: "users.csv",
             csvOptions: new CsvReadOptions {
@@ -132,7 +132,7 @@ public sealed class ReaderCsvModularTests {
             "A,1\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+        var chunk = Assert.Single(CsvReaderAdapter.Read(
             stream,
             sourceName: "users.csv",
             csvOptions: new CsvReadOptions {
@@ -152,7 +152,7 @@ public sealed class ReaderCsvModularTests {
         const string csv = "Name,Role\n";
         using var stream = new MemoryStream(Encoding.UTF8.GetBytes(csv), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+        var chunk = Assert.Single(CsvReaderAdapter.Read(
             stream,
             sourceName: "users.csv",
             csvOptions: new CsvReadOptions {
@@ -172,7 +172,7 @@ public sealed class ReaderCsvModularTests {
     public void DocumentReaderCsv_ReadCsvStream_BlankFile_EmitsWarningChunk() {
         using var stream = new MemoryStream(Array.Empty<byte>(), writable: false);
 
-        var chunk = Assert.Single(DocumentReaderCsvExtensions.ReadCsv(
+        var chunk = Assert.Single(CsvReaderAdapter.Read(
             stream,
             sourceName: "users.csv",
             csvOptions: new CsvReadOptions {

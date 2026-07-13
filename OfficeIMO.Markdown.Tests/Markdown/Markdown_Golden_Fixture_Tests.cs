@@ -22,8 +22,8 @@ public sealed class Markdown_Golden_Fixture_Tests {
         string markdown = LoadCompatibilityFixture("portable-profile-boundary.md");
         var htmlOptions = CreatePlainHtmlOptions();
 
-        var officeDoc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile());
-        var portableDoc = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
+        var officeDoc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateOfficeIMOProfile());
+        var portableDoc = OfficeIMO.Markdown.MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
 
         var sb = new StringBuilder();
         AppendSection(sb, "office.ast", BuildDocumentSummary(officeDoc));
@@ -204,9 +204,9 @@ public sealed class Markdown_Golden_Fixture_Tests {
     public void MarkdownGolden_HtmlRichAst() {
         string html = LoadCompatibilityFixture("html-rich-ast.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         string officeMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
-        string portableMarkdown = html.ToMarkdown(HtmlToMarkdownOptions.CreatePortableProfile());
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(HtmlToMarkdownOptions.CreatePortableProfile());
         string renderedHtml = document.ToHtmlFragment(CreatePlainHtmlOptions());
 
         var sb = new StringBuilder();
@@ -222,11 +222,11 @@ public sealed class Markdown_Golden_Fixture_Tests {
     public void MarkdownGolden_HtmlSharedVisualHosts() {
         string html = LoadHtmlFixture("shared-visual-hosts.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html")
         });
         string officeMarkdown = document.ToMarkdown(MarkdownWriteOptions.CreateOfficeIMOProfile());
-        string portableMarkdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string portableMarkdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/visuals/archive.html"),
             MarkdownWriteOptions = MarkdownWriteOptions.CreatePortableProfile()
         });
@@ -261,7 +261,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var sb = new StringBuilder();
         AppendSection(sb, "ix.html", NormalizeHtml(html));
@@ -279,7 +279,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
         ix.Mermaid.Enabled = true;
 
         string html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(markdown, ix);
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var sb = new StringBuilder();
         AppendSection(sb, "ix.html", NormalizeHtml(html));
@@ -417,7 +417,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
                 .Append(EscapeSingleLine(item.Content.RenderMarkdown()))
                 .AppendLine("\"");
 
-            AppendBlockList(sb, item.Children, indent + 1);
+            AppendBlockList(sb, item.NestedBlocks, indent + 1);
         }
     }
 
@@ -500,7 +500,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
 
     private static void AppendHtmlFixtureSnapshot(StringBuilder sb, string name, string fixtureName) {
         string html = LoadHtmlFixture(fixtureName);
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 

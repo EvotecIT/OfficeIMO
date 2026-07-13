@@ -2,6 +2,8 @@ namespace OfficeIMO.Pdf;
 
 /// <summary>Result of applying lossless PDF optimization actions.</summary>
 public sealed class PdfOptimizationActionResult {
+    private readonly byte[] _bytes;
+
     internal PdfOptimizationActionResult(
         byte[] bytes,
         long originalLengthBytes,
@@ -17,14 +19,14 @@ public sealed class PdfOptimizationActionResult {
         bool candidateUsesObjectStreams,
         bool candidateLinearized,
         bool returnedOriginal) {
-        Bytes = bytes;
+        _bytes = (byte[])bytes.Clone();
         OriginalLengthBytes = originalLengthBytes;
         OptimizedLengthBytes = optimizedLengthBytes;
         CandidateLengthBytes = candidateLengthBytes;
         ReportBefore = reportBefore;
         ReportAfter = reportAfter;
-        Actions = actions;
-        SkippedActions = skippedActions;
+        Actions = actions.ToArray();
+        SkippedActions = skippedActions.ToArray();
         PreservationReport = preservationReport;
         RequestedProfile = requestedProfile;
         CandidateXrefFormat = candidateXrefFormat;
@@ -34,7 +36,7 @@ public sealed class PdfOptimizationActionResult {
     }
 
     /// <summary>Optimized PDF bytes, or original bytes when no smaller optimized form was produced.</summary>
-    public byte[] Bytes { get; }
+    public byte[] Bytes => (byte[])_bytes.Clone();
 
     /// <summary>Input PDF length in bytes.</summary>
     public long OriginalLengthBytes { get; }

@@ -56,7 +56,7 @@ public sealed class MarkdownToAsciiDocResult {
         IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
         Source = source;
         Value = value ?? throw new ArgumentNullException(nameof(value));
-        Diagnostics = Array.AsReadOnly(diagnostics.ToArray());
+        Report = new MarkdownToAsciiDocReport(diagnostics);
     }
 
     /// <summary>Generated canonical AsciiDoc.</summary>
@@ -65,9 +65,36 @@ public sealed class MarkdownToAsciiDocResult {
     /// <summary>Lossless parsed view of <see cref="Source"/>.</summary>
     public AsciiDocDocument Value { get; }
 
+    /// <summary>Snapshot of conversion diagnostics and loss state.</summary>
+    public MarkdownToAsciiDocReport Report { get; }
+
+    /// <summary>True when any source feature was simplified, fallbacked, or omitted.</summary>
+    public bool HasLoss => Report.HasLoss;
+
+    /// <summary>Returns the converted document.</summary>
+    public AsciiDocDocument RequireValue() => Value;
+
+    /// <summary>Returns the converted document only when no lossy mapping was reported.</summary>
+    public AsciiDocDocument RequireNoLoss() {
+        Report.RequireNoLoss();
+        return Value;
+    }
+}
+
+/// <summary>Markdown-to-AsciiDoc conversion diagnostics captured for one operation.</summary>
+public sealed class MarkdownToAsciiDocReport {
+    internal MarkdownToAsciiDocReport(IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> diagnostics) {
+        Diagnostics = Array.AsReadOnly((diagnostics ?? throw new ArgumentNullException(nameof(diagnostics))).ToArray());
+    }
+
     /// <summary>Fallback and simplification diagnostics.</summary>
     public IReadOnlyList<MarkdownAsciiDocConversionDiagnostic> Diagnostics { get; }
 
-    /// <summary>True when any source feature was simplified, fallbacked, or omitted.</summary>
+    /// <summary>True when at least one feature was not converted exactly.</summary>
     public bool HasLoss => Diagnostics.Any(static diagnostic => diagnostic.Outcome != AsciiDocMarkdownConversionOutcome.Converted);
+
+    /// <summary>Throws when the conversion reported a lossy mapping.</summary>
+    public void RequireNoLoss() {
+        if (HasLoss) throw new InvalidOperationException("Markdown-to-AsciiDoc conversion reported one or more lossy mappings.");
+    }
 }

@@ -6,12 +6,10 @@ namespace OfficeIMO.Markdown;
 public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     private readonly List<MarkdownSourceSpan> _markerSourceSpans = new List<MarkdownSourceSpan>();
 
-    /// <summary>Raw text lines for a simple quote (used when <see cref="Children"/> is empty).</summary>
+    /// <summary>Raw text lines for a simple quote (used when <see cref="ChildBlocks"/> is empty).</summary>
     public System.Collections.Generic.List<string> Lines { get; } = new System.Collections.Generic.List<string>();
     /// <summary>Nested blocks rendered inside the quote.</summary>
-    public System.Collections.Generic.List<IMarkdownBlock> Children { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
-    /// <summary>Read-only AST-style view of parsed child blocks inside the quote.</summary>
-    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Children;
+    public System.Collections.Generic.List<IMarkdownBlock> ChildBlocks { get; } = new System.Collections.Generic.List<IMarkdownBlock>();
     /// <summary>Source spans for quote marker tokens (<c>&gt;</c>) captured from parsed markdown lines.</summary>
     public IReadOnlyList<MarkdownSourceSpan> MarkerSourceSpans => _markerSourceSpans;
     /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
@@ -35,10 +33,10 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
     }
 
     string IMarkdownBlock.RenderMarkdown() {
-        if (Children.Count > 0) {
+        if (ChildBlocks.Count > 0) {
             var sb = new StringBuilder();
-            for (int i = 0; i < Children.Count; i++) {
-                var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(Children[i]);
+            for (int i = 0; i < ChildBlocks.Count; i++) {
+                var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(ChildBlocks[i]);
                 // Prefix every line with "> "
                 using var reader = new System.IO.StringReader(rendered);
                 string? line; bool first = true;
@@ -47,7 +45,7 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
                     sb.Append("> ").Append(EscapeQuoteLineForMarkdown(line));
                     first = false;
                 }
-                if (i < Children.Count - 1) sb.AppendLine().AppendLine("> "); // blank quote line to separate blocks
+                if (i < ChildBlocks.Count - 1) sb.AppendLine().AppendLine("> "); // blank quote line to separate blocks
             }
             return sb.ToString();
         }
@@ -68,10 +66,10 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
     }
 
     string IMarkdownBlock.RenderHtml() {
-        if (Children.Count > 0) {
+        if (ChildBlocks.Count > 0) {
             var sb = new StringBuilder();
             sb.Append("<blockquote>");
-            foreach (var b in Children) {
+            foreach (var b in ChildBlocks) {
                 var rendered = MarkdownBlockRenderDispatcher.RenderHtml(b);
                 if (RequiresRawHtmlBlockBoundary(rendered, b)) {
                     sb.AppendLine();
@@ -122,7 +120,7 @@ public sealed class QuoteBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBl
         return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Quote,
             span,
-            Children.Count == 0 ? string.Join("\n", Lines) : null,
+            ChildBlocks.Count == 0 ? string.Join("\n", Lines) : null,
             children,
             this);
     }

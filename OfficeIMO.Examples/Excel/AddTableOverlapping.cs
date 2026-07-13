@@ -26,7 +26,8 @@ namespace OfficeIMO.Examples.Excel {
                     Console.WriteLine($"Expected error: {ex.Message}");
                 }
 
-                document.Save(new ExcelSaveOptions { OpenAfterSave = openExcel });
+                document.Save();
+                if (openExcel) document.OpenInApplication();
             }
         }
     }

@@ -22,7 +22,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         sheet.CellAt(1, 2).SetFormula("IF(A1=\"B2\",1,0)");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
-        using OdsDocument target = conversion.Value;
+        OdsDocument target = conversion.Value;
 
         Assert.Equal("of:=IF([.A1]=\"B2\";1;0)", target.GetSheet("Data")!.Cell(0, 1).Formula);
 
@@ -43,7 +43,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         data.CellAt(1, 1).SetFormula("SUM(Other!A1,'Other Sheet'!B2:C3)");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
-        using OdsDocument target = conversion.Value;
+        OdsDocument target = conversion.Value;
 
         Assert.Equal("of:=SUM([$'Other'.A1];[$'Other Sheet'.B2:.C3])",
             target.GetSheet("Data")!.Cell(0, 0).Formula);
@@ -55,7 +55,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void OpenFormulaConversionMapsArgumentSeparatorsOutsideStrings() {
-        using OdsDocument source = OdsDocument.Create();
+        OdsDocument source = OdsDocument.Create();
         OdsSheet sheet = source.AddSheet("Data");
         sheet.Cell(0, 0).SetNumber(1);
         sheet.Cell(0, 1).Formula = "of:=IF([.A1]>0;\"yes;still\";\"no\")";
@@ -79,7 +79,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         second.SetNamedRange("LocalValue", "A1", save: false);
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
-        using OdsDocument target = conversion.Value;
+        OdsDocument target = conversion.Value;
 
         Assert.Equal(2, target.NamedRanges.Count);
         Assert.Equal(2, target.NamedRanges.Select(named => named.Name).Distinct(StringComparer.Ordinal).Count());
@@ -97,7 +97,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         source.AddParagraph().AddImage(tiff, "unsupported.tiff", 10, 10);
 
         OdfConversionResult<OdtDocument> conversion = source.ToOpenDocumentResult();
-        using OdtDocument target = conversion.Value;
+        OdtDocument target = conversion.Value;
 
         Assert.Equal("Automatic color", target.Paragraphs.First().Text);
         Assert.Null(target.Paragraphs.First().Spans.Single().Color);
@@ -108,7 +108,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void OdtToWordPreservesRelativeLinksAndSkipsUnsupportedImages() {
-        using OdtDocument source = OdtDocument.Create();
+        OdtDocument source = OdtDocument.Create();
         source.AddParagraph().AddHyperlink("Relative", "docs/page.html");
         byte[] webp = { 0x52, 0x49, 0x46, 0x46, 0x04, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50 };
         source.AddParagraph("Image").AddImage(webp, "pixel.webp", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
@@ -131,20 +131,20 @@ public sealed class OpenDocumentConversionLossReportTests {
         byte[] png = Convert.FromBase64String(
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
 
-        using OdtDocument textSource = OdtDocument.Create();
+        OdtDocument textSource = OdtDocument.Create();
         textSource.AddParagraph().AddImage(png, "missing.png", OdfLength.Centimeters(1), OdfLength.Centimeters(1));
-        using OdtDocument brokenText = OpenBrokenFlat(textSource.ToFlatXml(), draw, xlink, office,
-            stream => OdtDocument.OpenFlatXml(stream));
+        OdtDocument brokenText = OpenBrokenFlat(textSource.ToFlatXml(), draw, xlink, office,
+            stream => OdtDocument.LoadFlatXml(stream));
         OdfConversionResult<WordDocument> wordConversion = brokenText.ToWordDocumentResult();
         using WordDocument word = wordConversion.Value;
 
         Assert.Contains(wordConversion.Report.Mappings, mapping => mapping.Feature == "images" &&
             mapping.Status == OdfConversionMappingStatus.Skipped && mapping.Count == 1);
 
-        using OdpPresentation presentationSource = OdpPresentation.Create();
+        OdpPresentation presentationSource = OdpPresentation.Create();
         presentationSource.AddSlide("Broken").AddImage(png, "missing.png", OdfRect.FromCentimeters(1, 1, 2, 2));
-        using OdpPresentation brokenPresentation = OpenBrokenFlat(presentationSource.ToFlatXml(), draw, xlink, office,
-            stream => OdpPresentation.OpenFlatXml(stream));
+        OdpPresentation brokenPresentation = OpenBrokenFlat(presentationSource.ToFlatXml(), draw, xlink, office,
+            stream => OdpPresentation.LoadFlatXml(stream));
         OdfConversionResult<PowerPointPresentation> powerPointConversion = brokenPresentation.ToPowerPointPresentationResult();
         using PowerPointPresentation powerPoint = powerPointConversion.Value;
 
@@ -160,7 +160,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         slide.AddPicture(tiff, ImagePartType.Tiff);
 
         OdfConversionResult<OdpPresentation> conversion = source.ToOpenDocumentResult();
-        using OdpPresentation target = conversion.Value;
+        OdpPresentation target = conversion.Value;
 
         Assert.Empty(Assert.Single(target.Slides).Shapes.OfType<OdpImage>());
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "images" &&
@@ -169,7 +169,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void OdtTrackedChangesAreReportedWhenConvertingToWord() {
-        using OdtDocument source = OdtDocument.Create();
+        OdtDocument source = OdtDocument.Create();
         source.AddTrackedParagraphInsertion("Inserted", "Author");
 
         OdfConversionResult<OfficeIMO.Word.WordDocument> conversion = source.ToWordDocumentResult();
@@ -181,7 +181,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void OdpAnimationsAreReportedWhenConvertingToPowerPoint() {
-        using OdpPresentation source = OdpPresentation.Create();
+        OdpPresentation source = OdpPresentation.Create();
         OdpSlide slide = source.AddSlide("Animated");
         OdpRectangle shape = slide.AddRectangle(OdfRect.FromCentimeters(1, 1, 2, 2));
         slide.AddFadeInAnimation(shape, TimeSpan.FromSeconds(1));
@@ -195,7 +195,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void OdsExpansionLimitStillCreatesEveryWorksheetAndReportsTruncation() {
-        using OdsDocument source = OdsDocument.Create();
+        OdsDocument source = OdsDocument.Create();
         OdsSheet hidden = source.AddSheet("Hidden");
         hidden.Hidden = true;
         hidden.Cell(0, 0).SetNumber(1);
@@ -214,7 +214,7 @@ public sealed class OpenDocumentConversionLossReportTests {
 
     [Fact]
     public void OdsToExcelKeepsOneWorksheetVisibleWhenEverySourceSheetIsHidden() {
-        using OdsDocument source = OdsDocument.Create();
+        OdsDocument source = OdsDocument.Create();
         source.AddSheet("First").Hidden = true;
         source.AddSheet("Second").Hidden = true;
 
@@ -241,14 +241,14 @@ public sealed class OpenDocumentConversionLossReportTests {
             IncludeBasicStyles = false,
             MaximumExpandedCells = 1
         });
-        using OdsDocument target = conversion.Value;
+        OdsDocument target = conversion.Value;
 
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "cell-styles" && mapping.Status == OdfConversionMappingStatus.Skipped);
         Assert.Contains(conversion.Report.Mappings, mapping => mapping.Feature == "expansion-limits" && mapping.Status == OdfConversionMappingStatus.Skipped);
     }
 
     private static T OpenBrokenFlat<T>(XDocument flat, XNamespace draw, XNamespace xlink, XNamespace office,
-        Func<Stream, T> open) where T : IDisposable {
+        Func<Stream, T> load) {
         XElement image = flat.Descendants(draw + "image").Single();
         image.SetAttributeValue(xlink + "href", "https://example.test/missing.png");
         image.Elements(office + "binary-data").Remove();
@@ -256,7 +256,7 @@ public sealed class OpenDocumentConversionLossReportTests {
         flat.Save(stream);
         stream.Position = 0;
         try {
-            return open(stream);
+            return load(stream);
         } finally {
             stream.Dispose();
         }

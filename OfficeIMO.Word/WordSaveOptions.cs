@@ -18,9 +18,6 @@ namespace OfficeIMO.Word {
     /// Optional behaviors applied during Word document save operations.
     /// </summary>
     public sealed class WordSaveOptions {
-        /// <summary>Gets or sets whether to open the saved file after a successful file commit.</summary>
-        public bool OpenAfterSave { get; set; }
-
         /// <summary>
         /// Controls saves of documents projected from legacy DOC files when known legacy-only
         /// content cannot be represented by the selected output format. The default blocks the save.
@@ -37,14 +34,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public static WordSaveOptions Default => new();
 
-        /// <summary>
-        /// Returns an options instance with all optional behaviors disabled.
-        /// </summary>
-        public static WordSaveOptions None => new();
-
         internal WordSaveOptions WithLossPolicy(WordConversionLossPolicy lossPolicy) {
             return new WordSaveOptions {
-                OpenAfterSave = OpenAfterSave,
                 LossPolicy = lossPolicy,
                 SignedDocumentPolicy = SignedDocumentPolicy
             };

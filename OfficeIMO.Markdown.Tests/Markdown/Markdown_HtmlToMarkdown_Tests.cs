@@ -6,16 +6,42 @@ using OfficeIMO.Html;
 using Xunit;
 using MarkdownRendererShell = OfficeIMO.MarkdownRenderer.MarkdownRenderer;
 using System.IO;
+using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Tests;
 
 public sealed class MarkdownHtmlToMarkdownTests {
     [Fact]
-    public void HtmlToMarkdown_Converter_UsesDefaultOptionsWhenNull() {
-        var converter = new HtmlToMarkdownConverter();
+    public async Task HtmlToMarkdown_ExposesTypedResultAndCompleteIoGrammar() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<h1>Hello</h1><p>World</p>");
 
-        string markdown = converter.Convert("<p>Hello</p>", options: null);
-        MarkdownDoc document = converter.ConvertToDocument("<p>Hello</p>", options: null);
+        HtmlToMarkdownResult result = source.ToMarkdownDocumentResult();
+        Assert.Equal(2, result.Blocks);
+        Assert.Contains("# Hello", result.Value.ToMarkdown(), StringComparison.Ordinal);
+
+        using var stream = new MemoryStream();
+        source.SaveAsMarkdown(stream, encoding: Encoding.UTF8);
+        Assert.True(stream.CanWrite);
+        Assert.Contains("# Hello", Encoding.UTF8.GetString(stream.ToArray()), StringComparison.Ordinal);
+
+        using var asyncStream = new MemoryStream();
+        await source.SaveAsMarkdownAsync(asyncStream, encoding: Encoding.UTF8);
+        Assert.Contains("World", Encoding.UTF8.GetString(asyncStream.ToArray()), StringComparison.Ordinal);
+
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+        await Assert.ThrowsAsync<OperationCanceledException>(() =>
+            source.SaveAsMarkdownAsync(new MemoryStream(), cancellationToken: cancellation.Token));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_Converter_UsesDefaultOptionsWhenNull() {
+        HtmlConversionDocument source = HtmlConversionDocument.Parse("<p>Hello</p>");
+
+        string markdown = source.ToMarkdown(options: null);
+        MarkdownDoc document = source.ToMarkdownDocument(options: null);
 
         Assert.Contains("Hello", markdown, StringComparison.Ordinal);
         Assert.Single(document.Blocks);
@@ -26,7 +52,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_ConvertsCommonDocumentBlocks() {
         string html = "<html><body><h1>Hello</h1><p>A <strong>bold</strong> <a href=\"https://example.com\">link</a>.</p><ul><li>One</li><li>Two</li></ul></body></html>";
 
-        string markdown = html.ToMarkdown();
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         Assert.Contains("# Hello", markdown, StringComparison.Ordinal);
         Assert.Contains("**bold**", markdown, StringComparison.Ordinal);
@@ -41,7 +67,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p>Logo <img src="data:image/png;base64,AAAA" data-src="/img/logo.png" alt="Logo" /></p>
 """;
 
-        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -55,7 +81,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p><a href="/interop"><code>[[UnmanagedCallersOnly]]</code></a></p>
 """;
 
-        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/docs/")
         });
 
@@ -69,7 +95,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <ul><li><code>dotnet</code> command<ul><li>restore</li></ul></li></ul>
 """;
 
-        string markdown = html.ToMarkdown().Replace("\r\n", "\n");
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown().Replace("\r\n", "\n");
 
         Assert.Contains("- `dotnet` command", markdown, StringComparison.Ordinal);
         Assert.Contains("  - restore", markdown, StringComparison.Ordinal);
@@ -88,7 +114,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         options.UrlPolicy.AllowedUrlSchemes.Clear();
         options.UrlPolicy.AllowedUrlSchemes.Add("https");
 
-        MarkdownDoc document = html.ToMarkdownDocument(options);
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
 
         string markdown = document.ToMarkdown();
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
@@ -120,7 +146,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p>&lt;![CDATA[literal]]&gt;</p>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             EscapeMarkdownLineStarts = true
         });
 
@@ -154,7 +180,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_CanSkipBase64Images() {
         const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             Base64Images = HtmlBase64ImageHandling.Skip
         });
 
@@ -168,7 +194,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         try {
             const string html = """<figure><img src="data:image/png;base64,not-valid-base64" alt="Malformed data" /></figure>""";
             foreach (HtmlBase64ImageHandling handling in new[] { HtmlBase64ImageHandling.Skip, HtmlBase64ImageHandling.SaveToFile }) {
-                MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+                MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                     Base64Images = handling,
                     Base64ImageOutputDirectory = directory
                 });
@@ -195,7 +221,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </figure>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             Base64Images = HtmlBase64ImageHandling.Skip
         });
 
@@ -214,7 +240,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </figure>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             Base64Images = HtmlBase64ImageHandling.Skip
         });
 
@@ -228,7 +254,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_SkipsInlineBase64ImageWithoutRawFallback() {
         const string html = """<p>Before <img src="data:image/png;base64,AQID" alt="Inline data" /> after</p>""";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             Base64Images = HtmlBase64ImageHandling.Skip
         });
 
@@ -247,7 +273,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.test/articles/"),
             Base64Images = HtmlBase64ImageHandling.Skip
         });
@@ -267,7 +293,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.test/articles/"),
             Base64Images = HtmlBase64ImageHandling.Skip
         });
@@ -293,7 +319,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 """;
 
             foreach (HtmlBase64ImageHandling handling in new[] { HtmlBase64ImageHandling.Skip, HtmlBase64ImageHandling.SaveToFile }) {
-                MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+                MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                     BaseUri = new Uri("https://example.test/articles/"),
                     Base64Images = handling,
                     Base64ImageOutputDirectory = directory
@@ -319,7 +345,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions());
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions());
 
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
         Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
@@ -338,7 +364,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions());
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions());
 
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
         Assert.Equal("https://cdn.example.test/photo.webp", image.Path);
@@ -357,7 +383,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             Base64Images = HtmlBase64ImageHandling.Skip
         });
 
@@ -376,7 +402,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             Base64Images = HtmlBase64ImageHandling.Skip,
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         });
@@ -396,7 +422,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true,
             UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
         });
@@ -418,7 +444,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </a>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true,
             BaseUri = new Uri("https://example.test/")
         });
@@ -435,7 +461,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_DropsRejectedEmptyBlockAnchorsInsteadOfRawHtml() {
         const string html = """<a href="javascript:alert(1)"><script>alert(2)</script></a>""";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true
         });
 
@@ -456,7 +482,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </a>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true
         });
 
@@ -477,7 +503,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </a>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true
         });
 
@@ -505,7 +531,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </a>
 """;
 
-                MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+                MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                     PreserveUnsupportedBlocks = true,
                     Base64Images = testCase.Handling,
                     Base64ImageOutputDirectory = directory
@@ -531,7 +557,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         try {
             const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
 
-            MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+            MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                 Base64Images = HtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = directory
             });
@@ -558,7 +584,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             File.WriteAllText(existing, "keep me");
             const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
 
-            MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+            MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                 Base64Images = HtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = directory
             });
@@ -581,7 +607,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         try {
             const string html = """<figure><img src="data:image/png;base64,AQID" alt="Inline data" /></figure>""";
 
-            MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+            MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                 Base64Images = HtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = directory
             });
@@ -594,7 +620,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             Assert.Contains("OfficeIMO%20HtmlImages.", markdown, StringComparison.Ordinal);
             Assert.DoesNotContain("OfficeIMO HtmlImages.", markdown, StringComparison.Ordinal);
 
-            var parsed = MarkdownReader.Parse(markdown);
+            var parsed = OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
             var parsedImage = Assert.IsType<ImageBlock>(Assert.Single(parsed.Blocks));
             Assert.Equal(image.Path, parsedImage.Path);
         } finally {
@@ -615,7 +641,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-            MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+            MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                 BaseUri = new Uri("https://example.test/articles/"),
                 Base64Images = HtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = directory,
@@ -648,7 +674,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-            MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+            MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                 BaseUri = new Uri("https://example.test/articles/"),
                 Base64Images = HtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = directory,
@@ -674,7 +700,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         try {
             const string html = """<p><a href="/docs"><img src="data:image/png;base64,AQID" alt="Data" /></a></p>""";
 
-            MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+            MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                 BaseUri = new Uri("https://example.test/articles/"),
                 Base64Images = HtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = directory,
@@ -703,7 +729,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         try {
             const string html = """<figure><img src="data:image/png;base64,%ZZ" alt="Bad data" /></figure>""";
 
-            MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+            MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
                 Base64Images = HtmlBase64ImageHandling.SaveToFile,
                 Base64ImageOutputDirectory = directory
             });
@@ -724,7 +750,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_UsesConfiguredLineEndingAndUnorderedListMarker() {
         const string html = "<ul><li>One</li><li>Two</li></ul>";
 
-        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             MarkdownWriteOptions = new MarkdownWriteOptions {
                 OutputLineEnding = "\n",
                 UnorderedListMarker = '*'
@@ -739,7 +765,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_Trims_StrongBoundaryWhitespace_Before_InlineParsing() {
         string html = "<p><strong> LDAP/Kerberos health on all DCs </strong> next</p>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
 
         Assert.Contains("<strong>LDAP/Kerberos health on all DCs</strong> next", renderedHtml, StringComparison.Ordinal);
@@ -756,7 +782,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             typeof(ParagraphBlock),
             (block, _) => block is ParagraphBlock ? "PARAGRAPH-OVERRIDE" : null));
 
-        string markdown = "<p>Hello</p>".ToMarkdown(options);
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse("<p>Hello</p>").ToMarkdown(options);
 
         Assert.Equal("PARAGRAPH-OVERRIDE", markdown.Trim());
     }
@@ -765,7 +791,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_ToMarkdownDocument_ProducesTypedBlocks() {
         string html = "<html><body><h2>Section</h2><blockquote><p>Quoted</p></blockquote><details open><summary>More</summary><p>Hidden text</p></details></body></html>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Level == 2 && heading.Text == "Section");
         Assert.Contains(document.Blocks, block => block is QuoteBlock);
@@ -778,7 +804,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             MaxInputCharacters = 12
         };
 
-        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => "<p>0123456789</p>".ToMarkdownDocument(options));
+        var ex = Assert.Throws<ArgumentOutOfRangeException>(() => OfficeIMO.Html.HtmlConversionDocument.Parse("<p>0123456789</p>").ToMarkdownDocument(options));
         Assert.Contains("MaxInputCharacters", ex.Message, StringComparison.Ordinal);
     }
 
@@ -786,7 +812,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_ConvertsHtmlFragmentWithoutBodyWrapper() {
         string html = "<h2>Fragment</h2><p>Body</p>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.Collection(document.Blocks,
             block => Assert.IsType<HeadingBlock>(block),
@@ -797,7 +823,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_ResolvesRelativeLinksWithBaseUri() {
         string html = "<p><a href=\"guide/start\">Docs</a></p>";
 
-        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/docs/")
         });
 
@@ -813,7 +839,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </html>
 """;
 
-        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/app/")
         });
 
@@ -829,7 +855,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </html>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/docs/start/page.html")
         });
 
@@ -844,7 +870,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p><a href="/docs/hero" title="Hero docs" target="_blank" rel="nofollow sponsored">Read more</a></p>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -871,7 +897,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesUnsupportedBlocks_WhenRequested() {
         string html = "<custom-widget data-name=\"demo\">Hello</custom-widget>";
 
-        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true
         });
 
@@ -882,7 +908,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesUnsupportedInlineHtml_WhenRequested() {
         string html = "<p>Hello <custom-inline data-name=\"demo\">world</custom-inline></p>";
 
-        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             PreserveUnsupportedInlineHtml = true
         });
 
@@ -893,7 +919,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_ToMarkdownDocument_PreservesUnsupportedInlineHtmlInAst() {
         string html = "<p>Hello <custom-inline data-name=\"demo\">world</custom-inline></p>";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedInlineHtml = true
         });
 
@@ -910,7 +936,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_ToMarkdownDocument_PreservesExtendedInlineHtmlTagsAsTypedNodes() {
         const string html = "<p>Before <q>quoted</q> H<sub>2</sub>O <ins>inserted</ins> x<sup>2</sup></p>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
 
         Assert.Contains(paragraph.Inlines.Nodes, inline => inline is HtmlTagSequenceInline tag && tag.TagName == "q");
@@ -1051,7 +1077,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var options = new HtmlToMarkdownOptions();
         options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
 
-        MarkdownDoc document = html.ToMarkdownDocument(options);
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
 
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
         var highlight = Assert.IsType<HighlightSequenceInline>(Assert.Single(paragraph.Inlines.Nodes.OfType<HighlightSequenceInline>()));
@@ -1065,7 +1091,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesUnsupportedBlockElementsBetweenParagraphs() {
         string html = "<p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p>";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true
         });
 
@@ -1087,7 +1113,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesUnsupportedBlockElementsInsideListItems() {
         string html = "<ul><li><p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p></li></ul>";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true
         });
 
@@ -1104,7 +1130,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesUnsupportedBlockElementsInsideSections() {
         string html = "<section><p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p></section>";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true
         });
 
@@ -1118,7 +1144,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesUnsupportedBlockElementsInsideDetails() {
         string html = "<details open><summary>More</summary><p>Alpha</p><custom-widget data-name=\"demo\">Hello</custom-widget><p>Omega</p></details>";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             PreserveUnsupportedBlocks = true
         });
 
@@ -1134,7 +1160,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_CapturesFigureCaptionOnImageBlocks() {
         string html = "<figure><img src=\"/img/demo.png\" alt=\"Demo\" /><figcaption>Example caption</figcaption></figure>";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1148,7 +1174,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesFigureOrderInsideListItems() {
         string html = "<ul><li><p>Alpha</p><figure><img src=\"/img/demo.png\" alt=\"Demo\" /><figcaption>Caption</figcaption></figure><p>Omega</p></li></ul>";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1176,7 +1202,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </figure>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1204,7 +1230,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </figure>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1233,7 +1259,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </figure>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1275,7 +1301,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </figure>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1309,7 +1335,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </figure>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1334,12 +1360,12 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesParagraphBreaksInsideTableCells() {
         string html = "<table><tr><th>Section</th><th>Notes</th></tr><tr><td>Alpha</td><td><p>First</p><p>Second</p></td></tr></table>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("Alpha", table.Rows[0][0]);
         Assert.Equal("First\n\nSecond", table.Rows[0][1]);
-        Assert.Collection(table.RowCells[0][1].Blocks,
+        Assert.Collection(table.RowCells[0][1].ChildBlocks,
             block => Assert.Equal("First", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
             block => Assert.Equal("Second", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
 
@@ -1366,7 +1392,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(new[] { "Outer" }, table.Headers);
@@ -1374,7 +1400,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         Assert.Single(table.RowCells);
         Assert.Single(table.RowCells[0]);
 
-        var nestedTable = Assert.IsType<TableBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+        var nestedTable = Assert.IsType<TableBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
         Assert.Equal(new[] { "Inner" }, nestedTable.Headers);
         Assert.Single(nestedTable.Rows);
         Assert.Equal("Cell", nestedTable.Rows[0][0]);
@@ -1395,7 +1421,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(new[] { ColumnAlignment.Center, ColumnAlignment.Right }, table.Alignments);
@@ -1419,7 +1445,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Right }, table.Alignments);
@@ -1449,7 +1475,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Center, ColumnAlignment.Right }, table.Alignments);
@@ -1477,7 +1503,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(2, table.ColumnWidthPoints.Count);
@@ -1500,7 +1526,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(new[] { ColumnAlignment.None, ColumnAlignment.Center, ColumnAlignment.Right }, table.Alignments);
@@ -1520,7 +1546,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(2, table.HeaderCells[0].ColumnSpan);
@@ -1539,7 +1565,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(1, table.HeaderCells[0].RowSpan);
@@ -1557,7 +1583,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         string renderedHtml = ((IMarkdownBlock)table).RenderHtml();
@@ -1578,7 +1604,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("#663399", table.HeaderCells[0].BackgroundColor);
@@ -1598,7 +1624,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
         TableCell styledCell = table.RowCells[0][1];
 
@@ -1622,7 +1648,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </table>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal(ColumnAlignment.Right, table.RowCells[0][1].Alignment);
@@ -1637,7 +1663,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_RecoversLazyLoadedImageSourcesAndStyleDimensions() {
         const string html = "<figure><img data-src=\"/img/demo.png\" alt=\"Demo\" style=\"width: 640px; height: 480px;\" /></figure>";
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1661,7 +1687,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </picture>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1682,7 +1708,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </figure>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/")
         });
 
@@ -1696,10 +1722,10 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesMixedBlockContentInsideTableCells() {
         string html = "<table><tr><th>Section</th><th>Notes</th></tr><tr><td>Alpha</td><td><p>Intro</p><blockquote><p>Quoted</p></blockquote></td></tr></table>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
-        Assert.Collection(table.RowCells[0][1].Blocks,
+        Assert.Collection(table.RowCells[0][1].ChildBlocks,
             block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
             block => Assert.IsType<QuoteBlock>(block));
 
@@ -1711,7 +1737,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_Recovers_Rendered_Callout_Block() {
         string html = "<blockquote class=\"callout note\"><p><strong>Important</strong></p><p>Body</p><ul><li>Nested</li></ul></blockquote>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var callout = Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("note", callout.Kind);
@@ -1728,13 +1754,13 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
     [Fact]
     public void HtmlToMarkdown_Roundtrips_Rendered_Callout_Block_Without_Synthesizing_Default_Title() {
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 > [!NOTE]
 > Body
 """);
 
         string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-        MarkdownDoc roundtripped = renderedHtml.ToMarkdownDocument();
+        MarkdownDoc roundtripped = OfficeIMO.Html.HtmlConversionDocument.Parse(renderedHtml).ToMarkdownDocument();
 
         var callout = Assert.IsType<CalloutBlock>(Assert.Single(roundtripped.Blocks));
         Assert.Equal("note", callout.Kind);
@@ -1751,10 +1777,10 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_Recovers_Rendered_Callout_Block_Inside_Table_Cell() {
         string html = "<table><tr><th>Section</th><th>Notes</th></tr><tr><td>Alpha</td><td><blockquote class=\"callout warning\"><p><strong>Watch</strong></p><p>Body</p></blockquote></td></tr></table>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
 
-        var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][1].Blocks));
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][1].ChildBlocks));
         Assert.Equal("warning", callout.Kind);
         Assert.Equal("Watch", callout.TitleInlines.RenderMarkdown());
         Assert.Equal("Body", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
@@ -1768,17 +1794,17 @@ public sealed class MarkdownHtmlToMarkdownTests {
 
     [Fact]
     public void HtmlToMarkdown_Roundtrips_Rendered_Untitled_Callout_Block_Inside_Table_Cell() {
-        var document = MarkdownReader.Parse("""
+        var document = OfficeIMO.Markdown.MarkdownReader.Parse("""
 | Notes |
 | --- |
 | > [!WARNING]<br>> Body |
 """);
 
         string renderedHtml = document.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-        MarkdownDoc roundtripped = renderedHtml.ToMarkdownDocument();
+        MarkdownDoc roundtripped = OfficeIMO.Html.HtmlConversionDocument.Parse(renderedHtml).ToMarkdownDocument();
         var table = Assert.IsType<TableBlock>(Assert.Single(roundtripped.Blocks));
 
-        var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(table.RowCells[0][0].ChildBlocks));
         Assert.Equal("warning", callout.Kind);
         Assert.Equal(string.Empty, callout.TitleInlines.RenderMarkdown());
         Assert.Equal("Body", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
@@ -1794,7 +1820,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <p><a href="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png"><img class="aligncenter size-full wp-image-4510 ewww_webp_lazy_load" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20440%20482'%3E%3C/svg%3E" alt="GPO Registry Add" width="440" height="482" data-lazy-srcset="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png 440w, https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd-274x300.png 274w" data-lazy-sizes="(max-width: 440px) 100vw, 440px" data-lazy-src="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png" /><noscript><img class="aligncenter size-full wp-image-4510" src="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png" alt="GPO Registry Add" width="440" height="482" srcset="https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png 440w, https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd-274x300.png 274w" sizes="(max-width: 440px) 100vw, 440px" /></noscript></a></p>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("https://example.com/wp-content/uploads/2015/08/GPO_RegistryAdd.png", image.Path);
@@ -1815,7 +1841,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 <div class="post-img"><a href="https://example.com/automating-network-diagnostics-with-globalping-powershell-module/" class="default"><img width="256" height="256" src="data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20viewBox='0%200%20256%20256'%3E%3C/svg%3E" class="img-responsive wp-post-image" alt="Automating Network Diagnostics with Globalping PowerShell Module" data-lazy-srcset="https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-small.jpg 1x, https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg 2x" data-lazy-sizes="100vw" data-lazy-src="https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg" /><noscript><img width="256" height="256" src="https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg" class="img-responsive wp-post-image" alt="Automating Network Diagnostics with Globalping PowerShell Module" srcset="https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-small.jpg 1x, https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg 2x" sizes="100vw" /></noscript></a></div>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
 
         Assert.Equal("https://example.com/wp-content/uploads/2025/06/Automating-Network-Diagnostics-with-Globalping-PowerShell-Module-thegem-post-thumb-large.jpg", image.Path);
@@ -1857,7 +1883,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </div>
 """;
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         string markdown = document.ToMarkdown();
 
         Assert.DoesNotContain("[https://example.com/exchange-2013-integration-with-sharepoint-doesnt-work/]", markdown, StringComparison.Ordinal);
@@ -1891,7 +1917,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </main>
 """;
 
-        string markdown = html.ToMarkdown();
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown();
 
         Assert.Contains("15 June", markdown, StringComparison.Ordinal);
         Assert.Contains("21:52", markdown, StringComparison.Ordinal);
@@ -1924,7 +1950,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
 </main>
 """;
 
-        string markdown = html.ToMarkdown(new HtmlToMarkdownOptions {
+        string markdown = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdown(new HtmlToMarkdownOptions {
             ListingCardMetadataMode = HtmlListingCardMetadataMode.SuppressInRepeatedCards
         });
 
@@ -1942,7 +1968,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesMixedListItemBlockOrder() {
         string html = "<ul><li><p>Alpha</p><blockquote><p>Quoted</p></blockquote><p>Omega</p></li></ul>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
@@ -1964,7 +1990,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesMultipleDefinitionsPerTerm() {
         string html = "<dl><dt>Term</dt><dd>First definition</dd><dd>Second definition</dd></dl>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
         var group = Assert.Single(list.Groups);
@@ -1981,7 +2007,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesMultipleParagraphsInDefinitionValues() {
         string html = "<dl><dt>Term</dt><dd><p>First paragraph</p><p>Second paragraph</p></dd></dl>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
         Assert.Single(list.Entries);
@@ -1999,7 +2025,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesMixedBlockContentInDefinitionValues() {
         string html = "<dl><dt>Term</dt><dd><p>Intro</p><blockquote><p>Quoted</p></blockquote><ul><li>Nested</li></ul></dd></dl>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
         Assert.Single(list.Entries);
@@ -2014,7 +2040,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesNestedListOrderInsideListItem() {
         string html = "<ul><li><p>Alpha</p><ul><li>Nested</li></ul><p>Omega</p></li></ul>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
@@ -2036,7 +2062,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesDetailsOrderInsideListItem() {
         string html = "<ul><li><p>Alpha</p><details open><summary>More</summary><p>Hidden</p></details><p>Omega</p></li></ul>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
         var item = Assert.Single(list.Items);
 
@@ -2050,17 +2076,21 @@ public sealed class MarkdownHtmlToMarkdownTests {
     public void HtmlToMarkdown_PreservesMultipleTermsPerDefinitionGroup() {
         string html = "<dl><dt>Alpha</dt><dt>Beta</dt><dd>Shared definition</dd><dd>Follow-up definition</dd></dl>";
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
         var list = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
         var group = Assert.Single(list.Groups);
         Assert.Equal(new[] { "Alpha", "Beta" }, group.Terms.Select(term => term.RenderMarkdown()).ToArray());
         Assert.Equal(new[] { "Shared definition", "Follow-up definition" }, group.Definitions.Select(definition => definition.Markdown).ToArray());
         Assert.Equal(4, list.Entries.Count);
-        Assert.Equal(("Alpha", "Shared definition"), list.Items[0]);
-        Assert.Equal(("Beta", "Shared definition"), list.Items[1]);
-        Assert.Equal(("Alpha", "Follow-up definition"), list.Items[2]);
-        Assert.Equal(("Beta", "Follow-up definition"), list.Items[3]);
+        Assert.Equal("Alpha", list.Entries[0].TermMarkdown);
+        Assert.Equal("Shared definition", list.Entries[0].DefinitionMarkdown);
+        Assert.Equal("Beta", list.Entries[1].TermMarkdown);
+        Assert.Equal("Shared definition", list.Entries[1].DefinitionMarkdown);
+        Assert.Equal("Alpha", list.Entries[2].TermMarkdown);
+        Assert.Equal("Follow-up definition", list.Entries[2].DefinitionMarkdown);
+        Assert.Equal("Beta", list.Entries[3].TermMarkdown);
+        Assert.Equal("Follow-up definition", list.Entries[3].DefinitionMarkdown);
         Assert.Equal("Alpha", list.Entries[0].Term.RenderMarkdown());
         Assert.Equal("Shared definition", Assert.IsType<ParagraphBlock>(Assert.Single(list.Entries[0].DefinitionBlocks)).Inlines.RenderMarkdown());
 
@@ -2085,7 +2115,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             "vendor-chart",
             payload);
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
@@ -2108,7 +2138,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             payload,
             fenceInfo);
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
@@ -2135,7 +2165,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             payload);
         string html = host.Replace("</figure>", "<figcaption>Quarterly Overview</figcaption></figure>");
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
@@ -2176,7 +2206,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             payload,
             new KeyValuePair<string, string?>("data-vendor-caption", "Quarterly Overview"));
 
-        MarkdownDoc document = html.ToMarkdownDocument(options);
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal("Quarterly Overview", block.Caption);
@@ -2194,7 +2224,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         htmlToMarkdownOptions.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
 
         string html = MarkdownRendererShell.RenderBodyHtml("```status-panel\n" + raw + "\n```", renderOptions);
-        MarkdownDoc document = html.ToMarkdownDocument(htmlToMarkdownOptions);
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(htmlToMarkdownOptions);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal("status-panel", block.SemanticKind);
@@ -2215,7 +2245,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var options = new HtmlToMarkdownOptions();
         options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
 
-        MarkdownDoc document = html.ToMarkdownDocument(options);
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal("status-panel", block.SemanticKind);
@@ -2241,7 +2271,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         var options = new HtmlToMarkdownOptions();
         options.ApplyFeaturePack(SampleMarkdownRenderer.StatusPanelFeaturePack);
 
-        MarkdownDoc document = html.ToMarkdownDocument(options);
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(options);
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal("status-panel", block.SemanticKind);
@@ -2266,7 +2296,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
             payload,
             fenceInfo);
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Chart, block.SemanticKind);
@@ -2290,7 +2320,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         MarkdownRendererIntelligenceXLegacyMigration.Apply(options);
         string html = MarkdownRendererShell.RenderBodyHtml("```ix-dataview\n" + raw + "\n```", options);
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.DataView, block.SemanticKind);
@@ -2310,7 +2340,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         options.Network.Enabled = true;
         string html = MarkdownRendererShell.RenderBodyHtml("```ix-network\n" + raw + "\n```", options);
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Network, block.SemanticKind);
@@ -2330,7 +2360,7 @@ public sealed class MarkdownHtmlToMarkdownTests {
         options.Network.Enabled = true;
         string html = MarkdownRendererShell.RenderBodyHtml("```ix-network #relationship-map .wide title=\"Relationship Map\" pinned\n" + raw + "\n```", options);
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Network, block.SemanticKind);
@@ -2357,7 +2387,7 @@ B --> C[Render Mermaid]
         options.Mermaid.Enabled = true;
         string html = MarkdownRendererShell.RenderBodyHtml("```mermaid\n" + raw + "\n```", options);
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Mermaid, block.SemanticKind);
@@ -2377,7 +2407,7 @@ B --> C[Render Mermaid]
         options.Math.Enabled = true;
         string html = MarkdownRendererShell.RenderBodyHtml("```math\n" + raw + "\n```", options);
 
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var block = Assert.IsType<SemanticFencedBlock>(Assert.Single(document.Blocks));
         Assert.Equal(MarkdownSemanticKinds.Math, block.SemanticKind);
@@ -2426,7 +2456,7 @@ x^2 + 1
         options.Math.Enabled = true;
 
         string html = MarkdownRendererShell.RenderBodyHtml(markdown, options);
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.Collection(document.Blocks,
             block => Assert.IsType<HeadingBlock>(block),
@@ -2471,7 +2501,7 @@ x^2 + 1
         options.Mermaid.Enabled = true;
 
         string html = MarkdownRendererShell.RenderBodyHtml(markdown, options);
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.True(document.Blocks.OfType<HeadingBlock>().Count() >= 8);
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:30: 13)");
@@ -2503,7 +2533,7 @@ x^2 + 1
         options.Mermaid.Enabled = true;
 
         string html = MarkdownRendererShell.RenderBodyHtml(markdown, options);
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         var sequence = document.Blocks
             .Where(block => block is SemanticFencedBlock or TableBlock or OrderedListBlock)
@@ -2538,7 +2568,7 @@ x^2 + 1
         options.Mermaid.Enabled = true;
 
         string html = MarkdownRendererShell.RenderBodyHtml(markdown, options);
-        MarkdownDoc document = html.ToMarkdownDocument();
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument();
 
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:36: 24)");
         Assert.Contains(document.Blocks, block => block is HeadingBlock heading && heading.Text == "Assistant (20:37: 49)");
@@ -2581,7 +2611,7 @@ x^2 + 1
     public void HtmlToMarkdown_LoadsPublisherFixtureWithResolvedLinkedResponsiveFigure() {
         string html = LoadHtmlFixture("publisher-linked-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
@@ -2620,7 +2650,7 @@ x^2 + 1
     public void HtmlToMarkdown_LoadsPublisherFixtureWithResolvedLinkedResponsiveFigure_EmitsStableMarkdownSnapshot() {
         string html = LoadHtmlFixture("publisher-linked-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
@@ -2644,7 +2674,7 @@ Inspect the [flood map](https://example.com/news/maps/flood-zones.html) for the 
     public void HtmlToMarkdown_LoadsPublisherFixtureWithNoscriptResponsiveFallback() {
         string html = LoadHtmlFixture("publisher-noscript-linked-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
@@ -2675,7 +2705,7 @@ Inspect the [flood map](https://example.com/news/maps/flood-zones.html) for the 
     public void HtmlToMarkdown_LoadsPublisherFixtureWithNoscriptResponsiveFallback_EmitsStableMarkdownSnapshot() {
         string html = LoadHtmlFixture("publisher-noscript-linked-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
@@ -2695,7 +2725,7 @@ Photo credit: City Desk
     public void HtmlToMarkdown_LoadsPublisherFixtureWithArtDirectedPictureSources() {
         string html = LoadHtmlFixture("publisher-art-direction-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
@@ -2738,7 +2768,7 @@ Photo credit: City Desk
     public void HtmlToMarkdown_LoadsPublisherFixtureWithArtDirectedPictureSources_EmitsStableMarkdownSnapshot() {
         string html = LoadHtmlFixture("publisher-art-direction-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
@@ -2756,7 +2786,7 @@ _Residents navigate floodwater after the overnight storm._
     public void HtmlToMarkdown_LoadsPublisherFixtureWithCdnLazyPictureSources() {
         string html = LoadHtmlFixture("publisher-cdn-lazy-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
@@ -2802,7 +2832,7 @@ _Residents navigate floodwater after the overnight storm._
     public void HtmlToMarkdown_LoadsPublisherFixtureWithWidthDescriptorPictureSources() {
         string html = LoadHtmlFixture("publisher-width-descriptor-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 
@@ -2844,7 +2874,7 @@ _Residents navigate floodwater after the overnight storm._
     public void HtmlToMarkdown_LoadsPublisherFixtureWithWidthDescriptorPictureSources_EmitsStableMarkdownSnapshot() {
         string html = LoadHtmlFixture("publisher-width-descriptor-picture-article.html");
 
-        MarkdownDoc document = html.ToMarkdownDocument(new HtmlToMarkdownOptions {
+        MarkdownDoc document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToMarkdownDocument(new HtmlToMarkdownOptions {
             BaseUri = new Uri("https://example.com/world/live/storm-update.html")
         });
 

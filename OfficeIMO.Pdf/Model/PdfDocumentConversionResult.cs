@@ -40,11 +40,20 @@ public sealed partial class PdfDocumentConversionResult {
     /// <summary>True when conversion produced at least one warning.</summary>
     public bool HasWarnings => Report.HasWarnings;
 
+    /// <summary>True when conversion reported an approximation, omission, or error.</summary>
+    public bool HasLoss => Report.HasLoss;
+
     /// <summary>Counts grouped conversion diagnostics captured with this result.</summary>
     public PdfConversionReportSummary Summary => Report.Summarize();
 
     /// <summary>Returns the generated PDF document.</summary>
     public PdfDocument RequireValue() => Value;
+
+    /// <summary>Returns the generated PDF document only when conversion reported no possible content loss.</summary>
+    public PdfDocument RequireNoLoss() {
+        Report.RequireNoLoss();
+        return Value;
+    }
 
     /// <summary>
     /// Returns a new conversion result with the supplied PDF document while preserving the captured conversion diagnostics.

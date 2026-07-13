@@ -14,12 +14,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "> - Bananas",
                 "> - [x] Done"
             });
-            var doc = MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            Assert.Same(qb.Children, qb.ChildBlocks);
-            Assert.True(qb.Children.Count >= 2);
-            Assert.IsType<ParagraphBlock>(qb.Children[0]);
-            var ul = Assert.IsType<UnorderedListBlock>(qb.Children[1]);
+            Assert.Same(qb.ChildBlocks, ((IChildMarkdownBlockContainer)qb).ChildBlocks);
+            Assert.True(qb.ChildBlocks.Count >= 2);
+            Assert.IsType<ParagraphBlock>(qb.ChildBlocks[0]);
+            var ul = Assert.IsType<UnorderedListBlock>(qb.ChildBlocks[1]);
             Assert.Equal(3, ul.Items.Count);
             Assert.True(ul.Items[2].IsTask);
             Assert.True(ul.Items[2].Checked);
@@ -35,9 +35,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "> ```",
                 "> _Sample_"
             });
-            var doc = MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            var code = Assert.IsType<CodeBlock>(qb.Children[0]);
+            var code = Assert.IsType<CodeBlock>(qb.ChildBlocks[0]);
             Assert.Equal("csharp", code.Language);
             Assert.Equal("Sample", code.Caption);
             var outMd = doc.ToMarkdown();
@@ -54,12 +54,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "> > - b",
                 "> After"
             });
-            var doc = MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            Assert.Equal(2, qb.Children.Count);
-            var inner = Assert.IsType<QuoteBlock>(qb.Children[1]);
-            Assert.Equal(2, inner.Children.Count);
-            var list = Assert.IsType<UnorderedListBlock>(inner.Children[1]);
+            Assert.Equal(2, qb.ChildBlocks.Count);
+            var inner = Assert.IsType<QuoteBlock>(qb.ChildBlocks[1]);
+            Assert.Equal(2, inner.ChildBlocks.Count);
+            var list = Assert.IsType<UnorderedListBlock>(inner.ChildBlocks[1]);
             Assert.Equal(2, list.Items.Count);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
                 "> | --- | ---: |",
                 "> | 1 | 2 |"
             });
-            var doc = MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
             var table = Assert.IsType<TableBlock>(qb.ChildBlocks.First());
             Assert.Equal(new[] { "A", "B" }, table.Headers);
@@ -84,9 +84,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Quote_Lazy_Continuation_Extends_Unordered_List_Item() {
             const string md = "> - item\ncontinuation";
 
-            var doc = MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            var list = Assert.IsType<UnorderedListBlock>(qb.Children.First());
+            var list = Assert.IsType<UnorderedListBlock>(qb.ChildBlocks.First());
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -97,14 +97,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Quote_Lazy_Paragraph_Continuation_Preserves_Markdig_SoftBreak() {
             const string md = "> quote\nlazy\n";
 
-            var result = MarkdownReader.ParseWithSyntaxTree(md);
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(md);
             var quote = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
             var quoteSyntax = Assert.Single(result.SyntaxTree.Children);
             var paragraphSyntax = Assert.Single(quoteSyntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
             var written = NormalizeMarkdown(result.Document.ToMarkdown());
             var office = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
-            var reparsedOffice = MarkdownReader.Parse(written).ToHtmlFragment(CreatePlainHtmlOptions());
+            var reparsedOffice = OfficeIMO.Markdown.MarkdownReader.Parse(written).ToHtmlFragment(CreatePlainHtmlOptions());
             var markdig = MarkdigMarkdown.ToHtml(md);
 
             Assert.Equal("quote\nlazy", paragraph.Inlines.RenderMarkdown());
@@ -134,14 +134,14 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Quote_Lazy_Paragraph_Setext_Looking_Line_Stays_Paragraph_Text() {
             const string md = "> foo\nbar\n===\n";
 
-            var result = MarkdownReader.ParseWithSyntaxTree(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var result = OfficeIMO.Markdown.MarkdownReader.ParseWithSyntaxTree(md, MarkdownReaderOptions.CreateCommonMarkProfile());
             var quote = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
             var quoteSyntax = Assert.Single(result.FinalSyntaxTree.Children);
             var paragraphSyntax = Assert.Single(quoteSyntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
             var written = NormalizeMarkdown(result.Document.ToMarkdown());
             var office = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
-            var reparsedOffice = MarkdownReader.Parse(written, MarkdownReaderOptions.CreateCommonMarkProfile()).ToHtmlFragment(CreatePlainHtmlOptions());
+            var reparsedOffice = OfficeIMO.Markdown.MarkdownReader.Parse(written, MarkdownReaderOptions.CreateCommonMarkProfile()).ToHtmlFragment(CreatePlainHtmlOptions());
             var markdig = MarkdigMarkdown.ToHtml(md);
 
             Assert.Equal("foo\nbar\n===", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
@@ -158,9 +158,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Quote_Lazy_Continuation_Extends_Ordered_List_Item() {
             const string md = "> 1. item\ncontinuation";
 
-            var doc = MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            var list = Assert.IsType<OrderedListBlock>(qb.Children.First());
+            var list = Assert.IsType<OrderedListBlock>(qb.ChildBlocks.First());
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -171,9 +171,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Quote_Explicit_Continuation_Extends_Ordered_List_Item() {
             const string md = "> 1. item\n>   continuation";
 
-            var doc = MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            var list = Assert.IsType<OrderedListBlock>(qb.Children.First());
+            var list = Assert.IsType<OrderedListBlock>(qb.ChildBlocks.First());
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
@@ -186,12 +186,12 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var options = MarkdownReaderOptions.CreateCommonMarkProfile();
             options.ListExtras = true;
 
-            var doc = MarkdownReader.Parse(md, options);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md, options);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            var list = Assert.IsType<OrderedListBlock>(qb.Children.First());
+            var list = Assert.IsType<OrderedListBlock>(qb.ChildBlocks.First());
             var item = Assert.Single(list.Items);
-            var innerQuote = Assert.IsType<QuoteBlock>(Assert.Single(item.Children));
-            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(innerQuote.Children));
+            var innerQuote = Assert.IsType<QuoteBlock>(Assert.Single(item.NestedBlocks));
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(innerQuote.ChildBlocks));
 
             Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
             Assert.Equal("inner\ncontinuation", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
@@ -201,9 +201,9 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         public void Quote_Indented_Paragraph_Line_Can_Stay_In_Paragraph_And_Allow_Lazy_Continuation() {
             const string md = "> quote\n>     code\ncontinuation";
 
-            var doc = MarkdownReader.Parse(md);
+            var doc = OfficeIMO.Markdown.MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
-            var paragraph = Assert.IsType<ParagraphBlock>(qb.Children.First());
+            var paragraph = Assert.IsType<ParagraphBlock>(qb.ChildBlocks.First());
             Assert.Equal("quote code\ncontinuation", paragraph.Inlines.RenderMarkdown());
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

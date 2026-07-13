@@ -12,7 +12,7 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void RejectsDecodedSpaceRunsBeyondTheTextSafetyLimit() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddParagraph("placeholder");
         XDocument content = document.Package.GetXml("content.xml");
         XElement paragraph = content.Descendants(OdfNamespaces.Text + "p").Single();
@@ -20,7 +20,7 @@ public sealed class OpenDocumentReviewRegressionTests {
             new XAttribute(OdfNamespaces.Text + "c", int.MaxValue)));
         document.Package.MarkXmlDirty("content.xml");
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
 
         InvalidDataException exception = Assert.Throws<InvalidDataException>(() => reopened.Paragraphs.Single().Text);
         Assert.Contains("safety limit", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -28,39 +28,39 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void ExistingHeaderParagraphEditsRewriteStylesPart() {
-        using OdtDocument source = OdtDocument.Create();
+        OdtDocument source = OdtDocument.Create();
         source.PageLayout.Header.AddParagraph("Before");
         byte[] original = source.ToBytes();
 
-        using OdtDocument edited = OdtDocument.Open(new MemoryStream(original));
+        OdtDocument edited = OdtDocument.Load(new MemoryStream(original));
         edited.PageLayout.Header.Paragraphs.Single().Text = "After";
-        OdfSaveResult save = edited.ToBytesResult();
+        OdfSaveResult save = edited.Serialize();
         byte[] output = save.Value;
 
         Assert.Contains("styles.xml", save.Report.RewrittenEntries);
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(output));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(output));
         Assert.Equal("After", reopened.PageLayout.Header.Paragraphs.Single().Text);
     }
 
     [Fact]
     public void ExistingHeaderImageEditsRewriteStylesPart() {
-        using OdtDocument source = OdtDocument.Create();
+        OdtDocument source = OdtDocument.Create();
         source.PageLayout.Header.AddParagraph().AddImage(TinyPng, "header.png",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
 
-        using OdtDocument edited = OdtDocument.Open(new MemoryStream(source.ToBytes()));
+        OdtDocument edited = OdtDocument.Load(new MemoryStream(source.ToBytes()));
         edited.PageLayout.Header.Paragraphs.Single().Images.Single().Width = OdfLength.Centimeters(2);
-        OdfSaveResult save = edited.ToBytesResult();
+        OdfSaveResult save = edited.Serialize();
         byte[] output = save.Value;
 
         Assert.Contains("styles.xml", save.Report.RewrittenEntries);
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(output));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(output));
         Assert.Equal(OdfLength.Centimeters(2), reopened.PageLayout.Header.Paragraphs.Single().Images.Single().Width);
     }
 
     [Fact]
     public void DirectFormattingClonesSharedAutomaticStyles() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtParagraph first = document.AddParagraph("First");
         OdtParagraph second = document.AddParagraph("Second");
         OdfStyle shared = document.Styles.CreateAutomatic(OdfStyleFamily.Paragraph, "shared");
@@ -73,14 +73,14 @@ public sealed class OpenDocumentReviewRegressionTests {
         Assert.True(first.Bold);
         Assert.False(second.Bold);
         Assert.NotEqual(first.StyleName, second.StyleName);
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
         Assert.True(reopened.Paragraphs[0].Bold);
         Assert.False(reopened.Paragraphs[1].Bold);
     }
 
     [Fact]
     public void ManifestValidationIgnoresUnlistedZipDirectoryEntries() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.Package.AddOrReplaceEntry("Configurations2/accelerator/", Array.Empty<byte>(), string.Empty);
 
         OdfValidationResult result = document.Validate();
@@ -90,14 +90,14 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void ImageBytesResolveRelativeAndEscapedPackageHrefs() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtImage image = document.AddParagraph("Image").AddImage(TinyPng, "pixel.png",
             OdfLength.Centimeters(1), OdfLength.Centimeters(1));
         XElement imageElement = document.Package.GetXml("content.xml").Descendants(OdfNamespaces.Draw + "image").Single();
         imageElement.SetAttributeValue(OdfNamespaces.XLink + "href", "./" + image.Path.Replace(".", "%2E"));
         document.Package.MarkXmlDirty("content.xml");
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
 
         Assert.Equal(TinyPng, reopened.Paragraphs.Single().Images.Single().GetImageBytes());
         Assert.True(reopened.Validate().IsValid);
@@ -105,7 +105,7 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void HeaderStylesResolveWithinStylesPartWhenNamesCollide() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtParagraph body = document.AddParagraph("Body");
         OdtParagraph header = document.PageLayout.Header.AddParagraph("Header");
         body.StyleName = "P1";
@@ -115,7 +115,7 @@ public sealed class OpenDocumentReviewRegressionTests {
         document.Package.MarkXmlDirty("content.xml");
         document.Package.MarkXmlDirty("styles.xml");
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
 
         Assert.False(reopened.Paragraphs.Single().Bold);
         Assert.True(reopened.PageLayout.Header.Paragraphs.Single().Bold);
@@ -124,7 +124,7 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void StyleEnumerationToleratesMissingOptionalStylesPart() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddParagraph("Minimal");
         document.Package.RemoveEntry("styles.xml");
 
@@ -135,7 +135,7 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void PageDimensionsDoNotUseTheCommonMarginAsFallback() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         _ = document.PageLayout;
         XElement properties = document.Package.GetXml("styles.xml")
             .Descendants(OdfNamespaces.Style + "page-layout-properties").Single();
@@ -151,7 +151,7 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void OdsHeaderRowsParticipateInTheLogicalRowModel() {
-        using OdsDocument document = OdsDocument.Create();
+        OdsDocument document = OdsDocument.Create();
         OdsSheet sheet = document.AddSheet("Data");
         sheet.Cell(0, 0).SetString("Header");
         sheet.Cell(1, 0).SetString("Body");
@@ -161,7 +161,7 @@ public sealed class OpenDocumentReviewRegressionTests {
         rows[1].AddBeforeSelf(new XElement(OdfNamespaces.Table + "table-header-rows", rows[0]));
         document.Package.MarkXmlDirty("content.xml");
 
-        using OdsDocument reopened = OdsDocument.Open(new MemoryStream(document.ToBytes()));
+        OdsDocument reopened = OdsDocument.Load(new MemoryStream(document.ToBytes()));
         OdsSheet actual = reopened.Sheets.Single();
 
         Assert.Equal(2, actual.RowRuns.Count);
@@ -172,14 +172,14 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void RepeatedOdtTableCellsAreLogicalCellsAndSplitWhenEdited() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtTable table = document.AddTable(1, 1, "Repeated");
         table.Cell(0, 0).Text = "Same";
         XElement cell = table.Element.Descendants(OdfNamespaces.Table + "table-cell").Single();
         cell.SetAttributeValue(OdfNamespaces.Table + "number-columns-repeated", 3);
         document.Package.MarkXmlDirty("content.xml");
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
         OdtTableRow row = reopened.Tables.Single().Rows.Single();
 
         Assert.Equal(3, row.Cells.Count);
@@ -187,14 +187,14 @@ public sealed class OpenDocumentReviewRegressionTests {
         row.Cells[1].Text = "Changed";
         Assert.Equal(new[] { "Same", "Changed", "Same" }, row.Cells.Select(item => item.Text));
 
-        using OdtDocument roundTrip = OdtDocument.Open(new MemoryStream(reopened.ToBytes()));
+        OdtDocument roundTrip = OdtDocument.Load(new MemoryStream(reopened.ToBytes()));
         Assert.Equal(new[] { "Same", "Changed", "Same" }, roundTrip.Tables.Single().Rows.Single().Cells.Select(item => item.Text));
         Assert.True(roundTrip.Validate().IsValid);
     }
 
     [Fact]
     public void RepeatedCoveredOdtTableCellsAreLogicalCells() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         OdtTable table = document.AddTable(1, 3, "Merged");
         table.Merge(0, 0, 1, 3).Text = "Anchor";
         XElement[] covered = table.Element.Descendants(OdfNamespaces.Table + "covered-table-cell").ToArray();
@@ -202,7 +202,7 @@ public sealed class OpenDocumentReviewRegressionTests {
         covered[1].Remove();
         document.Package.MarkXmlDirty("content.xml");
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
         var cells = reopened.Tables.Single().Rows.Single().Cells;
 
         Assert.Equal(3, cells.Count);
@@ -214,7 +214,7 @@ public sealed class OpenDocumentReviewRegressionTests {
 
     [Fact]
     public void OrderedListsResolveCommonStylesFromStylesPart() {
-        using OdtDocument document = OdtDocument.Create();
+        OdtDocument document = OdtDocument.Create();
         document.AddList(ordered: true).AddItem("Numbered");
         XDocument content = document.Package.GetXml("content.xml");
         XDocument styles = document.Package.GetXml("styles.xml");
@@ -227,7 +227,7 @@ public sealed class OpenDocumentReviewRegressionTests {
         document.Package.MarkXmlDirty("content.xml");
         document.Package.MarkXmlDirty("styles.xml");
 
-        using OdtDocument reopened = OdtDocument.Open(new MemoryStream(document.ToBytes()));
+        OdtDocument reopened = OdtDocument.Load(new MemoryStream(document.ToBytes()));
 
         OdtContentBlock item = reopened.ContentBlocks.Single(block => block.IsListItem);
         Assert.Equal(styleName, (string?)reopened.TextBody.Descendants(OdfNamespaces.Text + "list").Single()

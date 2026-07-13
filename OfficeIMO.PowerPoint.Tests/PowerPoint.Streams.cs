@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
@@ -77,6 +78,54 @@ namespace OfficeIMO.Tests {
             }
 
             AssertValidPackage(output, expectedSlides: 2);
+        }
+
+        [Fact]
+        public async Task LoadAsync_RestoresCallerStreamPositionAndSaveCopyPreservesAssociation() {
+            string sourcePath = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPoint.Source." + Guid.NewGuid().ToString("N") + ".pptx");
+            string copyPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.PowerPoint.Copy." + Guid.NewGuid().ToString("N") + ".pptx");
+            try {
+                using (var source = PowerPointPresentation.Create(sourcePath)) {
+                    source.AddSlide();
+                    source.Save();
+                }
+
+                await using PowerPointPresentation presentation = await PowerPointPresentation.LoadAsync(sourcePath);
+                Assert.Equal(Path.GetFullPath(sourcePath), presentation.FilePath);
+                presentation.AddSlide();
+                await presentation.SaveCopyAsync(copyPath);
+
+                Assert.Equal(Path.GetFullPath(sourcePath), presentation.FilePath);
+                using var original = PowerPointPresentation.Load(sourcePath);
+                using var copy = PowerPointPresentation.Load(copyPath);
+                Assert.Single(original.Slides);
+                Assert.Equal(2, copy.Slides.Count);
+
+                using var stream = new MemoryStream(presentation.ToBytes());
+                stream.Position = stream.Length;
+                long originalPosition = stream.Position;
+                using PowerPointPresentation fromStream = await PowerPointPresentation.LoadAsync(stream);
+                Assert.Equal(originalPosition, stream.Position);
+                stream.ReadByte();
+            } finally {
+                if (File.Exists(sourcePath)) File.Delete(sourcePath);
+                if (File.Exists(copyPath)) File.Delete(copyPath);
+            }
+        }
+
+        [Fact]
+        public async Task LoadAsync_HonorsPreCanceledTokenAndRestoresCallerPosition() {
+            using var source = PowerPointPresentation.Create();
+            source.AddSlide();
+            using var stream = source.ToStream();
+            stream.Position = 7;
+            using var cancellation = new CancellationTokenSource();
+            cancellation.Cancel();
+
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
+                PowerPointPresentation.LoadAsync(stream, cancellationToken: cancellation.Token));
+
+            Assert.Equal(7, stream.Position);
         }
 
         [Fact]

@@ -46,4 +46,8 @@
     <Using Include="System.Text" />
     <Using Include="System.Threading" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Reader.Tests" />
+  </ItemGroup>
 </Project>

@@ -54,7 +54,7 @@ Examples:
 
 Semantic blocks and inlines should stay focused on meaning:
 
-- `FootnoteDefinitionBlock.Blocks` owns structured footnote content; paragraph views are derived
+- `FootnoteDefinitionBlock.ChildBlocks` owns structured footnote content; paragraph views are derived
 - list items should converge on block children as the primary content model
 - definition lists should converge on one structural model for terms and definitions
 - table cells should expose one canonical block/inline model rather than parallel mutable views

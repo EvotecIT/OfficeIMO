@@ -208,7 +208,7 @@ public static partial class OfficeDocumentReadResultJson {
     private static object ProjectResult(OfficeDocumentReadResult result) {
         return new {
             schemaId = string.IsNullOrWhiteSpace(result.SchemaId) ? OfficeDocumentReadResultSchema.Id : result.SchemaId,
-            schemaVersion = result.SchemaVersion == 0 ? OfficeDocumentReadResultSchema.Version : result.SchemaVersion,
+            schemaVersion = result.SchemaVersion == 0 ? OfficeDocumentReadResultSchema.CurrentVersion : result.SchemaVersion,
             kind = result.Kind.ToString(),
             source = ProjectSource(result.Source ?? new OfficeDocumentSource()),
             capabilitiesUsed = OrEmpty(result.CapabilitiesUsed),

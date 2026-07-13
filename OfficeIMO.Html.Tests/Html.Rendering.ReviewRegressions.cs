@@ -14,7 +14,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_SkipsEmptySemanticContainers() {
         const string html = "<p></p><table><caption></caption><tr></tr></table><p>AfterEmptyMarkup</p>";
 
-        byte[] pdf = html.ToPdf(new HtmlPdfSaveOptions());
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
 
         Assert.Contains("AfterEmptyMarkup", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
     }
@@ -28,7 +28,7 @@ public sealed partial class HtmlRenderingTests {
             Margins = HtmlRenderMargins.All(8D)
         };
 
-        byte[] pdf = html.ToPdf(options);
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(options);
 
         Assert.Equal(HtmlRenderMode.Paged, options.Mode);
         Assert.True(PdfCore.PdfInspector.Inspect(pdf).PageCount > 1);
@@ -38,7 +38,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_HonorsDisplayNoneOnTheRenderRoot() {
         const string html = "<style>body{display:none}</style><body><p>HiddenRootMarker</p></body>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -52,7 +52,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_PreservesLayoutButSuppressesInvisiblePaint(string visibility) {
         string html = "<div style='height:30px;visibility:" + visibility + "'>HiddenMarker</div><div>VisibleMarker</div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -66,7 +66,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_MalformedPercentEncodedImageDataUsesPlaceholderInsteadOfThrowing() {
         const string html = "<img id='malformed' src='data:image/png,%ZZ' width='20' height='10' alt='invalid'>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -90,7 +90,7 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(html, options);
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(new[] { new Uri("https://assets.example.test/hero.png") }, requested);
         Assert.Contains(rendered.Pages[0].Visuals, visual => visual.Source != null && visual.Source.Contains("div.hero", StringComparison.Ordinal));
@@ -112,7 +112,7 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(html, options);
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(HtmlConversionDocument.Parse(html), options);
 
         Assert.Equal(new[] { new Uri("https://assets.example.test/active.png") }, requested);
         HtmlRenderImage image = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderImage>());
@@ -123,7 +123,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTable_PaintsRowGroupAndRowBackgroundsBehindTransparentCells() {
         const string html = "<table style='border-spacing:0'><tbody id='group' style='background:#0000ff'><tr id='row' style='background:#ff0000'><td style='background:transparent'>Cell</td></tr></tbody></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -150,7 +150,7 @@ public sealed partial class HtmlRenderingTests {
             }
         };
 
-        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+        HtmlRenderDocument rendered = await HtmlRenderTestDriver.RenderAsync(
             "<link rel='stylesheet' href='https://assets.example.test/site.css'><p class='target'>ImportedMarker</p>",
             options);
 
@@ -163,7 +163,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlTable_SkipsRowsWithDisplayNone() {
         const string html = "<table><tr style='display:none'><td>HiddenRowMarker</td></tr><tr><td>VisibleRowMarker</td></tr></table>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -177,7 +177,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlPdf_DirectRenderer_MapsSansSerifToHelvetica() {
         const string html = "<p style='font-family:sans-serif'>SansSerifMarker</p>";
 
-        byte[] pdf = html.ToPdf(new HtmlPdfSaveOptions());
+        byte[] pdf = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToPdf(new HtmlPdfSaveOptions());
         string rawPdf = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/BaseFont /Helvetica", rawPdf, StringComparison.Ordinal);
@@ -188,7 +188,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_ExtractsColorFromBackgroundShorthandWithImage() {
         const string html = "<div id='target' style=\"width:40px;height:20px;background:#fee url('missing.png') no-repeat\"></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 100D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -202,7 +202,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_Paged_IgnoresPageRulesInsideInactiveSupports() {
         const string html = "<style>@supports (not-a-real-prop:value){@page{margin:0}}</style><p>SupportedPageMarker</p>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             Mode = HtmlRenderMode.Paged,
             PageSize = new OfficePageSize(4D, 4D),
             Margins = HtmlRenderMargins.All(20D)
@@ -216,7 +216,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_DisplayContentsSuppressesTheElementBox() {
         const string html = "<div id='contents' style='display:contents;background:#ff0000;padding:20px'><div id='child' style='background:#0000ff'>ContentsMarker</div></div>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -230,7 +230,7 @@ public sealed partial class HtmlRenderingTests {
     public void HtmlRender_ListStyleNoneSuppressesListMarkers() {
         const string html = "<ul style='list-style:none'><li>MarkerlessItem</li></ul>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 200D,
             Margins = HtmlRenderMargins.All(0D)
         });
@@ -246,7 +246,7 @@ public sealed partial class HtmlRenderingTests {
         string html = "<picture><source media='(max-width:1px)' src='data:image/png;base64," + Convert.ToBase64String(inactive)
             + "'><img src='data:image/png;base64," + Convert.ToBase64String(fallback) + "' width='30' height='30'></picture>";
 
-        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+        HtmlRenderDocument rendered = HtmlRenderTestDriver.Render(HtmlConversionDocument.Parse(html), new HtmlRenderOptions {
             ViewportWidth = 400D,
             ViewportHeight = 200D,
             Margins = HtmlRenderMargins.All(0D)

@@ -1,134 +1,206 @@
 # OfficeIMO breaking API migration
 
-This release removes compatibility aliases and standardizes persistence, conversion, diagnostics, themes, and asynchronous I/O across the OfficeIMO packages. The cleanup is intentionally breaking: migrate to the canonical names instead of adding local shims.
+This release is a coordinated breaking cleanup across the OfficeIMO solution. It removes compatibility aliases, duplicate infrastructure, misleading async methods, and option-owned operation state. Consumers should migrate to the canonical APIs below instead of recreating removed names in wrappers.
 
-## Document persistence
+## Package architecture
 
-Word, Excel, PowerPoint, Visio, RTF, PDF, and OpenDocument models now follow the same basic vocabulary:
+`OfficeIMO.Drawing` remains the small shared foundation for document packages. It already owns the cross-format types required by Word, Excel, PowerPoint, Visio, HTML, PDF, fonts, colors, images, charts, lifecycle options, stream helpers, and export results. There is no additional `OfficeIMO.Core` package and no `.Drawing` to `.Core` rename in this release.
 
-| Intent | API |
+The ownership rules are:
+
+- native format packages own parsing, loading, editing, validation, and serialization for their format;
+- adapter packages project one native model into another and do not implement a second parser or document brain;
+- `OfficeIMO.Reader` owns normalized read orchestration, while format-specific Reader packages register typed handlers;
+- `OfficeIMO.Html` owns the canonical HTML source model, resource policy, media filtering, and render scene;
+- shared colors, fonts, images, stream contracts, lifecycle options, and image export results live in `OfficeIMO.Drawing`;
+- package-specific signing remains with the package that owns the signed artifact.
+
+The former compiled `OfficeIMO.Shared` implementation layer is gone. `OfficeIMO.SharedSource` is source-only, and reusable runtime behavior has an explicit owner.
+
+## Persistence lifecycle
+
+Mutable document packages use one vocabulary:
+
+| Intent | Canonical API |
 | --- | --- |
-| Save to the document's current path | `Save()` / `SaveAsync()` |
-| Save to a path or stream | `Save(pathOrStream)` / `SaveAsync(pathOrStream)` |
-| Produce package bytes | `ToBytes()` |
-| Produce an in-memory stream | `ToStream()` or the format-specific canonical stream method |
-| Export to another format | `ToPdf()`, `ToHtml()`, `ToMarkdown()`, and matching `SaveAs{Format}()` methods |
+| Save to the associated destination | `Save()` / `SaveAsync()` |
+| Save and associate a path or stream | `Save(pathOrStream)` / `SaveAsync(pathOrStream)` |
+| Write a copy without changing the associated destination | `SaveCopy(path)` / `SaveCopyAsync(path)` |
+| Produce bytes without changing document state | `ToBytes()` |
+| Produce a new stream positioned at the beginning | `ToStream()` |
+| Export another format | `To{Format}()` or `To{Format}Result()` |
+| Write another format | `SaveAs{Format}()` / `SaveAs{Format}Async()` |
 
-The shared `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions`
-contracts are owned by the existing zero-dependency `OfficeIMO.Drawing` foundation. Import `OfficeIMO.Drawing` when
-configuring Word, Excel, or PowerPoint lifecycle options. There is no separate `OfficeIMO.Core` package.
+There are no format-spelling variants such as `SaveToPdf`, `SaveAsBytesToPdf`, or `WriteToBytes`. `SaveAs{Format}` always writes to a destination. `To{Format}` returns an in-memory value. Result-bearing conversions expose evidence instead of storing it in reusable options.
 
-`SaveAsync` exists only where the destination performs asynchronous I/O. Pure in-memory conversion and byte generation are synchronous. Use `ToBytes()` or `ToPdf()` directly; do not wrap them in a removed `*Async` compatibility method.
-
-Streams used as associated destinations must be writable and seekable so every parameterless `Save()` can replace the complete artifact. Editable `Load(Stream)` calls retain only streams with those capabilities; read-only and non-seekable inputs remain detached and require an explicit destination. `Save(Stream)` and `SaveAsync(Stream)` are one-time writes and do not silently redirect later parameterless saves. Use `Create(Stream)` or load an editable seekable stream when persistent stream association is intended.
-
-OpenDocument callers that need save diagnostics should use `SaveResult()`, `SaveResultAsync()`, `ToBytesResult()`, or `SaveFlatXmlResult()`. The returned `OdfSaveResult` exposes `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`.
+OpenDocument saves now return their evidence directly:
 
 ```csharp
-OdfSaveResult result = document.SaveResult("output.odt");
-result.RequireNoLoss();
+OdfSaveResult saved = document.Save("output.odt");
+saved.RequireNoLoss();
 
-foreach (string entry in result.Report.RewrittenEntries) {
-    Console.WriteLine(entry);
-}
+OdfSaveResult serialized = document.Serialize();
+byte[] bytes = serialized.RequireValue();
 ```
+
+`OdfSaveResult` exposes `Value`, `Report`, `HasLoss`, `RequireValue()`, and `RequireNoLoss()`. The discarded-result aliases `SaveResult`, `SaveResultAsync`, `ToBytesResult`, and `SaveFlatXmlResult` were removed. `Save`, `SaveAsync`, `SaveCopy`, `SaveFlatXml`, and `Serialize` are the result-bearing APIs.
+
+## Stream ownership
+
+Caller-owned streams are never disposed by OfficeIMO.
+
+- A seekable input is read from the beginning and restored to its original position.
+- A non-seekable input is read from its current position to the end.
+- A returned stream is new, seekable, and positioned at zero.
+- A stream retained as a mutable document destination must be writable and seekable so a later parameterless `Save()` can replace the complete artifact.
+- A one-time `Save(stream)` does not silently redirect future parameterless saves unless that document's create/load lifecycle explicitly associates the stream.
+
+These rules are shared across synchronous and asynchronous reads. Cancellation restores a seekable caller stream before the cancellation escapes.
+
+## Async contract
+
+`Async` means the operation performs asynchronous I/O or asynchronous external resource resolution. Pure parsing, model projection, byte generation, and in-memory formatting remain synchronous.
+
+Remote image and stylesheet operations are async-only. For example:
+
+```csharp
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+HtmlToWordResult converted = await source.ToWordDocumentResultAsync(options, cancellationToken);
+```
+
+The synchronous HTML-to-Word API is deliberately offline-only. It accepts embedded and local resources allowed by the operation policy but rejects an import that would perform HTTP I/O.
+
+Removed fake-async methods include in-memory Markdown/HTML/RTF conversions, byte-returning conversion wrappers, `RtfDocument.ReadAsync(string)`, and `RtfDocument.LoadAsync(byte[])`. Use the synchronous conversion, or use `LoadAsync`, `SaveAsync`, and `SaveAs{Format}Async` when the source or destination performs real I/O.
 
 ## Conversion results and diagnostics
 
-Reusable options are configuration only. They no longer retain reports or warning lists from the last operation. Request the result-bearing method when diagnostics matter:
+Reusable option objects contain configuration only. They no longer retain `LastSaveReport`, `LastSaveDiagnostics`, `ConversionReport`, or `Warnings` from a previous operation.
+
+Structured conversion results consistently provide:
+
+- `Value` for the converted model or encoded output;
+- `Report` for diagnostics and fidelity evidence;
+- `HasLoss` when the conversion simplified or omitted content;
+- `RequireValue()` and `RequireNoLoss()` where failing fast is useful.
+
+The canonical PDF result method is `ToPdfDocumentResult()`. Source-explicit methods include `ToPdfDocumentFromMarkdownResult()`, `ToPdfDocumentFromRtfResult()`, and `ToWordDocumentFromPdfResult()`.
+
+`SaveAsPdf` now returns structured save evidence across Word, Excel, PowerPoint, HTML, Markdown, and RTF PDF adapters. `ToPdf()` remains the direct encoded-byte convenience API. Launching or opening a generated PDF is application behavior and is not part of saving.
+
+RTF bridges use `RtfConversionResult<T>`. PDF save attempts expose their report, warnings, warning state, and write outcome rather than mutating the conversion options.
+
+## Image export
+
+Word, Excel, PowerPoint, Visio, and HTML image export use `OfficeImageExportResult` and `OfficeImageExportFormat` from `OfficeIMO.Drawing`.
 
 ```csharp
-PdfDocumentConversionResult conversion = document.ToPdfDocumentResult(options);
-PdfSaveResult save = conversion.TrySave("output.pdf");
-
-foreach (PdfConversionWarning warning in save.Warnings) {
-    Console.WriteLine($"{warning.Code}: {warning.Message}");
-}
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html);
+OfficeImageExportResult png = source.ExportImage(OfficeImageExportFormat.Png, options);
+OfficeImageExportResult saved = source.SaveAsPng("preview.png", options);
 ```
 
-Result objects consistently expose `Value` and `Report`. PDF save attempts expose `Report`, `Warnings`, and `HasWarnings` in addition to write success/failure. RTF bridges use `RtfConversionResult<T>` with `Value`, `Report`, `RequireValue()`, and `RequireNoLoss()`.
+`ToPng()` returns PNG bytes and `ToSvg()` returns SVG text. `ExportImage()` and `ExportImages()` return encoded output, dimensions, format, source metadata, and diagnostics. `SaveAsPng()` and `SaveAsSvg()` write to a path or stream and return the same structured evidence. The redundant `ToPngResult`, `ToSvgResult`, and plural result aliases were removed.
 
-The canonical PDF conversion-result method is `ToPdfDocumentResult()`. Source-explicit overloads use names such as `ToPdfDocumentFromMarkdownResult()`, `ToPdfDocumentFromRtfResult()`, and `ToWordDocumentFromPdfResult()`.
+## HTML source ownership
 
-## Renamed and removed members
+Raw HTML is parsed once into `HtmlConversionDocument`. Direct PDF/image rendering and Word, Markdown, RTF, Excel, and PowerPoint adapters consume that native source model.
 
-| Removed member | Replacement |
-| --- | --- |
-| `WordImage.SaveToFile(...)` | `WordImage.Save(...)` |
-| `WordImage.GetBytes()` | `WordImage.ToBytes()` |
-| `WordImage.GetStream()` | `WordImage.OpenRead()` |
-| `WordDocument.GetImages()` / `GetImageStreams()` | `GetImageBytes()` / `OpenImageStreams()` |
-| `ExcelImage.GetBytes()` | `ExcelImage.ToBytes()` |
-| `WordComment.Delete()` | `WordComment.Remove()` |
-| `WordTable.AutoFit` | `WordTable.LayoutMode` |
-| `ExcelDocument.MergeWorkSheets(...)` / `JoinWorkSheets(...)` | `ExcelDocument.MergeWorksheets(...)` |
-| `ExcelDocument.CompareWorkSheets(...)` | `ExcelDocument.CompareWorksheets(...)` |
-| `ExcelDocument.AddWorkSheet(...)` / `RemoveWorkSheet(...)` | `ExcelDocument.AddWorksheet(...)` / `RemoveWorksheet(...)` |
-| `ExcelDocument.CopyWorkSheet(...)` / `CopyWorkSheetFrom(...)` | `ExcelDocument.CopyWorksheet(...)` / `CopyWorksheetFrom(...)` |
-| `ExcelDocument.ReorderWorkSheet(...)` | `ExcelDocument.ReorderWorksheet(...)` |
-| `ExcelDocument.JoinWorkbookFrom(...)` | `ExcelDocument.MergeWorksheets(...)` |
-| `ExcelDocument.CreateTableOfContents(...)` | `ExcelDocument.AddTableOfContents(...)` |
-| `ExcelSheet.SetCellValues(...)` | `ExcelSheet.CellValues(...)` |
-| `ExcelSheet.CellValuesParallel(...)` | `ExcelSheet.CellValues(..., ExecutionMode.Parallel)` |
-| `VisioDocument.UseMastersFromTemplate(...)` | `VisioDocument.LearnMastersFromVsdx(...)` |
-| `ListItem.BlockChildren` | `ListItem.ChildBlocks` |
-| `MarkdownDoc.SaveHtml(...)` | `MarkdownDoc.SaveAsHtml(...)` |
-| `OutlookContact.Email1Address` | `OutlookContact.Email1.Address` |
-| `OutlookContact.BusinessPhone` and related phone aliases | `OutlookContact.Phones` |
-| `TrackComments` | no replacement; it incorrectly toggled revision tracking. Use `TrackChanges` or `Settings.TrackRevisions` when revision tracking is intended |
-| `ToPdfResult()` | `ToPdfDocumentResult()` |
-| `ToWordResult()` for PDF input | `ToWordDocumentFromPdfResult()` |
-| `PdfSaveResult.ConversionWarnings` / `PdfBytesResult.ConversionWarnings` | `Warnings` and `Report` |
-| `RtfDocument.ToMemoryStream()` | `RtfDocument.ToStream()` |
-| `RtfDocument.ToHtmlMemoryStream()` | `RtfDocument.ToHtmlStream()` |
-| `WordHelpers.ConvertDotXtoDocX(...)` | `WordHelpers.ConvertDotxToDocx(...)` |
-| `ToRtfMemoryStream()` / `ToRtfMemoryStreamAsync()` | `ToRtfStream()` / `ToRtfStreamAsync()` |
-| `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWordFromPdf()` / `SaveAsRtfFromPdf()`; use the `*FromPdfFile()` form for a source path |
-| `SavePdfTablesAsExcel()` / `SavePdfTablesAsWord()` / `SavePdfTablesAsPowerPoint()` | `SaveAsExcelFromPdfTables()` / `SaveAsWordFromPdfTables()` / `SaveAsPowerPointFromPdfTables()` |
-| `ToExcelTableWorkbookBytes()` / `ToWordTableDocumentBytes()` / `ToPowerPointTablePresentationBytes()` | `ToExcelBytesFromPdfTables()` / `ToWordBytesFromPdfTables()` / `ToPowerPointBytesFromPdfTables()` |
+```csharp
+HtmlConversionDocument source = HtmlConversionDocument.Parse(html, new HtmlConversionDocumentOptions {
+    BaseUri = new Uri("https://example.test/reports/"),
+    UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile()
+});
 
-Compatibility-only members such as `LastSaveReport`, public `LastSaveDiagnostics`, option-owned `ConversionReport`, and option-owned `Warnings` were removed. Use the operation result instead.
+byte[] pdf = source.ToPdf(pdfOptions);
+OfficeImageExportResult image = source.ExportImage(OfficeImageExportFormat.Png, imageOptions);
+MarkdownDoc markdown = source.ToMarkdownDocument(markdownOptions);
+```
 
-`ExcelSaveDiagnostics` and `ExcelSavePackageWriter` are internal implementation details. They had no public operation-result producer after `LastSaveDiagnostics` was removed, so retaining them as public types created an unusable contract.
+The source model preserves the caller base URI, document `<base>` semantics, source DOM, policy diagnostics, and profile media intent. Renderers evaluate media queries against their real viewport or page dimensions. Adapter-specific element filters run before that adapter resolves URLs. This prevents duplicate parsers and inconsistent resource decisions.
 
-The generic `Helpers` file-copy and `IsFileLocked` methods were also removed. Use `File.ReadAllBytes`, `File.OpenRead`, `File.Copy`, and `Stream.CopyTo` directly; filesystem lock probing belongs in application or test code. These wrappers added no Office document behavior.
+## Reader ownership
 
-Color-to-hex formatting is owned by `OfficeIMO.Drawing`. Import that namespace and use its `ToHexColor()` extension (or `OfficeColor.ToRgbHex()`); the duplicate Word and Excel helper extensions were removed.
+Use an immutable `OfficeDocumentReader` built from explicit format handlers:
 
-Hexadecimal Office color values are normalized to uppercase `RRGGBB` without a leading `#`. Word no longer applies its former package-local lowercase convention, and legacy `.doc` palette conversion accepts the canonical representation.
+```csharp
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddRtfHandler()
+    .AddPdfHandler()
+    .Build();
 
-## Theme naming
+OfficeDocumentReadResult result = reader.ReadDocument(path, options, cancellationToken);
+```
 
-Markdown uses one shared cross-format `MarkdownVisualTheme` through `Theme`:
+Native format packages own parsing. Reader adapters translate native models into `OfficeDocumentReadResult`; they do not expose parallel public parser classes. Reader options are reusable configuration, and diagnostics are returned by the read operation.
+
+`OfficeDocumentReadResultSchema.CurrentVersion` is the schema constant. The ambiguous `Version` alias was removed.
+
+## Theme ownership
+
+Markdown HTML and PDF use one cross-format `MarkdownVisualTheme` through `Theme`. PDF-only visual settings remain in `MarkdownPdfSaveOptions.PdfTheme`.
 
 ```csharp
 var htmlOptions = new HtmlOptions { Theme = MarkdownVisualTheme.Report() };
 var pdfOptions = new MarkdownPdfSaveOptions { Theme = MarkdownVisualTheme.Report() };
 ```
 
-PDF-only visual details use `MarkdownPdfSaveOptions.PdfTheme`. The canonical helpers are `ApplyDefaultTheme()` and `UseFrontMatterTheme`. The removed names `VisualTheme`, `ApplyWordLikeTheme()`, and `UseFrontMatterVisualTheme` should not be preserved in consumer wrappers.
+The canonical helpers are `ApplyDefaultTheme()` and `UseFrontMatterTheme`. `VisualTheme`, `ApplyWordLikeTheme()`, and `UseFrontMatterVisualTheme` were removed.
 
-`HtmlOptions` is reusable configuration. Rendering and save operations clone its nested settings, so `ToHtmlFragment()`, `ToHtmlDocument()`, `ToHtmlParts()`, and concurrent HTML saves no longer change the caller's output kind or retain operation state. `SaveAsHtmlAsync(...)` accepts a cancellation token and performs asynchronous file I/O.
+Visio separates two different concepts:
 
-## Async migration
+- `VisioStyleTheme` describes reusable diagram styling;
+- `VisioPackageTheme` represents the theme stored in a Visio package.
 
-Removed async methods performed no asynchronous work. Replace them with their synchronous counterparts:
+Layout settings remain layout options and are not duplicated as themes. Office colors and hexadecimal formatting are owned by `OfficeIMO.Drawing`; Word and Excel no longer carry duplicate color helpers.
 
-| Removed async member | Replacement |
+## Canonical member names
+
+| Removed member | Replacement |
 | --- | --- |
-| `MarkdownDoc.ToHtmlFragmentAsync()` | `ToHtmlFragment()` |
-| `MarkdownDoc.ToHtmlDocumentAsync()` | `ToHtmlDocument()` |
-| `WordDocument.ToMarkdownAsync()` | `ToMarkdown()` |
-| `WordDocument.ToMarkdownDocumentAsync()` | `ToMarkdownDocument()` |
-| `MarkdownDoc.ToWordDocumentAsync()` | `ToWordDocument()` |
-| in-memory HTML/RTF `ToHtmlAsync()`, `ToRtfAsync()`, and byte/stream variants | the matching synchronous conversion method |
-| `RtfDocument.ReadAsync(string)` | `RtfDocument.Read(string)` |
-| `RtfDocument.LoadAsync(byte[])` | `RtfDocument.Load(byte[])` |
-| RTF `ToRtfAsync()`, `ToBytesAsync()`, and lossless byte async methods | the matching synchronous method |
-| Word/RTF or Word/PDF byte-returning async conversion | `ToRtf()`, `ToRtfBytes()`, or `ToPdf()` |
+| `WordImage.SaveToFile(...)` | `WordImage.Save(...)` |
+| `WordImage.GetBytes()` / `GetStream()` | `ToBytes()` / `OpenRead()` |
+| `WordDocument.GetImages()` / `GetImageStreams()` | `GetImageBytes()` / `OpenImageStreams()` |
+| `ExcelImage.GetBytes()` | `ExcelImage.ToBytes()` |
+| `WordComment.Delete()` | `WordComment.Remove()` |
+| `WordTable.AutoFit` | `WordTable.LayoutMode` |
+| `AddWorkSheet`, `RemoveWorkSheet`, `CopyWorkSheet`, `ReorderWorkSheet` | `AddWorksheet`, `RemoveWorksheet`, `CopyWorksheet`, `ReorderWorksheet` |
+| `MergeWorkSheets`, `JoinWorkSheets`, `CompareWorkSheets` | `MergeWorksheets`, `CompareWorksheets` |
+| `ExcelDocument.CreateTableOfContents(...)` | `AddTableOfContents(...)` |
+| `ExcelSheet.SetCellValues(...)` | `CellValues(...)` |
+| `ExcelSheet.CellValuesParallel(...)` | `CellValues(..., ExecutionMode.Parallel)` |
+| `SheetComposer.DefinitionList(...)` | `SheetComposer.PropertiesGrid(...)` |
+| `PowerPointUnits.Cm/Mm/Inches/Points(...)` | `FromCentimeters/FromMillimeters/FromInches/FromPoints(...)` |
+| `VisioDocument.UseMastersFromTemplate(...)` | `LearnMastersFromVsdx(...)` |
+| `OrderedListBlock.ListItems` / `UnorderedListBlock.ListItems` | `Items` |
+| `ListItem.Children` | `NestedBlocks` |
+| `QuoteBlock.Children` / `DetailsBlock.Children` | `ChildBlocks` |
+| `TableCell.Blocks` / `DefinitionListDefinition.Blocks` | `ChildBlocks` |
+| `FootnoteDefinitionBlock.Blocks` | `ChildBlocks` |
+| tuple-based `DefinitionListBlock.Items` | typed `Groups`, `Entries`, and `AddEntry(...)` |
+| `MarkdownDoc.SaveHtml(...)` | `SaveAsHtml(...)` |
+| `OutlookContact.Email1Address` | `OutlookContact.Email1.Address` |
+| phone compatibility properties | `OutlookContact.Phones` |
+| `TrackComments` | no replacement; use `TrackChanges` or `Settings.TrackRevisions` for revision tracking |
+| `ToPdfResult()` | `ToPdfDocumentResult()` |
+| PDF `ToWordResult()` | `ToWordDocumentFromPdfResult()` |
+| `PdfSaveResult.ConversionWarnings` | `Warnings` and `Report` |
+| `RtfDocument.ToMemoryStream()` | `ToStream()` |
+| `RtfDocument.ToHtmlMemoryStream()` | `ToHtmlStream()` |
+| `ToRtfMemoryStream()` | `ToRtfStream()` |
+| `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWordFromPdf()` / `SaveAsRtfFromPdf()` |
+| `SavePdfTablesAsExcel/Word/PowerPoint()` | `SaveAsExcel()` / `SaveAsWordDocument()` / `SaveAsPowerPoint()` |
+| `WordHelpers.ConvertDotXtoDocX(...)` | `ConvertDotxToDocx(...)` |
+| `EmailDocument.WriteToBytes()` | `EmailDocument.ToBytes()` |
 
-Async file and stream reads/writes remain available, including `LoadAsync(pathOrStream)`, `SaveAsync(pathOrStream)`, and `SaveAs{Format}Async(pathOrStream)`.
+Generic file-copy, file-lock probing, duplicate color helpers, public internal save writers, and other APIs with no useful Office document contract were removed rather than renamed.
 
-## Reader and adapter ownership
+## Migration checklist
 
-`OfficeIMO.OpenDocument` owns native ODF package behavior. Word, Excel, and PowerPoint OpenDocument packages are thin projections over that owner. Reader options are reusable configuration; RTF read diagnostics are returned by `ReadRtfFileResult()`, `ReadRtfResult()`, `ReadRtfChunksResult()`, or the rich `OfficeDocumentReadResult` rather than being stored on `ReaderRtfOptions`.
+- Replace aliases with the canonical names; do not add consumer-side compatibility shims.
+- Replace option-owned diagnostics with operation results.
+- Use `ToBytes`/`ToStream` for in-memory output and `Save`/`SaveAs{Format}` for destinations.
+- Await remote resource resolution and real file/stream I/O; keep pure conversion synchronous.
+- Parse HTML into `HtmlConversionDocument` before projecting it to another format.
+- Build Reader instances with explicit typed handlers.
+- Import shared colors, fonts, images, lifecycle options, and export results from `OfficeIMO.Drawing`.
+- Treat this as one coordinated package upgrade because old and new surface names are not supported side by side.

@@ -5,7 +5,7 @@ using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Markup.PowerPoint;
 
-public sealed partial class OfficeMarkupPowerPointExporter {
+internal sealed partial class OfficeMarkupPowerPointExporter {
     private static IEnumerable<OfficeMarkupSlideBlock> GetSlides(OfficeMarkupDocument document) {
         var pendingBlocks = new List<OfficeMarkupBlock>();
         foreach (var block in document.Blocks) {
@@ -45,7 +45,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointPresentation presentation,
         PowerPointDeckComposer deck,
         OfficeMarkupSlideBlock slideBlock,
-        OfficeMarkupPowerPointExportOptions options,
+        MarkupToPowerPointOptions options,
         SlideCanvasMetrics metrics,
         OfficeMarkupStyleResolver styleResolver) {
         if (TryExportDesignerSlide(presentation, deck, slideBlock, styleResolver, metrics, out var designedSlide)) {
@@ -304,7 +304,7 @@ public sealed partial class OfficeMarkupPowerPointExporter {
         PowerPointSlide slide,
         IList<OfficeMarkupBlock> blocks,
         int startIndex,
-        OfficeMarkupPowerPointExportOptions options,
+        MarkupToPowerPointOptions options,
         SlideCanvasMetrics metrics,
         LayoutCursor cursor,
         OfficeMarkupStyleResolver styleResolver) {

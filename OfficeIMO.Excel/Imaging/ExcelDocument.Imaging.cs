@@ -1,4 +1,6 @@
 using OfficeIMO.Drawing;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
@@ -67,6 +69,28 @@ namespace OfficeIMO.Excel {
             }
 
             return builder.Save(folderPath);
+        }
+
+        /// <summary>
+        /// Asynchronously saves workbook sheets as PNG files in a folder.
+        /// </summary>
+        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
+            string folderPath,
+            ExcelWorkbookImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new ExcelWorkbookImageExportBuilder(this, options).AsPng().SaveAsync(folderPath, cancellationToken);
+
+        /// <summary>
+        /// Asynchronously saves workbook sheets as image files in a folder.
+        /// </summary>
+        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
+            string folderPath,
+            OfficeImageExportFormat format,
+            ExcelWorkbookImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            ExcelWorkbookImageExportBuilder builder = new ExcelWorkbookImageExportBuilder(this, options);
+            builder.As(format);
+            return builder.SaveAsync(folderPath, cancellationToken);
         }
 
         private static ExcelWorkbookImageExportOptions NormalizeWorkbookOptions(ExcelWorkbookImageExportOptions? options) {

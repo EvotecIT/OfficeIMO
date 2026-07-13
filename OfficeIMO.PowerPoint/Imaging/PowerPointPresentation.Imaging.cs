@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -58,6 +60,28 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return builder.Save(folderPath);
+        }
+
+        /// <summary>
+        /// Asynchronously saves visible presentation slides as PNG files in a folder.
+        /// </summary>
+        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
+            string folderPath,
+            PowerPointPresentationImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new PowerPointPresentationImageExportBuilder(this, options).AsPng().SaveAsync(folderPath, cancellationToken);
+
+        /// <summary>
+        /// Asynchronously saves visible presentation slides as image files in a folder.
+        /// </summary>
+        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(
+            string folderPath,
+            OfficeImageExportFormat format,
+            PowerPointPresentationImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            PowerPointPresentationImageExportBuilder builder = new PowerPointPresentationImageExportBuilder(this, options);
+            builder.As(format);
+            return builder.SaveAsync(folderPath, cancellationToken);
         }
 
         private static PowerPointPresentationImageExportOptions NormalizePresentationImageExportOptions(PowerPointPresentationImageExportOptions? options) {

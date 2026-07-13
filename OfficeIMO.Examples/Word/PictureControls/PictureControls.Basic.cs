@@ -11,7 +11,8 @@ namespace OfficeIMO.Examples.Word {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 var imagePath = Path.Combine(imagePaths, "Kulek.jpg");
                 document.AddParagraph().AddPictureControl(imagePath, 100, 100, "Pic", "PicTag");
-                document.Save(new WordSaveOptions { OpenAfterSave = openWord });
+                document.Save();
+                if (openWord) document.OpenInApplication();
             }
         }
     }
