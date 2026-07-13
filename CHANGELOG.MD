@@ -5,7 +5,7 @@
 * Rename PDF table export helpers to the destination-first `SaveAs{Format}FromPdfTables` and `To{Format}BytesFromPdfTables` families.
 * Use `Worksheet` consistently across the Excel API and remove the duplicate `WorkSheet`-cased method family; align RTF-to-HTML memory output with `ToHtmlStream()`.
 * Rename `WordHelpers.ConvertDotXtoDocX(...)` to `ConvertDotxToDocx(...)`, make its package rewrite stream expandable on .NET Framework, and prioritize real symbol fonts before Arial in automatic PDF fallbacks.
-* Serialize Excel floating-point cell, date, formula-cache, pivot-cache, and streaming-writer values with one invariant round-trip formatter on every target framework.
+* Serialize Excel floating-point cells, dates, formula and chart caches, pivot values and filters, validations, custom properties, conditional formatting, dimensions, filters, and streaming-writer values with one invariant round-trip formatter on every target framework.
 
 ### What's Changed
 * Add `OfficeIMO.Drawing` as a shared zero-dependency color and image metadata layer, including header-only detection for PNG, JPEG, GIF, BMP, TIFF, ICO, PCX, EMF, placeable WMF, and SVG.
@@ -14,6 +14,7 @@
 * Move Excel autofit font resolution and text measurement behind an internal measurer boundary to reduce direct dependency leakage.
 * Remove the `SixLabors.Fonts` dependency from Excel autofit by using deterministic first-party text measurement.
 * Fix the packed `OfficeIMO.Email` dependency graph for .NET Framework by directly declaring the code-page compatibility package used by its MIME, MSG, and TNEF codecs.
+* Preserve multilingual HTML-to-PDF text by embedding the installed CSS system font in its mapped PDF slot and reusing its regular face when a styled face lacks required glyphs.
 * Run every test project that declares `net472` on .NET Framework in CI, and verify `OfficeIMO.Email` as a clean packed-package consumer on `net472`, `net8.0`, and `net10.0`.
 * Write OpenDocument ZIP records with a first-party deterministic writer so the required uncompressed `mimetype` entry remains standards-compliant on .NET Framework as well as modern .NET.
 * Stop emitting repository examples, the bundled Markup CLI, and legacy benchmark executables as unsupported NuGet library packages.

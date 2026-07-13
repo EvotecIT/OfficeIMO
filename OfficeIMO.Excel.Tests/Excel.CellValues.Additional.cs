@@ -64,10 +64,10 @@ namespace OfficeIMO.Tests {
                 var cells = wsPart.Worksheet.Descendants<Cell>().ToList();
 
                 Cell cellDto = cells.First(c => c.CellReference == "A1");
-                Assert.Equal(dateOffset.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellDto.CellValue!.Text);
+                AssertRoundTripNumericText(dateOffset.LocalDateTime.ToOADate(), cellDto.CellValue!.Text);
 
                 Cell cellTs = cells.First(c => c.CellReference == "A2");
-                Assert.Equal(time.TotalDays.ToString(CultureInfo.InvariantCulture), cellTs.CellValue!.Text);
+                AssertRoundTripNumericText(time.TotalDays, cellTs.CellValue!.Text);
 
                 Cell cellUint = cells.First(c => c.CellReference == "A3");
                 Assert.Equal(ui.ToString(CultureInfo.InvariantCulture), cellUint.CellValue!.Text);
@@ -89,16 +89,16 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(string.Empty, cellNullableNull.CellValue!.Text);
 
                 Cell cellNullableDto = cells.First(c => c.CellReference == "A9");
-                Assert.Equal(nullableDto.Value.LocalDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cellNullableDto.CellValue!.Text);
+                AssertRoundTripNumericText(nullableDto.Value.LocalDateTime.ToOADate(), cellNullableDto.CellValue!.Text);
 
                 Cell cellNullableTs = cells.First(c => c.CellReference == "A10");
-                Assert.Equal(nullableTs.Value.TotalDays.ToString(CultureInfo.InvariantCulture), cellNullableTs.CellValue!.Text);
+                AssertRoundTripNumericText(nullableTs.Value.TotalDays, cellNullableTs.CellValue!.Text);
 #if NET6_0_OR_GREATER
                 Cell cellDateOnly = cells.First(c => c.CellReference == "A11");
-                Assert.Equal(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate().ToString(CultureInfo.InvariantCulture), cellDateOnly.CellValue!.Text);
+                AssertRoundTripNumericText(dateOnly.ToDateTime(TimeOnly.MinValue).ToOADate(), cellDateOnly.CellValue!.Text);
 
                 Cell cellTimeOnly = cells.First(c => c.CellReference == "A12");
-                Assert.Equal(timeOnly.ToTimeSpan().TotalDays.ToString(CultureInfo.InvariantCulture), cellTimeOnly.CellValue!.Text);
+                AssertRoundTripNumericText(timeOnly.ToTimeSpan().TotalDays, cellTimeOnly.CellValue!.Text);
 #endif
 
                 var styles = spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!;
@@ -229,7 +229,7 @@ namespace OfficeIMO.Tests {
                 WorksheetPart wsPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
                 var cell = wsPart.Worksheet.Descendants<Cell>().First(c => c.CellReference == "A1");
 
-                Assert.Equal(value.UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture), cell.CellValue!.Text);
+                AssertRoundTripNumericText(value.UtcDateTime.ToOADate(), cell.CellValue!.Text);
             }
         }
 
@@ -307,7 +307,7 @@ namespace OfficeIMO.Tests {
 
                 Cell cellDuration = cells.First(c => c.CellReference == "A1");
                 Assert.Equal(CellValues.Number, cellDuration.DataType!.Value);
-                Assert.Equal(duration.TotalDays.ToString(CultureInfo.InvariantCulture), cellDuration.CellValue!.Text);
+                AssertRoundTripNumericText(duration.TotalDays, cellDuration.CellValue!.Text);
                 Assert.NotNull(cellDuration.StyleIndex);
 
                 var styles = workbookPart.WorkbookStylesPart!.Stylesheet!;
@@ -319,11 +319,10 @@ namespace OfficeIMO.Tests {
                 Assert.True(cellFormat.ApplyNumberFormat?.Value ?? false);
 
                 Cell cellNullable = cells.First(c => c.CellReference == "A2");
-                Assert.Equal(duration.TotalDays.ToString(CultureInfo.InvariantCulture), cellNullable.CellValue!.Text);
+                AssertRoundTripNumericText(duration.TotalDays, cellNullable.CellValue!.Text);
                 Assert.NotNull(cellNullable.StyleIndex);
                 Assert.Equal(cellDuration.StyleIndex!.Value, cellNullable.StyleIndex!.Value);
             }
         }
     }
 }
-

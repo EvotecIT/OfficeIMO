@@ -383,7 +383,7 @@ namespace OfficeIMO.Excel {
                     return false;
                 }
 
-                categories = numericValues.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
+                categories = numericValues.Select(InvariantNumberText.Get).ToArray();
                 return categories.Count > 0;
             }
 
@@ -406,7 +406,7 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
-            categories = numberValues.Select(value => value.ToString(CultureInfo.InvariantCulture)).ToArray();
+            categories = numberValues.Select(InvariantNumberText.Get).ToArray();
             return categories.Count > 0;
         }
 

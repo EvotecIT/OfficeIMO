@@ -333,7 +333,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string? FormatOpenXmlDouble(double? value) {
-            return value?.ToString("G17", CultureInfo.InvariantCulture);
+            return value.HasValue ? InvariantNumberText.Get(value.Value) : null;
         }
 
         private static string ResolveFieldName(int index, IReadOnlyList<string> cacheFields) {

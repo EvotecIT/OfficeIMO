@@ -1344,7 +1344,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("Elapsed 27:30:00", cells["A1"].InlineString!.Text!.Text);
                 Assert.Equal(CellValues.Number, cells["A2"].DataType!.Value);
-                Assert.Equal(TimeSpan.FromMinutes(1650).TotalDays.ToString(System.Globalization.CultureInfo.InvariantCulture), cells["A2"].CellValue!.Text);
+                AssertRoundTripNumericText(TimeSpan.FromMinutes(1650).TotalDays, cells["A2"].CellValue!.Text);
                 Assert.Contains("[h]:mm:ss", stylesXml, StringComparison.OrdinalIgnoreCase);
             }
         }

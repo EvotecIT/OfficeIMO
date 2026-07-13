@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
 
                 var dateRow2 = GetCell("C2");
                 AssertNumericCell(dateRow2);
-                Assert.Equal(new DateTime(2024, 1, 1).ToOADate().ToString(CultureInfo.InvariantCulture), dateRow2.CellValue!.Text);
+                AssertRoundTripNumericText(new DateTime(2024, 1, 1).ToOADate(), dateRow2.CellValue!.Text);
 
                 var amountRow3 = GetCell("B3");
                 Assert.Equal(CellValues.String, amountRow3.DataType!.Value);
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
 
                 var dateRow3 = GetCell("C3");
                 AssertNumericCell(dateRow3);
-                Assert.Equal(new DateTime(2024, 1, 2).ToOADate().ToString(CultureInfo.InvariantCulture), dateRow3.CellValue!.Text);
+                AssertRoundTripNumericText(new DateTime(2024, 1, 2).ToOADate(), dateRow3.CellValue!.Text);
 
                 var amountRow4 = GetCell("B4");
                 AssertNumericCell(amountRow4);
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
 
                 var durationCell = GetCell("B2");
                 Assert.True(durationCell.DataType == null || durationCell.DataType.Value == CellValues.Number);
-                Assert.Equal(TimeSpan.FromMinutes(90).TotalDays.ToString(CultureInfo.InvariantCulture), durationCell.CellValue!.Text);
+                AssertRoundTripNumericText(TimeSpan.FromMinutes(90).TotalDays, durationCell.CellValue!.Text);
 
                 var stylesPart = workbookPart.WorkbookStylesPart;
                 Assert.NotNull(stylesPart);
@@ -134,7 +134,7 @@ namespace OfficeIMO.Tests {
 
                 var secondDuration = GetCell("B3");
                 Assert.True(secondDuration.DataType == null || secondDuration.DataType.Value == CellValues.Number);
-                Assert.Equal(new TimeSpan(2, 15, 30).TotalDays.ToString(CultureInfo.InvariantCulture), secondDuration.CellValue!.Text);
+                AssertRoundTripNumericText(new TimeSpan(2, 15, 30).TotalDays, secondDuration.CellValue!.Text);
                 Assert.Equal(durationCell.StyleIndex!.Value, secondDuration.StyleIndex!.Value);
             }
 
@@ -415,7 +415,7 @@ namespace OfficeIMO.Tests {
 
                 Cell dateCell = worksheetPart.Worksheet.Descendants<Cell>().First(cell => cell.CellReference == "C2");
                 Assert.True(dateCell.DataType == null || dateCell.DataType.Value == CellValues.Number);
-                Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 0).ToOADate().ToString(CultureInfo.InvariantCulture), dateCell.CellValue!.Text);
+                AssertRoundTripNumericText(new DateTime(2026, 1, 2, 3, 4, 0).ToOADate(), dateCell.CellValue!.Text);
             }
 
             File.Delete(filePath);

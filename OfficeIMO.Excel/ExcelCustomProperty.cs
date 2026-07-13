@@ -199,7 +199,7 @@ namespace OfficeIMO.Excel {
                     }
                     break;
                 case ExcelCustomPropertyType.NumberDouble:
-                    property.VTDouble = new VTDouble(Convert.ToDouble(Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture));
+                    property.VTDouble = new VTDouble(InvariantNumberText.Get(Convert.ToDouble(Value, CultureInfo.InvariantCulture)));
                     break;
                 case ExcelCustomPropertyType.YesNo:
                     property.VTBool = new VTBool(Convert.ToBoolean(Value, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture).ToLowerInvariant());

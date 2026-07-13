@@ -823,7 +823,7 @@ namespace OfficeIMO.Excel {
 
             public static PivotFieldValue FromBoolean(bool boolean) => new(PivotFieldValueKind.Boolean, boolean ? "1" : "0", boolean: boolean);
 
-            public static PivotFieldValue FromNumber(double number) => new(PivotFieldValueKind.Number, number.ToString("G17", CultureInfo.InvariantCulture), number: number);
+            public static PivotFieldValue FromNumber(double number) => new(PivotFieldValueKind.Number, InvariantNumberText.Get(number), number: number);
 
             public static PivotFieldValue FromDate(DateTime date) => new(PivotFieldValueKind.Date, date.ToString("O", CultureInfo.InvariantCulture), date: date);
         }

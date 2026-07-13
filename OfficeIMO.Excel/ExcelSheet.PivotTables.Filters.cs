@@ -166,12 +166,12 @@ namespace OfficeIMO.Excel {
 
         private static string? GetPivotFilterValue1(ExcelPivotFilter filter, ExcelDateSystem dateSystem)
             => filter.DateValue1.HasValue
-                ? ExcelDateSystemConverter.ToSerial(filter.DateValue1.Value, dateSystem).ToString("G17", CultureInfo.InvariantCulture)
+                ? InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(filter.DateValue1.Value, dateSystem))
                 : filter.Value1;
 
         private static string? GetPivotFilterValue2(ExcelPivotFilter filter, ExcelDateSystem dateSystem)
             => filter.DateValue2.HasValue
-                ? ExcelDateSystemConverter.ToSerial(filter.DateValue2.Value, dateSystem).ToString("G17", CultureInfo.InvariantCulture)
+                ? InvariantNumberText.Get(ExcelDateSystemConverter.ToSerial(filter.DateValue2.Value, dateSystem))
                 : filter.Value2;
 
         private static bool TryCreateTop10Filter(ExcelPivotFilter filter, out Top10 top10) {

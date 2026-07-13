@@ -2303,8 +2303,8 @@ namespace OfficeIMO.Tests {
             var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
             var formats = spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<CellFormat>().ToList();
 
-            Assert.Equal(start.AddDays(1).ToOADate().ToString(CultureInfo.InvariantCulture), savedCells["A1"].CellValue!.Text);
-            Assert.Equal(TimeSpan.FromMinutes(700).TotalDays.ToString(CultureInfo.InvariantCulture), savedCells["B100"].CellValue!.Text);
+            AssertRoundTripNumericText(start.AddDays(1).ToOADate(), savedCells["A1"].CellValue!.Text);
+            AssertRoundTripNumericText(TimeSpan.FromMinutes(700).TotalDays, savedCells["B100"].CellValue!.Text);
             Assert.Equal(14U, formats[(int)savedCells["A1"].StyleIndex!.Value].NumberFormatId!.Value);
             Assert.Equal(46U, formats[(int)savedCells["B1"].StyleIndex!.Value].NumberFormatId!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
@@ -2338,7 +2338,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Item 100", GetSpreadsheetCellText(spreadsheet, savedCells["A100"]));
             Assert.Equal("150", savedCells["B100"].CellValue!.Text);
             Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.CellValues.Boolean, savedCells["C100"].DataType!.Value);
-            Assert.Equal(start.AddMinutes(100).ToOADate().ToString(CultureInfo.InvariantCulture), savedCells["D100"].CellValue!.Text);
+            AssertRoundTripNumericText(start.AddMinutes(100).ToOADate(), savedCells["D100"].CellValue!.Text);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -2395,10 +2395,9 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            var expectedCreated = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified)
+            double expectedCreated = new DateTime(2026, 1, 1, 8, 30, 0, DateTimeKind.Unspecified)
                 .AddDays(100)
-                .ToOADate()
-                .ToString(CultureInfo.InvariantCulture);
+                .ToOADate();
 
             Assert.Equal(CellValues.String, savedCells["A3"].DataType!.Value);
             Assert.Equal(string.Empty, savedCells["A3"].CellValue!.Text);
@@ -2411,7 +2410,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("123.75", savedCells["B99"].CellValue!.Text);
             Assert.Equal(CellValues.Boolean, savedCells["C98"].DataType!.Value);
             Assert.Equal("1", savedCells["C98"].CellValue!.Text);
-            Assert.Equal(expectedCreated, savedCells["D100"].CellValue!.Text);
+            AssertRoundTripNumericText(expectedCreated, savedCells["D100"].CellValue!.Text);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }
 
@@ -3032,9 +3031,9 @@ namespace OfficeIMO.Tests {
             using var spreadsheet = SpreadsheetDocument.Open(memory, false);
             var worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
             var savedCells = worksheetPart.Worksheet.Descendants<Cell>().ToDictionary(cell => cell.CellReference!.Value!);
-            var expected = start.AddMinutes(150).UtcDateTime.ToOADate().ToString(CultureInfo.InvariantCulture);
+            double expected = start.AddMinutes(150).UtcDateTime.ToOADate();
 
-            Assert.Equal(expected, savedCells["A150"].CellValue!.Text);
+            AssertRoundTripNumericText(expected, savedCells["A150"].CellValue!.Text);
             Assert.Equal(14U, spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!.CellFormats!.Elements<CellFormat>().ElementAt((int)savedCells["A150"].StyleIndex!.Value).NumberFormatId!.Value);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }

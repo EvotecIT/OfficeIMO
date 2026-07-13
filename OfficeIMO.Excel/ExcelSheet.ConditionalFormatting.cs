@@ -229,13 +229,13 @@ namespace OfficeIMO.Excel {
                 if (numberThresholds != null && numberThresholds.Length == count) {
                     for (int i = 0; i < count; i++) {
                         var cfvo = new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Number };
-                        cfvo.Val = numberThresholds[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        cfvo.Val = InvariantNumberText.Get(numberThresholds[i]);
                         icon.Append(cfvo);
                     }
                 } else if (percentThresholds != null && percentThresholds.Length == count) {
                     for (int i = 0; i < count; i++) {
                         var cfvo = new ConditionalFormatValueObject { Type = ConditionalFormatValueObjectValues.Percent };
-                        cfvo.Val = percentThresholds[i].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                        cfvo.Val = InvariantNumberText.Get(percentThresholds[i]);
                         icon.Append(cfvo);
                     }
                 } else {
@@ -285,4 +285,3 @@ namespace OfficeIMO.Excel {
 
     }
 }
-

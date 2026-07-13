@@ -227,7 +227,7 @@ namespace OfficeIMO.Excel {
         public void AutoFilterByHeaderGreaterThanOrEqual(string header, double value) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
 
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.GreaterThanOrEqual, value.ToString(CultureInfo.InvariantCulture));
+            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.GreaterThanOrEqual, InvariantNumberText.Get(value));
         }
 
         /// <summary>
@@ -236,7 +236,7 @@ namespace OfficeIMO.Excel {
         public void AutoFilterByHeaderNotEqual(string header, double value) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
 
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.NotEqual, value.ToString(CultureInfo.InvariantCulture));
+            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.NotEqual, InvariantNumberText.Get(value));
         }
 
         /// <summary>
@@ -245,7 +245,7 @@ namespace OfficeIMO.Excel {
         public void AutoFilterByHeaderLessThanOrEqual(string header, double value) {
             if (string.IsNullOrWhiteSpace(header)) throw new ArgumentNullException(nameof(header));
 
-            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.LessThanOrEqual, value.ToString(CultureInfo.InvariantCulture));
+            ApplyCustomAutoFilterByHeader(header, FilterOperatorValues.LessThanOrEqual, InvariantNumberText.Get(value));
         }
 
         /// <summary>
@@ -259,9 +259,9 @@ namespace OfficeIMO.Excel {
                 header,
                 matchAll: true,
                 firstOperator: FilterOperatorValues.GreaterThanOrEqual,
-                firstValue: minimumInclusive.ToString(CultureInfo.InvariantCulture),
+                firstValue: InvariantNumberText.Get(minimumInclusive),
                 secondOperator: FilterOperatorValues.LessThanOrEqual,
-                secondValue: maximumInclusive.ToString(CultureInfo.InvariantCulture));
+                secondValue: InvariantNumberText.Get(maximumInclusive));
         }
 
         /// <summary>
@@ -276,9 +276,9 @@ namespace OfficeIMO.Excel {
                 header,
                 matchAll: false,
                 firstOperator: FilterOperatorValues.LessThan,
-                firstValue: minimumExclusive.ToString(CultureInfo.InvariantCulture),
+                firstValue: InvariantNumberText.Get(minimumExclusive),
                 secondOperator: FilterOperatorValues.GreaterThan,
-                secondValue: maximumExclusive.ToString(CultureInfo.InvariantCulture));
+                secondValue: InvariantNumberText.Get(maximumExclusive));
         }
 
         // -------- Find/Replace --------
