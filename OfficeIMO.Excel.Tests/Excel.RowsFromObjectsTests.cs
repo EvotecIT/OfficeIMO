@@ -128,6 +128,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void RowsFrom_AppliesSelectionRulesToExplicitColumnHeaders() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            var data = new[] {
+                new Person { Name = "Alice", Age = 30 }
+            };
+
+            using (var doc = ExcelDocument.Create(filePath)) {
+                doc.AsFluent()
+                    .Sheet("People", s => s.RowsFrom(data, o => {
+                        o.Columns = new[] { nameof(Person.Name), nameof(Person.Age) };
+                        o.ExcludeProperties = new[] { nameof(Person.Age) };
+                    }))
+                    .End()
+                    .Save();
+            }
+
+            using (var document = SpreadsheetDocument.Open(filePath, false)) {
+                WorksheetPart worksheet = document.WorkbookPart!.WorksheetParts.First();
+                Assert.Equal("Name", GetCellValue(document, worksheet, "A1"));
+                Assert.Equal("Alice", GetCellValue(document, worksheet, "A2"));
+                Assert.DoesNotContain(worksheet.Worksheet.Descendants<Cell>(), cell =>
+                    string.Equals(cell.CellReference?.Value, "B1", StringComparison.OrdinalIgnoreCase)
+                    || string.Equals(cell.CellReference?.Value, "B2", StringComparison.OrdinalIgnoreCase));
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
         public void RowsFrom_HeaderCaseTransformsNestedPaths() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             var data = new[] {

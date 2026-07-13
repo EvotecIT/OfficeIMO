@@ -42,10 +42,17 @@ public static partial class WordHtmlConverterExtensions {
 
     private static AngleSharp.Html.Dom.IHtmlDocument CreateWordSourceDocument(HtmlConversionDocument document) {
         AngleSharp.Html.Dom.IHtmlDocument source = document.CreateSourceDocumentForConversion();
-        if (document.BaseUri != null && source.QuerySelector("base[href]") == null) {
-            AngleSharp.Dom.IElement baseElement = source.CreateElement("base");
+        if (document.BaseUri != null) {
+            AngleSharp.Dom.IElement? baseElement = source.QuerySelector("base[href]");
+            if (baseElement == null) {
+                baseElement = source.CreateElement("base");
+                source.Head?.Prepend(baseElement);
+            }
+
+            // The shared HTML engine has already resolved relative/protocol-relative base elements
+            // against the caller's page URI. Keep the adapter DOM on that canonical absolute base so
+            // AngleSharp's document/element BaseUrl values drive every stylesheet and image path alike.
             baseElement.SetAttribute("href", document.BaseUri.AbsoluteUri);
-            source.Head?.Prepend(baseElement);
         }
         HtmlCssMediaContext mediaContext = document.ProfileContract.Profile == HtmlConversionProfile.HighFidelityPrint
             ? HtmlCssMediaContext.Print

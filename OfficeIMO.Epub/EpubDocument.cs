@@ -20,7 +20,13 @@ public sealed class EpubDocument {
         EpubReadOptions? options = null,
         CancellationToken cancellationToken = default) {
         if (string.IsNullOrWhiteSpace(path)) throw new ArgumentException("EPUB path cannot be empty.", nameof(path));
-        using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 81920, true);
+        using var stream = new FileStream(
+            path,
+            FileMode.Open,
+            FileAccess.Read,
+            FileShare.ReadWrite | FileShare.Delete,
+            81920,
+            true);
         return await LoadAsync(stream, options, cancellationToken).ConfigureAwait(false);
     }
 

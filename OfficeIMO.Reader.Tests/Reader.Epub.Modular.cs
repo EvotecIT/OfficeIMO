@@ -3,6 +3,7 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Epub;
 using System.IO.Compression;
 using System.Text;
+using System.Threading.Tasks;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -12,6 +13,26 @@ internal static class ReaderCurrentDirectoryLock {
 }
 
 public sealed class ReaderEpubModularTests {
+    [Fact]
+    public async Task EpubDocument_LoadAsync_MatchesSynchronousFileSharing() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-shared-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+            using var producer = new FileStream(
+                epubPath,
+                FileMode.Open,
+                FileAccess.ReadWrite,
+                FileShare.ReadWrite | FileShare.Delete);
+
+            EpubDocument document = await EpubDocument.LoadAsync(epubPath);
+
+            Assert.Equal("Demo Book", document.Title);
+            Assert.Equal(2, document.Chapters.Count);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
     [Fact]
     public void DocumentReaderEpub_RichDispatch_MapsChaptersTablesLinksAndManifestAssets() {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");

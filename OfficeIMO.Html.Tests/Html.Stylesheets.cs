@@ -125,6 +125,45 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new Uri("https://styles.example.test/reports/site.css"), requestedUri);
         }
 
+        [Theory]
+        [InlineData("body")]
+        [InlineData("header")]
+        [InlineData("footer")]
+        public async Task HtmlToWord_AppendAbsolutizesRelativeBaseElements(string target) {
+            Uri? requestedUri = null;
+            using var httpClient = new HttpClient(new FakeHtmlHttpMessageHandler(request => {
+                requestedUri = request.RequestUri;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                    Content = new StringContent("p { color:#abcdef; }", Encoding.UTF8, "text/css")
+                });
+            }));
+            OfficeIMO.Html.HtmlConversionDocument source = OfficeIMO.Html.HtmlConversionDocument.Parse(
+                "<html><head><base href='../../shared/'></head><body><p>Relative base append</p></body></html>",
+                new OfficeIMO.Html.HtmlConversionDocumentOptions {
+                    BaseUri = new Uri("https://styles.example.test/reports/2026/page.html")
+                });
+            var options = new HtmlToWordOptions { HttpClient = httpClient };
+            options.StylesheetPaths.Add("theme.css");
+            options.AllowedStylesheetHosts.Add("styles.example.test");
+            using WordDocument document = WordDocument.Create();
+
+            switch (target) {
+                case "body":
+                    await document.AddHtmlToBodyAsync(source, options);
+                    break;
+                case "header":
+                    await document.AddHtmlToHeaderAsync(source, options: options);
+                    break;
+                case "footer":
+                    await document.AddHtmlToFooterAsync(source, options: options);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(target));
+            }
+
+            Assert.Equal(new Uri("https://styles.example.test/shared/theme.css"), requestedUri);
+        }
+
         [Fact]
         public void HtmlToWord_UntrustedProfile_SkipsDocumentStylesheetLinkBeforeFetch() {
             var fetched = false;
