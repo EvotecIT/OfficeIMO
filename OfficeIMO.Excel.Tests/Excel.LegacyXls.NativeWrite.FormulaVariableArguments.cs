@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("SubtotalArgs");
+                    ExcelSheet sheet = document.AddWorksheet("SubtotalArgs");
                     for (int row = 1; row <= 31; row++) {
                         sheet.CellValue(row, 1, row);
                     }

@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
 
                 int tableIndex = 1;
                 foreach (var name in sheetNames) {
-                    var sheet = document.AddWorkSheet(name);
+                    var sheet = document.AddWorksheet(name);
                     SeedWideContent(sheet, name, ref tableIndex);
                 }
 
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             string logoPath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Label");
                 summary.CellValue(1, 2, "Value");
                 summary.CellValue(2, 1, "Status");
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
                     summary.SetHeaderImage(HeaderFooterPosition.Center, File.ReadAllBytes(logoPath), "image/png", widthPoints: 96, heightPoints: 32);
                 }
 
-                var data = document.AddWorkSheet("Data");
+                var data = document.AddWorksheet("Data");
                 data.CellValue(1, 1, "Category");
                 data.CellValue(1, 2, "Amount");
                 data.CellValue(1, 3, "Trend1");
@@ -125,7 +125,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "RepairRegression.DefinedNames.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data");
+                document.AddWorksheet("Data");
                 var workbook = document._spreadSheetDocument.WorkbookPart!.Workbook;
                 workbook.DefinedNames = new DefinedNames(
                     new DefinedName { Name = "DupName", Text = "'Data'!$A$1" },
@@ -159,7 +159,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WrapWidth.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "ID");
                 sheet.CellValue(1, 2, "Description");
                 for (int r = 2; r <= 6; r++) {

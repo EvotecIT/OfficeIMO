@@ -12,7 +12,7 @@ namespace OfficeIMO.Examples.Excel {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 // Sheet 1: Mixed simple texts
-                var s1 = document.AddWorkSheet("Simple");
+                var s1 = document.AddWorksheet("Simple");
                 s1.CellValue(1, 1, "This is a very long piece of text");
                 s1.CellValue(1, 2, "Short");
                 s1.CellValue(2, 1, "Second line\nwith newline");
@@ -21,7 +21,7 @@ namespace OfficeIMO.Examples.Excel {
                 s1.AutoFitRows();
 
                 // Sheet 2: Large fonts and italic/bold to check style impact
-                var s2 = document.AddWorkSheet("Styled");
+                var s2 = document.AddWorksheet("Styled");
                 s2.Cell(1, 1, value: "Bold text sample", numberFormat: null);
                 s2.Cell(2, 1, value: "Italic sample");
                 s2.Cell(3, 1, value: "Bold Italic with\nnewline");
@@ -33,7 +33,7 @@ namespace OfficeIMO.Examples.Excel {
                 s2.AutoFitRows();
 
                 // Sheet 3: Very long words (no spaces)
-                var s3 = document.AddWorkSheet("LongWords");
+                var s3 = document.AddWorksheet("LongWords");
                 s3.CellValue(1, 1, new string('A', 60));
                 s3.CellValue(2, 1, new string('B', 40));
                 s3.AutoFitColumns();

@@ -138,7 +138,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldReportBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ApplyOfficeImoTable(sheet, rows.Count);
             ApplyOfficeImoNavigation(sheet, rows.Count);
@@ -177,7 +177,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldCoreReportBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ApplyOfficeImoTable(sheet, rows.Count);
             ApplyOfficeImoNavigation(sheet, rows.Count);
@@ -232,7 +232,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldFreezePanesBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             sheet.Freeze(topRows: 1, leftCols: 1);
             document.Save(stream);
@@ -278,7 +278,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldAutoFilterBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             sheet.AddAutoFilter(BuildSalesRange(rows.Count));
             document.Save(stream);
@@ -323,7 +323,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldConditionalFormattingBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ApplyOfficeImoConditionalFormatting(sheet, rows.Count);
             document.Save(stream);
@@ -353,7 +353,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldDataValidationBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             ApplyOfficeImoDataValidation(sheet, rows.Count);
             document.Save(stream);
@@ -413,7 +413,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldChartsBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             AddOfficeImoRegionalChart(sheet, rows);
             document.Save(stream);
@@ -443,7 +443,7 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static byte[] OfficeImoWriteRealWorldPivotTableBytes(IReadOnlyList<ExcelBenchmarkScenarioFactory.SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.InsertOfficeImoObjects(sheet, rows);
             AddOfficeImoPivotTable(sheet, rows.Count);
             document.Save(stream);
@@ -543,7 +543,7 @@ internal static partial class ExcelLibraryComparisonRunner {
         RealWorldVariantOptions options) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             InsertOfficeImoVariantRows(sheet, rows, columns);
             string range = BuildVariantRange(rows.Count, columns.Count);
             ApplyOfficeImoVariantTable(sheet, range, options.AutoFit);

@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Name");
                 summary.CellValue(2, 1, "Alpha");
 

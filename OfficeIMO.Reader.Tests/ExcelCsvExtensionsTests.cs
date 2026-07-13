@@ -13,7 +13,7 @@ public class ExcelCsvExtensionsTests {
         const string csv = "Name,Note,Amount\r\nAlpha,\"Hello, \"\"world\"\"\",10.5\r\nBeta,\"Line\r\nbreak\",20\r\n";
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
-        ExcelSheet sheet = document.AddWorkSheet("Data");
+        ExcelSheet sheet = document.AddWorksheet("Data");
 
         string range = sheet.FromCsv(csv);
         using DataTable table = sheet.ToDataTable("A1:C3");
@@ -31,7 +31,7 @@ public class ExcelCsvExtensionsTests {
         const string csv = "Name,Value\r\nAlpha,1,Extra\r\nBeta,,\r\n";
         using var stream = new MemoryStream();
         using var document = ExcelDocument.Create(stream);
-        ExcelSheet sheet = document.AddWorkSheet("Data");
+        ExcelSheet sheet = document.AddWorksheet("Data");
 
         string range = sheet.FromCsv(csv);
         using DataTable table = sheet.ToDataTable("A1:C3");

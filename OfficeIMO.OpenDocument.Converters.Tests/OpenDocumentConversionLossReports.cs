@@ -17,7 +17,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelFormulaConversionDoesNotRewriteQuotedCellLikeText() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorkSheet("Data");
+        ExcelSheet sheet = source.AddWorksheet("Data");
         sheet.CellAt(1, 1).SetValue("B2");
         sheet.CellAt(1, 2).SetFormula("IF(A1=\"B2\",1,0)");
 
@@ -37,9 +37,9 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelFormulaConversionMapsSheetQualifiedReferences() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet data = source.AddWorkSheet("Data");
-        source.AddWorkSheet("Other").CellAt(1, 1).SetValue(1);
-        source.AddWorkSheet("Other Sheet").CellAt(2, 2).SetValue(2);
+        ExcelSheet data = source.AddWorksheet("Data");
+        source.AddWorksheet("Other").CellAt(1, 1).SetValue(1);
+        source.AddWorksheet("Other Sheet").CellAt(2, 2).SetValue(2);
         data.CellAt(1, 1).SetFormula("SUM(Other!A1,'Other Sheet'!B2:C3)");
 
         OdfConversionResult<OdsDocument> conversion = source.ToOpenDocumentResult();
@@ -71,8 +71,8 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void DuplicateSheetLocalExcelNamesAreDisambiguatedWithoutAborting() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet first = source.AddWorkSheet("First Sheet");
-        ExcelSheet second = source.AddWorkSheet("Second Sheet");
+        ExcelSheet first = source.AddWorksheet("First Sheet");
+        ExcelSheet second = source.AddWorksheet("Second Sheet");
         first.CellAt(1, 1).SetValue(1);
         second.CellAt(1, 1).SetValue(2);
         first.SetNamedRange("LocalValue", "A1", save: false);
@@ -233,7 +233,7 @@ public sealed class OpenDocumentConversionLossReportTests {
     [Fact]
     public void ExcelToOdsReportsConfiguredCellAndStyleOmissions() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorkSheet("Data");
+        ExcelSheet sheet = source.AddWorksheet("Data");
         sheet.CellAt(1, 1).SetValue("One").SetBold();
         sheet.CellAt(1, 2).SetValue("Two").SetBold();
 

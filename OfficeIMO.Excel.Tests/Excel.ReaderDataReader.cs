@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(1, 3, "Created");
@@ -61,7 +61,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(1, 2, "Status");
                 sheet.CellValue(1, 3, "");
@@ -87,7 +87,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Alpha");
                 sheet.CellValue(1, 3, 10);
                 sheet.CellValue(3, 2, "Beta");
@@ -122,7 +122,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
                 sheet.CellValue(2, 1, 1);
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
                 sheet.CellValue(2, 1, 1);
@@ -207,7 +207,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Created");
                 sheet.CellValue(1, 3, "Active");
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 string[] headers = { "Id", "Direct", "Shared", "Created", "Formula", "Active", "Error", "Lines" };
                 for (int column = 0; column < headers.Length; column++) {
                     sheet.CellValue(1, column + 1, headers[column]);
@@ -311,7 +311,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Shared");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(1, 3, "Active");
@@ -349,7 +349,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
                 sheet.CellValue(2, 1, 1);
@@ -382,7 +382,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Padded");
             }
@@ -411,7 +411,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
                 sheet.CellValue(1, 3, "Note");
@@ -452,7 +452,7 @@ namespace OfficeIMO.Tests {
             using var memory = new MemoryStream();
 
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Id");
                 sheet.CellValue(1, 2, "Name");
                 sheet.CellValue(1, 3, "Note");
@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "First");
                     sheet.CellValue(2049, 1, "Middle");
@@ -547,7 +547,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "First");
                     sheet.CellValue(4097, 1, "Last in range");

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("IgnoredErrors");
+                    ExcelSheet sheet = document.AddWorksheet("IgnoredErrors");
                     sheet.CellValue(1, 1, "1");
                     sheet.CellValue(2, 1, "2");
                     sheet.CellValue(3, 3, "3");

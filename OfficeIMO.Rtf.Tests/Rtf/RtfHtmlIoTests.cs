@@ -20,7 +20,7 @@ public class RtfHtmlIoTests {
 
         Assert.Equal(html, Encoding.UTF8.GetString(bytes));
 
-        using MemoryStream memoryStream = document.ToHtmlMemoryStream();
+        using MemoryStream memoryStream = document.ToHtmlStream();
         Assert.Equal(bytes, memoryStream.ToArray());
 
         RtfDocument roundTrip = bytes.ToRtfDocument();
@@ -62,7 +62,7 @@ public class RtfHtmlIoTests {
 
         Assert.Equal(html, Encoding.UTF8.GetString(htmlBytes));
 
-        using MemoryStream htmlStream = document.ToHtmlMemoryStream();
+        using MemoryStream htmlStream = document.ToHtmlStream();
         Assert.Equal(htmlBytes, htmlStream.ToArray());
 
         RtfDocument fromBytes = htmlBytes.ToRtfDocument();
@@ -133,7 +133,7 @@ public class RtfHtmlIoTests {
 
         Assert.Equal(html, Encoding.UTF8.GetString(htmlBytes));
 
-        using MemoryStream htmlMemoryStream = document.ToHtmlMemoryStream();
+        using MemoryStream htmlMemoryStream = document.ToHtmlStream();
         Assert.Equal(htmlBytes, htmlMemoryStream.ToArray());
 
         using var htmlOutput = new MemoryStream();

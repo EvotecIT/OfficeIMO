@@ -69,6 +69,9 @@
         <member name="M:OfficeIMO.Drawing.Internal.OfficeFileCommit.DeleteIfExists(System.String)">
             <summary>Deletes a temporary file when it exists without hiding an earlier failure.</summary>
         </member>
+        <member name="M:OfficeIMO.Drawing.Internal.OfficeFileCommit.EnsureTargetDirectory(System.String)">
+            <summary>Ensures the parent directory for a target file exists.</summary>
+        </member>
         <member name="T:OfficeIMO.Drawing.Internal.OfficeFileLauncher">
             <summary>Launches saved Office artifacts through the operating system's registered application.</summary>
         </member>

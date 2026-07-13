@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateVertical270ShapeTextBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelVertical270ShapeTextBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Vertical270Text");
+            ExcelSheet sheet = document.AddWorksheet("Vertical270Text");
 
             sheet.CellValue(1, 1, "Vertical270 DrawingML text");
             sheet.Range("A1:F1").Merge();

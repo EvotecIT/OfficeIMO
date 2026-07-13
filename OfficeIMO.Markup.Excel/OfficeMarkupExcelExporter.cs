@@ -826,7 +826,7 @@ public sealed class OfficeMarkupExcelExporter {
                 return sheet;
             }
 
-            sheet = _workbook.AddWorkSheet(sheetName);
+            sheet = _workbook.AddWorksheet(sheetName);
             _sheets[sheetName] = sheet;
             _sheets[sheet.Name] = sheet;
             _nextRows[sheet.Name] = 1;

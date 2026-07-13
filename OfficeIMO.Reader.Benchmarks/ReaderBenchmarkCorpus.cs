@@ -133,7 +133,7 @@ internal static class ReaderBenchmarkCorpus {
         string path = Path.Combine(Path.GetTempPath(), "officeimo-reader-benchmark-" + Guid.NewGuid().ToString("N") + ".xlsx");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.Cell(1, 1, "Id");
                 sheet.Cell(1, 2, "Name");
                 sheet.Cell(1, 3, "Amount");

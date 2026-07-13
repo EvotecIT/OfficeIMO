@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Region");
                     sheet.CellValue(1, 2, "Amount");
                     sheet.CellValue(1, 3, "Status");
@@ -98,7 +98,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Value");
                     sheet.CellValue(1, 2, "  Value  ");
                     sheet.CellValue(1, 3, "");
@@ -154,7 +154,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "");
                     sheet.CellValue(1, 2, "Column1");
                     sheet.CellValue(1, 3, "");
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "");
                     sheet.CellValue(1, 2, "Column1");
                     sheet.CellValue(1, 3, "Column1_2");
@@ -240,7 +240,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(2, 2, "");
                     sheet.CellValue(2, 3, "Column1");
                     sheet.CellValue(2, 4, "Column1_2");
@@ -279,7 +279,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Value");
                     sheet.CellValue(1, 2, "  Value  ");
                     sheet.CellValue(1, 3, "");
@@ -324,7 +324,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "First Name");
                     sheet.CellValue(1, 2, "First Name");
                     sheet.CellValue(1, 3, "Total Amount 2");
@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "First Name");
                     sheet.CellValue(1, 2, "Status Code");
                     sheet.CellValue(1, 3, "Total %");
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "QuotedDays");
                     sheet.CellValue(1, 2, "Duration");
                     sheet.CellValue(1, 3, "EscapedHours");
@@ -432,7 +432,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(1, 2, "Score");
                     sheet.CellValue(2, 1, "First");
@@ -489,7 +489,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Strings");
+                    var sheet = document.AddWorksheet("Strings");
                     var cells = Enumerable.Range(1, 300).SelectMany(row => new[] {
                         (row, 1, (object)("Repeated " + row % 10)),
                         (row, 2, (object)("Distinct " + row)),

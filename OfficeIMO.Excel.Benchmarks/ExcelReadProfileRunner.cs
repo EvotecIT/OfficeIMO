@@ -588,7 +588,7 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateSparseWorkbookBytes(int lastRow) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Header");
             sheet.CellValue(lastRow, 1, "Tail");
         }
@@ -599,7 +599,7 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateMixedTypeWorkbookBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Id");
             sheet.CellValue(1, 2, "Region");
             sheet.CellValue(1, 3, "Owner");
@@ -629,7 +629,7 @@ internal static class ExcelReadProfileRunner {
     private static byte[] CreateSharedStringHeavyWorkbookBytes(int rowCount) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Id");
             sheet.CellValue(1, 2, "Region");
             sheet.CellValue(1, 3, "Owner");

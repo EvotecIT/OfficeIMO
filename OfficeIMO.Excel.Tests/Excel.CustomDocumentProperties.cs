@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
                 document.SetCustomDocumentProperty("Score", 98.5D);
                 document.SetCustomDocumentProperty("Reviewed", true);
                 document.SetCustomDocumentProperty("ReviewedAt", reviewedAt);
-                document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
+                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
                 document.Save();
             }
 
@@ -54,7 +54,7 @@ namespace OfficeIMO.Tests {
                 document.SetCustomDocumentProperty("UnsignedTicket", unsignedTicket);
                 document.SetCustomDocumentProperty("Score", 12345.6789012345D);
                 document.SetCustomDocumentProperty("Reviewed", true);
-                document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
+                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
                 document.Save();
             }
 
@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.SetCustomDocumentProperty("BinaryPayload", payload);
-                document.AddWorkSheet("Data").CellValue(1, 1, "Binary");
+                document.AddWorksheet("Data").CellValue(1, 1, "Binary");
                 document.Save();
             }
 
@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.DirectValueEdit.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data").CellValue(1, 1, "Ready");
+                document.AddWorksheet("Data").CellValue(1, 1, "Ready");
                 document.SetCustomDocumentProperty("Workflow", "Draft");
                 document.Save();
             }

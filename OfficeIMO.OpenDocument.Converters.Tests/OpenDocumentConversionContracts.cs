@@ -46,7 +46,7 @@ public sealed class OpenDocumentConversionContracts {
     [Fact]
     public void ExcelAndOdsRoundTripTypedCellsFormulaMergeAndSparseLimits() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorkSheet("Data");
+        ExcelSheet sheet = source.AddWorksheet("Data");
         sheet.CellAt(1, 1).SetValue("Amount").SetBold();
         sheet.CellAt(2, 1).SetValue(12.5m);
         sheet.CellAt(2, 2).SetFormula("SUM(A2:A2)");

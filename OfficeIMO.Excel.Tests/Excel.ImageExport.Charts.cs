@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesScatterSeriesCachedXYValues() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ScatterXY");
+            ExcelSheet sheet = document.AddWorksheet("ScatterXY");
             sheet.CellValue(1, 1, "X1");
             sheet.CellValue(1, 2, "Y1");
             sheet.CellValue(1, 3, "X2");
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesVariableLengthScatterSeries() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ScatterVariable");
+            ExcelSheet sheet = document.AddWorksheet("ScatterVariable");
             sheet.CellValue(1, 1, "X1");
             sheet.CellValue(1, 2, "Y1");
             sheet.CellValue(1, 3, "X2");
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesChartLevelScatterMarkers() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ScatterMarkers");
+            ExcelSheet sheet = document.AddWorksheet("ScatterMarkers");
             sheet.CellValue(1, 1, "X");
             sheet.CellValue(1, 2, "Y");
             sheet.CellValue(2, 1, 1);
@@ -115,7 +115,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsMarkerOnlyScatterStyle() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ScatterMarkerOnly");
+            ExcelSheet sheet = document.AddWorksheet("ScatterMarkerOnly");
             sheet.CellValue(1, 1, "X");
             sheet.CellValue(1, 2, "Y");
             sheet.CellValue(2, 1, 1);
@@ -142,7 +142,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSupportedComboChartSeriesTypesIndependently() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Combo");
+            ExcelSheet sheet = document.AddWorksheet("Combo");
             var data = new ExcelChartData(
                 new[] { "Jan", "Feb", "Mar" },
                 new[] {
@@ -178,7 +178,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportMapsComboSeriesTypesByOrderedSeriesWhenIndexesAreNonContiguous() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ComboIdx");
+            ExcelSheet sheet = document.AddWorksheet("ComboIdx");
             var data = new ExcelChartData(
                 new[] { "Jan", "Feb" },
                 new[] {
@@ -200,7 +200,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportMapsSeriesStylesByOrderedSeriesWhenIndexesAreNonContiguous() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("StyleIdx");
+            ExcelSheet sheet = document.AddWorksheet("StyleIdx");
             var data = new ExcelChartData(
                 new[] { "Jan", "Feb" },
                 new[] {
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
         [Fact]
         public void ExcelRange_ImageExportReferencedNumberReaderPreservesBlankPoints() {
             using ExcelDocument document = ExcelDocument.Create(new MemoryStream());
-            ExcelSheet sheet = document.AddWorkSheet("BlankPoints");
+            ExcelSheet sheet = document.AddWorksheet("BlankPoints");
             sheet.CellValue(2, 2, 10);
             sheet.CellValue(4, 2, 30);
             Type utilities = typeof(ExcelDocument).Assembly.GetType("OfficeIMO.Excel.ExcelChartUtils")!;
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportUsesReferencedValuesWhenVerticalSeriesIsNonAdjacent() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("VerticalGap");
+            ExcelSheet sheet = document.AddWorksheet("VerticalGap");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Wrong");
             sheet.CellValue(1, 3, "Actual");
@@ -264,7 +264,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesScatterCacheOrderInMixedCharts() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ComboScatter");
+            ExcelSheet sheet = document.AddWorksheet("ComboScatter");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Sales");
             sheet.CellValue(1, 3, "Trend");
@@ -292,7 +292,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReadsNumericCategoryReferences() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("NumericCats");
+            ExcelSheet sheet = document.AddWorksheet("NumericCats");
             sheet.CellValue(1, 1, "Week");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, 1);
@@ -316,7 +316,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReadsRowOrientedChartReferences() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("RowChart");
+            ExcelSheet sheet = document.AddWorksheet("RowChart");
             sheet.CellValue(1, 2, "Jan");
             sheet.CellValue(1, 3, "Feb");
             sheet.CellValue(1, 4, "Mar");
@@ -501,7 +501,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportIncludesChartsThatOverlapSelectedRange() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartOverlap");
+            ExcelSheet sheet = document.AddWorksheet("ChartOverlap");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -521,7 +521,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsChartAnchorOffsets() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartOffset");
+            ExcelSheet sheet = document.AddWorksheet("ChartOffset");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -543,7 +543,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartBodyTextColorsIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartBodyText");
+            ExcelSheet sheet = document.AddWorksheet("ChartBodyText");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -606,7 +606,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartDataLabelShapeStyleIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartLabelBox");
+            ExcelSheet sheet = document.AddWorksheet("ChartLabelBox");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -673,7 +673,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportResolvesChartSeriesThemeColorsThroughSharedResolver() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartThemeColor");
+            ExcelSheet sheet = document.AddWorksheet("ChartThemeColor");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -714,7 +714,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartAxisTextColorIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartAxisText");
+            ExcelSheet sheet = document.AddWorksheet("ChartAxisText");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -773,7 +773,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartTextFontSizesIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartTextSizes");
+            ExcelSheet sheet = document.AddWorksheet("ChartTextSizes");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -825,7 +825,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsUnresolvedChartFontFamilyFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartFont");
+            ExcelSheet sheet = document.AddWorksheet("ChartFont");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -851,7 +851,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartVerticalValueAxisNumberFormatIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartAxisFormat");
+            ExcelSheet sheet = document.AddWorksheet("ChartAxisFormat");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -885,7 +885,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartHorizontalBarValueAxisNumberFormatIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartBarAxisFormat");
+            ExcelSheet sheet = document.AddWorksheet("ChartBarAxisFormat");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -918,7 +918,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportRendersSecondaryAxisChartSeriesWithoutApproximation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("SecondaryAxis");
+            ExcelSheet sheet = document.AddWorksheet("SecondaryAxis");
             ExcelChartData data = new(
                 new[] { "Q1", "Q2", "Q3" },
                 new[] {
@@ -947,7 +947,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsUnsupportedChartAxisNumberFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartAxisFormatDiag");
+            ExcelSheet sheet = document.AddWorksheet("ChartAxisFormatDiag");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -972,7 +972,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesSimpleChartCategoryAxisNumberFormatIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartCategoryFormat");
+            ExcelSheet sheet = document.AddWorksheet("ChartCategoryFormat");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "1");
@@ -1004,7 +1004,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportReportsUnsupportedChartCategoryAxisDateNumberFormat() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartCategoryFormatDiag");
+            ExcelSheet sheet = document.AddWorksheet("ChartCategoryFormatDiag");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "1");
@@ -1029,7 +1029,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesSuppressedCategoryAxisLabelsIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("NoCategoryLabels");
+            ExcelSheet sheet = document.AddWorksheet("NoCategoryLabels");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1061,7 +1061,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesSuppressedValueAxisLabelsIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("NoValueLabels");
+            ExcelSheet sheet = document.AddWorksheet("NoValueLabels");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1094,7 +1094,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesHiddenLegendIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("NoLegend");
+            ExcelSheet sheet = document.AddWorksheet("NoLegend");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1121,7 +1121,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportHonorsDeletedChartAxes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("DeletedAxes");
+            ExcelSheet sheet = document.AddWorksheet("DeletedAxes");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1156,7 +1156,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesHighChartAxisTickLabelPositionIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartAxisTicks");
+            ExcelSheet sheet = document.AddWorksheet("ChartAxisTicks");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1202,7 +1202,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartAxisMajorTickMarksIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartTickMarks");
+            ExcelSheet sheet = document.AddWorksheet("ChartTickMarks");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1254,7 +1254,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartAxisMinorTickMarksWithPlacementApproximation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartMinorTicks");
+            ExcelSheet sheet = document.AddWorksheet("ChartMinorTicks");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1307,7 +1307,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesMaximumValueAxisCrossingIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartAxisCrossing");
+            ExcelSheet sheet = document.AddWorksheet("ChartAxisCrossing");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1353,7 +1353,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesMaximumCategoryAxisCrossingIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartCategoryCrossing");
+            ExcelSheet sheet = document.AddWorksheet("ChartCategoryCrossing");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1399,7 +1399,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartAxisScaleIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartAxisScale");
+            ExcelSheet sheet = document.AddWorksheet("ChartAxisScale");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1459,7 +1459,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesChartAxisDisplayUnitsIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartDisplayUnits");
+            ExcelSheet sheet = document.AddWorksheet("ChartDisplayUnits");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1491,7 +1491,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportCarriesCategoryAxisReverseOrderIntoSharedRenderer() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartAxisReverse");
+            ExcelSheet sheet = document.AddWorksheet("ChartAxisReverse");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1537,7 +1537,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesHorizontalBarCategoryOrder() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("BarOrder");
+            ExcelSheet sheet = document.AddWorksheet("BarOrder");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");
@@ -1578,7 +1578,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportKeepsHigherPriorityDataBarsBeforeStopIfTrueFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ConditionalPriority");
+            ExcelSheet sheet = document.AddWorksheet("ConditionalPriority");
             sheet.CellValue(1, 1, 10);
             sheet.CellValue(2, 1, 20);
             sheet.CellValue(3, 1, 30);
@@ -1604,7 +1604,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportAllowsDistinctChartBodyTextColorBuckets() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("ChartTextConflict");
+            ExcelSheet sheet = document.AddWorksheet("ChartTextConflict");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Actual");
             sheet.CellValue(2, 1, "Jan");

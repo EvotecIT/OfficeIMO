@@ -3950,7 +3950,7 @@
             Adds a small back link to the TOC on each worksheet at the given cell (default A2).
             </summary>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.RemoveWorkSheet(System.String)">
+        <member name="M:OfficeIMO.Excel.ExcelDocument.RemoveWorksheet(System.String)">
             <summary>
             Removes a worksheet by name, deleting its part and entry in the workbook.
             </summary>
@@ -3967,7 +3967,7 @@
             Imports selected or all worksheets from another workbook into this workbook.
             </summary>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorkSheet(System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
+        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorksheet(System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
             <summary>
             Copies a worksheet within this workbook.
             </summary>
@@ -3976,12 +3976,7 @@
             <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
             <returns>The copied worksheet.</returns>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorksheet(System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
-            <summary>
-            Copies a worksheet within this workbook.
-            </summary>
-        </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorkSheet(OfficeIMO.Excel.ExcelSheet,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
+        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorksheet(OfficeIMO.Excel.ExcelSheet,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
             <summary>
             Copies a worksheet within this workbook.
             </summary>
@@ -3990,12 +3985,7 @@
             <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
             <returns>The copied worksheet.</returns>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorksheet(OfficeIMO.Excel.ExcelSheet,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
-            <summary>
-            Copies a worksheet within this workbook.
-            </summary>
-        </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorkSheetFrom(OfficeIMO.Excel.ExcelDocument,System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
+        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorksheetFrom(OfficeIMO.Excel.ExcelDocument,System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
             <summary>
             Copies a worksheet from another workbook into this workbook.
             </summary>
@@ -4005,7 +3995,7 @@
             <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
             <returns>The copied worksheet.</returns>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorkSheetFrom(OfficeIMO.Excel.ExcelDocument,System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode,OfficeIMO.Excel.ExcelWorksheetCopyOptions)">
+        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorksheetFrom(OfficeIMO.Excel.ExcelDocument,System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode,OfficeIMO.Excel.ExcelWorksheetCopyOptions)">
             <summary>
             Copies a worksheet from another workbook into this workbook.
             </summary>
@@ -4016,29 +4006,9 @@
             <param name="options">Copy strategy options.</param>
             <returns>The copied worksheet.</returns>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorksheetFrom(OfficeIMO.Excel.ExcelDocument,System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode)">
-            <summary>
-            Copies a worksheet from another workbook into this workbook.
-            </summary>
-        </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.CopyWorksheetFrom(OfficeIMO.Excel.ExcelDocument,System.String,System.String,OfficeIMO.Excel.SheetNameValidationMode,OfficeIMO.Excel.ExcelWorksheetCopyOptions)">
-            <summary>
-            Copies a worksheet from another workbook into this workbook.
-            </summary>
-        </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.ReorderWorkSheet(System.String,System.Int32)">
-            <summary>
-            Reorders a worksheet by name using a zero-based target index.
-            </summary>
-        </member>
         <member name="M:OfficeIMO.Excel.ExcelDocument.ReorderWorksheet(System.String,System.Int32)">
             <summary>
             Reorders a worksheet by name using a zero-based target index.
-            </summary>
-        </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.ReorderWorkSheet(OfficeIMO.Excel.ExcelSheet,System.Int32)">
-            <summary>
-            Reorders a worksheet using a zero-based target index.
             </summary>
         </member>
         <member name="M:OfficeIMO.Excel.ExcelDocument.ReorderWorksheet(OfficeIMO.Excel.ExcelSheet,System.Int32)">
@@ -4067,21 +4037,21 @@
             Creates a new Excel document with a single worksheet.
             </summary>
             <param name="filePath">Path to the new file.</param>
-            <param name="workSheetName">Name of the worksheet.</param>
+            <param name="worksheetName">Name of the worksheet.</param>
             <returns>Created <see cref="T:OfficeIMO.Excel.ExcelDocument"/> instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.AddWorkSheet(System.String)">
+        <member name="M:OfficeIMO.Excel.ExcelDocument.AddWorksheet(System.String)">
             <summary>
             Adds a worksheet to the document.
             </summary>
-            <param name="workSheetName">Worksheet name.</param>
+            <param name="worksheetName">Worksheet name.</param>
             <returns>Created <see cref="T:OfficeIMO.Excel.ExcelSheet"/> instance.</returns>
         </member>
-        <member name="M:OfficeIMO.Excel.ExcelDocument.AddWorkSheet(System.String,OfficeIMO.Excel.SheetNameValidationMode)">
+        <member name="M:OfficeIMO.Excel.ExcelDocument.AddWorksheet(System.String,OfficeIMO.Excel.SheetNameValidationMode)">
             <summary>
             Adds a worksheet to the document with control over name validation.
             </summary>
-            <param name="workSheetName">Requested worksheet name.</param>
+            <param name="worksheetName">Requested worksheet name.</param>
             <param name="validationMode">How to validate the sheet name: None (no checks), Sanitize (coerce), or Strict (throw on invalid).</param>
             <returns>Created <see cref="T:OfficeIMO.Excel.ExcelSheet"/> instance.</returns>
         </member>

@@ -9,7 +9,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_RoundTripsMergedCellsWithoutDuplicatingCoveredCells() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorkSheet("Merged");
+        ExcelSheet sheet = workbook.AddWorksheet("Merged");
         sheet.CellValue(1, 1, "Quarterly result");
         sheet.CellValue(1, 4, "Status");
         sheet.CellValue(4, 2, "Approved");
@@ -67,7 +67,7 @@ public class HtmlOfficeAdaptersExcelMergedCells {
     [Fact]
     public void ExcelHtml_TruncationClipsMergedRangeToExportedRows() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = workbook.AddWorkSheet("Clipped");
+        ExcelSheet sheet = workbook.AddWorksheet("Clipped");
         sheet.CellValue(1, 1, "Visible");
         sheet.MergeRange("A1:B3");
 

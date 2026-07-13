@@ -16,7 +16,7 @@ Tables in Excel provide structured references, automatic filtering, and styling.
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("tables.xlsx");
-var sheet = workbook.AddWorkSheet("Sales");
+var sheet = workbook.AddWorksheet("Sales");
 
 // Populate data
 sheet.Cells["A1"].Value = "Product";

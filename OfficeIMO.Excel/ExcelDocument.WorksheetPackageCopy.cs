@@ -8,7 +8,7 @@ using System.Linq;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private ExcelSheet CopyWorkSheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
+        private ExcelSheet CopyWorksheetFromValues(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
             ExcelSheet sourceSheet = sourceDocument.GetSheet(sourceSheetName);
             string usedRange = sourceSheet.GetUsedRangeA1();
             var (startRow, startColumn, _, _) = A1.ParseRange(usedRange);
@@ -17,7 +17,7 @@ namespace OfficeIMO.Excel {
                 values = reader.GetSheet(sourceSheet.Name).ReadRange(usedRange);
             }
 
-            ExcelSheet targetSheet = AddWorkSheet(newSheetName, validationMode);
+            ExcelSheet targetSheet = AddWorksheet(newSheetName, validationMode);
             for (int rowOffset = 0; rowOffset < values.GetLength(0); rowOffset++) {
                 for (int columnOffset = 0; columnOffset < values.GetLength(1); columnOffset++) {
                     object? value = values[rowOffset, columnOffset];
@@ -31,11 +31,11 @@ namespace OfficeIMO.Excel {
             return targetSheet;
         }
 
-        private ExcelSheet CopyWorkSheetFromPackage(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
-            return CopyWorkSheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode, rewriteCopiedReferences: true, copyReferencedDefinedNames: true).Sheet;
+        private ExcelSheet CopyWorksheetFromPackage(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode) {
+            return CopyWorksheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode, rewriteCopiedReferences: true, copyReferencedDefinedNames: true).Sheet;
         }
 
-        private WorksheetPackageCopyResult CopyWorkSheetFromPackage(
+        private WorksheetPackageCopyResult CopyWorksheetFromPackage(
             ExcelDocument sourceDocument,
             string sourceSheetName,
             string newSheetName,

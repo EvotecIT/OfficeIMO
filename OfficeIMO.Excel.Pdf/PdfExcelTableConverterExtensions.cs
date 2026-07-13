@@ -135,7 +135,7 @@ namespace OfficeIMO.Excel.Pdf {
                 PdfCore.PdfLogicalTableData data = extraction.Data;
                 string requestedTableName = BuildTableName(options.TableNamePrefix, extraction, i);
                 DataTable dataTable = ToDataTable(requestedTableName, data, options);
-                ExcelSheet sheet = workbook.AddWorkSheet(BuildSheetName(options.SheetNamePrefix, extraction, i), SheetNameValidationMode.Sanitize);
+                ExcelSheet sheet = workbook.AddWorksheet(BuildSheetName(options.SheetNamePrefix, extraction, i), SheetNameValidationMode.Sanitize);
                 string range = sheet.InsertDataTableAsTable(
                     dataTable,
                     tableName: requestedTableName,
@@ -192,7 +192,7 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static void AddEmptyWorkbookSheet(ExcelDocument workbook, PdfExcelTableImportOptions options) {
-            ExcelSheet sheet = workbook.AddWorkSheet(options.EmptyWorkbookSheetName, SheetNameValidationMode.Sanitize);
+            ExcelSheet sheet = workbook.AddWorksheet(options.EmptyWorkbookSheetName, SheetNameValidationMode.Sanitize);
             sheet.CellValue(1, 1, "No PDF tables detected.");
         }
 

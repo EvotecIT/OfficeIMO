@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportPreservesPremiumBorderStylesInSvgAndPng() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Borders");
+            ExcelSheet sheet = document.AddWorksheet("Borders");
             for (int column = 1; column <= 5; column++) {
                 sheet.CellValue(1, column, "B" + column.ToString(System.Globalization.CultureInfo.InvariantCulture));
                 sheet.SetColumnWidth(column, 11);

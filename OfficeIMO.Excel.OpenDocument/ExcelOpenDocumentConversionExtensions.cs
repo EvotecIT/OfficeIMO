@@ -193,7 +193,7 @@ public static class ExcelOpenDocumentConversionExtensions {
         ExcelSheet? activeTarget = null;
         ExcelSheet? firstTarget = null;
         foreach (OdsSheet odsSheet in source.Sheets) {
-            ExcelSheet sheet = target.AddWorkSheet(odsSheet.Name);
+            ExcelSheet sheet = target.AddWorksheet(odsSheet.Name);
             firstTarget ??= sheet;
             worksheetCount++;
             if (!string.Equals(sheet.Name, odsSheet.Name, StringComparison.Ordinal)) renamedSheets++;
@@ -280,7 +280,7 @@ public static class ExcelOpenDocumentConversionExtensions {
             }
         }
 
-        if (target.Sheets.Count == 0) activeTarget = target.AddWorkSheet("Sheet1");
+        if (target.Sheets.Count == 0) activeTarget = target.AddWorksheet("Sheet1");
         else if (activeTarget == null) {
             activeTarget = firstTarget!;
             activeTarget.SetHidden(false);

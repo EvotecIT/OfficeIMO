@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetComments.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Comments");
+                var sheet = document.AddWorksheet("Comments");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetComment(1, 1, "First comment", author: "Tester", initials: "TT");
                 Assert.True(sheet.HasComment(1, 1));
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetCommentsMultiline.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Comments");
+                var sheet = document.AddWorksheet("Comments");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetComment(1, 1, "Line 1\nLine 2", author: "Tester", initials: "TT");
                 document.Save();
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetComments.Filtered.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Comments");
+                var sheet = document.AddWorksheet("Comments");
                 sheet.SetComment("A1", "Review total", author: "Alice", initials: "AA");
                 sheet.SetComment("B2", "Review status", author: "Alice", initials: "AA");
                 sheet.SetComment("C3", "Keep status", author: "Bob", initials: "BB");
@@ -112,7 +112,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetComments.RichText.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Comments");
+                var sheet = document.AddWorksheet("Comments");
                 sheet.SetCommentRichText("A1", new[] {
                     new ExcelRichTextRun("Important ") { Bold = true, FontColor = "#FF0000" },
                     new ExcelRichTextRun("note") { Italic = true, Underline = true, Strikethrough = true, FontName = "Arial", FontSize = 14D }
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
             const string commentId = "{22222222-2222-2222-2222-222222222222}";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Threaded");
+                var sheet = document.AddWorksheet("Threaded");
                 sheet.CellValue(1, 1, "Revenue");
                 document.Save();
             }
@@ -239,7 +239,7 @@ namespace OfficeIMO.Tests {
             var png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Images");
+                var sheet = document.AddWorksheet("Images");
 
                 var image = sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10,
                     name: "Logo", altText: "Company logo");
@@ -273,7 +273,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetProtection.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Protected");
+                var sheet = document.AddWorksheet("Protected");
                 var options = new ExcelSheetProtectionOptions {
                     AllowSelectLockedCells = false,
                     AllowSelectUnlockedCells = false,
@@ -323,7 +323,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sparklines");
+                var sheet = document.AddWorksheet("Sparklines");
                 for (int i = 0; i < 6; i++) {
                     sheet.CellValue(2, 2 + i, (double)(i + 1));
                 }
@@ -363,7 +363,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.Fluent.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sparklines");
+                var sheet = document.AddWorksheet("Sparklines");
                 for (int i = 0; i < 6; i++) {
                     sheet.CellValue(2, 2 + i, (double)(i + 1));
                 }
@@ -405,7 +405,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.MultiRow.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sparklines");
+                var sheet = document.AddWorksheet("Sparklines");
                 for (int row = 2; row <= 4; row++) {
                     sheet.CellValue(row, 3, (double)row);
                     sheet.CellValue(row, 4, (double)(row + 10));
@@ -439,7 +439,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.MultiColumn.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sparklines");
+                var sheet = document.AddWorksheet("Sparklines");
                 for (int row = 2; row <= 4; row++) {
                     sheet.CellValue(row, 3, (double)row);
                     sheet.CellValue(row, 4, (double)(row + 10));
@@ -473,7 +473,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetSparklines.InvalidShape.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sparklines");
+                var sheet = document.AddWorksheet("Sparklines");
 
                 var exception = Assert.Throws<ArgumentException>(() => sheet.AddSparklines("C2:D4", "E2:F4"));
                 Assert.Equal("locationRange", exception.ParamName);
@@ -485,7 +485,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetGridlines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Gridlines");
+                var sheet = document.AddWorksheet("Gridlines");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetGridlinesVisible(false);
                 document.Save();
@@ -521,7 +521,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetRightToLeft.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("RTL");
+                var sheet = document.AddWorksheet("RTL");
                 sheet.CellValue(1, 1, "RTL");
                 sheet.SetRightToLeft(true);
                 Assert.True(sheet.RightToLeft);
@@ -562,7 +562,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetDefaultRowsAndColumns.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Rows");
+                var sheet = document.AddWorksheet("Rows");
                 sheet.CellValue(1, 1, "Default height");
                 sheet.SetDefaultRowHeight(18.5d);
                 sheet.SetDefaultColumnWidth(12.25d);
@@ -616,7 +616,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetOutlines.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Outlines");
+                var sheet = document.AddWorksheet("Outlines");
                 sheet.CellValue(1, 1, "Grouped");
                 sheet.SetRowOutline(3, 2, collapsed: true);
                 sheet.SetColumnOutline(2, 1, collapsed: true);
@@ -661,7 +661,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetTabColor.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Colored");
+                var sheet = document.AddWorksheet("Colored");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetTabColor("#336699");
                 document.Save();
@@ -695,7 +695,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetVeryHidden.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Internal");
+                var sheet = document.AddWorksheet("Internal");
                 sheet.CellValue(1, 1, "Hidden");
                 sheet.SetVeryHidden(true);
                 Assert.True(sheet.Hidden);
@@ -733,7 +733,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetViewInfo.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("View");
+                var sheet = document.AddWorksheet("View");
                 sheet.CellValue(1, 1, "Header");
                 sheet.Freeze(2, 1);
                 sheet.SetGridlinesVisible(false);
@@ -762,7 +762,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetViewOptions.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("View");
+                var sheet = document.AddWorksheet("View");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetViewOptions(showGridlines: false, rightToLeft: true, zoomScale: 125, zoomScaleNormal: 100, view: ExcelWorksheetViewKind.PageLayout);
                 document.Save();
@@ -802,7 +802,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(stream, new ExcelCreateOptions {
                 PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             })) {
-                var sheet = document.AddWorkSheet("View");
+                var sheet = document.AddWorksheet("View");
                 sheet.CellValue(1, 1, "Header");
                 sheet.SetViewOptions(showGridlines: false, rightToLeft: true);
             }
@@ -820,11 +820,11 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorkbookActiveWorksheet.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var summary = document.AddWorkSheet("Summary");
+                var summary = document.AddWorksheet("Summary");
                 summary.CellValue(1, 1, "Summary");
-                var details = document.AddWorkSheet("Details");
+                var details = document.AddWorksheet("Details");
                 details.CellValue(1, 1, "Details");
-                var archive = document.AddWorkSheet("Archive");
+                var archive = document.AddWorksheet("Archive");
                 archive.CellValue(1, 1, "Archive");
                 document.SetActiveWorksheet(details);
                 document.Save();
@@ -859,7 +859,7 @@ namespace OfficeIMO.Tests {
             var filePath = Path.Combine(_directoryWithFiles, "ExcelWorksheetOutlineGroups.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Outline");
+                var sheet = document.AddWorksheet("Outline");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "North");
                 sheet.CellValue(3, 1, "South");

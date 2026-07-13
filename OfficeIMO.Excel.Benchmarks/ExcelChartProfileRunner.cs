@@ -80,7 +80,7 @@ internal static class ExcelChartProfileRunner {
         }
 
         stageWatch.Restart();
-        var sheet = document.AddWorkSheet("Data");
+        var sheet = document.AddWorksheet("Data");
         AddStage(totals, "AddWorksheet", stageWatch.Elapsed.TotalMilliseconds);
 
         stageWatch.Restart();

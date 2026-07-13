@@ -135,7 +135,7 @@ namespace OfficeIMO.Tests {
 
         private static string CreateDesktopExcelValuesWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Values");
+            ExcelSheet sheet = document.AddWorksheet("Values");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(1, 2, "Amount");
             sheet.CellValue(2, 1, "Alpha");
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
 
         private static string CreateDesktopExcelTableWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Data");
+            ExcelSheet sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Region");
             sheet.CellValue(1, 2, "Score");
             sheet.CellValue(2, 1, "North");
@@ -168,7 +168,7 @@ namespace OfficeIMO.Tests {
 
         private static string CreateDesktopExcelFormattingWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Formatting");
+            ExcelSheet sheet = document.AddWorksheet("Formatting");
             sheet.CellValue(1, 1, "Score");
             sheet.CellValue(2, 1, 42d);
             sheet.CellValue(3, 1, 87d);
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
         private static string CreateDesktopExcelChartWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
             document.DefaultChartStylePreset = ExcelChartStylePreset.Default;
-            ExcelSheet sheet = document.AddWorkSheet("Summary");
+            ExcelSheet sheet = document.AddWorksheet("Summary");
 
             var data = new ExcelChartData(
                 new[] { "Q1", "Q2", "Q3", "Q4" },
@@ -202,7 +202,7 @@ namespace OfficeIMO.Tests {
 
         private static string CreateDesktopExcelRecipeChartWorkbook(string filePath) {
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+            ExcelSheet sheet = document.AddWorksheet("Dashboard");
             sheet.CellValue(1, 1, "Month");
             sheet.CellValue(1, 2, "Revenue");
             sheet.CellValue(2, 1, "Jan");

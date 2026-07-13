@@ -25,7 +25,7 @@ namespace OfficeIMO.Excel.Fluent {
         /// <summary>Creates and selects a new worksheet.</summary>
         /// <param name="name">Optional sheet name.</param>
         public SheetBuilder AddSheet(string name = "") {
-            Sheet = _fluent.Workbook.AddWorkSheet(name);
+            Sheet = _fluent.Workbook.AddWorksheet(name);
             return this;
         }
 

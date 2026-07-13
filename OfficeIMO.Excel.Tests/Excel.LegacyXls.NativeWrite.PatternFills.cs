@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("PatternFills");
+                    ExcelSheet sheet = document.AddWorksheet("PatternFills");
                     sheet.CellValue(1, 1, "Gray125");
                     sheet.CellAt(1, 1).SetFillColor("#EEEEEE");
 

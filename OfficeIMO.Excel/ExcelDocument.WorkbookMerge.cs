@@ -32,15 +32,15 @@ namespace OfficeIMO.Excel {
                 string requestedName = (options.SheetNamePrefix ?? string.Empty) + sourceSheet.Name;
                 ExcelSheet targetSheet;
                 if (options.CopyMode == ExcelWorksheetCopyMode.Values) {
-                    targetSheet = CopyWorkSheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
+                    targetSheet = CopyWorksheetFromValues(sourceDocument, sourceSheet.Name, requestedName, options.SheetNameValidationMode);
                 } else if (ReferenceEquals(sourceDocument, this)) {
-                    WorksheetPackageCopyResult copyResult = CopyWorkSheetWithinWorkbook(sourceSheet, requestedName, options.SheetNameValidationMode);
+                    WorksheetPackageCopyResult copyResult = CopyWorksheetWithinWorkbook(sourceSheet, requestedName, options.SheetNameValidationMode);
                     targetSheet = copyResult.Sheet;
                     foreach (var tableName in copyResult.TableNameMap) {
                         tableNameMap[tableName.Key] = tableName.Value;
                     }
                 } else {
-                    WorksheetPackageCopyResult copyResult = CopyWorkSheetFromPackage(
+                    WorksheetPackageCopyResult copyResult = CopyWorksheetFromPackage(
                         sourceDocument,
                         sourceSheet.Name,
                         requestedName,

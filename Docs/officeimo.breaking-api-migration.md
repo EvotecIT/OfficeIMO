@@ -63,6 +63,9 @@ The canonical PDF conversion-result method is `ToPdfDocumentResult()`. Source-ex
 | `WordTable.AutoFit` | `WordTable.LayoutMode` |
 | `ExcelDocument.MergeWorkSheets(...)` / `JoinWorkSheets(...)` | `ExcelDocument.MergeWorksheets(...)` |
 | `ExcelDocument.CompareWorkSheets(...)` | `ExcelDocument.CompareWorksheets(...)` |
+| `ExcelDocument.AddWorkSheet(...)` / `RemoveWorkSheet(...)` | `ExcelDocument.AddWorksheet(...)` / `RemoveWorksheet(...)` |
+| `ExcelDocument.CopyWorkSheet(...)` / `CopyWorkSheetFrom(...)` | `ExcelDocument.CopyWorksheet(...)` / `CopyWorksheetFrom(...)` |
+| `ExcelDocument.ReorderWorkSheet(...)` | `ExcelDocument.ReorderWorksheet(...)` |
 | `ExcelDocument.JoinWorkbookFrom(...)` | `ExcelDocument.MergeWorksheets(...)` |
 | `ExcelDocument.CreateTableOfContents(...)` | `ExcelDocument.AddTableOfContents(...)` |
 | `ExcelSheet.SetCellValues(...)` | `ExcelSheet.CellValues(...)` |
@@ -77,6 +80,7 @@ The canonical PDF conversion-result method is `ToPdfDocumentResult()`. Source-ex
 | `ToWordResult()` for PDF input | `ToWordDocumentFromPdfResult()` |
 | `PdfSaveResult.ConversionWarnings` / `PdfBytesResult.ConversionWarnings` | `Warnings` and `Report` |
 | `RtfDocument.ToMemoryStream()` | `RtfDocument.ToStream()` |
+| `RtfDocument.ToHtmlMemoryStream()` | `RtfDocument.ToHtmlStream()` |
 | `ToRtfMemoryStream()` / `ToRtfMemoryStreamAsync()` | `ToRtfStream()` / `ToRtfStreamAsync()` |
 | `SavePdfAsWord()` / `SavePdfAsRtf()` | `SaveAsWordFromPdf()` / `SaveAsRtfFromPdf()`; use the `*FromPdfFile()` form for a source path |
 | `SavePdfTablesAsExcel()` / `SavePdfTablesAsWord()` / `SavePdfTablesAsPowerPoint()` | `SaveAsExcelFromPdfTables()` / `SaveAsWordFromPdfTables()` / `SaveAsPowerPointFromPdfTables()` |

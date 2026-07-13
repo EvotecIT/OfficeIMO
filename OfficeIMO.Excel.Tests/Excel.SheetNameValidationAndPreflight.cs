@@ -13,11 +13,11 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class ExcelSheetNameValidationAndPreflightTests {
         [Fact]
-        public void AddWorkSheet_Default_SanitizesInvalidCharsAndDuplicates() {
+        public void AddWorksheet_Default_SanitizesInvalidCharsAndDuplicates() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var first = doc.AddWorkSheet("Q4:Revenue/Forecast?*");
-                var second = doc.AddWorkSheet("Q4:Revenue/Forecast?*");
+                var first = doc.AddWorksheet("Q4:Revenue/Forecast?*");
+                var second = doc.AddWorksheet("Q4:Revenue/Forecast?*");
 
                 Assert.Equal("Q4_Revenue_Forecast", first.Name);
                 Assert.Equal("Q4_Revenue_Forecast (2)", second.Name);
@@ -26,12 +26,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void AddWorkSheet_Default_BlankNamesUseUniqueExcelStyleSheetNames() {
+        public void AddWorksheet_Default_BlankNamesUseUniqueExcelStyleSheetNames() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var first = doc.AddWorkSheet();
-                var second = doc.AddWorkSheet("   ");
-                var third = doc.AddWorkSheet("???");
+                var first = doc.AddWorksheet();
+                var second = doc.AddWorksheet("   ");
+                var third = doc.AddWorksheet("???");
 
                 Assert.Equal("Sheet1", first.Name);
                 Assert.Equal("Sheet2", second.Name);
@@ -44,7 +44,7 @@ namespace OfficeIMO.Tests {
         public void GetOrCreateSheet_Sanitize_ReusesExistingSanitizedSheet() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var created = doc.AddWorkSheet("Data??");
+                var created = doc.AddWorksheet("Data??");
                 var resolved = doc.GetOrCreateSheet("Data??", SheetNameValidationMode.Sanitize);
 
                 Assert.Single(doc.Sheets);
@@ -55,14 +55,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void AddWorkSheet_Sanitize_InvalidCharsAndDuplicate() {
+        public void AddWorksheet_Sanitize_InvalidCharsAndDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var s1 = doc.AddWorkSheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
+                var s1 = doc.AddWorksheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
                 // invalid characters replaced, trimmed; consecutive underscores collapsed by sanitizer
                 Assert.Equal("Q4_Revenue_Forecast", s1.Name.Trim());
 
-                var s2 = doc.AddWorkSheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
+                var s2 = doc.AddWorksheet("Q4:Revenue/Forecast?*", SheetNameValidationMode.Sanitize);
                 Assert.NotEqual(s1.Name, s2.Name);
                 Assert.EndsWith("(2)", s2.Name);
             }
@@ -70,26 +70,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void AddWorkSheet_Strict_ThrowsOnInvalidOrDuplicate() {
+        public void AddWorksheet_Strict_ThrowsOnInvalidOrDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
                 // Invalid chars
-                Assert.Throws<ArgumentException>(() => doc.AddWorkSheet("Bad:Name", SheetNameValidationMode.Strict));
+                Assert.Throws<ArgumentException>(() => doc.AddWorksheet("Bad:Name", SheetNameValidationMode.Strict));
 
                 // Valid then duplicate
-                var s1 = doc.AddWorkSheet("Data", SheetNameValidationMode.Strict);
+                var s1 = doc.AddWorksheet("Data", SheetNameValidationMode.Strict);
                 Assert.NotNull(s1);
-                Assert.Throws<ArgumentException>(() => doc.AddWorkSheet("Data", SheetNameValidationMode.Strict));
+                Assert.Throws<ArgumentException>(() => doc.AddWorksheet("Data", SheetNameValidationMode.Strict));
             }
             File.Delete(path);
         }
 
         [Fact]
-        public void RenameWorkSheet_StrictSetter_ThrowsOnInvalidOrDuplicate() {
+        public void RenameWorksheet_StrictSetter_ThrowsOnInvalidOrDuplicate() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var alpha = doc.AddWorkSheet("Alpha", SheetNameValidationMode.Strict);
-                var beta = doc.AddWorkSheet("Beta", SheetNameValidationMode.Strict);
+                var alpha = doc.AddWorksheet("Alpha", SheetNameValidationMode.Strict);
+                var beta = doc.AddWorksheet("Beta", SheetNameValidationMode.Strict);
 
                 Assert.Throws<ArgumentException>(() => alpha.Name = "Bad:Name");
                 Assert.Throws<ArgumentException>(() => beta.Name = "Alpha");
@@ -104,7 +104,7 @@ namespace OfficeIMO.Tests {
         public void Preflight_RemovesEmptyAndOrphanedWorksheetElements() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Preflight");
+                var sheet = doc.AddWorksheet("Preflight");
 
                 // Use reflection to access internal WorksheetPart and Worksheet to simulate problematic structures
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -155,7 +155,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Preflight");
+                var sheet = doc.AddWorksheet("Preflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -197,7 +197,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("CommentsPreflight");
+                var sheet = doc.AddWorksheet("CommentsPreflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -248,7 +248,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("HeaderFooterPreflight");
+                var sheet = doc.AddWorksheet("HeaderFooterPreflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -293,7 +293,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("ConditionalFormattingPreflight");
+                var sheet = doc.AddWorksheet("ConditionalFormattingPreflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("ConditionalFormattingPriority");
+                var sheet = doc.AddWorksheet("ConditionalFormattingPriority");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -383,7 +383,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("DrawingPreflight");
+                var sheet = doc.AddWorksheet("DrawingPreflight");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -418,7 +418,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("BrokenDrawing");
+                var sheet = doc.AddWorksheet("BrokenDrawing");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -482,7 +482,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddWorkSheet("Data");
+                doc.AddWorksheet("Data");
                 var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
                 workbook.DefinedNames = new DefinedNames(
                     new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = 0U, Text = string.Empty },
@@ -511,8 +511,8 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddWorkSheet("Data");
-                doc.AddWorkSheet("Summary");
+                doc.AddWorksheet("Data");
+                doc.AddWorksheet("Summary");
                 var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
                 workbook.DefinedNames = new DefinedNames(
                     new DefinedName { Name = "_xlnm.Print_Area", LocalSheetId = 0U, Text = "'Summary'!$A$1:$B$2" },
@@ -541,7 +541,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Filters");
+                var sheet = doc.AddWorksheet("Filters");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -584,7 +584,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Filters");
+                var sheet = doc.AddWorksheet("Filters");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -629,7 +629,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Filters");
+                var sheet = doc.AddWorksheet("Filters");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -665,7 +665,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Filters");
+                var sheet = doc.AddWorksheet("Filters");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -718,7 +718,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Tables");
+                var sheet = doc.AddWorksheet("Tables");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -759,7 +759,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Tables");
+                var sheet = doc.AddWorksheet("Tables");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -798,7 +798,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Tables");
+                var sheet = doc.AddWorksheet("Tables");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(1, 3, "Note");
@@ -849,7 +849,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Protection");
+                var sheet = doc.AddWorksheet("Protection");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -886,7 +886,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Protection");
+                var sheet = doc.AddWorksheet("Protection");
                 sheet.Protect();
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -948,7 +948,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Protection");
+                var sheet = doc.AddWorksheet("Protection");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);
@@ -990,7 +990,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Links");
+                var sheet = doc.AddWorksheet("Links");
                 sheet.SetHyperlink(1, 1, "https://example.com", display: "Example");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1024,7 +1024,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Links");
+                var sheet = doc.AddWorksheet("Links");
                 sheet.SetHyperlink(1, 1, "https://example.com/one", display: "One");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1057,7 +1057,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Links");
+                var sheet = doc.AddWorksheet("Links");
                 sheet.SetHyperlink(1, 1, "https://example.com/one", display: "One");
                 sheet.SetHyperlink(1, 2, "https://example.com/two", display: "Two");
 
@@ -1097,7 +1097,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Calc");
+                var sheet = doc.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellFormula(3, 1, "SUM(A1:A2)");
@@ -1140,7 +1140,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Calc");
+                var sheet = doc.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, "Value");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
@@ -1171,7 +1171,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Styles");
+                var sheet = doc.AddWorksheet("Styles");
                 sheet.CellValue(1, 1, "Value");
 
                 var workbookPart = doc._spreadSheetDocument.WorkbookPart!;
@@ -1233,7 +1233,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Strings");
+                var sheet = doc.AddWorksheet("Strings");
                 sheet.CellValue(1, 1, "Alpha");
                 sheet.CellValue(2, 1, "Beta");
 
@@ -1272,7 +1272,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Strings");
+                var sheet = doc.AddWorksheet("Strings");
                 sheet.CellValue(1, 1, "Alpha");
                 sheet.CellValue(2, 1, "Beta");
 
@@ -1310,7 +1310,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Strings");
+                var sheet = doc.AddWorksheet("Strings");
                 sheet.CellValue(1, 1, "Alpha");
                 doc.Save(path);
             }
@@ -1350,7 +1350,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("View");
+                var sheet = doc.AddWorksheet("View");
                 sheet.SetGridlinesVisible(false);
 
                 var workbook = doc._spreadSheetDocument.WorkbookPart!.Workbook;
@@ -1394,7 +1394,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("View");
+                var sheet = doc.AddWorksheet("View");
                 sheet.SetGridlinesVisible(false);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1440,7 +1440,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Freeze");
+                var sheet = doc.AddWorksheet("Freeze");
                 sheet.Freeze(topRows: 1, leftCols: 1);
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1494,7 +1494,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Print");
+                var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1558,7 +1558,7 @@ namespace OfficeIMO.Tests {
         public void ManualPageBreaks_CanBeRemovedAndCleared() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Print");
+                var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
 
                 Assert.Throws<ArgumentOutOfRangeException>(() => sheet.AddManualRowPageBreak(A1.MaxRows + 1, save: false));
@@ -1603,7 +1603,7 @@ namespace OfficeIMO.Tests {
         public void ManualPageBreaks_ClearOnlyManualBreaks() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Print");
+                var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
                 sheet.AddManualRowPageBreak(3, save: false);
 
@@ -1638,7 +1638,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Print");
+                var sheet = doc.AddWorksheet("Print");
                 sheet.CellValue(1, 1, "Value");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
@@ -1695,7 +1695,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Dimension");
+                var sheet = doc.AddWorksheet("Dimension");
                 sheet.CellValue(2, 2, "Value");
                 sheet.CellValue(4, 3, "Other");
 
@@ -1738,7 +1738,7 @@ namespace OfficeIMO.Tests {
             string savePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (var doc = ExcelDocument.Create(path)) {
-                var sheet = doc.AddWorkSheet("Dimension");
+                var sheet = doc.AddWorksheet("Dimension");
 
                 var wsPartField = typeof(ExcelSheet).GetField("_worksheetPart", BindingFlags.NonPublic | BindingFlags.Instance);
                 Assert.NotNull(wsPartField);

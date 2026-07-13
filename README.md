@@ -134,7 +134,7 @@ document.Save();
 using OfficeIMO.Excel;
 
 using var workbook = ExcelDocument.Create("sales.xlsx");
-var sheet = workbook.AddWorkSheet("Sales");
+var sheet = workbook.AddWorksheet("Sales");
 
 sheet.CellValue(1, 1, "Product");
 sheet.CellValue(1, 2, "Revenue");

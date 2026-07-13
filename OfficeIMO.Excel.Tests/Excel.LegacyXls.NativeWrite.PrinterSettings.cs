@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("PrinterSettings");
+                    ExcelSheet sheet = document.AddWorksheet("PrinterSettings");
                     sheet.CellValue(1, 1, "Printer settings");
 
                     SpreadsheetPrinterSettingsPart printerSettingsPart = sheet.WorksheetPart.AddNewPart<SpreadsheetPrinterSettingsPart>();

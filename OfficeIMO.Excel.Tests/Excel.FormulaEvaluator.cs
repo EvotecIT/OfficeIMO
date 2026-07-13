@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.IndexMatch.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(2, 1, "EU");
@@ -49,7 +49,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.IndexMatchUnsupported.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "EU");
                 sheet.CellValue(1, 2, "US");
                 sheet.CellValue(2, 1, 10d);
@@ -72,7 +72,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.ApproximateLookup.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Lookup");
+                ExcelSheet sheet = document.AddWorksheet("Lookup");
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellValue(2, 1, 20d);
                 sheet.CellValue(3, 1, 30d);
@@ -129,7 +129,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.ConditionalAggregates.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Quarter");
                 sheet.CellValue(1, 3, "Amount");
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.XLookupFallback.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(1, 3, "Owner");
@@ -238,7 +238,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.IfTextResults.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(1, 3, "Owner");
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.TextFunction.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Summary");
+                ExcelSheet sheet = document.AddWorksheet("Summary");
                 sheet.CellValue(1, 1, "East");
                 sheet.CellValue(1, 2, 1234.5d);
                 sheet.CellValue(1, 3, 0.257d);
@@ -322,7 +322,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.TextCaseFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Labels");
+                ExcelSheet sheet = document.AddWorksheet("Labels");
                 sheet.CellValue(1, 1, "north region");
                 sheet.CellValue(2, 1, "Q1-sales review");
                 sheet.CellValue(3, 1, "  MIXED   spacing  ");
@@ -362,7 +362,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.TextCleanupFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Labels");
+                ExcelSheet sheet = document.AddWorksheet("Labels");
                 sheet.CellValue(1, 1, "North - Q1 - Draft");
                 sheet.CellValue(2, 1, "1,234.50");
                 sheet.CellValue(3, 1, "west region");
@@ -406,7 +406,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.TextBeforeAfterFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Labels");
+                ExcelSheet sheet = document.AddWorksheet("Labels");
                 sheet.CellValue(1, 1, "North - Q1 - Draft");
                 sheet.CellValue(2, 1, "Region=West|Status=Open");
                 sheet.CellValue(3, 1, "alpha-BETA-gamma");
@@ -459,7 +459,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.TextJoinExactReptSumProduct.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Report");
+                ExcelSheet sheet = document.AddWorksheet("Report");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellValue(3, 1, 3d);
@@ -515,7 +515,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.DateTimeReportFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Schedule");
+                ExcelSheet sheet = document.AddWorksheet("Schedule");
                 sheet.CellValue(1, 1, new DateTime(2026, 5, 28, 9, 5, 7));
                 sheet.CellValue(1, 2, new DateTime(2026, 5, 27));
 
@@ -602,7 +602,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.DateDifFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Schedule");
+                ExcelSheet sheet = document.AddWorksheet("Schedule");
                 sheet.CellValue(1, 1, new DateTime(2020, 1, 15));
                 sheet.CellValue(1, 2, new DateTime(2026, 5, 28));
 
@@ -641,7 +641,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.YearFracFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Schedule");
+                ExcelSheet sheet = document.AddWorksheet("Schedule");
                 sheet.CellValue(1, 1, new DateTime(2024, 1, 1));
                 sheet.CellValue(1, 2, new DateTime(2025, 1, 1));
                 sheet.CellValue(2, 1, new DateTime(2024, 1, 31));
@@ -684,7 +684,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.FinancialFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Finance");
+                ExcelSheet sheet = document.AddWorksheet("Finance");
                 sheet.CellValue(1, 1, 0.05d / 12d);
                 sheet.CellValue(2, 1, 360d);
                 sheet.CellValue(3, 1, 250000d);
@@ -739,8 +739,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.OversizedCovarianceRange.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Stats");
-                document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Stats");
+                document.AddWorksheet("Data");
                 sheet.CellFormula(1, 1, "COVARIANCE.P(Data!A1:XFD1048576,Data!A1:XFD1048576)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
@@ -761,8 +761,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.CumulativeOversizedRanges.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Stats");
-                document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Stats");
+                document.AddWorksheet("Data");
                 sheet.CellFormula(1, 1, "COVARIANCE.P(Data!A1:A100000,Data!B1:B100000)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
@@ -783,8 +783,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.OversizedLookupRange.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Lookup");
-                document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Lookup");
+                document.AddWorksheet("Data");
                 sheet.CellFormula(1, 1, "VLOOKUP(\"missing\",Data!A1:A100001,1,FALSE)");
 
                 ExcelFormulaInspection inspection = sheet.InspectFormulas();
@@ -805,7 +805,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.StatisticalFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Stats");
+                ExcelSheet sheet = document.AddWorksheet("Stats");
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellValue(2, 1, 12d);
                 sheet.CellValue(3, 1, 14d);
@@ -988,7 +988,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.RoundingFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Rounding");
+                ExcelSheet sheet = document.AddWorksheet("Rounding");
                 sheet.CellFormula(1, 1, "MROUND(23,5)");
                 sheet.CellFormula(2, 1, "MROUND(-23,-5)");
                 sheet.CellFormula(3, 1, "CEILING.MATH(23,5)");
@@ -1061,7 +1061,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.ChooseSelectors.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Selectors");
+                ExcelSheet sheet = document.AddWorksheet("Selectors");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellValue(2, 1, "EU");
                 sheet.CellValue(3, 1, "US");
@@ -1098,7 +1098,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.InfoGuards.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Info");
+                ExcelSheet sheet = document.AddWorksheet("Info");
                 sheet.CellValue(1, 1, 42d);
                 sheet.CellValue(3, 1, "Ready");
 
@@ -1143,7 +1143,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.ErrorInfoGuards.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Info");
+                ExcelSheet sheet = document.AddWorksheet("Info");
                 sheet.CellValue(1, 1, "East");
                 sheet.CellValue(2, 1, "West");
                 sheet.CellValue(1, 2, 10d);
@@ -1194,7 +1194,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.IfNaFallbacks.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Info");
+                ExcelSheet sheet = document.AddWorksheet("Info");
                 sheet.CellValue(1, 1, "East");
                 sheet.CellValue(2, 1, "West");
                 sheet.CellValue(1, 2, 10d);
@@ -1241,12 +1241,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.FormulaInspectionFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet source = document.AddWorkSheet("Source Data");
+                ExcelSheet source = document.AddWorksheet("Source Data");
                 source.CellValue(1, 1, 2d);
                 source.CellValue(1, 2, 3d);
                 source.CellFormula(1, 3, "A1+B1");
 
-                ExcelSheet sheet = document.AddWorkSheet("Info");
+                ExcelSheet sheet = document.AddWorksheet("Info");
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellValue(1, 2, 5d);
                 sheet.CellFormula(1, 3, "A1+B1");
@@ -1294,9 +1294,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.ReferenceShapeFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Source Data");
+                document.AddWorksheet("Source Data");
 
-                ExcelSheet sheet = document.AddWorkSheet("Reference");
+                ExcelSheet sheet = document.AddWorksheet("Reference");
                 sheet.CellFormula(1, 4, "ROW(A5)");
                 sheet.CellFormula(2, 4, "COLUMN(C1)");
                 sheet.CellFormula(3, 4, "ROWS(A1:B3)");
@@ -1341,7 +1341,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.WorkdayFunctions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Schedule");
+                ExcelSheet sheet = document.AddWorksheet("Schedule");
                 sheet.CellValue(1, 1, new DateTime(2026, 5, 28));
                 sheet.CellValue(1, 2, new DateTime(2026, 5, 29));
                 sheet.CellValue(2, 2, new DateTime(2026, 6, 1));
@@ -1380,7 +1380,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.SubtotalCountBlank.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Audit");
+                ExcelSheet sheet = document.AddWorksheet("Audit");
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellValue(2, 1, 20d);
                 sheet.CellValue(4, 1, "North");
@@ -1434,7 +1434,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.IfsSwitch.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Amount");
                 sheet.CellValue(1, 3, "Owner");
@@ -1482,7 +1482,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.DependencyDiagnostics.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellFormula(1, 2, "A1+5");
                 sheet.CellFormula(1, 3, "B1+1");
@@ -1516,12 +1516,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFormulaEvaluator.DependencyGraph.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sales = document.AddWorkSheet("Sales");
+                ExcelSheet sales = document.AddWorksheet("Sales");
                 sales.CellValue(1, 1, 10d);
                 sales.CellFormula(1, 2, "A1+5");
                 sales.CellFormula(1, 3, "B1+1");
 
-                ExcelSheet summary = document.AddWorkSheet("Summary");
+                ExcelSheet summary = document.AddWorksheet("Summary");
                 summary.CellFormula(1, 1, "Sales!C1*2");
 
                 ExcelFormulaInspection inspection = document.InspectFormulas();

@@ -15,15 +15,8 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
-        public ExcelSheet CopyWorkSheet(string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
-            return CopyWorkSheet(GetSheet(sourceSheetName), newSheetName, validationMode);
-        }
-
-        /// <summary>
-        /// Copies a worksheet within this workbook.
-        /// </summary>
         public ExcelSheet CopyWorksheet(string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
-            return CopyWorkSheet(sourceSheetName, newSheetName, validationMode);
+            return CopyWorksheet(GetSheet(sourceSheetName), newSheetName, validationMode);
         }
 
         /// <summary>
@@ -33,14 +26,14 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
-        public ExcelSheet CopyWorkSheet(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
-            return CopyWorkSheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
+        public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            return CopyWorksheetWithinWorkbook(sourceSheet, newSheetName, validationMode).Sheet;
         }
 
-        private WorksheetPackageCopyResult CopyWorkSheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode) {
+        private WorksheetPackageCopyResult CopyWorksheetWithinWorkbook(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode) {
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
             if (!ReferenceEquals(sourceSheet.Document, this)) {
-                throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorkSheetFrom to copy between workbooks.", nameof(sourceSheet));
+                throw new ArgumentException("Source worksheet must belong to this workbook. Use CopyWorksheetFrom to copy between workbooks.", nameof(sourceSheet));
             }
 
             return Locking.ExecuteWrite(EnsureLock(), () => {
@@ -60,13 +53,6 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Copies a worksheet within this workbook.
-        /// </summary>
-        public ExcelSheet CopyWorksheet(ExcelSheet sourceSheet, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
-            return CopyWorkSheet(sourceSheet, newSheetName, validationMode);
-        }
-
-        /// <summary>
         /// Copies a worksheet from another workbook into this workbook.
         /// </summary>
         /// <param name="sourceDocument">Workbook containing the source worksheet.</param>
@@ -74,8 +60,8 @@ namespace OfficeIMO.Excel {
         /// <param name="newSheetName">Requested name for the copied worksheet.</param>
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <returns>The copied worksheet.</returns>
-        public ExcelSheet CopyWorkSheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
-            return CopyWorkSheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode, options: null);
+        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
+            return CopyWorksheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode, options: null);
         }
 
         /// <summary>
@@ -87,51 +73,30 @@ namespace OfficeIMO.Excel {
         /// <param name="validationMode">How to validate or sanitize <paramref name="newSheetName"/>.</param>
         /// <param name="options">Copy strategy options.</param>
         /// <returns>The copied worksheet.</returns>
-        public ExcelSheet CopyWorkSheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
+        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
             if (sourceDocument == null) throw new ArgumentNullException(nameof(sourceDocument));
             if (string.IsNullOrWhiteSpace(sourceSheetName)) throw new ArgumentNullException(nameof(sourceSheetName));
             options ??= new ExcelWorksheetCopyOptions();
             if (ReferenceEquals(sourceDocument, this) && options.CopyMode != ExcelWorksheetCopyMode.Values) {
-                return CopyWorkSheet(sourceSheetName, newSheetName, validationMode);
+                return CopyWorksheet(sourceSheetName, newSheetName, validationMode);
             }
 
             return options.CopyMode == ExcelWorksheetCopyMode.Values
-                ? CopyWorkSheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode)
-                : CopyWorkSheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode);
-        }
-
-        /// <summary>
-        /// Copies a worksheet from another workbook into this workbook.
-        /// </summary>
-        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode = SheetNameValidationMode.Sanitize) {
-            return CopyWorkSheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode);
-        }
-
-        /// <summary>
-        /// Copies a worksheet from another workbook into this workbook.
-        /// </summary>
-        public ExcelSheet CopyWorksheetFrom(ExcelDocument sourceDocument, string sourceSheetName, string newSheetName, SheetNameValidationMode validationMode, ExcelWorksheetCopyOptions? options) {
-            return CopyWorkSheetFrom(sourceDocument, sourceSheetName, newSheetName, validationMode, options);
-        }
-
-        /// <summary>
-        /// Reorders a worksheet by name using a zero-based target index.
-        /// </summary>
-        public void ReorderWorkSheet(string sheetName, int targetIndex) {
-            ReorderWorkSheet(GetSheet(sheetName), targetIndex);
+                ? CopyWorksheetFromValues(sourceDocument, sourceSheetName, newSheetName, validationMode)
+                : CopyWorksheetFromPackage(sourceDocument, sourceSheetName, newSheetName, validationMode);
         }
 
         /// <summary>
         /// Reorders a worksheet by name using a zero-based target index.
         /// </summary>
         public void ReorderWorksheet(string sheetName, int targetIndex) {
-            ReorderWorkSheet(sheetName, targetIndex);
+            ReorderWorksheet(GetSheet(sheetName), targetIndex);
         }
 
         /// <summary>
         /// Reorders a worksheet using a zero-based target index.
         /// </summary>
-        public void ReorderWorkSheet(ExcelSheet sheet, int targetIndex) {
+        public void ReorderWorksheet(ExcelSheet sheet, int targetIndex) {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (!ReferenceEquals(sheet.Document, this)) {
                 throw new ArgumentException("Worksheet must belong to this workbook.", nameof(sheet));
@@ -161,13 +126,6 @@ namespace OfficeIMO.Excel {
                 MarkSheetCacheDirty();
                 WorkbookRoot.Save();
             });
-        }
-
-        /// <summary>
-        /// Reorders a worksheet using a zero-based target index.
-        /// </summary>
-        public void ReorderWorksheet(ExcelSheet sheet, int targetIndex) {
-            ReorderWorkSheet(sheet, targetIndex);
         }
 
         /// <summary>

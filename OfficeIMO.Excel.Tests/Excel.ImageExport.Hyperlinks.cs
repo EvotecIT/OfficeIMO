@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportAddsHyperlinkVisualHintWhenCellStyleDoesNot() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Links");
+            ExcelSheet sheet = document.AddWorksheet("Links");
             sheet.SetColumnWidth(1, 20);
             sheet.SetHyperlink(1, 1, "https://example.org/spec", display: "Spec", style: false);
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
         public void ExcelInspectionSnapshotExpandsWorksheetHyperlinkRangesToCells() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Links");
+                ExcelSheet sheet = document.AddWorksheet("Links");
                 sheet.CellValue(1, 1, "First");
                 sheet.CellValue(1, 2, "Second");
                 sheet.SetHyperlink(1, 1, "https://example.org/range", display: "First", style: false);

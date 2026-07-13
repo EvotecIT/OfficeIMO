@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("FormulaDates");
+                    ExcelSheet sheet = document.AddWorksheet("FormulaDates");
                     sheet.CellValue(1, 1, "2026-01-02T00:00:00");
                     sheet.CellFormula(1, 1, "DATE(2026,1,2)");
 

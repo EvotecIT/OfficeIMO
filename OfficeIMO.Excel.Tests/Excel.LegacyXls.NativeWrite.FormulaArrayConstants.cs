@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("ArrayConstants");
+                    ExcelSheet sheet = document.AddWorksheet("ArrayConstants");
                     sheet.CellValue(1, 1, 6d);
                     sheet.CellFormula(1, 1, "SUM({1,2,3})");
                     sheet.CellValue(2, 1, 2d);

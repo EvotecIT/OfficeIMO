@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Rich Cells");
+                    ExcelSheet sheet = document.AddWorksheet("Rich Cells");
                     sheet.CellAt(1, 1).SetRichText(
                         new ExcelRichTextRun("Inline ") {
                             Bold = true,
@@ -59,7 +59,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Rich Font Bytes");
+                    ExcelSheet sheet = document.AddWorksheet("Rich Font Bytes");
                     sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Run font bytes") {
                         FontName = "Arial",
                         FontFamily = 2,
@@ -97,7 +97,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Rich Escapement");
+                    ExcelSheet sheet = document.AddWorksheet("Rich Escapement");
                     sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Raised") {
                         FontName = "Arial",
                         VerticalTextAlignment = VerticalAlignmentRunValues.Superscript
@@ -132,7 +132,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Rich Font Flags");
+                    ExcelSheet sheet = document.AddWorksheet("Rich Font Flags");
                     sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Run flags") {
                         FontName = "Arial",
                         Outline = true,
@@ -176,7 +176,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Rich Underline");
+                    ExcelSheet sheet = document.AddWorksheet("Rich Underline");
                     sheet.CellAt(1, 1).SetRichText(new ExcelRichTextRun("Accounting") {
                         FontName = "Arial",
                         UnderlineStyle = UnderlineValues.SingleAccounting
@@ -211,7 +211,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Shared Rich Cells");
+                    ExcelSheet sheet = document.AddWorksheet("Shared Rich Cells");
                     sheet.CellValue(1, 1, "Shared rich text");
 
                     SharedStringTablePart sharedStringPart = document.WorkbookPartRoot.SharedStringTablePart

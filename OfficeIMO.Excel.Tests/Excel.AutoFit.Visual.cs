@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
 
         private static void CreateAutoFitVisualWorkbook(string filePath, bool applyOfficeImoAutoFit) {
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorkSheet("AutoFit Visual");
+            var sheet = document.AddWorksheet("AutoFit Visual");
 
             sheet.CellValue(1, 1, "Case");
             sheet.CellValue(1, 2, "Auto column text");

@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToStream.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorkSheet("StreamData");
+                var sheet = document.AddWorksheet("StreamData");
                 sheet.CellValue(1, 1, "Hello Stream");
 
                 using var memory = new MemoryStream();
@@ -22,7 +22,7 @@ namespace OfficeIMO.Tests {
                 Assert.True(memory.Length > 0);
 
                 // Document should remain usable after stream save
-                document.AddWorkSheet("PostSave");
+                document.AddWorksheet("PostSave");
                 Assert.Equal(2, document.Sheets.Count);
 
                 memory.Position = 0;
@@ -45,14 +45,14 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToStreamAsync.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorkSheet("AsyncStream");
+                var sheet = document.AddWorksheet("AsyncStream");
                 sheet.CellValue(2, 2, 42);
 
                 using var memory = new MemoryStream();
                 await document.SaveAsync(memory, new ExcelSaveOptions { ValidateOpenXml = true });
                 Assert.True(memory.Length > 0);
 
-                document.AddWorkSheet("PostAsyncSave");
+                document.AddWorksheet("PostAsyncSave");
                 Assert.Equal(2, document.Sheets.Count);
 
                 memory.Position = 0;
@@ -74,7 +74,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToReusedStream.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                var sheet = document.AddWorkSheet("StreamData");
+                var sheet = document.AddWorksheet("StreamData");
                 sheet.CellValue(1, 1, "Fresh");
 
                 using var memory = new MemoryStream();
@@ -100,12 +100,12 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "SaveToFailingStream.xlsx");
             try {
                 using var document = ExcelDocument.Create(filePath);
-                document.AddWorkSheet("Original");
+                document.AddWorksheet("Original");
 
                 using var failing = new ThrowAfterBytesWriteStream(64);
                 Assert.Throws<IOException>(() => document.Save(failing));
 
-                document.AddWorkSheet("Recovered");
+                document.AddWorksheet("Recovered");
 
                 using var memory = new MemoryStream();
                 document.Save(memory, new ExcelSaveOptions { ValidateOpenXml = true });
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var existing = ExcelDocument.Create(destinationPath)) {
-                    existing.AddWorkSheet("Original");
+                    existing.AddWorksheet("Original");
                     existing.Save(destinationPath);
                 }
 
@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
                 destinationFile.IsReadOnly = true;
 
                 using var document = ExcelDocument.Create(sourcePath);
-                document.AddWorkSheet("Updated");
+                document.AddWorksheet("Updated");
 
                 var exception = Assert.Throws<IOException>(() => document.Save(destinationPath));
                 Assert.Contains("read-only", exception.Message, StringComparison.OrdinalIgnoreCase);
@@ -150,7 +150,7 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Original", savedSheet.Name?.Value);
                 }
 
-                document.AddWorkSheet("Recovered");
+                document.AddWorksheet("Recovered");
 
                 using var memory = new MemoryStream();
                 document.Save(memory, new ExcelSaveOptions { ValidateOpenXml = true });
@@ -180,12 +180,12 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (var existing = ExcelDocument.Create(destinationPath)) {
-                    existing.AddWorkSheet("Original");
+                    existing.AddWorksheet("Original");
                     existing.Save(destinationPath);
                 }
 
                 using var document = ExcelDocument.Create(sourcePath);
-                document.AddWorkSheet("Broken");
+                document.AddWorksheet("Broken");
 
                 var brokenSheet = document._spreadSheetDocument.WorkbookPart!.Workbook.Sheets!
                     .OfType<Sheet>()

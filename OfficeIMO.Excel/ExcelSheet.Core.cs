@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel {
                 return _sheet.Name?.Value ?? string.Empty;
             }
             set {
-                _excelDocument.RenameWorkSheet(this, value, SheetNameValidationMode.Strict);
+                _excelDocument.RenameWorksheet(this, value, SheetNameValidationMode.Strict);
             }
         }
         private readonly UInt32Value _id;

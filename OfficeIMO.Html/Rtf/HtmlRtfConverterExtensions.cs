@@ -40,7 +40,7 @@ public static partial class HtmlRtfConverterExtensions {
     }
 
     /// <summary>Converts an RTF document to an encoded semantic HTML memory stream.</summary>
-    public static MemoryStream ToHtmlMemoryStream(this RtfDocument document, RtfToHtmlOptions? options = null, Encoding? encoding = null) {
+    public static MemoryStream ToHtmlStream(this RtfDocument document, RtfToHtmlOptions? options = null, Encoding? encoding = null) {
         return new MemoryStream(document.ToHtmlBytes(options, encoding), writable: false);
     }
 

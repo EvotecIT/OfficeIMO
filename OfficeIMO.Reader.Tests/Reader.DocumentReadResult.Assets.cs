@@ -233,10 +233,10 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorkSheet("Images");
+                ExcelSheet sheet = document.AddWorksheet("Images");
                 sheet.Cell(1, 1, "Logo sheet");
                 sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Logo", altText: "Company logo");
-                ExcelSheet otherSheet = document.AddWorkSheet("Other");
+                ExcelSheet otherSheet = document.AddWorksheet("Other");
                 otherSheet.Cell(1, 1, "Other sheet");
                 otherSheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "OtherLogo", altText: "Other logo");
                 document.Save();
@@ -289,7 +289,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorkSheet("Images");
+                ExcelSheet sheet = document.AddWorksheet("Images");
                 sheet.Cell(1, 1, "Plain workbook");
                 sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Logo", altText: "Plain logo");
                 document.Save();
@@ -314,7 +314,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorkSheet("Images");
+                ExcelSheet sheet = document.AddWorksheet("Images");
                 sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "First", altText: "First");
                 sheet.AddImage(3, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Second", altText: "Second");
                 document.Save();
@@ -340,7 +340,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorkSheet("Images");
+                ExcelSheet sheet = document.AddWorksheet("Images");
                 sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "First", altText: "First");
                 sheet.AddImage(3, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Second", altText: "Second");
                 document.Save();
@@ -376,7 +376,7 @@ public sealed class ReaderDocumentReadResultAssetTests {
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
         try {
             using (ExcelDocument document = ExcelDocument.Create(path)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.Cell(1, 1, "Inside");
                 sheet.Cell(5, 5, "Outside");
                 sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "InsideLogo", altText: "Inside logo");

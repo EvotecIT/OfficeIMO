@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsEmptyRows.xlsx");
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Header");
                     sheet.CellValue(3, 1, "Value");
                     document.Save();
@@ -40,7 +40,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsBlankCells.xlsx");
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Header");
                     sheet.CellValue(3, 1, "Value");
                     document.Save();
@@ -73,7 +73,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsOutsideRequestedColumns.xlsx");
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Header");
                     sheet.CellValue(2, 2, "Outside");
                     sheet.CellValue(3, 1, "Value");
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ReadRowsAsEmptyRows.xlsx");
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Header");
                     sheet.CellValue(3, 1, "Value");
                     document.Save();

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("CommentAnchor");
+                    ExcelSheet sheet = document.AddWorksheet("CommentAnchor");
                     sheet.CellValue(3, 2, "Anchored note");
                     sheet.SetLegacyComment(
                         3,
@@ -69,7 +69,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("EdgeComment");
+                    ExcelSheet sheet = document.AddWorksheet("EdgeComment");
                     sheet.CellValue(65536, 256, "Edge note");
                     sheet.SetLegacyComment(
                         65536,
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("CommentFonts");
+                    ExcelSheet sheet = document.AddWorksheet("CommentFonts");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
                         1,
@@ -152,7 +152,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("CommentEscapement");
+                    ExcelSheet sheet = document.AddWorksheet("CommentEscapement");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
                         1,
@@ -195,7 +195,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("CommentFontFlags");
+                    ExcelSheet sheet = document.AddWorksheet("CommentFontFlags");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
                         1,
@@ -247,7 +247,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("CommentUnderline");
+                    ExcelSheet sheet = document.AddWorksheet("CommentUnderline");
                     sheet.CellValue(1, 1, "Comment");
                     sheet.SetCommentRichText(
                         1,

@@ -17,7 +17,7 @@ public class HtmlOfficeAdaptersStreamIO {
     [Fact]
     public async Task ExcelHtml_StreamAndAsyncApisUseUtf8WithoutBomAndLeaveStreamsOpen() {
         using ExcelDocument workbook = ExcelDocument.Create(new MemoryStream());
-        workbook.AddWorkSheet("Data").CellValue(1, 1, "Zażółć");
+        workbook.AddWorksheet("Data").CellValue(1, 1, "Zażółć");
         using var htmlStream = new MemoryStream();
 
         await workbook.SaveAsHtmlAsync(htmlStream);

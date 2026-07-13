@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportUsesPrintAreaWhenRequested() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             sheet.CellValue(1, 1, "Outside");
             sheet.CellValue(2, 2, "North");
             sheet.CellValue(2, 3, 10);
@@ -43,7 +43,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportExplicitRangeOverridesPrintArea() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             sheet.CellValue(1, 1, "Print");
             sheet.CellValue(3, 3, "Explicit");
             document.SetPrintArea(sheet, "A1:A1", save: false);
@@ -63,7 +63,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportReportsMissingPrintAreaFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 2, "Value");
 
@@ -80,7 +80,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ImageExportReportsUnsupportedMultiAreaPrintAreaFallback() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Report");
+                ExcelSheet sheet = document.AddWorksheet("Report");
                 sheet.CellValue(1, 1, "Used");
                 sheet.CellValue(2, 2, "First");
                 sheet.CellValue(2, 4, "Second");
@@ -106,7 +106,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ExportImagesSplitsMultiAreaPrintAreaIntoImageResults() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Report");
+                ExcelSheet sheet = document.AddWorksheet("Report");
                 sheet.CellValue(1, 1, "Used");
                 sheet.CellValue(2, 2, "First");
                 sheet.CellValue(2, 4, "Second");
@@ -138,10 +138,10 @@ namespace OfficeIMO.Tests {
         public void ExcelWorkbook_ImageExportCanUseWorksheetPrintAreas() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet summary = document.AddWorkSheet("Summary");
+            ExcelSheet summary = document.AddWorksheet("Summary");
             summary.CellValue(1, 1, "Print");
             summary.CellValue(4, 4, "Outside");
-            ExcelSheet details = document.AddWorkSheet("Details");
+            ExcelSheet details = document.AddWorksheet("Details");
             details.CellValue(1, 1, "No print area");
             document.SetPrintArea(summary, "A1:A1", save: false);
             Assert.Equal("$A$1", summary.GetPrintArea());
@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorkbook_SaveAsImagesKeepsMultiAreaPrintAreaOutputsDistinct() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Report");
+                ExcelSheet sheet = document.AddWorksheet("Report");
                 sheet.CellValue(2, 2, "First");
                 sheet.CellValue(2, 4, "Second");
                 document.Save();
@@ -191,10 +191,10 @@ namespace OfficeIMO.Tests {
         public void ExcelWorkbook_SaveAsImagesKeepsGeneratedFileNamesUniqueWhenSheetNamesOverlapPageSuffixes() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet report = document.AddWorkSheet("Report");
+            ExcelSheet report = document.AddWorksheet("Report");
             FillPageBreakGrid(report);
             report.AddManualRowPageBreak(2, save: false);
-            ExcelSheet reportTwo = document.AddWorkSheet("Report-2");
+            ExcelSheet reportTwo = document.AddWorksheet("Report-2");
             reportTwo.CellValue(1, 1, "Overlapping sheet name");
 
             string folderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.Excel.Images." + Guid.NewGuid().ToString("N"));
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ExportImagesSplitsRangeByManualPageBreaks() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
@@ -247,7 +247,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_ExportImageReportsManualPageBreaksNeedMultiOutputPath() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.AddManualRowPageBreak(2, save: false);
 
@@ -267,7 +267,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorkbook_ExportImagesForwardsManualPageBreakSplittingAndPageOrder() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.AddManualRowPageBreak(2, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
@@ -292,7 +292,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportReportsRemainingPageChromeDiagnostics() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
             sheet.SetOrientation(ExcelPageOrientation.Landscape);
@@ -327,7 +327,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportAppliesPageSetupCanvasForManualScale() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetOrientation(ExcelPageOrientation.Landscape);
             sheet.SetMargins(0.5D, 0.5D, 0.5D, 0.5D);
@@ -358,7 +358,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportAppliesPageSetupCanvasForManualScale() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D);
             sheet.SetPageSetup(scale: 75);
@@ -386,7 +386,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportAppliesFitToWidthScaling() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             for (int column = 1; column <= 4; column++) {
                 sheet.SetColumnWidth(column, 40D);
@@ -415,7 +415,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportAppliesFitToWidthScaling() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.CellBackground(3, 4, "#00FF00");
             for (int column = 1; column <= 4; column++) {
@@ -446,7 +446,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportAppliesFitToHeightScaling() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetRowHeight(3, 800D);
             sheet.SetRowHeight(4, 800D);
@@ -474,7 +474,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportAppliesConfiguredPaperSize() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetMargins(0.25D, 0.25D, 0.5D, 0.5D);
             sheet.SetPageSetup(scale: 100, paperSize: ExcelPaperSize.A4);
@@ -502,7 +502,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportAppliesLandscapePaperSize() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             sheet.SetOrientation(ExcelPageOrientation.Landscape);
             sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
@@ -530,7 +530,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedPngExportDiagnosesUnsupportedPaperSizeCode() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Report");
+                ExcelSheet sheet = document.AddWorksheet("Report");
                 FillPageBreakGrid(sheet);
                 sheet.SetMargins(0.25D, 0.25D, 0.25D, 0.25D);
                 sheet.SetPageSetup(scale: 100);
@@ -563,7 +563,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRepeatsPrintTitleRows() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: null, lastCol: null, save: false);
             sheet.AddManualRowPageBreak(2, save: false);

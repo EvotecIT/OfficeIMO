@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("AdvancedFilter");
+                    ExcelSheet sheet = document.AddWorksheet("AdvancedFilter");
                     sheet.CellValue(1, 1, "Optional");
                     sheet.CellValue(1, 2, "Required");
                     sheet.CellValue(1, 3, "Score");
@@ -131,7 +131,7 @@ namespace OfficeIMO.Tests {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
                     document.DateSystem = ExcelDateSystem.NineteenFour;
 
-                    ExcelSheet sheet = document.AddWorkSheet("DateFilter");
+                    ExcelSheet sheet = document.AddWorksheet("DateFilter");
                     sheet.CellValue(1, 1, "Entered");
                     sheet.CellValue(2, 1, new DateTime(2026, 6, 27));
                     sheet.CellValue(3, 1, new DateTime(2026, 6, 28));

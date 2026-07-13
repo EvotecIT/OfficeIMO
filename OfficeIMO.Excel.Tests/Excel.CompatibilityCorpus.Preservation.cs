@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Imported");
+                    var sheet = document.AddWorksheet("Imported");
                     sheet.CellValue(1, 1, "Resource");
                     sheet.CellValue(1, 2, "Amount");
                     sheet.SetHyperlink(2, 1, "https://example.org/external-system/invoice/INV-2026-001", display: "Invoice");
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 ExcelCompatibilityCorpusBuilder.CreateWorkbook(filePath, document => {
-                    var sheet = document.AddWorkSheet("Controls");
+                    var sheet = document.AddWorksheet("Controls");
                     sheet.CellValue(1, 1, "Status");
                     sheet.CellValue(2, 1, "Before");
                 });

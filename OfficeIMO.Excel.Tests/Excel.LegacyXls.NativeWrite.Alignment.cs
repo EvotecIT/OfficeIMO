@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Alignment");
+                    ExcelSheet sheet = document.AddWorksheet("Alignment");
                     sheet.CellValue(1, 1, "General horizontal");
                     sheet.CellAt(1, 1).SetFillColor("#ABCDEF");
 

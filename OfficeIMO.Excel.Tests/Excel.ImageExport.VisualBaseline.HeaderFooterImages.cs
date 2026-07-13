@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         private static ExcelBaselineFixture CreateHeaderFooterImagesBaselineWorkbook() {
             string filePath = Path.Combine(Path.GetTempPath(), "OfficeIMO-ExcelHeaderFooterImagesBaseline-" + Guid.NewGuid().ToString("N") + ".xlsx");
             ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("HeaderFooterImages");
+            ExcelSheet sheet = document.AddWorksheet("HeaderFooterImages");
 
             string[] headers = { "Area", "Owner", "State", "Score" };
             for (int column = 1; column <= headers.Length; column++) {

@@ -48,7 +48,7 @@ public class HtmlArtifactRoundTrips {
     [Fact]
     public void SemanticHtml_ProducesReopenableXlsxAndPptxArtifacts() {
         using ExcelDocument sourceWorkbook = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sourceSheet = sourceWorkbook.AddWorkSheet("Evidence");
+        ExcelSheet sourceSheet = sourceWorkbook.AddWorksheet("Evidence");
         sourceSheet.CellValue(1, 1, "Label");
         sourceSheet.CellValue(2, 1, Marker);
         sourceSheet.MergeRange("A2:B2");

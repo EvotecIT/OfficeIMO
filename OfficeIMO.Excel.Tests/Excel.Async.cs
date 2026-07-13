@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Sheet1");
+                document.AddWorksheet("Sheet1");
                 await document.SaveAsync();
             }
 
@@ -33,7 +33,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Sheet1");
+                document.AddWorksheet("Sheet1");
                 await document.SaveAsync();
             }
 
@@ -56,7 +56,7 @@ namespace OfficeIMO.Tests {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sheet1");
+                var sheet = document.AddWorksheet("Sheet1");
                 sheet.CellValue(1, 1, "Original");
                 await document.SaveAsync();
             }

@@ -15,7 +15,7 @@ namespace OfficeIMO.Excel.Tests {
             };
 
             using (var document = ExcelDocument.Create(new MemoryStream())) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.InsertObjects(rows,
                     ("Id", row => row.Id),
                     ("Region", row => row.Region),

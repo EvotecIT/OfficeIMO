@@ -85,8 +85,8 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void ExcelToOdsPreservesTypedValuesOnHyperlinkedCellsAndFormulaSeparators() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorkSheet("Data");
-        source.AddWorkSheet("Other, Sheet").CellAt(1, 1).SetValue(1);
+        ExcelSheet sheet = source.AddWorksheet("Data");
+        source.AddWorksheet("Other, Sheet").CellAt(1, 1).SetValue(1);
         sheet.SetHyperlink(1, 1, "https://example.com", "42");
         sheet.CellAt(1, 1).SetValue(42);
         sheet.CellAt(1, 2).SetFormula("IF(A1=42,\"x,y\",\"other\")");
@@ -125,7 +125,7 @@ public sealed class OpenDocumentCurrentReviewLossReportTests {
     [Fact]
     public void ExcelToOdsConvertsLowercaseFormulaReferences() {
         using ExcelDocument source = ExcelDocument.Create(new MemoryStream());
-        ExcelSheet sheet = source.AddWorkSheet("Data");
+        ExcelSheet sheet = source.AddWorksheet("Data");
         sheet.CellAt(1, 1).SetValue(1);
         sheet.CellAt(1, 2).SetFormula("sum(a1,'Data'!a1)");
         source.SetNamedRange("A1_total", "'Data'!$A$1", save: false);

@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PrintLayoutPreset.Report.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Report");
+                ExcelSheet sheet = document.AddWorksheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
 
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PrintLayoutPreset.ClearFit.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Report");
+                ExcelSheet sheet = document.AddWorksheet("Report");
                 sheet.CellValue(1, 1, "Region");
                 sheet.SetPageSetup(fitToWidth: 1U, fitToHeight: 0U);
                 sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {

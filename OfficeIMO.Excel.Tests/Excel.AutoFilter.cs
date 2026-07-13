@@ -16,7 +16,7 @@ namespace OfficeIMO.Tests {
         public void Test_AddAutoFilterPersists() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -58,7 +58,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_AddAutoFilterConcurrent() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.Concurrent.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Value");
                 sheet.CellValue(2, 1, "A");
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFilterByHeadersEquals_BatchesAndReplacesExistingFilters() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.BatchHeaders.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Department");
                 sheet.CellValue(1, 3, "Score");
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
         public void Test_CustomAutoFilterHelpersPersistExpectedOperators() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.CustomHelpers.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Department");
                 sheet.CellValue(1, 3, "Score");
@@ -221,7 +221,7 @@ namespace OfficeIMO.Tests {
         public void Test_CustomAutoFilterRangeHelpersPersistExpectedOperators() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFilter.CustomRangeHelpers.xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Budget");
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 1, 10d);

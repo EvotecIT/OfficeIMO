@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Sort");
+                    ExcelSheet sheet = document.AddWorksheet("Sort");
                     sheet.CellValue(1, 1, "Region");
                     sheet.CellValue(1, 2, "Amount");
                     sheet.CellValue(1, 3, "Date");

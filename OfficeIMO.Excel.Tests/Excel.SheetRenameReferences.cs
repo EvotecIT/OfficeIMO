@@ -11,13 +11,13 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void Test_RenameWorkSheet_UpdatesFormulasDefinedNamesAndInternalHyperlinks() {
+        public void Test_RenameWorksheet_UpdatesFormulasDefinedNamesAndInternalHyperlinks() {
             string filePath = Path.Combine(_directoryWithFiles, "RenameWorksheet.References.xlsx");
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data", SheetNameValidationMode.Strict);
-                    var summary = document.AddWorkSheet("Summary", SheetNameValidationMode.Strict);
+                    var data = document.AddWorksheet("Data", SheetNameValidationMode.Strict);
+                    var summary = document.AddWorksheet("Summary", SheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, 42);
                     summary.CellFormula(1, 1, "SUM(Data!A1)");
@@ -61,12 +61,12 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_RenameWorkSheet_UpdatesChartsPivotsAndSparklines() {
+        public void Test_RenameWorksheet_UpdatesChartsPivotsAndSparklines() {
             string filePath = Path.Combine(_directoryWithFiles, "RenameWorksheet.ChartPivotSparkline.xlsx");
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data", SheetNameValidationMode.Strict);
+                    var data = document.AddWorksheet("Data", SheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, "Month");
                     data.CellValue(1, 2, "Sales");
@@ -119,13 +119,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_RenameWorkSheet_UpdatesDataValidationAndConditionalFormattingFormulas() {
+        public void Test_RenameWorksheet_UpdatesDataValidationAndConditionalFormattingFormulas() {
             string filePath = Path.Combine(_directoryWithFiles, "RenameWorksheet.ValidationAndCf.xlsx");
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data", SheetNameValidationMode.Strict);
-                    var summary = document.AddWorkSheet("Summary", SheetNameValidationMode.Strict);
+                    var data = document.AddWorksheet("Data", SheetNameValidationMode.Strict);
+                    var summary = document.AddWorksheet("Summary", SheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, 5);
                     data.CellValue(2, 1, 15);
@@ -159,13 +159,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_RenameWorkSheet_RefreshesTocAndBacklinkDisplayText() {
+        public void Test_RenameWorksheet_RefreshesTocAndBacklinkDisplayText() {
             string filePath = Path.Combine(_directoryWithFiles, "RenameWorksheet.TocAndBacklinks.xlsx");
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data", SheetNameValidationMode.Strict);
-                    var summary = document.AddWorkSheet("Summary", SheetNameValidationMode.Strict);
+                    var data = document.AddWorksheet("Data", SheetNameValidationMode.Strict);
+                    var summary = document.AddWorksheet("Summary", SheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, "Value");
                     summary.CellValue(1, 1, "Other");
@@ -207,13 +207,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_RenameWorkSheet_PreservesExternalWorkbookReferences() {
+        public void Test_RenameWorksheet_PreservesExternalWorkbookReferences() {
             string filePath = Path.Combine(_directoryWithFiles, "RenameWorksheet.ExternalReferences.xlsx");
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data", SheetNameValidationMode.Strict);
-                    var summary = document.AddWorkSheet("Summary", SheetNameValidationMode.Strict);
+                    var data = document.AddWorksheet("Data", SheetNameValidationMode.Strict);
+                    var summary = document.AddWorksheet("Summary", SheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, 10);
                     summary.CellFormula(1, 1, "SUM(Data!A1,'[Other.xlsx]Data'!A1,[Other.xlsx]Data!A1)");
@@ -246,13 +246,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_RenameWorkSheet_UpdatesTableDefinitionFormulas() {
+        public void Test_RenameWorksheet_UpdatesTableDefinitionFormulas() {
             string filePath = Path.Combine(_directoryWithFiles, "RenameWorksheet.TableFormulas.xlsx");
 
             try {
                 using (var document = ExcelDocument.Create(filePath)) {
-                    var data = document.AddWorkSheet("Data", SheetNameValidationMode.Strict);
-                    var summary = document.AddWorkSheet("Summary", SheetNameValidationMode.Strict);
+                    var data = document.AddWorksheet("Data", SheetNameValidationMode.Strict);
+                    var summary = document.AddWorksheet("Summary", SheetNameValidationMode.Strict);
 
                     data.CellValue(1, 1, 10);
                     data.CellValue(2, 1, 20);

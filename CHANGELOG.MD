@@ -3,6 +3,7 @@
 * Replace public color/image helper usage of `SixLabors.ImageSharp` with first-party `OfficeIMO.Drawing` types. Consumers that passed `SixLabors.ImageSharp.Color` should migrate to `OfficeIMO.Drawing.OfficeColor`.
 * Standardize document persistence, conversion results, diagnostics, themes, and async I/O across the solution. Compatibility aliases and fake in-memory async methods were removed; see the [breaking API migration guide](Docs/officeimo.breaking-api-migration.md).
 * Rename PDF table export helpers to the destination-first `SaveAs{Format}FromPdfTables` and `To{Format}BytesFromPdfTables` families.
+* Use `Worksheet` consistently across the Excel API and remove the duplicate `WorkSheet`-cased method family; align RTF-to-HTML memory output with `ToHtmlStream()`.
 
 ### What's Changed
 * Add `OfficeIMO.Drawing` as a shared zero-dependency color and image metadata layer, including header-only detection for PNG, JPEG, GIF, BMP, TIFF, ICO, PCX, EMF, placeable WMF, and SVG.

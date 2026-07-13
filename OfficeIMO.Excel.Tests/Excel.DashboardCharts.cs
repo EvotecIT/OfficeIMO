@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DashboardChartPreset.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Revenue");
                 sheet.CellValue(2, 1, "EU");
@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
             data.Rows.Add("US", 120);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
                 ExcelDashboardResult result = sheet.AddDashboard(data, new ExcelDashboardOptions {
                     Title = "Sales Dashboard",
                     Subtitle = "Monthly revenue",
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
             data.Rows.Add("EU", 100);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
                 ExcelDashboardResult result = sheet.AddDashboard(data, new ExcelDashboardOptions {
                     TableName = "Sales Data",
                     AddChart = false
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             data.Rows.Add("EU", 100);
 
             using var document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+            ExcelSheet sheet = document.AddWorksheet("Dashboard");
 
             Assert.Throws<ArgumentException>(() => sheet.AddDashboard(data, new ExcelDashboardOptions {
                 TableRow = A1.MaxRows,

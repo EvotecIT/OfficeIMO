@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetValidation.Diagnostics.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
 
             var cells = Enumerable.Range(1, 10).Select(i => (i, 1, (object)$"Value {i}"));
             sheet.CellValues(cells, ExecutionMode.Parallel);
@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetValidation.Corruption.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
 
             var cells = Enumerable.Range(1, 5).SelectMany(row =>
                 Enumerable.Range(1, 3).Select(col => (row, col, (object)$"R{row}C{col}")));
@@ -57,7 +57,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "WorksheetValidation.Performance.xlsx");
 
             using var document = ExcelDocument.Create(filePath);
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
 
             var cells = Enumerable.Range(1, 1000)
                 .SelectMany(row => Enumerable.Range(1, 8).Select(col => (row, col, (object)$"R{row}C{col}")))

@@ -13,12 +13,12 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             ExcelDocument document = ExcelDocument.Create();
             if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
-                document.AddWorkSheet("Sheet1");
+                document.AddWorksheet("Sheet1");
             }
 
             foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook)) {
                 if (sheetEntry.Worksheet != null) {
-                    ExcelSheet sheet = document.AddWorkSheet(sheetEntry.Worksheet.Name);
+                    ExcelSheet sheet = document.AddWorksheet(sheetEntry.Worksheet.Name);
                     ProjectWorksheet(workbook, sheetEntry.Worksheet, sheet);
                 } else if (sheetEntry.ChartSheet != null) {
                     ProjectChartSheet(sheetEntry.ChartSheet, document);

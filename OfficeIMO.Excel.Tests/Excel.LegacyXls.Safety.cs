@@ -10,7 +10,7 @@ namespace OfficeIMO.Tests {
         public async Task FormatApi_ToXlsxToXlsAndLoadAsyncStream_RoundTrips() {
             string path = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(path);
-            document.AddWorkSheet("Data").CellValue(1, 1, "Explicit format API");
+            document.AddWorksheet("Data").CellValue(1, 1, "Explicit format API");
 
             byte[] xlsx = document.ToBytes();
             Assert.Equal(0x50, xlsx[0]);

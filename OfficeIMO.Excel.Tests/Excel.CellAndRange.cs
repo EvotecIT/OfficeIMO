@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 for (int row = 1; row <= 160; row++) {
                     sheet.CellAt(row, 1).SetValue("secret-" + row.ToString(CultureInfo.InvariantCulture));
                 }
@@ -182,7 +182,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Styles");
+                var sheet = document.AddWorksheet("Styles");
                 sheet.CellAt(1, 1).SetValue("Amount").HeaderStyle();
                 sheet.CellAt(2, 1).SetValue(123.45).Currency(culture: CultureInfo.GetCultureInfo("en-US")).Success();
                 sheet.Range("B2:B3").Percent(1).Warning();

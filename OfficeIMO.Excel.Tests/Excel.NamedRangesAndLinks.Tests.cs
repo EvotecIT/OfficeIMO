@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void NamedRange_SingleCellReferenceDoesNotThrow() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddWorkSheet("Data");
+                doc.AddWorksheet("Data");
                 var exception = Record.Exception(() =>
                     doc.SetNamedRange("Single", "A1", save: false, hidden: false, validationMode: NameValidationMode.Sanitize));
                 Assert.Null(exception);
@@ -26,7 +26,7 @@ namespace OfficeIMO.Tests {
         public void NamedRange_SanitizeClampsOutOfBounds() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var data = doc.AddWorkSheet("Data");
+                var data = doc.AddWorksheet("Data");
                 doc.SetNamedRange("TooBig", "'Data'!A1:B2000000", save: false, hidden: false, validationMode: NameValidationMode.Sanitize);
                 var value = doc.GetNamedRange("TooBig");
                 Assert.Equal("'Data'!$A$1:$B$1048576", value);
@@ -38,7 +38,7 @@ namespace OfficeIMO.Tests {
         public void NamedRange_Sanitize_ResolvesExistingSanitizedSheetPrefix() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var data = doc.AddWorkSheet("Data??");
+                var data = doc.AddWorksheet("Data??");
                 doc.SetNamedRange("OnData", "Data??!A1", save: false, hidden: false, validationMode: NameValidationMode.Sanitize);
 
                 var value = doc.GetNamedRange("OnData");
@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
         public void NamedRange_QuotedSheetNameContainingBang_NormalizesCorrectly() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddWorkSheet("Report!2026");
+                doc.AddWorksheet("Report!2026");
                 doc.SetNamedRange("BangSheet", "'Report!2026'!A1:B2", save: false, hidden: false, validationMode: NameValidationMode.Strict);
 
                 var value = doc.GetNamedRange("BangSheet");
@@ -64,7 +64,7 @@ namespace OfficeIMO.Tests {
         public void NamedRange_StrictAcceptsAbsoluteReferences() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddWorkSheet("Data");
+                doc.AddWorksheet("Data");
                 doc.SetNamedRange("AbsoluteRange", "'Data'!$A$1:$B$2", save: false, hidden: false, validationMode: NameValidationMode.Strict);
 
                 Assert.Equal("'Data'!$A$1:$B$2", doc.GetNamedRange("AbsoluteRange"));
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
         public void NamedRange_LocalScope_PreservesAlreadyQualifiedRange() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var data = doc.AddWorkSheet("Data");
+                var data = doc.AddWorksheet("Data");
                 data.SetNamedRange("LocalQualified", "'Data'!A1", save: false, hidden: false, validationMode: NameValidationMode.Strict);
 
                 var definedName = doc._spreadSheetDocument.WorkbookPart!.Workbook.DefinedNames!
@@ -93,8 +93,8 @@ namespace OfficeIMO.Tests {
         public void NamedRange_LocalScope_PreservesCrossSheetQualifiedRange() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var data = doc.AddWorkSheet("Data");
-                doc.AddWorkSheet("Other");
+                var data = doc.AddWorksheet("Data");
+                doc.AddWorksheet("Other");
                 data.SetNamedRange("LocalCrossSheet", "'Other'!A1:B2", save: false, hidden: false, validationMode: NameValidationMode.Strict);
 
                 var definedName = doc._spreadSheetDocument.WorkbookPart!.Workbook.DefinedNames!
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
         public void NamedRange_StrictThrowsOutOfBounds() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                doc.AddWorkSheet("Data");
+                doc.AddWorksheet("Data");
                 Assert.Throws<ArgumentOutOfRangeException>(() =>
                     doc.SetNamedRange("TooBigS", "'Data'!A1:B2000000", save: false, hidden: false, validationMode: NameValidationMode.Strict));
             }
@@ -121,8 +121,8 @@ namespace OfficeIMO.Tests {
         public void InternalLink_QuotingForApostropheSheetName() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var main = doc.AddWorkSheet("Main");
-                var target = doc.AddWorkSheet("O'Brien");
+                var main = doc.AddWorksheet("Main");
+                var target = doc.AddWorksheet("O'Brien");
                 main.SetInternalLink(1, 1, target, "A1", display: "Go");
 
                 // Inspect hyperlinks
@@ -142,8 +142,8 @@ namespace OfficeIMO.Tests {
         public void InternalLink_LocationString_ResolvesExistingSanitizedSheetName() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var main = doc.AddWorkSheet("Main");
-                var target = doc.AddWorkSheet("Summary??");
+                var main = doc.AddWorksheet("Main");
+                var target = doc.AddWorksheet("Summary??");
 
                 main.SetInternalLink(1, 1, "Summary??!A1", style: false);
 
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
         public void InternalLink_LocationString_PreservesExternalWorkbookReference() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var main = doc.AddWorkSheet("Main");
+                var main = doc.AddWorksheet("Main");
 
                 main.SetInternalLink(1, 1, "'[Other.xlsx]Summary'!A1", style: false);
 
@@ -181,9 +181,9 @@ namespace OfficeIMO.Tests {
         public void LinkCellsToInternalSheets_EscapesSpacesAndQuotes() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var main = doc.AddWorkSheet("Main");
-                doc.AddWorkSheet("Summary Sheet");
-                doc.AddWorkSheet("Quote's Sheet");
+                var main = doc.AddWorksheet("Main");
+                doc.AddWorksheet("Summary Sheet");
+                doc.AddWorksheet("Quote's Sheet");
 
                 main.CellValue(1, 1, "Name");
                 main.CellValue(2, 1, "Summary Sheet");
@@ -208,8 +208,8 @@ namespace OfficeIMO.Tests {
         public void LinkCellsToInternalSheets_ResolvesSanitizedExistingSheetNames() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var main = doc.AddWorkSheet("Main");
-                var target = doc.AddWorkSheet("Summary??");
+                var main = doc.AddWorksheet("Main");
+                var target = doc.AddWorksheet("Summary??");
 
                 main.CellValue(1, 1, "Name");
                 main.CellValue(2, 1, "Summary??");
@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
         public void Preflight_KeepsValidDrawingAndTable() {
             string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (var doc = ExcelDocument.Create(path)) {
-                var s = doc.AddWorkSheet("Assets");
+                var s = doc.AddWorksheet("Assets");
 
                 // Headers and one data row
                 s.CellValue(1, 1, "Col1"); s.CellValue(1, 2, "Col2");

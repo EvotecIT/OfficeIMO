@@ -14,7 +14,7 @@ namespace OfficeIMO.Examples.Excel {
             using var document = ExcelDocument.Create(filePath);
 
             // Sheet 1: wrap enabled but no auto-fit applied
-            var wrapOnly = document.AddWorkSheet("WrapOnly");
+            var wrapOnly = document.AddWorksheet("WrapOnly");
             wrapOnly.CellValue(1, 1, "Wrap Text (no auto-fit)");
             wrapOnly.CellValue(3, 1, "Line1\nLine2\nLine3");
             wrapOnly.WrapCells(3, 3, 1, 28);
@@ -22,7 +22,7 @@ namespace OfficeIMO.Examples.Excel {
             wrapOnly.WrapCells(5, 5, 1, 28);
 
             // Sheet 2: wrap text plus AutoFitRows so the height adjusts
-            var wrapAutoRows = document.AddWorkSheet("Wrap+AutoFitRows");
+            var wrapAutoRows = document.AddWorksheet("Wrap+AutoFitRows");
             wrapAutoRows.CellValue(1, 1, "Wrap Text + AutoFitRows");
             wrapAutoRows.CellValue(3, 1, "Line1\nLine2\nLine3");
             wrapAutoRows.WrapCells(3, 3, 1, 28);
@@ -35,7 +35,7 @@ namespace OfficeIMO.Examples.Excel {
             wrapAutoRows.AutoFitRows();
 
             // Sheet 3: wrap text combined with both AutoFitRows and AutoFitColumns to illustrate Excel's native behaviour
-            var wrapAll = document.AddWorkSheet("Wrap+AutoFitAll");
+            var wrapAll = document.AddWorksheet("Wrap+AutoFitAll");
             wrapAll.CellValue(1, 1, "Wrap Text + AutoFitRows + AutoFitColumns");
             wrapAll.CellValue(3, 1, "Line1\nLine2\nLine3");
             wrapAll.WrapCells(3, 3, 1, 28);
@@ -49,7 +49,7 @@ namespace OfficeIMO.Examples.Excel {
             wrapAll.AutoFitRows();
 
             // Sheet 4: wrap column stays pinned while neighbours auto-fit
-            var selective = document.AddWorkSheet("Wrap+SelectiveAutoFit");
+            var selective = document.AddWorksheet("Wrap+SelectiveAutoFit");
             selective.CellValue(1, 1, "ID");
             selective.CellValue(1, 2, "Summary");
             selective.CellValue(1, 3, "Notes");

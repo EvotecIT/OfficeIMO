@@ -14,7 +14,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("StyleParent");
+                    ExcelSheet sheet = document.AddWorksheet("StyleParent");
                     sheet.CellValue(1, 1, 45291d);
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot!.WorkbookStylesPart ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();
@@ -119,7 +119,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("StyledBlank");
+                    ExcelSheet sheet = document.AddWorksheet("StyledBlank");
                     sheet.CellValue(2, 2, "temporary");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot!.WorkbookStylesPart ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();
@@ -180,7 +180,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("EmptyString");
+                    ExcelSheet sheet = document.AddWorksheet("EmptyString");
                     sheet.CellValue(2, 2, "temporary");
 
                     WorkbookStylesPart stylesPart = document.WorkbookPartRoot!.WorkbookStylesPart ?? document.WorkbookPartRoot.AddNewPart<WorkbookStylesPart>();

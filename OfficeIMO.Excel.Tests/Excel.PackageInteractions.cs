@@ -13,7 +13,7 @@ namespace OfficeIMO.Tests {
         public void Test_InspectionCountsSlicerAndTimelinePackageParts() {
             string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data").CellValue(1, 1, "Value");
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
                 document.Save();
             }
 
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, "PackageClone.Target.xlsm");
 
             using (var document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorkSheet("Data").CellValue(1, 1, "Value");
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
                 document.Save();
             }
 
@@ -89,7 +89,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.ChartSheetInspection.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data").CellValue(1, 1, "Value");
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
                 document.Save();
             }
 
@@ -124,7 +124,7 @@ namespace OfficeIMO.Tests {
             string destinationPath = Path.Combine(_directoryWithFiles, "PackageClone.MacroBlocked.xlsx");
 
             using (var document = ExcelDocument.Create(sourcePath)) {
-                document.AddWorkSheet("Data").CellValue(1, 1, "Value");
+                document.AddWorksheet("Data").CellValue(1, 1, "Value");
                 document.Save();
             }
 
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
             const string queryTableXml = "<queryTable xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" name=\"SalesQuery\" connectionId=\"1\"/>";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data").CellValue(1, 1, "Region");
+                document.AddWorksheet("Data").CellValue(1, 1, "Region");
                 document.AddWorkbookConnectionMetadata(connectionXml);
                 document.AddWorksheetQueryTableMetadata("Data", queryTableXml);
                 document.Save();
@@ -172,7 +172,7 @@ namespace OfficeIMO.Tests {
             const string connectionXml = "<connections xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" count=\"1\"><connection id=\"2\" name=\"Added\" type=\"5\" refreshedVersion=\"7\"/></connections>";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data");
+                document.AddWorksheet("Data");
                 document.Save();
             }
 
@@ -203,7 +203,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "PackageInteractions.SlicerTimelineMetadata.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Data").CellValue(1, 1, "Region");
+                document.AddWorksheet("Data").CellValue(1, 1, "Region");
                 document.AddWorkbookSlicerCache(new ExcelSlicerCacheOptions {
                     Name = "RegionSlicer",
                     SourceName = "Region",

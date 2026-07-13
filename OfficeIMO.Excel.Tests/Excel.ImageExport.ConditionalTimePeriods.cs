@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void ExcelRange_ImageExportAppliesTimePeriodConditionalFillsWithReferenceDate() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Dates");
+            ExcelSheet sheet = document.AddWorksheet("Dates");
             sheet.CellValue(1, 1, new DateTime(2026, 6, 24));
             sheet.CellValue(2, 1, new DateTime(2026, 6, 23));
             sheet.CellValue(3, 1, new DateTime(2026, 6, 25));

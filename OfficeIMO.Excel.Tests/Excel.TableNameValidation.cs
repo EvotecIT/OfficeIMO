@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
         public void EnsureValidUniqueTableName_HandlesSpaces() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Spaces.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Col1");
                 sheet.CellValue(1, 2, "Col2");
                 sheet.CellValue(2, 1, "A");
@@ -31,7 +31,7 @@ namespace OfficeIMO.Tests {
         public void EnsureValidUniqueTableName_HandlesSpecialCharacters() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Special.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "X");
                 sheet.CellValue(1, 2, "Y");
                 sheet.AddTable("A1:B1", hasHeader: true, name: "Table#1!", TableStyle.TableStyleMedium9);
@@ -48,7 +48,7 @@ namespace OfficeIMO.Tests {
         public void EnsureValidUniqueTableName_EnsuresUniqueness() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Unique.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "A");
                 sheet.AddTable("A1:A1", hasHeader: true, name: "Table", TableStyle.TableStyleMedium9);
                 sheet.CellValue(2, 1, "B");
@@ -67,7 +67,7 @@ namespace OfficeIMO.Tests {
         public void EnsureValidUniqueTableName_HandlesDigitPrefix() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Digit.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "X");
                 sheet.AddTable("A1:A1", hasHeader: true, name: "123Report", TableStyle.TableStyleMedium9);
                 document.Save();
@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
         public void EnsureValidUniqueTableName_EmptyName_DefaultsToTableWithId() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Empty.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "X");
                 sheet.AddTable("A1:A1", hasHeader: true, name: string.Empty, TableStyle.TableStyleMedium9);
                 document.Save();
@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Long.xlsx");
             string longName = new string('A', 300);
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "X");
                 sheet.AddTable("A1:A1", hasHeader: true, name: longName, TableStyle.TableStyleMedium9);
                 document.Save();
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Unicode.xlsx");
             string unicodeName = "Nazwa テーブル Имя";
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "X");
                 sheet.AddTable("A1:A1", hasHeader: true, name: unicodeName, TableStyle.TableStyleMedium9);
                 document.Save();
@@ -137,7 +137,7 @@ namespace OfficeIMO.Tests {
         public void AddTable_StrictValidation_InvalidCharacters_Throws() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Strict.Invalid.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "X");
                 Assert.Throws<ArgumentException>(() =>
                     sheet.AddTable("A1:A1", hasHeader: true, name: "Bad Name!", TableStyle.TableStyleMedium9, includeAutoFilter: true, validationMode: TableNameValidationMode.Strict));
@@ -148,7 +148,7 @@ namespace OfficeIMO.Tests {
         public void AddTable_StrictValidation_DigitPrefix_Throws() {
             string filePath = Path.Combine(_directoryWithFiles, "Table.Names.Strict.Digit.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "X");
                 Assert.Throws<ArgumentException>(() =>
                     sheet.AddTable("A1:A1", hasHeader: true, name: "1Hello", TableStyle.TableStyleMedium9, includeAutoFilter: true, validationMode: TableNameValidationMode.Strict));
@@ -162,7 +162,7 @@ namespace OfficeIMO.Tests {
                 await Task.Yield();
                 string fp = Path.Combine(dir, $"Table.Concurrent.WB{idx}.xlsx");
                 using (var doc = ExcelDocument.Create(fp)) {
-                    var s = doc.AddWorkSheet($"S{idx}");
+                    var s = doc.AddWorksheet($"S{idx}");
                     s.CellValue(1, 1, "A");
                     s.CellValue(1, 2, "B");
                     s.AddTable("A1:B1", hasHeader: true, name: $"T{idx}", TableStyle.TableStyleMedium9);

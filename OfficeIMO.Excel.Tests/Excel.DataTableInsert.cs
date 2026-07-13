@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableNulls.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
 
                 var table = new DataTable();
                 table.Columns.Add("Id", typeof(int));
@@ -88,7 +88,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableDurations.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Durations");
+                var sheet = document.AddWorksheet("Durations");
 
                 var table = new DataTable();
                 table.Columns.Add("Task", typeof(string));
@@ -146,7 +146,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableImmediateCells.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
 
                 var table = new DataTable();
                 table.Columns.Add("Name", typeof(string));
@@ -169,7 +169,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "TabularSourceFailedImportAtomic.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Existing");
 
                 var source = new ThrowingTabularRowSource();
@@ -396,7 +396,7 @@ namespace OfficeIMO.Tests {
             source.Rows.Add("Beta", 20.50m, new DateTime(2026, 1, 3, 4, 5, 0));
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Reader");
+                var sheet = document.AddWorksheet("Reader");
                 using IDataReader reader = source.CreateDataReader();
                 string range = sheet.InsertDataReader(reader, tableName: "ReaderTable", autoFit: true);
 
@@ -430,7 +430,7 @@ namespace OfficeIMO.Tests {
             source.Columns.Add("Amount", typeof(decimal));
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Reader");
+                var sheet = document.AddWorksheet("Reader");
                 using IDataReader reader = source.CreateDataReader();
                 string range = sheet.InsertDataReader(reader, includeHeaders: false, tableName: "ReaderTable");
 
@@ -452,7 +452,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTable.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -498,7 +498,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableMissingColumn.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -523,7 +523,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableColumnCountMismatch.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -548,7 +548,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHeaderless.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -591,7 +591,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHiddenHeaders.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -634,7 +634,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableColumnLikeHeaders.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Column1");
                 sheet.CellValue(1, 2, "Column2");
                 sheet.CellValue(2, 1, "first");
@@ -666,7 +666,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableEmpty.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -697,7 +697,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableFormulaBelow.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -724,7 +724,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableHistoricalTotals.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -767,7 +767,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableActiveTotals.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -802,7 +802,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableTotalsShownNoCount.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));
@@ -837,7 +837,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "DataTableAppendTableOccupiedCells.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Sales");
+                var sheet = document.AddWorksheet("Sales");
 
                 var table = new DataTable();
                 table.Columns.Add("Region", typeof(string));

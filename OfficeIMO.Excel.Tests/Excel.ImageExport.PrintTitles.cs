@@ -9,7 +9,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedSvgExportRepeatsPrintTitleColumns() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             document.SetPrintTitles(sheet, firstRow: null, lastRow: null, firstCol: 1, lastCol: 1, save: false);
             sheet.AddManualColumnPageBreak(2, save: false);
@@ -32,7 +32,7 @@ namespace OfficeIMO.Tests {
         public void ExcelWorksheet_PageSlicedImageExportRepeatsPrintTitleCorner() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
-            ExcelSheet sheet = document.AddWorkSheet("Report");
+            ExcelSheet sheet = document.AddWorksheet("Report");
             FillPageBreakGrid(sheet);
             document.SetPrintTitles(sheet, firstRow: 1, lastRow: 1, firstCol: 1, lastCol: 1, save: false);
             sheet.AddManualRowPageBreak(2, save: false);

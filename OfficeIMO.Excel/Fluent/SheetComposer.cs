@@ -22,7 +22,7 @@ namespace OfficeIMO.Excel.Fluent {
             _workbook = workbook ?? throw new ArgumentNullException(nameof(workbook));
             _theme = theme ?? SheetTheme.Default;
             // Use sanitized sheet names to avoid Excel repair prompts for invalid characters/length
-            _sheet = _workbook.AddWorkSheet(sheetName, SheetNameValidationMode.Sanitize);
+            _sheet = _workbook.AddWorksheet(sheetName, SheetNameValidationMode.Sanitize);
             _row = 1;
             // Create a sheet-local top anchor so callers/tests can rely on a defined name at A1.
             // Keep it simple and safe: local to this sheet, absolute A1.

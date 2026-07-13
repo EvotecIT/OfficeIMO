@@ -10,8 +10,8 @@ namespace OfficeIMO.Tests {
         public void Test_SheetWrappersAreCachedBetweenReads() {
             string filePath = Path.Combine(_directoryWithFiles, "SheetCacheReuse.xlsx");
             using var document = ExcelDocument.Create(filePath);
-            document.AddWorkSheet("One");
-            document.AddWorkSheet("Two");
+            document.AddWorksheet("One");
+            document.AddWorksheet("Two");
 
             var firstRead = document.Sheets;
             var secondRead = document.Sheets;
@@ -28,17 +28,17 @@ namespace OfficeIMO.Tests {
         public void Test_SheetCacheInvalidatesOnMutations() {
             string filePath = Path.Combine(_directoryWithFiles, "SheetCacheInvalidations.xlsx");
             using var document = ExcelDocument.Create(filePath);
-            document.AddWorkSheet("Alpha");
-            document.AddWorkSheet("Beta");
+            document.AddWorksheet("Alpha");
+            document.AddWorksheet("Beta");
 
             var baseline = document.Sheets;
             Assert.True(baseline.Count >= 2);
 
-            document.AddWorkSheet("Gamma");
+            document.AddWorksheet("Gamma");
             var afterAdd = document.Sheets;
             Assert.Contains(afterAdd, sheet => string.Equals(sheet.Name, "Gamma", StringComparison.Ordinal));
 
-            document.RemoveWorkSheet("Alpha");
+            document.RemoveWorksheet("Alpha");
             var afterRemove = document.Sheets;
             Assert.DoesNotContain(afterRemove, sheet => string.Equals(sheet.Name, "Alpha", StringComparison.Ordinal));
 
@@ -50,13 +50,13 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_RemoveWorkSheet_IsCaseInsensitive() {
+        public void Test_RemoveWorksheet_IsCaseInsensitive() {
             string filePath = Path.Combine(_directoryWithFiles, "SheetRemoveCaseInsensitive.xlsx");
             using var document = ExcelDocument.Create(filePath);
-            document.AddWorkSheet("Alpha");
-            document.AddWorkSheet("Beta");
+            document.AddWorksheet("Alpha");
+            document.AddWorksheet("Beta");
 
-            document.RemoveWorkSheet("alpha");
+            document.RemoveWorksheet("alpha");
 
             Assert.DoesNotContain(document.Sheets, sheet => string.Equals(sheet.Name, "Alpha", StringComparison.Ordinal));
             Assert.Contains(document.Sheets, sheet => string.Equals(sheet.Name, "Beta", StringComparison.Ordinal));
@@ -68,8 +68,8 @@ namespace OfficeIMO.Tests {
         public void Test_TableOfContents_AndBackLinks_ResolveSanitizedSheetNames() {
             string filePath = Path.Combine(_directoryWithFiles, "SheetTocSanitizedNames.xlsx");
             using var document = ExcelDocument.Create(filePath);
-            var data = document.AddWorkSheet("Data");
-            document.AddWorkSheet("Summary");
+            var data = document.AddWorksheet("Data");
+            document.AddWorksheet("Summary");
 
             document.AddTableOfContents(sheetName: "TOC??", placeFirst: true, withHyperlinks: false, includeNamedRanges: false, styled: false);
             document.AddBackLinksToToc("TOC??", text: "Back to TOC");
@@ -94,9 +94,9 @@ namespace OfficeIMO.Tests {
         public void Benchmark_CachedVersusUncachedSheetAccess() {
             string filePath = Path.Combine(_directoryWithFiles, "SheetCacheBenchmark.xlsx");
             using var document = ExcelDocument.Create(filePath);
-            document.AddWorkSheet("SheetA");
-            document.AddWorkSheet("SheetB");
-            document.AddWorkSheet("SheetC");
+            document.AddWorksheet("SheetA");
+            document.AddWorksheet("SheetB");
+            document.AddWorksheet("SheetC");
 
             document.InvalidateSheetCache();
             ExcelSheet.ResetInstanceCountForTests();

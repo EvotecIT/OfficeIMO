@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ObjectModel.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
 
                 sheet.CellAt(1, 1).SetValue("Name").SetBold().SetFillColor("FFF2CC");
                 sheet.CellAt(1, 2).SetValue("Score").SetBold().SetFillColor("FFF2CC");
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.MergeDuplicate.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Merge");
+                ExcelSheet sheet = document.AddWorksheet("Merge");
                 sheet.MergeRange("A1:B1");
                 sheet.MergeRange("A1:B1");
                 document.Save();
@@ -90,7 +90,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.RangeFormatting.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellValue(1, 2, 20d);
                 sheet.CellValue(2, 1, 30d);
@@ -143,7 +143,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.GradientFills.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellAt(1, 1).SetValue("Single").SetGradientFill("#FF0000", "#00FF00", 45);
                 sheet.Range("B1:C1").SetGradientFill("112233", "445566", 90);
                 document.Save();
@@ -196,7 +196,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.HeaderColumnRanges.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Sales Amount");
                 sheet.CellValue(2, 1, "NA");
@@ -226,7 +226,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.Calculation.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellValue(2, 1, 3d);
                 sheet.CellFormula(3, 1, "SUM(A1:A2)");
@@ -254,7 +254,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateFacade.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellValue(2, 1, 3d);
                 sheet.CellFormula(3, 1, "SUM(A1:A2)");
@@ -284,7 +284,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateDependencies.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellFormula(1, 1, "A2+1");
                 sheet.CellFormula(2, 1, "A3+1");
                 sheet.CellFormula(3, 1, "SUM(B1:B2)");
@@ -318,9 +318,9 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateCrossSheetReferences.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet calc = document.AddWorkSheet("Calc");
-                ExcelSheet data = document.AddWorkSheet("Data Sheet");
-                ExcelSheet budget = document.AddWorkSheet("Budget $ FY26");
+                ExcelSheet calc = document.AddWorksheet("Calc");
+                ExcelSheet data = document.AddWorksheet("Data Sheet");
+                ExcelSheet budget = document.AddWorksheet("Budget $ FY26");
                 data.CellValue(1, 1, 2d);
                 data.CellValue(2, 1, 3d);
                 data.CellValue(1, 2, 4d);
@@ -368,8 +368,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateCrossSheetFormulaDependencies.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet calc = document.AddWorkSheet("Calc");
-                ExcelSheet data = document.AddWorkSheet("Data");
+                ExcelSheet calc = document.AddWorksheet("Calc");
+                ExcelSheet data = document.AddWorksheet("Data");
                 calc.CellFormula(1, 1, "Data!A1+1");
                 data.CellFormula(1, 1, "A2+1");
                 data.CellValue(2, 1, 4d);
@@ -397,8 +397,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateNamedRanges.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet calc = document.AddWorkSheet("Calc");
-                ExcelSheet data = document.AddWorkSheet("Data Sheet");
+                ExcelSheet calc = document.AddWorksheet("Calc");
+                ExcelSheet data = document.AddWorksheet("Data Sheet");
                 data.CellValue(1, 1, 2d);
                 data.CellValue(2, 1, 3d);
                 data.CellValue(1, 2, 4d);
@@ -437,8 +437,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateTableReferences.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet calc = document.AddWorkSheet("Calc");
-                ExcelSheet data = document.AddWorkSheet("Data");
+                ExcelSheet calc = document.AddWorksheet("Calc");
+                ExcelSheet data = document.AddWorksheet("Data");
                 data.CellValue(1, 1, "Region");
                 data.CellValue(1, 2, "Amount");
                 data.CellValue(1, 3, "Tax");
@@ -486,8 +486,8 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateTableFormulaDependencies.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet calc = document.AddWorkSheet("Calc");
-                ExcelSheet data = document.AddWorkSheet("Data");
+                ExcelSheet calc = document.AddWorksheet("Calc");
+                ExcelSheet data = document.AddWorksheet("Data");
                 data.CellValue(1, 1, "Region");
                 data.CellValue(1, 2, "Base");
                 data.CellValue(1, 3, "Amount");
@@ -522,7 +522,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateTextHelpers.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Text");
+                ExcelSheet sheet = document.AddWorksheet("Text");
                 sheet.CellValue(1, 1, "North");
                 sheet.CellValue(2, 1, "South");
                 sheet.CellValue(3, 1, "  East   Hub  ");
@@ -580,7 +580,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateCircularDependencies.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellFormula(1, 1, "A2+1");
                 sheet.CellFormula(2, 1, "A1+1");
 
@@ -599,7 +599,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculateUnresolvedTextDependencies.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellFormula(1, 1, "A2+1");
                 sheet.CellFormula(2, 1, "A1+1");
                 sheet.CellFormula(1, 2, "CONCAT(A1,\"x\")");
@@ -620,7 +620,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculationSaveOptions.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellFormula(1, 1, "A3*2");
                 sheet.CellValue(1, 2, 2d);
                 sheet.CellValue(2, 2, 3d);
@@ -652,7 +652,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FormulaUnsupportedReasons.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Diagnostics");
+                ExcelSheet sheet = document.AddWorksheet("Diagnostics");
                 sheet.CellValue(1, 1, "North");
                 sheet.CellValue(2, 1, "South");
 
@@ -679,7 +679,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FormulaInspection.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellValue(2, 1, 3d);
                 sheet.CellValue(1, 2, "EU");
@@ -949,7 +949,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FeatureReport.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sales");
+                ExcelSheet sheet = document.AddWorksheet("Sales");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(1, 2, "Product");
                 sheet.CellValue(1, 3, "Sales");
@@ -1002,7 +1002,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FeatureReportDetails.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Links");
+                ExcelSheet sheet = document.AddWorksheet("Links");
                 sheet.CellValue(1, 1, "Resource");
                 sheet.CellValue(2, 1, "Spec");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
@@ -1037,7 +1037,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFeatureReport.SlicerTimelineParts.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
                 document.Save();
@@ -1086,7 +1086,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelFeatureReport.ConnectionQueryParts.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
                 document.Save();
@@ -1134,7 +1134,7 @@ namespace OfficeIMO.Tests {
             byte[] timelineBytes = Encoding.UTF8.GetBytes("<timelineCacheDefinition xmlns=\"http://schemas.microsoft.com/office/spreadsheetml/2011/1/main\" name=\"OrderDate\"/>");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Dashboard");
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
                 document.Save();
@@ -1201,7 +1201,7 @@ namespace OfficeIMO.Tests {
             byte[] queryTableBytes = Encoding.UTF8.GetBytes("<queryTable xmlns=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" name=\"SalesQuery\" connectionId=\"1\"/>");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Data");
+                ExcelSheet sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Region");
                 sheet.CellValue(2, 1, "EU");
                 document.Save();
@@ -1269,7 +1269,7 @@ namespace OfficeIMO.Tests {
             const string commentId = "{22222222-2222-2222-2222-222222222222}";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Review");
+                ExcelSheet sheet = document.AddWorksheet("Review");
                 sheet.CellValue(1, 1, "Revenue");
                 sheet.CellValue(2, 1, 1250d);
                 document.Save();
@@ -1339,7 +1339,7 @@ namespace OfficeIMO.Tests {
             const string controlsXml = "<x:controls xmlns:x=\"http://schemas.openxmlformats.org/spreadsheetml/2006/main\" xmlns:r=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships\"><x:control shapeId=\"1026\" name=\"ApproveButton\" r:id=\"rIdControl1\" /></x:controls>";
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Controls");
+                ExcelSheet sheet = document.AddWorksheet("Controls");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Before");
                 document.Save();
@@ -1382,7 +1382,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FeatureReportFailFast.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Links");
+                ExcelSheet sheet = document.AddWorksheet("Links");
                 sheet.CellValue(1, 1, "Resource");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
                 document.Save();
@@ -1413,7 +1413,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.PreserveExternalLinksCustomXml.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Links");
+                ExcelSheet sheet = document.AddWorksheet("Links");
                 sheet.CellValue(1, 1, "Resource");
                 sheet.CellValue(2, 1, "Spec");
                 sheet.SetHyperlink(2, 1, "https://example.org/spec", display: "Spec");
@@ -1454,7 +1454,7 @@ namespace OfficeIMO.Tests {
             byte[] embeddedBytes = Encoding.ASCII.GetBytes("OfficeIMO embedded workbook placeholder");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Package");
+                ExcelSheet sheet = document.AddWorksheet("Package");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "Before");
                 document.Save();
@@ -1512,7 +1512,7 @@ namespace OfficeIMO.Tests {
                 "<Signature xmlns=\"http://www.w3.org/2000/09/xmldsig#\"><SignedInfo /></Signature>");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Signed");
+                ExcelSheet sheet = document.AddWorksheet("Signed");
                 sheet.CellValue(1, 1, "Status");
                 sheet.CellValue(2, 1, "Before");
                 document.Save();
@@ -1565,7 +1565,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculationUnsupported.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Calc");
+                ExcelSheet sheet = document.AddWorksheet("Calc");
                 sheet.CellValue(1, 1, 2d);
                 sheet.CellFormula(2, 1, "VLOOKUP(A1,B1:C2,2,FALSE)");
                 sheet.CellFormula(3, 1, "SUM(" + new string('A', 9000) + ")");
@@ -1589,7 +1589,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortFormulaCaches.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sort");
+                ExcelSheet sheet = document.AddWorksheet("Sort");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 1, "Hundred");
@@ -1620,7 +1620,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortHyperlinkRemap.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sort");
+                ExcelSheet sheet = document.AddWorksheet("Sort");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 1, "Hundred");
@@ -1666,7 +1666,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.Protection.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Protected");
+                ExcelSheet sheet = document.AddWorksheet("Protected");
                 sheet.CellValue(1, 1, "locked");
 
                 document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
@@ -1712,7 +1712,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculationOrder.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Calc");
+                document.AddWorksheet("Calc");
                 document.Save();
             }
 
@@ -1744,7 +1744,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.CalculationMode.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Manual");
+                document.AddWorksheet("Manual");
                 document.Save();
             }
 
@@ -1773,7 +1773,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SingleCellRange.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Range");
+                ExcelSheet sheet = document.AddWorksheet("Range");
                 ExcelRange range = sheet.Range("A1");
                 ExcelRange absoluteCellRange = sheet.Range("$B$2");
                 ExcelRange absoluteMultiCellRange = sheet.Range("$C$3:$D$4");
@@ -1799,7 +1799,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ResolvedTableName.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Table");
+                ExcelSheet sheet = document.AddWorksheet("Table");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(1, 2, "Score");
                 sheet.CellValue(2, 1, "Alpha");
@@ -1822,7 +1822,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ProtectionDefaults.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Defaults");
+                document.AddWorksheet("Defaults");
                 document.Save();
             }
 
@@ -1850,7 +1850,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.RichTextReadMissingCell.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("RichText");
+                ExcelSheet sheet = document.AddWorksheet("RichText");
 
                 Assert.Empty(sheet.CellAt(10, 3).GetRichText());
 
@@ -1872,7 +1872,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearHyperlinkSegments.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Links");
+                ExcelSheet sheet = document.AddWorksheet("Links");
                 sheet.CellValue(1, 1, "Name");
                 sheet.CellValue(2, 1, "One");
                 sheet.CellValue(3, 1, "Two");
@@ -1913,7 +1913,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearHyperlinkNoOverlap.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Links");
+                ExcelSheet sheet = document.AddWorksheet("Links");
                 sheet.CellValue(2, 1, "One");
                 sheet.CellValue(4, 1, "Two");
                 sheet.SetHyperlink(2, 1, "https://example.com", display: "Linked", style: false);
@@ -1948,7 +1948,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortFormulaRows.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sort");
+                ExcelSheet sheet = document.AddWorksheet("Sort");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(1, 2, "Formula");
                 sheet.CellValue(2, 1, 2d);
@@ -1980,7 +1980,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.SortSparse.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Sparse");
+                ExcelSheet sheet = document.AddWorksheet("Sparse");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(1, 2, "Blank");
                 sheet.CellValue(2, 1, 2d);
@@ -2010,7 +2010,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ProtectionBookViews.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Protected");
+                document.AddWorksheet("Protected");
                 document.Save();
             }
 
@@ -2048,7 +2048,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearNone.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                ExcelSheet sheet = document.AddWorksheet("Clear");
                 sheet.ClearRange("C5:D6", ExcelClearOptions.None);
                 document.Save();
             }
@@ -2064,7 +2064,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearSparseValues.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                ExcelSheet sheet = document.AddWorksheet("Clear");
                 sheet.CellValue(1, 1, "Keep");
                 sheet.CellValue(5, 5, "Clear");
                 sheet.ClearRange("A1:E5", ExcelClearOptions.Values);
@@ -2092,7 +2092,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearSparseCellFields.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                ExcelSheet sheet = document.AddWorksheet("Clear");
                 sheet.CellValue(1, 1, "Keep");
                 sheet.CellAt(10, 5).SetValue("Clear").SetFillColor("FFF2CC");
                 sheet.CellAt(10, 6).SetFormula("E10");
@@ -2127,7 +2127,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearSparseComments.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                ExcelSheet sheet = document.AddWorksheet("Clear");
                 sheet.SetComment(1, 1, "Remove first", author: "Tester");
                 sheet.SetComment(5, 5, "Remove second", author: "Tester");
                 sheet.SetComment(7, 7, "Keep outside", author: "Tester");
@@ -2171,7 +2171,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearCommentsNoOverlap.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                ExcelSheet sheet = document.AddWorksheet("Clear");
                 sheet.SetComment(1, 1, "Keep", author: "Tester");
 
                 sheet.ClearRange("C3:D4", ExcelClearOptions.Comments);
@@ -2208,7 +2208,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearMissingComment.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Clear");
+                ExcelSheet sheet = document.AddWorksheet("Clear");
                 sheet.SetComment(1, 1, "Keep", author: "Tester");
 
                 sheet.ClearComment("C3");
@@ -2245,7 +2245,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.ClearArraySpill.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Array");
+                ExcelSheet sheet = document.AddWorksheet("Array");
                 sheet.CellValue(1, 1, 10d);
                 sheet.CellValue(1, 2, 20d);
                 sheet.CellValue(2, 1, 30d);
@@ -2286,7 +2286,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.FormulaReadMissingCell.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Formula");
+                ExcelSheet sheet = document.AddWorksheet("Formula");
 
                 Assert.Null(sheet.GetFormulaText(10, 3));
                 Assert.False(sheet.TryGetCachedFormulaValue(10, 3, out string? cachedValue));
@@ -2310,7 +2310,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.Rules.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Rules");
+                ExcelSheet sheet = document.AddWorksheet("Rules");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, 10d);
                 sheet.CellValue(3, 1, 20d);
@@ -2367,7 +2367,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "ClosedXmlGap.RulesNoOverlap.xlsx");
 
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
-                ExcelSheet sheet = document.AddWorkSheet("Rules");
+                ExcelSheet sheet = document.AddWorksheet("Rules");
                 sheet.CellValue(1, 1, "Value");
                 sheet.CellValue(2, 1, 10d);
                 sheet.CellValue(3, 1, 20d);

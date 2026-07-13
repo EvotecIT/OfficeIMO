@@ -14,10 +14,10 @@ namespace OfficeIMO.Excel {
             // Remove existing TOC sheet if present (recreate clean to avoid leftover elements)
             var existing = SheetNameLookup.FindByRequestedName(this.Sheets, sheetName);
             if (existing != null) {
-                RemoveWorkSheet(existing.Name);
+                RemoveWorksheet(existing.Name);
             }
 
-            var toc = this.AddWorkSheet(sheetName);
+            var toc = this.AddWorksheet(sheetName);
             string tocName = toc.Name;
             int r = 1;
             // Banner
@@ -147,7 +147,7 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Removes a worksheet by name, deleting its part and entry in the workbook.
         /// </summary>
-        public void RemoveWorkSheet(string sheetName) {
+        public void RemoveWorksheet(string sheetName) {
             Locking.ExecuteWrite(EnsureLock(), () => {
                 var wb = WorkbookRoot;
                 var sheets = wb.Sheets;

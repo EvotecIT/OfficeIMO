@@ -100,7 +100,7 @@ namespace OfficeIMO.Excel {
 
             string firstSheetName = ResolveTemplateSheetName(templateSheetName, items[0].SheetName, 0);
             if (!string.Equals(templateSheet.Name, firstSheetName, StringComparison.Ordinal)) {
-                RenameWorkSheet(templateSheet, firstSheetName, SheetNameValidationMode.Sanitize);
+                RenameWorksheet(templateSheet, firstSheetName, SheetNameValidationMode.Sanitize);
             }
 
             int replacements = 0;

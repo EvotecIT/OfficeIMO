@@ -360,7 +360,7 @@ namespace OfficeIMO.Tests {
         private static byte[] CreateRemoteWorkbookBytes() {
             using var memory = new MemoryStream();
             using (var document = ExcelDocument.Create(memory, new ExcelCreateOptions { PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose })) {
-                var sheet = document.AddWorkSheet("Remote");
+                var sheet = document.AddWorksheet("Remote");
                 sheet.CellValue(1, 1, "Value");
             }
 

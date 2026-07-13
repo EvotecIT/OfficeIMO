@@ -59,10 +59,10 @@ public partial class Excel {
         byte[] bytes;
         byte[] summaryOnlyBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorkSheet("Summary");
+            ExcelSheet summary = document.AddWorksheet("Summary");
             summary.Cell(1, 1, "Name");
             summary.SetInternalLink(2, 1, "Details!B3", display: "Open Details B3");
-            ExcelSheet details = document.AddWorkSheet("Details");
+            ExcelSheet details = document.AddWorksheet("Details");
             details.Cell(1, 1, "Details Target");
             details.Cell(2, 1, "DestinationValue");
             details.Cell(3, 2, "CellSpecificTarget");
@@ -138,10 +138,10 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorkSheet("Summary");
+            ExcelSheet summary = document.AddWorksheet("Summary");
             summary.Cell(1, 1, "Name");
             summary.SetInternalLink(2, 1, "Details!B200", display: "Open Details B200");
-            ExcelSheet details = document.AddWorkSheet("Details");
+            ExcelSheet details = document.AddWorksheet("Details");
             details.Cell(1, 1, "Details Header");
             details.Cell(2, 1, "Visible Detail");
             details.Cell(200, 2, "Hidden Target");

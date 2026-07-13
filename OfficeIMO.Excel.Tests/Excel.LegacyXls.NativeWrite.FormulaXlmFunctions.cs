@@ -12,7 +12,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("XlmInfo");
+                    ExcelSheet sheet = document.AddWorksheet("XlmInfo");
 
                     sheet.CellValue(1, 1, "ChartItem");
                     sheet.CellFormula(1, 1, "GET.CHART.ITEM(1)");

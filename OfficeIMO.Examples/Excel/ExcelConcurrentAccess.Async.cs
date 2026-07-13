@@ -18,7 +18,7 @@ namespace OfficeIMO.Examples.Excel {
             if (File.Exists(filePath)) File.Delete(filePath);
 
             await using (var document = ExcelDocument.Create(filePath)) {
-                document.AddWorkSheet("Sheet1");
+                document.AddWorksheet("Sheet1");
                 await document.SaveAsync();
             }
 

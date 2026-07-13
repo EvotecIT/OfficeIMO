@@ -20,7 +20,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitColumnsAndRows() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Long piece of text");
                 sheet.CellValue(2, 1, "Second line\nwith newline");
                 sheet.CellValue(3, 1, "Line1\nLine2\nLine3");
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitRows_EmptyRowsRetainDefaultHeight() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.Empty.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Content");
                 sheet.CellValue(2, 1, " ");
                 sheet.AutoFitRows();
@@ -75,7 +75,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitRows_RemovesCustomHeightWhenCleared() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ClearRow.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Content");
                 sheet.AutoFitRows();
                 document.Save();
@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetRowLayout_AppliesHeightHiddenAndCellStyles() {
             string filePath = Path.Combine(_directoryWithFiles, "RowLayout.Basic.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Notes"),
@@ -140,7 +140,7 @@ namespace OfficeIMO.Tests {
         public void Test_SetRowLayout_ClearsHeightAndWrapText() {
             string filePath = Path.Combine(_directoryWithFiles, "RowLayout.Clear.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Line 1\nLine 2");
                 sheet.SetRowLayout(1, new ExcelRowLayoutOptions {
                     Height = 28,
@@ -174,7 +174,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitColumns_RemovesCustomWidthWhenCleared() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ClearColumn.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Long text");
                 sheet.AutoFitColumns();
                 document.Save();
@@ -198,7 +198,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitColumns_DoesNotLeaveEmptyColumnsElementForFormulaOnlySheet() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.FormulaOnly.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellFormula(1, 8, "=1+1");
                 sheet.AutoFitColumns();
                 document.Save();
@@ -218,7 +218,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitSingleColumn_DoesNotAffectOthers() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SingleColumn.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Very long text that should expand the column");
                 sheet.CellValue(1, 2, "Short");
                 sheet.AutoFitColumn(1);
@@ -243,7 +243,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitColumn_SplitsSpanningColumn() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SplitColumn.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Very long text that should expand the column");
                 sheet.CellValue(1, 2, "Short");
                 document.Save();
@@ -282,7 +282,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitColumnsFor_BatchApplySplitsSpanningColumnOnce() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.BatchSplitColumn.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Very long text that should expand the first column significantly");
                 sheet.CellValue(1, 2, "Keep");
                 sheet.CellValue(1, 3, "Very long text that should expand the third column significantly");
@@ -330,7 +330,7 @@ namespace OfficeIMO.Tests {
                 PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
             })) {
                 document.Execution.SaveWorksheetAfterAutoFit = false;
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Very long text that should still persist after deferred AutoFit save");
                 sheet.AutoFitColumns();
             }
@@ -351,7 +351,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitColumns_ClampsToExcelMaxWidth() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.MaxWidth.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, new string('A', 5000));
                 sheet.AutoFitColumns();
                 document.Save();
@@ -375,7 +375,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitSingleRow_DoesNotAffectOthers() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.SingleRow.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Line1\nLine2\nLine3");
                 sheet.CellValue(2, 1, "Line1\nLine2\nLine3");
                 sheet.AutoFitRow(1);
@@ -426,7 +426,7 @@ namespace OfficeIMO.Tests {
             const string fontName = "OfficeIMO Test Sans";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Small");
                 sheet.CellValue(2, 1, "Large text");
                 sheet.CellValue(3, 1, "Short");
@@ -484,7 +484,7 @@ namespace OfficeIMO.Tests {
             const string fontName = "OfficeIMO Test Sans";
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "1234567890.12345");
                 sheet.CellValue(1, 2, "12");
                 sheet.MaterializePendingDirectCellValues();
@@ -513,7 +513,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.DuplicateNumberFormats.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 1234.5d);
                 Assert.True(sheet.TryGetCellText(1, 1, out _));
 
@@ -551,7 +551,7 @@ namespace OfficeIMO.Tests {
             var date = new DateTime(2026, 5, 7);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.Cell(1, 1, 1234.5, numberFormat: "$#,##0.00");
                 sheet.CellValue(1, 2, 1234.5);
                 sheet.Cell(1, 3, 1.0, numberFormat: "0.00%");
@@ -581,7 +581,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath)) {
                 document.Execution.OnTiming = (operation, elapsed) => timings.Add((operation, elapsed));
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Long text for timing instrumentation");
                 sheet.CellValue(2, 1, "Repeated shared string text");
                 sheet.CellValue(3, 1, "Repeated shared string text");
@@ -602,7 +602,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.StableBestFit.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Very long text that should expand the first column");
                 sheet.CellValue(1, 2, "Short");
                 sheet.AutoFitColumns();
@@ -625,7 +625,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.RichInlineString.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Tiny HugeWideText");
                 sheet.CellValue(1, 2, "Tiny HugeWideText");
                 sheet.MaterializePendingDirectCellValues();
@@ -661,7 +661,7 @@ namespace OfficeIMO.Tests {
         public void Test_AutoFitOperations_RunSequentially() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ConcurrentOperations.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Long piece of text");
                 sheet.CellValue(2, 1, "Second line\nwith newline");
                 sheet.CellValue(3, 1, "Line1\nLine2\nLine3");
@@ -692,7 +692,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_AutoFitColumnRowConcurrentCalls_AreThreadSafe() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.ConcurrentSingle.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Long piece of text");
                 sheet.CellValue(2, 1, "Line1\nLine2");
 
@@ -723,7 +723,7 @@ namespace OfficeIMO.Tests {
         public async Task Test_AutoFitColumns_CancellationPropagates() {
             string filePath = Path.Combine(_directoryWithFiles, "AutoFit.Cancellation.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 for (int row = 1; row <= 50; row++) {
                     for (int column = 1; column <= 50; column++) {
                         sheet.CellValue(row, column, $"Row {row} Column {column} {new string('X', 50)}");

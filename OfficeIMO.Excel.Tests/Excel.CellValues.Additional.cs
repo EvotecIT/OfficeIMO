@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
             TimeSpan? nullableTs = time;
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, dateOffset);
                 sheet.FormatCell(1, 1, "yyyy-mm-dd hh:mm");
                 sheet.CellValue(2, 1, time);
@@ -118,7 +118,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesDateOnlyTimeOnlyStyles.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, new DateOnly(2026, 5, 22));
                 sheet.CellValue(2, 1, new TimeOnly(14, 30, 0));
                 document.Save();
@@ -153,7 +153,7 @@ namespace OfficeIMO.Tests {
             long largeSigned = long.MinValue;
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, largeUnsigned);
                 sheet.CellValue(2, 1, (object)largeSigned);
                 document.Save();
@@ -184,7 +184,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, positive);
                 sheet.CellValue(2, 1, negative);
                 document.Save();
@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath))
             {
                 document.DateTimeOffsetWriteStrategy = dto => dto.UtcDateTime;
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, value);
                 document.Save();
             }
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
 
             using (var document = ExcelDocument.Create(filePath))
             {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, historical);
                 document.Save();
             }
@@ -272,7 +272,7 @@ namespace OfficeIMO.Tests {
             using (var document = ExcelDocument.Create(filePath))
             {
                 document.DateTimeOffsetWriteStrategy = _ => throw new InvalidOperationException("boom");
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
 
                 var ex = Assert.Throws<InvalidOperationException>(() => sheet.CellValue(1, 1, value));
                 Assert.Contains("DateTimeOffset write strategy", ex.Message);
@@ -286,7 +286,7 @@ namespace OfficeIMO.Tests {
             var duration = new TimeSpan(1, 2, 3, 4);
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, duration);
                 sheet.CellValue(2, 1, (TimeSpan?)duration);
                 document.Save();

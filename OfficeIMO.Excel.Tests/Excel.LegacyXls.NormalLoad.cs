@@ -107,7 +107,7 @@ namespace OfficeIMO.Tests {
             } else {
                 using var sourceStream = new MemoryStream();
                 using ExcelDocument source = ExcelDocument.Create(sourceStream);
-                source.AddWorkSheet("OpenXml").CellValue(1, 1, "Encrypted Open XML");
+                source.AddWorksheet("OpenXml").CellValue(1, 1, "Encrypted Open XML");
                 using var encrypted = new MemoryStream();
                 source.SaveEncrypted(encrypted, password);
                 encryptedBytes = encrypted.ToArray();
@@ -256,7 +256,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("OpenXml");
+                    ExcelSheet sheet = document.AddWorksheet("OpenXml");
                     sheet.CellValue(1, 1, "Open XML payload");
                     document.Save();
                 }
@@ -463,7 +463,7 @@ namespace OfficeIMO.Tests {
 
             try {
                 using (ExcelDocument document = ExcelDocument.Create(openXmlPath)) {
-                    ExcelSheet sheet = document.AddWorkSheet("Data");
+                    ExcelSheet sheet = document.AddWorksheet("Data");
                     sheet.CellValue(1, 1, "Name");
                     sheet.CellValue(2, 1, "Alice");
                     sheet.CellValue(2, 2, 42);

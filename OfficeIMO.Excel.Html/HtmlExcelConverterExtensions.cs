@@ -49,13 +49,13 @@ public static partial class HtmlExcelConverterExtensions {
         if (sheetSections.Count == 0) {
             AddImportDiagnostic(result, HtmlConversionDiagnosticCodes.SemanticContentMissing,
                 "No semantic Excel sheet sections were found.", HtmlDiagnosticSeverity.Error, HtmlConversionLossKind.Failure);
-            workbook.AddWorkSheet("Imported");
+            workbook.AddWorksheet("Imported");
             return result;
         }
 
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IElement section in sheetSections) {
-            ExcelSheet sheet = workbook.AddWorkSheet(GetUniqueSheetName(GetSheetName(section), usedNames));
+            ExcelSheet sheet = workbook.AddWorksheet(GetUniqueSheetName(GetSheetName(section), usedNames));
             result.Sheets++;
             ImportTable(section, sheet, result, options);
             if (options.ImportFormulas) {

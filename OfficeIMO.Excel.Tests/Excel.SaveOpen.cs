@@ -11,7 +11,7 @@ namespace OfficeIMO.Tests {
         public void Test_Save_OpensWithoutSharingViolation() {
             string filePath = Path.Combine(_directoryWithFiles, "SaveOpen.xlsx");
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Test");
 
                 // Attempt to save the document, do not open, as it may fail on systems without associated application, and not really great for testing
@@ -24,7 +24,7 @@ namespace OfficeIMO.Tests {
                 using (var stream = new FileStream(filePath, FileMode.Open, FileAccess.ReadWrite, FileShare.None)) {
                 }
 
-                document.AddWorkSheet("Second");
+                document.AddWorksheet("Second");
                 document.Save();
             }
 

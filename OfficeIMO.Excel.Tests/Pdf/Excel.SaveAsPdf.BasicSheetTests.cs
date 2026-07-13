@@ -155,11 +155,11 @@ public partial class Excel {
 
         byte[] bytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet summary = document.AddWorkSheet("Summary");
+            ExcelSheet summary = document.AddWorksheet("Summary");
             summary.Cell(1, 1, "Metric");
             summary.Cell(2, 1, "SelectedValue");
             summary.SetHeaderFooter(headerCenter: "Selected Header &A");
-            ExcelSheet internalSheet = document.AddWorkSheet("Internal");
+            ExcelSheet internalSheet = document.AddWorksheet("Internal");
             internalSheet.Cell(1, 1, "HiddenValue");
             document.Save();
 
@@ -184,9 +184,9 @@ public partial class Excel {
         byte[] visibleBytes;
         byte[] explicitHiddenBytes;
         using (ExcelDocument document = ExcelDocument.Create(workbookPath)) {
-            ExcelSheet visible = document.AddWorkSheet("Visible");
+            ExcelSheet visible = document.AddWorksheet("Visible");
             visible.Cell(1, 1, "VisibleSheetValue");
-            ExcelSheet hidden = document.AddWorkSheet("Hidden");
+            ExcelSheet hidden = document.AddWorksheet("Hidden");
             hidden.Cell(1, 1, "HiddenSheetValue");
             hidden.SetHidden(true);
             Assert.True(hidden.Hidden);

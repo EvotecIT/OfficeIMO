@@ -63,7 +63,7 @@ internal static class ExcelBenchmarkScenarioFactory {
     public static byte[] CreateWorkbookBytes(IReadOnlyList<SalesRecord> rows) {
         using var stream = new MemoryStream();
         using (var document = ExcelDocument.Create(stream)) {
-            var sheet = document.AddWorkSheet("Data");
+            var sheet = document.AddWorksheet("Data");
             PopulateOfficeImoWorksheet(sheet, rows);
         }
 

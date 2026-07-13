@@ -17,7 +17,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValues.xlsx");
             var date = new DateTime(2024, 1, 2);
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Hello");
                 sheet.CellValue(2, 1, 123.45);
                 sheet.CellValue(3, 1, 678.90m);
@@ -81,7 +81,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesNullEmptyString.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, (object?)null);
                 sheet.CellValue(2, 1, DBNull.Value);
                 sheet.CellValue(3, 1, (string?)null);
@@ -110,7 +110,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesImmediate.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValues(new[] {
                     (1, 1, (object)"Name"),
                     (1, 2, (object)"Amount"),
@@ -138,7 +138,7 @@ namespace OfficeIMO.Tests {
             };
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValues(cells);
                 cells[2] = (1, 3, "Changed");
                 cells[5] = (2, 3, "Changed");
@@ -161,7 +161,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesAppendPlainRowsPlainStrings.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValues(new[] {
                     (1, 1, (object)"Id"),
                     (1, 2, (object)"Region"),
@@ -219,7 +219,7 @@ namespace OfficeIMO.Tests {
                 using (var document = ExcelDocument.Create(stream, new ExcelCreateOptions {
                     PersistenceMode = OfficeIMO.Drawing.DocumentPersistenceMode.SaveOnDispose
                 })) {
-                    var sheet = document.AddWorkSheet("Data");
+                    var sheet = document.AddWorksheet("Data");
                     sheet.CellValues(new[] {
                         (1, 1, (object)"Id"),
                         (1, 2, (object)"Region"),
@@ -267,7 +267,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuePendingDirectWrites.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 for (int row = 1; row <= 70; row++) {
                     sheet.CellValue(row, 1, "Name " + row.ToString(CultureInfo.InvariantCulture));
                     sheet.CellValue(row, 2, row);
@@ -304,7 +304,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellFormulaPendingDirectWrites.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Formulas");
+                var sheet = document.AddWorksheet("Formulas");
                 for (int row = 1; row <= 70; row++) {
                     sheet.CellValue(row, 1, (double)row);
                     sheet.CellValue(row, 2, (double)(row % 17));
@@ -332,7 +332,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesPendingDirectFindFirst.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 for (int row = 1; row <= 70; row++) {
                     sheet.CellValue(row, 1, "Name " + row.ToString(CultureInfo.InvariantCulture));
                     sheet.CellValue(row, 2, row == 70 ? "Needle Pending" : "Value " + row.ToString(CultureInfo.InvariantCulture));
@@ -352,7 +352,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesPendingDirectReplaceAll.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 for (int row = 1; row <= 70; row++) {
                     sheet.CellValue(row, 1, "Name " + row.ToString(CultureInfo.InvariantCulture));
                     sheet.CellValue(row, 2, "Status New " + row.ToString(CultureInfo.InvariantCulture));
@@ -374,7 +374,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesMissingLookupNoMutation.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Header");
 
                 Assert.False(sheet.TryGetCellText(10, 5, out _));
@@ -395,7 +395,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesOutOfOrderRows.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(5, 1, "Later");
                 sheet.CellValue(2, 1, "Target");
 
@@ -421,7 +421,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesOutOfOrderCells.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 3, "Later");
                 sheet.CellValue(1, 1, "Target");
 
@@ -447,7 +447,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesObjectModelMissingLookupNoMutation.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(10, 1, "Existing row");
 
                 ExcelCellData value = sheet.CellAt(10, 5).GetValue();
@@ -469,7 +469,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringCache.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Alpha");
                 sheet.CellValue(2, 1, "Beta");
 
@@ -501,7 +501,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringDirectMutation.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Alpha");
 
                 Assert.True(sheet.TryGetCellText(1, 1, out var first));
@@ -524,7 +524,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringTooLong.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 string tooLong = new string('A', 32_768);
 
                 var exception = Assert.Throws<ArgumentException>(() => sheet.CellValue(1, 1, tooLong));
@@ -539,7 +539,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesFindFirstDirectMutation.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Alpha");
                 sheet.CellValue(2, 1, "Beta");
 
@@ -574,7 +574,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesFindFirstFormulaCacheMutation.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, 1d);
                 sheet.CellValue(2, 1, 2d);
                 sheet.CellFormula(3, 1, "SUM(A1:A2)");
@@ -600,7 +600,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesSharedStringFindReplace.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 sheet.CellValue(1, 1, "Status New");
                 sheet.CellValue(2, 1, "Status Old");
                 sheet.CellValue(3, 1, "Status New");
@@ -625,7 +625,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesInlineReplace.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 var worksheet = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First().Worksheet;
                 var sheetData = worksheet.GetFirstChild<SheetData>()!;
                 var row = new Row { RowIndex = 1 };
@@ -659,7 +659,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesReplaceAllFormulaStringNoCache.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 var worksheet = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First().Worksheet;
                 var sheetData = worksheet.GetFirstChild<SheetData>()!;
                 var row = new Row { RowIndex = 1 };
@@ -688,7 +688,7 @@ namespace OfficeIMO.Tests {
             string filePath = Path.Combine(_directoryWithFiles, "CellValuesTryGetFormulaNoCache.xlsx");
 
             using (var document = ExcelDocument.Create(filePath)) {
-                var sheet = document.AddWorkSheet("Data");
+                var sheet = document.AddWorksheet("Data");
                 var worksheet = document._spreadSheetDocument.WorkbookPart!.WorksheetParts.First().Worksheet;
                 var sheetData = worksheet.GetFirstChild<SheetData>()!;
                 var row = new Row { RowIndex = 1 };
