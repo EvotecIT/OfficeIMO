@@ -778,7 +778,7 @@ namespace OfficeIMO.Word.Html {
                             break;
                         }
                     case "li": {
-                            ProcessListItem((IHtmlListItemElement)element, doc, section, options, listStack, formatting, cell, headerFooter);
+                            ProcessListItem((IHtmlListItemElement)element, doc, section, options, listStack, formatting, cell, headerFooter, insertionAnchor: null);
                             break;
                         }
                     case "table": {

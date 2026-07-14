@@ -25,6 +25,7 @@ public partial class WordList : WordElement {
 
     private WordParagraph? _wordParagraph;
     private readonly WordHeaderFooter? _headerFooter;
+    private readonly TableCell? _tableCell;
 
     private readonly List<WordParagraph> _listItems = new();
 
@@ -319,6 +320,15 @@ public partial class WordList : WordElement {
         _document = wordDocument;
         _wordprocessingDocument = wordDocument._wordprocessingDocument;
         _headerFooter = headerFooter;
+    }
+
+    /// <summary>
+    /// Initializes a list that can append its first item directly to an empty table cell.
+    /// </summary>
+    internal WordList(WordDocument wordDocument, TableCell tableCell) {
+        _document = wordDocument;
+        _wordprocessingDocument = wordDocument._wordprocessingDocument;
+        _tableCell = tableCell;
     }
 
 }

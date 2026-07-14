@@ -26,6 +26,14 @@ namespace OfficeIMO.Word {
         /// <param name="wordParagraph">The paragraph after which the item is inserted. When <c>null</c> the item is appended in the default position.</param>
         /// <returns>The <see cref="WordParagraph"/> representing the created list item.</returns>
         public WordParagraph AddItem(string? text, int level = 0, WordParagraph? wordParagraph = null) {
+            return AddItemCore(text, level, wordParagraph, preferSuppliedReference: false);
+        }
+
+        internal WordParagraph AddItemAfter(string? text, int level, WordParagraph wordParagraph) {
+            return AddItemCore(text, level, wordParagraph, preferSuppliedReference: true);
+        }
+
+        private WordParagraph AddItemCore(string? text, int level, WordParagraph? wordParagraph, bool preferSuppliedReference) {
             var paragraph = new Paragraph();
 
             var levelIndex = level;
@@ -43,7 +51,7 @@ namespace OfficeIMO.Word {
                 ));
             paragraph.Append(paragraphProperties);
 
-            var insertionReference = GetInsertionReference(wordParagraph);
+            var insertionReference = GetInsertionReference(wordParagraph, preferSuppliedReference);
 
             if (insertionReference is not null) {
                 insertionReference.InsertAfterSelf(paragraph);
@@ -54,6 +62,13 @@ namespace OfficeIMO.Word {
                     _headerFooter._header.Append(paragraph);
                 } else if (_headerFooter._footer is not null) {
                     _headerFooter._footer.Append(paragraph);
+                }
+            } else if (_tableCell is not null) {
+                var lastItem = ListItems.LastOrDefault();
+                if (lastItem is not null) {
+                    lastItem._paragraph.InsertAfterSelf(paragraph);
+                } else {
+                    _tableCell.Append(paragraph);
                 }
             } else if (_wordParagraph is not null && _wordParagraph._paragraph.Parent is TableCell parent) {
                 if (this.ListItems.Count > 0) {
@@ -136,11 +151,15 @@ namespace OfficeIMO.Word {
         /// first insertion; subsequent items are chained after the last list item to preserve order.
         /// </summary>
         /// <param name="wordParagraph">Anchor paragraph requested for the insertion.</param>
+        /// <param name="preferSuppliedReference">When <c>true</c>, use the supplied anchor even after the list already has items.</param>
         /// <returns>The <see cref="OpenXmlElement"/> that should be used as the insertion point, if any.</returns>
-        private OpenXmlElement? GetInsertionReference(WordParagraph? wordParagraph) {
+        private OpenXmlElement? GetInsertionReference(WordParagraph? wordParagraph, bool preferSuppliedReference) {
             var lastItem = ListItems.LastOrDefault();
 
             if (wordParagraph is not null) {
+                if (preferSuppliedReference) {
+                    return wordParagraph._paragraph;
+                }
                 return lastItem?._paragraph ?? wordParagraph._paragraph;
             }
 

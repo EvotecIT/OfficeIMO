@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Markup;
 using OfficeIMO.Markup.Excel;
 using OfficeIMO.Markup.PowerPoint;
@@ -2451,6 +2452,73 @@ profile: document
                 File.Delete(path);
             }
         }
+    }
+
+    [Fact]
+    public void ExcelExporter_ProjectsOrderedAndNestedListsWithTheirSemanticMarkers() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+
+        try {
+            var documentModel = new OfficeMarkupDocument(OfficeMarkupProfile.Workbook);
+            documentModel.Blocks.Add(new OfficeMarkupSheetBlock("Lists"));
+            var list = CreateMixedNestedList();
+            documentModel.Blocks.Add(list);
+
+            documentModel.SaveAsExcel(path, new MarkupToExcelOptions());
+
+            using var spreadsheet = SpreadsheetDocument.Open(path, false);
+            var sheet = Assert.Single(spreadsheet.WorkbookPart!.Workbook.Sheets!.OfType<Sheet>());
+            var worksheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(sheet.Id!);
+            Assert.Equal("4. Root four", GetCellValue(spreadsheet, worksheetPart, "A1"));
+            Assert.Equal("\u00A0\u00A0- Nested bullet", GetCellValue(spreadsheet, worksheetPart, "A2"));
+            Assert.Equal("5. Root five", GetCellValue(spreadsheet, worksheetPart, "A3"));
+
+            using var document = OfficeIMO.Excel.ExcelDocument.Load(path, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            Assert.Empty(document.ValidateOpenXml());
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void WordExporter_PreservesOrderedStartAndNestedListKind() {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
+
+        try {
+            var documentModel = new OfficeMarkupDocument(OfficeMarkupProfile.Document);
+            documentModel.Blocks.Add(CreateMixedNestedList());
+
+            documentModel.SaveAsWord(path, new MarkupToWordOptions());
+
+            using var document = OfficeIMO.Word.WordDocument.Load(path, new WordLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+            var items = document.Paragraphs.Where(paragraph => paragraph.IsListItem).ToArray();
+            Assert.Equal(new[] { "Root four", "Nested bullet", "Root five" }, items.Select(paragraph => paragraph.Text).ToArray());
+            Assert.Equal(new[] { 0, 1, 0 }, items.Select(paragraph => paragraph.ListItemLevel!.Value).ToArray());
+
+            var rootInfo = DocumentTraversal.GetListInfo(items[0])!.Value;
+            var nestedInfo = DocumentTraversal.GetListInfo(items[1])!.Value;
+            Assert.True(rootInfo.Ordered);
+            Assert.Equal(4, rootInfo.Start);
+            Assert.False(nestedInfo.Ordered);
+            Assert.Equal(NumberFormatValues.Bullet, nestedInfo.NumberFormat);
+        } finally {
+            if (File.Exists(path)) {
+                File.Delete(path);
+            }
+        }
+    }
+
+    private static OfficeMarkupListBlock CreateMixedNestedList() {
+        var root = new OfficeMarkupListBlock(ordered: true, start: 4);
+        var first = new OfficeMarkupListItem("Root four");
+        var nested = new OfficeMarkupListBlock(ordered: false);
+        nested.Items.Add(new OfficeMarkupListItem("Nested bullet"));
+        first.Blocks.Add(nested);
+        root.Items.Add(first);
+        root.Items.Add(new OfficeMarkupListItem("Root five"));
+        return root;
     }
 
     private static Cell? GetCell(WorksheetPart worksheetPart, string cellReference) {

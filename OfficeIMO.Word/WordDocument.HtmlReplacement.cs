@@ -77,15 +77,16 @@ namespace OfficeIMO.Word {
                 _ => throw new InvalidOperationException("Unsupported format type")
             };
 
-            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo);
-            string altChunkId = mainDocPart.GetIdOfPart(chunk);
-            AltChunk altChunk = new AltChunk { Id = altChunkId };
+            htmlContent = EmbeddedFragmentContentNormalizer.Normalize(mainDocPart, htmlContent, type);
 
+            AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo);
             try {
                 using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent))) {
                     chunk.FeedData(ms);
                 }
 
+                string altChunkId = mainDocPart.GetIdOfPart(chunk);
+                AltChunk altChunk = new AltChunk { Id = altChunkId };
                 paragraph._paragraph.InsertAfterSelf(altChunk);
 
                 return new WordEmbeddedDocument(this, altChunk);

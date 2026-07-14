@@ -1,5 +1,6 @@
 using System.Linq;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Validation;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
@@ -8,6 +9,114 @@ using Xunit;
 
 namespace OfficeIMO.Tests {
     public partial class Html {
+        [Fact]
+        public void HtmlToWord_UnorderedListWithValueAttributes_RemainsBulletedInValidPackage() {
+            const string html = "<p>Values:</p><ul style=\"list-style-type:disc\"><li value=\"1\">TODAY: Today</li><li value=\"2\">YESTERDAY: Yesterday</li></ul>";
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            var listItems = doc.Paragraphs
+                .Where(paragraph => paragraph.IsListItem)
+                .GroupBy(paragraph => paragraph._paragraph)
+                .Select(group => group.OrderByDescending(paragraph => paragraph.Text.Length).First())
+                .ToList();
+            Assert.Equal(2, listItems.Count);
+            Assert.All(listItems, paragraph => {
+                DocumentTraversal.ListInfo? info = DocumentTraversal.GetListInfo(paragraph);
+                Assert.True(info.HasValue);
+                Assert.False(info.Value.Ordered);
+                Assert.Equal(NumberFormatValues.Bullet, info.Value.NumberFormat);
+            });
+
+            string roundTripHtml = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            Assert.Contains("<ul", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("<ol", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+
+            using MemoryStream stream = doc.ToStream();
+            stream.Position = 0;
+            using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
+            var errors = new OpenXmlValidator().Validate(package).ToList();
+            Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
+        }
+
+        [Fact]
+        public void HtmlToWord_AppendedUnorderedList_DoesNotReuseExistingOrderedNumbering() {
+            const string html = "<p>Values:</p><ul style=\"list-style-type:disc\"><li value=\"1\">TODAY: Today</li><li value=\"2\">YESTERDAY: Yesterday</li></ul>";
+            using var doc = WordDocument.Create();
+            WordList existing = doc.AddListNumbered();
+            for (int index = 1; index <= 10; index++) {
+                existing.AddItem("Existing " + index);
+            }
+
+            doc.AddHtmlToBody(
+                OfficeIMO.Html.HtmlConversionDocument.Parse(html),
+                new HtmlToWordOptions { ContinueNumbering = true });
+
+            var imported = doc.Paragraphs
+                .Where(paragraph => paragraph.Text.Contains("TODAY:", StringComparison.OrdinalIgnoreCase)
+                    || paragraph.Text.Contains("YESTERDAY:", StringComparison.OrdinalIgnoreCase))
+                .GroupBy(paragraph => paragraph._paragraph)
+                .Select(group => group.OrderByDescending(paragraph => paragraph.Text.Length).First())
+                .ToArray();
+            Assert.Equal(2, imported.Length);
+            Assert.All(imported, paragraph => {
+                DocumentTraversal.ListInfo info = DocumentTraversal.GetListInfo(paragraph)!.Value;
+                Assert.False(info.Ordered);
+                Assert.Equal(NumberFormatValues.Bullet, info.NumberFormat);
+                Assert.NotEqual(existing.NumberId, paragraph._listNumberId);
+            });
+        }
+
+        [Fact]
+        public void HtmlToWord_MixedNestedListsInsideTable_PreserveKindLevelStartAndOrder() {
+            const string html = """
+                <table><tr><td>
+                  <ul style="list-style-type:square">
+                    <li>Bullet one
+                      <ol start="4" style="list-style-type:lower-alpha">
+                        <li>Number four<ul style="list-style-type:circle"><li>Deep bullet</li></ul></li>
+                        <li>Number five</li>
+                      </ol>
+                    </li>
+                    <li>Bullet two</li>
+                  </ul>
+                </td></tr></table>
+                """;
+
+            using var doc = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument(new HtmlToWordOptions());
+
+            var listItems = doc.Tables.Single().Rows[0].Cells[0].Paragraphs
+                .Where(paragraph => paragraph.IsListItem)
+                .GroupBy(paragraph => paragraph._paragraph)
+                .Select(group => group.OrderByDescending(paragraph => paragraph.Text.Length).First())
+                .ToList();
+            Assert.Equal(
+                new[] { "Bullet one", "Number four", "Deep bullet", "Number five", "Bullet two" },
+                listItems.Select(paragraph => paragraph.Text.Trim()).ToArray());
+            Assert.Equal(new[] { 0, 1, 2, 1, 0 }, listItems.Select(paragraph => paragraph.ListItemLevel!.Value).ToArray());
+
+            var info = listItems.Select(paragraph => DocumentTraversal.GetListInfo(paragraph)!.Value).ToArray();
+            Assert.False(info[0].Ordered);
+            Assert.Equal("■", info[0].LevelText);
+            Assert.True(info[1].Ordered);
+            Assert.Equal(NumberFormatValues.LowerLetter, info[1].NumberFormat);
+            Assert.Equal(4, info[1].Start);
+            Assert.False(info[2].Ordered);
+            Assert.Equal("o", info[2].LevelText);
+            Assert.False(info[4].Ordered);
+
+            string roundTripHtml = doc.ToHtml(new WordToHtmlOptions { IncludeListStyles = true });
+            Assert.Contains("<table", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<ul", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<ol", roundTripHtml, StringComparison.OrdinalIgnoreCase);
+
+            using MemoryStream stream = doc.ToStream();
+            stream.Position = 0;
+            using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
+            var errors = new OpenXmlValidator().Validate(package).ToList();
+            Assert.True(errors.Count == 0, string.Join(Environment.NewLine, errors.Select(error => error.Description)));
+        }
+
         [Fact]
         public void HtmlToWord_ListNumbering_ContiguousLists() {
             string html = "<ol><li>One</li></ol><ol><li>Two</li></ol>";

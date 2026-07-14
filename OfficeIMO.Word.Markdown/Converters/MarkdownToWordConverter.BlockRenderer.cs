@@ -361,7 +361,7 @@ namespace OfficeIMO.Word.Markdown {
             private void RenderListBlock(IReadOnlyList<Omd.ListItem> items, WordListStyle style, int? startNumber) {
                 var list = _host.CreateList(style);
                 if (startNumber.HasValue && startNumber.Value != 1) {
-                    list.Numbering.Levels[0].SetStartNumberingValue(startNumber.Value);
+                    list.SetStartNumberingValue(startNumber.Value, _listLevel);
                 }
 
                 foreach (var item in items) {

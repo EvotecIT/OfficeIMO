@@ -29,6 +29,7 @@ namespace OfficeIMO.Word.Html {
 
             Stack<IElement> listStack = new Stack<IElement>();
             Stack<IElement> itemStack = new Stack<IElement>();
+            Stack<int> listNumberStack = new Stack<int>();
 
             List<(int Number, WordFootNote Note)> footnotes = new();
             List<(int Number, WordEndNote Note)> endnotes = new();
@@ -53,6 +54,9 @@ namespace OfficeIMO.Word.Html {
                 }
                 while (itemStack.Count > 0) {
                     itemStack.Pop();
+                }
+                while (listNumberStack.Count > 0) {
+                    listNumberStack.Pop();
                 }
             }
 
@@ -613,10 +617,19 @@ namespace OfficeIMO.Word.Html {
                         IElement? cellDefinitionList = null;
                         var cellParagraphs = cell.Paragraphs;
                         var processedCellParagraphs = new HashSet<WordParagraph>();
+                        var cellListStack = new Stack<IElement>();
+                        var cellItemStack = new Stack<IElement>();
+                        var cellListNumberStack = new Stack<int>();
                         for (int pIdx = 0; pIdx < cellParagraphs.Count; pIdx++) {
                             var p = cellParagraphs[pIdx];
                             if (processedCellParagraphs.Contains(p)) {
                                 continue;
+                            }
+                            for (int j = pIdx + 1; j < cellParagraphs.Count && cellParagraphs[j].Equals(p); j++) {
+                                var candidate = cellParagraphs[j];
+                                if ((!p.IsBookmark && candidate.IsBookmark) || candidate.Text.Length > p.Text.Length) {
+                                    p = candidate;
+                                }
                             }
                             if (IsDefinitionListParagraph(p) && IsEmptyDefinitionListParagraph(p)) {
                                 for (int j = pIdx + 1; j < cellParagraphs.Count; j++) {
@@ -630,7 +643,12 @@ namespace OfficeIMO.Word.Html {
                                 }
                             }
                             processedCellParagraphs.Add(p);
-                            if (IsCodeParagraph(p)) {
+                            var cellListInfo = DocumentTraversal.GetListInfo(p);
+                            if (cellListInfo != null) {
+                                cellDefinitionList = null;
+                                AppendListParagraph(cellElement, p, cellListInfo.Value, cellListStack, cellItemStack, cellListNumberStack);
+                            } else if (IsCodeParagraph(p)) {
+                                ClearListStacks(cellListStack, cellItemStack, cellListNumberStack);
                                 cellDefinitionList = null;
                                 List<string> lines = new();
                                 lines.Add(p.Text);
@@ -644,6 +662,7 @@ namespace OfficeIMO.Word.Html {
                                 pre.AppendChild(code);
                                 cellElement.AppendChild(pre);
                             } else if (IsDefinitionListParagraph(p)) {
+                                ClearListStacks(cellListStack, cellItemStack, cellListNumberStack);
                                 if (IsEmptyDefinitionListParagraph(p)) {
                                     continue;
                                 }
@@ -653,6 +672,7 @@ namespace OfficeIMO.Word.Html {
                                 }
                                 AppendDefinitionListItem(cellDefinitionList, p);
                             } else {
+                                ClearListStacks(cellListStack, cellItemStack, cellListNumberStack);
                                 cellDefinitionList = null;
                                 AppendParagraph(cellElement, p);
                             }
@@ -761,6 +781,76 @@ namespace OfficeIMO.Word.Html {
 
             var listIndices = DocumentTraversal.BuildListIndices(document);
 
+            void ClearListStacks(Stack<IElement> lists, Stack<IElement> items, Stack<int> numberIds) {
+                lists.Clear();
+                items.Clear();
+                numberIds.Clear();
+            }
+
+            void AppendListParagraph(
+                IElement parent,
+                WordParagraph paragraph,
+                DocumentTraversal.ListInfo listInfo,
+                Stack<IElement> lists,
+                Stack<IElement> items,
+                Stack<int> numberIds) {
+                int level = listInfo.Level;
+                int desiredListDepth = level + 1;
+
+                while (lists.Count > desiredListDepth) {
+                    lists.Pop();
+                    numberIds.Pop();
+                }
+                while (items.Count > level) {
+                    items.Pop();
+                }
+
+                bool ordered = listInfo.Ordered;
+                string listTag = ordered ? "ol" : "ul";
+                int numberId = paragraph._listNumberId.GetValueOrDefault();
+                if (lists.Count == desiredListDepth
+                    && (numberIds.Peek() != numberId
+                        || !string.Equals(lists.Peek().TagName, listTag, StringComparison.OrdinalIgnoreCase))) {
+                    lists.Pop();
+                    numberIds.Pop();
+                }
+
+                while (lists.Count < desiredListDepth) {
+                    var listEl = htmlDoc.CreateElement(listTag);
+                    if (ordered) {
+                        if (listIndices.TryGetValue(paragraph, out var indexInfo)) {
+                            listEl.SetAttribute("start", indexInfo.Index.ToString());
+                        } else {
+                            listEl.SetAttribute("start", listInfo.Start.ToString());
+                        }
+                    }
+                    var typeAttr = GetListType(listInfo);
+                    if (!string.IsNullOrEmpty(typeAttr)) {
+                        listEl.SetAttribute("type", typeAttr);
+                    }
+                    var listStyle = GetListStyle(listInfo);
+                    if (options.IncludeListStyles && !string.IsNullOrEmpty(listStyle)) {
+                        listEl.SetAttribute("style", $"list-style-type:{listStyle}");
+                    }
+                    if (options.IncludeListDefinitions) {
+                        ApplyListDefinition(listEl, listInfo, listStyle, listDefinitions);
+                    }
+                    if (items.Count > 0) {
+                        items.Peek().AppendChild(listEl);
+                    } else {
+                        parent.AppendChild(listEl);
+                    }
+                    lists.Push(listEl);
+                    numberIds.Push(numberId);
+                }
+
+                var li = htmlDoc.CreateElement("li");
+                ApplyBookmarkId(li, paragraph);
+                lists.Peek().AppendChild(li);
+                items.Push(li);
+                AppendRuns(li, paragraph);
+            }
+
             var processedParagraphs = new HashSet<WordParagraph>();
             int sectionIndex = 0;
             foreach (var section in DocumentTraversal.EnumerateSections(document)) {
@@ -810,49 +900,7 @@ namespace OfficeIMO.Word.Html {
                         var listInfo = DocumentTraversal.GetListInfo(paragraph);
                         if (listInfo != null) {
                             activeDefinitionList = null;
-                            int level = listInfo.Value.Level;
-                            while (listStack.Count > level) {
-                                listStack.Pop();
-                                itemStack.Pop();
-                            }
-                            while (listStack.Count <= level) {
-                                bool ordered = listInfo.Value.Ordered;
-                                var listTag = ordered ? "ol" : "ul";
-                                var listEl = htmlDoc.CreateElement(listTag);
-                                if (ordered) {
-                                    // Continue numbering across gaps by using the numeric index of the current item when available
-                                    if (listIndices.TryGetValue(paragraph, out var indexInfo)) {
-                                        listEl.SetAttribute("start", indexInfo.Index.ToString());
-                                    } else {
-                                        listEl.SetAttribute("start", listInfo.Value.Start.ToString());
-                                    }
-                                }
-                                var typeAttr = GetListType(listInfo.Value);
-                                if (!string.IsNullOrEmpty(typeAttr)) {
-                                    listEl.SetAttribute("type", typeAttr);
-                                }
-                                var listStyle = GetListStyle(listInfo.Value);
-                                if (options.IncludeListStyles && !string.IsNullOrEmpty(listStyle)) {
-                                    listEl.SetAttribute("style", $"list-style-type:{listStyle}");
-                                }
-                                if (options.IncludeListDefinitions) {
-                                    ApplyListDefinition(listEl, listInfo.Value, listStyle, listDefinitions);
-                                }
-                                if (itemStack.Count > 0) {
-                                    itemStack.Peek().AppendChild(listEl);
-                                } else {
-                                    sectionParent.AppendChild(listEl);
-                                }
-                                listStack.Push(listEl);
-                            }
-                            while (itemStack.Count > level) {
-                                itemStack.Pop();
-                            }
-                            var li = htmlDoc.CreateElement("li");
-                            ApplyBookmarkId(li, paragraph);
-                            listStack.Peek().AppendChild(li);
-                            itemStack.Push(li);
-                            AppendRuns(li, paragraph);
+                            AppendListParagraph(sectionParent, paragraph, listInfo.Value, listStack, itemStack, listNumberStack);
                         } else {
                             CloseLists();
                             if (IsDefinitionListParagraph(paragraph)) {

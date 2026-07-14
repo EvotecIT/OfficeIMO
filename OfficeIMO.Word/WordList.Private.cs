@@ -266,6 +266,8 @@ public partial class WordList : WordElement {
         WordList clonedList;
         if (_headerFooter != null) {
             clonedList = new WordList(_document, _headerFooter);
+        } else if (_tableCell != null) {
+            clonedList = new WordList(_document, _tableCell);
         } else if (_wordParagraph != null) {
             clonedList = new WordList(_document, _wordParagraph, _isToc);
         } else {
