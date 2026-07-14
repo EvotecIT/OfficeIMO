@@ -30,6 +30,7 @@ public sealed class ReleasePackagingGuardrails {
             .Where(static value => !string.IsNullOrWhiteSpace(value))
             .Select(static value => value!)
             .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        Assert.Empty(excludedProjects);
 
         PackageProject[] packageProjects = Directory
             .EnumerateFiles(repositoryRoot, "*.csproj", SearchOption.AllDirectories)
@@ -49,7 +50,6 @@ public sealed class ReleasePackagingGuardrails {
 
         string[] missingFromBuild = packageProjects
             .Where(project => !expectedVersions.ContainsKey(project.PackageId))
-            .Where(project => !excludedProjects.Contains(project.ProjectName))
             .Select(static project => project.PackageId)
             .OrderBy(static packageId => packageId, StringComparer.OrdinalIgnoreCase)
             .ToArray();
@@ -61,13 +61,6 @@ public sealed class ReleasePackagingGuardrails {
             .OrderBy(static packageId => packageId, StringComparer.OrdinalIgnoreCase)
             .ToArray();
         Assert.Empty(staleBuildEntries);
-
-        string[] staleExclusions = excludedProjects
-            .Where(projectName => !packageProjects.Any(project =>
-                string.Equals(project.ProjectName, projectName, StringComparison.OrdinalIgnoreCase)))
-            .OrderBy(static projectName => projectName, StringComparer.OrdinalIgnoreCase)
-            .ToArray();
-        Assert.Empty(staleExclusions);
 
         PackageProject[] includedProjects = packageProjects
             .Where(project => expectedVersions.ContainsKey(project.PackageId))

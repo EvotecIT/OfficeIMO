@@ -367,8 +367,8 @@ public sealed class PackageDependencyGuardrailTests {
     }
 
     [Fact]
-    public void RetiredRtfHtmlPackages_AreNotReferencedBySolutionOrProjects() {
-        string[] retiredPackageIds = ["OfficeIMO.Rtf.Html", "OfficeIMO.Html.Rtf"];
+    public void RetiredPackages_AreNotReferencedBySolutionOrProjects() {
+        string[] retiredPackageIds = ["OfficeIMO.Rtf.Html", "OfficeIMO.Html.Rtf", "OfficeIMO.Reader.Text"];
 
         var solutionPath = GetRepositoryPath("OfficeIMO.sln");
         Assert.True(File.Exists(solutionPath), "Solution file is missing: " + solutionPath);

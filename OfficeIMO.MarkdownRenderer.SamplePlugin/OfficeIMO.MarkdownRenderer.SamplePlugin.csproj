@@ -4,7 +4,7 @@
     <Description>Sample third-party-style plugin pack for OfficeIMO.MarkdownRenderer showing shared visual host rendering plus HTML round-trip hints.</Description>
     <AssemblyName>OfficeIMO.MarkdownRenderer.SamplePlugin</AssemblyName>
     <AssemblyTitle>OfficeIMO.MarkdownRenderer.SamplePlugin</AssemblyTitle>
-    <VersionPrefix>0.1.0</VersionPrefix>
+    <VersionPrefix>2.0.1</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
       $(TargetFrameworks);net472
