@@ -591,6 +591,7 @@ internal static class ExcelReadProfileRunner {
             var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Header");
             sheet.CellValue(lastRow, 1, "Tail");
+            document.Save(stream);
         }
 
         return stream.ToArray();
@@ -621,6 +622,8 @@ internal static class ExcelReadProfileRunner {
                 sheet.CellValue(row, 7, even ? i % 2 == 0 : $"Active {i % 2}");
                 sheet.CellValue(row, 8, even ? $"Note {i}" : i * 2.0D);
             }
+
+            document.Save(stream);
         }
 
         return stream.ToArray();
@@ -642,6 +645,8 @@ internal static class ExcelReadProfileRunner {
                 sheet.CellValue(row, 3, $"Owner {i:000000}");
                 sheet.CellValue(row, 4, $"Unique note payload {i:000000}");
             }
+
+            document.Save(stream);
         }
 
         return stream.ToArray();

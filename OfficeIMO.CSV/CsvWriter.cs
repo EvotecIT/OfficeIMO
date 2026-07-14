@@ -5,7 +5,7 @@ using System.Text;
 
 namespace OfficeIMO.CSV;
 
-internal static class CsvWriter
+internal static partial class CsvWriter
 {
 #if NET8_0_OR_GREATER
     private static readonly System.Buffers.SearchValues<char> DefaultCommaQuoteCharacters =

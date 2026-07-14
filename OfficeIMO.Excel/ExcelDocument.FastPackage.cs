@@ -49,6 +49,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (WorkbookPartRoot.WorksheetParts.Any(static part => !part.IsRootElementLoaded)) {
+                skipReason = "An unmaterialized worksheet requires the extended package writer.";
+                return false;
+            }
+
             if (!FastWorkbookPackageModel.TryCreate(_spreadSheetDocument, out var model, out string? modelSkipReason)) {
                 skipReason = modelSkipReason ?? "Workbook contains parts or worksheet features outside the simple package writer surface.";
                 return false;
@@ -146,12 +151,11 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            MemoryStream? nonSeekableBuffer = null;
-            Stream writeTarget = destination;
-            if (!destination.CanSeek) {
-                nonSeekableBuffer = new MemoryStream();
-                writeTarget = nonSeekableBuffer;
-            }
+            bool destinationBacksOpenPackage = ReferenceEquals(destination, _packageStream);
+            using MemoryStream? stagedPackage = !destination.CanSeek || destinationBacksOpenPackage
+                ? new MemoryStream()
+                : null;
+            Stream writeTarget = stagedPackage ?? destination;
 
             PrepareDestinationStreamForWrite(writeTarget);
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.PrepareDestination");
@@ -159,17 +163,22 @@ namespace OfficeIMO.Excel {
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.WritePackage");
 
             writeTarget.Flush();
-            if (nonSeekableBuffer != null) {
-                nonSeekableBuffer.Position = 0;
-                nonSeekableBuffer.CopyTo(destination);
+            if (destinationBacksOpenPackage) {
+                ReloadFromBytes(stagedPackage!.ToArray(), simplePackageContentKnown: true, reusablePackageStream: destination);
+                destination.Seek(0, SeekOrigin.Begin);
+            } else if (stagedPackage != null) {
+                stagedPackage.Position = 0;
+                stagedPackage.CopyTo(destination);
                 destination.Flush();
-                nonSeekableBuffer.Dispose();
+                if (destination.CanSeek) {
+                    destination.Seek(0, SeekOrigin.Begin);
+                }
             } else {
                 destination.Seek(0, SeekOrigin.Begin);
             }
 
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.FlushAndSeek");
-            if (updateDocumentState) {
+            if (updateDocumentState && !destinationBacksOpenPackage) {
                 _packageDirty = false;
                 _packagePropertiesDirty = false;
                 _requiresSavePreflight = false;

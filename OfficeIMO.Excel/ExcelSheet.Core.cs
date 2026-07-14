@@ -150,11 +150,11 @@ namespace OfficeIMO.Excel {
             _excelDocument = excelDocument;
             _sheet = sheet;
             _spreadSheetDocument = spreadSheetDocument;
-            _hasWorksheetMutations = excelDocument.IsPackageDirty;
-            _requiresSavePreparation = excelDocument.IsPackageDirty;
 
             var workbookPart = spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("WorkbookPart is null");
             _worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+            _hasWorksheetMutations = excelDocument.IsPackageDirty && _worksheetPart.IsRootElementLoaded;
+            _requiresSavePreparation = _hasWorksheetMutations;
             _id = sheet.SheetId!;
             Interlocked.Increment(ref _instancesCreated);
         }

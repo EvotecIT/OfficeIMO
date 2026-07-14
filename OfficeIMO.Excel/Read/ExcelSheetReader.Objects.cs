@@ -35,6 +35,13 @@ namespace OfficeIMO.Excel {
             int workload = rows * cols;
             if (decided == OfficeIMO.Excel.ExecutionMode.Automatic) {
                 if (CanUseAutomaticXmlReadFastPath(policy)) {
+                    if (_opt.CellValueConverter == null
+                        && _opt.TypeConverter == null
+                        && ShouldAttemptUtf8Range(r1, r2)
+                        && RangeReachesDeclaredWorksheetEnd(r2)) {
+                        return ReadObjectsStreamUtf8OrXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct).ToList();
+                    }
+
                     if (ShouldUseOrderedBufferedXmlStream(rows, c1, c2)
                         && TryReadObjectsStreamOrderedXmlFast<T>(a1Range, r1, c1, r2, c2, rows, cols, ct, out var orderedRows)) {
                         return orderedRows;

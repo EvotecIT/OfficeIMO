@@ -68,6 +68,94 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WriteDataReader_CompactPackageStreamsAndRoundTrips() {
+            var table = new DataTable("ReaderData");
+            table.Columns.Add("Id", typeof(int));
+            table.Columns.Add("Region", typeof(string));
+            table.Columns.Add("Owner", typeof(string));
+            table.Columns.Add("CreatedOn", typeof(DateTime));
+            table.Columns.Add("Amount", typeof(double));
+            table.Columns.Add("Units", typeof(int));
+            table.Columns.Add("Active", typeof(bool));
+            table.Columns.Add("Notes", typeof(string));
+            table.Rows.Add(1, "North", "Ava", new DateTime(2026, 7, 10), 123.45, 2, true, "Alpha");
+            table.Rows.Add(2, "South", "Noah", new DateTime(2026, 7, 11), 678.90, 4, false, "Beta");
+            using var reader = table.CreateDataReader();
+            using var output = new MemoryStream();
+
+            ExcelDataSetImportResult result = ExcelDocument.WriteDataReader(
+                output,
+                reader,
+                new ExcelTabularWriteOptions {
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+
+            Assert.False(reader.IsClosed);
+            Assert.Equal("A1:H3", result.Range);
+            Assert.Equal(2, result.RowCount);
+            using (var spreadsheet = SpreadsheetDocument.Open(output, false)) {
+                var savedRows = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet
+                    .Descendants<Row>()
+                    .ToArray();
+                Assert.All(savedRows[0].Elements<Cell>(), cell => Assert.NotNull(cell.CellReference));
+                Assert.All(savedRows.Skip(1).SelectMany(row => row.Elements<Cell>()), cell => Assert.Null(cell.CellReference));
+                Assert.Null(spreadsheet.WorkbookPart.SharedStringTablePart);
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+            }
+
+            using var workbookReader = ExcelDocumentReader.Open(output);
+            object?[,] values = workbookReader.GetSheet("Data").ReadRange("A1:H3");
+            Assert.Equal("Id", values[0, 0]);
+            Assert.Equal("Ava", values[1, 2]);
+            Assert.Equal(678.90, Convert.ToDouble(values[2, 4], CultureInfo.InvariantCulture));
+            Assert.Equal(false, values[2, 6]);
+        }
+
+        [Fact]
+        public void WriteDataReader_CompactPackagePreservesDoubleValuesExactly() {
+            double[] expected = [
+                0D,
+                -0.5D,
+                123.4D,
+                123.45D,
+                -9876.5D,
+                NextRepresentableDouble(123.45D),
+                Math.PI,
+                90_071_992_547_409.9D
+            ];
+            var table = new DataTable("Doubles");
+            table.Columns.Add("Value", typeof(double));
+            foreach (double value in expected) {
+                table.Rows.Add(value);
+            }
+
+            using var reader = table.CreateDataReader();
+            using var output = new MemoryStream();
+            ExcelDocument.WriteDataReader(
+                output,
+                reader,
+                new ExcelTabularWriteOptions {
+                    IncludeCellReferences = false,
+                    UseSharedStrings = false
+                });
+
+            using var spreadsheet = SpreadsheetDocument.Open(output, false);
+            Cell[] cells = spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet
+                .Descendants<Cell>()
+                .Skip(1)
+                .ToArray();
+            Assert.Equal(expected.Length, cells.Length);
+            for (int index = 0; index < expected.Length; index++) {
+                string rawValue = cells[index].CellValue!.Text;
+                double actual = double.Parse(rawValue, CultureInfo.InvariantCulture);
+                Assert.Equal(BitConverter.DoubleToInt64Bits(expected[index]), BitConverter.DoubleToInt64Bits(actual));
+            }
+
+            Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+        }
+
+        [Fact]
         public void WriteDataReader_HeaderlessEmptyReaderWritesValidEmptySheet() {
             var table = new DataTable("Empty");
             table.Columns.Add("Id", typeof(int));
@@ -214,6 +302,11 @@ namespace OfficeIMO.Tests {
                 new ExcelTabularWriteOptions { UseSharedStrings = false }));
 
             Assert.Contains("more than 1 cells", exception.Message, StringComparison.Ordinal);
+        }
+
+        private static double NextRepresentableDouble(double value) {
+            long bits = BitConverter.DoubleToInt64Bits(value);
+            return BitConverter.Int64BitsToDouble(bits + 1);
         }
 
         private sealed record TabularWriteRow(int Id, string? Name, DateTime Created, bool Active);

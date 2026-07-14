@@ -429,9 +429,54 @@ namespace OfficeIMO.Excel {
             }
 
             internal static void WriteRawValueCell(TextWriter writer, double value) {
+                if (TryWriteTwoDecimalRawValueCell(writer, value)) {
+                    return;
+                }
+
                 writer.Write("><v>");
                 WriteInvariant(writer, value);
                 writer.Write("</v></c>");
+            }
+
+            private static bool TryWriteTwoDecimalRawValueCell(TextWriter writer, double value) {
+                const double minimumScaledValue = -9007199254740991D;
+                const double maximumScaledValue = 9007199254740991D;
+                if (value == 0D && BitConverter.DoubleToInt64Bits(value) < 0) {
+                    return false;
+                }
+
+                double scaled = value * 100D;
+                if (scaled < minimumScaledValue || scaled > maximumScaledValue) {
+                    return false;
+                }
+
+                long scaledInteger = (long)scaled;
+                if (scaled != scaledInteger || scaledInteger / 100D != value) {
+                    return false;
+                }
+
+                writer.Write("><v>");
+                ulong magnitude;
+                if (scaledInteger < 0) {
+                    writer.Write('-');
+                    magnitude = (ulong)(-scaledInteger);
+                } else {
+                    magnitude = (ulong)scaledInteger;
+                }
+
+                WriteInvariant(writer, magnitude / 100UL);
+                uint fraction = (uint)(magnitude % 100UL);
+                if (fraction != 0) {
+                    writer.Write('.');
+                    writer.Write((char)('0' + (fraction / 10U)));
+                    uint ones = fraction % 10U;
+                    if (ones != 0) {
+                        writer.Write((char)('0' + ones));
+                    }
+                }
+
+                writer.Write("</v></c>");
+                return true;
             }
 
             internal static void WriteRawValueCell(TextWriter writer, float value) {

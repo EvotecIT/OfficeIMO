@@ -359,7 +359,7 @@ namespace OfficeIMO.Excel {
                 var generatedFieldValueMap = BuildGeneratedPivotFieldValueMap(generatedGroupingFields, r1 + 1, r2, c1);
                 ReportPivotTiming("AddPivotTable.BuildFieldValueMap");
                 if (deferredPivotSource != null && canUseDeferredPivotValues) {
-                    _excelDocument.MaterializeDeferredDataSetImportPreservingFastSaveModel();
+                    _excelDocument.PreserveDeferredDataSetFastSaveModelAndClearCandidate();
                 }
                 ReportPivotTiming("AddPivotTable.PreserveFastSaveModel");
 

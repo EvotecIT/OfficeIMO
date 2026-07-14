@@ -147,6 +147,10 @@ namespace OfficeIMO.Excel {
             Type[] fieldTypes = ExcelSheet.BuildReaderFieldTypes(reader);
             string[] columnNames = ExcelSheet.BuildDirectReaderColumnNames(headers, options.IncludeHeaders);
             Type[] columnTypes = ExcelSheet.BuildDirectReaderColumnTypes(fieldTypes);
+            if (!options.UseSharedStrings && !options.CreateTable && !options.AutoFit) {
+                return WriteStreamingDataReader(stream, reader, columnNames, columnTypes, options, ct);
+            }
+
             var rows = new List<object?[]>(4096);
             bool canCancel = ct.CanBeCanceled;
             bool useBulkRead = ExcelSheet.CanUseBulkDataReaderValues(reader);
@@ -167,6 +171,46 @@ namespace OfficeIMO.Excel {
 
             var tableModel = DirectDataSetTableModel.FromRows(columnNames, columnTypes, rows);
             return WriteTabularModel(stream, tableModel, options, ct);
+        }
+
+        private static ExcelDataSetImportResult WriteStreamingDataReader(
+            Stream stream,
+            IDataReader reader,
+            string[] columnNames,
+            Type[] columnTypes,
+            ExcelTabularWriteOptions options,
+            CancellationToken ct) {
+            var tableModel = DirectDataSetTableModel.FromRows(columnNames, columnTypes, Array.Empty<object?[]>());
+            string sheetName = DirectDataSetWorkbookModel.SanitizeSheetName(options.SheetName);
+            string initialRange = ExcelSheet.BuildObjectExportRange(1, tableModel.ColumnCount, 0, options.IncludeHeaders);
+            var model = DirectDataSetWorkbookModel.CreateSingle(
+                sheetName,
+                sheetName,
+                tableName: null,
+                initialRange,
+                tableModel,
+                createTable: false,
+                options.TableStyle,
+                options.IncludeHeaders,
+                options.IncludeAutoFilter,
+                autoFit: false,
+                DefaultDateTimeOffsetWriteStrategy,
+                ct,
+                options.UseCellValueNumberFormats,
+                options.DateSystem,
+                options.IncludeCellReferences);
+
+            if (stream.CanSeek) {
+                PrepareDestinationStreamForWrite(stream);
+            }
+
+            int rowCount = DirectDataSetWorkbookWriter.WriteDataReader(stream, model, reader, ct);
+            if (stream.CanSeek) {
+                stream.Seek(0, SeekOrigin.Begin);
+            }
+
+            string range = ExcelSheet.BuildObjectExportRange(1, tableModel.ColumnCount, rowCount, options.IncludeHeaders);
+            return new ExcelDataSetImportResult(sheetName, tableName: null, range, rowCount, tableModel.ColumnCount);
         }
 
         private static ExcelDataSetImportResult WriteTabularModel(

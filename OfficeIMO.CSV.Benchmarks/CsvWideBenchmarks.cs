@@ -5,6 +5,7 @@ using System.Text;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using nietras.SeparatedValues;
+using CsvHelperConfiguration = CsvHelper.Configuration.CsvConfiguration;
 using CsvHelperReader = CsvHelper.CsvReader;
 using CsvHelperWriter = CsvHelper.CsvWriter;
 using DataplatCsvDataReader = Dataplat.Dbatools.Csv.Reader.CsvDataReader;
@@ -27,6 +28,7 @@ public class CsvWideBenchmarks
     private static readonly string[] Headers = CreateHeaders();
     private static readonly DataplatCsvReaderOptions DataplatReaderOptions = new() { HasHeaderRow = true };
     private static readonly DataplatCsvWriterOptions DataplatWriterOptions = new() { NewLine = "\n" };
+    private static readonly CsvHelperConfiguration CsvHelperWriteConfiguration = new(CultureInfo.InvariantCulture) { NewLine = "\n" };
     private static readonly SepReaderOptions SepReadOptions = SepLib.New(',').Reader(options => options with { Unescape = true });
     private static readonly SepWriterOptions SepWriteOptions = SepLib.New(',').Writer(options => options with { WriteHeader = true, Escape = true });
     private static readonly SylvanCsvDataWriterOptions SylvanWriterOptions = new() { NewLine = "\n" };
@@ -34,6 +36,8 @@ public class CsvWideBenchmarks
     private object?[][] _rows = [];
     private string?[][] _textRows = [];
     private string _csvText = string.Empty;
+    private bool _captureWriteOutput;
+    private string? _capturedWriteOutput;
     private string _csvPath = string.Empty;
     private CsvSchema _wideSchema = new CsvSchemaBuilder().Build();
 
@@ -48,10 +52,7 @@ public class CsvWideBenchmarks
 
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
-        foreach (var row in _rows)
-        {
-            csv.WriteRow(Headers, row);
-        }
+        csv.WriteRows(Headers, _rows);
 
         _csvText = writer.ToString();
         _csvPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Benchmarks.{Guid.NewGuid():N}.csv");
@@ -68,6 +69,73 @@ public class CsvWideBenchmarks
         }
 
         _wideSchema = schema.Build();
+        ValidateWriteBenchmarkOutputs();
+    }
+
+    private void ValidateWriteBenchmarkOutputs()
+    {
+        ValidateWriteOutput(nameof(OfficeIMO_WriteProjectedRows), OfficeIMO_WriteProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedProjectedRows), OfficeIMO_WriteTrustedProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(CsvHelper_WriteProjectedRows), CsvHelper_WriteProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(Sylvan_WriteProjectedRows), Sylvan_WriteProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(Dataplat_WriteProjectedRows), Dataplat_WriteProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(Dataplat_WriteFromReader), Dataplat_WriteFromReader, expectedObjectRows: _rows);
+
+        ValidateWriteOutput(nameof(OfficeIMO_WriteValidatedTextRows), OfficeIMO_WriteValidatedTextRows, _textRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedTextRows), OfficeIMO_WriteTrustedTextRows, _textRows);
+        ValidateWriteOutput(nameof(CsvHelper_WriteTextRows), CsvHelper_WriteTextRows, _textRows);
+        ValidateWriteOutput(nameof(Sylvan_WriteTextRows), Sylvan_WriteTextRows, _textRows);
+        ValidateWriteOutput(nameof(Dataplat_WriteTextRows), Dataplat_WriteTextRows, _textRows);
+        ValidateWriteOutput(nameof(Sep_WriteProjectedRows), Sep_WriteProjectedRows, _textRows);
+    }
+
+    private void ValidateWriteOutput(
+        string method,
+        Func<int> write,
+        string?[][]? expectedTextRows = null,
+        object?[][]? expectedObjectRows = null)
+    {
+        _captureWriteOutput = true;
+        _capturedWriteOutput = null;
+        try
+        {
+            var reportedLength = write();
+            var output = _capturedWriteOutput
+                ?? throw new InvalidOperationException($"{method} did not expose its output to benchmark preflight.");
+            if (reportedLength != output.Length)
+            {
+                throw new InvalidOperationException($"{method} reported {reportedLength} characters but produced {output.Length}.");
+            }
+
+            CsvBenchmarkOutputValidator.Validate(method, output, Headers, RowCount, expectedTextRows, expectedObjectRows);
+        }
+        finally
+        {
+            _captureWriteOutput = false;
+            _capturedWriteOutput = null;
+        }
+    }
+
+    private int CompleteWrite(StringWriter writer)
+    {
+        var buffer = writer.GetStringBuilder();
+        if (_captureWriteOutput)
+        {
+            _capturedWriteOutput = buffer.ToString();
+        }
+
+        return buffer.Length;
+    }
+
+    private int CompleteWrite(string output)
+    {
+        if (_captureWriteOutput)
+        {
+            _capturedWriteOutput = output;
+        }
+
+        return output.Length;
     }
 
     [GlobalCleanup]
@@ -84,12 +152,38 @@ public class CsvWideBenchmarks
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
-        foreach (var row in _rows)
+        csv.WriteRows(Headers, _rows);
+
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteTrustedProjectedRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        if (_rows.Length == 0)
         {
-            csv.WriteRow(Headers, row);
+            return 0;
         }
 
-        return writer.GetStringBuilder().Length;
+        csv.WriteRow(Headers, _rows[0]);
+        for (var i = 1; i < _rows.Length; i++)
+        {
+            csv.WriteTrustedRow(_rows[i]);
+        }
+
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteValidatedTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        csv.WriteTextRows(Headers, _textRows);
+
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -108,7 +202,7 @@ public class CsvWideBenchmarks
             csv.WriteTrustedTextRow(_textRows[i]);
         }
 
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -117,14 +211,14 @@ public class CsvWideBenchmarks
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var reader = new BenchmarkArrayDataReader(Headers, _rows);
         CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
     public int CsvHelper_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvHelperWriter(writer, CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperWriter(writer, CsvHelperWriteConfiguration);
         foreach (var header in Headers)
         {
             csv.WriteField(header);
@@ -141,7 +235,31 @@ public class CsvWideBenchmarks
             csv.NextRecord();
         }
 
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int CsvHelper_WriteTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperWriter(writer, CsvHelperWriteConfiguration);
+        foreach (var header in Headers)
+        {
+            csv.WriteField(header);
+        }
+
+        csv.NextRecord();
+        foreach (string?[] row in _textRows)
+        {
+            foreach (string? value in row)
+            {
+                csv.WriteField(value);
+            }
+
+            csv.NextRecord();
+        }
+
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -151,7 +269,17 @@ public class CsvWideBenchmarks
         using var reader = new BenchmarkArrayDataReader(Headers, _rows);
         using var csv = SylvanCsvDataWriter.Create(writer, SylvanWriterOptions);
         csv.Write(reader);
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int Sylvan_WriteTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var reader = new BenchmarkArrayDataReader(Headers, _textRows);
+        using var csv = SylvanCsvDataWriter.Create(writer, SylvanWriterOptions);
+        csv.Write(reader);
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -165,7 +293,21 @@ public class CsvWideBenchmarks
             csv.WriteRow(row);
         }
 
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int Dataplat_WriteTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new DataplatCsvWriter(writer, DataplatWriterOptions);
+        csv.WriteHeader(Headers);
+        foreach (string?[] row in _textRows)
+        {
+            csv.WriteRow(row);
+        }
+
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -175,7 +317,7 @@ public class CsvWideBenchmarks
         using var reader = new BenchmarkArrayDataReader(Headers, _rows);
         using var csv = new DataplatCsvWriter(writer, DataplatWriterOptions);
         csv.WriteFromReader(reader);
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -192,7 +334,7 @@ public class CsvWideBenchmarks
             }
         }
 
-        return csv.ToString().Length;
+        return CompleteWrite(csv.ToString());
     }
 
     [Benchmark]

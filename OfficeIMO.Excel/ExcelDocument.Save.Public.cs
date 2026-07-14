@@ -134,6 +134,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (preferExtendedPackageWriter) {
+                MaterializeDirectDataSetFastSaveModelIfNeeded();
                 PrepareWorkbookForSave(options);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
@@ -270,6 +271,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (preferExtendedPackageWriter) {
+                MaterializeDirectDataSetFastSaveModelIfNeeded();
                 PrepareWorkbookForSave(options);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
@@ -375,6 +377,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (preferExtendedPackageWriter) {
+                MaterializeDirectDataSetFastSaveModelIfNeeded();
                 PrepareWorkbookForSave(options);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }
@@ -506,6 +509,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (preferExtendedPackageWriter) {
+                MaterializeDirectDataSetFastSaveModelIfNeeded();
                 PrepareWorkbookForSave(options);
                 ReportSaveTiming(saveStageWatch, "Save.PrepareWorkbookFallback");
             }

@@ -61,7 +61,7 @@ internal static partial class CsvParser
         var lineNumber = 1;
         var useAvx2UnquotedFastPath = true;
         var textMayContainQuote = text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0;
-        var unquotedDelimiterIndexCapacity = 64;
+        var unquotedDelimiterIndexCapacity = 16;
         var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
         char[]? scratch = null;
         var delimiterVector = System.Runtime.Intrinsics.Vector256<byte>.Zero;
@@ -154,6 +154,12 @@ internal static partial class CsvParser
                     continue;
                 }
 
+                var requiredFieldCapacity = GetTextDelimiterIndexCapacity(fieldCount);
+                if (requiredFieldCapacity > unquotedDelimiterIndexCapacity)
+                {
+                    unquotedDelimiterIndexCapacity = requiredFieldCapacity;
+                }
+
                 var isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
                 var shouldEmit = fieldCount != 0 && (allowEmpty || !isEmptyRecord);
                 if (!shouldEmit)
@@ -211,6 +217,48 @@ internal static partial class CsvParser
 
 #if NET8_0_OR_GREATER
         var encounteredQuote = false;
+        if (useAvx2UnquotedFastPath &&
+            !trim &&
+            !System.Runtime.Intrinsics.X86.Avx2.IsSupported &&
+            System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated &&
+            !textMayContainQuote &&
+            TryReadTextQuoteFreeRecordFieldSpansVector128(
+                text,
+                delimiter,
+                allowEmpty,
+                emitFields,
+                recordIndex,
+                ref position,
+                projectedFieldVisitor,
+                ref fieldVisitor,
+                out fieldCount,
+                out firstFieldLength))
+        {
+            return true;
+        }
+
+        if (useAvx2UnquotedFastPath &&
+            !trim &&
+            !System.Runtime.Intrinsics.X86.Avx2.IsSupported &&
+            System.Runtime.Intrinsics.Vector128.IsHardwareAccelerated &&
+            textMayContainQuote &&
+            TryReadTextRecordFieldSpansVector128(
+                text,
+                delimiter,
+                allowEmpty,
+                emitFields,
+                recordIndex,
+                ref unquotedDelimiterIndexCapacity,
+                ref position,
+                projectedFieldVisitor,
+                ref fieldVisitor,
+                ref scratch,
+                out fieldCount,
+                out firstFieldLength))
+        {
+            return true;
+        }
+
         if (useAvx2UnquotedFastPath &&
             !trim &&
             delimiter <= byte.MaxValue &&
@@ -387,6 +435,7 @@ internal static partial class CsvParser
                             carriageReturnMask,
                             lineFeedMask,
                             delimiterVector,
+                            delimiterIndexCapacity,
                             ref position,
                             projectedFieldVisitor,
                             ref fieldVisitor,
@@ -634,23 +683,22 @@ internal static partial class CsvParser
 
     private static bool HasPotentialTextCommentRecord(ReadOnlySpan<char> text, char commentCharacter)
     {
-        if (text.Length == 0)
+        var searchStart = 0;
+        while (searchStart < text.Length)
         {
-            return false;
-        }
+            var relativeIndex = text.Slice(searchStart).IndexOf(commentCharacter);
+            if (relativeIndex < 0)
+            {
+                return false;
+            }
 
-        if (text[0] == commentCharacter)
-        {
-            return true;
-        }
-
-        for (var i = 1; i < text.Length; i++)
-        {
-            if (text[i] == commentCharacter &&
-                (text[i - 1] == '\n' || text[i - 1] == '\r'))
+            var index = searchStart + relativeIndex;
+            if (index == 0 || text[index - 1] == '\n' || text[index - 1] == '\r')
             {
                 return true;
             }
+
+            searchStart = index + 1;
         }
 
         return false;

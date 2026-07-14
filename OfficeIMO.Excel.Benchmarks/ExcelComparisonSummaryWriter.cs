@@ -9,11 +9,13 @@ internal sealed record ExcelComparisonSummaryInput(string Kind, int RowCount, st
 internal sealed record ExcelComparisonSummaryOutput(string MarkdownPath, string CsvPath, string JsonPath);
 
 internal static class ExcelComparisonSummaryWriter {
-    private const double TieThresholdRatio = 0.02;
+    private const double TieThresholdRatio = 0.05;
 
     internal static ExcelComparisonSummaryOutput WriteSummary(
         string outputDirectory,
-        IEnumerable<ExcelComparisonSummaryInput> artifacts) {
+        IEnumerable<ExcelComparisonSummaryInput> artifacts,
+        int warmupIterations,
+        int measuredIterations) {
         if (string.IsNullOrWhiteSpace(outputDirectory)) {
             throw new ArgumentException("Output directory must not be empty.", nameof(outputDirectory));
         }
@@ -36,6 +38,8 @@ internal static class ExcelComparisonSummaryWriter {
 
         File.WriteAllText(jsonPath, JsonSerializer.Serialize(new ComparisonSummaryDocument {
             GeneratedAtUtc = DateTime.UtcNow,
+            WarmupIterations = warmupIterations,
+            MeasuredIterations = measuredIterations,
             Notes = "Mean/stddev/stderr are from the lightweight rotated local runner. Allocations use GC.GetAllocatedBytesForCurrentThread. Use BenchmarkDotNet-specific classes for publication-grade statistical Error columns.",
             Rows = rows
         }, new JsonSerializerOptions { WriteIndented = true }));
@@ -104,6 +108,7 @@ internal static class ExcelComparisonSummaryWriter {
                 .OrderBy(row => row.MeanMilliseconds)
                 .ThenBy(row => row.Library, StringComparer.OrdinalIgnoreCase)
                 .ToArray();
+            bool hasPracticalTieForBest = bestRows.Length > 1;
             string bestLibraries = string.Join(", ", bestRows.Select(row => row.Library));
             var office = group.FirstOrDefault(row => IsOfficeImo(row.Library));
 
@@ -122,15 +127,19 @@ internal static class ExcelComparisonSummaryWriter {
                 row.PackageRatioToOfficeImo = officePackageBytes is > 0 && row.PackageBytes is > 0
                     ? (double)row.PackageBytes.Value / officePackageBytes.Value
                     : null;
-                row.Outcome = GetOutcome(row, bestMean, officeMean);
+                row.Outcome = GetOutcome(row, bestMean, officeMean, hasPracticalTieForBest);
             }
         }
     }
 
-    private static string GetOutcome(ComparisonSummaryRow row, double bestMean, double? officeMean) {
+    private static string GetOutcome(
+        ComparisonSummaryRow row,
+        double bestMean,
+        double? officeMean,
+        bool hasPracticalTieForBest) {
         if (IsOfficeImo(row.Library)) {
             if (IsTie(row.MeanMilliseconds, bestMean)) {
-                return "Win";
+                return hasPracticalTieForBest ? "Tie for best" : "Win";
             }
 
             double lossPercent = bestMean <= 0 ? 0 : ((row.MeanMilliseconds / bestMean) - 1) * 100;
@@ -295,7 +304,7 @@ internal static class ExcelComparisonSummaryWriter {
         var builder = new StringBuilder();
         builder.AppendLine("# OfficeIMO.Excel Comparison Summary");
         builder.AppendLine();
-        builder.AppendLine("This is the suite-level decision table. Mean, standard deviation, standard error, ratios, and allocations come from the lightweight rotated local runner; they are meant for engineering direction. Use the BenchmarkDotNet benchmark classes when a publication-grade `Error` column is required.");
+        builder.AppendLine("This is the suite-level decision table. Mean, standard deviation, standard error, ratios, and allocations come from the lightweight rotated local runner; they are meant for engineering direction. Results within 5% are practical ties. Use the BenchmarkDotNet benchmark classes when a publication-grade `Error` column is required.");
         builder.AppendLine();
 
         AppendAtAGlance(builder, rows);
@@ -308,11 +317,12 @@ internal static class ExcelComparisonSummaryWriter {
         var officeRows = rows.Where(row => IsOfficeImo(row.Library)).ToArray();
         builder.AppendLine("## At a glance");
         builder.AppendLine();
-        builder.AppendLine("| Row count | Artifact | Workload | Category | OfficeIMO wins | OfficeIMO losses | Biggest loss |");
-        builder.AppendLine("| ---: | --- | --- | --- | ---: | ---: | --- |");
+        builder.AppendLine("| Row count | Artifact | Workload | Category | OfficeIMO wins | OfficeIMO ties | OfficeIMO losses | Biggest loss |");
+        builder.AppendLine("| ---: | --- | --- | --- | ---: | ---: | ---: | --- |");
 
         foreach (var group in officeRows.GroupBy(row => (row.RowCount, row.ArtifactKind, row.Workload, row.Category)).OrderBy(group => group.Key.RowCount).ThenBy(group => group.Key.ArtifactKind).ThenBy(group => group.Key.Workload).ThenBy(group => group.Key.Category)) {
             int wins = group.Count(row => row.Outcome == "Win");
+            int ties = group.Count(row => row.Outcome == "Tie for best");
             var losses = group.Where(row => row.Outcome.StartsWith("Loss", StringComparison.Ordinal)).ToArray();
             var biggestLoss = losses
                 .OrderByDescending(row => row.RatioToBest ?? 0)
@@ -328,6 +338,8 @@ internal static class ExcelComparisonSummaryWriter {
             builder.Append(EscapeMarkdown(group.Key.Category));
             builder.Append(" | ");
             builder.Append(wins.ToString(CultureInfo.InvariantCulture));
+            builder.Append(" | ");
+            builder.Append(ties.ToString(CultureInfo.InvariantCulture));
             builder.Append(" | ");
             builder.Append(losses.Length.ToString(CultureInfo.InvariantCulture));
             builder.Append(" | ");
@@ -569,6 +581,8 @@ internal static class ExcelComparisonSummaryWriter {
 
     private sealed class ComparisonSummaryDocument {
         public DateTime GeneratedAtUtc { get; init; }
+        public int WarmupIterations { get; init; }
+        public int MeasuredIterations { get; init; }
         public string Notes { get; init; } = string.Empty;
         public List<ComparisonSummaryRow> Rows { get; init; } = [];
     }

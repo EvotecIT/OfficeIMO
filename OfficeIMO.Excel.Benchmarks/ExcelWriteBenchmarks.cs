@@ -24,6 +24,7 @@ public class ExcelWriteBenchmarks {
         using (var document = ExcelDocument.Create(stream)) {
             var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.PopulateOfficeImoWorksheet(sheet, _rows);
+            document.Save(stream);
         }
 
         return checked((int)stream.Length);

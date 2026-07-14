@@ -110,7 +110,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.doc` sup
 - [x] Print areas, page breaks, page setup, and first/odd/even headers and footers with supported images
 - [x] Feature inspection and preservation reporting for macros, external links, custom XML, embedded packages, signatures, controls, slicers, timelines, and query metadata
 - [x] Workbook, worksheet, and range export to PNG and SVG; adapters add PDF, HTML, ODS, and Google Sheets
-- [x] Reproducible read, write, edit, package-size, and feature-rich benchmark suites against ClosedXML, EPPlus, MiniExcel, LargeXlsx, ExcelDataReader, Sylvan.Data.Excel, and opt-in NPOI lanes
+- [x] Reproducible read, write, edit, package-size, and feature-rich benchmark suites against ClosedXML, EPPlus, MiniExcel, LargeXlsx, SpreadCheetah, ExcelDataReader, Sylvan.Data.Excel, and opt-in NPOI lanes
 
 _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.xls` support and image export are OfficeIMO implementations.
 

@@ -15,11 +15,16 @@ internal sealed class BenchmarkArrayDataReader : DbDataReader
     private int _rowIndex = -1;
     private bool _closed;
 
-    public BenchmarkArrayDataReader(string[] headers, object?[][] rows)
+    public BenchmarkArrayDataReader(string[] headers, object?[][] rows, Type[]? fieldTypes = null)
     {
         _headers = headers;
         _rows = rows;
-        _fieldTypes = CreateFieldTypes(headers, rows);
+        if (fieldTypes != null && fieldTypes.Length != headers.Length)
+        {
+            throw new ArgumentException("Field type count must match the header count.", nameof(fieldTypes));
+        }
+
+        _fieldTypes = fieldTypes ?? CreateFieldTypes(headers, rows);
         _ordinals = new Dictionary<string, int>(headers.Length, StringComparer.OrdinalIgnoreCase);
 
         for (var i = 0; i < headers.Length; i++)

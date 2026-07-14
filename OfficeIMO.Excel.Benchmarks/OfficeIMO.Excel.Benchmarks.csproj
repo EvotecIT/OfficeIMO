@@ -16,6 +16,7 @@
     <PackageReference Include="EPPlus" Version="8.6.1" />
     <PackageReference Include="LargeXlsx" Version="2.0.1" />
     <PackageReference Include="MiniExcel" Version="1.45.0" />
+    <PackageReference Include="SpreadCheetah" Version="1.28.0" />
     <PackageReference Include="Sylvan.Data.Excel" Version="0.5.7" />
     <PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.9" />
   </ItemGroup>

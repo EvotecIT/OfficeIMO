@@ -4,6 +4,7 @@ using System.Globalization;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
 using nietras.SeparatedValues;
+using CsvHelperConfiguration = CsvHelper.Configuration.CsvConfiguration;
 using CsvHelperReader = CsvHelper.CsvReader;
 using CsvHelperWriter = CsvHelper.CsvWriter;
 using DataplatCsvDataReader = Dataplat.Dbatools.Csv.Reader.CsvDataReader;
@@ -41,8 +42,11 @@ public class CsvBenchmarks
     private object?[][] _projectedRows = [];
     private string?[][] _projectedTextRows = [];
     private string _csvText = string.Empty;
+    private bool _captureWriteOutput;
+    private string? _capturedWriteOutput;
     private static readonly DataplatCsvReaderOptions DataplatReaderOptions = new() { HasHeaderRow = true };
     private static readonly DataplatCsvWriterOptions DataplatWriterOptions = new() { NewLine = "\n" };
+    private static readonly CsvHelperConfiguration CsvHelperWriteConfiguration = new(CultureInfo.InvariantCulture) { NewLine = "\n" };
     private static readonly SepReaderOptions SepReadOptions = SepLib.New(',').Reader(options => options with { Unescape = true });
     private static readonly SepWriterOptions SepWriteOptions = SepLib.New(',').Writer(options => options with { WriteHeader = true, Escape = true });
     private static readonly SylvanCsvDataWriterOptions SylvanWriterOptions = new() { NewLine = "\n" };
@@ -63,6 +67,76 @@ public class CsvBenchmarks
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         CsvDocument.WriteObjects(writer, _rows, new CsvSaveOptions { NewLine = "\n" });
         _csvText = writer.ToString();
+
+        ValidateWriteBenchmarkOutputs();
+    }
+
+    private void ValidateWriteBenchmarkOutputs()
+    {
+        ValidateWriteOutput(nameof(OfficeIMO_WriteObjects), OfficeIMO_WriteObjects, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteProjectedRows), OfficeIMO_WriteProjectedRows, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedProjectedRows), OfficeIMO_WriteTrustedProjectedRows, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(CsvHelper_WriteTypedRecords), CsvHelper_WriteTypedRecords, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(CsvHelper_WriteProjectedRows), CsvHelper_WriteProjectedRows, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(Sylvan_WriteProjectedRows), Sylvan_WriteProjectedRows, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(Dataplat_WriteProjectedRows), Dataplat_WriteProjectedRows, expectedObjectRows: _projectedRows);
+        ValidateWriteOutput(nameof(Dataplat_WriteFromReader), Dataplat_WriteFromReader, expectedObjectRows: _projectedRows);
+
+        ValidateWriteOutput(nameof(OfficeIMO_WriteValidatedTextRows), OfficeIMO_WriteValidatedTextRows, _projectedTextRows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedTextRows), OfficeIMO_WriteTrustedTextRows, _projectedTextRows);
+        ValidateWriteOutput(nameof(CsvHelper_WriteTextRows), CsvHelper_WriteTextRows, _projectedTextRows);
+        ValidateWriteOutput(nameof(Sylvan_WriteTextRows), Sylvan_WriteTextRows, _projectedTextRows);
+        ValidateWriteOutput(nameof(Dataplat_WriteTextRows), Dataplat_WriteTextRows, _projectedTextRows);
+        ValidateWriteOutput(nameof(Sep_WriteProjectedRows), Sep_WriteProjectedRows, _projectedTextRows);
+    }
+
+    private void ValidateWriteOutput(
+        string method,
+        Func<int> write,
+        string?[][]? expectedTextRows = null,
+        object?[][]? expectedObjectRows = null)
+    {
+        _captureWriteOutput = true;
+        _capturedWriteOutput = null;
+        try
+        {
+            var reportedLength = write();
+            var output = _capturedWriteOutput
+                ?? throw new InvalidOperationException($"{method} did not expose its output to benchmark preflight.");
+            if (reportedLength != output.Length)
+            {
+                throw new InvalidOperationException($"{method} reported {reportedLength} characters but produced {output.Length}.");
+            }
+
+            CsvBenchmarkOutputValidator.Validate(method, output, Headers, RowCount, expectedTextRows, expectedObjectRows);
+        }
+        finally
+        {
+            _captureWriteOutput = false;
+            _capturedWriteOutput = null;
+        }
+    }
+
+    private int CompleteWrite(StringWriter writer)
+    {
+        var buffer = writer.GetStringBuilder();
+        if (_captureWriteOutput)
+        {
+            _capturedWriteOutput = buffer.ToString();
+        }
+
+        return buffer.Length;
+    }
+
+    private int CompleteWrite(string output)
+    {
+        if (_captureWriteOutput)
+        {
+            _capturedWriteOutput = output;
+        }
+
+        return output.Length;
     }
 
     [Benchmark(Baseline = true)]
@@ -70,7 +144,7 @@ public class CsvBenchmarks
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         CsvDocument.WriteObjects(writer, _rows, new CsvSaveOptions { NewLine = "\n" });
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -78,12 +152,38 @@ public class CsvBenchmarks
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
-        foreach (object?[] row in _projectedRows)
+        csv.WriteRows(Headers, _projectedRows);
+
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteTrustedProjectedRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        if (_projectedRows.Length == 0)
         {
-            csv.WriteRow(Headers, row);
+            return 0;
         }
 
-        return writer.GetStringBuilder().Length;
+        csv.WriteRow(Headers, _projectedRows[0]);
+        for (var i = 1; i < _projectedRows.Length; i++)
+        {
+            csv.WriteTrustedRow(_projectedRows[i]);
+        }
+
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteValidatedTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        csv.WriteTextRows(Headers, _projectedTextRows);
+
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -102,7 +202,7 @@ public class CsvBenchmarks
             csv.WriteTrustedTextRow(_projectedTextRows[i]);
         }
 
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -111,7 +211,7 @@ public class CsvBenchmarks
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var reader = new BenchmarkArrayDataReader(Headers, _projectedRows);
         CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -124,23 +224,23 @@ public class CsvBenchmarks
             csv.WriteRow(Headers, row);
         }
 
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
     public int CsvHelper_WriteTypedRecords()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvHelperWriter(writer, CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperWriter(writer, CsvHelperWriteConfiguration);
         csv.WriteRecords(_rows);
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
     public int CsvHelper_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
-        using var csv = new CsvHelperWriter(writer, CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperWriter(writer, CsvHelperWriteConfiguration);
         foreach (string header in Headers)
         {
             csv.WriteField(header);
@@ -158,7 +258,32 @@ public class CsvBenchmarks
             csv.NextRecord();
         }
 
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int CsvHelper_WriteTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new CsvHelperWriter(writer, CsvHelperWriteConfiguration);
+        foreach (string header in Headers)
+        {
+            csv.WriteField(header);
+        }
+
+        csv.NextRecord();
+
+        foreach (string?[] row in _projectedTextRows)
+        {
+            foreach (string? value in row)
+            {
+                csv.WriteField(value);
+            }
+
+            csv.NextRecord();
+        }
+
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -168,7 +293,17 @@ public class CsvBenchmarks
         using var reader = new BenchmarkArrayDataReader(Headers, _projectedRows);
         using var csv = SylvanCsvDataWriter.Create(writer, SylvanWriterOptions);
         csv.Write(reader);
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int Sylvan_WriteTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var reader = new BenchmarkArrayDataReader(Headers, _projectedTextRows);
+        using var csv = SylvanCsvDataWriter.Create(writer, SylvanWriterOptions);
+        csv.Write(reader);
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -182,7 +317,21 @@ public class CsvBenchmarks
             csv.WriteRow(row);
         }
 
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
+    }
+
+    [Benchmark]
+    public int Dataplat_WriteTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new DataplatCsvWriter(writer, DataplatWriterOptions);
+        csv.WriteHeader(Headers);
+        foreach (string?[] row in _projectedTextRows)
+        {
+            csv.WriteRow(row);
+        }
+
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -192,7 +341,7 @@ public class CsvBenchmarks
         using var reader = new BenchmarkArrayDataReader(Headers, _projectedRows);
         using var csv = new DataplatCsvWriter(writer, DataplatWriterOptions);
         csv.WriteFromReader(reader);
-        return writer.GetStringBuilder().Length;
+        return CompleteWrite(writer);
     }
 
     [Benchmark]
@@ -209,7 +358,7 @@ public class CsvBenchmarks
             }
         }
 
-        return csv.ToString().Length;
+        return CompleteWrite(csv.ToString());
     }
 
     [Benchmark]
@@ -377,6 +526,23 @@ public class CsvBenchmarks
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         using var csv = document.CreateDataReader();
         return DataTableBenchmarkUtilities.Measure(csv);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataReaderGetStrings()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader();
+        var fieldCount = 0;
+        while (csv.Read())
+        {
+            for (var i = 0; i < csv.FieldCount; i++)
+            {
+                fieldCount += 1 + csv.GetString(i).Length;
+            }
+        }
+
+        return fieldCount;
     }
 
     [Benchmark]

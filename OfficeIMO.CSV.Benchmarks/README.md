@@ -6,14 +6,18 @@ This project compares raw .NET CSV paths without PowerShell object overhead. Use
 
 This compact table is selected from the same BenchmarkDotNet artifacts used by
 the detailed investigations below and is refreshed through PSPublishModule.
-Lower is faster; short-run results vary by machine, runtime, data, and options.
+Lower is faster; local results vary by machine, runtime, data, and options.
+Treat differences below 5% as ties rather than ranking claims. The current
+snapshot uses three warmups, nine measured iterations, means, and semantic
+preflight validation of every typed or prepared value.
 
 <!-- officeimo-csv-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | OfficeIMO.CSV | Sep | Sylvan.Data.Csv | Result |
-| --- | --- | --- | --- | ---: | ---: | ---: | --- |
-| Prevalidated text-row write upper bound | Contract=OfficeIMO caller-prevalidated text, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Write rows | 1.00x (16ms) | 1.54x (24ms) | 1.73x (27ms) | OfficeIMO.CSV fastest |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Read every field | 1.00x (5ms) | 0.47x (2ms) | 1.89x (9ms) | OfficeIMO.CSV slower than Sep |
-| Wide projected-row CSV write | Contract=projected values, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Write projected rows | 1.00x (37ms) | 0.66x (24ms) | 0.74x (27ms) | OfficeIMO.CSV slower than Sep |
+| Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (27ms) | n/a | 1.74x (47ms) | n/a | 0.99x (26ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.06x (2ms) | 4.47x (9ms) | OfficeIMO.CSV fastest |
+| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (31ms) | 2.65x (82ms) | 1.43x (45ms) | n/a | n/a | OfficeIMO.CSV fastest |
+| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.33x (23ms) | 1.25x (21ms) | 1.20x (20ms) | 0.99x (17ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Run
@@ -38,6 +42,28 @@ For a write-focused competitor pass:
 ```powershell
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*Write*" --job short --warmupCount 1 --iterationCount 3
 ```
+
+For database-shaped `IDataReader` exports with ordinary, quoted, multiline,
+and nullable object-typed values:
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvDataReaderWriteBenchmarks*" --job short --warmupCount 3 --iterationCount 9
+```
+
+This 25,000-row, 10-column lane complements the numeric-heavy 40-column
+headline. OfficeIMO and Sylvan consume fresh readers over the same typed rows,
+and an untimed preflight parses every output and checks every value.
+
+Stable Apple M4 snapshot from the command above on 2026-07-14:
+
+| Shape | OfficeIMO.CSV | Sylvan.Data.Csv | Managed allocation |
+| --- | ---: | ---: | ---: |
+| Mixed values | 2.511 ms | 3.782 ms | 5.51 MB / 5.45 MB |
+| Quoted values | 3.784 ms | 4.832 ms | 7.09 MB / 7.03 MB |
+| Multiline values | 2.686 ms | 4.378 ms | 6.44 MB / 6.36 MB |
+
+These results use explicit field types, including nullable object-typed text
+columns, rather than inferring a convenient schema from the first row.
 
 The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row writing, OfficeIMO.CSV trusted text-row writing, OfficeIMO.CSV direct IDataReader writing, OfficeIMO.CSV reusable reads, OfficeIMO.CSV field-span reads, OfficeIMO.CSV in-memory and streaming DataTable materialization with string and inferred-schema columns, OfficeIMO.CSV direct DbDataReader consumption and DbDataReader-to-DataTable loading, CsvHelper typed/projected writes, CsvHelper raw/typed reads, Sylvan raw/string/span field reads and DataTable loading, Dataplat.Dbatools.Csv reader/writer/DataTable paths, and Sep strict reader/writer paths.
 
@@ -67,9 +93,13 @@ Parity check: the class includes all 20 upstream `CsvReaderBenchmarks` methods b
 
 CsvHelper, Sylvan.Data.Csv, Dataplat.Dbatools.Csv, LumenWorksCsvReader2, and Sep are benchmark-only dependencies in this project. They should not be added to `OfficeIMO.CSV` unless a future design decision intentionally changes the runtime dependency model.
 
-## Current dbatools.library Parity Snapshot
+The generated headline above is the current snapshot. The dated sections below
+record earlier focused investigations and their reproduction commands; do not
+combine their numbers into a current ranking.
 
-Fresh local short-job run on 2026-07-09 using the 14 QuickTest-shaped parity lanes with row-count and field-length checksum validation enabled. Treat these as direction-finding numbers; run a longer BenchmarkDotNet job before release claims or performance gates.
+## Dated dbatools.library parity snapshot (2026-07-09)
+
+Archived local short-job run using the 14 QuickTest-shaped parity lanes with row-count and field-length checksum validation enabled. Treat these as direction-finding numbers; rerun before making release claims or performance gates.
 
 QuickTest single-column/all-column read lanes:
 
@@ -93,15 +123,15 @@ All-values read lane:
 | LumenWorks | 32.53 ms | 39.7 MB |
 
 Additional guardrail: `OfficeIMO-DataReader-QuickTest-GetValues` reads the same
-100k-row QuickTest file through `DbDataReader.GetValues`; the latest 2026-07-09
+100k-row QuickTest file through `DbDataReader.GetValues`; this archived
 short run measured 23.10 ms and 40.6 MB. Keep this lane visible when optimizing
 the SQL/bulk-copy-shaped reader path.
 
 The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it now reads reusable parser string rows directly and is faster than Dataplat's DataReader in these short runs, with Dataplat still holding a small allocation edge.
 
-## Current Typed DataReader Snapshot
+## Dated typed DataReader snapshot (2026-07-09)
 
-Fresh local short-job runs on 2026-07-09 using the 25,000-row, 40-column wide payload. Every lane traverses every value. The file lane includes file decoding and uses the public `CsvDocument.CreateDataReader(path, ...)` API used by PSWriteOffice and DbaClientX.
+Archived local short-job runs using the 25,000-row, 40-column wide payload. Every lane traverses every value. The file lane includes file decoding and uses the public `CsvDocument.CreateDataReader(path, ...)` API used by PSWriteOffice and DbaClientX.
 
 ```powershell
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*DataReader*Schema*" --job short --warmupCount 5 --iterationCount 10
@@ -115,52 +145,9 @@ dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj 
 
 Explicit typed readers parse numbers, booleans, dates, and GUIDs directly from source spans. Inferred readers inspect spans without retaining sampled rows, then replay the immutable text through the typed reader. String-only file readers stay on the lower-memory streaming path.
 
-## Current Write Snapshot
+## Dated wide read snapshot (2026-07-07)
 
-Fresh local short-job run on 2026-07-08:
-
-```powershell
-dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*Write*" --job short --warmupCount 1 --iterationCount 3
-```
-
-The table shows the fastest method per shape/row-count lane. Treat this as a quick comparison snapshot; run a longer BenchmarkDotNet job before making release claims or budget gates.
-
-| Shape | Rows | Fastest method | Mean |
-| --- | ---: | --- | ---: |
-| Mixed | 1000 | OfficeIMO_WriteTrustedTextRows | 0.08 ms |
-| Mixed | 10000 | OfficeIMO_WriteTrustedTextRows | 0.98 ms |
-| Mixed | 25000 | OfficeIMO_WriteTrustedTextRows | 2.28 ms |
-| Multiline | 1000 | OfficeIMO_WriteTrustedTextRows | 0.12 ms |
-| Multiline | 10000 | OfficeIMO_WriteTrustedTextRows | 1.37 ms |
-| Multiline | 25000 | OfficeIMO_WriteTrustedTextRows | 3.79 ms |
-| Quoted | 1000 | OfficeIMO_WriteTrustedTextRows | 0.14 ms |
-| Quoted | 10000 | OfficeIMO_WriteTrustedTextRows | 1.27 ms |
-| Quoted | 25000 | OfficeIMO_WriteTrustedTextRows | 4.22 ms |
-| Wide | 1000 | OfficeIMO_WriteTrustedTextRows | 0.28 ms |
-| Wide | 10000 | OfficeIMO_WriteTrustedTextRows | 3.41 ms |
-| Wide | 25000 | OfficeIMO_WriteTrustedTextRows | 9.45 ms |
-
-## Current Wide IDataReader Write Snapshot
-
-Fresh local short-job run on 2026-07-07:
-
-```powershell
-dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*Write*" --job short --warmupCount 1 --iterationCount 3
-```
-
-The table keeps the SQL-shaped writer path visible. `OfficeIMO_WriteDataReader` writes through the public `IDataReader` bridge, `Dataplat_WriteFromReader` uses the dbatools reader bridge, and the trusted text lane shows the faster path available when the caller already supplies culture-aware formatting and schema validation.
-
-| Rows | OfficeIMO IDataReader | dbatools reader | Sylvan reader | SEP projected | OfficeIMO trusted text |
-| ---: | ---: | ---: | ---: | ---: | ---: |
-| 1000 | 1.68 ms | 1.76 ms | 1.12 ms | 1.21 ms | 0.67 ms |
-| 10000 | 18.36 ms | 20.68 ms | 14.82 ms | 14.48 ms | 6.26 ms |
-| 25000 | 47.57 ms | 78.13 ms | 35.75 ms | 33.28 ms | 16.02 ms |
-
-In this run the OfficeIMO `IDataReader` bridge stays ahead of dbatools' reader bridge at every tested row count while allocating about one-third as much memory. Sylvan and SEP remain faster in the projected-row lanes, and the OfficeIMO trusted text lane shows the upper bound when the caller already supplies formatting and schema validation.
-
-## Current Wide Read Snapshot
-
-Fresh local short-job run on 2026-07-07:
+Archived local short-job run:
 
 ```powershell
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*Read*FieldSpan*" --job short --warmupCount 1 --iterationCount 3

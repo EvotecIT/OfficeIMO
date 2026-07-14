@@ -1,8 +1,8 @@
 {
   "metadata": {
-    "generatedAtUtc": "2026-07-13T21:12:56.484951+00:00",
+    "generatedAtUtc": "2026-07-14T05:17:30.966994+00:00",
     "source": "./.benchmark-artifacts/readme-refresh/csv",
-    "note": "Focused BenchmarkDotNet run; every read lane traverses every field and validates its output."
+    "note": "Focused BenchmarkDotNet run; read lanes traverse every field and write lanes semantically validate every output value."
   },
   "comparison": [
     {
@@ -17,16 +17,17 @@
         "Rows": "25,000",
         "Shape": "wide",
         "Contract": "field spans",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
       },
       "engine": "OfficeIMO.CSV",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 5.0237,
-      "baseline": 5.0237,
+      "actual": 2.1205100000000003,
+      "baseline": 2.1205100000000003,
       "ratio": 1.0,
-      "metric": "MedianMs"
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -40,16 +41,17 @@
         "Rows": "25,000",
         "Shape": "wide",
         "Contract": "field spans",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
       },
       "engine": "Sep",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 2.37659,
-      "baseline": 5.0237,
-      "ratio": 0.47307562155383487,
-      "metric": "MedianMs"
+      "actual": 2.24013,
+      "baseline": 2.1205100000000003,
+      "ratio": 1.056410957741298,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -63,21 +65,22 @@
         "Rows": "25,000",
         "Shape": "wide",
         "Contract": "field spans",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
       },
       "engine": "Sylvan.Data.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 9.49223,
-      "baseline": 5.0237,
-      "ratio": 1.8894898182614408,
-      "metric": "MedianMs"
+      "actual": 9.48919,
+      "baseline": 2.1205100000000003,
+      "ratio": 4.474956496314565,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Wide projected-row CSV write",
-      "operation": "Write projected rows",
+      "scenario": "Wide projected-array CSV write",
+      "operation": "Format and write rows",
       "host": ".NET 8",
       "os": "",
       "runMode": "",
@@ -85,22 +88,71 @@
         "Format": "CSV",
         "Rows": "25,000",
         "Shape": "wide",
-        "Contract": "projected values",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
+        "Contract": "projected object arrays",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
+      },
+      "engine": "CsvHelper",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 82.37607000000001,
+      "baseline": 31.090380000000003,
+      "ratio": 2.649567808434635,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide projected-array CSV write",
+      "operation": "Format and write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "projected object arrays",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
+      },
+      "engine": "Dataplat.Dbatools.Csv",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 44.50914,
+      "baseline": 31.090380000000003,
+      "ratio": 1.4316048887147728,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide projected-array CSV write",
+      "operation": "Format and write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "projected object arrays",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
       },
       "engine": "OfficeIMO.CSV",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 36.649879999999996,
-      "baseline": 36.649879999999996,
+      "actual": 31.090380000000003,
+      "baseline": 31.090380000000003,
       "ratio": 1.0,
-      "metric": "MedianMs"
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Wide projected-row CSV write",
-      "operation": "Write projected rows",
+      "scenario": "Wide DataReader CSV write",
+      "operation": "Format and write rows",
       "host": ".NET 8",
       "os": "",
       "runMode": "",
@@ -108,22 +160,23 @@
         "Format": "CSV",
         "Rows": "25,000",
         "Shape": "wide",
-        "Contract": "projected values",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
+        "Contract": "IDataReader",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
       },
-      "engine": "Sep",
+      "engine": "Dataplat.Dbatools.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 24.2111,
-      "baseline": 36.649879999999996,
-      "ratio": 0.6606051643279596,
-      "metric": "MedianMs"
+      "actual": 46.59477,
+      "baseline": 26.717660000000002,
+      "ratio": 1.7439689703364738,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Wide projected-row CSV write",
-      "operation": "Write projected rows",
+      "scenario": "Wide DataReader CSV write",
+      "operation": "Format and write rows",
       "host": ".NET 8",
       "os": "",
       "runMode": "",
@@ -131,45 +184,23 @@
         "Format": "CSV",
         "Rows": "25,000",
         "Shape": "wide",
-        "Contract": "projected values",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
-      },
-      "engine": "Sylvan.Data.Csv",
-      "baselineEngine": "OfficeIMO.CSV",
-      "status": "Succeeded",
-      "actual": 27.19788,
-      "baseline": 36.649879999999996,
-      "ratio": 0.7421001105597073,
-      "metric": "MedianMs"
-    },
-    {
-      "suite": "OfficeIMO README highlights",
-      "scenario": "Prevalidated text-row write upper bound",
-      "operation": "Write rows",
-      "host": ".NET 8",
-      "os": "",
-      "runMode": "",
-      "variables": {
-        "Format": "CSV",
-        "Rows": "25,000",
-        "Shape": "wide",
-        "Contract": "OfficeIMO caller-prevalidated text",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
+        "Contract": "IDataReader",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
       },
       "engine": "OfficeIMO.CSV",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 15.69116,
-      "baseline": 15.69116,
+      "actual": 26.717660000000002,
+      "baseline": 26.717660000000002,
       "ratio": 1.0,
-      "metric": "MedianMs"
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Prevalidated text-row write upper bound",
-      "operation": "Write rows",
+      "scenario": "Wide DataReader CSV write",
+      "operation": "Format and write rows",
       "host": ".NET 8",
       "os": "",
       "runMode": "",
@@ -177,40 +208,138 @@
         "Format": "CSV",
         "Rows": "25,000",
         "Shape": "wide",
-        "Contract": "OfficeIMO caller-prevalidated text",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
-      },
-      "engine": "Sep",
-      "baselineEngine": "OfficeIMO.CSV",
-      "status": "Succeeded",
-      "actual": 24.2111,
-      "baseline": 15.69116,
-      "ratio": 1.54297706479317,
-      "metric": "MedianMs"
-    },
-    {
-      "suite": "OfficeIMO README highlights",
-      "scenario": "Prevalidated text-row write upper bound",
-      "operation": "Write rows",
-      "host": ".NET 8",
-      "os": "",
-      "runMode": "",
-      "variables": {
-        "Format": "CSV",
-        "Rows": "25,000",
-        "Shape": "wide",
-        "Contract": "OfficeIMO caller-prevalidated text",
-        "Snapshot": "2026-07-13",
-        "Runner": "BenchmarkDotNet short"
+        "Contract": "IDataReader",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
       },
       "engine": "Sylvan.Data.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 27.19788,
-      "baseline": 15.69116,
-      "ratio": 1.733325005926904,
-      "metric": "MedianMs"
+      "actual": 26.43027,
+      "baseline": 26.717660000000002,
+      "ratio": 0.989243444223783,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide validated text-row CSV write",
+      "operation": "Validate and write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "preformatted text with escaping",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
+      },
+      "engine": "CsvHelper",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 22.69665,
+      "baseline": 17.11839,
+      "ratio": 1.3258635888071248,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide validated text-row CSV write",
+      "operation": "Validate and write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "preformatted text with escaping",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
+      },
+      "engine": "Dataplat.Dbatools.Csv",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 21.46,
+      "baseline": 17.11839,
+      "ratio": 1.2536225661408578,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide validated text-row CSV write",
+      "operation": "Validate and write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "preformatted text with escaping",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
+      },
+      "engine": "OfficeIMO.CSV",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 17.11839,
+      "baseline": 17.11839,
+      "ratio": 1.0,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide validated text-row CSV write",
+      "operation": "Validate and write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "preformatted text with escaping",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
+      },
+      "engine": "Sep",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 20.47324,
+      "baseline": 17.11839,
+      "ratio": 1.1959792947818106,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Wide validated text-row CSV write",
+      "operation": "Validate and write rows",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": "CSV",
+        "Rows": "25,000",
+        "Shape": "wide",
+        "Contract": "preformatted text with escaping",
+        "Snapshot": "2026-07-14",
+        "Runner": "BenchmarkDotNet local"
+      },
+      "engine": "Sylvan.Data.Csv",
+      "baselineEngine": "OfficeIMO.CSV",
+      "status": "Succeeded",
+      "actual": 16.8993,
+      "baseline": 17.11839,
+      "ratio": 0.9872014833170643,
+      "metric": "MeanMs",
+      "tieTolerance": 0.05
     }
   ]
 }

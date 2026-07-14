@@ -17,7 +17,8 @@ namespace OfficeIMO.Excel {
             Int32,
             Double,
             DateTime,
-            Boolean
+            Boolean,
+            String
         }
 
         private enum XmlDataReaderPrimitiveKind : byte {
