@@ -48,9 +48,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(dataRowCount, rows.Count);
             Assert.Equal(1, rows[0].Id);
             Assert.Equal("Row 2048", rows[2047].Name);
-            Assert.Equal(start.AddDays(dataRowCount), rows[^1].CreatedOn);
-            Assert.Equal(dataRowCount + 0.25d, rows[^1].Amount);
-            Assert.True(rows[^1].Active);
+            var last = rows[dataRowCount - 1];
+            Assert.Equal(start.AddDays(dataRowCount), last.CreatedOn);
+            Assert.Equal(dataRowCount + 0.25d, last.Amount);
+            Assert.True(last.Active);
         }
     }
 }
