@@ -56,11 +56,15 @@ public static class CodeGlyphDrawingExtensions {
         BarcodeSvgRenderOptions? options = null) {
         if (barcode is null) throw new ArgumentNullException(nameof(barcode));
         string svg = SvgBarcodeRenderer.Render(barcode, options ?? new BarcodeSvgRenderOptions());
-        return ReadSvg(svg, OfficeSvgDrawingReaderOptions.DefaultMaximumElements, out unsupportedFeatureCount);
+        return ReadSvg(svg, ResolveMaximumElements(barcode.Segments.Count), out unsupportedFeatureCount);
     }
 
     private static int ResolveMaximumElements(BitMatrix modules, int elementsPerCell) {
-        long requested = ((long)modules.Width * modules.Height * elementsPerCell) + 1024L;
+        return ResolveMaximumElements((long)modules.Width * modules.Height * elementsPerCell);
+    }
+
+    private static int ResolveMaximumElements(long symbolElements) {
+        long requested = symbolElements + 1024L;
         return (int)Math.Min(
             OfficeSvgDrawingReaderOptions.MaximumAllowedElements,
             Math.Max(OfficeSvgDrawingReaderOptions.DefaultMaximumElements, requested));

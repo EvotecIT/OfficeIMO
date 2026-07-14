@@ -132,4 +132,14 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         OfficeDrawingText text = Assert.Single(drawing.Elements.OfType<OfficeDrawingText>());
         Assert.Equal(label, text.Text);
     }
+
+    [Fact]
+    public void AdapterImportsLargeLinearBarcodeWithinTheTrustedElementLimit() {
+        Barcode1D barcode = new Barcode1D(Enumerable.Range(0, 22000).Select(index => new BarSegment(index % 2 == 0, 1)));
+
+        OfficeDrawing drawing = barcode.ToOfficeDrawing(out int unsupported, new BarcodeSvgRenderOptions());
+
+        Assert.Equal(0, unsupported);
+        Assert.True(drawing.Shapes.Count > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
+    }
 }

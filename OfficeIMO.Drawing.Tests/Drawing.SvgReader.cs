@@ -521,6 +521,34 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderParsesModernSpaceSeparatedRgbColors() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
+            + "<rect width='10' height='10' fill='rgb(36 87 166)' stroke='rgb(10% 20% 30% / 50%)' stroke-width='1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeShape shape = Assert.Single(drawing!.Shapes).Shape;
+        Assert.Equal(OfficeColor.FromRgb(36, 87, 166), shape.FillColor);
+        Assert.Equal(OfficeColor.FromRgba(26, 51, 76, 128), shape.StrokeColor);
+    }
+
+    [Fact]
+    public void SvgReaderPreservesRgbaAlphaWhenExportingShapes() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
+            + "<rect width='10' height='10' fill='rgba(36,87,166,0.502)' stroke='rgba(10,20,30,0.25)' stroke-width='1'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+
+        string exported = OfficeDrawingSvgExporter.ToSvg(drawing!);
+
+        Assert.Contains("fill-opacity=\"0.502\"", exported, StringComparison.Ordinal);
+        Assert.Contains("stroke-opacity=\"0.251\"", exported, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SvgReaderDiagnosesUnsafeOrCyclicPaintServersAndKeepsSupportedSiblings() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
             + "<defs><linearGradient id='a' href='#b'/><linearGradient id='b' href='#a'/>"

@@ -35,14 +35,28 @@ public static partial class OfficeSvgDrawingReader {
         if ((!hasAlpha && !hasRgb) || !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
 
         int prefixLength = hasAlpha ? 5 : 4;
-        string[] components = normalized.Substring(prefixLength, normalized.Length - prefixLength - 1).Split(',');
-        if (components.Length != (hasAlpha ? 4 : 3)
+        string content = normalized.Substring(prefixLength, normalized.Length - prefixLength - 1);
+        string[] components;
+        string? alphaComponent = null;
+        if (content.IndexOf(',') >= 0) {
+            string[] commaComponents = content.Split(',');
+            if (commaComponents.Length != (hasAlpha ? 4 : 3)) return false;
+            components = new[] { commaComponents[0], commaComponents[1], commaComponents[2] };
+            if (hasAlpha) alphaComponent = commaComponents[3];
+        } else {
+            string[] alphaParts = content.Split('/');
+            if (alphaParts.Length > 2) return false;
+            components = alphaParts[0].Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (alphaParts.Length == 2) alphaComponent = alphaParts[1];
+        }
+
+        if (components.Length != 3
             || !TrySvgColorChannel(components[0], out byte red)
             || !TrySvgColorChannel(components[1], out byte green)
             || !TrySvgColorChannel(components[2], out byte blue)) return false;
 
         byte alpha = 255;
-        if (hasAlpha && !TrySvgAlphaChannel(components[3], out alpha)) return false;
+        if (alphaComponent != null && !TrySvgAlphaChannel(alphaComponent, out alpha)) return false;
         color = OfficeColor.FromRgba(red, green, blue, alpha);
         return true;
     }

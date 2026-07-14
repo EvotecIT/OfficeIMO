@@ -707,7 +707,7 @@ public static partial class OfficeDrawingSvgExporter {
             }
         } else if (shape.FillColor.HasValue && shape.FillColor.Value.A > 0) {
             sb.Append(" fill=\"").Append(ToCssColor(shape.FillColor.Value)).Append('"');
-            double fillOpacity = shape.FillOpacity ?? ToOpacity(shape.FillColor.Value);
+            double fillOpacity = (shape.FillOpacity ?? 1D) * ToOpacity(shape.FillColor.Value);
             if (fillOpacity < 1D) {
                 sb.Append(" fill-opacity=\"").Append(Format(fillOpacity)).Append('"');
             }
@@ -727,7 +727,7 @@ public static partial class OfficeDrawingSvgExporter {
         } else if (shape.StrokeColor.HasValue && shape.StrokeWidth > 0 && shape.StrokeColor.Value.A > 0) {
             sb.Append(" stroke=\"").Append(ToCssColor(shape.StrokeColor.Value)).Append('"')
                 .Append(" stroke-width=\"").Append(Format(shape.StrokeWidth)).Append('"');
-            double strokeOpacity = shape.StrokeOpacity ?? ToOpacity(shape.StrokeColor.Value);
+            double strokeOpacity = (shape.StrokeOpacity ?? 1D) * ToOpacity(shape.StrokeColor.Value);
             if (strokeOpacity < 1D) {
                 sb.Append(" stroke-opacity=\"").Append(Format(strokeOpacity)).Append('"');
             }
@@ -772,7 +772,7 @@ public static partial class OfficeDrawingSvgExporter {
 
         var sb = new StringBuilder();
         sb.Append(" fill=\"").Append(ToCssColor(color.Value)).Append('"');
-        double opacity = shape.StrokeOpacity ?? ToOpacity(color.Value);
+        double opacity = (shape.StrokeOpacity ?? 1D) * ToOpacity(color.Value);
         if (opacity < 1D) {
             sb.Append(" fill-opacity=\"").Append(Format(opacity)).Append('"');
         }
