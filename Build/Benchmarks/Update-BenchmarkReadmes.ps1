@@ -112,7 +112,7 @@ try {
             "comparison-suite", "--out-dir", $excelRunPath, "--row-set", "25000",
             "--scenario", "realworld-report-all-in-one,write-datareader-table,read-objects-stream,write-datareader-compact-package",
             "--skip-package-profile", "--skip-dense-helloworld", "--skip-legacy-epplus",
-            "--warmup", "3", "--iterations", "9"
+            "--warmup", "20", "--iterations", "9"
         )
         $ExcelSummaryPath = "./.benchmark-artifacts/readme-refresh/excel/officeimo.excel.comparison-summary.json"
     }

@@ -254,6 +254,75 @@ public class CsvDocumentFromObjectsTests
         Assert.Equal("Name,Score,Notes\nAlpha,1.5,\"A, quoted\"\nBeta,<null>,\n", writer.ToString());
     }
 
+    [Fact]
+    public void WriteDataReader_UsesReportedFieldTypesWithoutRequiringGetValues()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name", "Score", "Notes" },
+            new[]
+            {
+                new object?[] { "Alpha", 1.5m, "A, quoted" },
+                new object?[] { "Beta", "reported type changed", DBNull.Value }
+            });
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
+
+        Assert.Equal(
+            "Name,Score,Notes\nAlpha,1.5,\"A, quoted\"\nBeta,reported type changed,\n",
+            writer.ToString());
+    }
+
+    [Fact]
+    public void WriteDataReader_SchemaPlanStillEscapesCultureSpecificValues()
+    {
+        var table = new DataTable();
+        table.Columns.Add("Amount", typeof(decimal));
+        table.Rows.Add(1.5m);
+        using var reader = table.CreateDataReader();
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        CsvDocument.WriteDataReader(
+            writer,
+            reader,
+            new CsvSaveOptions { NewLine = "\n", Culture = CultureInfo.GetCultureInfo("pl-PL") });
+
+        Assert.Equal("Amount\n\"1,5\"\n", writer.ToString());
+    }
+
+    [Fact]
+    public void WriteDataReader_SchemaPlanPreservesCommonScalarFormats()
+    {
+        var values = new object[]
+        {
+            42,
+            4_294_967_296L,
+            12.5m,
+            3.25d,
+            1.5f,
+            new DateTime(2026, 7, 14, 12, 34, 56, DateTimeKind.Utc),
+            new DateTimeOffset(2026, 7, 14, 12, 34, 56, TimeSpan.FromHours(2)),
+            Guid.Parse("b6e2be52-3367-4bcd-84dc-c092a152ff73"),
+            new TimeSpan(1, 2, 3),
+            true
+        };
+        var table = new DataTable();
+        for (var i = 0; i < values.Length; i++)
+        {
+            table.Columns.Add("Value" + i, values[i].GetType());
+        }
+
+        table.Rows.Add(values);
+        using var reader = table.CreateDataReader();
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
+
+        var expectedHeader = string.Join(",", table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
+        var expectedRow = string.Join(",", values.Select(value => Convert.ToString(value, CultureInfo.InvariantCulture)));
+        Assert.Equal(expectedHeader + "\n" + expectedRow + "\n", writer.ToString());
+    }
+
     private sealed class FlushTrackingWriter : StringWriter
     {
         public bool WasFlushed { get; private set; }

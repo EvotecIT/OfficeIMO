@@ -66,6 +66,9 @@ namespace OfficeIMO.Excel {
 
                         DirectDataSetWorkbookWriter.WriteExtendedWorksheet(archive, directWritePlan, directSheetModel, part.Path, tableRelationshipId, ct);
                         ReportTiming("Save.ExtendedPackage.WriteDirectWorksheet");
+                    } else if (part.CopyRawPart) {
+                        WriteRawPartEntry(archive, part.Path, part.Part);
+                        ReportTiming("Save.ExtendedPackage.WriteRawPart");
                     } else if (part.Part is WorksheetPart worksheetPart
                         && CanWriteSimpleWorksheet(worksheetPart, worksheetPart.Worksheet!, out _, allowDrawings: true, allowPivotTables: true)) {
                         var tablePartIds = worksheetPart.TableDefinitionParts
@@ -89,9 +92,6 @@ namespace OfficeIMO.Excel {
                             hyperlinkRelationships);
                         WriteWorksheetEntry(archive, worksheetModel);
                         ReportTiming("Save.ExtendedPackage.WriteSimpleWorksheet");
-                    } else if (part.CopyRawPart) {
-                        WriteRawPartEntry(archive, part.Path, part.RawBytes!);
-                        ReportTiming("Save.ExtendedPackage.WriteRawPart");
                     } else {
                         WriteOpenXmlElementEntry(archive, part.Path, part.RootElement!);
                         ReportTiming("Save.ExtendedPackage.WriteOpenXmlPart");

@@ -368,9 +368,7 @@ namespace OfficeIMO.Excel {
 
                 _ct.ThrowIfCancellationRequested();
                 if (_utf8Source != null) {
-                    Array.Clear(_currentValues, 0, _currentValues.Length);
                     Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
-                    Array.Clear(_currentPrimitiveKinds, 0, _currentPrimitiveKinds.Length);
                     bool hasPhysicalRow = _utf8Source.SelectRow(_nextLogicalRow);
                     row = hasPhysicalRow ? _currentValues : _blankRow;
                     _currentRow = row;
@@ -475,9 +473,7 @@ namespace OfficeIMO.Excel {
             }
 
             private void BeginPendingRow() {
-                Array.Clear(_currentValues, 0, _currentValues.Length);
                 Array.Clear(_currentValueLoaded, 0, _currentValueLoaded.Length);
-                Array.Clear(_currentPrimitiveKinds, 0, _currentPrimitiveKinds.Length);
                 _currentRow = _currentValues;
                 _currentRowDepth = _reader.Depth;
                 _currentNextCellColumnIndex = 1;

@@ -14,10 +14,10 @@ preflight validation of every typed or prepared value.
 <!-- officeimo-csv-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
 | --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (33ms) | n/a | 1.41x (47ms) | n/a | 0.81x (27ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.08x (2ms) | 4.48x (10ms) | OfficeIMO.CSV fastest |
-| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (30ms) | 2.68x (82ms) | 1.48x (45ms) | n/a | n/a | OfficeIMO.CSV fastest |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.35x (23ms) | 1.24x (21ms) | 1.23x (21ms) | 0.95x (16ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
+| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (27ms) | n/a | 1.74x (47ms) | n/a | 0.99x (26ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.06x (2ms) | 4.47x (9ms) | OfficeIMO.CSV fastest |
+| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (31ms) | 2.65x (82ms) | 1.43x (45ms) | n/a | n/a | OfficeIMO.CSV fastest |
+| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.33x (23ms) | 1.25x (21ms) | 1.20x (20ms) | 0.99x (17ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Run
@@ -42,6 +42,28 @@ For a write-focused competitor pass:
 ```powershell
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*Write*" --job short --warmupCount 1 --iterationCount 3
 ```
+
+For database-shaped `IDataReader` exports with ordinary, quoted, multiline,
+and nullable object-typed values:
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvDataReaderWriteBenchmarks*" --job short --warmupCount 3 --iterationCount 9
+```
+
+This 25,000-row, 10-column lane complements the numeric-heavy 40-column
+headline. OfficeIMO and Sylvan consume fresh readers over the same typed rows,
+and an untimed preflight parses every output and checks every value.
+
+Stable Apple M4 snapshot from the command above on 2026-07-14:
+
+| Shape | OfficeIMO.CSV | Sylvan.Data.Csv | Managed allocation |
+| --- | ---: | ---: | ---: |
+| Mixed values | 2.511 ms | 3.782 ms | 5.51 MB / 5.45 MB |
+| Quoted values | 3.784 ms | 4.832 ms | 7.09 MB / 7.03 MB |
+| Multiline values | 2.686 ms | 4.378 ms | 6.44 MB / 6.36 MB |
+
+These results use explicit field types, including nullable object-typed text
+columns, rather than inferring a convenient schema from the first row.
 
 The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row writing, OfficeIMO.CSV trusted text-row writing, OfficeIMO.CSV direct IDataReader writing, OfficeIMO.CSV reusable reads, OfficeIMO.CSV field-span reads, OfficeIMO.CSV in-memory and streaming DataTable materialization with string and inferred-schema columns, OfficeIMO.CSV direct DbDataReader consumption and DbDataReader-to-DataTable loading, CsvHelper typed/projected writes, CsvHelper raw/typed reads, Sylvan raw/string/span field reads and DataTable loading, Dataplat.Dbatools.Csv reader/writer/DataTable paths, and Sep strict reader/writer paths.
 

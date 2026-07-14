@@ -7,8 +7,15 @@ The benchmark harness is intended to measure representative Excel workloads acro
 Use `comparison-suite` for the broad proof run:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 3 --iterations 9
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --skip-legacy-epplus --warmup 20 --iterations 9
 ```
+
+The release-style runner uses twenty warmups because isolated ARM64 reruns
+showed tiered-PGO transitions still occurring after fifteen invocations. This
+keeps compilation transitions out of the measured samples for every library.
+`--skip-legacy-epplus` keeps current EPPlus coverage and omits
+only the isolated EPPlus 4.x process, whose AutoFit path requires `libgdiplus`
+on macOS.
 
 The suite writes:
 

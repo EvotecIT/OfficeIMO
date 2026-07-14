@@ -49,6 +49,11 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            if (WorkbookPartRoot.WorksheetParts.Any(static part => !part.IsRootElementLoaded)) {
+                skipReason = "An unmaterialized worksheet requires the extended package writer.";
+                return false;
+            }
+
             if (!FastWorkbookPackageModel.TryCreate(_spreadSheetDocument, out var model, out string? modelSkipReason)) {
                 skipReason = modelSkipReason ?? "Workbook contains parts or worksheet features outside the simple package writer surface.";
                 return false;

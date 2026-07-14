@@ -239,6 +239,13 @@ namespace OfficeIMO.Excel {
             stream.Write(bytes, 0, bytes.Length);
         }
 
+        private static void WriteRawPartEntry(ZipArchive archive, string path, OpenXmlPart part) {
+            var entry = archive.CreateEntry(path, CompressionLevel.Fastest);
+            using var destination = entry.Open();
+            using var source = part.GetStream(FileMode.Open, FileAccess.Read);
+            source.CopyTo(destination);
+        }
+
         private static void WriteWorksheetRelationshipsEntry(ZipArchive archive, FastWorksheetPackageModel worksheet) {
             var builder = new System.Text.StringBuilder(160 + worksheet.TablePartPaths.Count * 180 + worksheet.HyperlinkRelationships.Count * 220);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");

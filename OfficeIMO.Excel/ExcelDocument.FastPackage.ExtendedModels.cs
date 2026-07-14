@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, copyRawPart: false, rawBytes: null);
+                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, copyRawPart: false);
                 }
 
                 parts.Add(model);
@@ -215,13 +215,12 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class ExtendedPartModel {
-            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, bool copyRawPart, byte[]? rawBytes) {
+            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, bool copyRawPart) {
                 Part = part;
                 Path = path;
                 ContentType = contentType;
                 RootElement = rootElement;
                 CopyRawPart = copyRawPart;
-                RawBytes = rawBytes;
             }
 
             internal OpenXmlPart Part { get; }
@@ -234,7 +233,6 @@ namespace OfficeIMO.Excel {
 
             internal bool CopyRawPart { get; }
 
-            internal byte[]? RawBytes { get; }
         }
 
         private sealed class ExtendedRelationshipModel {
@@ -299,26 +297,20 @@ namespace OfficeIMO.Excel {
 
         private static bool TryCopyRawSupportedPart(OpenXmlPart part, string path, out ExtendedPartModel model) {
             model = null!;
-            if (part is not ChartStylePart && part is not ChartColorStylePart && !IsRawPivotCacheRecordsPart(part)) {
+            if (part.IsRootElementLoaded
+                && part is not ChartStylePart
+                && part is not ChartColorStylePart
+                && !IsRawPivotCacheRecordsPart(part)) {
                 return false;
             }
 
-            byte[] rawBytes;
             using (var source = part.GetStream(FileMode.Open, FileAccess.Read)) {
                 if (source.CanSeek && source.Length == 0) {
                     return false;
                 }
-
-                using var buffer = new MemoryStream();
-                source.CopyTo(buffer);
-                if (buffer.Length == 0) {
-                    return false;
-                }
-
-                rawBytes = buffer.ToArray();
             }
 
-            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, copyRawPart: true, rawBytes);
+            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, copyRawPart: true);
             return true;
         }
 

@@ -15,7 +15,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Reader_TypedObjectsStream_MapsLargeSortedRange() {
+        public void Reader_TypedObjectsStreamAndAutomaticMaterialization_MapLargeSortedRange() {
             const int dataRowCount = 4_096;
             var start = new DateTime(2025, 1, 1);
             using var package = new MemoryStream();
@@ -52,6 +52,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(start.AddDays(dataRowCount), last.CreatedOn);
             Assert.Equal(dataRowCount + 0.25d, last.Amount);
             Assert.True(last.Active);
+
+            using var materializedReader = ExcelDocumentReader.Open(package.ToArray());
+            var materializedRows = materializedReader.GetSheet("Data")
+                .ReadObjects<LargeStreamedRow>($"A1:E{dataRowCount + 1}")
+                .ToList();
+            Assert.Equal(dataRowCount, materializedRows.Count);
+            Assert.Equal("Row 2048", materializedRows[2047].Name);
+            Assert.Equal(dataRowCount + 0.25d, materializedRows[dataRowCount - 1].Amount);
         }
     }
 }

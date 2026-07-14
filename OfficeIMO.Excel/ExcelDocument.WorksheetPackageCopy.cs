@@ -49,12 +49,24 @@ namespace OfficeIMO.Excel {
             return Locking.ExecuteWrite(EnsureLock(), () => {
                 string validatedName = ValidateOrSanitizeSheetName(newSheetName, validationMode, currentSheetName: null);
                 WorksheetPart sourcePart = sourceSheet.WorksheetPart;
+                if (TryCopyWorksheetPartGraphToEmptyWorkbook(sourceDocument, sourceSheet, validatedName, out WorksheetPackageCopyResult? directCopy)) {
+                    return directCopy!;
+                }
+
+                bool adoptedSourceIndexes = CanAdoptSourceWorkbookIndexParts(sourceDocument);
+                if (adoptedSourceIndexes) {
+                    AdoptSourceWorkbookIndexParts(sourceDocument);
+                }
+
                 WorksheetPart copiedPart = WorkbookPartRoot.AddNewPart<WorksheetPart>();
                 copiedPart.Worksheet = (Worksheet)sourcePart.Worksheet!.CloneNode(true);
-                RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
-                WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
-                RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
-                ConvertCopiedWorksheetDateSerials(copiedPart.Worksheet, sourceDocument.DateSystem, DateSystem);
+                if (!adoptedSourceIndexes) {
+                    RewriteSharedStringCellsToInlineStrings(copiedPart.Worksheet, sourceDocument.WorkbookPartRoot.SharedStringTablePart);
+                    WorksheetStyleCopyMap styleMap = RemapCopiedWorksheetStyles(sourceDocument.WorkbookPartRoot, WorkbookPartRoot, copiedPart.Worksheet);
+                    RemapCopiedWorksheetConditionalFormats(copiedPart.Worksheet, styleMap.DifferentialFormats);
+                    ConvertCopiedWorksheetDateSerials(copiedPart.Worksheet, sourceDocument.DateSystem, DateSystem);
+                }
+
                 StripCopiedCellMetadataReferences(copiedPart.Worksheet);
                 RemoveRelationshipBackedWorksheetFeatures(copiedPart.Worksheet);
                 IReadOnlyDictionary<int, int> externalReferenceMap = CopyExternalWorkbookReferencesFromSource(sourceDocument);

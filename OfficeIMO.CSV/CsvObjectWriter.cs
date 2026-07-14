@@ -163,10 +163,38 @@ public sealed partial class CsvObjectWriter : IDisposable
 
         EnsureColumns(columns);
 
+#if NET6_0_OR_GREATER
+        var defaultFieldKinds = _useDefaultWritePath
+            ? CsvWriter.TryCreateDataReaderFieldKinds(reader)
+            : null;
+        if (defaultFieldKinds != null)
+        {
+            _rowBuffer.Clear();
+        }
+#endif
         var rowValues = new object[fieldCount];
         var useBufferedValues = true;
         while (reader.Read())
         {
+#if NET6_0_OR_GREATER
+            if (defaultFieldKinds != null)
+            {
+                CsvWriter.AppendDataReaderRecordBufferedDefault(
+                    _rowBuffer,
+                    reader,
+                    defaultFieldKinds,
+                    _delimiter,
+                    _options.NewLine,
+                    _options.Culture);
+                if (_rowBuffer.Length >= CsvWriter.DataReaderFlushThreshold)
+                {
+                    CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+                }
+
+                continue;
+            }
+#endif
+
             if (useBufferedValues && TryGetReaderValues(reader, rowValues))
             {
                 WriteBuffered(rowValues);
@@ -180,6 +208,13 @@ public sealed partial class CsvObjectWriter : IDisposable
                 return ReferenceEquals(value, DBNull.Value) ? null : value;
             });
         }
+
+#if NET6_0_OR_GREATER
+        if (defaultFieldKinds != null)
+        {
+            CsvWriter.FlushBufferedContent(_writer, _rowBuffer);
+        }
+#endif
     }
 
     /// <summary>
