@@ -18,6 +18,20 @@
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.Epub.DocumentReaderEpubExtensions</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Epub.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Epub.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.Epub.DocumentReaderEpubRegistrationExtensions</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Epub.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Epub.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.Epub.DocumentReaderEpubExtensions</Target>
     <Left>lib/net8.0/OfficeIMO.Reader.Epub.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Reader.Epub.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

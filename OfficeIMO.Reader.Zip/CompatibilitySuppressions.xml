@@ -18,6 +18,20 @@
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.Zip.DocumentReaderZipExtensions</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Zip.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Zip.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.Zip.DocumentReaderZipRegistrationExtensions</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Zip.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Zip.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.Zip.DocumentReaderZipExtensions</Target>
     <Left>lib/net8.0/OfficeIMO.Reader.Zip.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Reader.Zip.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

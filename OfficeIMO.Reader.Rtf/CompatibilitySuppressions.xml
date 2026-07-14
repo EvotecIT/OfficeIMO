@@ -18,6 +18,20 @@
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.Rtf.DocumentReaderRtfExtensions</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Rtf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Rtf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.Rtf.DocumentReaderRtfRegistrationExtensions</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Rtf.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Rtf.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.Rtf.DocumentReaderRtfExtensions</Target>
     <Left>lib/net8.0/OfficeIMO.Reader.Rtf.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Reader.Rtf.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>

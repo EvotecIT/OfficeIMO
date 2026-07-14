@@ -18,6 +18,20 @@
   <Suppression>
     <DiagnosticId>CP0001</DiagnosticId>
     <Target>T:OfficeIMO.Reader.Xml.DocumentReaderXmlExtensions</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Xml.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Xml.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.Xml.DocumentReaderXmlRegistrationExtensions</Target>
+    <Left>lib/net472/OfficeIMO.Reader.Xml.dll</Left>
+    <Right>lib/net472/OfficeIMO.Reader.Xml.dll</Right>
+    <IsBaselineSuppression>true</IsBaselineSuppression>
+  </Suppression>
+  <Suppression>
+    <DiagnosticId>CP0001</DiagnosticId>
+    <Target>T:OfficeIMO.Reader.Xml.DocumentReaderXmlExtensions</Target>
     <Left>lib/net8.0/OfficeIMO.Reader.Xml.dll</Left>
     <Right>lib/net8.0/OfficeIMO.Reader.Xml.dll</Right>
     <IsBaselineSuppression>true</IsBaselineSuppression>
