@@ -1,7 +1,9 @@
+using System;
 using System.Linq;
 using System.Text;
 using CodeGlyphX;
 using CodeGlyphX.DataMatrix;
+using CodeGlyphX.Rendering;
 using CodeGlyphX.Rendering.Png;
 using CodeGlyphX.Rendering.Svg;
 using OfficeIMO.Drawing;
@@ -56,6 +58,31 @@ public sealed class CodeGlyphDrawingIntegrationTests {
         Assert.Equal(177, qr.Modules.Width);
         Assert.Equal(0, unsupported);
         Assert.True(drawing.Shapes.Count > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
+    }
+
+    [Fact]
+    public void AdapterImportsLargeDotGridQrWithinTheTrustedElementLimit() {
+        QrCode qr = QrCode.Encode("LARGE-DOT-GRID-QR", new QrEasyOptions {
+            ErrorCorrectionLevel = QrErrorCorrectionLevel.L,
+            MinVersion = 40,
+            MaxVersion = 40
+        });
+        var options = new QrSvgRenderOptions { ModuleShape = QrPngModuleShape.DotGrid };
+
+        OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
+
+        Assert.Equal(0, unsupported);
+        Assert.True(drawing.Shapes.Count > 40000);
+    }
+
+    [Fact]
+    public void AdapterRejectsQrLogosThatCannotBePreserved() {
+        QrCode qr = QrCode.Encode("LOGO-QR-OFFICEIMO");
+        var options = new QrSvgRenderOptions { Logo = new QrLogoOptions(new byte[] { 1 }) };
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => qr.ToOfficeDrawing(options));
+
+        Assert.Contains("logo", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

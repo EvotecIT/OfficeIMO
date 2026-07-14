@@ -507,6 +507,20 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderResolvesRgbaCurrentColorInGradientStops() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'>"
+            + "<defs><linearGradient id='paint' style='color:rgba(36,87,166,0.502)'>"
+            + "<stop stop-color='currentColor'/><stop offset='1' stop-color='white'/></linearGradient></defs>"
+            + "<rect width='10' height='10' fill='url(#paint)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeLinearGradient gradient = Assert.IsType<OfficeLinearGradient>(Assert.Single(drawing!.Shapes).Shape.FillGradient);
+        Assert.Equal(OfficeColor.FromRgba(36, 87, 166, 128), gradient.Stops[0].Color);
+    }
+
+    [Fact]
     public void SvgReaderDiagnosesUnsafeOrCyclicPaintServersAndKeepsSupportedSiblings() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 10'>"
             + "<defs><linearGradient id='a' href='#b'/><linearGradient id='b' href='#a'/>"

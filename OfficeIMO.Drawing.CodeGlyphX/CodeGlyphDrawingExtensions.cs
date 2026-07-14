@@ -10,18 +10,25 @@ namespace OfficeIMO.Drawing.CodeGlyphX;
 /// </summary>
 public static class CodeGlyphDrawingExtensions {
     /// <summary>Renders a QR code and imports it as an OfficeIMO drawing.</summary>
+    /// <exception cref="NotSupportedException">The SVG options include a raster logo that the drawing importer cannot preserve.</exception>
     public static OfficeDrawing ToOfficeDrawing(this QrCode qrCode, QrSvgRenderOptions? options = null) =>
         ToOfficeDrawing(qrCode, out _, options);
 
     /// <summary>Renders a QR code and imports it while reporting SVG features that required fallback.</summary>
+    /// <exception cref="NotSupportedException">The SVG options include a raster logo that the drawing importer cannot preserve.</exception>
     public static OfficeDrawing ToOfficeDrawing(
         this QrCode qrCode,
         out int unsupportedFeatureCount,
         QrSvgRenderOptions? options = null) {
         if (qrCode is null) throw new ArgumentNullException(nameof(qrCode));
+        QrSvgRenderOptions renderOptions = options ?? new QrSvgRenderOptions();
+        if (renderOptions.Logo is not null) {
+            throw new NotSupportedException("QR logo images cannot be represented by the OfficeIMO.Drawing SVG importer.");
+        }
         BitMatrix modules = qrCode.Modules;
-        string svg = SvgQrRenderer.Render(modules, options ?? new QrSvgRenderOptions());
-        return ReadSvg(svg, ResolveMaximumElements(modules), out unsupportedFeatureCount);
+        string svg = SvgQrRenderer.Render(modules, renderOptions);
+        int elementsPerCell = renderOptions.ModuleShape == global::CodeGlyphX.Rendering.Png.QrPngModuleShape.DotGrid ? 4 : 1;
+        return ReadSvg(svg, ResolveMaximumElements(modules, elementsPerCell), out unsupportedFeatureCount);
     }
 
     /// <summary>Renders a generic matrix symbol and imports it as an OfficeIMO drawing.</summary>
@@ -35,7 +42,7 @@ public static class CodeGlyphDrawingExtensions {
         MatrixSvgRenderOptions? options = null) {
         if (modules is null) throw new ArgumentNullException(nameof(modules));
         string svg = MatrixSvgRenderer.Render(modules, options ?? new MatrixSvgRenderOptions());
-        return ReadSvg(svg, ResolveMaximumElements(modules), out unsupportedFeatureCount);
+        return ReadSvg(svg, ResolveMaximumElements(modules, elementsPerCell: 1), out unsupportedFeatureCount);
     }
 
     /// <summary>Renders a linear barcode and imports it as an OfficeIMO drawing.</summary>
@@ -52,8 +59,8 @@ public static class CodeGlyphDrawingExtensions {
         return ReadSvg(svg, OfficeSvgDrawingReaderOptions.DefaultMaximumElements, out unsupportedFeatureCount);
     }
 
-    private static int ResolveMaximumElements(BitMatrix modules) {
-        long requested = ((long)modules.Width * modules.Height) + 1024L;
+    private static int ResolveMaximumElements(BitMatrix modules, int elementsPerCell) {
+        long requested = ((long)modules.Width * modules.Height * elementsPerCell) + 1024L;
         return (int)Math.Min(
             OfficeSvgDrawingReaderOptions.MaximumAllowedElements,
             Math.Max(OfficeSvgDrawingReaderOptions.DefaultMaximumElements, requested));

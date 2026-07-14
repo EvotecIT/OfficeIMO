@@ -350,7 +350,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
 
                 if (string.IsNullOrWhiteSpace(value) || value!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) continue;
-                if (!OfficeColor.TryParse(value.Trim(), out color)) return false;
+                if (!TrySvgColor(value.Trim(), out color)) return false;
             }
             return true;
         }
