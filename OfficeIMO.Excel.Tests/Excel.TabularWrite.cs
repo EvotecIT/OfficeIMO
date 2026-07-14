@@ -120,7 +120,7 @@ namespace OfficeIMO.Tests {
                 123.4D,
                 123.45D,
                 -9876.5D,
-                Math.BitIncrement(123.45D),
+                NextRepresentableDouble(123.45D),
                 Math.PI,
                 90_071_992_547_409.9D
             ];
@@ -302,6 +302,11 @@ namespace OfficeIMO.Tests {
                 new ExcelTabularWriteOptions { UseSharedStrings = false }));
 
             Assert.Contains("more than 1 cells", exception.Message, StringComparison.Ordinal);
+        }
+
+        private static double NextRepresentableDouble(double value) {
+            long bits = BitConverter.DoubleToInt64Bits(value);
+            return BitConverter.Int64BitsToDouble(bits + 1);
         }
 
         private sealed record TabularWriteRow(int Id, string? Name, DateTime Created, bool Active);
