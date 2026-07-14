@@ -10,6 +10,7 @@
       $(TargetFrameworks);net472
     </TargetFrameworks>
     <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <IsPackable>False</IsPackable>
     <Company>Evotec</Company>
     <Authors>Przemyslaw Klys</Authors>
     <PackageId>OfficeIMO.MarkdownRenderer.SamplePlugin</PackageId>
@@ -21,7 +22,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <DebugType>portable</DebugType>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-    <IsPublishable>True</IsPublishable>
+    <IsPublishable>False</IsPublishable>
     <GenerateDocumentationFile>True</GenerateDocumentationFile>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>

@@ -63,13 +63,7 @@
   },
   "ExpectedVersionMapAsInclude": true,
   "ExpectedVersionMapUseWildcards": false,
-  "ExcludeProjects": [
-    "OfficeIMO.MarkdownRenderer.SamplePlugin",
-    "OfficeIMO.Markup",
-    "OfficeIMO.Markup.Excel",
-    "OfficeIMO.Markup.PowerPoint",
-    "OfficeIMO.Markup.Word"
-  ],
+  "ExcludeProjects": [],
   "NugetSource": [],
   "IncludePrerelease": false,
   "Configuration": "Release",

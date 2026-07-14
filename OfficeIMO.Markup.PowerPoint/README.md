@@ -1,15 +1,8 @@
 # OfficeIMO.Markup.PowerPoint - Markup to PowerPoint export
 
-[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Markup.PowerPoint)](https://www.nuget.org/packages/OfficeIMO.Markup.PowerPoint)
-[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markup.PowerPoint?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Markup.PowerPoint)
-
 `OfficeIMO.Markup.PowerPoint` exports the semantic `OfficeIMO.Markup` presentation model to editable PowerPoint `.pptx` files through `OfficeIMO.PowerPoint`.
 
-## Install
-
-```powershell
-dotnet add package OfficeIMO.Markup.PowerPoint
-```
+This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
 
 ## Quick start
 

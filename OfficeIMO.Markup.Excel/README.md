@@ -1,15 +1,8 @@
 # OfficeIMO.Markup.Excel - Markup to Excel export
 
-[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Markup.Excel)](https://www.nuget.org/packages/OfficeIMO.Markup.Excel)
-[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markup.Excel?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Markup.Excel)
-
 `OfficeIMO.Markup.Excel` exports the semantic `OfficeIMO.Markup` workbook model to editable Excel `.xlsx` files through `OfficeIMO.Excel`.
 
-## Install
-
-```powershell
-dotnet add package OfficeIMO.Markup.Excel
-```
+This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
 
 ## Quick start
 

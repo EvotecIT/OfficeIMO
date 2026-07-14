@@ -1,15 +1,8 @@
 # OfficeIMO.MarkdownRenderer.SamplePlugin - renderer plug-in example
 
-[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.MarkdownRenderer.SamplePlugin)](https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.SamplePlugin)
-[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.MarkdownRenderer.SamplePlugin?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.MarkdownRenderer.SamplePlugin)
+`OfficeIMO.MarkdownRenderer.SamplePlugin` is a source-tree example for `OfficeIMO.MarkdownRenderer`. It shows how a third-party plug-in can register visual features, HTML round-trip hints, and renderer options without changing the renderer core.
 
-`OfficeIMO.MarkdownRenderer.SamplePlugin` is a sample plug-in package for `OfficeIMO.MarkdownRenderer`. It shows how a third-party-style package can register visual features, HTML round-trip hints, and renderer options without changing the renderer core.
-
-## Install
-
-```powershell
-dotnet add package OfficeIMO.MarkdownRenderer.SamplePlugin
-```
+This sample is not published as a standalone NuGet package.
 
 ## Use it from a renderer host
 

@@ -1,15 +1,8 @@
 # OfficeIMO.Markup - semantic Office authoring
 
-[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Markup)](https://www.nuget.org/packages/OfficeIMO.Markup)
-[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markup?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Markup)
+`OfficeIMO.Markup` is a Markdown-inspired authoring layer for OfficeIMO. It parses `.omd` or Markdown-like text into a semantic AST that can be validated, emitted as starter code, or exported to real Office files by target-specific renderers.
 
-`OfficeIMO.Markup` is a Markdown-inspired authoring layer for OfficeIMO. It parses `.omd` or Markdown-like text into a semantic AST that can be validated, emitted as starter code, or exported to real Office files by target-specific packages.
-
-## Install
-
-```powershell
-dotnet add package OfficeIMO.Markup
-```
+This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
 
 ## Authoring model
 
