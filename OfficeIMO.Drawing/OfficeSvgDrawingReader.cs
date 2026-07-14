@@ -136,10 +136,10 @@ public static partial class OfficeSvgDrawingReader {
         }
 
         OfficeDrawingShape? shape = name switch {
-            "rect" => CreateRectangle(element, style, viewX, viewY, ref unsupported),
-            "circle" => CreateCircle(element, style, viewX, viewY),
-            "ellipse" => CreateEllipse(element, style, viewX, viewY),
-            "line" => CreateLine(element, style, viewX, viewY),
+            "rect" => CreateRectangle(element, style, viewX, viewY, drawing.Width, drawing.Height, ref unsupported),
+            "circle" => CreateCircle(element, style, viewX, viewY, drawing.Width, drawing.Height),
+            "ellipse" => CreateEllipse(element, style, viewX, viewY, drawing.Width, drawing.Height),
+            "line" => CreateLine(element, style, viewX, viewY, drawing.Width, drawing.Height),
             "polygon" => CreatePolygon(element, style, viewX, viewY, close: true),
             "polyline" => CreatePolygon(element, style, viewX, viewY, close: false),
             "path" => CreatePath(element, style, viewX, viewY),
@@ -188,12 +188,22 @@ public static partial class OfficeSvgDrawingReader {
         shape.Transform = shape.Transform.HasValue ? shape.Transform.Value.Then(local) : local;
     }
 
-    private static OfficeDrawingShape? CreateRectangle(XElement element, SvgPaintContext style, double viewX, double viewY, ref int unsupported) {
-        if (!TryLength(element, "width", out double width) || !TryLength(element, "height", out double height) || width <= 0D || height <= 0D) return null;
-        double x = ReadLength(element, "x") - viewX;
-        double y = ReadLength(element, "y") - viewY;
-        double rx = ReadLength(element, "rx");
-        double ry = ReadLength(element, "ry");
+    private static OfficeDrawingShape? CreateRectangle(
+        XElement element,
+        SvgPaintContext style,
+        double viewX,
+        double viewY,
+        double viewportWidth,
+        double viewportHeight,
+        ref int unsupported) {
+        if (!TryViewportLength(element, "width", viewportWidth, out double width)
+            || !TryViewportLength(element, "height", viewportHeight, out double height)
+            || width <= 0D
+            || height <= 0D) return null;
+        double x = ReadViewportCoordinate(element, "x", viewX, viewportWidth);
+        double y = ReadViewportCoordinate(element, "y", viewY, viewportHeight);
+        double rx = ReadViewportLength(element, "rx", viewportWidth);
+        double ry = ReadViewportLength(element, "ry", viewportHeight);
         if (rx <= 0D && ry > 0D) rx = ry;
         if (ry <= 0D && rx > 0D) ry = rx;
         OfficeShape shape;
@@ -207,29 +217,51 @@ public static partial class OfficeSvgDrawingReader {
         return new OfficeDrawingShape(shape, x, y);
     }
 
-    private static OfficeDrawingShape? CreateCircle(XElement element, SvgPaintContext style, double viewX, double viewY) {
-        if (!TryLength(element, "r", out double radius) || radius <= 0D) return null;
-        double x = ReadLength(element, "cx") - radius - viewX;
-        double y = ReadLength(element, "cy") - radius - viewY;
+    private static OfficeDrawingShape? CreateCircle(
+        XElement element,
+        SvgPaintContext style,
+        double viewX,
+        double viewY,
+        double viewportWidth,
+        double viewportHeight) {
+        double normalizedDiagonal = Math.Sqrt((viewportWidth * viewportWidth) + (viewportHeight * viewportHeight)) / Math.Sqrt(2D);
+        if (!TryViewportLength(element, "r", normalizedDiagonal, out double radius) || radius <= 0D) return null;
+        double x = ReadViewportCoordinate(element, "cx", viewX, viewportWidth) - radius;
+        double y = ReadViewportCoordinate(element, "cy", viewY, viewportHeight) - radius;
         OfficeShape shape = OfficeShape.Ellipse(radius * 2D, radius * 2D);
         ApplyPaint(shape, style);
         return new OfficeDrawingShape(shape, x, y);
     }
 
-    private static OfficeDrawingShape? CreateEllipse(XElement element, SvgPaintContext style, double viewX, double viewY) {
-        if (!TryLength(element, "rx", out double radiusX) || !TryLength(element, "ry", out double radiusY) || radiusX <= 0D || radiusY <= 0D) return null;
-        double x = ReadLength(element, "cx") - radiusX - viewX;
-        double y = ReadLength(element, "cy") - radiusY - viewY;
+    private static OfficeDrawingShape? CreateEllipse(
+        XElement element,
+        SvgPaintContext style,
+        double viewX,
+        double viewY,
+        double viewportWidth,
+        double viewportHeight) {
+        if (!TryViewportLength(element, "rx", viewportWidth, out double radiusX)
+            || !TryViewportLength(element, "ry", viewportHeight, out double radiusY)
+            || radiusX <= 0D
+            || radiusY <= 0D) return null;
+        double x = ReadViewportCoordinate(element, "cx", viewX, viewportWidth) - radiusX;
+        double y = ReadViewportCoordinate(element, "cy", viewY, viewportHeight) - radiusY;
         OfficeShape shape = OfficeShape.Ellipse(radiusX * 2D, radiusY * 2D);
         ApplyPaint(shape, style);
         return new OfficeDrawingShape(shape, x, y);
     }
 
-    private static OfficeDrawingShape? CreateLine(XElement element, SvgPaintContext style, double viewX, double viewY) {
-        double x1 = ReadLength(element, "x1") - viewX;
-        double y1 = ReadLength(element, "y1") - viewY;
-        double x2 = ReadLength(element, "x2") - viewX;
-        double y2 = ReadLength(element, "y2") - viewY;
+    private static OfficeDrawingShape? CreateLine(
+        XElement element,
+        SvgPaintContext style,
+        double viewX,
+        double viewY,
+        double viewportWidth,
+        double viewportHeight) {
+        double x1 = ReadViewportCoordinate(element, "x1", viewX, viewportWidth);
+        double y1 = ReadViewportCoordinate(element, "y1", viewY, viewportHeight);
+        double x2 = ReadViewportCoordinate(element, "x2", viewX, viewportWidth);
+        double y2 = ReadViewportCoordinate(element, "y2", viewY, viewportHeight);
         if (Math.Abs(x1 - x2) <= 0.0001D && Math.Abs(y1 - y2) <= 0.0001D) return null;
         OfficeShape shape = OfficeShape.Line(x1, y1, x2, y2);
         shape.FillColor = null;
@@ -355,6 +387,7 @@ public static partial class OfficeSvgDrawingReader {
         ApplyProperty("font-style", element.Attribute("font-style")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("font-weight", element.Attribute("font-weight")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("text-anchor", element.Attribute("text-anchor")?.Value, paintServers, ref result, ref unsupported);
+        ApplyProperty("dominant-baseline", element.Attribute("dominant-baseline")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("display", element.Attribute("display")?.Value, paintServers, ref result, ref unsupported);
         ApplyProperty("visibility", element.Attribute("visibility")?.Value, paintServers, ref result, ref unsupported);
         foreach (string declaration in declarations) {
@@ -456,6 +489,14 @@ public static partial class OfficeSvgDrawingReader {
                 if (anchor is "start" or "middle" or "end") style.TextAnchor = anchor;
                 else unsupported++;
                 break;
+            case "dominant-baseline":
+                string baseline = normalized.ToLowerInvariant();
+                if (baseline is "auto" or "alphabetic") style.DominantBaseline = SvgDominantBaseline.Alphabetic;
+                else if (baseline is "hanging" or "text-before-edge") style.DominantBaseline = SvgDominantBaseline.Hanging;
+                else if (baseline is "middle" or "central") style.DominantBaseline = SvgDominantBaseline.Middle;
+                else if (baseline is "text-after-edge" or "ideographic") style.DominantBaseline = SvgDominantBaseline.TextAfterEdge;
+                else unsupported++;
+                break;
             case "display":
                 if (normalized.Equals("none", StringComparison.OrdinalIgnoreCase)) style.Visible = false;
                 break;
@@ -521,6 +562,33 @@ public static partial class OfficeSvgDrawingReader {
     private static double ReadLength(XElement element, string name) => TryLength(element, name, out double value) ? value : 0D;
     private static bool TryLength(XElement element, string name, out double value) => TrySvgLength(element.Attribute(name)?.Value, out value);
 
+    private static double ReadViewportCoordinate(XElement element, string name, double origin, double extent) {
+        string? text = element.Attribute(name)?.Value;
+        if (!TryViewportLength(text, extent, out double value, out bool percentage)) return -origin;
+        return percentage ? value : value - origin;
+    }
+
+    private static double ReadViewportLength(XElement element, string name, double extent) =>
+        TryViewportLength(element, name, extent, out double value) ? value : 0D;
+
+    private static bool TryViewportLength(XElement element, string name, double extent, out double value) =>
+        TryViewportLength(element.Attribute(name)?.Value, extent, out value, out _);
+
+    private static bool TryViewportLength(string? text, double extent, out double value, out bool percentage) {
+        value = 0D;
+        percentage = false;
+        if (string.IsNullOrWhiteSpace(text)) return false;
+        string normalized = text!.Trim();
+        percentage = normalized.EndsWith("%", StringComparison.Ordinal);
+        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+        else if (normalized.EndsWith("px", StringComparison.OrdinalIgnoreCase)) normalized = normalized.Substring(0, normalized.Length - 2).Trim();
+        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)
+            || double.IsNaN(parsed)
+            || double.IsInfinity(parsed)) return false;
+        value = percentage ? parsed * extent / 100D : parsed;
+        return !double.IsNaN(value) && !double.IsInfinity(value);
+    }
+
     private static double ReadFirstLength(XElement element, string name) {
         string? value = element.Attribute(name)?.Value;
         if (string.IsNullOrWhiteSpace(value)) return 0D;
@@ -581,6 +649,7 @@ public static partial class OfficeSvgDrawingReader {
         internal double FontSize;
         internal OfficeFontStyle FontStyle;
         internal string TextAnchor;
+        internal SvgDominantBaseline DominantBaseline;
         internal bool Visible;
 
         internal void SetFill(SvgResolvedPaint paint) {
@@ -613,7 +682,15 @@ public static partial class OfficeSvgDrawingReader {
             FontSize = 16D,
             FontStyle = OfficeFontStyle.Regular,
             TextAnchor = "start",
+            DominantBaseline = SvgDominantBaseline.Alphabetic,
             Visible = true
         };
+    }
+
+    private enum SvgDominantBaseline {
+        Alphabetic,
+        Hanging,
+        Middle,
+        TextAfterEdge
     }
 }

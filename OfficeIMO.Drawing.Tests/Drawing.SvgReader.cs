@@ -31,6 +31,38 @@ public class DrawingSvgReaderTests {
     }
 
     [Fact]
+    public void SvgReaderResolvesPercentageGeometryAgainstTheViewport() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 200 100'>"
+            + "<rect x='10%' y='20%' width='50%' height='25%' fill='red'/>"
+            + "<circle cx='75%' cy='50%' r='10%' fill='blue'/>"
+            + "<ellipse cx='25%' cy='75%' rx='5%' ry='10%' fill='green'/>"
+            + "<line x1='10%' y1='90%' x2='90%' y2='10%' stroke='black'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(4, drawing!.Shapes.Count);
+
+        OfficeDrawingShape rectangle = drawing.Shapes[0];
+        Assert.Equal(20D, rectangle.X, 6);
+        Assert.Equal(20D, rectangle.Y, 6);
+        Assert.Equal(100D, rectangle.Shape.Width, 6);
+        Assert.Equal(25D, rectangle.Shape.Height, 6);
+
+        double circleRadius = Math.Sqrt((200D * 200D) + (100D * 100D)) / Math.Sqrt(2D) * 0.1D;
+        OfficeDrawingShape circle = drawing.Shapes[1];
+        Assert.Equal(150D - circleRadius, circle.X, 6);
+        Assert.Equal(50D - circleRadius, circle.Y, 6);
+        Assert.Equal(circleRadius * 2D, circle.Shape.Width, 6);
+
+        OfficeDrawingShape ellipse = drawing.Shapes[2];
+        Assert.Equal(40D, ellipse.X, 6);
+        Assert.Equal(65D, ellipse.Y, 6);
+        Assert.Equal(20D, ellipse.Shape.Width, 6);
+        Assert.Equal(20D, ellipse.Shape.Height, 6);
+    }
+
+    [Fact]
     public void SvgReaderRetainsSupportedPrimitivesAndCountsUnsupportedContent() {
         const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'>"
             + "<rect width='20' height='20' fill='#00ff00'/><text x='1' y='10'>Pending</text></svg>";
@@ -109,6 +141,21 @@ public class DrawingSvgReaderTests {
         Assert.True(text.X < 20D);
         Assert.Contains(">Label</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
         OfficeDrawingRasterRenderer.Render(drawing);
+    }
+
+    [Fact]
+    public void SvgReaderResolvesPercentageTextPositionAndHangingBaseline() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='10 20 200 100' fill='navy'>"
+            + "<text x='50%' y='25%' font-size='10' text-anchor='middle' dominant-baseline='hanging'>Label</text></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        OfficeDrawingText text = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
+        Assert.Equal("Label", text.Text);
+        Assert.True(text.X < 100D);
+        Assert.Equal(25D, text.Y, 6);
+        Assert.Contains(">Label</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
     }
 
     [Fact]
