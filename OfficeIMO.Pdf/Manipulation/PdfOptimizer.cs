@@ -15,7 +15,9 @@ public static partial class PdfOptimizer {
         if (effectiveOptions.MaximumDecodedImageBytes <= 0) throw new ArgumentOutOfRangeException(nameof(options), "Maximum decoded image bytes must be positive.");
         if (effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable && effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.XrefStream) throw new ArgumentOutOfRangeException(nameof(options), "Unsupported optimization xref format.");
         if (effectiveOptions.UseObjectStreams) effectiveOptions.XrefFormat = PdfOptimizationXrefFormat.XrefStream;
-        if (effectiveOptions.Linearize) throw new NotSupportedException("Standards-compliant PDF Fast Web View linearization is not implemented; OfficeIMO.Pdf refuses to emit a misleading /Linearized marker.");
+        if (effectiveOptions.Linearize && (effectiveOptions.UseObjectStreams || effectiveOptions.XrefFormat != PdfOptimizationXrefFormat.ClassicTable)) {
+            throw new NotSupportedException("OfficeIMO.Pdf linearization currently requires classic cross-reference tables without object streams.");
+        }
 
         PdfDocumentProbe probe = PdfInspector.Probe(pdf);
         if (probe.Security.HasEncryption) {
@@ -52,6 +54,7 @@ public static partial class PdfOptimizer {
         }
 
         byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf, effectiveOptions);
+        if (effectiveOptions.Linearize) actions.Add(new PdfOptimizationAction("Linearize", 0, pdf.LongLength, candidate.LongLength, "Reordered the document into two cross-reference sections with page and shared-object hint tables for Fast Web View."));
         if (effectiveOptions.UseObjectStreams) actions.Add(new PdfOptimizationAction("PackObjectStreams", 0, 0, 0, "Packed eligible non-stream objects into PDF 1.5 object streams."));
         if (effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.XrefStream) actions.Add(new PdfOptimizationAction("WriteXrefStream", 0, 0, 0, "Emitted a PDF 1.5 cross-reference stream."));
         PdfOptimizationReport reportAfter = PdfDiagnostics.AnalyzeOptimization(candidate);
@@ -60,7 +63,7 @@ public static partial class PdfOptimizer {
             PreserveDocumentVersionState = !effectiveOptions.UseObjectStreams && effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.ClassicTable
         };
         PdfRewritePreservationReport candidatePreservation = PdfRewritePreservation.AssertPreserved(pdf, candidate, preservationOptions);
-        if (effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
+        if (!effectiveOptions.Linearize && effectiveOptions.KeepOriginalWhenNotSmaller && candidate.Length >= pdf.Length) {
             PdfRewritePreservationReport originalPreservation = PdfRewritePreservation.AssertPreserved(pdf, pdf, preservationOptions);
             return new PdfOptimizationActionResult(
                 (byte[])pdf.Clone(),
@@ -329,6 +332,10 @@ public static partial class PdfOptimizer {
     }
 
     private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf, PdfOptimizationOptions options) {
+        if (options.Linearize) {
+            return PdfLinearizationFileAssembler.Assemble(objects, catalogObjectNumber, metadata, sourcePdf);
+        }
+
         int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();
         var numberMap = new Dictionary<int, int>(sourceIds.Length);
         for (int i = 0; i < sourceIds.Length; i++) {

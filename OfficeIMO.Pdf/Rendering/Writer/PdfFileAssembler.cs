@@ -44,9 +44,14 @@ internal static class PdfFileAssembler {
         var offsets = new List<long> { 0L };
         for (int i = 0; i < objects.Count; i++) {
             offsets.Add(written);
-            byte[] obj = objects[i];
-            destination.Write(obj, 0, obj.Length);
-            written += obj.LongLength;
+            if (objects is PdfObjectStore objectStore) {
+                objectStore.CopyTo(i, destination);
+                written += objectStore.GetLength(i);
+            } else {
+                byte[] obj = objects[i];
+                destination.Write(obj, 0, obj.Length);
+                written += obj.LongLength;
+            }
         }
 
         long xrefPos = written;

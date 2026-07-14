@@ -48,6 +48,8 @@ public static partial class OfficeDrawingRasterRenderer {
                 RenderImage(canvas, drawingImage, scale, imageCodec);
             } else if (element is OfficeDrawingImagePattern imagePattern) {
                 RenderImagePattern(canvas, imagePattern, scale, imageCodec);
+            } else if (element is OfficeDrawingTilingPattern tilingPattern) {
+                RenderTilingPattern(canvas, tilingPattern, scale, imageCodec);
             } else if (element is OfficeDrawingGroup drawingGroup) {
                 RenderGroup(canvas, drawingGroup, scale, imageCodec);
             } else if (element is OfficeDrawingEffectGroup effectGroup) {
@@ -397,20 +399,6 @@ public static partial class OfficeDrawingRasterRenderer {
 
             canvas.DrawImage(image, drawingImage.Projection.Scale(scale));
         }
-    }
-
-    private static void RenderEffectGroup(OfficeRasterCanvas canvas, OfficeDrawingEffectGroup effectGroup, double scale, IOfficeRasterImageCodec? imageCodec) {
-        if (effectGroup.Opacity <= 0D) return;
-        OfficeRasterImage layer = Render(effectGroup.InnerDrawing, new OfficeDrawingRasterRenderOptions { Scale = scale, ImageCodec = imageCodec });
-        OfficeTransform transform = effectGroup.Transform;
-        OfficeTransform pixelTransform = new OfficeTransform(
-            transform.M11,
-            transform.M12,
-            transform.M21,
-            transform.M22,
-            transform.OffsetX * scale,
-            transform.OffsetY * scale);
-        canvas.DrawAffineImage(layer, pixelTransform, effectGroup.Opacity);
     }
 
     private static bool TryDecodeImage(byte[] bytes, string? contentType, IOfficeRasterImageCodec? imageCodec, out OfficeRasterImage? image) {

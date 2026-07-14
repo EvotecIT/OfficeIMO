@@ -78,7 +78,8 @@ internal static partial class PdfWriter {
         var sections = new List<SectionBlock>();
         bool hasTableOfContents = CollectSectionLayoutBlocks(blockList, sections);
         if (!hasTableOfContents) {
-            LayoutResult direct = new LayoutContext(opts, sections).Layout(blockList);
+            using var context = new LayoutContext(opts, sections);
+            LayoutResult direct = context.Layout(blockList);
             ApplySectionReferences(direct);
             return direct;
         }
@@ -86,7 +87,9 @@ internal static partial class PdfWriter {
         IReadOnlyDictionary<string, int>? pageNumbers = null;
         LayoutResult result = null!;
         for (int pass = 0; pass < 4; pass++) {
-            result = new LayoutContext(opts, sections, pageNumbers).Layout(blockList);
+            result?.Dispose();
+            using var context = new LayoutContext(opts, sections, pageNumbers);
+            result = context.Layout(blockList);
             IReadOnlyDictionary<string, int> resolved = BuildSectionPageNumbers(result);
             if (pageNumbers != null && SectionPageNumbersEqual(pageNumbers, resolved)) {
                 ApplySectionReferences(result);
@@ -96,6 +99,7 @@ internal static partial class PdfWriter {
             pageNumbers = resolved;
         }
 
+        result?.Dispose();
         throw new InvalidOperationException("Generated table of contents did not stabilize within four layout passes.");
     }
 

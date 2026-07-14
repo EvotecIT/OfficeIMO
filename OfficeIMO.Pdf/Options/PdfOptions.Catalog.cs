@@ -4,12 +4,21 @@ public sealed partial class PdfOptions {
     /// <summary>When true, generated page content streams are written with Flate compression.</summary>
     public bool CompressContentStreams { get; set; }
     private long _objectBufferMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes;
+    private long _pageContentMemoryLimitBytes = PdfPageContentStore.DefaultMemoryLimitBytes;
     /// <summary>Maximum serialized-object bytes retained in memory while saving. Zero spills every completed object to temporary storage.</summary>
     public long ObjectBufferMemoryLimitBytes {
         get => _objectBufferMemoryLimitBytes;
         set {
             if (value < 0L) throw new System.ArgumentOutOfRangeException(nameof(ObjectBufferMemoryLimitBytes), value, "PDF object-buffer memory limit cannot be negative.");
             _objectBufferMemoryLimitBytes = value;
+        }
+    }
+    /// <summary>Maximum completed page-content bytes retained during layout. Zero spills every completed page and effect stream to temporary storage.</summary>
+    public long PageContentMemoryLimitBytes {
+        get => _pageContentMemoryLimitBytes;
+        set {
+            if (value < 0L) throw new System.ArgumentOutOfRangeException(nameof(PageContentMemoryLimitBytes), value, "PDF page-content memory limit cannot be negative.");
+            _pageContentMemoryLimitBytes = value;
         }
     }
     /// <summary>When true, generated standard-font resources include WinAnsi-to-Unicode CMaps for stronger extraction and compliance groundwork.</summary>

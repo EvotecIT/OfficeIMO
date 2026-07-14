@@ -41,8 +41,8 @@ PdfDocument.Create(new PdfOptions {
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, styled containers, block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType fonts from their exact outlines and shares managed CMYK, Lab, XYZ, and calibrated-color conversion with `OfficeIMO.Drawing`.
-- Bounds completed serialized-object retention with a configurable memory limit and temporary-file spillover during stream saves; document layout and `ToBytes()` remain buffered operations.
+- Renders supported embedded TrueType fonts from their exact outlines and shares managed CMYK, Lab, XYZ, calibrated-color conversion, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`.
+- Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
 - Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off.
 - Provides reusable rewrite-preservation proof for page geometry, metadata, navigation, catalog/viewer/action state, optional content, tagged content, security signatures, document versions, and source-structure markers such as incremental updates, xref streams, and object streams.
@@ -124,6 +124,7 @@ PdfDocument.Create()
 
 ```csharp
 var options = new PdfOptions {
+    PageContentMemoryLimitBytes = 4 * 1024 * 1024,
     ObjectBufferMemoryLimitBytes = 8 * 1024 * 1024
 };
 
@@ -423,7 +424,7 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, conservative read/manipulation workflows, password security, and optional first-party certificate signing/validation. Advanced typography, difficult producer-specific preservation, full transparency/pattern rendering, true end-to-end streaming, and standards-compliant Fast Web View linearization remain deeper roadmap areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, conservative read/manipulation workflows, password security, optional first-party certificate signing/validation, standards-compliant Fast Web View output, and bounded-payload stream saves. Advanced typography, difficult producer-specific preservation, broader transparency/pattern edge cases, and fully forward-only layout remain deeper roadmap areas.
 
 For the full capability inventory and roadmap, read [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md).
 

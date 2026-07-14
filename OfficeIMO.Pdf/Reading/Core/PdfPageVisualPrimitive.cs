@@ -34,7 +34,8 @@ internal readonly struct PdfPageVisualPrimitive {
         double? strokeOpacity,
         OfficeFillRule fillRule,
         PdfPageClipPath? clipPath,
-        double paintOrder = 0D) {
+        double paintOrder = 0D,
+        PdfPageTilingPatternPaint? fillTilingPattern = null) {
         Kind = kind;
         X = x;
         Y = y;
@@ -60,13 +61,14 @@ internal readonly struct PdfPageVisualPrimitive {
         FillRule = fillRule;
         ClipPath = clipPath;
         PaintOrder = paintOrder;
+        FillTilingPattern = fillTilingPattern;
     }
 
     public static PdfPageVisualPrimitive Rectangle(double x, double y, double width, double height, OfficeColor? fillColor, OfficeColor? strokeColor, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, PdfPageClipPath? clipPath, double paintOrder = 0D) =>
         new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Rectangle, x, y, width, height, x, y, x + width, y + height, Array.Empty<OfficePathCommand>(), fillColor, null, null, strokeColor, null, null, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, fillOpacity, strokeOpacity, OfficeFillRule.EvenOdd, clipPath, paintOrder);
 
-    public static PdfPageVisualPrimitive Rectangle(double x, double y, double width, double height, OfficeColor? fillColor, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? strokeColor, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, PdfPageClipPath? clipPath, double paintOrder = 0D) =>
-        new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Rectangle, x, y, width, height, x, y, x + width, y + height, Array.Empty<OfficePathCommand>(), fillColor, fillGradient, fillRadialGradient, strokeColor, strokeGradient, strokeRadialGradient, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, fillOpacity, strokeOpacity, OfficeFillRule.EvenOdd, clipPath, paintOrder);
+    public static PdfPageVisualPrimitive Rectangle(double x, double y, double width, double height, OfficeColor? fillColor, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? strokeColor, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, PdfPageClipPath? clipPath, double paintOrder = 0D, PdfPageTilingPatternPaint? fillTilingPattern = null) =>
+        new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Rectangle, x, y, width, height, x, y, x + width, y + height, Array.Empty<OfficePathCommand>(), fillColor, fillGradient, fillRadialGradient, strokeColor, strokeGradient, strokeRadialGradient, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, fillOpacity, strokeOpacity, OfficeFillRule.EvenOdd, clipPath, paintOrder, fillTilingPattern);
 
     public static PdfPageVisualPrimitive ShadedRectangle(double x, double y, double width, double height, OfficeLinearGradient fillGradient, double? fillOpacity, PdfPageClipPath? clipPath, double paintOrder = 0D) =>
         new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Rectangle, x, y, width, height, x, y, x + width, y + height, Array.Empty<OfficePathCommand>(), null, fillGradient, null, null, null, null, 0D, OfficeStrokeDashStyle.Solid, null, null, fillOpacity, null, OfficeFillRule.EvenOdd, clipPath, paintOrder);
@@ -80,7 +82,7 @@ internal readonly struct PdfPageVisualPrimitive {
         return new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Line, left, top, Math.Abs(x2 - x1), Math.Abs(y2 - y1), x1, y1, x2, y2, Array.Empty<OfficePathCommand>(), null, null, null, strokeColor, strokeGradient, strokeRadialGradient, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, null, strokeOpacity, OfficeFillRule.EvenOdd, clipPath, paintOrder);
     }
 
-    public static bool TryCreatePath(IReadOnlyList<OfficePathCommand> pathCommands, OfficeColor? fillColor, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? strokeColor, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, OfficeFillRule fillRule, PdfPageClipPath? clipPath, double paintOrder, out PdfPageVisualPrimitive primitive) {
+    public static bool TryCreatePath(IReadOnlyList<OfficePathCommand> pathCommands, OfficeColor? fillColor, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? strokeColor, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, OfficeFillRule fillRule, PdfPageClipPath? clipPath, double paintOrder, PdfPageTilingPatternPaint? fillTilingPattern, out PdfPageVisualPrimitive primitive) {
         primitive = default;
         if (pathCommands.Count == 0 || pathCommands[0].Kind != OfficePathCommandKind.MoveTo) {
             return false;
@@ -124,7 +126,7 @@ internal readonly struct PdfPageVisualPrimitive {
             return false;
         }
 
-        primitive = new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Path, left, top, width, height, left, top, right, bottom, new List<OfficePathCommand>(pathCommands), fillColor, fillGradient, fillRadialGradient, strokeColor, strokeGradient, strokeRadialGradient, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, fillOpacity, strokeOpacity, fillRule, clipPath, paintOrder);
+        primitive = new PdfPageVisualPrimitive(PdfPageVisualPrimitiveKind.Path, left, top, width, height, left, top, right, bottom, new List<OfficePathCommand>(pathCommands), fillColor, fillGradient, fillRadialGradient, strokeColor, strokeGradient, strokeRadialGradient, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, fillOpacity, strokeOpacity, fillRule, clipPath, paintOrder, fillTilingPattern);
         return true;
     }
 
@@ -177,6 +179,8 @@ internal readonly struct PdfPageVisualPrimitive {
     public PdfPageClipPath? ClipPath { get; }
 
     public double PaintOrder { get; }
+
+    public PdfPageTilingPatternPaint? FillTilingPattern { get; }
 
     private static void Include(OfficePoint point, ref bool hasPoint, ref double left, ref double top, ref double right, ref double bottom) {
         if (!hasPoint) {

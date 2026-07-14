@@ -29,7 +29,20 @@ internal static class PdfObjectBytes {
     }
 
     internal static byte[] WrapStreamObject(int objectNumber, string dictionary, byte[] content) {
-        return WrapIndirectObject(objectNumber, WrapStreamBody(dictionary, content));
+        return Concat(CreateStreamObjectSegments(objectNumber, dictionary, content));
+    }
+
+    internal static byte[][] CreateStreamObjectSegments(int objectNumber, string dictionary, byte[] content) {
+        Guard.NotNull(content, nameof(content));
+        Guard.NotNullOrWhiteSpace(dictionary, nameof(dictionary));
+        if (objectNumber < 1) throw new ArgumentOutOfRangeException(nameof(objectNumber), "PDF object number must be positive.");
+        if (ContainsStreamMarker(dictionary)) throw new ArgumentException("Stream dictionaries must not include stream markers.", nameof(dictionary));
+
+        return new[] {
+            PdfEncoding.Latin1GetBytes(objectNumber.ToString(CultureInfo.InvariantCulture) + " 0 obj\n" + dictionary.TrimEnd() + "\nstream\n"),
+            content,
+            PdfEncoding.Latin1GetBytes("\nendstream\nendobj\n")
+        };
     }
 
     internal static byte[] WrapStreamBody(string dictionary, byte[] content) {

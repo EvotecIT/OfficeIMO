@@ -35,22 +35,48 @@ public class PdfOptimizerAdvancedTests {
     }
 
     [Fact]
-    public void WebProfile_UsesCompatibleOutputWithoutClaimingInvalidLinearization() {
-        byte[] source = PdfDocument.Create().Paragraph(p => p.Text("Web optimization proof")).ToBytes();
+    public void WebProfile_EmitsDeterministicStandardsCompliantLinearization() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(p => p.Text("Web optimization proof"))
+            .PageBreak()
+            .Paragraph(p => p.Text("Second web page"))
+            .ToBytes();
 
         PdfOptimizationActionResult result = PdfOptimizer.Optimize(source, PdfOptimizationProfile.Web);
+        PdfOptimizationActionResult repeated = PdfOptimizer.Optimize(source, PdfOptimizationProfile.Web);
         string raw = PdfEncoding.Latin1GetString(result.Bytes);
 
-        Assert.DoesNotContain("/Linearized", raw, StringComparison.Ordinal);
-        Assert.False(result.CandidateLinearized);
+        Assert.Equal(result.Bytes, repeated.Bytes);
+        Assert.Contains("/Linearized 1", raw, StringComparison.Ordinal);
+        Assert.True(result.CandidateLinearized);
+        Assert.Equal(2, PdfInspector.Inspect(result.Bytes).PageCount);
         Assert.Contains("Web optimization proof", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
-        Assert.DoesNotContain(result.Actions, static action => action.Kind == "Linearize");
+        Assert.Contains("Second web page", PdfTextExtractor.ExtractAllText(result.Bytes), StringComparison.Ordinal);
+        Assert.Contains(result.Actions, static action => action.Kind == "Linearize");
         Assert.True(result.PreservationReport.IsPreserved);
 
-        var unsupported = PdfOptimizationOptions.Create(PdfOptimizationProfile.Custom);
-        unsupported.Linearize = true;
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfOptimizer.Optimize(source, unsupported));
-        Assert.Contains("standards-compliant", exception.Message, StringComparison.OrdinalIgnoreCase);
+        var (objects, _) = PdfSyntax.ParseObjects(result.Bytes);
+        PdfDictionary linearization = Assert.Single(
+            objects.Values.Select(static item => item.Value).OfType<PdfDictionary>(),
+            static dictionary => dictionary.Items.ContainsKey("Linearized"));
+        Assert.Equal(result.Bytes.Length, linearization.Get<PdfNumber>("L")?.Value);
+        Assert.Equal(2D, linearization.Get<PdfNumber>("N")?.Value);
+        Assert.True(linearization.Get<PdfNumber>("O")?.Value > 0D);
+        Assert.True(linearization.Get<PdfNumber>("E")?.Value > 0D);
+        Assert.True(linearization.Get<PdfNumber>("T")?.Value > 0D);
+        PdfArray hints = Assert.IsType<PdfArray>(linearization.Items["H"]);
+        Assert.Equal(2, hints.Items.Count);
+        int hintOffset = checked((int)Assert.IsType<PdfNumber>(hints.Items[0]).Value);
+        int hintLength = checked((int)Assert.IsType<PdfNumber>(hints.Items[1]).Value);
+        Assert.InRange(hintOffset, 1, result.Bytes.Length - 1);
+        Assert.InRange(hintLength, 1, result.Bytes.Length - hintOffset);
+        Assert.Contains("/S ", PdfEncoding.Latin1GetString(result.Bytes.AsSpan(hintOffset, hintLength).ToArray()), StringComparison.Ordinal);
+
+        var incompatible = PdfOptimizationOptions.Create(PdfOptimizationProfile.Custom);
+        incompatible.Linearize = true;
+        incompatible.UseObjectStreams = true;
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfOptimizer.Optimize(source, incompatible));
+        Assert.Contains("classic cross-reference", exception.Message, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

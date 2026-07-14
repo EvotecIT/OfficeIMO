@@ -4,8 +4,10 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private sealed partial class LayoutContext {
-        private readonly StringBuilder sb = new StringBuilder();
+    private sealed partial class LayoutContext : IDisposable {
+        private StringBuilder sb = new StringBuilder();
+        private readonly PdfPageContentStore pageContents;
+        private bool pageContentsTransferred;
         private readonly System.Collections.Generic.List<LayoutResult.Page> pages = new System.Collections.Generic.List<LayoutResult.Page>();
         private readonly System.Collections.Generic.Stack<PdfOptions> optionsStack = new System.Collections.Generic.Stack<PdfOptions>();
         private readonly System.Collections.Generic.Stack<int> pageGroupStack = new System.Collections.Generic.Stack<int>();
@@ -33,6 +35,7 @@ internal static partial class PdfWriter {
 
         public LayoutContext(PdfOptions options, System.Collections.Generic.IReadOnlyList<SectionBlock>? sections = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? resolvedSectionPages = null) {
             currentOpts = options;
+            pageContents = new PdfPageContentStore(options.PageContentMemoryLimitBytes);
             emitGeneratedStructure = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
             sectionDefinitions = sections ?? System.Array.Empty<SectionBlock>();
             sectionPageNumbers = resolvedSectionPages ?? new System.Collections.Generic.Dictionary<string, int>(System.StringComparer.Ordinal);
@@ -41,12 +44,22 @@ internal static partial class PdfWriter {
         }
 
         public LayoutResult Layout(IEnumerable<IPdfBlock> blocks) {
-            ProcessBlocks(blocks);
-            FlushPage(pageDirty || HasCurrentPageNonContentObjects());
+            try {
+                ProcessBlocks(blocks);
+                FlushPage(pageDirty || HasCurrentPageNonContentObjects());
 
-            var result = new LayoutResult { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
-            foreach (var p in pages) result.Pages.Add(p);
-            return result;
+                var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
+                foreach (var p in pages) result.Pages.Add(p);
+                pageContentsTransferred = true;
+                return result;
+            } catch {
+                pageContents.Dispose();
+                throw;
+            }
+        }
+
+        public void Dispose() {
+            if (!pageContentsTransferred) pageContents.Dispose();
         }
 
         private void StartPage(PdfOptions options) {
@@ -90,10 +103,10 @@ internal static partial class PdfWriter {
             for (int i = activeLayers.Count - 1; i >= 0; i--) {
                 sb.Append("EMC\n");
             }
-            currentPage.Content = sb.ToString();
+            currentPage.Content = pageContents.Store(sb.ToString());
             pages.Add(currentPage);
             currentPage = null;
-            sb.Clear();
+            sb = new StringBuilder();
             pageDirty = false;
         }
 

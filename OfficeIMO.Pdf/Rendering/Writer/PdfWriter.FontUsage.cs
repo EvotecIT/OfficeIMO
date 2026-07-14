@@ -9,7 +9,7 @@ internal static partial class PdfWriter {
         Guard.NotNull(blocks, nameof(blocks));
         Guard.NotNull(options, nameof(options));
 
-        LayoutResult layout = LayoutBlocks(blocks, options);
+        using LayoutResult layout = LayoutBlocks(blocks, options);
         var fonts = new System.Collections.Generic.HashSet<PdfStandardFont>();
         var fontUsages = new System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence>();
         var images = new System.Collections.Generic.List<PdfGeneratedImageAccessibilityEvidence>();

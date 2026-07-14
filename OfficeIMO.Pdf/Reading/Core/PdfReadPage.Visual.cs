@@ -13,8 +13,11 @@ public sealed partial class PdfReadPage {
         RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
 
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform);
+        IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height);
+        var softMasks = new Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask>();
         for (int i = 0; i < pageElements.Count; i++) {
-            AddDrawingElement(drawing, size.Height, pageElements[i]);
+            PdfPageDrawingElement element = pageElements[i].WithEffect(ResolveDrawingEffect(effects, pageElements[i].PaintOrder));
+            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks);
         }
 
         AddAnnotationAppearances(drawing, size.Height, pageTransform);
@@ -82,7 +85,27 @@ public sealed partial class PdfReadPage {
         });
     }
 
-    private static void AddDrawingElement(OfficeDrawing drawing, double pageHeight, PdfPageDrawingElement element) {
+    private void AddDrawingElement(
+        OfficeDrawing drawing,
+        double pageHeight,
+        Matrix2D pageTransform,
+        PdfPageDrawingElement element,
+        Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> softMasks) {
+        if (element.Effect.IsDefault) {
+            AddDrawingElementCore(drawing, pageHeight, element);
+            return;
+        }
+
+        var isolated = new OfficeDrawing(drawing.Width, drawing.Height);
+        AddDrawingElementCore(isolated, pageHeight, element);
+        if (isolated.Elements.Count == 0) return;
+        OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
+            ? null
+            : GetOrCreateSoftMask(element.Effect.SoftMask, drawing.Width, drawing.Height, pageTransform, softMasks);
+        drawing.AddEffectDrawing(isolated, OfficeTransform.Identity, element.Effect.BlendMode, softMask);
+    }
+
+    private static void AddDrawingElementCore(OfficeDrawing drawing, double pageHeight, PdfPageDrawingElement element) {
         switch (element.Kind) {
             case PdfPageDrawingElementKind.Primitive:
                 AddVisualPrimitive(drawing, element.Primitive);
@@ -97,6 +120,12 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddVisualPrimitive(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
+        if (primitive.FillTilingPattern != null) {
+            AddTilingPatternFill(drawing, primitive);
+            bool hasOtherFill = primitive.FillColor.HasValue || primitive.FillGradient != null || primitive.FillRadialGradient != null;
+            bool hasStroke = primitive.StrokeWidth > 0D && (primitive.StrokeColor.HasValue || primitive.StrokeGradient != null || primitive.StrokeRadialGradient != null);
+            if (!hasOtherFill && !hasStroke) return;
+        }
         if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
             AddRectangle(drawing, primitive);
         } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
@@ -323,7 +352,8 @@ public sealed partial class PdfReadPage {
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
-        int contentNestingDepth = 0) {
+        int contentNestingDepth = 0,
+        bool includeTilingPatterns = true) {
         EnsureContentNestingBudget(contentNestingDepth);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         primitives.AddRange(PdfPageContentVisualParser.Parse(
@@ -334,6 +364,7 @@ public sealed partial class PdfReadPage {
             GetColorSpaceResources(resources),
             GetShadingResources(resources),
             GetShadingPatternResources(resources),
+            includeTilingPatterns ? GetTilingPatternResources(resources) : null,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
             paintOrderScale,
@@ -407,7 +438,8 @@ public sealed partial class PdfReadPage {
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
-                    contentNestingDepth: contentNestingDepth + 1);
+                    contentNestingDepth: contentNestingDepth + 1,
+                    includeTilingPatterns: includeTilingPatterns);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -681,13 +713,18 @@ public sealed partial class PdfReadPage {
             OfficeStrokeDashStyle? strokeDashStyle = ReadStrokeDashStyle(state);
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
+            OfficeBlendMode? blendMode = ReadBlendMode(state);
+            bool hasSoftMask = state.Items.ContainsKey("SMask");
+            PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state) : null;
             if (fillOpacity.HasValue ||
                 strokeOpacity.HasValue ||
                 strokeWidth.HasValue ||
                 strokeDashStyle.HasValue ||
                 strokeLineCap.HasValue ||
-                strokeLineJoin.HasValue) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin);
+                strokeLineJoin.HasValue ||
+                blendMode.HasValue ||
+                hasSoftMask) {
+                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask);
             }
         }
 
@@ -930,7 +967,7 @@ public sealed partial class PdfReadPage {
 
             SortDrawingElements(elements);
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
-                AddDrawingElement(drawing, pageHeight, elements[elementIndex]);
+                AddDrawingElementCore(drawing, pageHeight, elements[elementIndex]);
             }
         }
     }
@@ -1620,7 +1657,8 @@ public sealed partial class PdfReadPage {
             PdfPageVisualPrimitive primitive,
             PdfTextSpan? textSpan,
             PdfImagePlacement? imagePlacement,
-            PdfExtractedImage? image) {
+            PdfExtractedImage? image,
+            PdfPageDrawingEffect effect) {
             Kind = kind;
             PaintOrder = paintOrder;
             Sequence = sequence;
@@ -1628,16 +1666,17 @@ public sealed partial class PdfReadPage {
             TextSpan = textSpan;
             ImagePlacement = imagePlacement;
             Image = image;
+            Effect = effect;
         }
 
         public static PdfPageDrawingElement FromPrimitive(PdfPageVisualPrimitive primitive, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Primitive, primitive.PaintOrder, sequence, primitive, null, null, null);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Primitive, primitive.PaintOrder, sequence, primitive, null, null, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromText(PdfTextSpan textSpan, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Text, textSpan.PaintOrder, sequence, default, textSpan, null, null);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Text, textSpan.PaintOrder, sequence, default, textSpan, null, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromImage(PdfImagePlacement imagePlacement, PdfExtractedImage image, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Image, imagePlacement.PaintOrder, sequence, default, null, imagePlacement, image);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Image, imagePlacement.PaintOrder, sequence, default, null, imagePlacement, image, PdfPageDrawingEffect.Default);
 
         public PdfPageDrawingElementKind Kind { get; }
 
@@ -1652,5 +1691,10 @@ public sealed partial class PdfReadPage {
         public PdfImagePlacement? ImagePlacement { get; }
 
         public PdfExtractedImage? Image { get; }
+
+        public PdfPageDrawingEffect Effect { get; }
+
+        public PdfPageDrawingElement WithEffect(PdfPageDrawingEffect effect) =>
+            new PdfPageDrawingElement(Kind, PaintOrder, Sequence, Primitive, TextSpan, ImagePlacement, Image, effect);
     }
 }

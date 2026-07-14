@@ -28,6 +28,7 @@ public sealed partial class PdfOptions {
             DefaultFontSize = DefaultFontSize,
             CompressContentStreams = CompressContentStreams,
             ObjectBufferMemoryLimitBytes = ObjectBufferMemoryLimitBytes,
+            PageContentMemoryLimitBytes = PageContentMemoryLimitBytes,
             IncludeStandardFontToUnicodeMaps = IncludeStandardFontToUnicodeMaps,
             CompressEmbeddedFonts = CompressEmbeddedFonts,
             IncludeXmpMetadata = IncludeXmpMetadata,

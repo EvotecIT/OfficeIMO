@@ -11,6 +11,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
     private long _memoryBytes;
     private FileStream? _spillStream;
     private string? _spillPath;
+    private byte[]? _copyBuffer;
     private bool _disposed;
 
     internal PdfObjectStore(long memoryLimitBytes = DefaultMemoryLimitBytes) {
@@ -20,6 +21,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
 
     internal bool IsSpilled => _spillStream != null;
     internal string? SpillPath => _spillPath;
+    internal long RetainedMemoryBytes => _memoryBytes;
     public int Count => _entries.Count;
     public bool IsReadOnly => false;
 
@@ -67,6 +69,62 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
         _entries.Add(AppendToSpill(item));
     }
 
+    internal void AddSegments(params byte[][] segments) {
+        ThrowIfDisposed();
+        Guard.NotNull(segments, nameof(segments));
+
+        long totalLength = 0L;
+        for (int index = 0; index < segments.Length; index++) {
+            Guard.NotNull(segments[index], nameof(segments));
+            totalLength += segments[index].LongLength;
+        }
+        if (totalLength > int.MaxValue) throw new InvalidOperationException("A serialized PDF object cannot exceed the supported two-gigabyte object size.");
+
+        if (_spillStream == null && _memoryBytes + totalLength <= _memoryLimitBytes) {
+            var bytes = new byte[(int)totalLength];
+            int offset = 0;
+            for (int index = 0; index < segments.Length; index++) {
+                byte[] segment = segments[index];
+                Buffer.BlockCopy(segment, 0, bytes, offset, segment.Length);
+                offset += segment.Length;
+            }
+            _entries.Add(Entry.InMemory(bytes));
+            _memoryBytes += totalLength;
+            return;
+        }
+
+        EnsureSpillStorage();
+        _entries.Add(AppendSegmentsToSpill(segments, (int)totalLength));
+    }
+
+    internal long GetLength(int index) {
+        ThrowIfDisposed();
+        return _entries[index].Length;
+    }
+
+    internal void CopyTo(int index, Stream destination) {
+        ThrowIfDisposed();
+        Guard.NotNull(destination, nameof(destination));
+        if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+
+        Entry entry = _entries[index];
+        if (entry.Bytes != null) {
+            destination.Write(entry.Bytes, 0, entry.Bytes.Length);
+            return;
+        }
+
+        FileStream source = _spillStream ?? throw new InvalidOperationException("PDF object spill storage is unavailable.");
+        source.Position = entry.Offset;
+        byte[] buffer = _copyBuffer ??= new byte[81920];
+        int remaining = entry.Length;
+        while (remaining > 0) {
+            int read = source.Read(buffer, 0, Math.Min(buffer.Length, remaining));
+            if (read == 0) throw new EndOfStreamException("PDF object spill storage ended unexpectedly.");
+            destination.Write(buffer, 0, read);
+            remaining -= read;
+        }
+    }
+
     public void Clear() {
         ThrowIfDisposed();
         _entries.Clear();
@@ -112,6 +170,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
         _disposed = true;
         _entries.Clear();
         _memoryBytes = 0L;
+        _copyBuffer = null;
         _spillStream?.Dispose();
         _spillStream = null;
         if (_spillPath != null) {
@@ -140,6 +199,17 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
         long offset = stream.Position;
         stream.Write(bytes, 0, bytes.Length);
         return Entry.Spilled(offset, bytes.Length);
+    }
+
+    private Entry AppendSegmentsToSpill(byte[][] segments, int totalLength) {
+        FileStream stream = _spillStream ?? throw new InvalidOperationException("PDF object spill storage is unavailable.");
+        stream.Position = stream.Length;
+        long offset = stream.Position;
+        for (int index = 0; index < segments.Length; index++) {
+            byte[] segment = segments[index];
+            stream.Write(segment, 0, segment.Length);
+        }
+        return Entry.Spilled(offset, totalLength);
     }
 
     #pragma warning disable CA1513 // Newer helper is unavailable on netstandard2.0 and net472.

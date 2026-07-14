@@ -77,7 +77,7 @@ public sealed class PdfOptimizationActionResult {
     /// <summary>True when the candidate packs eligible objects into object streams.</summary>
     public bool CandidateUsesObjectStreams { get; }
 
-    /// <summary>True only when the candidate is standards-compliant Fast Web View output. Currently always false.</summary>
+    /// <summary>True when the candidate uses standards-compliant Fast Web View layout and hint tables.</summary>
     public bool CandidateLinearized { get; }
 
     /// <summary>True when the original bytes were returned because the optimized candidate was not smaller.</summary>

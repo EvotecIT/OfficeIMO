@@ -58,7 +58,11 @@ internal static partial class PdfWriter {
         Guard.NotNullOrWhiteSpace(dictionary, nameof(dictionary));
 
         int id = list.Count + 1;
-        list.Add(PdfObjectBytes.WrapStreamObject(id, dictionary, content));
+        if (list is PdfObjectStore objectStore) {
+            objectStore.AddSegments(PdfObjectBytes.CreateStreamObjectSegments(id, dictionary, content));
+        } else {
+            list.Add(PdfObjectBytes.WrapStreamObject(id, dictionary, content));
+        }
         return id;
     }
 
@@ -82,7 +86,13 @@ internal static partial class PdfWriter {
         return PdfSyntaxEscaper.LiteralString(s);
     }
 
-    private sealed class LayoutResult {
+    private sealed class LayoutResult : IDisposable {
+        private readonly PdfPageContentStore _contentStore;
+
+        public LayoutResult(PdfPageContentStore contentStore) {
+            _contentStore = contentStore;
+        }
+
         public System.Collections.Generic.List<Page> Pages { get; } = new();
         public bool UsedBold { get; set; }
         public bool UsedItalic { get; set; }
@@ -90,7 +100,7 @@ internal static partial class PdfWriter {
         public sealed class Page {
             public PdfOptions Options { get; set; } = null!;
             public int PageGroupId { get; set; }
-            public string Content { get; set; } = string.Empty;
+            public PdfPageContentHandle Content { get; set; }
             public System.Collections.Generic.List<LinkAnnotation> Annotations { get; } = new();
             public System.Collections.Generic.List<TextAnnotation> TextAnnotations { get; } = new();
             public System.Collections.Generic.List<FreeTextAnnotation> FreeTextAnnotations { get; } = new();
@@ -113,6 +123,10 @@ internal static partial class PdfWriter {
             public bool UsedItalic { get; set; }
             public bool UsedBoldItalic { get; set; }
         }
+
+        public string ReadContent(PdfPageContentHandle handle) => _contentStore.Read(handle);
+
+        public void Dispose() => _contentStore.Dispose();
     }
 
     private sealed class LinkAnnotation {
@@ -286,7 +300,7 @@ internal static partial class PdfWriter {
     }
 
     private sealed class PageEffectGroup {
-        public string Content { get; set; } = string.Empty;
+        public PdfPageContentHandle Content { get; set; }
         public string Token { get; set; } = string.Empty;
         public OfficeTransform Transform { get; set; } = OfficeTransform.Identity;
         public string? GraphicsStateName { get; set; }

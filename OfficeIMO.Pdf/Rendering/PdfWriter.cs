@@ -19,7 +19,7 @@ internal static partial class PdfWriter {
         opts.ResetEmbeddedFontProgramUsage();
 
         // Layout blocks into pages and create per-page content streams.
-        var layout = LayoutBlocks(blocks, opts);
+        using var layout = LayoutBlocks(blocks, opts);
         ValidateNamedDestinationLinks(layout.Pages);
         ValidateUriActionLinks(layout.Pages, opts);
         ValidateGeneratedFormFieldNames(layout.Pages);
@@ -301,7 +301,7 @@ internal static partial class PdfWriter {
             if (page.EffectGroups.Count > 0) {
                 for (int effectIndex = 0; effectIndex < page.EffectGroups.Count; effectIndex++) {
                     PageEffectGroup effect = page.EffectGroups[effectIndex];
-                    string effectContent = ReplaceInlineImageDrawTokens(effect.Content, page.Images);
+                    string effectContent = ReplaceInlineImageDrawTokens(layout.ReadContent(effect.Content), page.Images);
                     effectContent = ReplaceInlineEffectGroupTokens(effectContent, page.EffectGroups, effectIndex);
                     byte[] effectBytes = PdfEncoding.Latin1GetBytes(effectContent);
                     string dictionary = PdfTransparencyGroupDictionaryBuilder.BuildStreamDictionary(
@@ -325,7 +325,7 @@ internal static partial class PdfWriter {
                 string headerContent = BuildHeader(pageOpts, headerFooterVariantPageNumber, headerFooterPageNumber, headerFooterTotalPages, totalPages, pageOpts.HeaderFont, headerFontAlias!, pageFontResources);
                 contentStr += WrapArtifactContent(headerContent, markInfo);
             }
-            string pageContent = ReplaceInlineImageDrawTokens(page.Content, page.Images);
+            string pageContent = ReplaceInlineImageDrawTokens(layout.ReadContent(page.Content), page.Images);
             contentStr += ReplaceInlineEffectGroupTokens(pageContent, page.EffectGroups, page.EffectGroups.Count);
             if (page.Images.Count > 0) {
                 var sbImgs = new StringBuilder();
