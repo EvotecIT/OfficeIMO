@@ -304,6 +304,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Reader.Benchmarks
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Pdf.Cryptography.Pkcs", "OfficeIMO.Pdf.Cryptography.Pkcs\OfficeIMO.Pdf.Cryptography.Pkcs.csproj", "{6BC5E07C-5637-482B-9635-312779906A3B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Drawing.CodeGlyphX", "OfficeIMO.Drawing.CodeGlyphX\OfficeIMO.Drawing.CodeGlyphX.csproj", "{D0923670-3E40-4E7E-8805-55540144185C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1442,6 +1444,18 @@ Global
 		{6BC5E07C-5637-482B-9635-312779906A3B}.Release|x64.Build.0 = Release|Any CPU
 		{6BC5E07C-5637-482B-9635-312779906A3B}.Release|x86.ActiveCfg = Release|Any CPU
 		{6BC5E07C-5637-482B-9635-312779906A3B}.Release|x86.Build.0 = Release|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Debug|x64.Build.0 = Debug|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Debug|x86.Build.0 = Debug|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Release|x64.ActiveCfg = Release|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Release|x64.Build.0 = Release|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Release|x86.ActiveCfg = Release|Any CPU
+		{D0923670-3E40-4E7E-8805-55540144185C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
