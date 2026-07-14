@@ -52,10 +52,7 @@ public class CsvWideBenchmarks
 
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
-        foreach (var row in _rows)
-        {
-            csv.WriteRow(Headers, row);
-        }
+        csv.WriteRows(Headers, _rows);
 
         _csvText = writer.ToString();
         _csvPath = Path.Combine(Path.GetTempPath(), $"OfficeIMO.CSV.Benchmarks.{Guid.NewGuid():N}.csv");
@@ -77,13 +74,13 @@ public class CsvWideBenchmarks
 
     private void ValidateWriteBenchmarkOutputs()
     {
-        ValidateWriteOutput(nameof(OfficeIMO_WriteProjectedRows), OfficeIMO_WriteProjectedRows);
-        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedProjectedRows), OfficeIMO_WriteTrustedProjectedRows);
-        ValidateWriteOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader);
-        ValidateWriteOutput(nameof(CsvHelper_WriteProjectedRows), CsvHelper_WriteProjectedRows);
-        ValidateWriteOutput(nameof(Sylvan_WriteProjectedRows), Sylvan_WriteProjectedRows);
-        ValidateWriteOutput(nameof(Dataplat_WriteProjectedRows), Dataplat_WriteProjectedRows);
-        ValidateWriteOutput(nameof(Dataplat_WriteFromReader), Dataplat_WriteFromReader);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteProjectedRows), OfficeIMO_WriteProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedProjectedRows), OfficeIMO_WriteTrustedProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(OfficeIMO_WriteDataReader), OfficeIMO_WriteDataReader, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(CsvHelper_WriteProjectedRows), CsvHelper_WriteProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(Sylvan_WriteProjectedRows), Sylvan_WriteProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(Dataplat_WriteProjectedRows), Dataplat_WriteProjectedRows, expectedObjectRows: _rows);
+        ValidateWriteOutput(nameof(Dataplat_WriteFromReader), Dataplat_WriteFromReader, expectedObjectRows: _rows);
 
         ValidateWriteOutput(nameof(OfficeIMO_WriteValidatedTextRows), OfficeIMO_WriteValidatedTextRows, _textRows);
         ValidateWriteOutput(nameof(OfficeIMO_WriteTrustedTextRows), OfficeIMO_WriteTrustedTextRows, _textRows);
@@ -93,7 +90,11 @@ public class CsvWideBenchmarks
         ValidateWriteOutput(nameof(Sep_WriteProjectedRows), Sep_WriteProjectedRows, _textRows);
     }
 
-    private void ValidateWriteOutput(string method, Func<int> write, string?[][]? expectedRows = null)
+    private void ValidateWriteOutput(
+        string method,
+        Func<int> write,
+        string?[][]? expectedTextRows = null,
+        object?[][]? expectedObjectRows = null)
     {
         _captureWriteOutput = true;
         _capturedWriteOutput = null;
@@ -107,7 +108,7 @@ public class CsvWideBenchmarks
                 throw new InvalidOperationException($"{method} reported {reportedLength} characters but produced {output.Length}.");
             }
 
-            CsvBenchmarkOutputValidator.Validate(method, output, Headers, RowCount, expectedRows);
+            CsvBenchmarkOutputValidator.Validate(method, output, Headers, RowCount, expectedTextRows, expectedObjectRows);
         }
         finally
         {
@@ -151,10 +152,7 @@ public class CsvWideBenchmarks
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
-        foreach (var row in _rows)
-        {
-            csv.WriteRow(Headers, row);
-        }
+        csv.WriteRows(Headers, _rows);
 
         return CompleteWrite(writer);
     }
@@ -183,10 +181,7 @@ public class CsvWideBenchmarks
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
-        foreach (string?[] row in _textRows)
-        {
-            csv.WriteTextRow(Headers, row);
-        }
+        csv.WriteTextRows(Headers, _textRows);
 
         return CompleteWrite(writer);
     }

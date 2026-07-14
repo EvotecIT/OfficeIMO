@@ -57,21 +57,19 @@ features expected from a document and ingestion model: schema inference and
 validation, typed values, transforms, compressed files, malformed-input policy,
 formula-injection protection, progress, cancellation, and diagnostics.
 
-The focused table compares equivalent 25,000-row wide read, typed-object write,
-and validated-text write lanes, then shows the narrower OfficeIMO trusted-text
-upper bound separately. Trusted-text rows require the caller to supply already
-validated, culture-formatted values, so that row is not presented as the same
-contract as the validating writers. Read lanes traverse every field and validate
-their output, so a parser cannot win by merely counting rows. Lower is faster;
+The focused table compares equivalent 25,000-row wide field-span reads,
+projected-array writes, `IDataReader` writes, and prepared-text writes. Benchmark
+preflight parses every typed field or compares every prepared text field, so a
+library cannot win by merely producing the right row shape. Lower is faster;
 differences below 5% should be treated as ties rather than ranking claims.
 
 <!-- officeimo-csv-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
-| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Caller-trusted text-row upper bound | Contract=OfficeIMO caller-prevalidated text, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Write rows | 1.00x (17ms) | 1.39x (23ms) | 1.36x (23ms) | 1.23x (21ms) | 0.95x (16ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | 1.00x (2ms) | n/a | n/a | 1.09x (2ms) | 4.53x (10ms) | OfficeIMO.CSV fastest |
-| Wide object-row CSV write | Contract=typed object values, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | 1.00x (37ms) | 2.17x (80ms) | 1.18x (44ms) | n/a | 0.72x (27ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | 1.00x (21ms) | 1.13x (23ms) | 1.10x (23ms) | 1.00x (21ms) | 0.77x (16ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
+| Scenario | Variables | Host | Operation | Metric | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
+| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Wide DataReader CSV write | Contract=IDataReader, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (33ms) | n/a | 1.41x (47ms) | n/a | 0.81x (27ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | MeanMs | 1.00x (2ms) | n/a | n/a | 1.08x (2ms) | 4.48x (10ms) | OfficeIMO.CSV fastest |
+| Wide projected-array CSV write | Contract=projected object arrays, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | MeanMs | 1.00x (30ms) | 2.68x (82ms) | 1.48x (45ms) | n/a | n/a | OfficeIMO.CSV fastest |
+| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | MeanMs | 1.00x (17ms) | 1.35x (23ms) | 1.24x (21ms) | 1.23x (21ms) | 0.95x (16ms) | OfficeIMO.CSV tied with Sylvan.Data.Csv |
 <!-- officeimo-csv-benchmark-table:end -->
 
 These are local snapshots, not universal rankings. Runtime, CPU, input
@@ -359,6 +357,23 @@ CsvDocument.SaveObjects("summary.csv.gz", rows, new CsvSaveOptions {
     CompressionType = CsvCompressionType.Auto
 });
 ```
+
+When the caller already has projected arrays, pass the shared schema once. The
+writer validates every row width without repeating column-name validation:
+
+```csharp
+object?[][] projectedRows = {
+    new object?[] { "Alpha", 10, true },
+    new object?[] { "Beta", 20, false }
+};
+
+using var output = File.CreateText("summary.csv");
+using var csv = new CsvObjectWriter(output);
+csv.WriteRows(new[] { "Name", "Count", "Active" }, projectedRows);
+```
+
+Use `WriteTextRows` for arrays that are already culture-formatted; CSV escaping
+and row-width validation still apply.
 
 Parse text when a service receives CSV payloads without a temporary file:
 

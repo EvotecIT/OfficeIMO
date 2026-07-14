@@ -10,7 +10,7 @@ namespace OfficeIMO.CSV;
 /// <summary>
 /// Streams object rows to CSV without materializing a <see cref="CsvDocument"/>.
 /// </summary>
-public sealed class CsvObjectWriter : IDisposable
+public sealed partial class CsvObjectWriter : IDisposable
 {
     private readonly TextWriter _writer;
     private readonly CsvSaveOptions _options;
