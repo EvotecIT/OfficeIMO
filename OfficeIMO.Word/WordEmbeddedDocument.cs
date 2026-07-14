@@ -170,6 +170,9 @@ namespace OfficeIMO.Word {
                 var documentContent = htmlFragment
                     ? fileNameOrContent
                     : File.ReadAllText(fileNameOrContent, Encoding.UTF8);
+                if (partType == WordAlternativeFormatImportPartType.Html) {
+                    documentContent = HtmlListSemanticsNormalizer.Normalize(documentContent);
+                }
 
                 using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(documentContent))) {
                     chunk.FeedData(ms);

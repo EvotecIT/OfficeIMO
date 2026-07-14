@@ -1,5 +1,7 @@
+using AngleSharp.Dom;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using System;
@@ -132,9 +134,50 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<ul", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<ol", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("Sub 1", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(2, html.Split(new[] { "<ul" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, html.Split(new[] { "<ol" }, StringSplitOptions.None).Length - 1);
+            Assert.Contains("Item 1<ul", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("<table>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(">A<", html, StringComparison.OrdinalIgnoreCase);
             Assert.Contains(">D<", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Test_WordToHtml_ListsInsideTable_PreserveStructureAndNesting() {
+            using var doc = WordDocument.Create();
+            var table = doc.AddTable(1, 2);
+
+            var bulletCell = table.Rows[0].Cells[0];
+            bulletCell.Paragraphs[0].Remove();
+            var bullets = bulletCell.AddList(WordListStyle.Bulleted);
+            bullets.AddItem("Bullet root");
+            bullets.AddItem("Nested bullet", 1);
+            bullets.AddItem("Bullet next");
+
+            var orderedCell = table.Rows[0].Cells[1];
+            orderedCell.Paragraphs[0].Remove();
+            var numbers = orderedCell.AddList(WordListStyle.Numbered);
+            numbers.SetStartNumberingValue(4);
+            numbers.AddItem("Number four");
+            numbers.AddItem("Number five");
+
+            string html = doc.ToHtml();
+            var parsed = HtmlDocumentParser.ParseDocument(html);
+            var cells = parsed.QuerySelectorAll("td");
+            Assert.Equal(2, cells.Length);
+
+            IElement bulletList = Assert.IsAssignableFrom<IElement>(cells[0].QuerySelector("ul"));
+            var bulletItems = bulletList.Children.Where(element => element.LocalName == "li").ToArray();
+            Assert.Equal(2, bulletItems.Length);
+            Assert.Equal("Bullet rootNested bullet", bulletItems[0].TextContent);
+            Assert.Equal("Nested bullet", bulletItems[0].QuerySelector("ul > li")!.TextContent);
+            Assert.Equal("Bullet next", bulletItems[1].TextContent);
+
+            IElement orderedList = Assert.IsAssignableFrom<IElement>(cells[1].QuerySelector("ol"));
+            Assert.Equal("4", orderedList.GetAttribute("start"));
+            Assert.Equal(
+                new[] { "Number four", "Number five" },
+                orderedList.Children.Where(element => element.LocalName == "li").Select(element => element.TextContent).ToArray());
         }
 
         [Fact]

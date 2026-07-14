@@ -40,8 +40,8 @@ namespace OfficeIMO.Word.Html {
             string? typeAttr = element.GetAttribute("type");
 
             WordList list = ordered ? CreateOrderedList() : CreateBulletedList();
-            ApplyListStyle(list, ordered, listStyleType, typeAttr);
-            ApplyListIndentMetadata(list, element);
+            ApplyListStyle(list, parentDepth, ordered, listStyleType, typeAttr);
+            ApplyListIndentMetadata(list, parentDepth, element);
 
             if (ordered) {
                 int? startValue = null;
@@ -55,30 +55,31 @@ namespace OfficeIMO.Word.Html {
                     }
                 }
                 if (startValue.HasValue) {
-                    list.SetStartNumberingValue(startValue.Value);
+                    list.SetStartNumberingValue(startValue.Value, parentDepth);
                 }
             }
 
             listStack.Push(list);
 
             int itemIndex = 0;
+            WordParagraph? insertionAnchor = null;
             foreach (var li in element.Children.OfType<IHtmlListItemElement>()) {
                 if (ordered) {
                     if (TryGetListItemValue(li, out int liValue)) {
                         if (itemIndex == 0) {
-                            list.SetStartNumberingValue(liValue);
+                            list.SetStartNumberingValue(liValue, parentDepth);
                         } else {
                             list = CreateOrderedList(allowContinue: false);
-                            ApplyListStyle(list, ordered, listStyleType, typeAttr);
-                            ApplyListIndentMetadata(list, element);
-                            list.SetStartNumberingValue(liValue);
+                            ApplyListStyle(list, parentDepth, ordered, listStyleType, typeAttr);
+                            ApplyListIndentMetadata(list, parentDepth, element);
+                            list.SetStartNumberingValue(liValue, parentDepth);
                             listStack.Pop();
                             listStack.Push(list);
                         }
                     }
                 }
 
-                ProcessListItem(li, doc, section, options, listStack, formatting, cell, headerFooter);
+                insertionAnchor = ProcessListItem(li, doc, section, options, listStack, formatting, cell, headerFooter, insertionAnchor);
                 itemIndex++;
             }
 
@@ -248,12 +249,12 @@ namespace OfficeIMO.Word.Html {
             return decoded.ToString();
         }
 
-        private static void ApplyListIndentMetadata(WordList list, IElement element) {
-            if (list.Numbering.Levels.Count == 0) {
+        private static void ApplyListIndentMetadata(WordList list, int levelIndex, IElement element) {
+            if (list.Numbering.Levels.Count <= levelIndex) {
                 return;
             }
 
-            var level = list.Numbering.Levels[0];
+            var level = list.Numbering.Levels[levelIndex];
             if (TryGetTwipsAttribute(element, "data-left-indent-twips", out var leftIndentTwips)) {
                 level.IndentationLeft = leftIndentTwips;
             }
@@ -271,12 +272,12 @@ namespace OfficeIMO.Word.Html {
                 && value >= 0;
         }
 
-        private static void ApplyListStyle(WordList list, bool ordered, string? listStyleType, string? typeAttr) {
+        private static void ApplyListStyle(WordList list, int levelIndex, bool ordered, string? listStyleType, string? typeAttr) {
             var levels = list.Numbering.Levels;
-            if (levels.Count == 0) {
+            if (levels.Count <= levelIndex) {
                 return;
             }
-            var level = levels[0];
+            var level = levels[levelIndex];
             string? token = listStyleType;
             if (token != null) {
                 token = token.Trim();
@@ -360,11 +361,14 @@ namespace OfficeIMO.Word.Html {
             }
         }
 
-        private void ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
-            Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter) {
+        private WordParagraph ProcessListItem(IHtmlListItemElement element, WordDocument doc, WordSection section, HtmlToWordOptions options,
+            Stack<WordList> listStack, TextFormatting formatting, WordTableCell? cell, WordHeaderFooter? headerFooter,
+            WordParagraph? insertionAnchor) {
             var list = listStack.Peek();
             int level = listStack.Count - 1;
-            var paragraph = list.AddItem("", level);
+            var paragraph = insertionAnchor == null
+                ? list.AddItem("", level)
+                : list.AddItemAfter("", level, insertionAnchor);
             WordParagraph? blockAnchor = paragraph;
 
             ApplyParagraphStyleFromCss(paragraph, element);
@@ -389,6 +393,7 @@ namespace OfficeIMO.Word.Html {
                 }
             }
             ApplyPageBreakAfterFromCss(paragraph, element);
+            return blockAnchor ?? paragraph;
         }
 
         private static bool IsListItemTableChild(INode node) =>

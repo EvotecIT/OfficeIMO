@@ -82,6 +82,9 @@ namespace OfficeIMO.Word {
             AltChunk altChunk = new AltChunk { Id = altChunkId };
 
             try {
+                if (type == WordAlternativeFormatImportPartType.Html) {
+                    htmlContent = HtmlListSemanticsNormalizer.Normalize(htmlContent);
+                }
                 using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(htmlContent))) {
                     chunk.FeedData(ms);
                 }

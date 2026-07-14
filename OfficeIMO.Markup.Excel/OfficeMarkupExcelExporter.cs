@@ -61,8 +61,9 @@ internal sealed class OfficeMarkupExcelExporter {
                 AddWorksheetText(context, paragraph.Text, bold: false);
                 break;
             case OfficeMarkupListBlock list when context.Options.IncludeMarkdownAsWorksheetText:
-                foreach (var item in list.Items) {
-                    AddWorksheetText(context, "- " + item.Text, bold: false);
+                foreach (var entry in OfficeMarkupListTraversal.Enumerate(list)) {
+                    string indent = new string('\u00A0', entry.Depth * 2);
+                    AddWorksheetText(context, indent + entry.Marker + " " + entry.Item.Text, bold: false);
                 }
 
                 break;

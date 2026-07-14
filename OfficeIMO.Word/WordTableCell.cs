@@ -910,7 +910,10 @@ namespace OfficeIMO.Word {
         /// <param name="style">List style to apply.</param>
         /// <returns>The created <see cref="WordList"/>.</returns>
         public WordList AddList(WordListStyle style) {
-            WordList wordList = new WordList(this._document, this.Paragraphs.Last());
+            var paragraphs = this.Paragraphs;
+            WordList wordList = paragraphs.Count > 0
+                ? new WordList(this._document, paragraphs[paragraphs.Count - 1])
+                : new WordList(this._document, this._tableCell);
             wordList.AddList(style);
             return wordList;
         }

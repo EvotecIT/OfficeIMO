@@ -95,18 +95,27 @@ internal sealed class OfficeMarkupWordExporter {
 
     private static void AddList(WordExportContext context, OfficeMarkupListBlock list) {
         if (context.CurrentSection != null) {
-            for (var index = 0; index < list.Items.Count; index++) {
-                var item = list.Items[index];
-                var prefix = list.Ordered ? $"{list.Start + index}. " : "- ";
-                context.CurrentSection.AddParagraph(prefix + item.Text);
+            foreach (var entry in OfficeMarkupListTraversal.Enumerate(list)) {
+                string indent = new string(' ', entry.Depth * 2);
+                context.CurrentSection.AddParagraph(indent + entry.Marker + " " + entry.Item.Text);
             }
 
             return;
         }
 
-        var wordList = list.Ordered ? context.Document.AddListNumbered() : context.Document.AddListBulleted();
-        foreach (var item in list.Items) {
-            wordList.AddItem(item.Text);
+        var wordLists = new Dictionary<OfficeMarkupListBlock, WordList>();
+        foreach (var entry in OfficeMarkupListTraversal.Enumerate(list)) {
+            if (!wordLists.TryGetValue(entry.SourceList, out var wordList)) {
+                wordList = entry.SourceList.Ordered
+                    ? context.Document.AddListNumbered()
+                    : context.Document.AddListBulleted();
+                if (entry.SourceList.Ordered && entry.SourceList.Start != 1) {
+                    wordList.SetStartNumberingValue(entry.SourceList.Start, entry.Depth);
+                }
+                wordLists.Add(entry.SourceList, wordList);
+            }
+
+            wordList.AddItem(entry.Item.Text, entry.Depth);
         }
     }
 
