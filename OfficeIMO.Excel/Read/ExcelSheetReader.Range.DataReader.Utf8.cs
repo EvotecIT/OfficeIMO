@@ -135,12 +135,14 @@ namespace OfficeIMO.Excel {
                 out double doubleValue,
                 out DateTime dateTimeValue,
                 out bool booleanValue,
+                out bool isFormulaText,
                 out object? objectValue) {
                 EnsureNotDisposed();
                 primitiveKind = XmlDataReaderPrimitiveKind.None;
                 doubleValue = 0;
                 dateTimeValue = default;
                 booleanValue = false;
+                isFormulaText = false;
                 objectValue = null;
 
                 int cellIndex = _currentRowOffset + ordinal;
@@ -157,6 +159,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (useFormula) {
+                    isFormulaText = true;
                     objectValue = DecodeString(start, length);
                     return;
                 }

@@ -522,14 +522,14 @@ namespace OfficeIMO.Excel {
                         out _currentDoubleValues[ordinal],
                         out _currentDateTimeValues[ordinal],
                         out _currentBooleanValues[ordinal],
+                        out _,
                         out _currentValues[ordinal]);
                     _currentValueLoaded[ordinal] = true;
                     return;
                 }
 
                 if (!_currentRowActive || _currentRowFinished) {
-                    _currentValues[ordinal] = null;
-                    _currentValueLoaded[ordinal] = true;
+                    MarkCurrentValueMissing(ordinal);
                     return;
                 }
 
@@ -596,8 +596,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (!_currentValueLoaded[ordinal]) {
-                    _currentValues[ordinal] = null;
-                    _currentValueLoaded[ordinal] = true;
+                    MarkCurrentValueMissing(ordinal);
                 }
             }
 
@@ -654,10 +653,15 @@ namespace OfficeIMO.Excel {
 
                 for (int i = 0; i < _currentValueLoaded.Length; i++) {
                     if (!_currentValueLoaded[i]) {
-                        _currentValues[i] = null;
-                        _currentValueLoaded[i] = true;
+                        MarkCurrentValueMissing(i);
                     }
                 }
+            }
+
+            private void MarkCurrentValueMissing(int ordinal) {
+                _currentValues[ordinal] = null;
+                _currentPrimitiveKinds[ordinal] = XmlDataReaderPrimitiveKind.None;
+                _currentValueLoaded[ordinal] = true;
             }
 
             private void BufferRemainingRows() {

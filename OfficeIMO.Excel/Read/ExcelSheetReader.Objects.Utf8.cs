@@ -39,6 +39,7 @@ namespace OfficeIMO.Excel {
                             out _,
                             out _,
                             out _,
+                            out _,
                             out headerValues[columnOffset]);
                     }
 
@@ -115,6 +116,7 @@ namespace OfficeIMO.Excel {
                 out double doubleValue,
                 out DateTime dateTimeValue,
                 out bool booleanValue,
+                out bool isFormulaText,
                 out object? objectValue);
 
             switch (primitiveKind) {
@@ -142,6 +144,14 @@ namespace OfficeIMO.Excel {
                     }
 
                     return;
+            }
+
+            if (isFormulaText) {
+                if (binding.BindingKind == TypedBindingKind.String && binding.SetString != null) {
+                    binding.SetString(target, objectValue as string);
+                }
+
+                return;
             }
 
             if (objectValue == null) {

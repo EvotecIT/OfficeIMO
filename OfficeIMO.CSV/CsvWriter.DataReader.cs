@@ -88,7 +88,14 @@ internal static partial class CsvWriter
                     WriteEscapedDefault(buffer, text, delimiter);
                     break;
                 case DataReaderFieldKind.Boolean when value is bool boolean:
-                    buffer.Append(boolean ? "True" : "False");
+                    if (delimiter == ',')
+                    {
+                        buffer.Append(boolean ? "True" : "False");
+                    }
+                    else
+                    {
+                        WriteEscapedDefault(buffer, boolean ? "True" : "False", delimiter);
+                    }
                     break;
                 case DataReaderFieldKind.Decimal when value is decimal number:
                     AppendKnownValueDefault(buffer, number, delimiter, culture);

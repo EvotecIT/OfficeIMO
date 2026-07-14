@@ -151,12 +151,11 @@ namespace OfficeIMO.Excel {
             }
 
             ct.ThrowIfCancellationRequested();
-            MemoryStream? nonSeekableBuffer = null;
-            Stream writeTarget = destination;
-            if (!destination.CanSeek) {
-                nonSeekableBuffer = new MemoryStream();
-                writeTarget = nonSeekableBuffer;
-            }
+            bool destinationBacksOpenPackage = ReferenceEquals(destination, _packageStream);
+            using MemoryStream? stagedPackage = !destination.CanSeek || destinationBacksOpenPackage
+                ? new MemoryStream()
+                : null;
+            Stream writeTarget = stagedPackage ?? destination;
 
             PrepareDestinationStreamForWrite(writeTarget);
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.PrepareDestination");
@@ -164,11 +163,17 @@ namespace OfficeIMO.Excel {
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.WritePackage");
 
             writeTarget.Flush();
-            if (nonSeekableBuffer != null) {
-                nonSeekableBuffer.Position = 0;
-                nonSeekableBuffer.CopyTo(destination);
+            if (stagedPackage != null) {
+                stagedPackage.Position = 0;
+                if (destinationBacksOpenPackage) {
+                    PrepareDestinationStreamForWrite(destination);
+                }
+
+                stagedPackage.CopyTo(destination);
                 destination.Flush();
-                nonSeekableBuffer.Dispose();
+                if (destination.CanSeek) {
+                    destination.Seek(0, SeekOrigin.Begin);
+                }
             } else {
                 destination.Seek(0, SeekOrigin.Begin);
             }
