@@ -67,7 +67,11 @@ namespace OfficeIMO.Excel {
                         DirectDataSetWorkbookWriter.WriteExtendedWorksheet(archive, directWritePlan, directSheetModel, part.Path, tableRelationshipId, ct);
                         ReportTiming("Save.ExtendedPackage.WriteDirectWorksheet");
                     } else if (part.CopyRawPart) {
+#if NET472
+                        WriteRawPartEntry(archive, part.Path, part.RawBytes!);
+#else
                         WriteRawPartEntry(archive, part.Path, part.Part);
+#endif
                         ReportTiming("Save.ExtendedPackage.WriteRawPart");
                     } else if (part.Part is WorksheetPart worksheetPart
                         && CanWriteSimpleWorksheet(worksheetPart, worksheetPart.Worksheet!, out _, allowDrawings: true, allowPivotTables: true)) {

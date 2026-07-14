@@ -198,7 +198,7 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
-                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, copyRawPart: false);
+                    model = new ExtendedPartModel(part, path, part.ContentType, rootElement, copyRawPart: false, rawBytes: null);
                 }
 
                 parts.Add(model);
@@ -215,12 +215,13 @@ namespace OfficeIMO.Excel {
         }
 
         private sealed class ExtendedPartModel {
-            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, bool copyRawPart) {
+            internal ExtendedPartModel(OpenXmlPart part, string path, string contentType, OpenXmlElement? rootElement, bool copyRawPart, byte[]? rawBytes) {
                 Part = part;
                 Path = path;
                 ContentType = contentType;
                 RootElement = rootElement;
                 CopyRawPart = copyRawPart;
+                RawBytes = rawBytes;
             }
 
             internal OpenXmlPart Part { get; }
@@ -233,6 +234,7 @@ namespace OfficeIMO.Excel {
 
             internal bool CopyRawPart { get; }
 
+            internal byte[]? RawBytes { get; }
         }
 
         private sealed class ExtendedRelationshipModel {
@@ -304,13 +306,26 @@ namespace OfficeIMO.Excel {
                 return false;
             }
 
+            byte[]? rawBytes = null;
             using (var source = part.GetStream(FileMode.Open, FileAccess.Read)) {
                 if (source.CanSeek && source.Length == 0) {
                     return false;
                 }
+
+#if NET472
+                // System.IO.Packaging cannot reliably reopen a newly written compressed part.
+                // Snapshot it on the first read; modern targets keep the allocation-free streaming path.
+                using var buffer = new MemoryStream();
+                source.CopyTo(buffer);
+                if (buffer.Length == 0) {
+                    return false;
+                }
+
+                rawBytes = buffer.ToArray();
+#endif
             }
 
-            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, copyRawPart: true);
+            model = new ExtendedPartModel(part, path, part.ContentType, rootElement: null, copyRawPart: true, rawBytes);
             return true;
         }
 
