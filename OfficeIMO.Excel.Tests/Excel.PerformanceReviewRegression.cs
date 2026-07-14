@@ -5530,6 +5530,9 @@ namespace OfficeIMO.Tests {
                     dataFields: new[] { new ExcelPivotDataField("Score", DataConsolidateFunctionValues.Sum, "Total Score") });
 
                 document.Save(memory);
+
+                Assert.Equal(ExcelSavePackageWriter.ExtendedPackage, document.LastSaveDiagnostics.Writer);
+                Assert.True(document.LastSaveDiagnostics.UsedFastPackageWriter);
             }
 
             memory.Position = 0;
