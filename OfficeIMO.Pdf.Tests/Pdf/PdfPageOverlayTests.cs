@@ -93,6 +93,27 @@ public class PdfPageOverlayTests {
     }
 
     [Fact]
+    public void OverlayPage_MapsVisualPlacementIntoRotatedTargetCropCoordinates() {
+        byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Imported geometry")).ToBytes();
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Rotated target")).ToBytes();
+        target = PdfPageEditor.SetCropBox(target, 10D, 20D, 610D, 780D, 1);
+        target = PdfPageEditor.RotatePages(target, 90, 1);
+
+        byte[] result = PdfStamper.OverlayPage(target, source);
+        var (objects, _) = PdfSyntax.ParseObjects(result);
+        PdfStream stamp = objects.Values
+            .Select(static indirect => indirect.Value)
+            .OfType<PdfStream>()
+            .Single(stream => PdfEncoding.Latin1GetString(stream.Data).Contains("/OIMOStamp", StringComparison.Ordinal));
+        string content = PdfEncoding.Latin1GetString(stamp.Data);
+
+        Assert.Contains("0 -1 1 0 10 780 cm", content, StringComparison.Ordinal);
+        string extracted = PdfReadDocument.Load(result).Pages[0].ExtractText();
+        Assert.Contains("Imported", extracted, StringComparison.Ordinal);
+        Assert.Contains("geometry", extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FluentOverlayPage_SupportsPathAndStreamSources() {
         byte[] source = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Reusable overlay")).ToBytes();
         byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target")).ToBytes();

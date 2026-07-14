@@ -17,6 +17,10 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
     private const string Sha256WithRsaOid = "1.2.840.113549.1.1.11";
     private const string Sha384WithRsaOid = "1.2.840.113549.1.1.12";
     private const string Sha512WithRsaOid = "1.2.840.113549.1.1.13";
+    private const string EcdsaWithSha1Oid = "1.2.840.10045.4.1";
+    private const string EcdsaWithSha256Oid = "1.2.840.10045.4.3.2";
+    private const string EcdsaWithSha384Oid = "1.2.840.10045.4.3.3";
+    private const string EcdsaWithSha512Oid = "1.2.840.10045.4.3.4";
     private readonly PdfPkcsSignatureValidationOptions _options;
 
     /// <summary>Creates a provider using caller policy or conservative no-network defaults.</summary>
@@ -47,7 +51,15 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
         }
 
         bool encapsulatedSha1 = string.Equals(input.Signature.SubFilter, "adbe.pkcs7.sha1", StringComparison.Ordinal);
+        if (!encapsulatedSha1 && cms.EncapsulatedContent != null) {
+            findings.Add(Finding(PdfDiagnosticSeverity.Error, "CmsDetachedContentExpected", "Detached PDF signatures must not carry encapsulated CMS content."));
+            return InvalidResult(findings);
+        }
+
         byte[] cmsContent = cms.EncapsulatedContent ?? input.SignedContent;
+        if (cms.SignedAttributes != null && cms.MessageDigest == null) {
+            findings.Add(Finding(PdfDiagnosticSeverity.Error, "CmsMessageDigestMissing", "CMS signed attributes must include a message-digest attribute that binds them to the PDF signed byte ranges."));
+        }
         PdfCryptographicValidationStatus digestStatus = VerifyMessageDigest(cms, cmsContent);
         if (encapsulatedSha1) {
             digestStatus = cms.EncapsulatedContent != null && FixedTimeEquals(Hash(input.SignedContent, HashAlgorithmName.SHA1), cms.EncapsulatedContent)
@@ -88,6 +100,7 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
     }
 
     private static PdfCryptographicValidationStatus VerifyMessageDigest(PdfManagedCmsDocument cms, byte[] content) {
+        if (cms.SignedAttributes != null && cms.MessageDigest == null) return PdfCryptographicValidationStatus.Invalid;
         if (cms.MessageDigest == null) return PdfCryptographicValidationStatus.Valid;
         if (!TryGetHashAlgorithm(cms.DigestAlgorithmOid, out HashAlgorithmName algorithm)) return PdfCryptographicValidationStatus.Indeterminate;
         return FixedTimeEquals(Hash(content, algorithm), cms.MessageDigest)
@@ -104,19 +117,27 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
             findings.Add(Finding(PdfDiagnosticSeverity.Error, "CmsSignerMissing", "CMS signer certificate was not embedded or supplied by caller policy."));
             return PdfCryptographicValidationStatus.Invalid;
         }
-        if (!TryGetHashAlgorithm(cms.DigestAlgorithmOid, out HashAlgorithmName algorithm) || !IsRsaSignatureAlgorithm(cms.SignatureAlgorithmOid)) {
+        if (!TryGetHashAlgorithm(cms.DigestAlgorithmOid, out HashAlgorithmName algorithm)) {
             findings.Add(Finding(PdfDiagnosticSeverity.Warning, "CmsAlgorithmUnsupported", "CMS digest or signature algorithm is not supported by the managed provider."));
             return PdfCryptographicValidationStatus.Indeterminate;
         }
-        using RSA? rsa = certificate.GetRSAPublicKey();
-        if (rsa == null) {
-            findings.Add(Finding(PdfDiagnosticSeverity.Warning, "CmsAlgorithmUnsupported", "CMS signer certificate does not expose an RSA public key."));
-            return PdfCryptographicValidationStatus.Indeterminate;
-        }
+        byte[] signedData = cms.SignedAttributes ?? content;
         bool valid;
         try {
-            valid = rsa.VerifyData(cms.SignedAttributes ?? content, cms.SignatureValue, algorithm, RSASignaturePadding.Pkcs1);
-        } catch (CryptographicException) {
+            if (IsRsaSignatureAlgorithm(cms.SignatureAlgorithmOid)) {
+                using RSA? rsa = certificate.GetRSAPublicKey();
+                if (rsa == null) return UnsupportedSignerKey(findings, "RSA");
+                valid = rsa.VerifyData(signedData, cms.SignatureValue, algorithm, RSASignaturePadding.Pkcs1);
+            } else if (IsEcdsaSignatureAlgorithm(cms.SignatureAlgorithmOid)) {
+                using ECDsa? ecdsa = certificate.GetECDsaPublicKey();
+                if (ecdsa == null) return UnsupportedSignerKey(findings, "ECDSA");
+                byte[] signature = ConvertDerEcdsaSignatureToP1363(cms.SignatureValue, ecdsa.KeySize);
+                valid = ecdsa.VerifyData(signedData, signature, algorithm);
+            } else {
+                findings.Add(Finding(PdfDiagnosticSeverity.Warning, "CmsAlgorithmUnsupported", "CMS digest or signature algorithm is not supported by the managed provider."));
+                return PdfCryptographicValidationStatus.Indeterminate;
+            }
+        } catch (Exception ex) when (ex is CryptographicException || ex is InvalidDataException || ex is ArgumentException) {
             valid = false;
         }
         if (!valid) findings.Add(Finding(PdfDiagnosticSeverity.Error, "CmsSignatureInvalid", "CMS mathematical signature validation failed."));
@@ -216,6 +237,25 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
         }
     }
     private static bool IsRsaSignatureAlgorithm(string oid) => oid == RsaEncryptionOid || oid == Sha1WithRsaOid || oid == Sha256WithRsaOid || oid == Sha384WithRsaOid || oid == Sha512WithRsaOid;
+    private static bool IsEcdsaSignatureAlgorithm(string oid) => oid == EcdsaWithSha1Oid || oid == EcdsaWithSha256Oid || oid == EcdsaWithSha384Oid || oid == EcdsaWithSha512Oid;
+    private static PdfCryptographicValidationStatus UnsupportedSignerKey(List<PdfSignatureCryptographicFinding> findings, string algorithm) {
+        findings.Add(Finding(PdfDiagnosticSeverity.Warning, "CmsAlgorithmUnsupported", "CMS signer certificate does not expose an " + algorithm + " public key."));
+        return PdfCryptographicValidationStatus.Indeterminate;
+    }
+    private static byte[] ConvertDerEcdsaSignatureToP1363(byte[] encoded, int keySize) {
+        var root = new PdfDerReader(encoded);
+        var sequence = root.Read(0x30).Reader();
+        byte[] r = PdfManagedCmsDocument.NormalizeInteger(sequence.Read(0x02).Content());
+        byte[] s = PdfManagedCmsDocument.NormalizeInteger(sequence.Read(0x02).Content());
+        sequence.EnsureEnd();
+        root.EnsureEnd();
+        int fieldLength = checked((keySize + 7) / 8);
+        if (r.Length > fieldLength || s.Length > fieldLength) throw new InvalidDataException("ECDSA signature component exceeds the signer key size.");
+        var result = new byte[fieldLength * 2];
+        Buffer.BlockCopy(r, 0, result, fieldLength - r.Length, r.Length);
+        Buffer.BlockCopy(s, 0, result, result.Length - s.Length, s.Length);
+        return result;
+    }
     #pragma warning disable CA5350 // SHA-1 is required only to validate legacy authored PDF signatures.
     private static byte[] Hash(byte[] data, HashAlgorithmName algorithm) {
         using HashAlgorithm hash = algorithm == HashAlgorithmName.SHA1 ? SHA1.Create() : algorithm == HashAlgorithmName.SHA256 ? SHA256.Create() : algorithm == HashAlgorithmName.SHA384 ? SHA384.Create() : algorithm == HashAlgorithmName.SHA512 ? SHA512.Create() : throw new NotSupportedException("Hash algorithm is not supported.");

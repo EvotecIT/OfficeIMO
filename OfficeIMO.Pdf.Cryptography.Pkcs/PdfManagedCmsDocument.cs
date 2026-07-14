@@ -177,9 +177,27 @@ internal sealed class PdfManagedCmsDocument {
 
     internal static DateTimeOffset? ReadTime(PdfDerElement value) {
         string text = Encoding.ASCII.GetString(value.Content());
-        string format = value.Tag == 0x17 ? "yyMMddHHmmss'Z'" : value.Tag == 0x18 ? "yyyyMMddHHmmss'Z'" : string.Empty;
-        if (format.Length == 0 || !DateTimeOffset.TryParseExact(text, format, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset result)) return null;
-        return result;
+        if (value.Tag == 0x17) {
+            return DateTimeOffset.TryParseExact(text, "yyMMddHHmmss'Z'", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset utcTime)
+                ? utcTime
+                : null;
+        }
+        if (value.Tag != 0x18 || text.Length < 15 || text[text.Length - 1] != 'Z') return null;
+        string valueWithoutZone = text.Substring(0, text.Length - 1);
+        string wholeSeconds = valueWithoutZone;
+        string fraction = string.Empty;
+        int separator = valueWithoutZone.IndexOf('.');
+        if (separator >= 0) {
+            wholeSeconds = valueWithoutZone.Substring(0, separator);
+            fraction = valueWithoutZone.Substring(separator + 1);
+            if (fraction.Length == 0 || fraction.Any(static character => character < '0' || character > '9')) return null;
+        }
+        if (!DateTimeOffset.TryParseExact(wholeSeconds + "Z", "yyyyMMddHHmmss'Z'", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset generalizedTime)) return null;
+        if (fraction.Length == 0) return generalizedTime;
+        string ticksText = fraction.Length >= 7 ? fraction.Substring(0, 7) : fraction.PadRight(7, '0');
+        return long.TryParse(ticksText, NumberStyles.None, CultureInfo.InvariantCulture, out long ticks)
+            ? generalizedTime.AddTicks(ticks)
+            : null;
     }
 
     internal static byte[] NormalizeInteger(byte[] value) {

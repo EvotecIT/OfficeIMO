@@ -100,8 +100,9 @@ public static partial class PdfStamper {
             int pageNumber = pageIndex + 1;
             if (!selectedSet.Contains(pageNumber)) continue;
             PdfReadPage targetPage = target.Pages[pageIndex];
-            (double targetWidth, double targetHeight, _) = targetPage.GetImportGeometry();
-            PdfStream stamp = BuildImportedPageStampStream(formResourceName, graphicsStateResourceName, sourceWidth, sourceHeight, targetWidth, targetHeight, options);
+            (double targetWidth, double targetHeight, Matrix2D targetUserToVisual) = targetPage.GetImportGeometry();
+            Matrix2D targetVisualToUser = Invert(targetUserToVisual);
+            PdfStream stamp = BuildImportedPageStampStream(formResourceName, graphicsStateResourceName, sourceWidth, sourceHeight, targetWidth, targetHeight, targetVisualToUser, options);
             int stampObjectNumber = nextObjectNumber++;
             targetObjects[stampObjectNumber] = new PdfIndirectObject(stampObjectNumber, 0, stamp);
             overrides[targetPage.ObjectNumber] = BuildImportedPageOverrides(
@@ -153,6 +154,7 @@ public static partial class PdfStamper {
         double sourceHeight,
         double targetPageWidth,
         double targetPageHeight,
+        Matrix2D targetVisualToUser,
         PdfPageOverlayOptions options) {
         double frameWidth = options.Width ?? targetPageWidth;
         double frameHeight = options.Height ?? targetPageHeight;
@@ -187,6 +189,9 @@ public static partial class PdfStamper {
         double drawY = AlignVertical(frameY, frameHeight, drawHeight, options.VerticalAlignment);
         var builder = new StringBuilder();
         var content = new ContentStreamBuilder(builder).SaveState();
+        if (!IsIdentity(targetVisualToUser)) {
+            content.TransformMatrix(targetVisualToUser.A, targetVisualToUser.B, targetVisualToUser.C, targetVisualToUser.D, targetVisualToUser.E, targetVisualToUser.F);
+        }
         if (options.Fit == PdfPageOverlayFit.Cover) content.Rectangle(frameX, frameY, frameWidth, frameHeight).ClipPath().EndPath();
         if (graphicsStateResourceName != null) content.GraphicsState(graphicsStateResourceName);
         content.TransformMatrix(drawWidth / sourceWidth, 0D, 0D, drawHeight / sourceHeight, drawX, drawY)
@@ -194,6 +199,23 @@ public static partial class PdfStamper {
             .RestoreState();
         return new PdfStream(new PdfDictionary(), PdfEncoding.Latin1GetBytes(builder.ToString()));
     }
+
+    private static Matrix2D Invert(Matrix2D matrix) {
+        double determinant = (matrix.A * matrix.D) - (matrix.B * matrix.C);
+        if (Math.Abs(determinant) < 0.000000000001D) throw new InvalidOperationException("Target page geometry transform cannot be inverted.");
+        return new Matrix2D(
+            matrix.D / determinant,
+            -matrix.B / determinant,
+            -matrix.C / determinant,
+            matrix.A / determinant,
+            ((matrix.C * matrix.F) - (matrix.D * matrix.E)) / determinant,
+            ((matrix.B * matrix.E) - (matrix.A * matrix.F)) / determinant);
+    }
+
+    private static bool IsIdentity(Matrix2D matrix) =>
+        Math.Abs(matrix.A - 1D) < 0.000000000001D && Math.Abs(matrix.B) < 0.000000000001D &&
+        Math.Abs(matrix.C) < 0.000000000001D && Math.Abs(matrix.D - 1D) < 0.000000000001D &&
+        Math.Abs(matrix.E) < 0.000000000001D && Math.Abs(matrix.F) < 0.000000000001D;
 
     private static Dictionary<string, PdfObject> BuildImportedPageOverrides(
         Dictionary<int, PdfIndirectObject> objects,
