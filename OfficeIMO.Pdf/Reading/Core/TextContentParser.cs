@@ -945,6 +945,9 @@ internal static class TextContentParser {
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     color = ReadCmyk(startIndex);
                     return true;
+                case PdfPageColorSpaceKind.Lab:
+                    color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
+                    return true;
                 default:
                     color = ReadGray(startIndex);
                     return true;
@@ -962,7 +965,14 @@ internal static class TextContentParser {
                     return true;
                 case "DeviceGray":
                 case "G":
+                case "CalGray":
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return true;
+                case "CalRGB":
+                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    return true;
+                case "Lab":
+                    colorSpace = PdfPageColorSpaceKind.Lab;
                     return true;
                 default:
                     if (colorSpaces != null && colorSpaces.TryGetValue(name, out colorSpace)) {
@@ -976,6 +986,7 @@ internal static class TextContentParser {
         static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
             switch (colorSpace) {
                 case PdfPageColorSpaceKind.DeviceRgb:
+                case PdfPageColorSpaceKind.Lab:
                     return 3;
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     return 4;
@@ -1536,6 +1547,9 @@ internal static class TextContentParser {
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     color = ReadCmyk(startIndex);
                     return true;
+                case PdfPageColorSpaceKind.Lab:
+                    color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
+                    return true;
                 default:
                     color = ReadGray(startIndex);
                     return true;
@@ -1554,7 +1568,14 @@ internal static class TextContentParser {
                     return true;
                 case "DeviceGray":
                 case "G":
+                case "CalGray":
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return true;
+                case "CalRGB":
+                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    return true;
+                case "Lab":
+                    colorSpace = PdfPageColorSpaceKind.Lab;
                     return true;
                 default:
                     if (colorSpaces != null && colorSpaces.TryGetValue(name, out colorSpace)) {
@@ -1569,6 +1590,7 @@ internal static class TextContentParser {
         static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
             switch (colorSpace) {
                 case PdfPageColorSpaceKind.DeviceRgb:
+                case PdfPageColorSpaceKind.Lab:
                     return 3;
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     return 4;

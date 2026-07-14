@@ -44,6 +44,65 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
+    /// Adds a replayable plain-text table whose rows are enumerated and laid out in bounded batches.
+    /// </summary>
+    /// <remarks>
+    /// The row factory is deferred until rendering and may be invoked more than once by validation and output passes,
+    /// so it must return a fresh, equivalent sequence on every call. Header rows are repeated across pages and batches;
+    /// footer rows, the caption, trailing spacing, and keep-with-next behavior are emitted only at the logical table edges.
+    /// Automatic content-based column fitting is intentionally unsupported because it requires a global table scan;
+    /// use fixed or weighted column widths instead. Row spans must remain within a batch, and every batch must resolve
+    /// to the same logical column count.
+    /// </remarks>
+    /// <param name="rowFactory">Factory that returns a fresh sequence of table rows for each render pass.</param>
+    /// <param name="batchSize">Maximum number of body rows materialized for one layout batch.</param>
+    /// <param name="align">Table alignment in the document flow.</param>
+    /// <param name="style">Optional table style.</param>
+    public PdfDocument TableDeferred(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
+        Guard.NotNull(rowFactory, nameof(rowFactory));
+        AddBlock(new DeferredTableBlock(() => ConvertDeferredTextRows(rowFactory), batchSize, align, style));
+        return this;
+    }
+
+    /// <summary>
+    /// Adds a replayable rich-cell table whose rows are enumerated and laid out in bounded batches.
+    /// </summary>
+    /// <remarks>
+    /// The row factory is deferred until rendering and may be invoked more than once by validation and output passes,
+    /// so it must return a fresh, equivalent sequence on every call. Automatic content-based column fitting is not
+    /// available on this bounded path; configure fixed or weighted column widths. Row spans must remain within a batch,
+    /// and every batch must resolve to the same logical column count.
+    /// </remarks>
+    /// <param name="rowFactory">Factory that returns a fresh sequence of rich table rows for each render pass.</param>
+    /// <param name="batchSize">Maximum number of body rows materialized for one layout batch.</param>
+    /// <param name="align">Table alignment in the document flow.</param>
+    /// <param name="style">Optional table style.</param>
+    public PdfDocument TableDeferred(System.Func<System.Collections.Generic.IEnumerable<PdfTableCell[]>> rowFactory, int batchSize = 256, PdfAlign align = PdfAlign.Left, PdfTableStyle? style = null) {
+        AddBlock(new DeferredTableBlock(rowFactory, batchSize, align, style));
+        return this;
+    }
+
+    private static System.Collections.Generic.IEnumerable<PdfTableCell[]> ConvertDeferredTextRows(System.Func<System.Collections.Generic.IEnumerable<string[]>> rowFactory) {
+        System.Collections.Generic.IEnumerable<string[]>? rows = rowFactory();
+        if (rows == null) {
+            throw new System.InvalidOperationException("Deferred table row factory returned null.");
+        }
+
+        foreach (string[]? row in rows) {
+            if (row == null) {
+                throw new System.ArgumentException("Deferred table rows cannot contain null entries.", nameof(rowFactory));
+            }
+
+            var cells = new PdfTableCell[row.Length];
+            for (int cellIndex = 0; cellIndex < row.Length; cellIndex++) {
+                cells[cellIndex] = new PdfTableCell(row[cellIndex]);
+            }
+
+            yield return cells;
+        }
+    }
+
+    /// <summary>
     /// Adds a two-column label/value table for document metadata, invoice facts, definition lists, and similar report sections.
     /// </summary>
     /// <param name="rows">Plain text label/value rows.</param>

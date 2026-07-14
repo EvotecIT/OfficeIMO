@@ -49,6 +49,47 @@ public class PdfDocumentIOTests {
     }
 
     [Fact]
+    public void Save_DirectStreamOutputMatchesByteArrayAssemblyAndOverwritesDestination() {
+        PdfDocument document = BuildDocument("Direct stream parity");
+        byte[] expected = document.ToBytes();
+        using var stream = new MemoryStream(new byte[expected.Length + 500]);
+
+        document.Save(stream);
+
+        Assert.Equal(expected.LongLength, stream.Length);
+        Assert.Equal(0, stream.Position);
+        Assert.Equal(expected, stream.ToArray());
+    }
+
+    [Fact]
+    public void Save_DirectStreamOutputSupportsGeneratedEncryption() {
+        PdfDocument document = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
+            .Paragraph(paragraph => paragraph.Text("Direct encrypted stream"));
+        using var stream = new MemoryStream();
+
+        document.Save(stream);
+
+        byte[] bytes = stream.ToArray();
+        Assert.True(PdfInspector.Probe(bytes).HasEncryption);
+        Assert.Contains(
+            "Direct encrypted stream",
+            PdfTextExtractor.ExtractAllText(bytes, (PdfTextLayoutOptions?)null, new PdfReadOptions { Password = "open" }),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Save_WritesGeneratedPdfToNonSeekableStreamWithValidOffsets() {
+        using var stream = new NonSeekableWriteStream();
+
+        PdfSaveResult result = BuildDocument("Non-seekable stream").TrySave(stream);
+        byte[] bytes = stream.ToArray();
+
+        Assert.True(result.Succeeded, string.Join(" ", result.Diagnostics));
+        Assert.Equal(bytes.LongLength, result.BytesWritten);
+        Assert.Equal("Non-seekable stream", PdfInspector.Inspect(bytes).Metadata.Title);
+    }
+
+    [Fact]
     public async Task SaveAsync_WritesPdfToWritableStream() {
         using var stream = new MemoryStream();
 
@@ -176,5 +217,25 @@ public class PdfDocumentIOTests {
         return PdfDocument.Create()
             .Meta(title: title, author: "OfficeIMO")
             .Paragraph(p => p.Text("PDF stream output."));
+    }
+
+    private sealed class NonSeekableWriteStream : Stream {
+        private readonly MemoryStream _inner = new MemoryStream();
+
+        public byte[] ToArray() => _inner.ToArray();
+        public override bool CanRead => false;
+        public override bool CanSeek => false;
+        public override bool CanWrite => true;
+        public override long Length => throw new NotSupportedException();
+        public override long Position { get => throw new NotSupportedException(); set => throw new NotSupportedException(); }
+        public override void Flush() => _inner.Flush();
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => _inner.Write(buffer, offset, count);
+        protected override void Dispose(bool disposing) {
+            if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
     }
 }

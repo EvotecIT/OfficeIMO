@@ -5,7 +5,20 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
-        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
+        private void RenderDeferredTableFlowBlock(DeferredTableBlock deferredTable, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex) {
+            PdfTableStyle style = deferredTable.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            foreach (DeferredTableBatch batch in deferredTable.CreateBatches(style)) {
+                RenderTableFlowBlock(
+                    batch.Table,
+                    batch.IsLast ? nextBlock : null,
+                    blockList,
+                    blockIndex,
+                    skipInitialHeaderRows: !batch.IsFirst,
+                    bodyRowOffset: batch.BodyRowOffset);
+            }
+        }
+
+        private void RenderTableFlowBlock(TableBlock tb, IPdfBlock? nextBlock, System.Collections.Generic.IList<IPdfBlock> blockList, int blockIndex, bool skipInitialHeaderRows = false, int bodyRowOffset = 0) {
             PdfTableStyle style = tb.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
             int cols = GetTableColumnCount(tb);
             if (cols == 0) return;
@@ -356,19 +369,21 @@ internal static partial class PdfWriter {
                 rowLineCounts[rowIndex] > 1 &&
                 MeasureTableRowSegmentHeight(rowIndex, 0, Math.Min(2, rowLineCounts[rowIndex]), suppressCellObjects: false) <= y - currentOpts.MarginBottom + 0.001;
 
-            bool ShouldBreakBeforePenultimateBodyRow(int rowIndex) {
-                if (rowIndex + 1 >= rowHeights.Length) {
+            bool ShouldBreakBeforeFinalBodyRows(int rowIndex) {
+                int minimumBodyRows = Math.Min(style.MinimumBodyRowsOnLastPage, Math.Max(0, footerStartRowIndex - headerRowCount));
+                if (minimumBodyRows <= 0 || footerStartRowIndex - rowIndex != minimumBodyRows) {
                     return false;
                 }
 
                 double currentRowHeight = rowHeights[rowIndex] + GetTableRowGapAfter(rowIndex, tb.Rows.Count, rowGapPx);
-                double nextRowHeight = rowHeights[rowIndex + 1] + GetTableRowGapAfter(rowIndex + 1, tb.Rows.Count, rowGapPx);
-                return ShouldBreakBeforePenultimateTableBodyRow(
+                double finalGroupHeight = GetTableRowsHeight(rowHeights, rowIndex, rowHeights.Length, rowGapPx);
+                return ShouldBreakBeforeFinalTableBodyRows(
                     rowIndex,
                     headerRowCount,
                     footerStartRowIndex,
+                    minimumBodyRows,
                     currentRowHeight,
-                    nextRowHeight,
+                    finalGroupHeight,
                     y - currentOpts.MarginBottom,
                     hasRepeatableHeader ? repeatHeaderHeight : 0D,
                     maxContentHeight,
@@ -392,7 +407,7 @@ internal static partial class PdfWriter {
                 double rowHeight = wholeRowSegment ? rowHeights[rowIndex] : MeasureTableRowSegmentHeight(rowIndex, startLine, lineCount, suppressCellObjects);
                 double rowBottom = y - rowHeight;
                 if (currentOpts.Debug?.ShowTableRowBoxes == true) { pageDirty = true; DrawRowRect(sb, new PdfColor(1, 0, 1), 0.6, xOrigin, rowBottom, tableWidth, rowHeight); }
-                int bodyRowIndex = rowIndex - headerRowCount;
+                int bodyRowIndex = bodyRowOffset + rowIndex - headerRowCount;
                 bool stripeBodyRow = bodyRowIndex >= 0 && bodyRowIndex % 2 == 1;
                 bool[] rowFillSkips = GetRowSpanContinuationSkipColumns(tb, rowIndex, cols);
                 if (style?.HeaderFill is not null && renderAsHeader) { pageDirty = true; DrawTableRowFill(sb, style.HeaderFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); } else if (style?.FooterFill is not null && renderAsFooter) { pageDirty = true; DrawTableRowFill(sb, style.FooterFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); } else if (!renderAsHeader && !renderAsFooter && style?.RowStripeFill is not null && stripeBodyRow) { pageDirty = true; DrawTableRowFill(sb, style.RowStripeFill.Value, xOrigin, colPixel, colGapPx, rowBottom, rowHeight, rowFillSkips, emitGeneratedStructure); }
@@ -670,7 +685,8 @@ internal static partial class PdfWriter {
                 }
             }
 
-            for (int rowIndex = 0; rowIndex < tb.Rows.Count; rowIndex++) {
+            int firstRowIndex = skipInitialHeaderRows ? headerRowCount : 0;
+            for (int rowIndex = firstRowIndex; rowIndex < tb.Rows.Count; rowIndex++) {
                 if (rowHeights[rowIndex] > maxContentHeight + 0.001) {
                     if (!GetTableRowAllowBreakAcrossPages(style, rowIndex)) {
                         throw new ArgumentException("Table row height exceeds the available page content height and row splitting is disabled.");
@@ -689,7 +705,7 @@ internal static partial class PdfWriter {
                     }
 
                     NewTablePage(rowIndex);
-                } else if (ShouldBreakBeforePenultimateBodyRow(rowIndex)) {
+                } else if (ShouldBreakBeforeFinalBodyRows(rowIndex)) {
                     NewTablePage(rowIndex);
                 }
 

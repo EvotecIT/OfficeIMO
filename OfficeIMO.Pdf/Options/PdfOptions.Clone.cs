@@ -86,6 +86,7 @@ public sealed partial class PdfOptions {
             DefaultPanelStyle = _defaultPanelStyle?.Clone(),
             DefaultHorizontalRuleStyle = _defaultHorizontalRuleStyle?.Clone(),
             DefaultImageStyle = _defaultImageStyle?.Clone(),
+            ImageOptimization = _imageOptimization?.Clone(),
             DefaultDrawingStyle = _defaultDrawingStyle?.Clone(),
             DefaultRowStyle = _defaultRowStyle?.Clone(),
             CreateOutlineFromHeadings = CreateOutlineFromHeadings,

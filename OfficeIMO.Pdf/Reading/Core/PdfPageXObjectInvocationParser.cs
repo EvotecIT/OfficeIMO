@@ -1092,6 +1092,9 @@ internal static class PdfPageXObjectInvocationParser {
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     color = ReadCmyk(startIndex);
                     return true;
+                case PdfPageColorSpaceKind.Lab:
+                    color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
+                    return true;
                 default:
                     color = ReadGray(startIndex);
                     return true;
@@ -1101,6 +1104,7 @@ internal static class PdfPageXObjectInvocationParser {
         private static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
             switch (colorSpace) {
                 case PdfPageColorSpaceKind.DeviceRgb:
+                case PdfPageColorSpaceKind.Lab:
                     return 3;
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     return 4;
@@ -1121,7 +1125,14 @@ internal static class PdfPageXObjectInvocationParser {
                     return true;
                 case "DeviceGray":
                 case "G":
+                case "CalGray":
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return true;
+                case "CalRGB":
+                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    return true;
+                case "Lab":
+                    colorSpace = PdfPageColorSpaceKind.Lab;
                     return true;
                 default:
                     if (_colorSpaces != null && _colorSpaces.TryGetValue(name, out colorSpace)) {

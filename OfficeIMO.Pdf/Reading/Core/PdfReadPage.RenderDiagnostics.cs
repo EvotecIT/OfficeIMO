@@ -133,7 +133,7 @@ public sealed partial class PdfReadPage {
 
     private bool RequiresOptionalImageCodec(PdfObject? value) {
         PdfObject? resolved = ResolveObject(value);
-        if (resolved is PdfName name) return name.Name is "DCTDecode" or "DCT" or "JPXDecode";
+        if (resolved is PdfName name) return name.Name is "JPXDecode";
         if (resolved is not PdfArray array) return false;
         for (int i = 0; i < array.Items.Count; i++) if (RequiresOptionalImageCodec(array.Items[i])) return true;
         return false;

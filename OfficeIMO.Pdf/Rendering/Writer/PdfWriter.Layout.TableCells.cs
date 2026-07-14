@@ -511,29 +511,31 @@ internal static partial class PdfWriter {
     private static int GetTableRepeatHeaderRowCount(PdfTableStyle style) =>
         style.RepeatHeaderRowCount ?? style.HeaderRowCount;
 
-    private static bool ShouldBreakBeforePenultimateTableBodyRow(
+    private static bool ShouldBreakBeforeFinalTableBodyRows(
         int rowIndex,
         int headerRowCount,
         int footerStartRowIndex,
-        double currentRowHeight,
-        double nextRowHeight,
+        int minimumBodyRows,
+        double firstRowHeight,
+        double finalGroupHeight,
         double remainingHeight,
         double continuationHeaderHeight,
         double maxContentHeight,
         bool hasContentBeforeRow) {
         if (!hasContentBeforeRow ||
-            rowIndex <= headerRowCount ||
+            minimumBodyRows <= 0 ||
+            rowIndex < headerRowCount ||
             rowIndex >= footerStartRowIndex ||
-            footerStartRowIndex - rowIndex != 2) {
+            footerStartRowIndex - rowIndex != minimumBodyRows) {
             return false;
         }
 
-        if (currentRowHeight > remainingHeight + 0.001 ||
-            currentRowHeight + nextRowHeight <= remainingHeight + 0.001) {
+        if (firstRowHeight > remainingHeight + 0.001 ||
+            finalGroupHeight <= remainingHeight + 0.001) {
             return false;
         }
 
-        return continuationHeaderHeight + currentRowHeight + nextRowHeight <= maxContentHeight + 0.001;
+        return continuationHeaderHeight + finalGroupHeight <= maxContentHeight + 0.001;
     }
 
     private static void ValidateTableColumnStyleBounds(PdfTableStyle style, int columnCount) {

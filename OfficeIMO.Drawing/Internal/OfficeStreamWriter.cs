@@ -37,6 +37,25 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         /// <summary>
+        /// Writes a complete artifact directly without closing the destination. Seekable streams are truncated
+        /// before writing and rewound after a successful write.
+        /// </summary>
+        public static void Write(Stream destination, Action<Stream> writer) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(writer);
+#else
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+#endif
+            EnsureWritable(destination);
+            PrepareDestination(destination);
+            writer(destination);
+            destination.Flush();
+            RewindDestination(destination);
+        }
+
+        /// <summary>
         /// Asynchronously writes a complete artifact without closing the destination. Seekable streams are
         /// truncated before writing and rewound after a successful write.
         /// </summary>
@@ -59,6 +78,30 @@ namespace OfficeIMO.Drawing.Internal {
 #else
             await destination.WriteAsync(bytes, 0, bytes.Length, cancellationToken).ConfigureAwait(false);
 #endif
+            await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+            RewindDestination(destination);
+        }
+
+        /// <summary>
+        /// Writes a complete artifact directly and asynchronously flushes it without closing the destination.
+        /// The producer runs synchronously so format writers can preserve ordered offset accounting.
+        /// </summary>
+        public static async Task WriteAsync(
+            Stream destination,
+            Action<Stream> writer,
+            CancellationToken cancellationToken = default) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(writer);
+#else
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+#endif
+            EnsureWritable(destination);
+            cancellationToken.ThrowIfCancellationRequested();
+            PrepareDestination(destination);
+            writer(destination);
+            cancellationToken.ThrowIfCancellationRequested();
             await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
             RewindDestination(destination);
         }

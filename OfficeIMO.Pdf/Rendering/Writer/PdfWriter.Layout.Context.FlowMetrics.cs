@@ -208,8 +208,11 @@ internal static partial class PdfWriter {
             int linesToReserve = 1;
             if (paragraphStyle?.KeepTogether == true) {
                 linesToReserve = wrap.LineHeights.Count;
-            } else if (paragraphStyle?.WidowControl == true && wrap.LineHeights.Count > 1) {
-                linesToReserve = Math.Min(2, wrap.LineHeights.Count);
+            } else if (paragraphStyle != null) {
+                int minimumOrphanLines = ResolveMinimumOrphanLines(paragraphStyle);
+                if (minimumOrphanLines > 1 && wrap.LineHeights.Count > 1) {
+                    linesToReserve = Math.Min(minimumOrphanLines, wrap.LineHeights.Count);
+                }
             }
 
             double height = spacingBefore;
@@ -470,6 +473,10 @@ internal static partial class PdfWriter {
                 return MeasureTableBlockHeight(table, frameWidth, fontSize, firstVisualOnly: true);
             }
 
+            if (block is DeferredTableBlock deferredTable) {
+                return MeasureDeferredTableFirstVisualHeight(deferredTable, frameWidth, fontSize);
+            }
+
             if (block is HorizontalRuleBlock rule) {
                 PdfHorizontalRuleStyle style = ResolveHorizontalRuleStyle(rule, currentOpts);
                 return style.SpacingBefore + style.Thickness + style.SpacingAfter;
@@ -508,6 +515,14 @@ internal static partial class PdfWriter {
             }
 
             return 0D;
+        }
+
+        private double MeasureDeferredTableFirstVisualHeight(DeferredTableBlock table, double frameWidth, double fontSize) {
+            PdfTableStyle style = table.Style ?? currentOpts.DefaultTableStyleSnapshot ?? TableStyles.Light();
+            using System.Collections.Generic.IEnumerator<DeferredTableBatch> batches = table.CreateBatches(style).GetEnumerator();
+            return batches.MoveNext()
+                ? MeasureTableBlockHeight(batches.Current.Table, frameWidth, fontSize, firstVisualOnly: true)
+                : 0D;
         }
 
         private double MeasureImageBlockHeight(ImageBlock image, double frameWidth) {
