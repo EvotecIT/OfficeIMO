@@ -21,7 +21,7 @@ public static partial class OfficeSvgDrawingReader {
         var runs = new List<SvgTextRun>();
         var cursor = new SvgTextCursor { Chunk = -1 };
         bool preserve = string.Equals(element.Attribute(XNamespace.Xml + "space")?.Value, "preserve", StringComparison.OrdinalIgnoreCase);
-        AddTextElementRuns(element, style, paintServers, transform, preserve, false, viewX, viewY, runs, ref cursor, ref unsupported);
+        AddTextElementRuns(element, style, paintServers, transform, preserve, false, viewX, viewY, drawing.Width, drawing.Height, runs, ref cursor, ref unsupported);
         if (runs.Count == 0) return;
         ApplyTextAnchors(runs);
         foreach (SvgTextRun run in runs) AddTextRun(drawing, run, ref unsupported);
@@ -36,6 +36,8 @@ public static partial class OfficeSvgDrawingReader {
         bool resolveElement,
         double viewX,
         double viewY,
+        double viewportWidth,
+        double viewportHeight,
         ICollection<SvgTextRun> runs,
         ref SvgTextCursor cursor,
         ref int unsupported) {
@@ -58,7 +60,7 @@ public static partial class OfficeSvgDrawingReader {
             else if (space.Equals("default", StringComparison.OrdinalIgnoreCase)) preserve = false;
             else unsupported++;
         }
-        ApplyTextPosition(element, viewX, viewY, ref cursor, ref unsupported);
+        ApplyTextPosition(element, viewX, viewY, viewportWidth, viewportHeight, ref cursor, ref unsupported);
         int firstRun = runs.Count;
         double lengthOrigin = cursor.X;
         bool adjustGlyphs = TryReadTextLengthAdjustment(element, out double authoredLength, ref unsupported);
@@ -73,13 +75,14 @@ public static partial class OfficeSvgDrawingReader {
                 if (text.Length == 0) continue;
                 double fontSize = Math.Max(0.1D, style.FontSize);
                 double width = Math.Max(0.1D, text.Length * fontSize * 0.62D);
-                runs.Add(new SvgTextRun(text, cursor.X, cursor.Baseline, width, fontSize, cursor.Chunk, style.TextAnchor, style, transform));
+                double baseline = ResolveTextBaseline(cursor.Baseline, fontSize, style.DominantBaseline);
+                runs.Add(new SvgTextRun(text, cursor.X, baseline, width, fontSize, cursor.Chunk, style.TextAnchor, style, transform));
                 cursor.X += width;
                 cursor.HasText = true;
                 continue;
             }
             if (node is XElement child && child.Name.LocalName.Equals("tspan", StringComparison.OrdinalIgnoreCase)) {
-                AddTextElementRuns(child, style, paintServers, transform, preserve, true, viewX, viewY, runs, ref cursor, ref unsupported);
+                AddTextElementRuns(child, style, paintServers, transform, preserve, true, viewX, viewY, viewportWidth, viewportHeight, runs, ref cursor, ref unsupported);
             } else if (node is XElement) {
                 unsupported++;
             }
@@ -134,13 +137,20 @@ public static partial class OfficeSvgDrawingReader {
         cursor.X = origin + ((cursor.X - origin) * scale);
     }
 
-    private static void ApplyTextPosition(XElement element, double viewX, double viewY, ref SvgTextCursor cursor, ref int unsupported) {
+    private static void ApplyTextPosition(
+        XElement element,
+        double viewX,
+        double viewY,
+        double viewportWidth,
+        double viewportHeight,
+        ref SvgTextCursor cursor,
+        ref int unsupported) {
         bool startsChunk = false;
-        if (TryTextLength(element, "x", out double x, ref unsupported)) {
+        if (TryTextLength(element, "x", viewportWidth, out double x, out _, ref unsupported)) {
             cursor.X = x - viewX;
             startsChunk = true;
         }
-        if (TryTextLength(element, "y", out double y, ref unsupported)) {
+        if (TryTextLength(element, "y", viewportHeight, out double y, out _, ref unsupported)) {
             cursor.Baseline = y - viewY;
             startsChunk = true;
         }
@@ -148,19 +158,39 @@ public static partial class OfficeSvgDrawingReader {
             cursor.Chunk++;
             cursor.PendingSpace = false;
         }
-        if (TryTextLength(element, "dx", out double dx, ref unsupported)) cursor.X += dx;
-        if (TryTextLength(element, "dy", out double dy, ref unsupported)) cursor.Baseline += dy;
+        if (TryTextLength(element, "dx", viewportWidth, out double dx, out _, ref unsupported)) cursor.X += dx;
+        if (TryTextLength(element, "dy", viewportHeight, out double dy, out _, ref unsupported)) cursor.Baseline += dy;
     }
 
-    private static bool TryTextLength(XElement element, string name, out double value, ref int unsupported) {
+    private static bool TryTextLength(
+        XElement element,
+        string name,
+        double percentageReference,
+        out double value,
+        out bool percentage,
+        ref int unsupported) {
         value = 0D;
+        percentage = false;
         string? text = element.Attribute(name)?.Value;
         if (string.IsNullOrWhiteSpace(text)) return false;
         string[] values = text!.Split(new[] { ' ', '\t', '\r', '\n', ',' }, StringSplitOptions.RemoveEmptyEntries);
         if (values.Length != 1) unsupported++;
-        if (values.Length > 0 && TrySvgLength(values[0], out value)) return true;
+        if (values.Length > 0 && TryViewportLength(values[0], percentageReference, out value, out percentage)) return true;
         unsupported++;
         return false;
+    }
+
+    private static double ResolveTextBaseline(double authoredY, double fontSize, SvgDominantBaseline baseline) {
+        switch (baseline) {
+            case SvgDominantBaseline.Hanging:
+                return authoredY + fontSize;
+            case SvgDominantBaseline.Middle:
+                return authoredY + (fontSize / 2D);
+            case SvgDominantBaseline.TextAfterEdge:
+            case SvgDominantBaseline.Alphabetic:
+            default:
+                return authoredY;
+        }
     }
 
     private static string NormalizeText(string raw, bool preserve, ref SvgTextCursor cursor) {

@@ -20,8 +20,72 @@ public static partial class OfficeSvgDrawingReader {
         if (value.StartsWith("url(", StringComparison.OrdinalIgnoreCase)) {
             return paintServers.TryResolve(value, out paint);
         }
-        if (!OfficeColor.TryParse(value, out OfficeColor color)) return false;
+        if (!TrySvgColor(value, out OfficeColor color)) return false;
         paint = new SvgResolvedPaint(color);
+        return true;
+    }
+
+    private static bool TrySvgColor(string value, out OfficeColor color) {
+        if (OfficeColor.TryParse(value, out color)) return true;
+
+        color = default;
+        string normalized = value.Trim();
+        bool hasAlpha = normalized.StartsWith("rgba(", StringComparison.OrdinalIgnoreCase);
+        bool hasRgb = normalized.StartsWith("rgb(", StringComparison.OrdinalIgnoreCase);
+        if ((!hasAlpha && !hasRgb) || !normalized.EndsWith(")", StringComparison.Ordinal)) return false;
+
+        int prefixLength = hasAlpha ? 5 : 4;
+        string content = normalized.Substring(prefixLength, normalized.Length - prefixLength - 1);
+        string[] components;
+        string? alphaComponent = null;
+        if (content.IndexOf(',') >= 0) {
+            string[] commaComponents = content.Split(',');
+            if (commaComponents.Length != (hasAlpha ? 4 : 3)) return false;
+            components = new[] { commaComponents[0], commaComponents[1], commaComponents[2] };
+            if (hasAlpha) alphaComponent = commaComponents[3];
+        } else {
+            string[] alphaParts = content.Split('/');
+            if (alphaParts.Length > 2) return false;
+            components = alphaParts[0].Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (alphaParts.Length == 2) alphaComponent = alphaParts[1];
+        }
+
+        if (components.Length != 3
+            || !TrySvgColorChannel(components[0], out byte red)
+            || !TrySvgColorChannel(components[1], out byte green)
+            || !TrySvgColorChannel(components[2], out byte blue)) return false;
+
+        byte alpha = 255;
+        if (alphaComponent != null && !TrySvgAlphaChannel(alphaComponent, out alpha)) return false;
+        color = OfficeColor.FromRgba(red, green, blue, alpha);
+        return true;
+    }
+
+    private static bool TrySvgColorChannel(string text, out byte channel) {
+        channel = 0;
+        string normalized = text.Trim();
+        bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
+        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+            || double.IsNaN(value)
+            || double.IsInfinity(value)
+            || value < 0D
+            || value > (percentage ? 100D : 255D)) return false;
+        channel = (byte)Math.Round(percentage ? value * 255D / 100D : value);
+        return true;
+    }
+
+    private static bool TrySvgAlphaChannel(string text, out byte alpha) {
+        alpha = 0;
+        string normalized = text.Trim();
+        bool percentage = normalized.EndsWith("%", StringComparison.Ordinal);
+        if (percentage) normalized = normalized.Substring(0, normalized.Length - 1).Trim();
+        if (!double.TryParse(normalized, NumberStyles.Float, CultureInfo.InvariantCulture, out double value)
+            || double.IsNaN(value)
+            || double.IsInfinity(value)
+            || value < 0D
+            || value > (percentage ? 100D : 1D)) return false;
+        alpha = (byte)Math.Round(percentage ? value * 255D / 100D : value * 255D);
         return true;
     }
 
@@ -278,7 +342,7 @@ public static partial class OfficeSvgDrawingReader {
 
             if (string.IsNullOrWhiteSpace(colorText)) color = OfficeColor.Black;
             else if (colorText!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) color = currentColor;
-            else if (!OfficeColor.TryParse(colorText.Trim(), out color)) return false;
+            else if (!TrySvgColor(colorText.Trim(), out color)) return false;
 
             double opacity = 1D;
             if (!string.IsNullOrWhiteSpace(opacityText) && !TryUnitOrPercentage(opacityText!, clamp: true, out opacity)) return false;
@@ -300,7 +364,7 @@ public static partial class OfficeSvgDrawingReader {
                 }
 
                 if (string.IsNullOrWhiteSpace(value) || value!.Trim().Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) continue;
-                if (!OfficeColor.TryParse(value.Trim(), out color)) return false;
+                if (!TrySvgColor(value.Trim(), out color)) return false;
             }
             return true;
         }
