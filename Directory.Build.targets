@@ -17,6 +17,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <!-- OfficeIMO 2.0 establishes a new package API baseline. Compare future 2.x
-       releases against 2.0.0 after the coordinated 2.0 release is published. -->
 </Project>
