@@ -17,4 +17,12 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <!-- Validate each newly produced Reader package across compatible frameworks
+       without comparing it to a previously published package. -->
+  <PropertyGroup Condition="
+      $([System.String]::Copy('$(MSBuildProjectName)').StartsWith('OfficeIMO.Reader'))
+      And '$(IsPackable)' != 'false'">
+    <EnablePackageValidation>true</EnablePackageValidation>
+  </PropertyGroup>
+
 </Project>
