@@ -19,8 +19,9 @@ public static class CodeGlyphDrawingExtensions {
         out int unsupportedFeatureCount,
         QrSvgRenderOptions? options = null) {
         if (qrCode is null) throw new ArgumentNullException(nameof(qrCode));
-        string svg = SvgQrRenderer.Render(qrCode.Modules, options ?? new QrSvgRenderOptions());
-        return ReadSvg(svg, out unsupportedFeatureCount);
+        BitMatrix modules = qrCode.Modules;
+        string svg = SvgQrRenderer.Render(modules, options ?? new QrSvgRenderOptions());
+        return ReadSvg(svg, ResolveMaximumElements(modules), out unsupportedFeatureCount);
     }
 
     /// <summary>Renders a generic matrix symbol and imports it as an OfficeIMO drawing.</summary>
@@ -34,7 +35,7 @@ public static class CodeGlyphDrawingExtensions {
         MatrixSvgRenderOptions? options = null) {
         if (modules is null) throw new ArgumentNullException(nameof(modules));
         string svg = MatrixSvgRenderer.Render(modules, options ?? new MatrixSvgRenderOptions());
-        return ReadSvg(svg, out unsupportedFeatureCount);
+        return ReadSvg(svg, ResolveMaximumElements(modules), out unsupportedFeatureCount);
     }
 
     /// <summary>Renders a linear barcode and imports it as an OfficeIMO drawing.</summary>
@@ -48,12 +49,20 @@ public static class CodeGlyphDrawingExtensions {
         BarcodeSvgRenderOptions? options = null) {
         if (barcode is null) throw new ArgumentNullException(nameof(barcode));
         string svg = SvgBarcodeRenderer.Render(barcode, options ?? new BarcodeSvgRenderOptions());
-        return ReadSvg(svg, out unsupportedFeatureCount);
+        return ReadSvg(svg, OfficeSvgDrawingReaderOptions.DefaultMaximumElements, out unsupportedFeatureCount);
     }
 
-    private static OfficeDrawing ReadSvg(string svg, out int unsupportedFeatureCount) {
+    private static int ResolveMaximumElements(BitMatrix modules) {
+        long requested = ((long)modules.Width * modules.Height) + 1024L;
+        return (int)Math.Min(
+            OfficeSvgDrawingReaderOptions.MaximumAllowedElements,
+            Math.Max(OfficeSvgDrawingReaderOptions.DefaultMaximumElements, requested));
+    }
+
+    private static OfficeDrawing ReadSvg(string svg, int maximumElements, out int unsupportedFeatureCount) {
         byte[] bytes = Encoding.UTF8.GetBytes(svg);
-        if (!OfficeSvgDrawingReader.TryRead(bytes, out OfficeDrawing? drawing, out unsupportedFeatureCount) || drawing is null) {
+        var readerOptions = new OfficeSvgDrawingReaderOptions { MaximumElements = maximumElements };
+        if (!OfficeSvgDrawingReader.TryRead(bytes, readerOptions, out OfficeDrawing? drawing, out unsupportedFeatureCount) || drawing is null) {
             throw new InvalidOperationException("CodeGlyphX produced SVG that OfficeIMO.Drawing could not read.");
         }
         return drawing;

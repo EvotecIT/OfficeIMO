@@ -146,12 +146,12 @@ public static partial class OfficeSvgDrawingReader {
         ref SvgTextCursor cursor,
         ref int unsupported) {
         bool startsChunk = false;
-        if (TryTextLength(element, "x", viewportWidth, out double x, out bool percentage, ref unsupported)) {
-            cursor.X = percentage ? x : x - viewX;
+        if (TryTextLength(element, "x", viewportWidth, out double x, out _, ref unsupported)) {
+            cursor.X = x - viewX;
             startsChunk = true;
         }
-        if (TryTextLength(element, "y", viewportHeight, out double y, out percentage, ref unsupported)) {
-            cursor.Baseline = percentage ? y : y - viewY;
+        if (TryTextLength(element, "y", viewportHeight, out double y, out _, ref unsupported)) {
+            cursor.Baseline = y - viewY;
             startsChunk = true;
         }
         if (cursor.Chunk < 0 || startsChunk) {

@@ -13,6 +13,7 @@ public static partial class OfficeSvgDrawingReader {
         SvgPaintServerRegistry paintServers,
         SvgElementReferenceRegistry references,
         OfficeTransform inheritedTransform,
+        int maximumElements,
         ref int visited,
         ref int unsupported) {
         if (!TryParseNumberList(symbol.Attribute("viewBox")?.Value, out IReadOnlyList<double> viewBox)
@@ -40,7 +41,7 @@ public static partial class OfficeSvgDrawingReader {
         var scene = new OfficeDrawing(viewBox[2], viewBox[3]);
         SvgPaintContext style = ResolvePaintContext(symbol, inheritedStyle, paintServers, ref unsupported);
         OfficeTransform symbolTransform = ResolveTransform(symbol, OfficeTransform.Identity, viewBox[0], viewBox[1], ref unsupported);
-        AddChildren(symbol, scene, style, paintServers, references, symbolTransform, viewBox[0], viewBox[1], ref visited, ref unsupported);
+        AddChildren(symbol, scene, style, paintServers, references, symbolTransform, viewBox[0], viewBox[1], maximumElements, ref visited, ref unsupported);
 
         OfficeTransform viewportTransform;
         if (alignment == SvgAspectAlignment.None) {

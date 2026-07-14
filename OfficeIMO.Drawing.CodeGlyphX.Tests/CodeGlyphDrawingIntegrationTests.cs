@@ -40,6 +40,36 @@ public sealed class CodeGlyphDrawingIntegrationTests {
     }
 
     [Fact]
+    public void AdapterImportsLargeStyledQrWithinTheTrustedElementLimit() {
+        QrCode qr = QrCode.Encode("LARGE-STYLED-QR", new QrEasyOptions {
+            ErrorCorrectionLevel = QrErrorCorrectionLevel.L,
+            MinVersion = 40,
+            MaxVersion = 40
+        });
+        var options = new QrSvgRenderOptions {
+            ModuleShape = QrPngModuleShape.Circle,
+            ModuleScale = 0.78
+        };
+
+        OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
+
+        Assert.Equal(177, qr.Modules.Width);
+        Assert.Equal(0, unsupported);
+        Assert.True(drawing.Shapes.Count > OfficeSvgDrawingReaderOptions.DefaultMaximumElements);
+    }
+
+    [Fact]
+    public void AdapterPreservesAlphaQrColors() {
+        QrCode qr = QrCode.Encode("ALPHA-QR-OFFICEIMO");
+        var options = new QrSvgRenderOptions { DarkColor = "rgba(36,87,166,0.502)" };
+
+        OfficeDrawing drawing = qr.ToOfficeDrawing(out int unsupported, options);
+
+        Assert.Equal(0, unsupported);
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgba(36, 87, 166, 128));
+    }
+
+    [Fact]
     public void AdapterImportsDataMatrix() {
         BitMatrix modules = DataMatrixEncoder.Encode("OFFICEIMO-DATAMATRIX-1234567890");
 

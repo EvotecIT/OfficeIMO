@@ -36,7 +36,7 @@ public class DrawingSvgReaderTests {
             + "<rect x='10%' y='20%' width='50%' height='25%' fill='red'/>"
             + "<circle cx='75%' cy='50%' r='10%' fill='blue'/>"
             + "<ellipse cx='25%' cy='75%' rx='5%' ry='10%' fill='green'/>"
-            + "<line x1='10%' y1='90%' x2='90%' y2='10%' stroke='black'/></svg>";
+            + "<line x1='10%' y1='90%' x2='90%' y2='30%' stroke='black'/></svg>";
 
         Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
         Assert.NotNull(drawing);
@@ -44,20 +44,20 @@ public class DrawingSvgReaderTests {
         Assert.Equal(4, drawing!.Shapes.Count);
 
         OfficeDrawingShape rectangle = drawing.Shapes[0];
-        Assert.Equal(20D, rectangle.X, 6);
-        Assert.Equal(20D, rectangle.Y, 6);
+        Assert.Equal(10D, rectangle.X, 6);
+        Assert.Equal(0D, rectangle.Y, 6);
         Assert.Equal(100D, rectangle.Shape.Width, 6);
         Assert.Equal(25D, rectangle.Shape.Height, 6);
 
         double circleRadius = Math.Sqrt((200D * 200D) + (100D * 100D)) / Math.Sqrt(2D) * 0.1D;
         OfficeDrawingShape circle = drawing.Shapes[1];
-        Assert.Equal(150D - circleRadius, circle.X, 6);
-        Assert.Equal(50D - circleRadius, circle.Y, 6);
+        Assert.Equal(140D - circleRadius, circle.X, 6);
+        Assert.Equal(30D - circleRadius, circle.Y, 6);
         Assert.Equal(circleRadius * 2D, circle.Shape.Width, 6);
 
         OfficeDrawingShape ellipse = drawing.Shapes[2];
-        Assert.Equal(40D, ellipse.X, 6);
-        Assert.Equal(65D, ellipse.Y, 6);
+        Assert.Equal(30D, ellipse.X, 6);
+        Assert.Equal(45D, ellipse.Y, 6);
         Assert.Equal(20D, ellipse.Shape.Width, 6);
         Assert.Equal(20D, ellipse.Shape.Height, 6);
     }
@@ -71,6 +71,24 @@ public class DrawingSvgReaderTests {
         Assert.NotNull(drawing);
         Assert.Single(drawing!.Shapes);
         Assert.Equal(1, unsupported);
+    }
+
+    [Fact]
+    public void SvgReaderAllowsAnExplicitTrustedElementLimit() {
+        var svg = new StringBuilder("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'>");
+        for (int i = 0; i < OfficeSvgDrawingReaderOptions.DefaultMaximumElements + 1; i++) svg.Append("<metadata/>");
+        svg.Append("</svg>");
+        byte[] bytes = Encoding.UTF8.GetBytes(svg.ToString());
+
+        Assert.False(OfficeSvgDrawingReader.TryRead(bytes, out _));
+
+        var options = new OfficeSvgDrawingReaderOptions {
+            MaximumElements = OfficeSvgDrawingReaderOptions.DefaultMaximumElements + 1
+        };
+        Assert.True(OfficeSvgDrawingReader.TryRead(bytes, options, out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Empty(drawing!.Elements);
     }
 
     [Fact]
@@ -153,9 +171,22 @@ public class DrawingSvgReaderTests {
         Assert.Equal(0, unsupported);
         OfficeDrawingText text = Assert.Single(drawing!.Elements.OfType<OfficeDrawingText>());
         Assert.Equal("Label", text.Text);
-        Assert.True(text.X < 100D);
-        Assert.Equal(25D, text.Y, 6);
+        Assert.Equal(90D, text.X + (text.Width / 2D), 6);
+        Assert.Equal(5D, text.Y, 6);
         Assert.Contains(">Label</text>", OfficeDrawingSvgExporter.ToSvg(drawing), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SvgReaderPreservesRgbAndRgbaPaint() {
+        const string svg = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 10'>"
+            + "<rect width='10' height='10' fill='rgba(36,87,166,0.502)'/>"
+            + "<rect x='10' width='10' height='10' fill='rgb(10%,20%,30%)'/></svg>";
+
+        Assert.True(OfficeSvgDrawingReader.TryRead(Encoding.UTF8.GetBytes(svg), out OfficeDrawing? drawing, out int unsupported));
+        Assert.NotNull(drawing);
+        Assert.Equal(0, unsupported);
+        Assert.Equal(OfficeColor.FromRgba(36, 87, 166, 128), drawing!.Shapes[0].Shape.FillColor);
+        Assert.Equal(OfficeColor.FromRgb(26, 51, 76), drawing.Shapes[1].Shape.FillColor);
     }
 
     [Fact]

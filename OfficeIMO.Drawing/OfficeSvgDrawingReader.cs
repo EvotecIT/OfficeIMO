@@ -13,20 +13,36 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public static partial class OfficeSvgDrawingReader {
     private const int MaximumInputBytes = 8 * 1024 * 1024;
-    private const int MaximumElements = 10000;
 
     /// <summary>Attempts to interpret supported SVG vector primitives as a shared drawing.</summary>
     public static bool TryRead(byte[]? bytes, out OfficeDrawing? drawing) =>
-        TryRead(bytes, out drawing, out _);
+        TryRead(bytes, options: null, out drawing, out _);
 
     /// <summary>
     /// Attempts to interpret supported SVG vector primitives as a shared drawing and reports the
     /// number of elements or declarations that required omission or fallback.
     /// </summary>
-    public static bool TryRead(byte[]? bytes, out OfficeDrawing? drawing, out int unsupportedFeatureCount) {
+    public static bool TryRead(byte[]? bytes, out OfficeDrawing? drawing, out int unsupportedFeatureCount) =>
+        TryRead(bytes, options: null, out drawing, out unsupportedFeatureCount);
+
+    /// <summary>Attempts to interpret supported SVG vector primitives using explicit bounded import options.</summary>
+    public static bool TryRead(byte[]? bytes, OfficeSvgDrawingReaderOptions? options, out OfficeDrawing? drawing) =>
+        TryRead(bytes, options, out drawing, out _);
+
+    /// <summary>
+    /// Attempts to interpret supported SVG vector primitives using explicit bounded import options and reports the
+    /// number of elements or declarations that required omission or fallback.
+    /// </summary>
+    public static bool TryRead(
+        byte[]? bytes,
+        OfficeSvgDrawingReaderOptions? options,
+        out OfficeDrawing? drawing,
+        out int unsupportedFeatureCount) {
         drawing = null;
         unsupportedFeatureCount = 0;
         if (bytes == null || bytes.Length == 0 || bytes.Length > MaximumInputBytes) return false;
+        int maximumElements = options?.MaximumElements ?? OfficeSvgDrawingReaderOptions.DefaultMaximumElements;
+        if (maximumElements <= 0 || maximumElements > OfficeSvgDrawingReaderOptions.MaximumAllowedElements) return false;
 
         try {
             var settings = new XmlReaderSettings {
@@ -42,7 +58,7 @@ public static partial class OfficeSvgDrawingReader {
 
             XElement? root = document.Root;
             if (root == null || !string.Equals(root.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) return false;
-            if (root.Descendants().Take(MaximumElements + 1).Count() > MaximumElements) return false;
+            if (root.Descendants().Take(maximumElements + 1).Count() > maximumElements) return false;
             if (!TryResolveViewport(bytes, root, out double viewX, out double viewY, out double width, out double height)) return false;
 
             var result = new OfficeDrawing(width, height);
@@ -52,8 +68,8 @@ public static partial class OfficeSvgDrawingReader {
             var references = new SvgElementReferenceRegistry(definitions);
             var context = ResolvePaintContext(root, SvgPaintContext.Default, paintServers, ref unsupportedFeatureCount);
             OfficeTransform rootTransform = ResolveTransform(root, OfficeTransform.Identity, viewX, viewY, ref unsupportedFeatureCount);
-            AddChildren(root, result, context, paintServers, references, rootTransform, viewX, viewY, ref visited, ref unsupportedFeatureCount);
-            if (visited > MaximumElements) return false;
+            AddChildren(root, result, context, paintServers, references, rootTransform, viewX, viewY, maximumElements, ref visited, ref unsupportedFeatureCount);
+            if (visited > maximumElements) return false;
             drawing = result;
             return true;
         } catch (XmlException) {
@@ -94,11 +110,12 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform inheritedTransform,
         double viewX,
         double viewY,
+        int maximumElements,
         ref int visited,
         ref int unsupported) {
         foreach (XElement element in parent.Elements()) {
-            AddElement(element, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY, ref visited, ref unsupported);
-            if (visited > MaximumElements) return;
+            AddElement(element, drawing, inherited, paintServers, references, inheritedTransform, viewX, viewY, maximumElements, ref visited, ref unsupported);
+            if (visited > maximumElements) return;
         }
     }
 
@@ -111,10 +128,11 @@ public static partial class OfficeSvgDrawingReader {
         OfficeTransform inheritedTransform,
         double viewX,
         double viewY,
+        int maximumElements,
         ref int visited,
         ref int unsupported) {
         visited++;
-        if (visited > MaximumElements) return;
+        if (visited > maximumElements) return;
         string name = element.Name.LocalName.ToLowerInvariant();
         if (name is "title" or "desc" or "metadata" or "lineargradient" or "radialgradient" or "stop") return;
         if (name == "defs") return;
@@ -123,11 +141,11 @@ public static partial class OfficeSvgDrawingReader {
         if (!style.Visible) return;
         OfficeTransform transform = ResolveTransform(element, inheritedTransform, viewX, viewY, ref unsupported);
         if (name is "g" or "svg" or "a" or "switch") {
-            AddChildren(element, drawing, style, paintServers, references, transform, viewX, viewY, ref visited, ref unsupported);
+            AddChildren(element, drawing, style, paintServers, references, transform, viewX, viewY, maximumElements, ref visited, ref unsupported);
             return;
         }
         if (name == "use") {
-            AddReferencedElement(element, drawing, style, paintServers, references, transform, viewX, viewY, ref visited, ref unsupported);
+            AddReferencedElement(element, drawing, style, paintServers, references, transform, viewX, viewY, maximumElements, ref visited, ref unsupported);
             return;
         }
         if (name == "text") {
@@ -406,7 +424,7 @@ public static partial class OfficeSvgDrawingReader {
         switch (name.Trim().ToLowerInvariant()) {
             case "color":
                 if (normalized.Equals("currentcolor", StringComparison.OrdinalIgnoreCase)) break;
-                if (!OfficeColor.TryParse(normalized, out OfficeColor currentColor)) unsupported++;
+                if (!TrySvgColor(normalized, out OfficeColor currentColor)) unsupported++;
                 else style.Color = currentColor;
                 break;
             case "fill":
@@ -564,8 +582,8 @@ public static partial class OfficeSvgDrawingReader {
 
     private static double ReadViewportCoordinate(XElement element, string name, double origin, double extent) {
         string? text = element.Attribute(name)?.Value;
-        if (!TryViewportLength(text, extent, out double value, out bool percentage)) return -origin;
-        return percentage ? value : value - origin;
+        if (!TryViewportLength(text, extent, out double value, out _)) return -origin;
+        return value - origin;
     }
 
     private static double ReadViewportLength(XElement element, string name, double extent) =>
