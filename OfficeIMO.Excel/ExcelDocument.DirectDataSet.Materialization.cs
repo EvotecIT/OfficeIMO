@@ -130,6 +130,9 @@ namespace OfficeIMO.Excel {
 
             var candidate = _directDataSetSaveCandidate;
             if (candidate == null || !candidate.IsDeferred) {
+                if (_materializedDirectDataSetFastSaveModelPreservationDepth == 0) {
+                    MaterializeDirectDataSetFastSaveModelIfNeeded();
+                }
                 return;
             }
 
@@ -161,7 +164,7 @@ namespace OfficeIMO.Excel {
             candidate.Dispose();
         }
 
-        private void MaterializeDirectDataSetModel(DirectDataSetWorkbookModel model) {
+        private void MaterializeDirectDataSetModel(DirectDataSetWorkbookModel model, bool preserveExistingWorksheetStructure = false) {
             foreach (var sheetModel in model.Sheets) {
                 ExcelSheet sheet = TryGetExistingSheet(sheetModel.SheetName)
                     ?? AddWorksheet(sheetModel.SheetName, SheetNameValidationMode.Strict);
@@ -169,20 +172,51 @@ namespace OfficeIMO.Excel {
                     continue;
                 }
 
-                DirectWorksheetMetadata? preservedMetadata = null;
-                if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true, allowUnsupportedOverlayStyles: true)) {
-                    preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
+                DirectWorksheetMetadata? preservedMetadata = sheetModel.Metadata;
+                bool hasExistingTablePart = preserveExistingWorksheetStructure && sheet.WorksheetPart.TableDefinitionParts.Any();
+                if (preserveExistingWorksheetStructure) {
+                    var worksheet = sheet.WorksheetPart.Worksheet;
+                    var sheetData = worksheet?.GetFirstChild<SheetData>();
+                    IReadOnlyList<DirectOverlayCell> overlayCells = Array.Empty<DirectOverlayCell>();
+                    if (sheetData != null) {
+                        TryCaptureDirectWorksheetOverlayCells(
+                            sheet,
+                            sheetModel,
+                            sheetData,
+                            _spreadSheetDocument.WorkbookPart?.WorkbookStylesPart?.Stylesheet,
+                            allowUnsupportedOverlayStyles: true,
+                            out overlayCells,
+                            out _);
+                        sheetData.RemoveAllChildren();
+                    }
+
+                    preservedMetadata = MergeDirectMaterializationOverlayCells(preservedMetadata, overlayCells);
+                } else {
+                    if (TryCaptureDirectWorksheetMetadata(sheetModel, out DirectWorksheetMetadata? sheetMetadata, out _, allowDrawings: true, allowUnsupportedOverlayStyles: true)) {
+                        preservedMetadata = MergeDirectWorksheetMetadata(sheetModel.Metadata, sheetMetadata, replaceOverlayCells: true);
+                    }
+
+                    ResetWorksheetForDirectDataSetMaterialization(sheet.WorksheetPart);
                 }
 
-                ResetWorksheetForDirectDataSetMaterialization(sheet.WorksheetPart);
                 using var noLock = sheet.BeginNoLock();
                 if (sheetModel.HasTable) {
-                    string tableRange = sheet.InsertTabularRowSourceAsTableForDeferredMaterialization(
-                        sheetModel.Table,
-                        includeHeaders: sheetModel.IncludeHeaders,
-                        tableName: sheetModel.TableName,
-                        style: sheetModel.TableStyle,
-                        includeAutoFilter: sheetModel.IncludeAutoFilter);
+                    string tableRange;
+                    if (hasExistingTablePart) {
+                        tableRange = sheet.TryInsertTabularRowSourceForDeferredMaterialization(
+                            sheetModel.Table,
+                            includeHeaders: sheetModel.IncludeHeaders)
+                            ? sheetModel.Range
+                            : string.Empty;
+                    } else {
+                        tableRange = sheet.InsertTabularRowSourceAsTableForDeferredMaterialization(
+                            sheetModel.Table,
+                            includeHeaders: sheetModel.IncludeHeaders,
+                            tableName: sheetModel.TableName,
+                            style: sheetModel.TableStyle,
+                            includeAutoFilter: sheetModel.IncludeAutoFilter);
+                    }
+
                     if (tableRange.Length == 0) {
                         tableRange = sheet.InsertDataTableAsTable(
                             sheetModel.Table.ToDataTable(),
@@ -269,6 +303,11 @@ namespace OfficeIMO.Excel {
             }
 
             foreach (var conditionalFormattingXml in metadata.ConditionalFormattingXml) {
+                if (worksheet.Elements<DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting>()
+                    .Any(existing => string.Equals(existing.OuterXml, conditionalFormattingXml, StringComparison.Ordinal))) {
+                    continue;
+                }
+
                 InsertWorksheetMetadataElement(worksheet, new DocumentFormat.OpenXml.Spreadsheet.ConditionalFormatting(conditionalFormattingXml), false, typeof(DataValidations), typeof(TableParts));
             }
 
@@ -497,30 +536,6 @@ namespace OfficeIMO.Excel {
             } finally {
                 _materializingDeferredDataSetImport = false;
             }
-        }
-
-        internal void PreserveDeferredDataSetFastSaveModelAndClearCandidate() {
-            if (_materializingDeferredDataSetImport) {
-                return;
-            }
-
-            MaterializePendingDirectCellValueSheetIfNeeded();
-
-            var candidate = _directDataSetSaveCandidate;
-            if (candidate == null || !candidate.IsDeferred) {
-                ClearDirectDataSetSaveCandidate();
-                return;
-            }
-
-            if (!TryCreateDirectPackageModel(candidate.Model, out DirectDataSetWorkbookModel packageModel, out _, allowDrawings: true)) {
-                return;
-            }
-
-            _materializedDirectDataSetFastSaveModel = packageModel;
-            _materializedDirectDataSetFastSaveModelHasMaterializedWorksheet = false;
-            _preserveMaterializedDirectDataSetFastSaveModelForNextDirtyMark = true;
-            _directDataSetSaveCandidate = null;
-            candidate.Dispose();
         }
 
         private static void InsertWorksheetMetadataElement(Worksheet worksheet, DocumentFormat.OpenXml.OpenXmlElement element, params Type[] beforeTypes) {

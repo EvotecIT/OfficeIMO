@@ -74,6 +74,7 @@ internal static partial class CsvParser
         uint carriageReturnMask,
         uint lineFeedMask,
         Vector256<byte> delimiterVector,
+        int fieldSpanCapacity,
         ref int position,
         ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
@@ -89,7 +90,12 @@ internal static partial class CsvParser
             return false;
         }
 
-        Span<TextQuoteAwareFieldSpan> fields = stackalloc TextQuoteAwareFieldSpan[TextQuoteAwareFieldSpanCapacity];
+        Span<TextQuoteAwareFieldSpan> fields = fieldSpanCapacity switch
+        {
+            16 => stackalloc TextQuoteAwareFieldSpan[16],
+            32 => stackalloc TextQuoteAwareFieldSpan[32],
+            _ => stackalloc TextQuoteAwareFieldSpan[TextQuoteAwareFieldSpanCapacity],
+        };
         var fieldStart = recordStart;
         var quoteCount = 0;
         var specialMask = delimiterMask | quoteMask | carriageReturnMask | lineFeedMask;
@@ -255,6 +261,7 @@ internal static partial class CsvParser
             out firstFieldLength);
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool ProcessTextQuoteAwareMask(
         ReadOnlySpan<char> text,
         uint specialMask,
@@ -287,11 +294,6 @@ internal static partial class CsvParser
 
             if ((quoteCount & 1) != 0)
             {
-                if ((bit & (carriageReturnMask | lineFeedMask)) != 0)
-                {
-                    return false;
-                }
-
                 continue;
             }
 
@@ -381,12 +383,6 @@ internal static partial class CsvParser
                     return true;
                 }
             }
-            else if (value == '\r' || value == '\n')
-            {
-                nextPosition = -1;
-                return false;
-            }
-
             index++;
         }
 
@@ -429,6 +425,11 @@ internal static partial class CsvParser
 
         if (emitFields && (allowEmpty || fields[^1].End > recordStart))
         {
+            if (!AreTextQuoteAwareFieldSpansValid(text, fields))
+            {
+                return false;
+            }
+
             if (!VisitTextQuoteAwareFieldSpans(text, fields, recordIndex, projectedFieldVisitor, ref fieldVisitor, ref scratch, out firstFieldLength))
             {
                 return false;
@@ -443,6 +444,50 @@ internal static partial class CsvParser
         }
 
         position = nextPosition;
+        return true;
+    }
+
+    private static bool AreTextQuoteAwareFieldSpansValid(
+        ReadOnlySpan<char> text,
+        ReadOnlySpan<TextQuoteAwareFieldSpan> fields)
+    {
+        foreach (var field in fields)
+        {
+            if (field.QuoteCount == 0)
+            {
+                continue;
+            }
+
+            if (!TryGetTextQuoteAwareFirstFieldLength(text, field, out _))
+            {
+                return false;
+            }
+
+            if (field.QuoteCount == 2)
+            {
+                continue;
+            }
+
+            var inner = text.Slice(field.Start + 1, field.End - field.Start - 2);
+            var index = 0;
+            while (index < inner.Length)
+            {
+                var quoteOffset = inner[index..].IndexOf('"');
+                if (quoteOffset < 0)
+                {
+                    break;
+                }
+
+                index += quoteOffset;
+                if (index + 1 >= inner.Length || inner[index + 1] != '"')
+                {
+                    return false;
+                }
+
+                index += 2;
+            }
+        }
+
         return true;
     }
 

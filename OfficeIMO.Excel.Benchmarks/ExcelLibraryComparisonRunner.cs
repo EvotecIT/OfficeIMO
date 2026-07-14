@@ -225,18 +225,21 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("ClosedXML", "Import the same prepared data as plain worksheet rows and save.", () => ClosedXmlWriteDataTable(salesDataTable)),
             new LibraryComparisonCase("EPPlus", "Import the same prepared data as plain worksheet rows and save.", () => EpPlusWriteDataTable(salesDataTable)),
             new LibraryComparisonCase("MiniExcel", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => MiniExcelWriteDataReaderPlain(salesDataTable)),
+            new LibraryComparisonCase("SpreadCheetah", "Stream the same DataTable-backed IDataReader as typed worksheet rows and save.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same DataTable-backed DbDataReader through ExcelDataWriter and save.", () => SylvanWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlain(salesDataTable))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-direct-package", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write the prepared DataTable-backed IDataReader through the package-native OfficeIMO API.", () => OfficeImoWriteDataReaderDirectPackage(salesDataTable)),
+            new LibraryComparisonCase("SpreadCheetah", "Stream the same prepared DataTable-backed reader as typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same prepared DataTable-backed reader through ExcelDataWriter.", () => SylvanWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlain(salesDataTable))
         ]);
 
         AddScenarioGroup(scenarios, scenarioFilter, "write-datareader-compact-package", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Write a compact contiguous package through the package-native OfficeIMO DataReader API.", () => OfficeImoWriteDataReaderCompactPackage(salesDataTable)),
+            new LibraryComparisonCase("SpreadCheetah", "Stream the same reader as compact forward-only typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("Sylvan.Data.Excel", "Stream the same reader using implicit contiguous cell positions.", () => SylvanWriteDataReaderPlain(salesDataTable)),
             new LibraryComparisonCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainCompact(salesDataTable))
         ]);
@@ -781,18 +784,21 @@ internal static partial class ExcelLibraryComparisonRunner {
             new PackageProfileCase("ClosedXML", "Import the same prepared data as plain worksheet rows and save.", () => ClosedXmlWriteDataTableBytes(salesDataTable)),
             new PackageProfileCase("EPPlus", "Import the same prepared data as plain worksheet rows and save.", () => EpPlusWriteDataTableBytes(salesDataTable)),
             new PackageProfileCase("MiniExcel", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => MiniExcelWriteDataReaderPlainBytes(salesDataTable)),
+            new PackageProfileCase("SpreadCheetah", "Stream the same DataTable-backed IDataReader as typed worksheet rows and save.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same DataTable-backed DbDataReader through ExcelDataWriter and save.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("LargeXlsx", "Stream the same DataTable-backed IDataReader as plain worksheet rows and save.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-direct-package", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Write the prepared DataTable-backed IDataReader through the package-native OfficeIMO API.", () => OfficeImoWriteDataReaderDirectPackageBytes(salesDataTable)),
+            new PackageProfileCase("SpreadCheetah", "Stream the same prepared DataTable-backed reader as typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same prepared DataTable-backed reader through ExcelDataWriter.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("LargeXlsx", "Stream the same prepared DataTable-backed IDataReader as plain worksheet rows.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable))
         ]);
 
         AddPackageProfileGroup(scenarios, scenarioFilter, "write-datareader-compact-package", warmupIterations, measuredIterations, [
             new PackageProfileCase("OfficeIMO.Excel", "Write a compact contiguous package through the package-native OfficeIMO DataReader API.", () => OfficeImoWriteDataReaderCompactPackageBytes(salesDataTable)),
+            new PackageProfileCase("SpreadCheetah", "Stream the same reader as compact forward-only typed worksheet rows.", () => SpreadCheetahWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("Sylvan.Data.Excel", "Stream the same reader using implicit contiguous cell positions.", () => SylvanWriteDataReaderPlainBytes(salesDataTable)),
             new PackageProfileCase("LargeXlsx", "Stream the same reader with cell references disabled.", () => LargeXlsxWriteDataReaderPlainBytes(salesDataTable, requireCellReferences: false))
         ]);
@@ -1188,6 +1194,17 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         Console.WriteLine($"Running {scenario} package profile group...");
+        foreach (var packageCase in cases) {
+            try {
+                var preflightProfile = AnalyzePackage(packageCase.CreatePackage());
+                ValidatePackageProfile(scenario, packageCase.Library, preflightProfile);
+            } catch (Exception exception) {
+                throw new InvalidOperationException(
+                    $"{scenario} / {packageCase.Library} produced an invalid workbook during untimed package preflight.",
+                    exception);
+            }
+        }
+
         var measurements = BenchmarkMeasurement.MeasureGroup(
             warmupIterations,
             measuredIterations,
@@ -1545,6 +1562,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             document.Execution.SaveWorksheetAfterAutoFit = false;
             var sheet = document.AddWorksheet("Data");
             ExcelBenchmarkScenarioFactory.PopulateOfficeImoWorksheet(sheet, rows);
+            document.Save(stream);
         }
 
         return stream.ToArray();
@@ -2314,6 +2332,8 @@ internal static partial class ExcelLibraryComparisonRunner {
                 (index + 2, 4, (object)row.Amount)
             }).ToArray();
             sheet.CellValues(cells, ExecutionMode.Parallel);
+            document.Save(stream);
+            AssertOfficeImoDirectPackageWriter(document, "append plain rows comparison");
         }
 
         return stream.ToArray();
@@ -4904,9 +4924,11 @@ internal static partial class ExcelLibraryComparisonRunner {
                 sheet.CellValue(row, 3, (double)(row * 3));
                 sheet.CellFormula(row, 4, $"SUM(A{row}:C{row})");
             }
+
+            document.Save(stream);
         }
 
-        return stream.ToArray();
+        return GetValidatedWorkbookFixtureBytes(stream, "formula-heavy read");
     }
 
     private static byte[] CreateSharedStringWorkbookBytes(int rowCount) {
@@ -4917,7 +4939,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             document.Save(stream);
         }
 
-        return stream.ToArray();
+        return GetValidatedWorkbookFixtureBytes(stream, "shared-string read");
     }
 
     private static byte[] CreateSparseWorkbookBytes(int lastRow) {
@@ -4926,9 +4948,23 @@ internal static partial class ExcelLibraryComparisonRunner {
             var sheet = document.AddWorksheet("Data");
             sheet.CellValue(1, 1, "Header");
             sheet.CellValue(lastRow, 1, "Tail");
+            document.Save(stream);
         }
 
-        return stream.ToArray();
+        return GetValidatedWorkbookFixtureBytes(stream, "sparse read");
+    }
+
+    private static byte[] GetValidatedWorkbookFixtureBytes(MemoryStream stream, string fixtureName) {
+        byte[] workbookBytes = stream.ToArray();
+        if (workbookBytes.Length == 0) {
+            throw new InvalidOperationException($"The {fixtureName} benchmark fixture produced an empty workbook.");
+        }
+
+        using (ExcelDocumentReader.Open(workbookBytes)) {
+            // Validate the lazy fixture before any timed reader implementation consumes it.
+        }
+
+        return workbookBytes;
     }
 
     private static (int Row, int Column, object Value)[] BuildSharedStringCells(int rowCount) {

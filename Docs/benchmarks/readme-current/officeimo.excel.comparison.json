@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "generatedAtUtc": "2026-07-13T21:12:56.381843Z",
-    "source": "./.benchmark-artifacts/readme-refresh/excel/officeimo.excel.comparison-summary.json",
+    "generatedAtUtc": "2026-07-14T00:01:29.540395Z",
+    "source": "./.benchmark-artifacts/final/excel-m4-25000/officeimo.excel.comparison-summary.json",
     "note": "Mean/stddev/stderr are from the lightweight rotated local runner. Allocations use GC.GetAllocatedBytesForCurrentThread. Use BenchmarkDotNet-specific classes for publication-grade statistical Error columns."
   },
   "comparison": [
@@ -15,14 +15,14 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 548.6870556666667,
-      "baseline": 548.6870556666667,
+      "actual": 38.11983822222222,
+      "baseline": 38.11983822222222,
       "ratio": 1.0,
       "metric": "MeanMs"
     },
@@ -36,15 +36,15 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 367.560944,
-      "baseline": 548.6870556666667,
-      "ratio": 0.6698917720109243,
+      "actual": 355.0100138888889,
+      "baseline": 38.11983822222222,
+      "ratio": 9.312998964458705,
       "metric": "MeanMs"
     },
     {
@@ -57,14 +57,14 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 39.150014,
-      "baseline": 39.150014,
+      "actual": 34.64402777777778,
+      "baseline": 34.64402777777778,
       "ratio": 1.0,
       "metric": "MeanMs"
     },
@@ -78,15 +78,15 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "ClosedXML",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 526.6473473333334,
-      "baseline": 39.150014,
-      "ratio": 13.452034712767496,
+      "actual": 300.74381022222224,
+      "baseline": 34.64402777777778,
+      "ratio": 8.680971281726448,
       "metric": "MeanMs"
     },
     {
@@ -99,15 +99,15 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 375.99281933333333,
-      "baseline": 39.150014,
-      "ratio": 9.603899996902513,
+      "actual": 280.7161852222222,
+      "baseline": 34.64402777777778,
+      "ratio": 8.102873806211587,
       "metric": "MeanMs"
     },
     {
@@ -120,14 +120,14 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 59.664500000000004,
-      "baseline": 59.664500000000004,
+      "actual": 56.177338,
+      "baseline": 56.177338,
       "ratio": 1.0,
       "metric": "MeanMs"
     },
@@ -141,15 +141,15 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "ClosedXML",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 271.760833,
-      "baseline": 59.664500000000004,
-      "ratio": 4.554816230756982,
+      "actual": 272.0360234444444,
+      "baseline": 56.177338,
+      "ratio": 4.842451300281342,
       "metric": "MeanMs"
     },
     {
@@ -162,15 +162,15 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 205.00526366666668,
-      "baseline": 59.664500000000004,
-      "ratio": 3.435967177579074,
+      "actual": 213.47667566666667,
+      "baseline": 56.177338,
+      "ratio": 3.8000496867022546,
       "metric": "MeanMs"
     },
     {
@@ -183,20 +183,20 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "Sylvan.Data.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 69.59073566666666,
-      "baseline": 59.664500000000004,
-      "ratio": 1.1663675328992391,
+      "actual": 37.614439777777775,
+      "baseline": 56.177338,
+      "ratio": 0.6695660762312692,
       "metric": "MeanMs"
     },
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Plain DataReader to XLSX",
+      "scenario": "Compact DataReader to XLSX",
       "operation": "Write",
       "host": ".NET 8",
       "os": "",
@@ -204,20 +204,20 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 35.163264,
-      "baseline": 35.163264,
+      "actual": 23.496648000000004,
+      "baseline": 23.496648000000004,
       "ratio": 1.0,
       "metric": "MeanMs"
     },
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Plain DataReader to XLSX",
+      "scenario": "Compact DataReader to XLSX",
       "operation": "Write",
       "host": ".NET 8",
       "os": "",
@@ -225,20 +225,41 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
+        "Runner": "rotated local"
+      },
+      "engine": "SpreadCheetah",
+      "baselineEngine": "OfficeIMO.Excel",
+      "status": "Succeeded",
+      "actual": 24.623657444444447,
+      "baseline": 23.496648000000004,
+      "ratio": 1.047964690301546,
+      "metric": "MeanMs"
+    },
+    {
+      "suite": "OfficeIMO README highlights",
+      "scenario": "Compact DataReader to XLSX",
+      "operation": "Write",
+      "host": ".NET 8",
+      "os": "",
+      "runMode": "",
+      "variables": {
+        "Format": ".xlsx",
+        "Rows": "25,000",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "Sylvan.Data.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 27.773014000000003,
-      "baseline": 35.163264,
-      "ratio": 0.7898303752461662,
+      "actual": 27.160657444444443,
+      "baseline": 23.496648000000004,
+      "ratio": 1.1559375381732935,
       "metric": "MeanMs"
     },
     {
       "suite": "OfficeIMO README highlights",
-      "scenario": "Plain DataReader to XLSX",
+      "scenario": "Compact DataReader to XLSX",
       "operation": "Write",
       "host": ".NET 8",
       "os": "",
@@ -246,15 +267,15 @@
       "variables": {
         "Format": ".xlsx",
         "Rows": "25,000",
-        "Snapshot": "2026-07-13",
+        "Snapshot": "2026-07-14",
         "Runner": "rotated local"
       },
       "engine": "LargeXlsx",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 37.173236,
-      "baseline": 35.163264,
-      "ratio": 1.0571611327094097,
+      "actual": 26.687116000000003,
+      "baseline": 23.496648000000004,
+      "ratio": 1.1357839637381468,
       "metric": "MeanMs"
     }
   ]

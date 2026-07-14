@@ -57,22 +57,24 @@ features expected from a document and ingestion model: schema inference and
 validation, typed values, transforms, compressed files, malformed-input policy,
 formula-injection protection, progress, cancellation, and diagnostics.
 
-The focused table compares equivalent 25,000-row wide read and projected-write
-lanes against Sep and Sylvan, then shows the narrower OfficeIMO trusted-text
+The focused table compares equivalent 25,000-row wide read, typed-object write,
+and validated-text write lanes, then shows the narrower OfficeIMO trusted-text
 upper bound separately. Trusted-text rows require the caller to supply already
 validated, culture-formatted values, so that row is not presented as the same
-contract as the projected writers. Read lanes traverse every field and validate
-their output, so a parser cannot win by merely counting rows. Lower is faster.
+contract as the validating writers. Read lanes traverse every field and validate
+their output, so a parser cannot win by merely counting rows. Lower is faster;
+differences below 5% should be treated as ties rather than ranking claims.
 
 <!-- officeimo-csv-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | OfficeIMO.CSV | Sep | Sylvan.Data.Csv | Result |
-| --- | --- | --- | --- | ---: | ---: | ---: | --- |
-| Prevalidated text-row write upper bound | Contract=OfficeIMO caller-prevalidated text, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Write rows | 1.00x (16ms) | 1.54x (24ms) | 1.73x (27ms) | OfficeIMO.CSV fastest |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Read every field | 1.00x (5ms) | 0.47x (2ms) | 1.89x (9ms) | OfficeIMO.CSV slower than Sep |
-| Wide projected-row CSV write | Contract=projected values, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet short, Shape=wide, Snapshot=2026-07-13 | .NET 8 | Write projected rows | 1.00x (37ms) | 0.66x (24ms) | 0.74x (27ms) | OfficeIMO.CSV slower than Sep |
+| Scenario | Variables | Host | Operation | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
+| Caller-trusted text-row upper bound | Contract=OfficeIMO caller-prevalidated text, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Write rows | 1.00x (17ms) | 1.37x (23ms) | 1.24x (21ms) | 1.31x (22ms) | 0.97x (16ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | 1.00x (2ms) | n/a | n/a | 1.02x (2ms) | 4.25x (10ms) | OfficeIMO.CSV fastest |
+| Wide object-row CSV write | Contract=typed object values, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | 1.00x (35ms) | 2.29x (81ms) | 1.30x (46ms) | n/a | 0.78x (27ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
+| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | 1.00x (20ms) | 1.13x (23ms) | 1.03x (21ms) | 1.09x (22ms) | 0.80x (16ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
 <!-- officeimo-csv-benchmark-table:end -->
 
-These are short-run snapshots, not universal rankings. Runtime, CPU, input
+These are local snapshots, not universal rankings. Runtime, CPU, input
 shape, quoting, encoding, storage, warm-up, and consumer behavior all matter;
 results will vary. See the [full benchmark harness](../OfficeIMO.CSV.Benchmarks/README.md)
 for CsvHelper, Dataplat/dbatools, LumenWorks, Sep, Sylvan, `DataTable`, and

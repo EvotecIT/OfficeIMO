@@ -248,7 +248,7 @@ internal static partial class CsvParser
             RecordsToSkip = recordsToSkip,
             UseAvx2UnquotedFastPath = true,
             TextMayContainQuote = text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0,
-            UnquotedDelimiterIndexCapacity = 64,
+            UnquotedDelimiterIndexCapacity = 16,
             DelimiterVector = delimiterVector,
             LineNumber = 1
         };
@@ -347,6 +347,12 @@ internal static partial class CsvParser
                 SkipTextRecord(text, ref state.Position);
                 state.LineNumber++;
                 continue;
+            }
+
+            var requiredFieldCapacity = GetTextDelimiterIndexCapacity(fieldCount);
+            if (requiredFieldCapacity > state.UnquotedDelimiterIndexCapacity)
+            {
+                state.UnquotedDelimiterIndexCapacity = requiredFieldCapacity;
             }
 
             var isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;

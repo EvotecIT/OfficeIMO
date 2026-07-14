@@ -87,9 +87,15 @@ try {
             "*CsvWideBenchmarks.Sep_ReadFieldSpans*",
             "*CsvWideBenchmarks.Sylvan_ReadFieldSpans*",
             "*CsvWideBenchmarks.OfficeIMO_WriteProjectedRows*",
+            "*CsvWideBenchmarks.OfficeIMO_WriteValidatedTextRows*",
             "*CsvWideBenchmarks.OfficeIMO_WriteTrustedTextRows*",
+            "*CsvWideBenchmarks.CsvHelper_WriteProjectedRows*",
+            "*CsvWideBenchmarks.CsvHelper_WriteTextRows*",
             "*CsvWideBenchmarks.Sep_WriteProjectedRows*",
             "*CsvWideBenchmarks.Sylvan_WriteProjectedRows*",
+            "*CsvWideBenchmarks.Sylvan_WriteTextRows*",
+            "*CsvWideBenchmarks.Dataplat_WriteProjectedRows*",
+            "*CsvWideBenchmarks.Dataplat_WriteTextRows*",
             "--job", "short", "--warmupCount", "1", "--iterationCount", "3",
             "--artifacts", $csvRunPath
         )
@@ -103,7 +109,7 @@ try {
             "run", "-c", "Release", "--framework", "net8.0",
             "--project", "OfficeIMO.Excel.Benchmarks/OfficeIMO.Excel.Benchmarks.csproj", "--",
             "comparison-suite", "--out-dir", $excelRunPath, "--row-set", "25000",
-            "--scenario", "realworld-report-all-in-one,write-datareader-table,read-objects-stream,write-datareader-plain",
+            "--scenario", "realworld-report-all-in-one,write-datareader-table,read-objects-stream,write-datareader-compact-package",
             "--skip-package-profile", "--skip-dense-helloworld", "--skip-legacy-epplus",
             "--warmup", "1", "--iterations", "3"
         )
@@ -168,7 +174,7 @@ try {
             "Feature-rich report to XLSX" = @{ Scenario = "realworld-report-all-in-one"; Operation = "Create"; Libraries = @("OfficeIMO.Excel", "EPPlus") }
             "Styled DataReader table to XLSX" = @{ Scenario = "write-datareader-table"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "ClosedXML", "EPPlus") }
             "Typed objects streamed from XLSX" = @{ Scenario = "read-objects-stream"; Operation = "Read"; Libraries = @("OfficeIMO.Excel", "ClosedXML", "EPPlus", "Sylvan.Data.Excel") }
-            "Plain DataReader to XLSX" = @{ Scenario = "write-datareader-plain"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "LargeXlsx", "Sylvan.Data.Excel") }
+            "Compact DataReader to XLSX" = @{ Scenario = "write-datareader-compact-package"; Operation = "Write"; Libraries = @("OfficeIMO.Excel", "SpreadCheetah", "LargeXlsx", "Sylvan.Data.Excel") }
         }
         $excelRows = [System.Collections.Generic.List[object]]::new()
         $excelSnapshot = ([DateTimeOffset] $excel.GeneratedAtUtc).UtcDateTime.ToString("yyyy-MM-dd")
@@ -205,14 +211,21 @@ try {
             "Sep_ReadFieldSpans" = "Sep"
             "Sylvan_ReadFieldSpans" = "Sylvan.Data.Csv"
             "OfficeIMO_WriteProjectedRows" = "OfficeIMO.CSV"
+            "OfficeIMO_WriteValidatedTextRows" = "OfficeIMO.CSV"
             "OfficeIMO_WriteTrustedTextRows" = "OfficeIMO.CSV"
+            "CsvHelper_WriteProjectedRows" = "CsvHelper"
+            "CsvHelper_WriteTextRows" = "CsvHelper"
             "Sep_WriteProjectedRows" = "Sep"
             "Sylvan_WriteProjectedRows" = "Sylvan.Data.Csv"
+            "Sylvan_WriteTextRows" = "Sylvan.Data.Csv"
+            "Dataplat_WriteProjectedRows" = "Dataplat.Dbatools.Csv"
+            "Dataplat_WriteTextRows" = "Dataplat.Dbatools.Csv"
         }
         $csvSelections = [ordered]@{
             "Wide field-span CSV read" = @{ Operation = "Read every field"; Baseline = "OfficeIMO_ReadTextFieldSpanVisitorSkipHeader"; Methods = @("OfficeIMO_ReadTextFieldSpanVisitorSkipHeader", "Sep_ReadFieldSpans", "Sylvan_ReadFieldSpans"); Contract = "field spans" }
-            "Wide projected-row CSV write" = @{ Operation = "Write projected rows"; Baseline = "OfficeIMO_WriteProjectedRows"; Methods = @("OfficeIMO_WriteProjectedRows", "Sep_WriteProjectedRows", "Sylvan_WriteProjectedRows"); Contract = "projected values" }
-            "Prevalidated text-row write upper bound" = @{ Operation = "Write rows"; Baseline = "OfficeIMO_WriteTrustedTextRows"; Methods = @("OfficeIMO_WriteTrustedTextRows", "Sep_WriteProjectedRows", "Sylvan_WriteProjectedRows"); Contract = "OfficeIMO caller-prevalidated text" }
+            "Wide object-row CSV write" = @{ Operation = "Format and write rows"; Baseline = "OfficeIMO_WriteProjectedRows"; Methods = @("OfficeIMO_WriteProjectedRows", "CsvHelper_WriteProjectedRows", "Sylvan_WriteProjectedRows", "Dataplat_WriteProjectedRows"); Contract = "typed object values" }
+            "Wide validated text-row CSV write" = @{ Operation = "Validate and write rows"; Baseline = "OfficeIMO_WriteValidatedTextRows"; Methods = @("OfficeIMO_WriteValidatedTextRows", "CsvHelper_WriteTextRows", "Sep_WriteProjectedRows", "Sylvan_WriteTextRows", "Dataplat_WriteTextRows"); Contract = "preformatted text with escaping" }
+            "Caller-trusted text-row upper bound" = @{ Operation = "Write rows"; Baseline = "OfficeIMO_WriteTrustedTextRows"; Methods = @("OfficeIMO_WriteTrustedTextRows", "CsvHelper_WriteTextRows", "Sep_WriteProjectedRows", "Sylvan_WriteTextRows", "Dataplat_WriteTextRows"); Contract = "OfficeIMO caller-prevalidated text" }
         }
         $selected = @($csvRun.Summary | Where-Object {
             $_.Scenario -in $csvEngines.Keys -and
@@ -229,7 +242,7 @@ try {
                 $csvRows.Add((New-ComparisonRow -Scenario $selection.Key -Operation $selection.Value.Operation `
                     -Engine $csvEngines[$row.Scenario] -BaselineEngine "OfficeIMO.CSV" -Actual ([double] $row.MedianMs) `
                     -Baseline ([double] $baselineRow.MedianMs) -Metric "MedianMs" -RuntimeHost ".NET 8" `
-                    -Variables ([ordered]@{ Format = "CSV"; Rows = "25,000"; Shape = "wide"; Contract = $selection.Value.Contract; Snapshot = $csvSnapshot; Runner = "BenchmarkDotNet short" })))
+                    -Variables ([ordered]@{ Format = "CSV"; Rows = "25,000"; Shape = "wide"; Contract = $selection.Value.Contract; Snapshot = $csvSnapshot; Runner = "BenchmarkDotNet local" })))
             }
         }
         Write-ComparisonArtifact -Path $csvComparisonPath -Metadata ([ordered]@{

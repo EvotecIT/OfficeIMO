@@ -5,6 +5,7 @@
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
       $(TargetFrameworks);net472
     </TargetFrameworks>
+    <IsTestProject>true</IsTestProject>
     <IsPackable>false</IsPackable>
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>

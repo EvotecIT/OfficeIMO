@@ -17,7 +17,11 @@ namespace OfficeIMO.Excel {
 
         private void PrepareWorkbookForSave(ExcelSaveOptions? options, bool skipDirectFastSaveSheetPreparation = false) {
             Stopwatch? stageWatch = Execution.OnTiming == null ? null : Stopwatch.StartNew();
-            MaterializeDeferredDataSetImport();
+            if (skipDirectFastSaveSheetPreparation) {
+                MaterializePendingDirectCellValueSheetIfNeeded();
+            } else {
+                MaterializeDeferredDataSetImport();
+            }
             ReportSaveTiming(stageWatch, "Save.PrepareWorkbook.MaterializeDeferredDataSet");
             using var preserveFastSaveState = _materializedDirectDataSetFastSaveModel != null
                 ? PreserveDirectDataSetFastSaveStateDuringDirtyMarks()

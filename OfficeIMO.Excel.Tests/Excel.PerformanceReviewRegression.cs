@@ -5595,6 +5595,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Alpha", GetSpreadsheetCellText(spreadsheet, cells["A2"]));
             Assert.Equal("Gamma", GetSpreadsheetCellText(spreadsheet, cells["A4"]));
             Assert.Single(worksheetPart.HyperlinkRelationships);
+            var savedHyperlinks = Assert.Single(worksheetPart.Worksheet.Elements<Hyperlinks>());
+            Assert.Single(savedHyperlinks.Elements<Hyperlink>());
             Assert.Single(worksheetPart.PivotTableParts);
             Assert.Empty(new OpenXmlValidator().Validate(spreadsheet).ToList());
         }

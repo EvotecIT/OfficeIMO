@@ -706,6 +706,55 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadFieldSpansFromText_VectorizedUnquotedPathPreservesUnicodeCharacters()
+    {
+        const int rowCount = 5000;
+        const string unicodeValue = "\u012C\u010A\u010D-value";
+        var text = new StringBuilder("Name,Value\n");
+        for (var i = 0; i < rowCount; i++)
+        {
+            text.Append(unicodeValue).Append(',').Append(i).Append('\n');
+        }
+
+        var fieldCount = 0;
+        CsvDocument.ReadFieldSpansFromText(
+            text.ToString(),
+            (recordIndex, fieldIndex, value) =>
+            {
+                Assert.InRange(recordIndex, 0, rowCount - 1);
+                if (fieldIndex == 0)
+                {
+                    Assert.Equal(unicodeValue, value.ToString());
+                }
+                else
+                {
+                    Assert.Equal(recordIndex.ToString(), value.ToString());
+                }
+
+                fieldCount++;
+            },
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(rowCount * 2, fieldCount);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_VectorizedQuotedPathGrowsForWideRecords()
+    {
+        var expected = Enumerable.Range(0, 40)
+            .Select(index => index == 31 ? "line one\nline two" : $"value {index}")
+            .ToArray();
+        var text = string.Join(",", expected.Select(value => $"\"{value}\"")) + "\n";
+        var actual = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            text,
+            (recordIndex, fieldIndex, value) => actual.Add(value.ToString()));
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
     public void ReadFieldSpans_FallsBackForQuotedMultilineRecords()
     {
         var fields = new List<string>();
