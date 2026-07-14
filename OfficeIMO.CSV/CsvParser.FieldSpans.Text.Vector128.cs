@@ -57,10 +57,11 @@ internal static partial class CsvParser
             var values = MemoryMarshal.Cast<char, ushort>(text.Slice(pos, vectorCharacterCount));
             var vector = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(values));
             var delimiterMask = Vector128.Equals(vector, delimiterVector).ExtractMostSignificantBits();
-            var quoteMask = Vector128.Equals(vector, QuoteCharVector128).ExtractMostSignificantBits();
-            var carriageReturnMask = Vector128.Equals(vector, CarriageReturnCharVector128).ExtractMostSignificantBits();
-            var lineFeedMask = Vector128.Equals(vector, LineFeedCharVector128).ExtractMostSignificantBits();
-            var terminalMask = quoteMask | carriageReturnMask | lineFeedMask;
+            var quoteMatches = Vector128.Equals(vector, QuoteCharVector128);
+            var lineBreakMatches = Vector128.BitwiseOr(
+                Vector128.Equals(vector, CarriageReturnCharVector128),
+                Vector128.Equals(vector, LineFeedCharVector128));
+            var terminalMask = Vector128.BitwiseOr(quoteMatches, lineBreakMatches).ExtractMostSignificantBits();
 
             if (terminalMask != 0)
             {
@@ -72,7 +73,7 @@ internal static partial class CsvParser
                     return false;
                 }
 
-                if (((quoteMask >> terminalOffset) & 1u) != 0)
+                if (text[pos + terminalOffset] == '"')
                 {
                     if (delimiterCount < TextQuotedPrefixReuseMinimumDelimiterCount)
                     {

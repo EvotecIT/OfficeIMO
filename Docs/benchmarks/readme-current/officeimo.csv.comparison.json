@@ -1,6 +1,6 @@
 {
   "metadata": {
-    "generatedAtUtc": "2026-07-14T01:03:16.705233+00:00",
+    "generatedAtUtc": "2026-07-14T01:37:47.976586+00:00",
     "source": "./.benchmark-artifacts/readme-refresh/csv",
     "note": "Focused BenchmarkDotNet run; every read lane traverses every field and validates its output."
   },
@@ -23,8 +23,8 @@
       "engine": "OfficeIMO.CSV",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 2.2921,
-      "baseline": 2.2921,
+      "actual": 2.13549,
+      "baseline": 2.13549,
       "ratio": 1.0,
       "metric": "MedianMs"
     },
@@ -46,9 +46,9 @@
       "engine": "Sep",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 2.3362600000000002,
-      "baseline": 2.2921,
-      "ratio": 1.0192661751232495,
+      "actual": 2.33572,
+      "baseline": 2.13549,
+      "ratio": 1.0937630239429825,
       "metric": "MedianMs"
     },
     {
@@ -69,9 +69,9 @@
       "engine": "Sylvan.Data.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 9.730690000000001,
-      "baseline": 2.2921,
-      "ratio": 4.245316521966756,
+      "actual": 9.665690000000001,
+      "baseline": 2.13549,
+      "ratio": 4.526216465541867,
       "metric": "MedianMs"
     },
     {
@@ -92,9 +92,9 @@
       "engine": "CsvHelper",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 81.00961000000001,
-      "baseline": 35.31758,
-      "ratio": 2.293747476469226,
+      "actual": 80.48356,
+      "baseline": 37.16614,
+      "ratio": 2.165507636789831,
       "metric": "MedianMs"
     },
     {
@@ -115,9 +115,9 @@
       "engine": "Dataplat.Dbatools.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 45.840360000000004,
-      "baseline": 35.31758,
-      "ratio": 1.2979473678547626,
+      "actual": 44.024809999999995,
+      "baseline": 37.16614,
+      "ratio": 1.184540821295943,
       "metric": "MedianMs"
     },
     {
@@ -138,8 +138,8 @@
       "engine": "OfficeIMO.CSV",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 35.31758,
-      "baseline": 35.31758,
+      "actual": 37.16614,
+      "baseline": 37.16614,
       "ratio": 1.0,
       "metric": "MedianMs"
     },
@@ -161,9 +161,9 @@
       "engine": "Sylvan.Data.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 27.461669999999998,
-      "baseline": 35.31758,
-      "ratio": 0.77756375153677,
+      "actual": 26.87573,
+      "baseline": 37.16614,
+      "ratio": 0.7231240586189472,
       "metric": "MedianMs"
     },
     {
@@ -184,9 +184,9 @@
       "engine": "CsvHelper",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 22.99032,
-      "baseline": 20.3042,
-      "ratio": 1.132293811132672,
+      "actual": 23.40919,
+      "baseline": 20.74293,
+      "ratio": 1.128538253756822,
       "metric": "MedianMs"
     },
     {
@@ -207,9 +207,9 @@
       "engine": "Dataplat.Dbatools.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 20.82509,
-      "baseline": 20.3042,
-      "ratio": 1.0256542981255108,
+      "actual": 22.84647,
+      "baseline": 20.74293,
+      "ratio": 1.1014099743864536,
       "metric": "MedianMs"
     },
     {
@@ -230,8 +230,8 @@
       "engine": "OfficeIMO.CSV",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 20.3042,
-      "baseline": 20.3042,
+      "actual": 20.74293,
+      "baseline": 20.74293,
       "ratio": 1.0,
       "metric": "MedianMs"
     },
@@ -253,9 +253,9 @@
       "engine": "Sep",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 22.03256,
-      "baseline": 20.3042,
-      "ratio": 1.0851232749874409,
+      "actual": 20.76752,
+      "baseline": 20.74293,
+      "ratio": 1.001185464155739,
       "metric": "MedianMs"
     },
     {
@@ -276,9 +276,9 @@
       "engine": "Sylvan.Data.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 16.21473,
-      "baseline": 20.3042,
-      "ratio": 0.7985899469075363,
+      "actual": 16.07143,
+      "baseline": 20.74293,
+      "ratio": 0.7747907359278559,
       "metric": "MedianMs"
     },
     {
@@ -299,9 +299,9 @@
       "engine": "CsvHelper",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 22.99032,
-      "baseline": 16.770490000000002,
-      "ratio": 1.370879443594075,
+      "actual": 23.40919,
+      "baseline": 16.85854,
+      "ratio": 1.3885656765057945,
       "metric": "MedianMs"
     },
     {
@@ -322,9 +322,9 @@
       "engine": "Dataplat.Dbatools.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 20.82509,
-      "baseline": 16.770490000000002,
-      "ratio": 1.2417699184698836,
+      "actual": 22.84647,
+      "baseline": 16.85854,
+      "ratio": 1.3551867480813877,
       "metric": "MedianMs"
     },
     {
@@ -345,8 +345,8 @@
       "engine": "OfficeIMO.CSV",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 16.770490000000002,
-      "baseline": 16.770490000000002,
+      "actual": 16.85854,
+      "baseline": 16.85854,
       "ratio": 1.0,
       "metric": "MedianMs"
     },
@@ -368,9 +368,9 @@
       "engine": "Sep",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 22.03256,
-      "baseline": 16.770490000000002,
-      "ratio": 1.31376960363114,
+      "actual": 20.76752,
+      "baseline": 16.85854,
+      "ratio": 1.231869426415336,
       "metric": "MedianMs"
     },
     {
@@ -391,9 +391,9 @@
       "engine": "Sylvan.Data.Csv",
       "baselineEngine": "OfficeIMO.CSV",
       "status": "Succeeded",
-      "actual": 16.21473,
-      "baseline": 16.770490000000002,
-      "ratio": 0.9668608371013606,
+      "actual": 16.07143,
+      "baseline": 16.85854,
+      "ratio": 0.9533109035539257,
       "metric": "MedianMs"
     }
   ]

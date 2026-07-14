@@ -52,9 +52,10 @@ internal static partial class CsvParser
             var values = MemoryMarshal.Cast<char, ushort>(text.Slice(pos, vectorCharacterCount));
             var vector = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(values));
             var delimiterMask = Vector128.Equals(vector, delimiterVector).ExtractMostSignificantBits();
-            var carriageReturnMask = Vector128.Equals(vector, CarriageReturnCharVector128).ExtractMostSignificantBits();
-            var lineFeedMask = Vector128.Equals(vector, LineFeedCharVector128).ExtractMostSignificantBits();
-            var terminalMask = carriageReturnMask | lineFeedMask;
+            var lineBreakMatches = Vector128.BitwiseOr(
+                Vector128.Equals(vector, CarriageReturnCharVector128),
+                Vector128.Equals(vector, LineFeedCharVector128));
+            var terminalMask = lineBreakMatches.ExtractMostSignificantBits();
             var specialMask = delimiterMask | terminalMask;
 
             while (specialMask != 0)

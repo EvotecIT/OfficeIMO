@@ -12,10 +12,10 @@ Treat differences below 5% as ties rather than ranking claims.
 <!-- officeimo-csv-benchmark-table:start -->
 | Scenario | Variables | Host | Operation | OfficeIMO.CSV | CsvHelper | Dataplat.Dbatools.Csv | Sep | Sylvan.Data.Csv | Result |
 | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- |
-| Caller-trusted text-row upper bound | Contract=OfficeIMO caller-prevalidated text, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Write rows | 1.00x (17ms) | 1.37x (23ms) | 1.24x (21ms) | 1.31x (22ms) | 0.97x (16ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
-| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | 1.00x (2ms) | n/a | n/a | 1.02x (2ms) | 4.25x (10ms) | OfficeIMO.CSV fastest |
-| Wide object-row CSV write | Contract=typed object values, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | 1.00x (35ms) | 2.29x (81ms) | 1.30x (46ms) | n/a | 0.78x (27ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
-| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | 1.00x (20ms) | 1.13x (23ms) | 1.03x (21ms) | 1.09x (22ms) | 0.80x (16ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
+| Caller-trusted text-row upper bound | Contract=OfficeIMO caller-prevalidated text, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Write rows | 1.00x (17ms) | 1.39x (23ms) | 1.36x (23ms) | 1.23x (21ms) | 0.95x (16ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
+| Wide field-span CSV read | Contract=field spans, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Read every field | 1.00x (2ms) | n/a | n/a | 1.09x (2ms) | 4.53x (10ms) | OfficeIMO.CSV fastest |
+| Wide object-row CSV write | Contract=typed object values, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Format and write rows | 1.00x (37ms) | 2.17x (80ms) | 1.18x (44ms) | n/a | 0.72x (27ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
+| Wide validated text-row CSV write | Contract=preformatted text with escaping, Format=CSV, Rows=25,000, Runner=BenchmarkDotNet local, Shape=wide, Snapshot=2026-07-14 | .NET 8 | Validate and write rows | 1.00x (21ms) | 1.13x (23ms) | 1.10x (23ms) | 1.00x (21ms) | 0.77x (16ms) | OfficeIMO.CSV slower than Sylvan.Data.Csv |
 <!-- officeimo-csv-benchmark-table:end -->
 
 ## Run
