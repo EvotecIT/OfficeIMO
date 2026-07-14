@@ -794,6 +794,42 @@ internal static partial class OfficeJpegReader {
         public byte Al;
     }
 
+    private sealed class BaselineState {
+        public BaselineComponentState[] Components = Array.Empty<BaselineComponentState>();
+        public bool[] DecodedComponents = Array.Empty<bool>();
+        public int McuCols;
+        public int McuRows;
+
+        public static BaselineState Create(JpegFrame frame) {
+            var mcuWidth = frame.MaxH * 8;
+            var mcuHeight = frame.MaxV * 8;
+            var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
+            var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
+            var components = new BaselineComponentState[frame.ComponentCount];
+            for (var i = 0; i < frame.ComponentCount; i++) {
+                var component = frame.Components[i];
+                var blocksPerRow = OfficeRasterGuards.EnsureByteCount((long)mcuCols * component.H, JpegDimensionsLimitMessage);
+                var blocksPerCol = OfficeRasterGuards.EnsureByteCount((long)mcuRows * component.V, JpegDimensionsLimitMessage);
+                components[i] = new BaselineComponentState(component, blocksPerRow, blocksPerCol);
+            }
+
+            return new BaselineState {
+                Components = components,
+                DecodedComponents = new bool[frame.ComponentCount],
+                McuCols = mcuCols,
+                McuRows = mcuRows
+            };
+        }
+
+        public byte[] RenderRgba(JpegFrame frame, int? adobeTransform, bool highQualityChroma) {
+            for (var i = 0; i < DecodedComponents.Length; i++) {
+                if (!DecodedComponents[i]) throw new FormatException("Missing JPEG component scan.");
+            }
+
+            return ComposeRgba(frame, Components, adobeTransform, highQualityChroma);
+        }
+    }
+
     private sealed class BaselineComponentState {
         public Component Component;
         public int[] Buffer;

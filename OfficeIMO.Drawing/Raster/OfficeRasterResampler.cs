@@ -56,12 +56,14 @@ public static class OfficeRasterResampler {
     }
 
     private static void CopyBilinear(byte[] input, int width, int height, double x, double y, byte[] output, int target) {
-        int x0 = Clamp((int)Math.Floor(x), 0, width - 1);
-        int y0 = Clamp((int)Math.Floor(y), 0, height - 1);
+        double sampleX = Clamp(x, 0D, width - 1D);
+        double sampleY = Clamp(y, 0D, height - 1D);
+        int x0 = (int)Math.Floor(sampleX);
+        int y0 = (int)Math.Floor(sampleY);
         int x1 = Clamp(x0 + 1, 0, width - 1);
         int y1 = Clamp(y0 + 1, 0, height - 1);
-        double tx = Clamp(x - Math.Floor(x), 0D, 1D);
-        double ty = Clamp(y - Math.Floor(y), 0D, 1D);
+        double tx = sampleX - x0;
+        double ty = sampleY - y0;
         double w00 = (1D - tx) * (1D - ty);
         double w10 = tx * (1D - ty);
         double w01 = (1D - tx) * ty;

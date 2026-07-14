@@ -37,8 +37,9 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         /// <summary>
-        /// Writes a complete artifact directly without closing the destination. Seekable streams are truncated
-        /// before writing and rewound after a successful write.
+        /// Writes a complete artifact directly without closing the destination. Seekable streams are positioned
+        /// at the beginning before production, then truncated to the completed artifact and rewound only after the
+        /// producer succeeds. This preserves existing contents when validation fails before output begins.
         /// </summary>
         public static void Write(Stream destination, Action<Stream> writer) {
 #if NET6_0_OR_GREATER
@@ -49,10 +50,16 @@ namespace OfficeIMO.Drawing.Internal {
             if (writer == null) throw new ArgumentNullException(nameof(writer));
 #endif
             EnsureWritable(destination);
-            PrepareDestination(destination);
-            writer(destination);
-            destination.Flush();
-            RewindDestination(destination);
+            long originalPosition = PositionForDirectWrite(destination);
+            try {
+                writer(destination);
+                CompleteDirectWrite(destination);
+                destination.Flush();
+                RewindDestination(destination);
+            } catch {
+                RestorePositionAfterFailedDirectWrite(destination, originalPosition);
+                throw;
+            }
         }
 
         /// <summary>
@@ -84,7 +91,8 @@ namespace OfficeIMO.Drawing.Internal {
 
         /// <summary>
         /// Writes a complete artifact directly and asynchronously flushes it without closing the destination.
-        /// The producer runs synchronously so format writers can preserve ordered offset accounting.
+        /// The producer runs synchronously so format writers can preserve ordered offset accounting. Seekable
+        /// streams are truncated only after the producer succeeds.
         /// </summary>
         public static async Task WriteAsync(
             Stream destination,
@@ -99,11 +107,17 @@ namespace OfficeIMO.Drawing.Internal {
 #endif
             EnsureWritable(destination);
             cancellationToken.ThrowIfCancellationRequested();
-            PrepareDestination(destination);
-            writer(destination);
-            cancellationToken.ThrowIfCancellationRequested();
-            await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
-            RewindDestination(destination);
+            long originalPosition = PositionForDirectWrite(destination);
+            try {
+                writer(destination);
+                cancellationToken.ThrowIfCancellationRequested();
+                CompleteDirectWrite(destination);
+                await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+                RewindDestination(destination);
+            } catch {
+                RestorePositionAfterFailedDirectWrite(destination, originalPosition);
+                throw;
+            }
         }
 
         private static void EnsureWritable(Stream destination) {
@@ -116,6 +130,23 @@ namespace OfficeIMO.Drawing.Internal {
             if (!destination.CanSeek) return;
             destination.Position = 0;
             destination.SetLength(0);
+        }
+
+        private static long PositionForDirectWrite(Stream destination) {
+            if (!destination.CanSeek) return 0L;
+            long originalPosition = destination.Position;
+            destination.Position = 0;
+            return originalPosition;
+        }
+
+        private static void CompleteDirectWrite(Stream destination) {
+            if (!destination.CanSeek) return;
+            destination.SetLength(destination.Position);
+        }
+
+        private static void RestorePositionAfterFailedDirectWrite(Stream destination, long originalPosition) {
+            if (!destination.CanSeek) return;
+            destination.Position = Math.Min(originalPosition, destination.Length);
         }
 
         private static void RewindDestination(Stream destination) {

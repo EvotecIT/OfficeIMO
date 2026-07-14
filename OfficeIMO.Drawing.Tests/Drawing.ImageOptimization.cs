@@ -34,6 +34,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterResampler_BilinearClampsEdgeCoordinatesBeforeWeighting() {
+            var source = new OfficeRasterImage(2, 1);
+            source.SetPixel(0, 0, OfficeColor.Red);
+            source.SetPixel(1, 0, OfficeColor.Blue);
+
+            OfficeRasterImage resized = OfficeRasterResampler.Resize(source, 4, 1);
+
+            Assert.Equal(OfficeColor.Red, resized.GetPixel(0, 0));
+            Assert.Equal(OfficeColor.Blue, resized.GetPixel(3, 0));
+        }
+
+        [Fact]
         public void OfficeJpegCodec_RoundTripsDimensionsAndRepresentativeColors() {
             OfficeRasterImage source = CreateQuadrantImage(32, 24);
 
@@ -73,6 +85,47 @@ namespace OfficeIMO.Tests {
             Assert.Equal(source.Height, decoded.Height);
             AssertColorNear(decoded.GetPixel(4, 4), OfficeColor.Red, 28);
             AssertColorNear(decoded.GetPixel(32, 24), OfficeColor.White, 28);
+        }
+
+        [Fact]
+        public void OfficeJpegCodec_ProgressiveColorUsesNonInterleavedAcScans() {
+            byte[] jpeg = OfficeJpegCodec.Encode(CreateQuadrantImage(37, 29), new OfficeJpegEncodeOptions {
+                Progressive = true,
+                Subsampling = OfficeJpegSubsampling.Y420
+            });
+
+            var scans = ReadStartOfScanHeaders(jpeg);
+
+            Assert.Equal(4, scans.Count);
+            Assert.Equal((3, 0), scans[0]);
+            Assert.All(scans.Skip(1), scan => {
+                Assert.Equal(1, scan.ComponentCount);
+                Assert.Equal(1, scan.SpectralStart);
+            });
+        }
+
+        [Fact]
+        public void OfficeJpegCodec_RejectsDimensionsBeyondJpegHeaderLimits() {
+            var source = new OfficeRasterImage(ushort.MaxValue + 1, 1, OfficeColor.Red);
+
+            ArgumentOutOfRangeException exception = Assert.Throws<ArgumentOutOfRangeException>(() => OfficeJpegCodec.Encode(source));
+
+            Assert.Equal("width", exception.ParamName);
+            Assert.Contains("65535", exception.Message, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void OfficeJpegCodec_DecodesBaselineComponentsStoredInSeparateScans() {
+            byte[] jpeg = BuildSeparateComponentBaselineJpeg();
+
+            OfficeRasterImage decoded = OfficeJpegCodec.Decode(jpeg);
+            OfficeColor pixel = decoded.GetPixel(0, 0);
+
+            Assert.Equal(1, decoded.Width);
+            Assert.Equal(1, decoded.Height);
+            Assert.InRange(pixel.R, 127, 129);
+            Assert.InRange(pixel.G, 127, 129);
+            Assert.InRange(pixel.B, 127, 129);
         }
 
         [Fact]
@@ -182,6 +235,65 @@ namespace OfficeIMO.Tests {
                 }
             }
             return image;
+        }
+
+        private static byte[] BuildSeparateComponentBaselineJpeg() {
+            byte[] seed = OfficeJpegCodec.Encode(
+                new OfficeRasterImage(1, 1, OfficeColor.Red),
+                new OfficeJpegEncodeOptions { Subsampling = OfficeJpegSubsampling.Y444 });
+            int firstScan = FindMarker(seed, 0xDA);
+            Assert.True(firstScan > 0);
+
+            using var stream = new MemoryStream();
+            stream.Write(seed, 0, firstScan);
+            WriteBaselineScan(stream, componentId: 1, tableSelectors: 0x00, entropyByte: 0x2B);
+            WriteBaselineScan(stream, componentId: 2, tableSelectors: 0x11, entropyByte: 0x0F);
+            WriteBaselineScan(stream, componentId: 3, tableSelectors: 0x11, entropyByte: 0x0F);
+            stream.WriteByte(0xFF);
+            stream.WriteByte(0xD9);
+            return stream.ToArray();
+        }
+
+        private static void WriteBaselineScan(Stream stream, byte componentId, byte tableSelectors, byte entropyByte) {
+            byte[] scan = {
+                0xFF, 0xDA, 0x00, 0x08, 0x01,
+                componentId, tableSelectors,
+                0x00, 0x3F, 0x00,
+                entropyByte
+            };
+            stream.Write(scan, 0, scan.Length);
+        }
+
+        private static List<(int ComponentCount, int SpectralStart)> ReadStartOfScanHeaders(byte[] jpeg) {
+            var scans = new List<(int ComponentCount, int SpectralStart)>();
+            for (int index = 0; index + 5 < jpeg.Length; index++) {
+                if (jpeg[index] != 0xFF || jpeg[index + 1] != 0xDA) continue;
+                int componentCount = jpeg[index + 4];
+                int spectralStartIndex = index + 5 + componentCount * 2;
+                Assert.True(spectralStartIndex < jpeg.Length);
+                scans.Add((componentCount, jpeg[spectralStartIndex]));
+            }
+            return scans;
+        }
+
+        private static int FindMarker(byte[] jpeg, byte marker) {
+            int offset = 2;
+            while (offset + 3 < jpeg.Length) {
+                if (jpeg[offset] != 0xFF) {
+                    offset++;
+                    continue;
+                }
+
+                while (offset < jpeg.Length && jpeg[offset] == 0xFF) offset++;
+                if (offset >= jpeg.Length) break;
+                byte current = jpeg[offset++];
+                if (current == marker) return offset - 2;
+                if (current == 0xD9 || (current >= 0xD0 && current <= 0xD7)) continue;
+                if (offset + 1 >= jpeg.Length) break;
+                int length = (jpeg[offset] << 8) | jpeg[offset + 1];
+                offset += length;
+            }
+            return -1;
         }
 
         private static void AssertColorNear(OfficeColor actual, OfficeColor expected, int tolerance) {

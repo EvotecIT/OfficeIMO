@@ -62,6 +62,28 @@ public class PdfDocumentIOTests {
     }
 
     [Fact]
+    public void TrySave_PreservesExistingSeekableStreamWhenLayoutValidationFails() {
+        byte[] existing = { 10, 20, 30, 40, 50 };
+        using var stream = new MemoryStream();
+        stream.Write(existing, 0, existing.Length);
+        stream.Position = 3;
+        var style = TableStyles.Minimal();
+        style.HeaderRowCount = 0;
+        PdfDocument document = PdfDocument.Create()
+            .TableDeferred(() => new[] {
+                new[] { "First" },
+                new[] { "Second" },
+                new[] { "Third", "Unexpected column" }
+            }, batchSize: 2, style: style);
+
+        PdfSaveResult result = document.TrySave(stream);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(existing, stream.ToArray());
+        Assert.Equal(3, stream.Position);
+    }
+
+    [Fact]
     public void Save_DirectStreamOutputSupportsGeneratedEncryption() {
         PdfDocument document = PdfDocument.Create(new PdfOptions().SetEncryption("open", "owner"))
             .Paragraph(paragraph => paragraph.Text("Direct encrypted stream"));

@@ -99,6 +99,7 @@ internal static partial class OfficeJpegReader {
         var orientation = 1;
         int? adobeTransform = null;
         var frame = default(JpegFrame);
+        BaselineState? baselineState = null;
         ProgressiveState? progressiveState = null;
 
         var offset = 2;
@@ -126,20 +127,19 @@ internal static partial class OfficeJpegReader {
                 var scanData = data.Slice(offset, scanEnd - offset);
 
                 if (!progressive) {
-                    width = frame.Width;
-                    height = frame.Height;
-                    var rgba = DecodeBaselineScan(
+                    baselineState ??= BaselineState.Create(frame);
+                    DecodeBaselineScan(
                         scanData,
                         scan,
                         frame,
+                        baselineState,
                         quantTables,
                         dcTables,
                         acTables,
                         restartInterval,
-                        adobeTransform,
-                        options.AllowTruncated,
-                        options.HighQualityChroma);
-                    return ApplyOrientation(rgba, ref width, ref height, orientation);
+                        options.AllowTruncated);
+                    offset = scanEnd;
+                    continue;
                 }
 
                 progressiveState ??= ProgressiveState.Create(frame, quantTables);
@@ -252,6 +252,13 @@ internal static partial class OfficeJpegReader {
             offset += 2;
             if (length < 2 || offset + length - 2 > data.Length) throw new FormatException("Invalid JPEG segment.");
             offset += length - 2;
+        }
+
+        if (!progressive && hasFrame && baselineState is not null) {
+            width = frame.Width;
+            height = frame.Height;
+            var rgba = baselineState.RenderRgba(frame, adobeTransform, options.HighQualityChroma);
+            return ApplyOrientation(rgba, ref width, ref height, orientation);
         }
 
         if (progressive && hasFrame && progressiveState is not null) {

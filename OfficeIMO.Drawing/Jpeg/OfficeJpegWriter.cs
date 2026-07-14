@@ -122,6 +122,8 @@ internal static class OfficeJpegWriter {
     private static void WriteRgbaCore(Stream stream, int width, int height, byte[] rgba, int stride, int rowOffset, int rowStride, OfficeJpegEncodeOptions options, string bufferName, string bufferMessage) {
         if (width <= 0) throw new ArgumentOutOfRangeException(nameof(width));
         if (height <= 0) throw new ArgumentOutOfRangeException(nameof(height));
+        if (width > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(width), "JPEG width cannot exceed 65535 pixels.");
+        if (height > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(height), "JPEG height cannot exceed 65535 pixels.");
         _ = OfficeRasterGuards.EnsureOutputPixels(width, height, JpegOutputLimitMessage);
         _ = OfficeRasterGuards.EnsureOutputBytes((long)width * height * 4, JpegOutputLimitMessage);
         if (rgba is null) throw new ArgumentNullException(bufferName);
@@ -176,7 +178,7 @@ internal static class OfficeJpegWriter {
         }
 
         if (options.Progressive) {
-            EncodeProgressive(stream, components, coeffs, tables);
+            EncodeProgressive(stream, width, height, maxH, maxV, components, coeffs, tables);
         } else {
             EncodeBaseline(stream, components, coeffs, tables);
         }
@@ -954,6 +956,10 @@ internal static class OfficeJpegWriter {
 
     private static void EncodeProgressive(
         Stream stream,
+        int width,
+        int height,
+        int maxH,
+        int maxV,
         ComponentSpec[] components,
         ComponentCoefficients[] coeffs,
         HuffmanTableSet tables) {
@@ -986,28 +992,28 @@ internal static class OfficeJpegWriter {
         }
         bw.Flush();
 
-        // AC scan
-        WriteSos(stream, components, allComponents, 1, 63, 0, 0);
-        bw = new BitWriter(stream);
-        for (var my = 0; my < mcuRows; my++) {
-            for (var mx = 0; mx < mcuCols; mx++) {
-                for (var ci = 0; ci < components.Length; ci++) {
-                    var comp = components[ci];
-                    var compCoeffs = coeffs[ci];
-                    for (var vy = 0; vy < comp.V; vy++) {
-                        for (var vx = 0; vx < comp.H; vx++) {
-                            var blockX = mx * comp.H + vx;
-                            var blockY = my * comp.V + vy;
-                            var offset = (blockY * compCoeffs.BlocksPerRow + blockX) * 64;
-                            var acTable = ci == 0 ? tables.AcLuma.Table : tables.AcChroma.Table;
-                            EncodeAcFromQuantized(bw, compCoeffs.Data, offset, acTable, 1, 63);
-                        }
-                    }
+        // Progressive AC scans must be non-interleaved. Emit one scan per component and omit padded
+        // edge blocks that belong only to interleaved MCU alignment.
+        for (var ci = 0; ci < components.Length; ci++) {
+            var componentIndex = new[] { ci };
+            WriteSos(stream, components, componentIndex, 1, 63, 0, 0);
+            bw = new BitWriter(stream);
+            var comp = components[ci];
+            var compCoeffs = coeffs[ci];
+            var blockCols = DivideRoundUp((long)width * comp.H, maxH * 8);
+            var blockRows = DivideRoundUp((long)height * comp.V, maxV * 8);
+            var acTable = ci == 0 ? tables.AcLuma.Table : tables.AcChroma.Table;
+            for (var blockY = 0; blockY < blockRows; blockY++) {
+                for (var blockX = 0; blockX < blockCols; blockX++) {
+                    var offset = (blockY * compCoeffs.BlocksPerRow + blockX) * 64;
+                    EncodeAcFromQuantized(bw, compCoeffs.Data, offset, acTable, 1, 63);
                 }
             }
+            bw.Flush();
         }
-        bw.Flush();
     }
+
+    private static int DivideRoundUp(long value, int divisor) => checked((int)((value + divisor - 1L) / divisor));
 
     private static void AccumulateFrequencies(
         ComponentCoefficients[] coeffs,

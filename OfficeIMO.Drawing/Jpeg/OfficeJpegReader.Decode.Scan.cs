@@ -3,17 +3,16 @@ using System;
 namespace OfficeIMO.Drawing;
 
 internal static partial class OfficeJpegReader {
-    private static byte[] DecodeBaselineScan(
+    private static void DecodeBaselineScan(
         OfficeByteView scanData,
         ScanHeader scan,
         JpegFrame frame,
+        BaselineState state,
         int[][] quantTables,
         HuffmanTable[] dcTables,
         HuffmanTable[] acTables,
         int restartInterval,
-        int? adobeTransform,
-        bool allowTruncated,
-        bool highQualityChroma) {
+        bool allowTruncated) {
         if (frame.ComponentCount == 0) throw new FormatException("Invalid JPEG frame.");
         if (frame.ComponentCount != 1 && frame.ComponentCount != 3 && frame.ComponentCount != 4) {
             throw new FormatException("Unsupported JPEG component count.");
@@ -24,16 +23,10 @@ internal static partial class OfficeJpegReader {
 
         EnsureStandardHuffmanTables(dcTables, acTables);
 
-        var maxH = frame.MaxH;
-        var maxV = frame.MaxV;
-        var mcuWidth = maxH * 8;
-        var mcuHeight = maxV * 8;
-        var mcuCols = (frame.Width + mcuWidth - 1) / mcuWidth;
-        var mcuRows = (frame.Height + mcuHeight - 1) / mcuHeight;
-
-        var states = new BaselineComponentState[frame.ComponentCount];
-        for (var i = 0; i < frame.ComponentCount; i++) {
-            var comp = frame.Components[i];
+        var states = state.Components;
+        for (var i = 0; i < scan.ComponentIndices.Length; i++) {
+            var componentIndex = scan.ComponentIndices[i];
+            var comp = frame.Components[componentIndex];
             if (comp.QuantId >= quantTables.Length || quantTables[comp.QuantId] is null) {
                 throw new FormatException("Missing JPEG quantization table.");
             }
@@ -43,15 +36,16 @@ internal static partial class OfficeJpegReader {
             if (comp.AcTable >= acTables.Length || !acTables[comp.AcTable].IsValid) {
                 throw new FormatException("Missing JPEG AC Huffman table.");
             }
-            states[i] = new BaselineComponentState(comp, mcuCols * comp.H, mcuRows * comp.V);
+            states[componentIndex].Component = comp;
+            states[componentIndex].PrevDc = 0;
         }
 
         var reader = new JpegBitReader(scanData, allowTruncated);
         var mcuIndex = 0;
         var isSingle = scan.ComponentIndices.Length == 1;
         var scanComponent = frame.Components[scan.ComponentIndices[0]];
-        var scanMcuCols = isSingle ? GetNonInterleavedBlockCount(frame.Width, scanComponent.H, frame.MaxH) : mcuCols;
-        var scanMcuRows = isSingle ? GetNonInterleavedBlockCount(frame.Height, scanComponent.V, frame.MaxV) : mcuRows;
+        var scanMcuCols = isSingle ? GetNonInterleavedBlockCount(frame.Width, scanComponent.H, frame.MaxH) : state.McuCols;
+        var scanMcuRows = isSingle ? GetNonInterleavedBlockCount(frame.Height, scanComponent.V, frame.MaxV) : state.McuRows;
 
         for (var my = 0; my < scanMcuRows; my++) {
             for (var mx = 0; mx < scanMcuCols; mx++) {
@@ -64,34 +58,34 @@ internal static partial class OfficeJpegReader {
 
                 if (isSingle) {
                     var compIndex = scan.ComponentIndices[0];
-                    var state = states[compIndex];
+                    var componentState = states[compIndex];
                     DecodeBlock(
                         ref reader,
-                        dcTables[state.Component.DcTable],
-                        acTables[state.Component.AcTable],
-                        quantTables[state.Component.QuantId],
-                        ref state.PrevDc,
-                        state.BlockCoeffs,
-                        state.BlockPixels);
-                    WriteBlock(state.Buffer, state.Stride, mx, my, state.BlockPixels);
+                        dcTables[componentState.Component.DcTable],
+                        acTables[componentState.Component.AcTable],
+                        quantTables[componentState.Component.QuantId],
+                        ref componentState.PrevDc,
+                        componentState.BlockCoeffs,
+                        componentState.BlockPixels);
+                    WriteBlock(componentState.Buffer, componentState.Stride, mx, my, componentState.BlockPixels);
                 } else {
                     for (var ci = 0; ci < scan.ComponentIndices.Length; ci++) {
                         var compIndex = scan.ComponentIndices[ci];
-                        var state = states[compIndex];
-                        var blocks = state.Component.H * state.Component.V;
+                        var componentState = states[compIndex];
+                        var blocks = componentState.Component.H * componentState.Component.V;
                         for (var b = 0; b < blocks; b++) {
                             DecodeBlock(
                                 ref reader,
-                                dcTables[state.Component.DcTable],
-                                acTables[state.Component.AcTable],
-                                quantTables[state.Component.QuantId],
-                                ref state.PrevDc,
-                                state.BlockCoeffs,
-                                state.BlockPixels);
+                                dcTables[componentState.Component.DcTable],
+                                acTables[componentState.Component.AcTable],
+                                quantTables[componentState.Component.QuantId],
+                                ref componentState.PrevDc,
+                                componentState.BlockCoeffs,
+                                componentState.BlockPixels);
 
-                            var blockX = mx * state.Component.H + (b % state.Component.H);
-                            var blockY = my * state.Component.V + (b / state.Component.H);
-                            WriteBlock(state.Buffer, state.Stride, blockX, blockY, state.BlockPixels);
+                            var blockX = mx * componentState.Component.H + (b % componentState.Component.H);
+                            var blockY = my * componentState.Component.V + (b / componentState.Component.H);
+                            WriteBlock(componentState.Buffer, componentState.Stride, blockX, blockY, componentState.BlockPixels);
                         }
                     }
                 }
@@ -107,7 +101,9 @@ internal static partial class OfficeJpegReader {
             }
         }
 
-        return ComposeRgba(frame, states, adobeTransform, highQualityChroma);
+        for (var i = 0; i < scan.ComponentIndices.Length; i++) {
+            state.DecodedComponents[scan.ComponentIndices[i]] = true;
+        }
     }
 
     private static void DecodeProgressiveScan(
@@ -121,6 +117,9 @@ internal static partial class OfficeJpegReader {
         int restartInterval,
         bool allowTruncated) {
         EnsureStandardHuffmanTables(dcTables, acTables);
+        if (scan.Ss > 0 && scan.ComponentIndices.Length != 1) {
+            throw new FormatException("Progressive JPEG AC scans must contain exactly one component.");
+        }
         // Progressive scans are lenient to match historical behavior.
         var reader = new JpegBitReader(scanData, allowTruncated);
         var mcuIndex = 0;
