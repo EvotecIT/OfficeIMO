@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Drawing)](https://www.nuget.org/packages/OfficeIMO.Drawing)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Drawing?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Drawing)
 
-`OfficeIMO.Drawing` is the zero-dependency shared foundation for OfficeIMO packages. It owns the common document lifecycle contracts as well as color, image metadata, font, text measurement, vector shape, chart snapshot, SVG, raster canvas, PNG read/write, and drawing-quality primitives. Format packages keep their document-specific behavior while reusing one lifecycle and persistence vocabulary.
+`OfficeIMO.Drawing` is the zero-dependency shared foundation for OfficeIMO packages. It owns the common document lifecycle contracts as well as color and calibrated-color conversion, image metadata, font, text measurement, vector shape, chart snapshot, SVG, raster canvas, PNG read/write, and drawing-quality primitives. Format packages keep their document-specific behavior while reusing one lifecycle and persistence vocabulary.
 
 ## Install
 
@@ -32,6 +32,7 @@ Word, Excel, and PowerPoint expose format-specific options derived from these sh
 using OfficeIMO.Drawing;
 
 OfficeColor accent = OfficeColor.Parse("#336699");
+OfficeColor printBlue = OfficeColorSpaceConverter.FromCmyk(1, 0.45, 0, 0.15);
 OfficeImageFit fit = OfficeImageFit.Contain;
 
 var badge = OfficeShape.RoundedRectangle(120, 32, 8);
@@ -139,6 +140,7 @@ if (font != null) {
 
 - `DocumentAccessMode`, `DocumentPersistenceMode`, `DocumentCreateOptions`, and `DocumentLoadOptions` for one lifecycle vocabulary across document packages.
 - `OfficeColor` immutable RGBA values with named colors and hex parsing.
+- `OfficeColorSpaceConverter` for dependency-free CMYK, CIE Lab/XYZ, calibrated gray, and calibrated RGB conversion to sRGB.
 - `OfficeImageReader` and `OfficeImageInfo` for dependency-free image inspection where supported.
 - `OfficeImageFit` for shared stretch, contain, and cover intent.
 - `OfficeFontInfo`, `OfficeFontStyle`, `OfficeTextMeasurer`, and `OfficeTextMetrics` for deterministic layout estimates.

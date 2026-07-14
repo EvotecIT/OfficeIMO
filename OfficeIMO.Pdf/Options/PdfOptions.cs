@@ -104,5 +104,6 @@ public sealed partial class PdfOptions {
     private PdfConversionReport? _diagnosticsReport;
     private string _diagnosticsConverter = "OfficeIMO.Pdf";
     private System.Collections.Generic.List<PdfEmbeddedFile>? _embeddedFiles;
+    private PdfPortfolioOptions? _portfolio;
 
 }

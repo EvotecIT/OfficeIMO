@@ -5,17 +5,17 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    private static int AddObject(System.Collections.Generic.List<byte[]> list, string body) {
+    private static int AddObject(System.Collections.Generic.IList<byte[]> list, string body) {
         int id = list.Count + 1;
         list.Add(PdfObjectBytes.WrapIndirectObject(id, body));
         return id;
     }
 
-    private static int ReserveObject(System.Collections.Generic.List<byte[]> list) {
+    private static int ReserveObject(System.Collections.Generic.IList<byte[]> list) {
         return AddObject(list, "<< >>\n");
     }
 
-    private static void ReplaceObject(System.Collections.Generic.List<byte[]> list, int id, string body) {
+    private static void ReplaceObject(System.Collections.Generic.IList<byte[]> list, int id, string body) {
         Guard.NotNull(list, nameof(list));
         if (id < 1 || id > list.Count) {
             throw new ArgumentOutOfRangeException(nameof(id), "PDF object id is outside the current object table.");
@@ -24,7 +24,7 @@ internal static partial class PdfWriter {
         list[id - 1] = PdfObjectBytes.WrapIndirectObject(id, body);
     }
 
-    private static int AddStreamObject(System.Collections.Generic.List<byte[]> list, byte[] content) {
+    private static int AddStreamObject(System.Collections.Generic.IList<byte[]> list, byte[] content) {
         Guard.NotNull(content, nameof(content));
         return AddStreamObject(
             list,
@@ -32,7 +32,7 @@ internal static partial class PdfWriter {
             content);
     }
 
-    private static int AddFlateStreamObject(System.Collections.Generic.List<byte[]> list, byte[] content) {
+    private static int AddFlateStreamObject(System.Collections.Generic.IList<byte[]> list, byte[] content) {
         Guard.NotNull(content, nameof(content));
         byte[] compressed = DeflateZlib(content);
         return AddStreamObject(
@@ -41,7 +41,7 @@ internal static partial class PdfWriter {
             compressed);
     }
 
-    private static int AddFlateStreamObject(System.Collections.Generic.List<byte[]> list, byte[] content, string extraDictionaryEntries) {
+    private static int AddFlateStreamObject(System.Collections.Generic.IList<byte[]> list, byte[] content, string extraDictionaryEntries) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNull(extraDictionaryEntries, nameof(extraDictionaryEntries));
         byte[] compressed = DeflateZlib(content);
@@ -53,7 +53,7 @@ internal static partial class PdfWriter {
             compressed);
     }
 
-    private static int AddStreamObject(System.Collections.Generic.List<byte[]> list, string dictionary, byte[] content) {
+    private static int AddStreamObject(System.Collections.Generic.IList<byte[]> list, string dictionary, byte[] content) {
         Guard.NotNull(content, nameof(content));
         Guard.NotNullOrWhiteSpace(dictionary, nameof(dictionary));
 
@@ -102,6 +102,8 @@ internal static partial class PdfWriter {
             public System.Collections.Generic.List<PageEffectGroup> EffectGroups { get; } = new();
             public System.Collections.Generic.List<PageBookmark> Bookmarks { get; } = new();
             public System.Collections.Generic.List<PageNamedDestination> NamedDestinations { get; } = new();
+            public System.Collections.Generic.List<PageSection> Sections { get; } = new();
+            public System.Collections.Generic.List<PdfLayerDefinition> Layers { get; } = new();
             public System.Collections.Generic.List<PageStructElement> StructElements { get; } = new();
             public System.Collections.Generic.List<PdfGeneratedDrawingAccessibilityEvidence> Drawings { get; } = new();
             public System.Collections.Generic.HashSet<PdfStandardFont> UsedFonts { get; } = new();
@@ -208,6 +210,14 @@ internal static partial class PdfWriter {
     private sealed class PageNamedDestination {
         public string Name { get; set; } = string.Empty;
         public double Y { get; set; }
+    }
+
+    private sealed class PageSection {
+        public string DestinationName { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public int Level { get; set; }
+        public double Y { get; set; }
+        public PdfSectionReference? Reference { get; set; }
     }
 
     private sealed class PageStructElement {

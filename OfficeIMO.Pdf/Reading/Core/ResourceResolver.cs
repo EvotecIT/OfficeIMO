@@ -389,7 +389,47 @@ internal static partial class ResourceResolver {
             }
         }
 
-        return new PdfFontResource(resourceName, baseFont, encoding, hasToUnicode, cmap, differences);
+        byte[]? embeddedTrueTypeFont = TryReadEmbeddedTrueTypeFont(fontVal, objects);
+        return new PdfFontResource(resourceName, baseFont, encoding, hasToUnicode, cmap, differences, embeddedTrueTypeFont);
+    }
+
+    private static byte[]? TryReadEmbeddedTrueTypeFont(PdfDictionary font, Dictionary<int, PdfIndirectObject> objects) {
+        PdfDictionary fontWithDescriptor = font;
+        if (string.Equals(font.Get<PdfName>("Subtype")?.Name, "Type0", System.StringComparison.Ordinal) &&
+            font.Items.TryGetValue("DescendantFonts", out PdfObject? descendantsObject)) {
+            PdfArray? descendants = ResolveArray(descendantsObject, objects);
+            PdfDictionary? descendant = descendants is { Items.Count: > 0 }
+                ? ResolveDict(descendants.Items[0], objects)
+                : null;
+            if (descendant != null) fontWithDescriptor = descendant;
+        }
+
+        PdfDictionary? descriptor = fontWithDescriptor.Items.TryGetValue("FontDescriptor", out PdfObject? descriptorObject)
+            ? ResolveDict(descriptorObject, objects)
+            : null;
+        if (descriptor == null) return null;
+
+        PdfStream? program = ResolveObject(
+            descriptor.Items.TryGetValue("FontFile2", out PdfObject? fontFile2) ? fontFile2 : null,
+            objects) as PdfStream;
+        if (program == null && descriptor.Items.TryGetValue("FontFile3", out PdfObject? fontFile3)) {
+            PdfStream? candidate = ResolveObject(fontFile3, objects) as PdfStream;
+            string? subtype = candidate?.Dictionary.Get<PdfName>("Subtype")?.Name;
+            if (candidate != null && (string.Equals(subtype, "OpenType", System.StringComparison.Ordinal) || string.Equals(subtype, "TrueType", System.StringComparison.Ordinal))) {
+                program = candidate;
+            }
+        }
+        if (program == null || Filters.StreamDecoder.GetUnsupportedFilters(program.Dictionary, objects).Count != 0) return null;
+
+        byte[] bytes;
+        try {
+            bytes = Filters.StreamDecoder.Decode(program.Dictionary, program.Data, objects);
+        } catch (InvalidDataException) {
+            return null;
+        } catch (NotSupportedException) {
+            return null;
+        }
+        return OfficeTrueTypeFont.TryLoad(bytes) == null ? null : bytes;
     }
 
     private static string GetDefaultEncodingForBaseFont(string baseFont) {

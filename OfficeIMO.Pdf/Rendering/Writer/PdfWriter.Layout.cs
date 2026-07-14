@@ -74,6 +74,79 @@ internal static partial class PdfWriter {
     }
 
     private static LayoutResult LayoutBlocks(IEnumerable<IPdfBlock> blocks, PdfOptions opts) {
-        return new LayoutContext(opts).Layout(blocks);
+        var blockList = blocks as IReadOnlyList<IPdfBlock> ?? blocks.ToList();
+        var sections = new List<SectionBlock>();
+        bool hasTableOfContents = CollectSectionLayoutBlocks(blockList, sections);
+        if (!hasTableOfContents) {
+            LayoutResult direct = new LayoutContext(opts, sections).Layout(blockList);
+            ApplySectionReferences(direct);
+            return direct;
+        }
+
+        IReadOnlyDictionary<string, int>? pageNumbers = null;
+        LayoutResult result = null!;
+        for (int pass = 0; pass < 4; pass++) {
+            result = new LayoutContext(opts, sections, pageNumbers).Layout(blockList);
+            IReadOnlyDictionary<string, int> resolved = BuildSectionPageNumbers(result);
+            if (pageNumbers != null && SectionPageNumbersEqual(pageNumbers, resolved)) {
+                ApplySectionReferences(result);
+                return result;
+            }
+
+            pageNumbers = resolved;
+        }
+
+        throw new InvalidOperationException("Generated table of contents did not stabilize within four layout passes.");
+    }
+
+    private static bool CollectSectionLayoutBlocks(IReadOnlyList<IPdfBlock> blocks, List<SectionBlock> sections) {
+        bool hasTableOfContents = false;
+        for (int i = 0; i < blocks.Count; i++) {
+            switch (blocks[i]) {
+                case SectionBlock section:
+                    sections.Add(section);
+                    hasTableOfContents |= CollectSectionLayoutBlocks(section.Blocks, sections);
+                    break;
+                case TableOfContentsBlock:
+                    hasTableOfContents = true;
+                    break;
+                case PageBlock page:
+                    hasTableOfContents |= CollectSectionLayoutBlocks(page.Blocks, sections);
+                    break;
+                case FlowBlock flow when flow.StaticBlocks != null:
+                    hasTableOfContents |= CollectSectionLayoutBlocks(flow.StaticBlocks, sections);
+                    break;
+            }
+        }
+
+        return hasTableOfContents;
+    }
+
+    private static Dictionary<string, int> BuildSectionPageNumbers(LayoutResult result) {
+        var pageNumbers = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int pageIndex = 0; pageIndex < result.Pages.Count; pageIndex++) {
+            foreach (PageSection section in result.Pages[pageIndex].Sections) {
+                pageNumbers[section.DestinationName] = pageIndex + 1;
+            }
+        }
+
+        return pageNumbers;
+    }
+
+    private static bool SectionPageNumbersEqual(IReadOnlyDictionary<string, int> left, IReadOnlyDictionary<string, int> right) {
+        if (left.Count != right.Count) return false;
+        foreach (KeyValuePair<string, int> pair in left) {
+            if (!right.TryGetValue(pair.Key, out int page) || page != pair.Value) return false;
+        }
+
+        return true;
+    }
+
+    private static void ApplySectionReferences(LayoutResult result) {
+        for (int pageIndex = 0; pageIndex < result.Pages.Count; pageIndex++) {
+            foreach (PageSection section in result.Pages[pageIndex].Sections) {
+                section.Reference?.Set(section.DestinationName, section.Title, pageIndex + 1, section.Y);
+            }
+        }
     }
 }

@@ -71,6 +71,13 @@ public sealed class PdfUnderstandingPipeline {
         return new PdfUnderstandingResult(pages.AsReadOnly());
     }
 
+    /// <summary>Runs all stages for pages resolved by a document-relative selector.</summary>
+    public PdfUnderstandingResult Run(PdfReadDocument document, PdfPageSelector selector, CancellationToken cancellationToken = default) {
+        Guard.NotNull(document, nameof(document));
+        Guard.NotNull(selector, nameof(selector));
+        return Run(document, selector.ResolveSelection(document.Pages.Count), cancellationToken);
+    }
+
     private PdfUnderstandingPageResult RunPage(PdfReadPage page, int pageNumber) {
         var context = new PdfUnderstandingPageContext(page, pageNumber, _layout);
         var trace = new List<PdfUnderstandingStageTrace>(6);

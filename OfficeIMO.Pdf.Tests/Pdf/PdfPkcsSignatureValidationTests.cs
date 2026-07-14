@@ -1,6 +1,5 @@
 #if NET8_0_OR_GREATER
 using System.Security.Cryptography;
-using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Cryptography;
@@ -63,7 +62,7 @@ public class PdfPkcsSignatureValidationTests {
         byte[] source = PdfDocument.Create()
             .Paragraph(paragraph => paragraph.Text("External signer callback source"))
             .ToBytes();
-        var signer = new CmsExternalSigner(certificate);
+        using var signer = new PdfPkcsExternalSigner(certificate, "Test local certificate signer");
 
         PdfExternalSignatureCompletion completion = PdfIncrementalUpdater.SignExternal(
             source,
@@ -96,13 +95,10 @@ public class PdfPkcsSignatureValidationTests {
                 Name = "OfficeIMO Test Signer",
                 ReservedSignatureContentsBytes = 8192
             });
-        var cms = new SignedCms(new ContentInfo(preparation.SignedContent), detached: true);
-        var signer = new CmsSigner(SubjectIdentifierType.IssuerAndSerialNumber, certificate) {
-            IncludeOption = X509IncludeOption.EndCertOnly
-        };
-        signer.SignedAttributes.Add(new Pkcs9SigningTime(DateTime.UtcNow));
-        cms.ComputeSignature(signer);
-        return PdfIncrementalUpdater.ApplyExternalSignature(preparation, cms.Encode());
+        using var signer = new PdfPkcsExternalSigner(certificate) { SigningTime = DateTimeOffset.UtcNow };
+        return PdfIncrementalUpdater.ApplyExternalSignature(
+            preparation,
+            signer.Sign(new PdfExternalSignatureRequest(preparation)));
     }
 
     private static X509Certificate2 CreateSigningCertificate() {
@@ -116,23 +112,5 @@ public class PdfPkcsSignatureValidationTests {
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
     }
 
-    private sealed class CmsExternalSigner : IPdfExternalSigner {
-        private readonly X509Certificate2 _certificate;
-
-        public CmsExternalSigner(X509Certificate2 certificate) {
-            _certificate = certificate;
-        }
-
-        public string Name => "Test cloud/HSM signer";
-
-        public byte[] Sign(PdfExternalSignatureRequest request) {
-            var cms = new SignedCms(new ContentInfo(request.SignedContent), detached: true);
-            var signer = new CmsSigner(SubjectIdentifierType.IssuerAndSerialNumber, _certificate) {
-                IncludeOption = X509IncludeOption.EndCertOnly
-            };
-            cms.ComputeSignature(signer);
-            return cms.Encode();
-        }
-    }
 }
 #endif

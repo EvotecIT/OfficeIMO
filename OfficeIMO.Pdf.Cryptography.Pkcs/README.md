@@ -1,8 +1,28 @@
 # OfficeIMO.Pdf.Cryptography.Pkcs
 
-This optional package adds `SignedCms`, RFC 3161, and `X509Chain` validation to
-the dependency-free signature parser in `OfficeIMO.Pdf`. Install it only when
-an application needs cryptographic signature validation.
+This optional package adds first-party managed CMS signing, RFC 3161 validation,
+and `X509Chain` validation to the dependency-free signature parser in
+`OfficeIMO.Pdf`. Install it only when an application needs certificate signing
+or cryptographic signature validation.
+
+The managed signer plugs into the existing external-signature workflow and
+currently supports RSA certificates with SHA-256 signed attributes:
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Pdf.Cryptography;
+
+using var signer = new PdfPkcsExternalSigner(certificate);
+PdfExternalSignatureCompletion completion = PdfIncrementalUpdater.SignExternal(
+    sourcePdf,
+    signer,
+    new PdfExternalSignatureOptions {
+        Profile = PdfSignatureProfile.Approval,
+        FieldName = "Approval"
+    });
+
+completion.ToDocument().Save("signed.pdf");
+```
 
 ```csharp
 using OfficeIMO.Pdf;
@@ -37,12 +57,13 @@ var provider = new PdfPkcsSignatureCryptographyProvider(
 The PDF core owns byte-range validation, exact signed-byte extraction,
 signature metadata, document permissions, and revision analysis. This package
 owns CMS signature math, signed attributes, certificate chains, timestamps,
-and revocation policy. RFC 3161 token validation uses the typed BCL API on .NET
-8 and later; older targets report that timestamp dimension as indeterminate.
+and revocation policy. CMS and RFC 3161 containers are handled by bounded
+first-party DER code; key operations and certificate chains use target-framework
+cryptography APIs.
 
 ## Dependency footprint
 
-- **External:** `System.Security.Cryptography.Pkcs` for CMS/PKCS operations.
+- **External runtime packages:** none.
 - **OfficeIMO:** `OfficeIMO.Pdf` owns signature discovery, signed-byte extraction, permissions, and revision analysis.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

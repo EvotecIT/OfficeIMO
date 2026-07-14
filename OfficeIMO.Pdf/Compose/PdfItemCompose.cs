@@ -6,6 +6,22 @@ namespace OfficeIMO.Pdf;
 public class PdfItemCompose {
     private readonly PdfDocument _doc;
     internal PdfItemCompose(PdfDocument doc) { _doc = doc; }
+    /// <summary>Adds a nested flow group with optional constraints and position capture.</summary>
+    public PdfItemCompose Flow(System.Action<PdfItemCompose> build, PdfFlowOptions? options = null, PdfLayoutPositionCapture? capture = null) { _doc.Flow(build, options, capture); return this; }
+    /// <summary>Adds replayable content materialized from the live page context during layout.</summary>
+    public PdfItemCompose Deferred(System.Func<PdfFlowContext, System.Action<PdfItemCompose>> build, PdfFlowOptions? options = null, PdfLayoutPositionCapture? capture = null) { _doc.Deferred(build, options, capture); return this; }
+    /// <summary>Adds a semantic section backed by an outline entry and named destination.</summary>
+    public PdfItemCompose Section(string title, System.Action<PdfItemCompose> build, PdfSectionOptions? options = null) { _doc.Section(title, build, options); return this; }
+    /// <summary>Adds an automatically generated, internally linked table of contents.</summary>
+    public PdfItemCompose TableOfContents(PdfTableOfContentsOptions? options = null) { _doc.TableOfContents(options); return this; }
+    /// <summary>Adds flow content controlled by a generated optional-content layer.</summary>
+    public PdfItemCompose Layer(string name, System.Action<PdfItemCompose> build, PdfLayerOptions? options = null) { _doc.Layer(name, build, options); return this; }
+    /// <summary>Flows common block content across equal-width columns in reading order.</summary>
+    public PdfItemCompose Columns(System.Action<PdfItemCompose> build, PdfMultiColumnOptions? options = null) { _doc.Columns(build, options); return this; }
+    /// <summary>Advances automatic multi-column flow to the next column.</summary>
+    public PdfItemCompose ColumnBreak() { _doc.AddColumnBreak(); return this; }
+    /// <summary>Groups common flow blocks inside a padded, styled container.</summary>
+    public PdfItemCompose Container(System.Action<PdfItemCompose> build, PanelStyle? style = null) { _doc.Container(build, style); return this; }
     /// <summary>Starts a new page.</summary>
     public PdfItemCompose PageBreak() { _doc.PageBreak(); return this; }
     /// <summary>Adds invisible vertical space to the current flow.</summary>

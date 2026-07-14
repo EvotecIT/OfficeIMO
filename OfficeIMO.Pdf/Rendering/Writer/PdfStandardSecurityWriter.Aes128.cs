@@ -4,22 +4,27 @@ using System.Security.Cryptography;
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfStandardSecurityWriter {
-    private static PdfEncryptionAssembly EncryptAes128(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options) {
+    private static PdfEncryptionAssembly EncryptAes128(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options, long objectMemoryLimitBytes) {
         byte[] fileId = CreateFileId();
         string ownerPassword = options.OwnerPassword ?? options.UserPassword;
         byte[] ownerEntry = ComputeOwnerEntry(ownerPassword, options.UserPassword);
         byte[] fileKey = ComputeAes128FileKey(options.UserPassword, ownerEntry, options.Permissions, fileId, options.EncryptMetadata);
         byte[] userEntry = ComputeUserEntry(fileKey, fileId);
         int encryptionObjectNumber = sourceObjects.Count + 1;
-        var objects = new List<byte[]>(sourceObjects.Count + 1);
-        for (int i = 0; i < sourceObjects.Count; i++) {
-            objects.Add(EncryptAesIndirectObject(sourceObjects[i], i + 1, fileKey, options.EncryptMetadata, deriveObjectKey: true));
-        }
+        var objects = new PdfObjectStore(objectMemoryLimitBytes);
+        try {
+            for (int i = 0; i < sourceObjects.Count; i++) {
+                objects.Add(EncryptAesIndirectObject(sourceObjects[i], i + 1, fileKey, options.EncryptMetadata, deriveObjectKey: true));
+            }
 
-        objects.Add(PdfObjectBytes.WrapIndirectObject(
-            encryptionObjectNumber,
-            BuildAes128EncryptionDictionary(ownerEntry, userEntry, options.Permissions, options.EncryptMetadata)));
-        return new PdfEncryptionAssembly(objects, encryptionObjectNumber, fileId);
+            objects.Add(PdfObjectBytes.WrapIndirectObject(
+                encryptionObjectNumber,
+                BuildAes128EncryptionDictionary(ownerEntry, userEntry, options.Permissions, options.EncryptMetadata)));
+            return new PdfEncryptionAssembly(objects, encryptionObjectNumber, fileId, objects);
+        } catch {
+            objects.Dispose();
+            throw;
+        }
     }
 
     private static byte[] ComputeAes128FileKey(

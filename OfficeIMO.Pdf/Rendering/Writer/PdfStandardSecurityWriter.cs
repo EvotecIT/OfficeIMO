@@ -3,16 +3,20 @@ using System.Security.Cryptography;
 
 namespace OfficeIMO.Pdf;
 
-internal sealed class PdfEncryptionAssembly {
-    public PdfEncryptionAssembly(IReadOnlyList<byte[]> objects, int encryptionObjectNumber, byte[] fileId) {
+internal sealed class PdfEncryptionAssembly : IDisposable {
+    private readonly IDisposable? _owner;
+
+    public PdfEncryptionAssembly(IReadOnlyList<byte[]> objects, int encryptionObjectNumber, byte[] fileId, IDisposable? owner = null) {
         Objects = objects;
         EncryptionObjectNumber = encryptionObjectNumber;
         FileId = fileId;
+        _owner = owner;
     }
 
     public IReadOnlyList<byte[]> Objects { get; }
     public int EncryptionObjectNumber { get; }
     public byte[] FileId { get; }
+    public void Dispose() => _owner?.Dispose();
 }
 
 internal static partial class PdfStandardSecurityWriter {
@@ -26,23 +30,27 @@ internal static partial class PdfStandardSecurityWriter {
     private const int Revision = 3;
     private const int KeyLengthBytes = 16;
 
-    internal static PdfEncryptionAssembly Encrypt(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options) {
+    internal static PdfEncryptionAssembly Encrypt(
+        IReadOnlyList<byte[]> sourceObjects,
+        PdfStandardEncryptionOptions options,
+        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes) {
         Guard.NotNull(sourceObjects, nameof(sourceObjects));
         Guard.NotNull(options, nameof(options));
+        if (objectMemoryLimitBytes < 0L) throw new ArgumentOutOfRangeException(nameof(objectMemoryLimitBytes), objectMemoryLimitBytes, "PDF object-buffer memory limit cannot be negative.");
 
         switch (options.Algorithm) {
             case PdfStandardEncryptionAlgorithm.Aes256:
-                return EncryptAes256(sourceObjects, options);
+                return EncryptAes256(sourceObjects, options, objectMemoryLimitBytes);
             case PdfStandardEncryptionAlgorithm.Aes128:
-                return EncryptAes128(sourceObjects, options);
+                return EncryptAes128(sourceObjects, options, objectMemoryLimitBytes);
             case PdfStandardEncryptionAlgorithm.LegacyRc4:
-                return EncryptLegacyRc4(sourceObjects, options);
+                return EncryptLegacyRc4(sourceObjects, options, objectMemoryLimitBytes);
             default:
                 throw new ArgumentOutOfRangeException(nameof(options), options.Algorithm, "Unsupported PDF Standard encryption algorithm.");
         }
     }
 
-    private static PdfEncryptionAssembly EncryptLegacyRc4(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options) {
+    private static PdfEncryptionAssembly EncryptLegacyRc4(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options, long objectMemoryLimitBytes) {
 
         byte[] fileId = CreateFileId();
         string ownerPassword = options.OwnerPassword ?? options.UserPassword;
@@ -51,13 +59,18 @@ internal static partial class PdfStandardSecurityWriter {
         byte[] userEntry = ComputeUserEntry(fileKey, fileId);
 
         int encryptionObjectNumber = sourceObjects.Count + 1;
-        var objects = new List<byte[]>(sourceObjects.Count + 1);
-        for (int i = 0; i < sourceObjects.Count; i++) {
-            objects.Add(EncryptIndirectObject(sourceObjects[i], i + 1, fileKey));
-        }
+        var objects = new PdfObjectStore(objectMemoryLimitBytes);
+        try {
+            for (int i = 0; i < sourceObjects.Count; i++) {
+                objects.Add(EncryptIndirectObject(sourceObjects[i], i + 1, fileKey));
+            }
 
-        objects.Add(PdfObjectBytes.WrapIndirectObject(encryptionObjectNumber, BuildEncryptionDictionary(ownerEntry, userEntry, options.Permissions)));
-        return new PdfEncryptionAssembly(objects, encryptionObjectNumber, fileId);
+            objects.Add(PdfObjectBytes.WrapIndirectObject(encryptionObjectNumber, BuildEncryptionDictionary(ownerEntry, userEntry, options.Permissions)));
+            return new PdfEncryptionAssembly(objects, encryptionObjectNumber, fileId, objects);
+        } catch {
+            objects.Dispose();
+            throw;
+        }
     }
 
     private static byte[] EncryptIndirectObject(byte[] objectBytes, int objectNumber, byte[] fileKey) {

@@ -46,9 +46,9 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectFontCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
-        PdfDictionary? fonts = ResolveDictionary(resources.Items.TryGetValue("Font", out PdfObject? value) ? value : null);
-        if (fonts == null) return;
-        foreach (string name in fonts.Items.Keys) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FontSubstitutionId, name);
+        foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
+            if (font.EmbeddedTrueTypeFont == null) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FontSubstitutionId, font.ResourceName);
+        }
     }
 
     private void CollectColorSpaceCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {

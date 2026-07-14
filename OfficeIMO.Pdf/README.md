@@ -38,9 +38,11 @@ PdfDocument.Create(new PdfOptions {
 
 ## What it does
 
-- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, panels, rows/columns, tables, images, vector drawing, headers, footers, watermarks, metadata, and form primitives.
-- Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, outlines, forms, active-content diagnostics, and security/revision markers.
-- Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, and watermarks while preserving source PDF header versions on shared rewrite paths.
+- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, styled containers, block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives.
+- Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
+- Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
+- Renders supported embedded TrueType fonts from their exact outlines and shares managed CMYK, Lab, XYZ, and calibrated-color conversion with `OfficeIMO.Drawing`.
+- Bounds completed serialized-object retention with a configurable memory limit and temporary-file spillover during stream saves; document layout and `ToBytes()` remain buffered operations.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
 - Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off.
 - Provides reusable rewrite-preservation proof for page geometry, metadata, navigation, catalog/viewer/action state, optional content, tagged content, security signatures, document versions, and source-structure markers such as incremental updates, xref streams, and object streams.
@@ -116,6 +118,27 @@ PdfDocument.Create()
         new[] { "Reading", "Evolving" }
     })
     .Save("summary.pdf");
+```
+
+### Sections, generated navigation, and bounded stream output
+
+```csharp
+var options = new PdfOptions {
+    ObjectBufferMemoryLimitBytes = 8 * 1024 * 1024
+};
+
+PdfDocument.Create(options)
+    .TableOfContents()
+    .Section("Summary", section => section
+        .Container(content => content
+            .Paragraph(p => p.Text("A styled, keep-together summary."))))
+    .Section("Details", section => section
+        .Columns(columns => {
+            columns.Paragraph(p => p.Text("First column"));
+            columns.ColumnBreak();
+            columns.Paragraph(p => p.Text("Second column"));
+        }, new PdfMultiColumnOptions { ColumnCount = 2, Gap = 18 }))
+    .Save("navigable-report.pdf");
 ```
 
 ### Read text, Markdown, tables, images, and attachments
@@ -220,6 +243,20 @@ PdfDocument.Load("contract.pdf")
         RotationDegrees = -35
     })
     .Save("contract-reviewed.pdf");
+```
+
+Import a complete source page above or below selected target pages without
+rasterizing it:
+
+```csharp
+PdfDocument.Load("contract.pdf")
+    .Stamp.OverlayPage("letterhead.pdf", new PdfPageOverlayOptions {
+        SourcePageNumber = 1,
+        TargetPages = PdfPageSelector.Parse("all,!last"),
+        Fit = PdfPageOverlayFit.Contain,
+        Opacity = 0.9
+    })
+    .Save("contract-with-letterhead.pdf");
 ```
 
 ### Fill and flatten a PDF form
@@ -386,7 +423,7 @@ PdfHtmlConverterExtensions.SaveAsHtml(
 
 ## Current state
 
-The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents and conservative read/manipulation workflows, while advanced typography, complex PDF preservation, encryption/decryption, and signature validation remain deeper roadmap areas.
+The PDF engine is useful and broad, but it is still evolving. It has strong first-party coverage for common generated business documents, conservative read/manipulation workflows, password security, and optional first-party certificate signing/validation. Advanced typography, difficult producer-specific preservation, full transparency/pattern rendering, true end-to-end streaming, and standards-compliant Fast Web View linearization remain deeper roadmap areas.
 
 For the full capability inventory and roadmap, read [Docs/officeimo.pdf.current-state.md](../Docs/officeimo.pdf.current-state.md).
 

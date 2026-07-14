@@ -801,7 +801,7 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_ProjectsCalibratedAndIccColorSpacesThroughManagedApproximations() {
+    public void RenderPage_ProjectsCalibratedAndIccColorSpacesThroughManagedConversion() {
         byte[] pdf = BuildSingleStreamPdf(
             """
             /CsCal cs
@@ -821,7 +821,7 @@ public class PdfPageImageRendererTests {
             pdf,
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
 
-        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(26, 51, 76));
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColorSpaceConverter.FromCalibratedRgb(0.1D, 0.2D, 0.3D, 0.9505D, 1D, 1.089D));
         Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(204, 26, 51));
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.colorspace-unsupported");
     }

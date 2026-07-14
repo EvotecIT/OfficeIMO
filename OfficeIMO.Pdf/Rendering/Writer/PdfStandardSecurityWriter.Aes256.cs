@@ -5,7 +5,7 @@ namespace OfficeIMO.Pdf;
 
 #pragma warning disable CA1850 // Static HashData is unavailable on netstandard2.0 and net472.
 internal static partial class PdfStandardSecurityWriter {
-    private static PdfEncryptionAssembly EncryptAes256(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options) {
+    private static PdfEncryptionAssembly EncryptAes256(IReadOnlyList<byte[]> sourceObjects, PdfStandardEncryptionOptions options, long objectMemoryLimitBytes) {
         byte[] fileId = CreateFileId();
         byte[] fileKey = RandomBytes(32);
         byte[] userPassword = NormalizeModernPassword(options.UserPassword);
@@ -26,22 +26,27 @@ internal static partial class PdfStandardSecurityWriter {
         byte[] encryptedPermissions = EncryptPermissions(fileKey, options.Permissions, options.EncryptMetadata);
 
         int encryptionObjectNumber = sourceObjects.Count + 1;
-        var objects = new List<byte[]>(sourceObjects.Count + 1);
-        for (int i = 0; i < sourceObjects.Count; i++) {
-            objects.Add(EncryptAesIndirectObject(sourceObjects[i], i + 1, fileKey, options.EncryptMetadata, deriveObjectKey: false));
-        }
+        var objects = new PdfObjectStore(objectMemoryLimitBytes);
+        try {
+            for (int i = 0; i < sourceObjects.Count; i++) {
+                objects.Add(EncryptAesIndirectObject(sourceObjects[i], i + 1, fileKey, options.EncryptMetadata, deriveObjectKey: false));
+            }
 
-        objects.Add(PdfObjectBytes.WrapIndirectObject(
-            encryptionObjectNumber,
-            BuildAes256EncryptionDictionary(
-                ownerEntry,
-                userEntry,
-                ownerEncryptedFileKey,
-                userEncryptedFileKey,
-                encryptedPermissions,
-                options.Permissions,
-                options.EncryptMetadata)));
-        return new PdfEncryptionAssembly(objects, encryptionObjectNumber, fileId);
+            objects.Add(PdfObjectBytes.WrapIndirectObject(
+                encryptionObjectNumber,
+                BuildAes256EncryptionDictionary(
+                    ownerEntry,
+                    userEntry,
+                    ownerEncryptedFileKey,
+                    userEncryptedFileKey,
+                    encryptedPermissions,
+                    options.Permissions,
+                    options.EncryptMetadata)));
+            return new PdfEncryptionAssembly(objects, encryptionObjectNumber, fileId, objects);
+        } catch {
+            objects.Dispose();
+            throw;
+        }
     }
 
     private static byte[] ComputeRevision6Hash(byte[] password, byte[] salt, byte[] userEntry) {

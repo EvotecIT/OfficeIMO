@@ -1168,14 +1168,11 @@ internal static class PdfPageContentVisualParser {
         }
 
         private OfficeColor ReadCmyk(int startIndex) {
-            double cyan = Clamp01(NumberAt(startIndex));
-            double magenta = Clamp01(NumberAt(startIndex + 1));
-            double yellow = Clamp01(NumberAt(startIndex + 2));
-            double black = Clamp01(NumberAt(startIndex + 3));
-            return OfficeColor.FromRgb(
-                ToByte((1D - cyan) * (1D - black)),
-                ToByte((1D - magenta) * (1D - black)),
-                ToByte((1D - yellow) * (1D - black)));
+            return OfficeColorSpaceConverter.FromCmyk(
+                NumberAt(startIndex),
+                NumberAt(startIndex + 1),
+                NumberAt(startIndex + 2),
+                NumberAt(startIndex + 3));
         }
 
         private bool TryReadColor(PdfPageColorSpaceKind colorSpace, out OfficeColor color) {
@@ -1202,6 +1199,12 @@ internal static class PdfPageContentVisualParser {
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     color = ReadCmyk(startIndex);
                     return true;
+                case PdfPageColorSpaceKind.CalGray:
+                    color = PdfPageColorConverter.FromCalGray(NumberAt(startIndex));
+                    return true;
+                case PdfPageColorSpaceKind.CalRgb:
+                    color = PdfPageColorConverter.FromCalRgb(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
+                    return true;
                 case PdfPageColorSpaceKind.Lab:
                     color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
                     return true;
@@ -1214,6 +1217,7 @@ internal static class PdfPageContentVisualParser {
         private static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
             switch (colorSpace) {
                 case PdfPageColorSpaceKind.DeviceRgb:
+                case PdfPageColorSpaceKind.CalRgb:
                 case PdfPageColorSpaceKind.Lab:
                     return 3;
                 case PdfPageColorSpaceKind.DeviceCmyk:
@@ -1235,11 +1239,13 @@ internal static class PdfPageContentVisualParser {
                     return true;
                 case "DeviceGray":
                 case "G":
-                case "CalGray":
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
                     return true;
+                case "CalGray":
+                    colorSpace = PdfPageColorSpaceKind.CalGray;
+                    return true;
                 case "CalRGB":
-                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    colorSpace = PdfPageColorSpaceKind.CalRgb;
                     return true;
                 case "Lab":
                     colorSpace = PdfPageColorSpaceKind.Lab;

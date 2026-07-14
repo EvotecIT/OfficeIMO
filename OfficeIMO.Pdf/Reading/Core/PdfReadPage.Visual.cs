@@ -10,6 +10,7 @@ public sealed partial class PdfReadPage {
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
+        RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
 
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform);
         for (int i = 0; i < pageElements.Count; i++) {
@@ -19,6 +20,31 @@ public sealed partial class PdfReadPage {
         AddAnnotationAppearances(drawing, size.Height, pageTransform);
 
         return drawing;
+    }
+
+    private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> activeForms, int depth) {
+        EnsureContentNestingBudget(depth);
+        if (resources == null) return;
+
+        foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
+            if (font.EmbeddedTrueTypeFont == null) continue;
+            OfficeFontInfo info = ToOfficeFontInfo(font.BaseFont, 12D);
+            drawing.Fonts.TryAdd(info.FamilyName, font.EmbeddedTrueTypeFont, info.Style);
+        }
+
+        PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ? xObjectValue : null);
+        if (xObjects == null) return;
+        foreach (PdfObject value in xObjects.Items.Values) {
+            if (ResolveObject(value) is not PdfStream form ||
+                !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
+                !activeForms.Add(form)) continue;
+            try {
+                PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
+                RegisterEmbeddedFonts(drawing, formResources, activeForms, depth + 1);
+            } finally {
+                activeForms.Remove(form);
+            }
+        }
     }
 
     private List<PdfPageDrawingElement> GetOrderedPageDrawingElements(double pageWidth, double pageHeight, Matrix2D pageTransform) {
@@ -600,10 +626,14 @@ public sealed partial class PdfReadPage {
                 double magenta = ComponentAt(components, 1, cmykFallback);
                 double yellow = ComponentAt(components, 2, cmykFallback);
                 double black = ComponentAt(components, 3, cmykFallback);
-                return OfficeColor.FromRgb(
-                    ToColorByte((1D - cyan) * (1D - black)),
-                    ToColorByte((1D - magenta) * (1D - black)),
-                    ToColorByte((1D - yellow) * (1D - black)));
+                return OfficeColorSpaceConverter.FromCmyk(cyan, magenta, yellow, black);
+            case PdfPageColorSpaceKind.CalGray:
+                return PdfPageColorConverter.FromCalGray(ComponentAt(components, 0, endColor ? 1D : 0D));
+            case PdfPageColorSpaceKind.CalRgb:
+                return PdfPageColorConverter.FromCalRgb(
+                    ComponentAt(components, 0, endColor ? 1D : 0D),
+                    ComponentAt(components, 1, endColor ? 1D : 0D),
+                    ComponentAt(components, 2, endColor ? 1D : 0D));
             case PdfPageColorSpaceKind.Lab:
                 return PdfPageColorConverter.FromLab(
                     ComponentAtRaw(components, 0, endColor ? 100D : 0D),
@@ -729,11 +759,13 @@ public sealed partial class PdfReadPage {
                 return true;
             case "DeviceGray":
             case "G":
-            case "CalGray":
                 colorSpace = PdfPageColorSpaceKind.DeviceGray;
                 return true;
+            case "CalGray":
+                colorSpace = PdfPageColorSpaceKind.CalGray;
+                return true;
             case "CalRGB":
-                colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                colorSpace = PdfPageColorSpaceKind.CalRgb;
                 return true;
             case "Lab":
                 colorSpace = PdfPageColorSpaceKind.Lab;

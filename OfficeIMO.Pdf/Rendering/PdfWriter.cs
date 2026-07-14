@@ -25,7 +25,7 @@ internal static partial class PdfWriter {
         ValidateGeneratedFormFieldNames(layout.Pages);
 
         // Build PDF objects as byte arrays, then assemble with xref.
-        var objects = new List<byte[]>();
+        using var objects = new PdfObjectStore(opts.ObjectBufferMemoryLimitBytes);
 
         // Reserve IDs (1-based). We'll assign as we add to `objects`.
         int infoId = 0, catalogId = 0;
@@ -139,6 +139,19 @@ internal static partial class PdfWriter {
             imageXObjectIds[cacheKey] = imageId;
             return imageId;
         }
+
+        var layerDefinitions = layout.Pages
+            .SelectMany(page => page.Layers)
+            .Distinct()
+            .OrderBy(definition => definition.Id)
+            .ToList();
+        var optionalContentGroupIds = new Dictionary<PdfLayerDefinition, int>();
+        foreach (PdfLayerDefinition definition in layerDefinitions) {
+            optionalContentGroupIds[definition] = AddObject(objects, PdfOptionalContentDictionaryBuilder.BuildGroup(definition));
+        }
+        int optionalContentPropertiesId = layerDefinitions.Count == 0
+            ? 0
+            : AddObject(objects, PdfOptionalContentDictionaryBuilder.BuildProperties(layerDefinitions, optionalContentGroupIds));
 
         for (int pageIndex = 0; pageIndex < layout.Pages.Count; pageIndex++) {
             var page = layout.Pages[pageIndex];
@@ -565,7 +578,11 @@ internal static partial class PdfWriter {
                     FilterPdfResources(contentStr, shadings),
                     pageAnnotIds,
                     page.StructParentIndex,
-                    useStructureTabOrder: markInfo));
+                    useStructureTabOrder: markInfo,
+                    properties: page.Layers
+                        .Distinct()
+                        .Select(definition => ("/" + definition.ResourceName, optionalContentGroupIds[definition]))
+                        .ToList()));
             pageIds.Add(pageId);
         }
 
@@ -619,6 +636,12 @@ internal static partial class PdfWriter {
             }
 
             embeddedFilesNameTreeId = AddObject(objects, PdfEmbeddedFileDictionaryBuilder.BuildEmbeddedFilesNameTree(nameTreeEntries));
+        }
+
+        int portfolioId = 0;
+        PdfPortfolioOptions? portfolio = opts.PortfolioSnapshot;
+        if (portfolio != null) {
+            portfolioId = AddObject(objects, PdfPortfolioDictionaryBuilder.Build(portfolio, embeddedFiles));
         }
 
         int pageLabelsId = 0;
@@ -681,7 +704,9 @@ internal static partial class PdfWriter {
             openAction,
             pageMode,
             pageLayout,
-            opts.CatalogUriBaseSnapshot));
+            opts.CatalogUriBaseSnapshot,
+            portfolioId,
+            optionalContentPropertiesId));
 
         infoId = AddObject(objects, PdfInfoDictionaryBuilder.Build(title, author, subject, keywords));
         MaterializePendingFontObjects();
@@ -689,12 +714,18 @@ internal static partial class PdfWriter {
         PdfFileVersion effectiveFileVersion = requiresPdf16FileVersion
             ? PdfFileAssembler.RequireAtLeast(opts.FileVersion, PdfFileVersion.Pdf16)
             : opts.FileVersion;
+        if (portfolioId > 0) {
+            effectiveFileVersion = PdfFileAssembler.RequireAtLeast(effectiveFileVersion, PdfFileVersion.Pdf17);
+        }
+        if (optionalContentPropertiesId > 0) {
+            effectiveFileVersion = PdfFileAssembler.RequireAtLeast(effectiveFileVersion, PdfFileVersion.Pdf15);
+        }
         if (outputStream != null) {
-            bytesWritten = PdfFileAssembler.Assemble(outputStream, objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot);
+            bytesWritten = PdfFileAssembler.Assemble(outputStream, objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot, opts.ObjectBufferMemoryLimitBytes);
             return null;
         }
 
-        byte[] bytes = PdfFileAssembler.Assemble(objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot);
+        byte[] bytes = PdfFileAssembler.Assemble(objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot, opts.ObjectBufferMemoryLimitBytes);
         bytesWritten = bytes.LongLength;
         return bytes;
     }
@@ -865,7 +896,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static void BuildGeneratedStructTree(List<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int structTreeRootId, string? documentLanguage) {
+    private static void BuildGeneratedStructTree(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int structTreeRootId, string? documentLanguage) {
         if (!pages.Any(page => page.StructElements.Count > 0)) {
             ReplaceObject(objects, structTreeRootId, PdfStructTreeRootDictionaryBuilder.BuildEmptyStructTreeRootDictionary());
             return;
@@ -1314,7 +1345,7 @@ internal static partial class PdfWriter {
         }
     }
 
-    private static int BuildOutlines(List<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int outlineExpansionLevel) {
+    private static int BuildOutlines(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds, int outlineExpansionLevel) {
         var root = new OutlineNode { Level = 0 };
         var stack = new Stack<OutlineNode>();
         stack.Push(root);
@@ -1384,7 +1415,7 @@ internal static partial class PdfWriter {
         return rootId;
     }
 
-    private static int BuildNamedDestinations(List<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds) {
+    private static int BuildNamedDestinations(IList<byte[]> objects, IReadOnlyList<LayoutResult.Page> pages, List<int> pageIds) {
         var destinations = new List<(string Name, int PageIndex, double Y)>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         for (int pageIndex = 0; pageIndex < pages.Count; pageIndex++) {

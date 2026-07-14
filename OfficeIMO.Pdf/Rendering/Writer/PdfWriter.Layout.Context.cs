@@ -11,6 +11,8 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.Stack<int> pageGroupStack = new System.Collections.Generic.Stack<int>();
         private readonly System.Collections.Generic.HashSet<string> emittedTableCellNamedDestinations = new System.Collections.Generic.HashSet<string>(System.StringComparer.Ordinal);
         private readonly bool emitGeneratedStructure;
+        private readonly System.Collections.Generic.IReadOnlyList<SectionBlock> sectionDefinitions;
+        private readonly System.Collections.Generic.IReadOnlyDictionary<string, int> sectionPageNumbers;
         private PdfOptions currentOpts;
         private int currentPageGroupId;
         private int nextPageGroupId = 1;
@@ -25,10 +27,15 @@ internal static partial class PdfWriter {
         private int _canvasClipDepth;
         private bool _suppressCanvasAccessibilityWrappers;
         private int? _canvasStructureParentElementIndex;
+        private bool stopDocumentFlow;
+        private readonly System.Collections.Generic.HashSet<PdfLayoutPositionCapture> initializedPositionCaptures = new System.Collections.Generic.HashSet<PdfLayoutPositionCapture>();
+        private readonly System.Collections.Generic.List<PdfLayerDefinition> activeLayers = new System.Collections.Generic.List<PdfLayerDefinition>();
 
-        public LayoutContext(PdfOptions options) {
+        public LayoutContext(PdfOptions options, System.Collections.Generic.IReadOnlyList<SectionBlock>? sections = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? resolvedSectionPages = null) {
             currentOpts = options;
             emitGeneratedStructure = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
+            sectionDefinitions = sections ?? System.Array.Empty<SectionBlock>();
+            sectionPageNumbers = resolvedSectionPages ?? new System.Collections.Generic.Dictionary<string, int>(System.StringComparer.Ordinal);
             optionsStack.Push(options);
             pageGroupStack.Push(0);
         }
@@ -51,6 +58,9 @@ internal static partial class PdfWriter {
             currentPage = new LayoutResult.Page { Options = options, PageGroupId = currentPageGroupId };
             sb.Clear();
             pageDirty = false;
+            for (int i = 0; i < activeLayers.Count; i++) {
+                BeginLayerContent(activeLayers[i]);
+            }
         }
 
         private void EnsurePage() {
@@ -77,6 +87,9 @@ internal static partial class PdfWriter {
                 pageDirty = false;
                 return;
             }
+            for (int i = activeLayers.Count - 1; i >= 0; i--) {
+                sb.Append("EMC\n");
+            }
             currentPage.Content = sb.ToString();
             pages.Add(currentPage);
             currentPage = null;
@@ -95,6 +108,12 @@ internal static partial class PdfWriter {
 
         private static double ResolveColumnSpacingBefore(double spacingBefore, double consumed) {
             return consumed > 0.001 ? spacingBefore : 0D;
+        }
+
+        private void BeginLayerContent(PdfLayerDefinition definition) {
+            if (currentPage == null) return;
+            if (!currentPage.Layers.Contains(definition)) currentPage.Layers.Add(definition);
+            sb.Append("/OC /").Append(definition.ResourceName).Append(" BDC\n");
         }
 
     }
