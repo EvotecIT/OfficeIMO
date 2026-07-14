@@ -4,10 +4,11 @@
         <Description>Unified Markdown-inspired OfficeIMO authoring layer with a semantic AST and C#/PowerShell emitters.</Description>
         <AssemblyName>OfficeIMO.Markup</AssemblyName>
         <AssemblyTitle>OfficeIMO.Markup</AssemblyTitle>
-        <VersionPrefix>2.0.1</VersionPrefix>
+        <VersionPrefix>0.1.0</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
         <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+        <IsPackable>False</IsPackable>
         <Company>Evotec</Company>
         <Authors>Przemyslaw Klys</Authors>
         <PackageId>OfficeIMO.Markup</PackageId>
@@ -20,7 +21,7 @@
         <PackageReadmeFile>README.md</PackageReadmeFile>
         <DebugType>portable</DebugType>
         <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-        <IsPublishable>True</IsPublishable>
+        <IsPublishable>False</IsPublishable>
         <SignAssembly>False</SignAssembly>
         <GenerateDocumentationFile>True</GenerateDocumentationFile>
         <NoWarn>$(NoWarn);1591</NoWarn>

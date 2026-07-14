@@ -1,15 +1,8 @@
 # OfficeIMO.Markup.Word - Markup to Word export
 
-[![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Markup.Word)](https://www.nuget.org/packages/OfficeIMO.Markup.Word)
-[![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Markup.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Markup.Word)
-
 `OfficeIMO.Markup.Word` exports the semantic `OfficeIMO.Markup` document model to editable Word `.docx` files through `OfficeIMO.Word`.
 
-## Install
-
-```powershell
-dotnet add package OfficeIMO.Markup.Word
-```
+This project is built from the OfficeIMO source tree and is not published as a standalone NuGet package.
 
 ## Quick start
 
