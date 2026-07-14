@@ -37,6 +37,32 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         /// <summary>
+        /// Writes a complete artifact directly without closing the destination. Seekable streams are positioned
+        /// at the beginning before production, then truncated to the completed artifact and rewound only after the
+        /// producer succeeds. This preserves existing contents when validation fails before output begins.
+        /// </summary>
+        public static void Write(Stream destination, Action<Stream> writer) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(writer);
+#else
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+#endif
+            EnsureWritable(destination);
+            long originalPosition = PositionForDirectWrite(destination);
+            try {
+                writer(destination);
+                CompleteDirectWrite(destination);
+                destination.Flush();
+                RewindDestination(destination);
+            } catch {
+                RestorePositionAfterFailedDirectWrite(destination, originalPosition);
+                throw;
+            }
+        }
+
+        /// <summary>
         /// Asynchronously writes a complete artifact without closing the destination. Seekable streams are
         /// truncated before writing and rewound after a successful write.
         /// </summary>
@@ -63,6 +89,37 @@ namespace OfficeIMO.Drawing.Internal {
             RewindDestination(destination);
         }
 
+        /// <summary>
+        /// Writes a complete artifact directly and asynchronously flushes it without closing the destination.
+        /// The producer runs synchronously so format writers can preserve ordered offset accounting. Seekable
+        /// streams are truncated only after the producer succeeds.
+        /// </summary>
+        public static async Task WriteAsync(
+            Stream destination,
+            Action<Stream> writer,
+            CancellationToken cancellationToken = default) {
+#if NET6_0_OR_GREATER
+            ArgumentNullException.ThrowIfNull(destination);
+            ArgumentNullException.ThrowIfNull(writer);
+#else
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            if (writer == null) throw new ArgumentNullException(nameof(writer));
+#endif
+            EnsureWritable(destination);
+            cancellationToken.ThrowIfCancellationRequested();
+            long originalPosition = PositionForDirectWrite(destination);
+            try {
+                writer(destination);
+                cancellationToken.ThrowIfCancellationRequested();
+                CompleteDirectWrite(destination);
+                await destination.FlushAsync(cancellationToken).ConfigureAwait(false);
+                RewindDestination(destination);
+            } catch {
+                RestorePositionAfterFailedDirectWrite(destination, originalPosition);
+                throw;
+            }
+        }
+
         private static void EnsureWritable(Stream destination) {
             if (!destination.CanWrite) {
                 throw new ArgumentException("Destination stream must be writable.", nameof(destination));
@@ -73,6 +130,23 @@ namespace OfficeIMO.Drawing.Internal {
             if (!destination.CanSeek) return;
             destination.Position = 0;
             destination.SetLength(0);
+        }
+
+        private static long PositionForDirectWrite(Stream destination) {
+            if (!destination.CanSeek) return 0L;
+            long originalPosition = destination.Position;
+            destination.Position = 0;
+            return originalPosition;
+        }
+
+        private static void CompleteDirectWrite(Stream destination) {
+            if (!destination.CanSeek) return;
+            destination.SetLength(destination.Position);
+        }
+
+        private static void RestorePositionAfterFailedDirectWrite(Stream destination, long originalPosition) {
+            if (!destination.CanSeek) return;
+            destination.Position = Math.Min(originalPosition, destination.Length);
         }
 
         private static void RewindDestination(Stream destination) {

@@ -4,5 +4,6 @@ internal enum PdfPageColorSpaceKind {
     DeviceGray,
     DeviceRgb,
     DeviceCmyk,
+    Lab,
     Pattern
 }

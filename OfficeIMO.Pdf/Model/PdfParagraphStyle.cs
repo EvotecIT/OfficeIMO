@@ -12,6 +12,8 @@ public class PdfParagraphStyle {
     private double _spacingBefore;
     private double? _spacingAfter;
     private double? _defaultTabStopWidth;
+    private int _minimumOrphanLines;
+    private int _minimumWidowLines;
 
     /// <summary>Line advance multiplier relative to the paragraph font size. When null the writer uses the default line height.</summary>
     public double? LineHeight {
@@ -78,6 +80,28 @@ public class PdfParagraphStyle {
     public bool KeepWithNext { get; set; }
     /// <summary>When true, paragraph page splits avoid single-line widows and orphans where the page frame allows it.</summary>
     public bool WidowControl { get; set; }
+    /// <summary>
+    /// Minimum number of paragraph lines kept at the bottom of a page when the paragraph splits.
+    /// Zero uses the two-line default when <see cref="WidowControl"/> is enabled, or disables this constraint otherwise.
+    /// </summary>
+    public int MinimumOrphanLines {
+        get => _minimumOrphanLines;
+        set {
+            ValidateNonNegativeValue(value, nameof(MinimumOrphanLines), "Paragraph minimum orphan line count cannot be negative.");
+            _minimumOrphanLines = value;
+        }
+    }
+    /// <summary>
+    /// Minimum number of paragraph lines carried to the top of the following page when the paragraph splits.
+    /// Zero uses the two-line default when <see cref="WidowControl"/> is enabled, or disables this constraint otherwise.
+    /// </summary>
+    public int MinimumWidowLines {
+        get => _minimumWidowLines;
+        set {
+            ValidateNonNegativeValue(value, nameof(MinimumWidowLines), "Paragraph minimum widow line count cannot be negative.");
+            _minimumWidowLines = value;
+        }
+    }
 
     /// <summary>Creates a copy of this paragraph style.</summary>
     public PdfParagraphStyle Clone() {
@@ -91,7 +115,9 @@ public class PdfParagraphStyle {
             DefaultTabStopWidth = DefaultTabStopWidth,
             KeepTogether = KeepTogether,
             KeepWithNext = KeepWithNext,
-            WidowControl = WidowControl
+            WidowControl = WidowControl,
+            MinimumOrphanLines = MinimumOrphanLines,
+            MinimumWidowLines = MinimumWidowLines
         };
 
         foreach (PdfTabStop tabStop in _tabStops) {
@@ -125,6 +151,12 @@ public class PdfParagraphStyle {
     private static void ValidateFiniteValue(double value, string paramName, string message) {
         if (double.IsNaN(value) || double.IsInfinity(value)) {
             throw new System.ArgumentException(message, paramName);
+        }
+    }
+
+    private static void ValidateNonNegativeValue(int value, string paramName, string message) {
+        if (value < 0) {
+            throw new System.ArgumentOutOfRangeException(paramName, value, message);
         }
     }
 

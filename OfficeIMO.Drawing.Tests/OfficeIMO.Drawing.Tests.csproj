@@ -31,6 +31,10 @@
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="TestAssets\Kulek.jpg" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
     <Reference Include="System.IO.Compression" />
     <Reference Include="System.IO.Compression.FileSystem" />

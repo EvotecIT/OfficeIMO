@@ -131,21 +131,24 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPageAsPng_ReportsUnsupportedJpegImageXObject() {
+    public void RenderPageAsPng_DecodesJpegImageXObjectThroughManagedRasterEngine() {
+        var raster = new OfficeRasterImage(1, 1, OfficeColor.FromRgb(12, 34, 56));
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
-            CreateMinimalJpeg(1, 1),
+            OfficeJpegCodec.Encode(raster, new OfficeJpegEncodeOptions { Quality = 100 }),
             colorSpace: "/DeviceRGB",
             imageWidth: 1,
             imageFilterEntry: "/Filter /DCTDecode");
 
-        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageImageRenderer.RenderPageAsPng(pdf));
+        byte[] png = PdfPageImageRenderer.RenderPageAsPng(pdf);
 
-        Assert.Contains("image/jpeg", exception.Message, StringComparison.OrdinalIgnoreCase);
-        Assert.Contains("dependency-free rasterizer", exception.Message, StringComparison.OrdinalIgnoreCase);
+        AssertPngSignature(png);
+        Assert.DoesNotContain(
+            PdfPageImageRenderer.RenderPages(pdf).Single().CapabilityDiagnostics,
+            diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }
 
     [Fact]
-    public void RenderPages_UsesOptionalSharedCodecForJpegImageXObject() {
+    public void RenderPages_UsesOptionalSharedCodecWhenManagedJpegDecodeFails() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CreateMinimalJpeg(1, 1),
             colorSpace: "/DeviceRGB",
@@ -161,6 +164,20 @@ public class PdfPageImageRendererTests {
         Assert.True(result.Succeeded);
         Assert.True(codec.WasCalled);
         Assert.NotEmpty(result.Bytes!);
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
+    }
+
+    [Fact]
+    public void RenderPages_ReportsOptionalCodecDiagnosticForJpeg2000ImageXObject() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CreateMinimalJpeg(1, 1),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 1,
+            imageFilterEntry: "/Filter /JPXDecode");
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.True(result.Succeeded);
         Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.image-codec-optional");
     }
 
@@ -784,6 +801,51 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ProjectsCalibratedAndIccColorSpacesThroughManagedApproximations() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            /CsCal cs
+            0.1 0.2 0.3 scn
+            40 80 70 40 re
+            f
+            /CsIcc cs
+            0.8 0.1 0.2 scn
+            130 80 70 40 re
+            f
+            """,
+            "<< /ColorSpace << /CsCal [/CalRGB << /WhitePoint [0.9505 1 1.089] >>] /CsIcc [/ICCBased 5 0 R] >> >>",
+            "5 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(
+            pdf,
+            options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
+
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(26, 51, 76));
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(204, 26, 51));
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.colorspace-unsupported");
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsLabColorSpaceToSrgb() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            /CsLab cs
+            53.24 80.09 67.2 scn
+            40 80 100 40 re
+            f
+            """,
+            "<< /ColorSpace << /CsLab [/Lab << /WhitePoint [0.9642 1 0.8249] /Range [-128 127 -128 127] >>] >> >>");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeColor color = Assert.Single(drawing.Shapes).Shape.FillColor!.Value;
+        Assert.InRange(color.R, 245, 255);
+        Assert.InRange(color.G, 0, 15);
+        Assert.InRange(color.B, 0, 15);
+    }
+
+    [Fact]
     public void RenderPage_ProjectsAxialShadingResourceAsLinearGradient() {
         byte[] pdf = BuildSingleStreamPdf(
             """
@@ -818,6 +880,30 @@ public class PdfPageImageRendererTests {
         OfficeColor rightPixel = raster.GetPixel(132, 100);
         Assert.True(leftPixel.R > leftPixel.B);
         Assert.True(rightPixel.B > rightPixel.R);
+    }
+
+    [Fact]
+    public void RenderPage_PreservesStitchedShadingFunctionsAsMultipleGradientStops() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            20 80 120 40 re
+            W
+            n
+            /Sh1 sh
+            """,
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 140 80] /Function << /FunctionType 3 /Domain [0 1] /Functions [6 0 R 7 0 R] /Bounds [0.5] /Encode [0 1 0 1] >> /Extend [true true] >>\nendobj",
+            "6 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 1 0] /N 1 >>\nendobj",
+            "7 0 obj\n<< /FunctionType 2 /Domain [0 1] /C0 [0 1 0] /C1 [0 0 1] /N 1 >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeLinearGradient gradient = Assert.Single(drawing.Shapes).Shape.FillGradient!;
+        Assert.Equal(3, gradient.Stops.Count);
+        Assert.Equal(OfficeColor.Red, gradient.Stops[0].Color);
+        Assert.Equal(0.5D, gradient.Stops[1].Offset, 3);
+        Assert.Equal(OfficeColor.Lime, gradient.Stops[1].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[2].Color);
     }
 
     [Fact]

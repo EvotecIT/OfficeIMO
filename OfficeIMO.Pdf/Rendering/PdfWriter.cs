@@ -1,10 +1,20 @@
 using System.Globalization;
+using System.IO;
 using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
-    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+    public static byte[] Write(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) =>
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, outputStream: null, out _)!;
+
+    public static long Write(Stream destination, PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords) {
+        Guard.NotNull(destination, nameof(destination));
+        WriteCore(doc, blocks, opts, title, author, subject, keywords, destination, out long bytesWritten);
+        return bytesWritten;
+    }
+
+    private static byte[]? WriteCore(PdfDocument doc, IEnumerable<IPdfBlock> blocks, PdfOptions opts, string? title, string? author, string? subject, string? keywords, Stream? outputStream, out long bytesWritten) {
         PdfComplianceValidator.ValidateGenerationOptions(opts);
         opts.ResetEmbeddedFontProgramUsage();
 
@@ -110,6 +120,7 @@ internal static partial class PdfWriter {
         var pageNumberInfos = BuildPageNumberInfos(layout.Pages);
         int nextStructParentIndex = 0;
         var imageXObjectIds = new Dictionary<string, int>(StringComparer.Ordinal);
+        var optimizedImageCache = new Dictionary<string, OfficeImageOptimizationResult>(StringComparer.Ordinal);
 
         int EnsureImageXObject(PdfImageStream imageStream) {
             string cacheKey = BuildImageXObjectCacheKey(imageStream);
@@ -257,6 +268,7 @@ internal static partial class PdfWriter {
                 var pageImageResourceNames = new Dictionary<int, string>();
                 for (int i = 0; i < page.Images.Count; i++) {
                     var img = page.Images[i];
+                    ApplyPlacementAwareImageOptimization(img, pageOpts, optimizedImageCache);
                     if (!TryBuildImageStream(img, out var imageStream, out string? unsupportedReason)) {
                         throw new NotSupportedException(unsupportedReason ?? "Image format is not supported.");
                     }
@@ -677,7 +689,14 @@ internal static partial class PdfWriter {
         PdfFileVersion effectiveFileVersion = requiresPdf16FileVersion
             ? PdfFileAssembler.RequireAtLeast(opts.FileVersion, PdfFileVersion.Pdf16)
             : opts.FileVersion;
-        return PdfFileAssembler.Assemble(objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot);
+        if (outputStream != null) {
+            bytesWritten = PdfFileAssembler.Assemble(outputStream, objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot);
+            return null;
+        }
+
+        byte[] bytes = PdfFileAssembler.Assemble(objects, catalogId, infoId, effectiveFileVersion, opts.EncryptionSnapshot);
+        bytesWritten = bytes.LongLength;
+        return bytes;
     }
 
     private static string ReplaceInlineImageDrawTokens(string content, IReadOnlyList<PageImage> images) {

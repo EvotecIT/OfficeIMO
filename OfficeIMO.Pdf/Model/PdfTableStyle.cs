@@ -30,6 +30,7 @@ public class PdfTableStyle {
     private int _headerRowCount = 1;
     private int _footerRowCount;
     private int? _repeatHeaderRowCount;
+    private int _minimumBodyRowsOnLastPage = 2;
     private double _cellPaddingX = 4;
     private double _cellPaddingY = 2;
     private double? _cellPaddingLeft;
@@ -310,6 +311,17 @@ public class PdfTableStyle {
         set {
             ValidateNonNegativeValue(value, nameof(FooterRowCount), "Table footer row count cannot be negative.");
             _footerRowCount = value;
+        }
+    }
+    /// <summary>
+    /// Minimum number of body rows kept with trailing footer rows on the table's final page when the group fits on one page.
+    /// Set to zero to disable this pagination constraint. Defaults to two.
+    /// </summary>
+    public int MinimumBodyRowsOnLastPage {
+        get => _minimumBodyRowsOnLastPage;
+        set {
+            ValidateNonNegativeValue(value, nameof(MinimumBodyRowsOnLastPage), "Table minimum final-page body row count cannot be negative.");
+            _minimumBodyRowsOnLastPage = value;
         }
     }
     /// <summary>Text color for footer cells. When null the writer’s default text color is used.</summary>
@@ -611,6 +623,7 @@ public class PdfTableStyle {
             HeaderRowCount = HeaderRowCount,
             RepeatHeaderRowCount = RepeatHeaderRowCount,
             FooterRowCount = FooterRowCount,
+            MinimumBodyRowsOnLastPage = MinimumBodyRowsOnLastPage,
             FooterTextColor = FooterTextColor,
             FooterFontSize = FooterFontSize,
             FooterBold = FooterBold,

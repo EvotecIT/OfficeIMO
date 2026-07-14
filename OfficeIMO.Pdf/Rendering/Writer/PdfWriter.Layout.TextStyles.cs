@@ -220,7 +220,13 @@ internal static partial class PdfWriter {
     }
 
     private static bool TryApplyWidowControl(PdfParagraphStyle? style, int totalLineCount, int startLineIndex, ref int take, ref double heightSum, System.Collections.Generic.List<double> lineHeights, bool canMoveToNextPage) {
-        if (style?.WidowControl != true || take <= 0) {
+        if (style == null || take <= 0) {
+            return false;
+        }
+
+        int minimumOrphanLines = ResolveMinimumOrphanLines(style);
+        int minimumWidowLines = ResolveMinimumWidowLines(style);
+        if (minimumOrphanLines <= 1 && minimumWidowLines <= 1) {
             return false;
         }
 
@@ -230,14 +236,17 @@ internal static partial class PdfWriter {
             return false;
         }
 
-        if (take == 1 && canMoveToNextPage) {
+        if (take < minimumOrphanLines && canMoveToNextPage) {
             return true;
         }
 
-        if (afterTake == 1) {
-            if (take > 2) {
-                take--;
-                heightSum -= lineHeights[startLineIndex + take];
+        if (afterTake < minimumWidowLines) {
+            int linesToMove = minimumWidowLines - afterTake;
+            if (take - linesToMove >= minimumOrphanLines) {
+                for (int index = 0; index < linesToMove; index++) {
+                    take--;
+                    heightSum -= lineHeights[startLineIndex + take];
+                }
             } else if (canMoveToNextPage) {
                 return true;
             }
@@ -245,5 +254,11 @@ internal static partial class PdfWriter {
 
         return false;
     }
+
+    private static int ResolveMinimumOrphanLines(PdfParagraphStyle style) =>
+        style.MinimumOrphanLines > 0 ? style.MinimumOrphanLines : style.WidowControl ? 2 : 0;
+
+    private static int ResolveMinimumWidowLines(PdfParagraphStyle style) =>
+        style.MinimumWidowLines > 0 ? style.MinimumWidowLines : style.WidowControl ? 2 : 0;
 
 }

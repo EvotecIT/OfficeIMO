@@ -642,10 +642,7 @@ internal static class PdfPageContentVisualParser {
                     endRadiusY = startRadiusY + 0.5D;
                 }
 
-                IReadOnlyList<OfficeGradientStop> stops = new[] {
-                    new OfficeGradientStop(0D, shading.StartColor),
-                    new OfficeGradientStop(1D, shading.EndColor)
-                };
+                IReadOnlyList<OfficeGradientStop> stops = shading.Stops;
                 radialGradient = endRadiusX > 0D && endRadiusY > 0D
                     ? new OfficeRadialGradient(rawStartX, rawStartY, startRadiusX, startRadiusY, rawEndX, rawEndY, endRadiusX, endRadiusY, stops)
                     : new OfficeRadialGradient(
@@ -659,7 +656,7 @@ internal static class PdfPageContentVisualParser {
                 return;
             }
 
-            if (!TryClipLinearGradientToUnitBounds(rawStartX, rawStartY, rawEndX, rawEndY, shading.StartColor, shading.EndColor, out OfficeLinearGradient? clippedLinearGradient)) {
+            if (!TryClipLinearGradientToUnitBounds(rawStartX, rawStartY, rawEndX, rawEndY, shading.Stops, out OfficeLinearGradient? clippedLinearGradient)) {
                 clippedLinearGradient = null;
             }
 
@@ -669,7 +666,7 @@ internal static class PdfPageContentVisualParser {
             }
 
             if (NearlyEqual(startX, endX) && NearlyEqual(startY, endY)) {
-                linearGradient = OfficeLinearGradient.Horizontal(shading.StartColor, shading.EndColor);
+                linearGradient = new OfficeLinearGradient(0D, 0.5D, 1D, 0.5D, shading.Stops);
                 return;
             }
 
@@ -678,8 +675,7 @@ internal static class PdfPageContentVisualParser {
                 startY,
                 endX,
                 endY,
-                new OfficeGradientStop(0D, shading.StartColor),
-                new OfficeGradientStop(1D, shading.EndColor));
+                shading.Stops);
         }
 
         private static bool TryClipLinearGradientToUnitBounds(
@@ -687,8 +683,7 @@ internal static class PdfPageContentVisualParser {
             double y0,
             double x1,
             double y1,
-            OfficeColor startColor,
-            OfficeColor endColor,
+            IReadOnlyList<OfficeGradientStop> stops,
             out OfficeLinearGradient? gradient) {
             gradient = null;
             double dx = x1 - x0;
@@ -716,9 +711,36 @@ internal static class PdfPageContentVisualParser {
                 clippedStartY,
                 clippedEndX,
                 clippedEndY,
-                new OfficeGradientStop(0D, InterpolateColor(startColor, endColor, t0)),
-                new OfficeGradientStop(1D, InterpolateColor(startColor, endColor, t1)));
+                ClipGradientStops(stops, t0, t1));
             return true;
+        }
+
+        private static List<OfficeGradientStop> ClipGradientStops(IReadOnlyList<OfficeGradientStop> stops, double start, double end) {
+            var result = new List<OfficeGradientStop>(stops.Count + 2) {
+                new OfficeGradientStop(0D, EvaluateGradientColor(stops, start))
+            };
+            double span = end - start;
+            for (int i = 0; i < stops.Count; i++) {
+                double offset = stops[i].Offset;
+                if (offset > start && offset < end) {
+                    result.Add(new OfficeGradientStop((offset - start) / span, stops[i].Color));
+                }
+            }
+            result.Add(new OfficeGradientStop(1D, EvaluateGradientColor(stops, end)));
+            return result;
+        }
+
+        private static OfficeColor EvaluateGradientColor(IReadOnlyList<OfficeGradientStop> stops, double offset) {
+            double value = Clamp01(offset);
+            for (int i = 1; i < stops.Count; i++) {
+                OfficeGradientStop right = stops[i];
+                if (value > right.Offset) continue;
+                OfficeGradientStop left = stops[i - 1];
+                double span = right.Offset - left.Offset;
+                if (span <= 0D) return right.Color;
+                return InterpolateColor(left.Color, right.Color, (value - left.Offset) / span);
+            }
+            return stops[stops.Count - 1].Color;
         }
 
         private static bool ClipLineParameter(double p, double q, ref double t0, ref double t1) {
@@ -1180,6 +1202,9 @@ internal static class PdfPageContentVisualParser {
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     color = ReadCmyk(startIndex);
                     return true;
+                case PdfPageColorSpaceKind.Lab:
+                    color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
+                    return true;
                 default:
                     color = ReadGray(startIndex);
                     return true;
@@ -1189,6 +1214,7 @@ internal static class PdfPageContentVisualParser {
         private static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
             switch (colorSpace) {
                 case PdfPageColorSpaceKind.DeviceRgb:
+                case PdfPageColorSpaceKind.Lab:
                     return 3;
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     return 4;
@@ -1209,7 +1235,14 @@ internal static class PdfPageContentVisualParser {
                     return true;
                 case "DeviceGray":
                 case "G":
+                case "CalGray":
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return true;
+                case "CalRGB":
+                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    return true;
+                case "Lab":
+                    colorSpace = PdfPageColorSpaceKind.Lab;
                     return true;
                 case "Pattern":
                     colorSpace = PdfPageColorSpaceKind.Pattern;

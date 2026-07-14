@@ -8,6 +8,8 @@ namespace OfficeIMO.Drawing;
 public sealed class OfficeRasterImage {
     private readonly byte[] _pixels;
 
+    internal byte[] PixelBuffer => _pixels;
+
     /// <summary>
     /// Creates a new RGBA image buffer.
     /// </summary>
@@ -39,6 +41,17 @@ public sealed class OfficeRasterImage {
         byte[] copy = new byte[_pixels.Length];
         Buffer.BlockCopy(_pixels, 0, copy, 0, _pixels.Length);
         return copy;
+    }
+
+    internal static OfficeRasterImage FromRgba32(int width, int height, byte[] pixels) {
+        if (pixels == null) throw new ArgumentNullException(nameof(pixels));
+        if (pixels.Length != checked(width * height * 4)) {
+            throw new ArgumentException("RGBA buffer length does not match image dimensions.", nameof(pixels));
+        }
+
+        var image = new OfficeRasterImage(width, height);
+        Buffer.BlockCopy(pixels, 0, image._pixels, 0, pixels.Length);
+        return image;
     }
 
     /// <summary>Gets the color of a pixel.</summary>

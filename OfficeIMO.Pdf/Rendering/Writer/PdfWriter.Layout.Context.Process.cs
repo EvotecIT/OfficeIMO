@@ -37,6 +37,7 @@ internal static partial class PdfWriter {
                 if (block is BulletListBlock bulletList) { RenderBulletListFlowBlock(bulletList, nextBlock, blockList, blockIndex); continue; }
                 if (block is NumberedListBlock numberedList) { RenderNumberedListFlowBlock(numberedList, nextBlock, blockList, blockIndex); continue; }
                 if (block is TableBlock table) { RenderTableFlowBlock(table, nextBlock, blockList, blockIndex); continue; }
+                if (block is DeferredTableBlock deferredTable) { RenderDeferredTableFlowBlock(deferredTable, nextBlock, blockList, blockIndex); continue; }
                 if (block is HorizontalRuleBlock horizontalRule) { RenderHorizontalRuleFlowBlock(horizontalRule, nextBlock, blockList, blockIndex); continue; }
                 if (block is TextFieldBlock textField) { RenderTextFieldBlock(textField, currentOpts.MarginLeft, width); continue; }
                 if (block is CheckBoxBlock checkBox) { RenderCheckBoxBlock(checkBox, currentOpts.MarginLeft, width); continue; }

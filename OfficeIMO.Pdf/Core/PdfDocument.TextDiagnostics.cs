@@ -62,6 +62,9 @@ public sealed partial class PdfDocument {
             case TableBlock table:
                 AnalyzeTable(table, options, defaultFont, diagnostics, "PdfTableCell", location);
                 break;
+            case DeferredTableBlock table:
+                AnalyzeDeferredTable(table, options, defaultFont, diagnostics, location);
+                break;
             case PanelParagraphBlock panel:
                 AddRuns(diagnostics, panel.Runs, options, defaultFont, "PdfPanel", location);
                 break;
@@ -113,6 +116,27 @@ public sealed partial class PdfDocument {
                     AnalyzeTableFormField(field, options, diagnostics, cellLocation, rowIndex, cellIndex);
                 }
             }
+        }
+    }
+
+    private static void AnalyzeDeferredTable(DeferredTableBlock table, PdfOptions options, PdfStandardFont defaultFont, List<PdfTextEncodingDiagnostic> diagnostics, string locationPrefix) {
+        string? caption = table.Style?.Caption;
+        if (!string.IsNullOrWhiteSpace(caption)) {
+            AddText(diagnostics, caption, options, defaultFont, "PdfTableCaption", AppendLocation(locationPrefix, "PdfTableCaption"));
+        }
+
+        int rowIndex = 0;
+        foreach (PdfTableCell[] row in table.EnumerateRows()) {
+            for (int cellIndex = 0; cellIndex < row.Length; cellIndex++) {
+                PdfTableCell cell = row[cellIndex];
+                string cellLocation = AppendLocation(locationPrefix, "PdfTableCell[" + rowIndex.ToString(CultureInfo.InvariantCulture) + "," + cellIndex.ToString(CultureInfo.InvariantCulture) + "]");
+                AddRuns(diagnostics, cell.Runs, options, defaultFont, "PdfTableCell", cellLocation, rowIndex, cellIndex);
+                foreach (PdfTableCellFormField field in cell.FormFields) {
+                    AnalyzeTableFormField(field, options, diagnostics, cellLocation, rowIndex, cellIndex);
+                }
+            }
+
+            rowIndex++;
         }
     }
 
