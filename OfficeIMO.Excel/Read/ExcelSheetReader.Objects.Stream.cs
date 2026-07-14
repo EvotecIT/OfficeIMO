@@ -35,7 +35,7 @@ namespace OfficeIMO.Excel {
             if (CanUseTypedObjectXmlReader()) {
                 if (_opt.CellValueConverter == null
                     && _opt.TypeConverter == null) {
-                    return ReadObjectsStreamXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct);
+                    return ReadObjectsStreamUtf8OrXmlAdaptive<T>(a1Range, r1, c1, r2, c2, cols, ct);
                 }
 
                 if (RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {

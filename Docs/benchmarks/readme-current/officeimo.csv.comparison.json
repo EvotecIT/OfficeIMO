@@ -26,7 +26,8 @@
       "actual": 2.13549,
       "baseline": 2.13549,
       "ratio": 1.0,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -49,7 +50,8 @@
       "actual": 2.33572,
       "baseline": 2.13549,
       "ratio": 1.0937630239429825,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -72,7 +74,8 @@
       "actual": 9.665690000000001,
       "baseline": 2.13549,
       "ratio": 4.526216465541867,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -95,7 +98,8 @@
       "actual": 80.48356,
       "baseline": 37.16614,
       "ratio": 2.165507636789831,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -118,7 +122,8 @@
       "actual": 44.024809999999995,
       "baseline": 37.16614,
       "ratio": 1.184540821295943,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -141,7 +146,8 @@
       "actual": 37.16614,
       "baseline": 37.16614,
       "ratio": 1.0,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -164,7 +170,8 @@
       "actual": 26.87573,
       "baseline": 37.16614,
       "ratio": 0.7231240586189472,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -187,7 +194,8 @@
       "actual": 23.40919,
       "baseline": 20.74293,
       "ratio": 1.128538253756822,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -210,7 +218,8 @@
       "actual": 22.84647,
       "baseline": 20.74293,
       "ratio": 1.1014099743864536,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -233,7 +242,8 @@
       "actual": 20.74293,
       "baseline": 20.74293,
       "ratio": 1.0,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -256,7 +266,8 @@
       "actual": 20.76752,
       "baseline": 20.74293,
       "ratio": 1.001185464155739,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -279,7 +290,8 @@
       "actual": 16.07143,
       "baseline": 20.74293,
       "ratio": 0.7747907359278559,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -302,7 +314,8 @@
       "actual": 23.40919,
       "baseline": 16.85854,
       "ratio": 1.3885656765057945,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -325,7 +338,8 @@
       "actual": 22.84647,
       "baseline": 16.85854,
       "ratio": 1.3551867480813877,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -348,7 +362,8 @@
       "actual": 16.85854,
       "baseline": 16.85854,
       "ratio": 1.0,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -371,7 +386,8 @@
       "actual": 20.76752,
       "baseline": 16.85854,
       "ratio": 1.231869426415336,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -394,7 +410,8 @@
       "actual": 16.07143,
       "baseline": 16.85854,
       "ratio": 0.9533109035539257,
-      "metric": "MedianMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     }
   ]
 }

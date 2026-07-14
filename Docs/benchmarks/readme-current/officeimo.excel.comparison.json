@@ -1,7 +1,7 @@
 {
   "metadata": {
-    "generatedAtUtc": "2026-07-14T00:01:29.540395Z",
-    "source": "./.benchmark-artifacts/final/excel-m4-25000/officeimo.excel.comparison-summary.json",
+    "generatedAtUtc": "2026-07-14T01:58:27.613389Z",
+    "source": "./.benchmark-artifacts/readme-refresh/excel/officeimo.excel.comparison-summary.json",
     "note": "Mean/stddev/stderr are from the lightweight rotated local runner. Allocations use GC.GetAllocatedBytesForCurrentThread. Use BenchmarkDotNet-specific classes for publication-grade statistical Error columns."
   },
   "comparison": [
@@ -21,10 +21,11 @@
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 38.11983822222222,
-      "baseline": 38.11983822222222,
+      "actual": 37.88575,
+      "baseline": 37.88575,
       "ratio": 1.0,
-      "metric": "MeanMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -42,10 +43,11 @@
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 355.0100138888889,
-      "baseline": 38.11983822222222,
-      "ratio": 9.312998964458705,
-      "metric": "MeanMs"
+      "actual": 345.446292,
+      "baseline": 37.88575,
+      "ratio": 9.118106200880279,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -63,10 +65,11 @@
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 34.64402777777778,
-      "baseline": 34.64402777777778,
+      "actual": 33.920167,
+      "baseline": 33.920167,
       "ratio": 1.0,
-      "metric": "MeanMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -84,10 +87,11 @@
       "engine": "ClosedXML",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 300.74381022222224,
-      "baseline": 34.64402777777778,
-      "ratio": 8.680971281726448,
-      "metric": "MeanMs"
+      "actual": 305.504125,
+      "baseline": 33.920167,
+      "ratio": 9.006563116272392,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -105,10 +109,11 @@
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 280.7161852222222,
-      "baseline": 34.64402777777778,
-      "ratio": 8.102873806211587,
-      "metric": "MeanMs"
+      "actual": 265.132584,
+      "baseline": 33.920167,
+      "ratio": 7.81637024369603,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -126,10 +131,11 @@
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 56.177338,
-      "baseline": 56.177338,
+      "actual": 25.000542,
+      "baseline": 25.000542,
       "ratio": 1.0,
-      "metric": "MeanMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -147,10 +153,11 @@
       "engine": "ClosedXML",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 272.0360234444444,
-      "baseline": 56.177338,
-      "ratio": 4.842451300281342,
-      "metric": "MeanMs"
+      "actual": 257.60175,
+      "baseline": 25.000542,
+      "ratio": 10.303846612605438,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -168,10 +175,11 @@
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 213.47667566666667,
-      "baseline": 56.177338,
-      "ratio": 3.8000496867022546,
-      "metric": "MeanMs"
+      "actual": 185.984584,
+      "baseline": 25.000542,
+      "ratio": 7.439222077665357,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -189,10 +197,11 @@
       "engine": "Sylvan.Data.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 37.614439777777775,
-      "baseline": 56.177338,
-      "ratio": 0.6695660762312692,
-      "metric": "MeanMs"
+      "actual": 39.505333,
+      "baseline": 25.000542,
+      "ratio": 1.580179061717942,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -210,10 +219,11 @@
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 23.496648000000004,
-      "baseline": 23.496648000000004,
+      "actual": 23.399334,
+      "baseline": 23.399334,
       "ratio": 1.0,
-      "metric": "MeanMs"
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -231,10 +241,11 @@
       "engine": "SpreadCheetah",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 24.623657444444447,
-      "baseline": 23.496648000000004,
-      "ratio": 1.047964690301546,
-      "metric": "MeanMs"
+      "actual": 23.377833,
+      "baseline": 23.399334,
+      "ratio": 0.9990811276936343,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -252,10 +263,11 @@
       "engine": "Sylvan.Data.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 27.160657444444443,
-      "baseline": 23.496648000000004,
-      "ratio": 1.1559375381732935,
-      "metric": "MeanMs"
+      "actual": 26.192167,
+      "baseline": 23.399334,
+      "ratio": 1.119355234640439,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     },
     {
       "suite": "OfficeIMO README highlights",
@@ -273,10 +285,11 @@
       "engine": "LargeXlsx",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 26.687116000000003,
-      "baseline": 23.496648000000004,
-      "ratio": 1.1357839637381468,
-      "metric": "MeanMs"
+      "actual": 26.368,
+      "baseline": 23.399334,
+      "ratio": 1.1268696792823247,
+      "metric": "MedianMs",
+      "tieTolerance": 0.05
     }
   ]
 }

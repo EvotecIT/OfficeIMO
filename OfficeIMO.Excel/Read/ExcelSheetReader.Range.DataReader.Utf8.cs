@@ -179,7 +179,9 @@ namespace OfficeIMO.Excel {
                             ? value[0] == (byte)'1'
                             : value.IndexOf((byte)'&') >= 0
                                 && string.Equals(DecodeString(start, length), "1", StringComparison.Ordinal);
-                        if (targetKind == XmlDataReaderTargetKind.Boolean) {
+                        if (targetKind == XmlDataReaderTargetKind.String) {
+                            objectValue = parsedBoolean.ToString();
+                        } else if (targetKind == XmlDataReaderTargetKind.Boolean) {
                             primitiveKind = XmlDataReaderPrimitiveKind.Boolean;
                             booleanValue = parsedBoolean;
                         } else {
@@ -188,7 +190,9 @@ namespace OfficeIMO.Excel {
                         return;
                     case Utf8CellKind.Date:
                         string dateText = DecodeString(start, length);
-                        objectValue = DateTime.TryParse(dateText, _options.Culture, DateTimeStyles.AssumeLocal, out DateTime parsedDate)
+                        objectValue = targetKind == XmlDataReaderTargetKind.String
+                            ? dateText
+                            : DateTime.TryParse(dateText, _options.Culture, DateTimeStyles.AssumeLocal, out DateTime parsedDate)
                             ? parsedDate
                             : dateText;
                         return;
@@ -432,7 +436,20 @@ namespace OfficeIMO.Excel {
                 dateTimeValue = default;
                 objectValue = null;
                 ReadOnlySpan<byte> trimmed = TrimAsciiWhitespace(value);
-                bool dateStyle = IsDateStyle(_styleIndexes![ordinal]);
+                bool dateStyle = (targetKind == XmlDataReaderTargetKind.None
+                        || targetKind == XmlDataReaderTargetKind.DateTime
+                        || targetKind == XmlDataReaderTargetKind.String)
+                    && IsDateStyle(_styleIndexes![ordinal]);
+                if (targetKind == XmlDataReaderTargetKind.String) {
+                    if (dateStyle && TryParseDouble(trimmed, out double serialDate)) {
+                        objectValue = _owner.FromExcelSerialDate(serialDate).ToString(_options.Culture);
+                    } else {
+                        objectValue = DecodeString(_valueStarts![ordinal], _valueLengths![ordinal]);
+                    }
+
+                    return;
+                }
+
                 if (TryParseDouble(trimmed, out double number)) {
                     if (dateStyle) {
                         DateTime date = _owner.FromExcelSerialDate(number);

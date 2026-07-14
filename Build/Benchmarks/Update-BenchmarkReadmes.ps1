@@ -54,7 +54,7 @@ function Resolve-RepositoryPath {
 
 Push-Location $repositoryRoot
 try {
-    Import-Module PSPublishModule -MinimumVersion 3.0.55 -Force -ErrorAction Stop
+    Import-Module PSPublishModule -MinimumVersion 3.0.57 -Force -ErrorAction Stop
 
     $outputRoot = Resolve-RepositoryPath $OutputDirectory
     [System.IO.Directory]::CreateDirectory($outputRoot) | Out-Null
@@ -111,7 +111,7 @@ try {
             "comparison-suite", "--out-dir", $excelRunPath, "--row-set", "25000",
             "--scenario", "realworld-report-all-in-one,write-datareader-table,read-objects-stream,write-datareader-compact-package",
             "--skip-package-profile", "--skip-dense-helloworld", "--skip-legacy-epplus",
-            "--warmup", "1", "--iterations", "3"
+            "--warmup", "3", "--iterations", "9"
         )
         $ExcelSummaryPath = "./.benchmark-artifacts/readme-refresh/excel/officeimo.excel.comparison-summary.json"
     }
@@ -141,7 +141,8 @@ try {
             [Parameter(Mandatory)] [double] $Baseline,
             [Parameter(Mandatory)] [string] $Metric,
             [Parameter(Mandatory)] [System.Collections.IDictionary] $Variables,
-            [Parameter(Mandatory)] [string] $RuntimeHost
+            [Parameter(Mandatory)] [string] $RuntimeHost,
+            [ValidateRange(0, 1)] [double] $TieTolerance = 0.05
         )
 
         [ordered]@{
@@ -159,6 +160,7 @@ try {
             baseline = $Baseline
             ratio = if ($Baseline -gt 0) { $Actual / $Baseline } else { $null }
             metric = $Metric
+            tieTolerance = $TieTolerance
         }
     }
 
@@ -189,8 +191,8 @@ try {
             if ($null -eq $baselineRow) { throw "Excel baseline is missing for '$($selection.Value.Scenario)'." }
             foreach ($row in $sourceRows) {
                 $excelRows.Add((New-ComparisonRow -Scenario $selection.Key -Operation $selection.Value.Operation `
-                    -Engine $row.Library -BaselineEngine "OfficeIMO.Excel" -Actual ([double] $row.MeanMilliseconds) `
-                    -Baseline ([double] $baselineRow.MeanMilliseconds) -Metric "MeanMs" -RuntimeHost ".NET 8" `
+                    -Engine $row.Library -BaselineEngine "OfficeIMO.Excel" -Actual ([double] $row.MedianMilliseconds) `
+                    -Baseline ([double] $baselineRow.MedianMilliseconds) -Metric "MedianMs" -RuntimeHost ".NET 8" `
                     -Variables ([ordered]@{ Format = ".xlsx"; Rows = "25,000"; Snapshot = $excelSnapshot; Runner = "rotated local" })))
             }
         }

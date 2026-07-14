@@ -83,12 +83,12 @@ machine, runtime, package version, workload, warm-up, and options.
 Treat differences below 5% as ties rather than ranking claims.
 
 <!-- officeimo-excel-benchmark-table:start -->
-| Scenario | Variables | Host | Operation | Metric | OfficeIMO.Excel | ClosedXML | EPPlus | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |
-| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| Compact DataReader to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14 | .NET 8 | Write | MeanMs | 1.00x (23ms) | n/a | n/a | 1.14x (27ms) | 1.05x (25ms) | 1.16x (27ms) | OfficeIMO.Excel fastest |
-| Feature-rich report to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14 | .NET 8 | Create | MeanMs | 1.00x (38ms) | n/a | 9.31x (355ms) | n/a | n/a | n/a | OfficeIMO.Excel fastest |
-| Styled DataReader table to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14 | .NET 8 | Write | MeanMs | 1.00x (35ms) | 8.68x (301ms) | 8.10x (281ms) | n/a | n/a | n/a | OfficeIMO.Excel fastest |
-| Typed objects streamed from XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14 | .NET 8 | Read | MeanMs | 1.00x (56ms) | 4.84x (272ms) | 3.80x (213ms) | n/a | n/a | 0.67x (38ms) | OfficeIMO.Excel slower than Sylvan.Data.Excel |
+| Scenario | Variables | Host | Operation | OfficeIMO.Excel | ClosedXML | EPPlus | LargeXlsx | SpreadCheetah | Sylvan.Data.Excel | Result |
+| --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| Compact DataReader to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14 | .NET 8 | Write | 1.00x (23ms) | n/a | n/a | 1.13x (26ms) | 1.00x (23ms) | 1.12x (26ms) | OfficeIMO.Excel tied with SpreadCheetah |
+| Feature-rich report to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14 | .NET 8 | Create | 1.00x (38ms) | n/a | 9.12x (345ms) | n/a | n/a | n/a | OfficeIMO.Excel fastest |
+| Styled DataReader table to XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14 | .NET 8 | Write | 1.00x (34ms) | 9.01x (306ms) | 7.82x (265ms) | n/a | n/a | n/a | OfficeIMO.Excel fastest |
+| Typed objects streamed from XLSX | Format=.xlsx, Rows=25,000, Runner=rotated local, Snapshot=2026-07-14 | .NET 8 | Read | 1.00x (25ms) | 10.30x (258ms) | 7.44x (186ms) | n/a | n/a | 1.58x (40ms) | OfficeIMO.Excel fastest |
 <!-- officeimo-excel-benchmark-table:end -->
 
 Use `--skip-legacy-epplus` only when you want a faster local pass without the isolated EPPlus 4.x subprocess:
