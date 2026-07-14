@@ -161,23 +161,20 @@ namespace OfficeIMO.Word {
                 _ => throw new InvalidOperationException("Unsupported format type")
             };
 
+            // If it's a fragment, we don't need to read the file.
+            string documentContent = htmlFragment
+                ? fileNameOrContent
+                : File.ReadAllText(fileNameOrContent, Encoding.UTF8);
+            documentContent = EmbeddedFragmentContentNormalizer.Normalize(mainDocPart, documentContent, partType);
+
             AlternativeFormatImportPart chunk = mainDocPart.AddAlternativeFormatImportPart(partTypeInfo);
-            string altChunkId = mainDocPart.GetIdOfPart(chunk);
-            AltChunk altChunk = new AltChunk { Id = altChunkId };
-
             try {
-                // if it's a fragment, we don't need to read the file
-                var documentContent = htmlFragment
-                    ? fileNameOrContent
-                    : File.ReadAllText(fileNameOrContent, Encoding.UTF8);
-                if (partType == WordAlternativeFormatImportPartType.Html) {
-                    documentContent = HtmlListSemanticsNormalizer.Normalize(documentContent);
-                }
-
                 using (MemoryStream ms = new MemoryStream(Encoding.UTF8.GetBytes(documentContent))) {
                     chunk.FeedData(ms);
                 }
 
+                string altChunkId = mainDocPart.GetIdOfPart(chunk);
+                AltChunk altChunk = new AltChunk { Id = altChunkId };
                 _id = altChunkId;
                 _altChunk = altChunk;
                 _altContent = chunk;
