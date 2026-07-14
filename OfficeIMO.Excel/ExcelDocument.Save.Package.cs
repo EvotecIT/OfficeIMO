@@ -288,16 +288,35 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private void ReloadFromBytes(byte[] packageBytes, bool simplePackageContentKnown = false) {
+        private void ReloadFromBytes(byte[] packageBytes, bool simplePackageContentKnown = false, Stream? reusablePackageStream = null) {
             var previousDocument = _spreadSheetDocument;
             var previousPackageStream = _packageStream;
             bool keepPackageStream = _copyPackageToSourceOnDispose || _copyPackageToFilePathOnDispose;
+            bool previousDocumentDisposed = false;
 
-            Stream mem = keepPackageStream
-                ? new NonDisposingMemoryStream(packageBytes.Length + 8192)
-                : new MemoryStream(packageBytes.Length + 8192);
-            mem.Write(packageBytes, 0, packageBytes.Length);
-            mem.Position = 0;
+            Stream mem;
+            if (reusablePackageStream != null) {
+                if (!ReferenceEquals(reusablePackageStream, previousPackageStream) || !keepPackageStream) {
+                    throw new InvalidOperationException("Only the stream backing the current package can be reused.");
+                }
+
+                // Close the old package before replacing its bytes. This is required by the
+                // .NET Framework packaging backend, which retains offsets into the open ZIP.
+                previousDocument.Dispose();
+                previousDocumentDisposed = true;
+                PrepareDestinationStreamForWrite(reusablePackageStream);
+                reusablePackageStream.Write(packageBytes, 0, packageBytes.Length);
+                reusablePackageStream.Flush();
+                reusablePackageStream.Position = 0;
+                mem = reusablePackageStream;
+            } else {
+                mem = keepPackageStream
+                    ? new NonDisposingMemoryStream(packageBytes.Length + 8192)
+                    : new MemoryStream(packageBytes.Length + 8192);
+                mem.Write(packageBytes, 0, packageBytes.Length);
+                mem.Position = 0;
+            }
+
             var reopenSettings = new OpenSettings { AutoSave = false };
             _spreadSheetDocument = SpreadsheetDocument.Open(mem, true, reopenSettings);
             _workBookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
@@ -315,7 +334,7 @@ namespace OfficeIMO.Excel {
                 DisposeStream(previousPackageStream);
             }
 
-            if (previousDocument != null && !ReferenceEquals(previousDocument, _spreadSheetDocument)) {
+            if (!previousDocumentDisposed && previousDocument != null && !ReferenceEquals(previousDocument, _spreadSheetDocument)) {
                 try { previousDocument.Dispose(); } catch { }
             }
         }

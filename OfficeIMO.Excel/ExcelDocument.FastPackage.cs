@@ -163,12 +163,11 @@ namespace OfficeIMO.Excel {
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.WritePackage");
 
             writeTarget.Flush();
-            if (stagedPackage != null) {
+            if (destinationBacksOpenPackage) {
+                ReloadFromBytes(stagedPackage!.ToArray(), simplePackageContentKnown: true, reusablePackageStream: destination);
+                destination.Seek(0, SeekOrigin.Begin);
+            } else if (stagedPackage != null) {
                 stagedPackage.Position = 0;
-                if (destinationBacksOpenPackage) {
-                    PrepareDestinationStreamForWrite(destination);
-                }
-
                 stagedPackage.CopyTo(destination);
                 destination.Flush();
                 if (destination.CanSeek) {
@@ -179,7 +178,7 @@ namespace OfficeIMO.Excel {
             }
 
             ReportExtendedPackageTiming(stageWatch, "Save.ExtendedPackage.FlushAndSeek");
-            if (updateDocumentState) {
+            if (updateDocumentState && !destinationBacksOpenPackage) {
                 _packageDirty = false;
                 _packagePropertiesDirty = false;
                 _requiresSavePreflight = false;
