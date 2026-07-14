@@ -7,7 +7,7 @@ The benchmark harness is intended to measure representative Excel workloads acro
 Use `comparison-suite` for the broad proof run:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 1 --iterations 3
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- comparison-suite --out-dir .\Docs\benchmarks\comparison-current --row-set 2500,25000 --warmup 3 --iterations 9
 ```
 
 The suite writes:
@@ -45,6 +45,8 @@ The suite covers:
 ## Interpretation
 
 Treat the comparison summary as the engineering decision table. It is intentionally broader than a single benchmark claim and should be used to decide what to optimize next.
+
+Treat elapsed-time differences below 5% as practical ties. Small leads inside that band are not reported as wins.
 
 The lightweight runner reports standard deviation and standard error from local repeated samples. It also captures allocation with `GC.GetAllocatedBytesForCurrentThread`. If a public benchmark table needs BenchmarkDotNet's exact `Error` column, first use the comparison suite to choose the scenarios, then run targeted BenchmarkDotNet jobs for those claims.
 

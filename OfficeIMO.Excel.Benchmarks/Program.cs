@@ -161,7 +161,9 @@ if (IsCommand(args, "--anti-cheat-suite", "anti-cheat-suite", "robustness-suite"
 
     var summary = ExcelComparisonSummaryWriter.WriteSummary(
         outputDirectory,
-        artifacts.Select(artifact => new ExcelComparisonSummaryInput(artifact.Kind, artifact.RowCount, artifact.Path)));
+        artifacts.Select(artifact => new ExcelComparisonSummaryInput(artifact.Kind, artifact.RowCount, artifact.Path)),
+        warmupIterations,
+        measuredIterations);
     artifacts.Add(new ComparisonSuiteArtifact("summary-markdown", 0, summary.MarkdownPath));
     artifacts.Add(new ComparisonSuiteArtifact("summary-csv", 0, summary.CsvPath));
     artifacts.Add(new ComparisonSuiteArtifact("summary-json", 0, summary.JsonPath));
@@ -248,7 +250,9 @@ if (IsCommand(args, "--comparison-suite", "comparison-suite", "--competitive-sui
 
     var summary = ExcelComparisonSummaryWriter.WriteSummary(
         outputDirectory,
-        artifacts.Select(artifact => new ExcelComparisonSummaryInput(artifact.Kind, artifact.RowCount, artifact.Path)));
+        artifacts.Select(artifact => new ExcelComparisonSummaryInput(artifact.Kind, artifact.RowCount, artifact.Path)),
+        warmupIterations,
+        measuredIterations);
     artifacts.Add(new ComparisonSuiteArtifact("summary-markdown", 0, summary.MarkdownPath));
     artifacts.Add(new ComparisonSuiteArtifact("summary-csv", 0, summary.CsvPath));
     artifacts.Add(new ComparisonSuiteArtifact("summary-json", 0, summary.JsonPath));

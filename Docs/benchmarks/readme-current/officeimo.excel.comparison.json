@@ -1,7 +1,9 @@
 {
   "metadata": {
-    "generatedAtUtc": "2026-07-14T01:58:27.613389Z",
+    "generatedAtUtc": "2026-07-14T03:26:05.565568Z",
     "source": "./.benchmark-artifacts/readme-refresh/excel/officeimo.excel.comparison-summary.json",
+    "warmupIterations": 3,
+    "measuredIterations": 9,
     "note": "Mean/stddev/stderr are from the lightweight rotated local runner. Allocations use GC.GetAllocatedBytesForCurrentThread. Use BenchmarkDotNet-specific classes for publication-grade statistical Error columns."
   },
   "comparison": [
@@ -16,13 +18,15 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 37.88575,
-      "baseline": 37.88575,
+      "actual": 37.906792,
+      "baseline": 37.906792,
       "ratio": 1.0,
       "metric": "MedianMs",
       "tieTolerance": 0.05
@@ -38,14 +42,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 345.446292,
-      "baseline": 37.88575,
-      "ratio": 9.118106200880279,
+      "actual": 350.300875,
+      "baseline": 37.906792,
+      "ratio": 9.24111106526767,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },
@@ -60,13 +66,15 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 33.920167,
-      "baseline": 33.920167,
+      "actual": 33.945375,
+      "baseline": 33.945375,
       "ratio": 1.0,
       "metric": "MedianMs",
       "tieTolerance": 0.05
@@ -82,14 +90,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "ClosedXML",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 305.504125,
-      "baseline": 33.920167,
-      "ratio": 9.006563116272392,
+      "actual": 319.297917,
+      "baseline": 33.945375,
+      "ratio": 9.406227416842501,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },
@@ -104,14 +114,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 265.132584,
-      "baseline": 33.920167,
-      "ratio": 7.81637024369603,
+      "actual": 280.955125,
+      "baseline": 33.945375,
+      "ratio": 8.276683495174233,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },
@@ -126,13 +138,15 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 25.000542,
-      "baseline": 25.000542,
+      "actual": 24.92675,
+      "baseline": 24.92675,
       "ratio": 1.0,
       "metric": "MedianMs",
       "tieTolerance": 0.05
@@ -148,14 +162,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "ClosedXML",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 257.60175,
-      "baseline": 25.000542,
-      "ratio": 10.303846612605438,
+      "actual": 256.577709,
+      "baseline": 24.92675,
+      "ratio": 10.293267634168114,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },
@@ -170,14 +186,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "EPPlus",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 185.984584,
-      "baseline": 25.000542,
-      "ratio": 7.439222077665357,
+      "actual": 193.3095,
+      "baseline": 24.92675,
+      "ratio": 7.7551024501790256,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },
@@ -192,14 +210,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "Sylvan.Data.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 39.505333,
-      "baseline": 25.000542,
-      "ratio": 1.580179061717942,
+      "actual": 38.789375,
+      "baseline": 24.92675,
+      "ratio": 1.556134474008846,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },
@@ -214,13 +234,15 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "OfficeIMO.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 23.399334,
-      "baseline": 23.399334,
+      "actual": 23.406958,
+      "baseline": 23.406958,
       "ratio": 1.0,
       "metric": "MedianMs",
       "tieTolerance": 0.05
@@ -236,14 +258,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "SpreadCheetah",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 23.377833,
-      "baseline": 23.399334,
-      "ratio": 0.9990811276936343,
+      "actual": 23.623792,
+      "baseline": 23.406958,
+      "ratio": 1.0092636557044279,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },
@@ -258,14 +282,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "Sylvan.Data.Excel",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 26.192167,
-      "baseline": 23.399334,
-      "ratio": 1.119355234640439,
+      "actual": 26.3175,
+      "baseline": 23.406958,
+      "ratio": 1.1243451626648793,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     },
@@ -280,14 +306,16 @@
         "Format": ".xlsx",
         "Rows": "25,000",
         "Snapshot": "2026-07-14",
-        "Runner": "rotated local"
+        "Runner": "rotated local",
+        "Warmups": "3",
+        "MeasuredIterations": "9"
       },
       "engine": "LargeXlsx",
       "baselineEngine": "OfficeIMO.Excel",
       "status": "Succeeded",
-      "actual": 26.368,
-      "baseline": 23.399334,
-      "ratio": 1.1268696792823247,
+      "actual": 26.434875,
+      "baseline": 23.406958,
+      "ratio": 1.1293596972319087,
       "metric": "MedianMs",
       "tieTolerance": 0.05
     }

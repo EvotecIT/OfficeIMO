@@ -191,16 +191,26 @@ try {
             $baselineRow = $sourceRows | Where-Object Library -eq "OfficeIMO.Excel" | Select-Object -First 1
             if ($null -eq $baselineRow) { throw "Excel baseline is missing for '$($selection.Value.Scenario)'." }
             foreach ($row in $sourceRows) {
+                $variables = [ordered]@{
+                    Format = ".xlsx"
+                    Rows = "25,000"
+                    Snapshot = $excelSnapshot
+                    Runner = "rotated local"
+                }
+                if ($excel.WarmupIterations -gt 0) { $variables.Warmups = [string] $excel.WarmupIterations }
+                if ($excel.MeasuredIterations -gt 0) { $variables.MeasuredIterations = [string] $excel.MeasuredIterations }
                 $excelRows.Add((New-ComparisonRow -Scenario $selection.Key -Operation $selection.Value.Operation `
                     -Engine $row.Library -BaselineEngine "OfficeIMO.Excel" -Actual ([double] $row.MedianMilliseconds) `
                     -Baseline ([double] $baselineRow.MedianMilliseconds) -Metric "MedianMs" -RuntimeHost ".NET 8" `
-                    -Variables ([ordered]@{ Format = ".xlsx"; Rows = "25,000"; Snapshot = $excelSnapshot; Runner = "rotated local" })))
+                    -Variables $variables))
             }
         }
 
         Write-ComparisonArtifact -Path $excelComparisonPath -Metadata ([ordered]@{
             generatedAtUtc = $excel.GeneratedAtUtc
             source = $ExcelSummaryPath
+            warmupIterations = $excel.WarmupIterations
+            measuredIterations = $excel.MeasuredIterations
             note = $excel.Notes
         }) -Rows $excelRows.ToArray()
     }
