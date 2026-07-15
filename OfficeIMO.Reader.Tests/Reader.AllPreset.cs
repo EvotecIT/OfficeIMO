@@ -1,5 +1,6 @@
 using OfficeIMO.OpenDocument;
 using OfficeIMO.Reader.All;
+using OfficeIMO.Reader.Zip;
 using Xunit;
 
 namespace OfficeIMO.Reader.Tests;
@@ -118,6 +119,50 @@ public sealed class ReaderAllPresetTests {
                     .SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>())
                     .SelectMany(table => table.Columns.Concat(table.Rows.SelectMany(row => row))));
             Assert.Contains(marker, string.Join("\n", extractedValues), StringComparison.Ordinal);
+        }
+    }
+
+    [Theory]
+    [InlineData("document.odt", ReaderDetectionMode.ContentWhenUnknown)]
+    [InlineData("document.blob", ReaderDetectionMode.ContentWhenUnknown)]
+    [InlineData("document.zip", ReaderDetectionMode.PreferContent)]
+    public void ZipOnlyRegistrationFallsBackForOpenDocumentStreams(
+        string sourceName,
+        ReaderDetectionMode detectionMode) {
+        OdtDocument document = OdtDocument.Create();
+        document.AddParagraph("ZIP fallback marker");
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddZipHandler()
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            document.ToBytes(),
+            sourceName,
+            new ReaderOptions { DetectionMode = detectionMode });
+
+        Assert.NotEmpty(result.Chunks);
+        Assert.Contains(result.Chunks, chunk =>
+            chunk.Location.Path?.Contains("::", StringComparison.Ordinal) == true);
+    }
+
+    [Fact]
+    public void ZipOnlyRegistrationFallsBackForOpenDocumentPaths() {
+        string path = Path.Combine(Path.GetTempPath(), $"officeimo-zip-fallback-{Guid.NewGuid():N}.odt");
+        try {
+            OdtDocument document = OdtDocument.Create();
+            document.AddParagraph("ZIP path fallback marker");
+            File.WriteAllBytes(path, document.ToBytes());
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddZipHandler()
+                .Build();
+
+            OfficeDocumentReadResult result = reader.ReadDocument(path);
+
+            Assert.NotEmpty(result.Chunks);
+            Assert.Contains(result.Chunks, chunk =>
+                chunk.Location.Path?.Contains("::", StringComparison.Ordinal) == true);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
         }
     }
 }

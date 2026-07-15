@@ -144,13 +144,13 @@ internal static partial class DocumentReaderEngine {
         bool contentOverridesExtension = options.DetectionMode == ReaderDetectionMode.PreferContent &&
                                          detection.IsMismatch;
         if (contentOverridesExtension) {
-            return TryResolveCustomHandlerByKind(detection.Kind, pathInput: true, out handler);
+            return TryResolveDetectedHandler(detection, pathInput: true, out handler);
         }
         if (hasExtensionHandler) {
             handler = extensionHandler;
             return true;
         }
-        return TryResolveCustomHandlerByKind(detection.Kind, pathInput: true, out handler);
+        return TryResolveDetectedHandler(detection, pathInput: true, out handler);
     }
 
     private static bool TryResolveStreamHandler(
@@ -173,13 +173,32 @@ internal static partial class DocumentReaderEngine {
         bool contentOverridesExtension = options.DetectionMode == ReaderDetectionMode.PreferContent &&
                                          detection.IsMismatch;
         if (contentOverridesExtension) {
-            return TryResolveCustomHandlerByKind(detection.Kind, pathInput: false, out handler);
+            return TryResolveDetectedHandler(detection, pathInput: false, out handler);
         }
         if (hasExtensionHandler) {
             handler = extensionHandler;
             return true;
         }
-        return TryResolveCustomHandlerByKind(detection.Kind, pathInput: false, out handler);
+        return TryResolveDetectedHandler(detection, pathInput: false, out handler);
+    }
+
+    private static bool TryResolveDetectedHandler(
+        ReaderDetectionResult detection,
+        bool pathInput,
+        out ReaderHandlerDescriptor handler) {
+        if (TryResolveCustomHandlerByKind(detection.Kind, pathInput, out handler)) {
+            return true;
+        }
+
+        if (!CanUseZipContainerFallback(detection)) {
+            return false;
+        }
+
+        return TryResolveCustomHandlerByKind(ReaderInputKind.Zip, pathInput, out handler);
+    }
+
+    private static bool CanUseZipContainerFallback(ReaderDetectionResult detection) {
+        return detection.Kind == ReaderInputKind.OpenDocument;
     }
 
     private static async Task<HandlerDetectionResolution> ResolvePathHandlerAsync(
