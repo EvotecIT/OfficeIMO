@@ -24,6 +24,9 @@ internal static partial class IcsCalendarCodec {
             activeProperties.Any(property =>
                 property.Name == "RRULE" || property.Name == "RDATE" ||
                 property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
+                property.Name == "CREATED" || property.Name == "LAST-MODIFIED" ||
+                property.Name == "COMMENT" || property.Name == "RESOURCES" || property.Name == "GEO" ||
+                isEvent && property.Name == "CONTACT" ||
                 property.Name == "CLASS" && !ParseCalendarSensitivity(property.Value).HasValue ||
                 isEvent && property.Name == "STATUS" ||
                 property.Name == "PRIORITY" || property.Name == "URL" ||

@@ -28,6 +28,7 @@ internal static partial class IcsCalendarCodec {
         bool hasCalendarRecipients = HasCalendarRecipients(document) ||
             activeProperties.Any(property => property.Name == "ATTENDEE");
         bool methodWouldChange =
+            string.IsNullOrWhiteSpace(effectiveMethod) && hasCalendarRecipients ||
             string.Equals(effectiveMethod, "PUBLISH", StringComparison.OrdinalIgnoreCase) &&
             hasCalendarRecipients || !isEvent &&
             string.Equals(effectiveMethod, "REQUEST", StringComparison.OrdinalIgnoreCase) &&

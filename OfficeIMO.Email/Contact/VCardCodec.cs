@@ -18,6 +18,10 @@ internal static class VCardCodec {
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
             property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "UID" ||
+            property.Name == "SOURCE" || property.Name == "FBURL" || property.Name == "CALURI" ||
+            property.Name == "CALADRURI" || property.Name == "SOUND" ||
+            property.Name == "VERSION" &&
+            !property.Value.Trim().Equals("3.0", StringComparison.OrdinalIgnoreCase) ||
             property.Name == "REV" || property.Name == "KIND" &&
             !property.Value.Trim().Equals("individual", StringComparison.OrdinalIgnoreCase) ||
             property.Name == "CLASS" &&
@@ -60,6 +64,7 @@ internal static class VCardCodec {
 
         ApplyEmails(properties, contact);
         document.MimeSemanticProjectionIsIncomplete |= ApplyPhones(properties, contact.Phones) ||
+            HasUnsupportedPhonePreference(properties) ||
             HasAddressSlotOverflow(properties) || HasUnprojectedAddressComponents(properties) ||
             HasUrlSlotOverflow(properties) || HasUnsupportedEmailPreference(properties);
         ApplyAddresses(properties, contact);
@@ -287,6 +292,15 @@ internal static class VCardCodec {
             string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
             bool preferred = ContainsType(types, "PREF") || property.Parameters.ContainsKey("PREF");
             return preferred && !ContainsType(types, "WORK");
+        });
+
+    private static bool HasUnsupportedPhonePreference(IEnumerable<VCardProperty> properties) =>
+        properties.Where(property => property.Name == "TEL").Any(property => {
+            string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
+            bool preferred = ContainsType(types, "PREF") || property.Parameters.ContainsKey("PREF");
+            if (!preferred) return false;
+            VCardPhoneSlot slot = GetPhoneSlot(types);
+            return slot != VCardPhoneSlot.General && slot != VCardPhoneSlot.PrimaryFax;
         });
 
     private static bool HasAddressSlotOverflow(IEnumerable<VCardProperty> properties, string propertyName) {

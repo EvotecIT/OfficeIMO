@@ -101,7 +101,7 @@ internal static class MboxStreamReader {
         using (var content = new MemoryStream()) {
             int current = pendingByte;
             pendingByte = -1;
-            bool couldBeEnvelope = hasEnvelope;
+            bool couldBeEnvelope = true;
             while (current >= 0 || (current = stream.ReadByte()) >= 0) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (current == '\n') {
@@ -160,7 +160,14 @@ internal static class MboxStreamReader {
             throw new EmailLimitExceededException(nameof(EmailMailboxReaderOptions.MaxMailboxBytes),
                 aggregateLength, options.MaxMailboxBytes);
         }
-        if (!hasEnvelope || couldBeEnvelope) return;
+        if (couldBeEnvelope) {
+            if (lineBytes > options.MessageOptions.MaxInputBytes) {
+                throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), lineBytes,
+                    options.MessageOptions.MaxInputBytes);
+            }
+            return;
+        }
+        if (!hasEnvelope) return;
         long messageLength = checked(messageBytes + lineBytes);
         if (messageLength > options.MessageOptions.MaxInputBytes) {
             throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), messageLength,

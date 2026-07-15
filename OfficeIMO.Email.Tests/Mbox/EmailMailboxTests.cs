@@ -255,6 +255,21 @@ public sealed class EmailMailboxTests {
     }
 
     [Fact]
+    public void StopsReadingAnOversizedFromPrefixedMboxLineAtTheMessageLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "From sender@example.com Fri Jul 10 12:00:00 2026\nFrom " + new string('x', 10000));
+        var options = new EmailMailboxReaderOptions(maxMailboxBytes: source.Length + 10,
+            messageOptions: new EmailReaderOptions(maxInputBytes: 64));
+        using var stream = new GuardedMemoryStream(source, maximumReads: 200);
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailMailboxReader(options).ReadEntries(stream).ToArray());
+
+        Assert.Equal(nameof(EmailReaderOptions.MaxInputBytes), exception.LimitName);
+        Assert.True(stream.BytesRead < 200);
+    }
+
+    [Fact]
     public void StopsReadingAnOversizedUnterminatedMboxLineAtTheMailboxLimit() {
         byte[] source = Encoding.ASCII.GetBytes(new string('x', 10000));
         var options = new EmailMailboxReaderOptions(maxMailboxBytes: 64);

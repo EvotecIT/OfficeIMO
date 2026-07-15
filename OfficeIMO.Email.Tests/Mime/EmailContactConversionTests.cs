@@ -365,13 +365,66 @@ public sealed class EmailContactConversionTests {
     [InlineData("KIND:org")]
     public void BlocksUnprojectedVcardIdentityMetadataBeforeStoreConversion(string property) {
         byte[] eml = Encoding.ASCII.GetBytes(
-            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:4.0\r\n" +
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
             "FN:Ada Lovelace\r\n" + property + "\r\nEND:VCARD\r\n");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
             document, EmailFileFormat.OutlookMsg);
 
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("SOURCE:https://example.com/contact.vcf")]
+    [InlineData("FBURL:https://example.com/freebusy")]
+    [InlineData("CALURI:https://example.com/calendar")]
+    [InlineData("CALADRURI:mailto:calendar@example.com")]
+    [InlineData("SOUND:https://example.com/name.wav")]
+    public void BlocksUnprojectedVcardSourceAndLinkFieldsBeforeStoreConversion(string property) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\n" + property + "\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("2.1")]
+    [InlineData("4.0")]
+    public void BlocksUnsupportedVcardVersionsBeforeStoreConversion(string version) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:" + version + "\r\n" +
+            "FN:Ada Lovelace\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void BlocksPreferredTypedVcardPhonesBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nTEL;TYPE=HOME,PREF:+48-123-456-789\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.Equal("+48-123-456-789", document.Contact!.Phones.Home);
         Assert.False(report.CanWrite);
         Assert.Contains(report.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");

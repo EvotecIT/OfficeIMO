@@ -28,7 +28,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
     public void ProjectsVtodoAttendeesThroughStoreRecipients() {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:assigned@example.com\r\nDTSTART:20260801T100000Z\r\n" +
-            "ATTENDEE;CN=Assignee:mailto:assignee@example.com\r\nEND:VTODO\r\n");
+            "ATTENDEE;CN=Assignee:mailto:assignee@example.com\r\nEND:VTODO\r\n", "REQUEST");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
@@ -63,7 +63,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:encoded-address@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ORGANIZER:mailto:owner%2Bcalendar@example.com\r\n" +
-            "ATTENDEE:mailto:alice%2Btag@example.com\r\nEND:VEVENT\r\n");
+            "ATTENDEE:mailto:alice%2Btag@example.com\r\nEND:VEVENT\r\n", "REQUEST");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
@@ -234,11 +234,53 @@ public sealed class EmailCalendarProjectionEdgeTests {
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
     }
 
+    [Theory]
+    [InlineData("VEVENT", "CREATED:20260715T080000Z")]
+    [InlineData("VTODO", "LAST-MODIFIED:20260715T090000Z")]
+    [InlineData("VEVENT", "COMMENT:Bring documents")]
+    [InlineData("VTODO", "RESOURCES:Conference room")]
+    [InlineData("VEVENT", "GEO:52.2297;21.0122")]
+    [InlineData("VEVENT", "CONTACT:calendar@example.com")]
+    public void BlocksUnprojectedCalendarAuditAndDetailFieldsBeforeStoreConversion(
+        string component, string property) {
+        byte[] eml = Calendar(
+            "BEGIN:" + component + "\r\nUID:unprojected@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\n" + property + "\r\nEND:" + component + "\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("", "ATTENDEE:mailto:attendee@example.com\r\n")]
+    [InlineData("To: recipient@example.com\r\n", "")]
+    public void BlocksMethodlessCalendarsWithRecipientsBeforeStoreConversion(
+        string transportHeaders, string calendarRecipients) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            transportHeaders + "Content-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n" +
+            "UID:methodless@example.com\r\nDTSTART:20260801T100000Z\r\n" + calendarRecipients +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
     [Fact]
     public void CalendarOptionalRoleOverridesEnvelopeRecipientKind() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "To: Optional <optional@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
-            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:optional@example.com\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:optional@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\n" +
             "ATTENDEE;ROLE=OPT-PARTICIPANT;CN=Optional:mailto:optional@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
@@ -255,7 +297,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
     public void UsesCalendarAttendeeNameWhenEnvelopeRecipientHasNoDisplayName() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "To: alice@example.com\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
-            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:name@example.com\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:name@example.com\r\n" +
             "DTSTART:20260801T100000Z\r\nATTENDEE;CN=Alice:mailto:alice@example.com\r\n" +
             "END:VEVENT\r\nEND:VCALENDAR\r\n");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
@@ -549,7 +591,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:parameter@example.com\r\nDTSTART:20260801T100000Z\r\n" +
             "ATTENDEE;CN=\"" + parameterName + "\":mailto:alice@example.com\r\n" +
-            "END:VEVENT\r\n");
+            "END:VEVENT\r\n", "REQUEST");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
@@ -580,8 +622,9 @@ public sealed class EmailCalendarProjectionEdgeTests {
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
     }
 
-    private static byte[] Calendar(string component) => Encoding.ASCII.GetBytes(
+    private static byte[] Calendar(string component, string? method = null) => Encoding.ASCII.GetBytes(
         "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+        (string.IsNullOrWhiteSpace(method) ? string.Empty : "METHOD:" + method + "\r\n") +
         component + "END:VCALENDAR\r\n");
 
     private static string CalendarText(byte[] eml) {
