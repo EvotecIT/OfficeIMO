@@ -778,7 +778,7 @@ namespace OfficeIMO.Word.Pdf {
                 return text;
             }
 
-            string orderedText = string.Concat(segments.Select(segment => segment.Equation?.Text ?? segment.Text));
+            string orderedText = string.Concat(segments.Select(GetNativeEquationSegmentText));
             return string.IsNullOrEmpty(orderedText) ? text : orderedText;
         }
 

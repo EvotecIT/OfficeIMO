@@ -895,14 +895,20 @@ namespace OfficeIMO.Word.Pdf {
             NativeDocumentDefaults nativeDefaults,
             NativeFontMap nativeFontMap) {
             foreach (WordEquationContentSegment segment in GetNativeVisibleEquationContentSegments(paragraph)) {
-                if (segment.Equation != null) {
-                    WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
-                    AddNativeRun(builder, segment.Equation.Text, sourceRun, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
-                } else if (!string.IsNullOrEmpty(segment.Text)) {
-                    WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
-                    AddNativeRun(builder, segment.Text!, sourceRun, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
-                }
+                string visibleText = GetNativeEquationSegmentText(segment);
+                if (string.IsNullOrEmpty(visibleText)) continue;
+                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
+                AddNativeRun(builder, visibleText, sourceRun, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
             }
+        }
+
+        private static string GetNativeEquationSegmentText(WordEquationContentSegment segment) {
+            if (segment.Equation != null) return segment.Equation.Text;
+            if (segment.Text != null) return segment.Text;
+            return segment.IsRunArtifact &&
+                (segment.ArtifactElement is W.Break || segment.ArtifactElement is W.CarriageReturn)
+                    ? "\n"
+                    : string.Empty;
         }
 
         private static bool IsNativeHiddenTextRun(WordParagraph paragraph, WordParagraph? fallback = null) {

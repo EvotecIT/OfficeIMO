@@ -49,6 +49,19 @@ namespace OfficeIMO.Word.Html {
                     node = anchor;
                 }
             }
+            if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
+                var time = htmlDocument.CreateElement("time");
+                bool hasImportedDateTime = HtmlSemanticMetadata.TryGetTimeDateTime(run, out string dateTime);
+                if (!hasImportedDateTime) {
+                    dateTime = text;
+                    if (DateTime.TryParse(text, out DateTime parsed)) {
+                        dateTime = parsed.ToString("o");
+                    }
+                }
+                time.SetAttribute("datetime", dateTime);
+                time.AppendChild(node);
+                node = time;
+            }
             if (options.IncludeFontStyles) {
                 string? font = run.FontFamily ?? options.FontFamily;
                 if (!string.IsNullOrEmpty(font)) {

@@ -198,6 +198,53 @@ namespace OfficeIMO.Word.Html {
                     return mathNode;
                 }
 
+                List<INode> CreateExpandedEquationContainerNodes(
+                    DocumentFormat.OpenXml.OpenXmlElement container,
+                    IReadOnlyList<WordEquationOccurrence> coveringEquations,
+                    WordParagraph fallbackRun) {
+                    var expandedNodes = new List<INode>();
+                    IElement? hyperlinkNode = container is Hyperlink hyperlink
+                        ? CreateEquationHyperlinkNode(
+                            htmlDoc,
+                            new WordHyperLink(para._document, para._paragraph, hyperlink))
+                        : null;
+
+                    foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(container, coveringEquations)) {
+                        if (segment.Equation != null) {
+                            IElement? mathNode = CreateEquationNode(segment.Equation);
+                            if (mathNode != null) expandedNodes.Add(mathNode);
+                            continue;
+                        }
+
+                        WordParagraph sourceRun = segment.CreateSourceParagraph(
+                            para._document,
+                            para._paragraph,
+                            fallbackRun);
+                        if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(sourceRun)) {
+                            continue;
+                        }
+                        if (segment.IsRunArtifact) {
+                            AppendRunArtifacts(sourceRun, expandedNodes, segment.ArtifactElement);
+                            continue;
+                        }
+                        if (string.IsNullOrEmpty(segment.Text)) continue;
+                        expandedNodes.Add(CreateEquationAdjacentTextNode(
+                            htmlDoc,
+                            sourceRun,
+                            segment.Text!,
+                            options,
+                            document.Settings.Language,
+                            runStyles,
+                            includeHyperlink: hyperlinkNode == null));
+                    }
+
+                    if (hyperlinkNode == null) return expandedNodes;
+                    foreach (INode expandedNode in expandedNodes) {
+                        hyperlinkNode.AppendChild(expandedNode);
+                    }
+                    return new List<INode> { hyperlinkNode };
+                }
+
                 INode? CreatePositionedEquationNode(WordEquationOccurrence occurrence) {
                     IElement? mathNode = CreateEquationNode(occurrence.Equation);
                     if (mathNode == null) return null;
@@ -219,6 +266,25 @@ namespace OfficeIMO.Word.Html {
 
                 void AppendEquationNodesBefore(int childIndex) {
                     while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex < childIndex) {
+                        int equationChildIndex = equations[nextEquation].StartChildIndex;
+                        if (equationChildIndex >= 0 &&
+                            equationChildIndex < paragraphChildren.Count &&
+                            paragraphChildren[equationChildIndex] is DocumentFormat.OpenXml.OpenXmlElement container &&
+                            (container is Hyperlink || container is SdtRun)) {
+                            List<WordEquationOccurrence> coveringEquations = equations
+                                .Where(equation => equation.ContainsChildIndex(equationChildIndex))
+                                .ToList();
+                            if (expandedEquationContainers.Add(container)) {
+                                foreach (INode expandedNode in CreateExpandedEquationContainerNodes(container, coveringEquations, para)) {
+                                    AppendNode(expandedNode);
+                                }
+                            }
+                            while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex == equationChildIndex) {
+                                nextEquation++;
+                            }
+                            continue;
+                        }
+
                         INode? mathNode = CreatePositionedEquationNode(equations[nextEquation++]);
                         if (mathNode != null) AppendNode(mathNode);
                     }
@@ -239,43 +305,8 @@ namespace OfficeIMO.Word.Html {
                     if (runContainer != null &&
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
-                        var expandedNodes = new List<INode>();
-                        IElement? hyperlinkNode = runContainer is Hyperlink hyperlink
-                            ? CreateEquationHyperlinkNode(
-                                htmlDoc,
-                                new WordHyperLink(para._document, para._paragraph, hyperlink))
-                            : null;
-                        foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
-                            if (segment.Equation != null) {
-                                IElement? mathNode = CreateEquationNode(segment.Equation);
-                                if (mathNode != null) expandedNodes.Add(mathNode);
-                            } else {
-                                WordParagraph sourceRun = segment.CreateSourceParagraph(
-                                    para._document,
-                                    para._paragraph,
-                                    run);
-                                if (segment.IsRunArtifact) {
-                                    AppendRunArtifacts(sourceRun, expandedNodes, segment.ArtifactElement);
-                                    continue;
-                                }
-                                if (string.IsNullOrEmpty(segment.Text)) continue;
-                                expandedNodes.Add(CreateEquationAdjacentTextNode(
-                                    htmlDoc,
-                                    sourceRun,
-                                    segment.Text!,
-                                    options,
-                                    document.Settings.Language,
-                                    runStyles,
-                                    includeHyperlink: hyperlinkNode == null));
-                            }
-                        }
-                        if (hyperlinkNode != null) {
-                            foreach (INode expandedNode in expandedNodes) {
-                                hyperlinkNode.AppendChild(expandedNode);
-                            }
-                            AppendNode(hyperlinkNode);
-                        } else {
-                            foreach (INode expandedNode in expandedNodes) AppendNode(expandedNode);
+                        foreach (INode expandedNode in CreateExpandedEquationContainerNodes(runContainer, coveringEquations, run)) {
+                            AppendNode(expandedNode);
                         }
                         while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex == runIndex) {
                             nextEquation++;

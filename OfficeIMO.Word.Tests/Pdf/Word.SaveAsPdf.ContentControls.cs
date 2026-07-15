@@ -56,15 +56,48 @@ public partial class Word {
                 Id = linkedEquationRelationship.Id
             });
 
+            WordParagraph nestedLinkedEquation = document.AddParagraph();
+            HyperlinkRelationship nestedLinkedEquationRelationship = document._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/nested-equations"), true);
+            nestedLinkedEquation._paragraph.Append(new Hyperlink(
+                new SdtRun(
+                    new SdtProperties(new SdtId { Val = 2078 }),
+                    new SdtContentRun(
+                        new Run(new Text("nested-link-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("nested-link-equation"))),
+                        new Run(new Text(" nested-link-suffix"))))) {
+                Id = nestedLinkedEquationRelationship.Id
+            });
+
+            WordParagraph equationWithBreak = document.AddParagraph("break-prefix ");
+            equationWithBreak._paragraph.Append(
+                new M.OfficeMath(new M.Run(new M.Text("break-equation"))),
+                new Run(new Break()),
+                new Run(new Text("break-suffix")));
+
             WordParagraph hiddenAdjacentText = document.AddParagraph("visible-prefix ");
             hiddenAdjacentText._paragraph.Append(
                 new Run(new RunProperties(new Vanish()), new Text("hidden-equation-adjacent ")),
                 new M.OfficeMath(new M.Run(new M.Text("visible-equation"))),
                 new Run(new Text(" visible-suffix")));
 
-            WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+            WordTable table = document.AddTable(2, 1, WordTableStyle.TableNormal);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Native table equation:";
             table.Rows[0].Cells[0].Paragraphs[0].AddEquation(tableOmml);
+            WordParagraph linkedTableEquation = table.Rows[1].Cells[0].Paragraphs[0];
+            HyperlinkRelationship linkedTableEquationRelationship = document._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/table-equations"), true);
+            linkedTableEquation._paragraph.Append(new Hyperlink(
+                new Run(new RunProperties(new Bold()), new Text("Ttable-link-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("table-link-equation"))),
+                new Run(new RunProperties(new Italic()), new Text(" Ytable-link-suffix"))) {
+                Id = linkedTableEquationRelationship.Id
+            });
+            HyperlinkRelationship secondaryTableRelationship = document._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/table-secondary"), true);
+            linkedTableEquation._paragraph.Append(new Hyperlink(new Run(new Text(" secondary-table-link"))) {
+                Id = secondaryTableRelationship.Id
+            });
 
             document.Save();
             document.SaveAsPdf(pdfPath, options);
@@ -82,10 +115,13 @@ public partial class Word {
         Assert.Contains("Native controlled equation: control-prefix controlled=5 control-suffix", normalizedText);
         Assert.Contains("pdf-prefix pdf-equation pdf-suffix", normalizedText);
         Assert.Contains("Qlinked-prefix linked-equation Xlinked-suffix", normalizedText);
+        Assert.Contains("nested-link-prefix nested-link-equation nested-link-suffix", normalizedText);
+        Assert.Contains("break-prefix break-equation break-suffix", normalizedText);
         Assert.Contains("visible-prefix visible-equation visible-suffix", normalizedText);
         Assert.DoesNotContain("hidden-equation-adjacent", normalizedText, StringComparison.Ordinal);
         Assert.Contains("Native table equation:", normalizedText);
         Assert.Contains("c=4", normalizedText);
+        Assert.Contains("Ttable-link-prefix table-link-equation Ytable-link-suffix secondary-table-link", normalizedText);
         using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
             var page = pdf.GetPage(1);
             Assert.Contains("Bold", Assert.Single(page.Letters, letter => letter.Value == "Q").FontName, StringComparison.OrdinalIgnoreCase);
@@ -98,6 +134,11 @@ public partial class Word {
         Assert.Contains("/URI (https://officeimo.net/equations", Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath)), StringComparison.Ordinal);
         PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(File.ReadAllBytes(pdfPath));
         Assert.Equal(3, info.LinkAnnotations.Count(link => link.Uri == "https://officeimo.net/equations"));
+        Assert.Equal(3, info.LinkAnnotations.Count(link => link.Uri == "https://officeimo.net/nested-equations"));
+        Assert.Equal(3, info.LinkAnnotations.Count(link => link.Uri == "https://officeimo.net/table-equations"));
+        Assert.Single(info.LinkAnnotations, link => link.Uri == "https://officeimo.net/table-secondary");
+        string normalizedLineBreaks = text.Replace("\r\n", "\n").Replace('\r', '\n');
+        Assert.Contains("break-equation\nbreak-suffix", normalizedLineBreaks, StringComparison.Ordinal);
     }
 
     [Fact]

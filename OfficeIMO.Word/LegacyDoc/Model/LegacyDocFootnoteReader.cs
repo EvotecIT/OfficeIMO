@@ -302,6 +302,33 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             continue;
                         }
 
+                        if (storyCharacters[resultIndex].Character == LegacyDocField.Begin &&
+                            LegacyDocField.TryReadNestedFieldResult(
+                                storyCharacters,
+                                resultIndex,
+                                resultEndIndex,
+                                out int nestedResultStartIndex,
+                                out int nestedResultEndIndex,
+                                out int nestedFieldEndIndex)) {
+                            foreach (int visibleResultIndex in LegacyDocField.EnumerateVisibleResultIndexes(
+                                storyCharacters,
+                                nestedResultStartIndex,
+                                nestedResultEndIndex)) {
+                                LegacyDocTextCharacter visibleCharacter = storyCharacters[visibleResultIndex];
+                                if (char.IsControl(visibleCharacter.Character)
+                                    && !LegacyDocSpecialCharacters.IsSupportedInlineControl(visibleCharacter.Character)) {
+                                    continue;
+                                }
+                                AppendRunCharacter(
+                                    visibleCharacter.Character,
+                                    GetFormatForFileOffset(formattingRanges, visibleCharacter.FileOffset),
+                                    visibleCharacter.CharacterPosition,
+                                    hyperlinkTarget);
+                            }
+                            resultIndex = nestedFieldEndIndex;
+                            continue;
+                        }
+
                         LegacyDocTextCharacter resultCharacter = storyCharacters[resultIndex];
                         if (char.IsControl(resultCharacter.Character)
                             && !LegacyDocSpecialCharacters.IsSupportedInlineControl(resultCharacter.Character)) {

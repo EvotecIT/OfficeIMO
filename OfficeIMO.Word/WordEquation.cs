@@ -182,7 +182,11 @@ namespace OfficeIMO.Word {
             if (element is Run run) {
                 sourceElement = run;
             } else if (element is SdtRun sdtRun && HasSupportedSdtArtifact(sdtRun)) {
-                segments.Add(WordEquationContentSegment.FromRunArtifact(sdtRun, sdtRun));
+                string visibleArtifactText = string.Concat(sdtRun
+                    .Descendants<Text>()
+                    .Where(text => !IsInsideEquationBackingElement(text, occurrences))
+                    .Select(text => text.Text));
+                segments.Add(WordEquationContentSegment.FromRunArtifact(sdtRun, sdtRun, visibleArtifactText));
                 suppressText = true;
             }
 
@@ -238,6 +242,17 @@ namespace OfficeIMO.Word {
             sdtRun.SdtProperties?.Elements<SdtContentComboBox>().Any() == true ||
             sdtRun.SdtProperties?.Elements<SdtContentDate>().Any() == true ||
             sdtRun.SdtProperties?.Elements<SdtContentPicture>().Any() == true;
+
+        private static bool IsInsideEquationBackingElement(
+            OpenXmlElement element,
+            IReadOnlyList<WordEquationOccurrence> occurrences) {
+            for (OpenXmlElement? current = element.Parent; current != null; current = current.Parent) {
+                if (occurrences.Any(occurrence => occurrence.Equation.IsBackingElement(current))) {
+                    return true;
+                }
+            }
+            return false;
+        }
 
         private static void AppendVisibleTextSegment(List<WordEquationContentSegment> segments, string? text, OpenXmlElement? sourceElement) {
             if (string.IsNullOrEmpty(text)) return;
@@ -382,11 +397,17 @@ namespace OfficeIMO.Word {
     }
 
     internal sealed class WordEquationContentSegment {
-        private WordEquationContentSegment(string? text, WordEquation? equation, OpenXmlElement? sourceElement, OpenXmlElement? artifactElement) {
+        private WordEquationContentSegment(
+            string? text,
+            WordEquation? equation,
+            OpenXmlElement? sourceElement,
+            OpenXmlElement? artifactElement,
+            string? artifactVisibleText = null) {
             Text = text;
             Equation = equation;
             SourceElement = sourceElement;
             ArtifactElement = artifactElement;
+            ArtifactVisibleText = artifactVisibleText;
         }
 
         internal string? Text { get; }
@@ -394,6 +415,7 @@ namespace OfficeIMO.Word {
         internal OpenXmlElement? SourceElement { get; }
         internal Run? SourceRun => SourceElement as Run;
         internal OpenXmlElement? ArtifactElement { get; }
+        internal string? ArtifactVisibleText { get; }
         internal bool IsRunArtifact => ArtifactElement != null;
         internal string VisibleText {
             get {
@@ -402,23 +424,25 @@ namespace OfficeIMO.Word {
                 if (ArtifactElement is Break || ArtifactElement is CarriageReturn) {
                     return "\n";
                 }
-                return SourceElement is SdtRun ? SourceElement.InnerText : string.Empty;
+                return ArtifactVisibleText ?? string.Empty;
             }
         }
 
         internal WordParagraph CreateSourceParagraph(WordDocument document, Paragraph paragraph, WordParagraph fallback) {
             if (SourceElement == null) return fallback;
 
+            WordParagraph source;
             if (SourceElement is Hyperlink sourceHyperlink) {
-                return new WordParagraph(document, paragraph, sourceHyperlink);
+                source = new WordParagraph(document, paragraph, sourceHyperlink);
+            } else if (SourceElement is SdtRun sourceSdtRun) {
+                source = new WordParagraph(document, paragraph, sourceSdtRun);
+            } else if (SourceElement is Run sourceRun) {
+                source = new WordParagraph(document, paragraph, sourceRun);
+            } else {
+                return fallback;
             }
-            if (SourceElement is SdtRun sourceSdtRun) {
-                return new WordParagraph(document, paragraph, sourceSdtRun);
-            }
-            if (SourceElement is not Run sourceRun) return fallback;
 
-            var source = new WordParagraph(document, paragraph, sourceRun);
-            for (OpenXmlElement? ancestor = sourceRun.Parent; ancestor != null; ancestor = ancestor.Parent) {
+            for (OpenXmlElement? ancestor = SourceElement.Parent; ancestor != null; ancestor = ancestor.Parent) {
                 if (ancestor is Hyperlink hyperlink) {
                     source._hyperlink = hyperlink;
                     break;
@@ -430,6 +454,9 @@ namespace OfficeIMO.Word {
 
         internal static WordEquationContentSegment FromText(string text, OpenXmlElement? sourceElement) => new(text, null, sourceElement, null);
         internal static WordEquationContentSegment FromEquation(WordEquation equation, OpenXmlElement? sourceElement) => new(null, equation, sourceElement, null);
-        internal static WordEquationContentSegment FromRunArtifact(OpenXmlElement sourceElement, OpenXmlElement artifactElement) => new(null, null, sourceElement, artifactElement);
+        internal static WordEquationContentSegment FromRunArtifact(
+            OpenXmlElement sourceElement,
+            OpenXmlElement artifactElement,
+            string? visibleText = null) => new(null, null, sourceElement, artifactElement, visibleText);
     }
 }

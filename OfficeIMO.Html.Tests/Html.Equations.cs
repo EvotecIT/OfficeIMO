@@ -176,6 +176,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToHtml_ExpandsHyperlinkWhoseVisibleEquationContentIsWrappedByInlineControl() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            paragraph._paragraph.Append(new Hyperlink(
+                new SdtRun(
+                    new SdtProperties(new SdtId { Val = 2078 }),
+                    new SdtContentRun(
+                        new Run(new Text("nested-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("nested-linked"))),
+                        new Run(new Text(" nested-suffix"))))) {
+                Anchor = "nested-equation-target"
+            });
+            paragraph.AddText(" after");
+
+            string html = document.ToHtml();
+
+            IElement anchor = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(html).QuerySelector("a[href='#nested-equation-target']"));
+            Assert.Equal("nested-prefix nested-linked nested-suffix", anchor.TextContent);
+            Assert.NotNull(anchor.QuerySelector("math[aria-label='nested-linked']"));
+            Assert.Equal(1, html.Split(new[] { "nested-prefix" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, html.Split(new[] { "nested-suffix" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
         public void WordToHtml_ExportsComplexEqFieldsAsMathMlWithoutCachedTextDuplication() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("before ");

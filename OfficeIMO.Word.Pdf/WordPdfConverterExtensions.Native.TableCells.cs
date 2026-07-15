@@ -568,12 +568,10 @@ namespace OfficeIMO.Word.Pdf {
 
         private static void AddNativeCellEquationContent(List<PdfCore.TextRun> target, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
             foreach (WordEquationContentSegment segment in GetNativeVisibleEquationContentSegments(paragraph)) {
-                if (segment.Equation != null) {
-                    AddNativeCellText(target, segment.Equation.Text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
-                } else if (!string.IsNullOrEmpty(segment.Text)) {
-                    WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
-                    AddNativeCellRun(target, segment.Text!, sourceRun, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
-                }
+                string visibleText = GetNativeEquationSegmentText(segment);
+                if (string.IsNullOrEmpty(visibleText)) continue;
+                WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
+                AddNativeCellRun(target, visibleText, sourceRun, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
             }
         }
 

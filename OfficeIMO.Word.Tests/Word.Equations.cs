@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using M = DocumentFormat.OpenXml.Math;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -376,6 +377,56 @@ namespace OfficeIMO.Tests {
                 segment => Assert.Equal("after-break", segment.Text),
                 segment => Assert.Equal("suffix", segment.Text));
             Assert.Equal("prefixlinkedbefore-break\nafter-breaksuffix", WordEquation.GetVisibleTextWithEquations(hyperlink, occurrences));
+        }
+
+        [Fact]
+        public void EquationContentSegments_PreserveHyperlinkContextThroughInlineContentControl() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            var contentControl = new SdtRun(
+                new SdtProperties(new SdtId { Val = 2078 }),
+                new SdtContentRun(
+                    new Run(new Text("prefix")),
+                    new M.OfficeMath(new M.Run(new M.Text("nested-linked"))),
+                    new Run(new Text("suffix"))));
+            var hyperlink = new Hyperlink(contentControl) { Anchor = "nested-equation-target" };
+            paragraph._paragraph.Append(hyperlink);
+
+            WordEquationOccurrence occurrence = Assert.Single(WordEquation.GetOccurrences(document, paragraph._paragraph));
+            WordEquationContentSegment equationSegment = Assert.Single(
+                WordEquation.GetVisibleContentSegments(hyperlink, new[] { occurrence }),
+                segment => segment.Equation != null);
+
+            Assert.Same(contentControl, equationSegment.SourceElement);
+            WordParagraph source = equationSegment.CreateSourceParagraph(document, paragraph._paragraph, paragraph);
+            Assert.True(source.IsStructuredDocumentTag);
+            Assert.True(source.IsHyperLink);
+            Assert.Equal("nested-equation-target", source.Hyperlink?.Anchor);
+        }
+
+        [Fact]
+        public void EquationContentSegments_FormControlVisibleTextDoesNotDuplicateNestedEquation() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            var contentControl = new SdtRun(
+                new SdtProperties(
+                    new W14.SdtContentCheckBox(new W14.Checked { Val = W14.OnOffValues.One })),
+                new SdtContentRun(
+                    new Run(new Text("☑")),
+                    new M.OfficeMath(new M.Run(new M.Text("approved")))));
+            paragraph._paragraph.Append(contentControl);
+
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(document, paragraph._paragraph);
+            IReadOnlyList<WordEquationContentSegment> segments = WordEquation.GetVisibleContentSegments(contentControl, occurrences);
+
+            Assert.Collection(
+                segments,
+                segment => {
+                    Assert.True(segment.IsRunArtifact);
+                    Assert.Equal("☑", segment.ArtifactVisibleText);
+                },
+                segment => Assert.Equal("approved", segment.Equation?.Text));
+            Assert.Equal("☑approved", WordEquation.GetVisibleTextWithEquations(contentControl, occurrences));
         }
 
         [Fact]

@@ -827,6 +827,29 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         continue;
                     }
 
+                    if (characters[resultIndex].Character == LegacyDocField.Begin &&
+                        LegacyDocField.TryReadNestedFieldResult(
+                            characters,
+                            resultIndex,
+                            resultEndIndex,
+                            out int nestedResultStartIndex,
+                            out int nestedResultEndIndex,
+                            out int nestedFieldEndIndex)) {
+                        foreach (int visibleResultIndex in LegacyDocField.EnumerateVisibleResultIndexes(
+                            characters,
+                            nestedResultStartIndex,
+                            nestedResultEndIndex)) {
+                            LegacyDocTextCharacter visibleCharacter = characters[visibleResultIndex];
+                            char? normalizedVisibleCharacter = NormalizeBodyCharacter(visibleCharacter.Character);
+                            if (normalizedVisibleCharacter == null) continue;
+                            LegacyDocCharacterFormat visibleFormat = GetFormatForFileOffset(formattingRanges, visibleCharacter.FileOffset);
+                            AppendRunCharacter(normalizedVisibleCharacter.Value, visibleFormat, visibleCharacter.CharacterPosition, hyperlinkTarget);
+                            bodyText.Append(normalizedVisibleCharacter.Value);
+                        }
+                        resultIndex = nestedFieldEndIndex;
+                        continue;
+                    }
+
                     LegacyDocTextCharacter resultCharacter = characters[resultIndex];
                     char? normalized = NormalizeBodyCharacter(resultCharacter.Character);
                     if (normalized == null) {

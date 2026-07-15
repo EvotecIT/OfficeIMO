@@ -91,7 +91,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int index = resultStartIndex;
             while (index < resultEndIndex) {
                 if (characters[index].Character == Begin &&
-                    TryFindNestedFieldResult(characters, index, resultEndIndex, out int nestedResultStart, out int nestedResultEnd, out int nestedFieldEnd)) {
+                    TryReadNestedFieldResult(characters, index, resultEndIndex, out int nestedResultStart, out int nestedResultEnd, out int nestedFieldEnd)) {
                     foreach (int nestedIndex in EnumerateVisibleResultIndexes(characters, nestedResultStart, nestedResultEnd)) {
                         yield return nestedIndex;
                     }
@@ -107,7 +107,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private static bool TryFindNestedFieldResult(
+        internal static bool TryReadNestedFieldResult(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int fieldStartIndex,
             int rangeEndIndex,
@@ -117,6 +117,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             resultStartIndex = -1;
             resultEndIndex = -1;
             fieldEndIndex = -1;
+            if (fieldStartIndex < 0 ||
+                fieldStartIndex >= rangeEndIndex ||
+                fieldStartIndex >= characters.Count ||
+                characters[fieldStartIndex].Character != Begin) {
+                return false;
+            }
             int separatorIndex = -1;
             int nestedDepth = 0;
 

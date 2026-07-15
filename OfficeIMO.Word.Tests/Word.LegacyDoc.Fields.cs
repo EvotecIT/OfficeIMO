@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using OfficeIMO.Word.LegacyDoc.Model;
 using M = DocumentFormat.OpenXml.Math;
 using Xunit;
 
@@ -542,6 +543,42 @@ namespace OfficeIMO.Tests {
             } finally {
                 DeleteIfExists(docPath);
             }
+        }
+
+        [Fact]
+        public void LegacyDoc_HyperlinkFieldProjection_UsesNestedFieldResultsOnly() {
+            string fieldText = string.Concat(
+                LegacyDocField.Begin,
+                " HYPERLINK \\l \"target\" ",
+                LegacyDocField.Separator,
+                "prefix ",
+                LegacyDocField.Begin,
+                " PAGE ",
+                LegacyDocField.Separator,
+                "42",
+                LegacyDocField.End,
+                " suffix",
+                LegacyDocField.End);
+            LegacyDocTextCharacter[] characters = fieldText
+                .Select((character, index) => new LegacyDocTextCharacter(character, index, index))
+                .ToArray();
+
+            Assert.True(LegacyDocField.TryReadHyperlink(
+                characters,
+                0,
+                out LegacyDocHyperlinkTarget target,
+                out int resultStartIndex,
+                out int resultEndIndex,
+                out int fieldEndIndex));
+            string visibleResult = new string(LegacyDocField
+                .EnumerateVisibleResultIndexes(characters, resultStartIndex, resultEndIndex)
+                .Select(index => characters[index].Character)
+                .ToArray());
+
+            Assert.Equal("target", target.Anchor);
+            Assert.Equal("prefix 42 suffix", visibleResult);
+            Assert.DoesNotContain("PAGE", visibleResult, StringComparison.Ordinal);
+            Assert.Equal(characters.Length - 1, fieldEndIndex);
         }
 
         private static void AppendBookmarkedSimpleField(Paragraph paragraph, string id, string name, string instruction) {
