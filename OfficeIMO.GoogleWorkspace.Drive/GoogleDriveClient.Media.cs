@@ -206,7 +206,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 cancellationToken,
-                additionalSuccessStatusCodes: new[] { (HttpStatusCode)308 });
+                additionalSuccessStatusCodes: new[] { (HttpStatusCode)308 },
+                preserveRequestUri: true);
         }
 
         private Task<GoogleWorkspaceHttpResponse> QueryResumableStatusAsync(
@@ -228,7 +229,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "Google Drive API",
                 report,
                 cancellationToken,
-                additionalSuccessStatusCodes: new[] { (HttpStatusCode)308 });
+                additionalSuccessStatusCodes: new[] { (HttpStatusCode)308 },
+                preserveRequestUri: true);
         }
 
         private static MultipartContent CreateMultipartContent(byte[] content, GoogleDriveUploadOptions options) {

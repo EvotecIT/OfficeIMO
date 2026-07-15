@@ -1,6 +1,7 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.GoogleWorkspace.Drive;
 using OfficeIMO.PowerPoint;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
     public sealed class GoogleSlidesImporter : IGoogleSlidesImporter {
@@ -64,6 +65,17 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 run.FontSize = style.Style.FontSize == null ? null : (int?)Math.Round(ToPoints(style.Style.FontSize)); run.FontName = style.Style.FontFamily;
                                 if (Uri.TryCreate(style.Style.Link?.Url, UriKind.Absolute, out Uri? link)) run.Hyperlink = link;
                             }
+                        } else if (element.Shape != null) {
+                            if (TryMapShapeType(element.Shape.ShapeType, out A.ShapeTypeValues shapeType)) {
+                                slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
+                            } else {
+                                report.Add(
+                                    TranslationSeverity.Warning,
+                                    "Shapes",
+                                    $"Native Google Slides shape '{element.Shape.ShapeType ?? "unspecified"}' could not be mapped to PowerPoint geometry.",
+                                    code: "SLIDES.IMPORT.SHAPE_UNSUPPORTED",
+                                    action: TranslationAction.Skip);
+                            }
                         } else if (element.Table != null && element.Table.Rows > 0 && element.Table.Columns > 0) {
                             PowerPointTable table = slide.AddTablePoints(element.Table.Rows, element.Table.Columns, left, top, Math.Max(1, width), Math.Max(1, height));
                             for (int row = 0; row < Math.Min(table.RowItems.Count, element.Table.TableRows.Count); row++) {
@@ -94,6 +106,21 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static string ExtractText(GoogleSlidesApiTextContent? text) => text == null ? string.Empty : string.Concat(text.TextElements.Select(element => element.TextRun?.Content));
         private static double ToPoints(GoogleSlidesApiDimension? dimension) => dimension == null ? 0 : ToPoints(dimension.Magnitude, dimension.Unit);
         private static double ToPoints(double value, string? unit) => string.Equals(unit, "EMU", StringComparison.OrdinalIgnoreCase) ? value / 12700d : value;
+        private static bool TryMapShapeType(string? shapeType, out A.ShapeTypeValues mapped) {
+            switch (shapeType) {
+                case "RECTANGLE": mapped = A.ShapeTypeValues.Rectangle; return true;
+                case "ROUND_RECTANGLE": mapped = A.ShapeTypeValues.RoundRectangle; return true;
+                case "ELLIPSE": mapped = A.ShapeTypeValues.Ellipse; return true;
+                case "TRIANGLE": mapped = A.ShapeTypeValues.Triangle; return true;
+                case "RIGHT_TRIANGLE": mapped = A.ShapeTypeValues.RightTriangle; return true;
+                case "PARALLELOGRAM": mapped = A.ShapeTypeValues.Parallelogram; return true;
+                case "TRAPEZOID": mapped = A.ShapeTypeValues.Trapezoid; return true;
+                case "DIAMOND": mapped = A.ShapeTypeValues.Diamond; return true;
+                case "RIGHT_ARROW": mapped = A.ShapeTypeValues.RightArrow; return true;
+                default: mapped = default; return false;
+            }
+        }
+
         private static ImagePartType DetectImageType(byte[] bytes) {
             if (bytes.Length >= 8
                 && bytes[0] == 0x89

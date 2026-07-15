@@ -136,7 +136,8 @@ namespace OfficeIMO.GoogleWorkspace {
             TranslationReport report,
             CancellationToken cancellationToken = default,
             Action<HttpRequestMessage>? configureRequest = null,
-            IReadOnlyCollection<HttpStatusCode>? additionalSuccessStatusCodes = null) {
+            IReadOnlyCollection<HttpStatusCode>? additionalSuccessStatusCodes = null,
+            bool preserveRequestUri = false) {
             ThrowIfDisposed();
             if (string.IsNullOrWhiteSpace(accessToken)) throw new ArgumentException("Access token is required.", nameof(accessToken));
             if (method == null) throw new ArgumentNullException(nameof(method));
@@ -144,7 +145,9 @@ namespace OfficeIMO.GoogleWorkspace {
             if (string.IsNullOrWhiteSpace(serviceName)) throw new ArgumentException("Service name is required.", nameof(serviceName));
             if (report == null) throw new ArgumentNullException(nameof(report));
 
-            string effectiveUri = AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
+            string effectiveUri = preserveRequestUri
+                ? uri
+                : AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
 

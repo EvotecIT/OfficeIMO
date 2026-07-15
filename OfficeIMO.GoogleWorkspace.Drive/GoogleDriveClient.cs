@@ -191,7 +191,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             ValidateId(folderId, nameof(folderId));
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(_options.WriteScopes, report, "Google Drive file move", cancellationToken).ConfigureAwait(false);
-            var current = await GetFileWithTokenAsync(token, fileId, "id,driveId,parents,webViewLink", report, cancellationToken).ConfigureAwait(false);
+            var current = await GetFileWithTokenAsync(token, fileId, DefaultFileFields, report, cancellationToken).ConfigureAwait(false);
             if (current.Parents.Count == 1 && string.Equals(current.Parents[0], folderId, StringComparison.Ordinal)) {
                 return current;
             }

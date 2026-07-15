@@ -252,8 +252,32 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 columnCount = Math.Max(columnCount, lastColumn);
             }
 
+            foreach (ExcelDataValidationSnapshot validation in worksheet.Validations) {
+                foreach (string a1Range in validation.A1Ranges) {
+                    ExpandGridToInclude(a1Range, ref rowCount, ref columnCount);
+                }
+            }
+
+            foreach (ExcelMergedRangeSnapshot mergedRange in worksheet.MergedRanges) {
+                ExpandGridToInclude(mergedRange.A1Range, ref rowCount, ref columnCount);
+            }
+
+            foreach (ExcelTableSnapshot table in worksheet.Tables) {
+                ExpandGridToInclude(table.A1Range, ref rowCount, ref columnCount);
+            }
+
             rowCount = Math.Max(rowCount, worksheet.FrozenRowCount);
             columnCount = Math.Max(columnCount, worksheet.FrozenColumnCount);
+        }
+
+        private static void ExpandGridToInclude(string a1Range, ref int rowCount, ref int columnCount) {
+            string normalizedRange = a1Range.Replace("$", string.Empty);
+            if (!A1.TryParseRange(normalizedRange, out _, out _, out int lastRow, out int lastColumn)) {
+                return;
+            }
+
+            rowCount = Math.Max(rowCount, lastRow);
+            columnCount = Math.Max(columnCount, lastColumn);
         }
 
         private static string ResolveTitle(ExcelDocument document, ExcelWorkbookSnapshot workbookSnapshot, GoogleSheetsSaveOptions options) {

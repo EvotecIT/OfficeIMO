@@ -1070,7 +1070,7 @@ namespace OfficeIMO.Tests {
 
                     data.CellValue(1, 1, "Quantity");
                     data.CellValue(2, 1, 2);
-                    data.ValidationWholeNumber("A2:A4", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+                    data.ValidationWholeNumber("A2:A2000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
 
                     document.Save();
                 }
@@ -1088,19 +1088,22 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "1", "10" }, populatedValidatedCell.DataValidationRule.Values);
 
                 Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
-                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 3 && cell.ColumnIndex == 0);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 1999 && cell.ColumnIndex == 0);
 
                 GoogleSheetsSetDataValidationRequest rangeValidation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
-                Assert.Equal("A2:A4", rangeValidation.A1Range);
+                Assert.Equal("A2:A2000", rangeValidation.A1Range);
                 Assert.Equal(1, rangeValidation.StartRowIndex);
-                Assert.Equal(4, rangeValidation.EndRowIndexExclusive);
+                Assert.Equal(2000, rangeValidation.EndRowIndexExclusive);
                 Assert.Equal("NUMBER_BETWEEN", rangeValidation.Rule.ConditionType);
                 Assert.Equal(new[] { "1", "10" }, rangeValidation.Rule.Values);
+
+                GoogleSheetsAddSheetRequest addSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Data");
+                Assert.Equal(2000, addSheet.RowCount);
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 GoogleSheetsApiSetDataValidationRequestPayload validationPayload = Assert.Single(payload.Requests, request => request.SetDataValidation != null).SetDataValidation!;
                 Assert.Equal(1, validationPayload.Range.StartRowIndex);
-                Assert.Equal(4, validationPayload.Range.EndRowIndex);
+                Assert.Equal(2000, validationPayload.Range.EndRowIndex);
                 Assert.Equal(0, validationPayload.Range.StartColumnIndex);
                 Assert.Equal(1, validationPayload.Range.EndColumnIndex);
                 Assert.Equal("NUMBER_BETWEEN", validationPayload.Rule.Condition.Type);

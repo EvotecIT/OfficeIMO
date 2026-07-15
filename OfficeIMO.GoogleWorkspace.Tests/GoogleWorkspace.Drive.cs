@@ -285,7 +285,7 @@ namespace OfficeIMO.Tests {
 
                 return NotFound();
             }));
-            using var client = CreateClient(httpClient);
+            using var client = CreateClient(httpClient, quotaUser: "tenant-user");
 
             GoogleDriveFile file = await client.UploadResumableAsync(
                 new byte[300 * 1024],
@@ -301,6 +301,26 @@ namespace OfficeIMO.Tests {
                 "bytes */307200",
                 "bytes 262144-307199/307200",
             }, ranges);
+        }
+
+        [Fact]
+        public async Task Test_DriveClient_MoveFile_NoOpReturnsCompleteMetadataWithoutPatch() {
+            var methods = new List<HttpMethod>();
+            Uri? metadataUri = null;
+            using var httpClient = new HttpClient(new FakeHandler(request => {
+                methods.Add(request.Method);
+                metadataUri = request.RequestUri;
+                return Task.FromResult(Json("{\"id\":\"file-1\",\"name\":\"Document\",\"parents\":[\"folder-1\"],\"version\":7,\"modifiedTime\":\"2026-07-15T18:00:00Z\"}"));
+            }));
+            using var client = CreateClient(httpClient);
+
+            GoogleDriveFile file = await client.MoveFileAsync("file-1", "folder-1");
+
+            Assert.Equal(7, file.Version);
+            Assert.Equal(DateTimeOffset.Parse("2026-07-15T18:00:00Z"), file.ModifiedTime);
+            Assert.Equal(new[] { HttpMethod.Get }, methods);
+            Assert.Contains("version", metadataUri!.AbsoluteUri, StringComparison.Ordinal);
+            Assert.Contains("modifiedTime", metadataUri.AbsoluteUri, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -345,12 +365,13 @@ namespace OfficeIMO.Tests {
             Assert.Contains(report.Notices, notice => notice.Code == "DRIVE.COMMENT.EDITOR_ANCHOR_UNAVAILABLE");
         }
 
-        private static GoogleDriveClient CreateClient(HttpClient httpClient, RecordingCredentialSource? credential = null) {
+        private static GoogleDriveClient CreateClient(HttpClient httpClient, RecordingCredentialSource? credential = null, string? quotaUser = null) {
             return new GoogleDriveClient(new GoogleWorkspaceSession(
                 credential ?? new RecordingCredentialSource(),
                 new GoogleWorkspaceSessionOptions {
                     HttpClient = httpClient,
                     MaxRetryCount = 1,
+                    QuotaUser = quotaUser,
                 }));
         }
 
