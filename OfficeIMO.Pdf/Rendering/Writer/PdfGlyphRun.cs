@@ -2,18 +2,21 @@ namespace OfficeIMO.Pdf;
 
 internal sealed class PdfGlyphRun {
     public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs)
-        : this(glyphs, Array.Empty<PdfTextEncodingDiagnostic>()) {
+        : this(glyphs, Array.Empty<PdfTextEncodingDiagnostic>(), actualText: null) {
     }
 
-    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics) {
+    public PdfGlyphRun(IReadOnlyList<PdfGlyphInfo> glyphs, IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics, string? actualText = null) {
         Glyphs = glyphs ?? throw new ArgumentNullException(nameof(glyphs));
         Diagnostics = diagnostics ?? throw new ArgumentNullException(nameof(diagnostics));
+        ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
     }
 
     public IReadOnlyList<PdfGlyphInfo> Glyphs { get; }
     public IReadOnlyList<PdfTextEncodingDiagnostic> Diagnostics { get; }
+    public string? ActualText { get; }
     public bool HasMissingGlyphs => Diagnostics.Count > 0;
     public int TotalAdvanceWidth1000 => Glyphs.Sum(glyph => glyph.AdvanceWidth1000);
+    public bool HasPositioning => Glyphs.Any(glyph => glyph.HasPositioning);
 
     public string ToGlyphHex() {
         var sb = new StringBuilder(Glyphs.Count * 4);
@@ -23,34 +26,61 @@ internal sealed class PdfGlyphRun {
 
         return sb.ToString();
     }
+
+    public PdfTextShowCommand ToTextShowCommand() =>
+        new(ToGlyphHex(), HasPositioning ? Glyphs : null, ActualText);
+}
+
+internal sealed class PdfTextShowCommand {
+    internal PdfTextShowCommand(string glyphHex, IReadOnlyList<PdfGlyphInfo>? positionedGlyphs = null, string? actualText = null) {
+        GlyphHex = glyphHex ?? throw new ArgumentNullException(nameof(glyphHex));
+        PositionedGlyphs = positionedGlyphs;
+        ActualText = string.IsNullOrEmpty(actualText) ? null : actualText;
+    }
+
+    internal string GlyphHex { get; }
+    internal IReadOnlyList<PdfGlyphInfo>? PositionedGlyphs { get; }
+    internal string? ActualText { get; }
+    internal bool HasPositioning => PositionedGlyphs != null && PositionedGlyphs.Count > 0;
 }
 
 internal readonly struct PdfGlyphInfo {
     public PdfGlyphInfo(int glyphId, int unicodeScalar, int textIndex, int advanceWidth1000)
-        : this(glyphId, char.ConvertFromUtf32(unicodeScalar), unicodeScalar, textIndex, advanceWidth1000) {
+        : this(glyphId, char.ConvertFromUtf32(unicodeScalar), unicodeScalar, textIndex, advanceWidth1000, advanceWidth1000, 0, 0) {
     }
 
     public PdfGlyphInfo(int glyphId, string unicodeText, int textIndex, int advanceWidth1000)
-        : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, advanceWidth1000) {
+        : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, advanceWidth1000, advanceWidth1000, 0, 0) {
     }
 
-    private PdfGlyphInfo(int glyphId, string unicodeText, int unicodeScalar, int textIndex, int advanceWidth1000) {
+    public PdfGlyphInfo(int glyphId, string unicodeText, int textIndex, int nominalWidth1000, int advanceWidth1000, int offsetX1000, int offsetY1000)
+        : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, nominalWidth1000, advanceWidth1000, offsetX1000, offsetY1000) {
+    }
+
+    private PdfGlyphInfo(int glyphId, string unicodeText, int unicodeScalar, int textIndex, int nominalWidth1000, int advanceWidth1000, int offsetX1000, int offsetY1000) {
         GlyphId = glyphId;
         UnicodeText = unicodeText ?? string.Empty;
         UnicodeScalar = unicodeScalar;
         TextIndex = textIndex;
+        NominalWidth1000 = nominalWidth1000;
         AdvanceWidth1000 = advanceWidth1000;
+        OffsetX1000 = offsetX1000;
+        OffsetY1000 = offsetY1000;
     }
 
     public int GlyphId { get; }
     public string UnicodeText { get; }
     public int UnicodeScalar { get; }
     public int TextIndex { get; }
+    public int NominalWidth1000 { get; }
     public int AdvanceWidth1000 { get; }
+    public int OffsetX1000 { get; }
+    public int OffsetY1000 { get; }
+    public bool HasPositioning => AdvanceWidth1000 != NominalWidth1000 || OffsetX1000 != 0 || OffsetY1000 != 0;
 }
 
 internal readonly struct PdfTextShapingOptions {
-    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null) {
+    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null) {
         RecordGlyphUsage = recordGlyphUsage;
         ThrowOnMissingGlyph = throwOnMissingGlyph;
         SkipLayoutControls = skipLayoutControls;
@@ -60,6 +90,7 @@ internal readonly struct PdfTextShapingOptions {
         ShapingMode = shapingMode;
         ShapingProvider = shapingProvider;
         ProviderShapedTextRecorder = providerShapedTextRecorder;
+        Language = string.IsNullOrWhiteSpace(language) ? null : language;
     }
 
     public bool RecordGlyphUsage { get; }
@@ -71,9 +102,10 @@ internal readonly struct PdfTextShapingOptions {
     public PdfTextShapingMode ShapingMode { get; }
     public IPdfTextShapingProvider? ShapingProvider { get; }
     public Action<string, string, bool>? ProviderShapedTextRecorder { get; }
+    public string? Language { get; }
 
-    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null) =>
-        new PdfTextShapingOptions(recordGlyphUsage: true, throwOnMissingGlyph: true, skipLayoutControls: false, reportControlCharacters: false, source: string.Empty, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider, providerShapedTextRecorder: providerShapedTextRecorder);
+    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null, string? language = null) =>
+        new PdfTextShapingOptions(recordGlyphUsage: true, throwOnMissingGlyph: true, skipLayoutControls: false, reportControlCharacters: false, source: string.Empty, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider, providerShapedTextRecorder: providerShapedTextRecorder, language: language);
 
     public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) =>
         new PdfTextShapingOptions(recordGlyphUsage: false, throwOnMissingGlyph: false, skipLayoutControls: true, reportControlCharacters: true, source: source, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider);

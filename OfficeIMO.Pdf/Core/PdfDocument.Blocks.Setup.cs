@@ -365,6 +365,12 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Uses or clears an immutable first-party word hyphenation dictionary.</summary>
+    public PdfDocument TextHyphenationDictionary(PdfHyphenationLexicon? dictionary) {
+        _options.UseTextHyphenationDictionary(dictionary);
+        return this;
+    }
+
     /// <summary>Sets or clears the generated text line-break callback used for long unspaced tokens.</summary>
     public PdfDocument TextLineBreaks(PdfTextLineBreakCallback? callback) {
         _options.SetTextLineBreaks(callback);

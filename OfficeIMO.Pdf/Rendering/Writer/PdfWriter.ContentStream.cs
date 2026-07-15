@@ -229,6 +229,62 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
+    public ContentStreamBuilder ShowText(PdfTextShowCommand command, double fontSize, double currentTextRise = 0D) {
+        Guard.NotNull(command, nameof(command));
+        if (fontSize <= 0 || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
+            throw new ArgumentOutOfRangeException(nameof(fontSize), "PDF text font size must be positive and finite.");
+        }
+
+        if (command.ActualText != null) {
+            _sb.Append("/Span << /ActualText ")
+                .Append(PdfSyntaxEscaper.TextString(command.ActualText))
+                .Append(" >> BDC\n");
+        }
+
+        if (!command.HasPositioning) {
+            ShowHexText(command.GlyphHex);
+        } else {
+            AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise);
+        }
+
+        if (command.ActualText != null) {
+            _sb.Append("EMC\n");
+        }
+
+        return this;
+    }
+
+    private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double baseTextRise) {
+        int currentOffsetY1000 = 0;
+        for (int index = 0; index < glyphs.Count; index++) {
+            PdfGlyphInfo glyph = glyphs[index];
+            if (glyph.OffsetY1000 != currentOffsetY1000) {
+                _sb.Append(F(baseTextRise + glyph.OffsetY1000 * fontSize / 1000D)).Append(" Ts\n");
+                currentOffsetY1000 = glyph.OffsetY1000;
+            }
+
+            int preAdjustment = -glyph.OffsetX1000;
+            int postAdjustment = glyph.OffsetX1000 + glyph.NominalWidth1000 - glyph.AdvanceWidth1000;
+            _sb.Append('[');
+            if (preAdjustment != 0) {
+                _sb.Append(F(preAdjustment)).Append(' ');
+            }
+
+            _sb.Append('<')
+                .Append(glyph.GlyphId.ToString("X4", CultureInfo.InvariantCulture))
+                .Append('>');
+            if (postAdjustment != 0) {
+                _sb.Append(' ').Append(F(postAdjustment));
+            }
+
+            _sb.Append("] TJ\n");
+        }
+
+        if (currentOffsetY1000 != 0) {
+            _sb.Append(F(baseTextRise)).Append(" Ts\n");
+        }
+    }
+
     private static string F(double value) {
         if (Math.Abs(value) < 0.0005D) {
             value = 0D;

@@ -8,10 +8,11 @@ internal static partial class PdfWriter {
             if (totalGap >= width) throw new ArgumentException("Multi-column gaps must leave positive column widths.");
             double columnWidth = (width - totalGap) / options.ColumnCount;
             ValidateColumnBlocks(columns.Blocks);
+            var pendingBlocks = columns.Blocks.ToList();
             int blockIndex = 0;
-            while (blockIndex < columns.Blocks.Count) {
-                while (blockIndex < columns.Blocks.Count && columns.Blocks[blockIndex] is ColumnBreakBlock) blockIndex++;
-                if (blockIndex >= columns.Blocks.Count) break;
+            while (blockIndex < pendingBlocks.Count) {
+                while (blockIndex < pendingBlocks.Count && pendingBlocks[blockIndex] is ColumnBreakBlock) blockIndex++;
+                if (blockIndex >= pendingBlocks.Count) break;
                 double availableHeight = y - currentOpts.MarginBottom;
                 if (availableHeight < currentOpts.DefaultFontSize * 1.4D) {
                     NewPage();
@@ -19,8 +20,8 @@ internal static partial class PdfWriter {
                 }
 
                 double remainingHeight = 0D;
-                for (int i = blockIndex; i < columns.Blocks.Count; i++) {
-                    if (columns.Blocks[i] is not ColumnBreakBlock) remainingHeight += MeasureColumnBlock(columns.Blocks[i], columnWidth);
+                for (int i = blockIndex; i < pendingBlocks.Count; i++) {
+                    if (pendingBlocks[i] is not ColumnBreakBlock) remainingHeight += MeasureColumnBlock(pendingBlocks[i], columnWidth);
                 }
                 double target = options.BalanceLastPage && remainingHeight <= availableHeight * options.ColumnCount
                     ? Math.Max(currentOpts.DefaultFontSize * 1.4D, remainingHeight / options.ColumnCount)
@@ -37,14 +38,25 @@ internal static partial class PdfWriter {
                 for (int columnIndex = 0; columnIndex < options.ColumnCount; columnIndex++) {
                     var column = new RowColumn(widthPercent);
                     double consumed = 0D;
-                    while (blockIndex < columns.Blocks.Count) {
-                        IPdfBlock block = columns.Blocks[blockIndex];
+                    while (blockIndex < pendingBlocks.Count) {
+                        IPdfBlock block = pendingBlocks[blockIndex];
                         if (block is ColumnBreakBlock) {
                             blockIndex++;
                             break;
                         }
 
                         double blockHeight = MeasureColumnBlock(block, columnWidth);
+                        double remainingTarget = target - consumed;
+                        if (options.BalanceParagraphLines &&
+                            block is RichParagraphBlock paragraph &&
+                            blockHeight > remainingTarget + 0.001D &&
+                            TrySplitColumnParagraph(paragraph, columnWidth, remainingTarget, out RichParagraphBlock? first, out RichParagraphBlock? remainder)) {
+                            column.AddBlock(first!);
+                            consumed += MeasureColumnBlock(first!, columnWidth);
+                            pendingBlocks[blockIndex] = remainder!;
+                            break;
+                        }
+
                         if (column.Blocks.Count > 0 && consumed + blockHeight > target + 0.001D) break;
                         column.AddBlock(block);
                         consumed += blockHeight;
@@ -55,9 +67,135 @@ internal static partial class PdfWriter {
                 }
 
                 RenderRowFlowBlock(row, nextBlock: null, new List<IPdfBlock> { row }, 0);
-                if (blockIndex < columns.Blocks.Count) NewPage();
+                if (blockIndex < pendingBlocks.Count) NewPage();
             }
         }
+
+        private bool TrySplitColumnParagraph(
+            RichParagraphBlock paragraph,
+            double columnWidth,
+            double availableHeight,
+            out RichParagraphBlock? first,
+            out RichParagraphBlock? remainder) {
+            first = null;
+            remainder = null;
+            PdfParagraphStyle? sourceStyle = EffectiveParagraphStyle(paragraph);
+            if (availableHeight <= 0.001D ||
+                sourceStyle?.KeepTogether == true ||
+                paragraph.Runs.Any(run => run.Text.Contains('\t'))) {
+                return false;
+            }
+
+            double fontSize = currentOpts.DefaultFontSize;
+            double leading = GetParagraphLeading(sourceStyle, fontSize);
+            var textFrame = GetParagraphTextFrame(sourceStyle, currentOpts.MarginLeft, columnWidth);
+            var wrapped = WrapRichRunsCoreWithFirstLineOrigin(
+                paragraph.Runs,
+                textFrame.Width,
+                fontSize,
+                ChooseNormal(currentOpts.DefaultFont),
+                leading,
+                textFrame.FirstLineWidth,
+                textFrame.FirstLineX - textFrame.X,
+                GetParagraphTabStopWidth(sourceStyle),
+                currentOpts,
+                GetParagraphTabStops(sourceStyle));
+            if (wrapped.Lines.Count < 2) {
+                return false;
+            }
+
+            double remainingHeight = Math.Max(0D, availableHeight - GetParagraphSpacingBefore(sourceStyle));
+            int take = 0;
+            double height = 0D;
+            for (int index = 0; index < wrapped.LineHeights.Count; index++) {
+                if (height + wrapped.LineHeights[index] > remainingHeight + 0.001D) {
+                    break;
+                }
+
+                height += wrapped.LineHeights[index];
+                take++;
+            }
+
+            int minimumOrphanLines = ResolveMinimumOrphanLines(sourceStyle ?? new PdfParagraphStyle());
+            int minimumWidowLines = ResolveMinimumWidowLines(sourceStyle ?? new PdfParagraphStyle());
+            if (take < Math.Max(1, minimumOrphanLines) || wrapped.Lines.Count - take < Math.Max(1, minimumWidowLines)) {
+                return false;
+            }
+
+            PdfParagraphStyle firstStyle = sourceStyle?.Clone() ?? new PdfParagraphStyle();
+            firstStyle.KeepTogether = false;
+            firstStyle.KeepWithNext = false;
+            firstStyle.WidowControl = false;
+            firstStyle.MinimumOrphanLines = 0;
+            firstStyle.MinimumWidowLines = 0;
+            firstStyle.SpacingAfter = 0D;
+
+            PdfParagraphStyle remainderStyle = sourceStyle?.Clone() ?? new PdfParagraphStyle();
+            remainderStyle.KeepTogether = false;
+            remainderStyle.WidowControl = false;
+            remainderStyle.MinimumOrphanLines = 0;
+            remainderStyle.MinimumWidowLines = 0;
+            remainderStyle.SpacingBefore = 0D;
+            remainderStyle.FirstLineIndent = 0D;
+
+            first = new RichParagraphBlock(BuildTextRunsFromWrappedLines(wrapped.Lines, 0, take), paragraph.Align, paragraph.DefaultColor, firstStyle);
+            remainder = new RichParagraphBlock(BuildTextRunsFromWrappedLines(wrapped.Lines, take, wrapped.Lines.Count - take), paragraph.Align, paragraph.DefaultColor, remainderStyle);
+            return true;
+        }
+
+        private static List<TextRun> BuildTextRunsFromWrappedLines(
+            IReadOnlyList<List<RichSeg>> lines,
+            int start,
+            int count) {
+            var runs = new List<TextRun>();
+            for (int lineIndex = 0; lineIndex < count; lineIndex++) {
+                IReadOnlyList<RichSeg> line = lines[start + lineIndex];
+                for (int segmentIndex = 0; segmentIndex < line.Count; segmentIndex++) {
+                    RichSeg segment = line[segmentIndex];
+                    if (segment.InlineElement != null) {
+                        if (segment.LeadingSpace) {
+                            runs.Add(BuildTextRunFromWrappedSegment(" ", segment));
+                        }
+
+                        runs.Add(TextRun.Inline(segment.InlineElement));
+                        continue;
+                    }
+
+                    string text = (segment.LeadingSpace ? " " : string.Empty) + segment.Text;
+                    if (text.Length == 0) {
+                        continue;
+                    }
+
+                    runs.Add(BuildTextRunFromWrappedSegment(text, segment));
+                }
+
+                if (lineIndex + 1 < count) {
+                    if (line.Count == 0 || line[line.Count - 1].EndsWithHardBreak) {
+                        runs.Add(TextRun.LineBreak());
+                    } else if (line[line.Count - 1].EndsWithTextSeparator) {
+                        runs.Add(BuildTextRunFromWrappedSegment(" ", line[line.Count - 1].WithoutLink()));
+                    }
+                }
+            }
+
+            return runs;
+        }
+
+        private static TextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) =>
+            new TextRun(
+                text,
+                segment.Bold,
+                segment.Underline,
+                segment.Color,
+                segment.Italic,
+                segment.Strike,
+                segment.FontSize,
+                segment.Font,
+                segment.Uri,
+                segment.Contents,
+                segment.Baseline,
+                segment.DestinationName,
+                backgroundColor: segment.BackgroundColor);
 
         private double MeasureColumnBlock(IPdfBlock block, double columnWidth) =>
             MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, columnWidth, currentOpts.DefaultFontSize);
@@ -93,7 +231,7 @@ internal static partial class PdfWriter {
                 Gap = 0D,
                 SpacingBefore = style.SpacingBefore,
                 SpacingAfter = style.SpacingAfter,
-                KeepTogether = true,
+                KeepTogether = style.KeepTogether,
                 KeepWithNext = style.KeepWithNext
             });
 
@@ -109,21 +247,30 @@ internal static partial class PdfWriter {
 
             double rowHeight = MeasureRowBlockHeight(row, currentOpts.MarginLeft, width, currentOpts.DefaultFontSize, firstVisualOnly: false);
             double fullPageHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-            if (rowHeight > fullPageHeight + 0.001D) throw new ArgumentException("Container height exceeds the available page content height.");
-            if (y < yStart - 0.001D && y - rowHeight < currentOpts.MarginBottom) NewPage();
-
-            double spacingBefore = ResolveTopLevelSpacingBefore(style.SpacingBefore);
-            double outerTop = y - spacingBefore;
-            int insertionIndex = sb.Length;
-            RenderRowFlowBlock(row, nextBlock: null, new List<IPdfBlock> { row }, 0);
-            double outerBottom = y + style.SpacingAfter;
-            var decoration = new StringBuilder();
-            if (style.Background.HasValue) DrawRowFill(decoration, style.Background.Value, outerX, outerBottom, outerWidth, outerTop - outerBottom, emitGeneratedStructure);
-            DrawPanelBorder(decoration, style, outerX, outerBottom, outerWidth, outerTop - outerBottom, emitGeneratedStructure);
-            if (decoration.Length > 0) {
-                sb.Insert(insertionIndex, decoration.ToString());
-                pageDirty = true;
+            if (style.KeepTogether && rowHeight > fullPageHeight + 0.001D) {
+                throw new ArgumentException("Container height exceeds the available page content height while KeepTogether is enabled.");
             }
+
+            void DecorateFragment(
+                StringBuilder content,
+                int insertionIndex,
+                double top,
+                double bottom,
+                bool isFirstFragment,
+                bool isLastFragment) {
+                var decoration = new StringBuilder();
+                if (style.Background.HasValue) {
+                    DrawRowFill(decoration, style.Background.Value, outerX, bottom, outerWidth, top - bottom, emitGeneratedStructure);
+                }
+
+                DrawPanelBorder(decoration, style, outerX, bottom, outerWidth, top - bottom, emitGeneratedStructure);
+                if (decoration.Length > 0) {
+                    content.Insert(insertionIndex, decoration.ToString());
+                    pageDirty = true;
+                }
+            }
+
+            RenderRowFlowBlock(row, nextBlock: null, new List<IPdfBlock> { row }, 0, DecorateFragment);
         }
     }
 }

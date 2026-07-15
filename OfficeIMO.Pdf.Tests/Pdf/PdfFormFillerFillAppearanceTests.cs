@@ -295,24 +295,7 @@ public partial class PdfFormFillerTests {
         Assert.Contains("/ToUnicode", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/FontFile2", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
-        PdfConversionWarning cffWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
-        Assert.Equal("OfficeIMO.Tests", cffWarning.Converter);
-        Assert.Equal(PdfConversionWarningSeverity.Warning, cffWarning.Severity);
-        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, cffWarning.LayoutDiagnostic!.Kind);
-        Assert.Equal("form field 'Name' appearance", cffWarning.Source);
-        Assert.Equal("OpenType/CFF", cffWarning.Details["format"]);
-        Assert.Equal("OfficeIMOFillCFFFont", cffWarning.Details["fontName"]);
-        Assert.Equal("compact-opentype-cff", cffWarning.Details["embeddingMode"]);
-        Assert.Equal("true", cffWarning.Details["cffCharstringsRetained"]);
-        Assert.Equal("false", cffWarning.Details["cffCharstringsSubset"]);
-        Assert.Contains("CFF", cffWarning.Details["openTypeTablesEmbedded"], StringComparison.Ordinal);
-        Assert.Contains("GSUB", cffWarning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
-        Assert.Contains("GPOS", cffWarning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
-        Assert.Equal(cffWarning.Details["glyphCount"], cffWarning.Details["retainedCffGlyphCount"]);
-        Assert.True(int.Parse(cffWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(cffWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
-        Assert.True(int.Parse(cffWarning.Details["unusedCffGlyphCount"], CultureInfo.InvariantCulture) > 0);
-        Assert.True(int.Parse(cffWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
-        Assert.True(int.Parse(cffWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
     }
 
     [Fact]
@@ -481,24 +464,7 @@ public partial class PdfFormFillerTests {
         Assert.Contains("/Subtype /OpenType", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/FontFile2", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
-        PdfConversionWarning cffWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
-        Assert.Equal("OfficeIMO.Tests", cffWarning.Converter);
-        Assert.Equal(PdfConversionWarningSeverity.Warning, cffWarning.Severity);
-        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, cffWarning.LayoutDiagnostic!.Kind);
-        Assert.Equal("form field 'Name' appearance", cffWarning.Source);
-        Assert.Equal("OpenType/CFF", cffWarning.Details["format"]);
-        Assert.Equal("FallbackFillCFFFont", cffWarning.Details["fontName"]);
-        Assert.Equal("compact-opentype-cff", cffWarning.Details["embeddingMode"]);
-        Assert.Equal("true", cffWarning.Details["cffCharstringsRetained"]);
-        Assert.Equal("false", cffWarning.Details["cffCharstringsSubset"]);
-        Assert.Contains("CFF", cffWarning.Details["openTypeTablesEmbedded"], StringComparison.Ordinal);
-        Assert.Contains("GSUB", cffWarning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
-        Assert.Contains("GPOS", cffWarning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
-        Assert.Equal(cffWarning.Details["glyphCount"], cffWarning.Details["retainedCffGlyphCount"]);
-        Assert.True(int.Parse(cffWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(cffWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
-        Assert.True(int.Parse(cffWarning.Details["unusedCffGlyphCount"], CultureInfo.InvariantCulture) > 0);
-        Assert.True(int.Parse(cffWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
-        Assert.True(int.Parse(cffWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
     }
 
     [Fact]
@@ -993,7 +959,7 @@ endbfchar
         Assert.Equal("U+0066", ligature.Details["codePoint"]);
         Assert.Equal("OpenType GPOS mark", mark.Details["script"]);
         Assert.Equal("U+0301", mark.Details["codePoint"]);
-        Assert.Contains(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
     }
 
     private static byte[] BuildEmbeddedUnicodeTextFieldPdfWithResourceName(string value, string resourceName) {

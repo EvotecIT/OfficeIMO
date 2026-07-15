@@ -11,6 +11,13 @@ internal static partial class PdfWriter {
 
         using System.IDisposable? generatedSectionLayout = document?.BeginGeneratedSectionLayout();
         using LayoutResult layout = LayoutBlocks(blocks, options);
+        return CollectGeneratedComplianceEvidence(layout, options);
+    }
+
+    private static PdfGeneratedDocumentComplianceEvidence CollectGeneratedComplianceEvidence(LayoutResult layout, PdfOptions options) {
+        Guard.NotNull(layout, nameof(layout));
+        Guard.NotNull(options, nameof(options));
+
         var fonts = new System.Collections.Generic.HashSet<PdfStandardFont>();
         var fontUsages = new System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence>();
         var images = new System.Collections.Generic.List<PdfGeneratedImageAccessibilityEvidence>();
@@ -79,7 +86,7 @@ internal static partial class PdfWriter {
             }
 
             foreach (PageImage image in page.Images) {
-                images.Add(new PdfGeneratedImageAccessibilityEvidence(!string.IsNullOrWhiteSpace(image.AlternativeText), image.IsBackgroundDecoration));
+                images.Add(new PdfGeneratedImageAccessibilityEvidence(!string.IsNullOrWhiteSpace(image.AlternativeText), image.IsDecorativeArtifact));
             }
 
             drawings.AddRange(page.Drawings);

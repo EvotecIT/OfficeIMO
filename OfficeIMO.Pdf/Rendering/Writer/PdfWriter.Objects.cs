@@ -204,7 +204,7 @@ internal static partial class PdfWriter {
         public bool AllowsMultipleSelection { get; set; }
     }
 
-    private sealed class FormWidgetStructureReference {
+    private sealed class AnnotationStructureReference {
         public int StructParentIndex { get; set; }
         public int StructElementIndex { get; set; }
         public int ObjectId { get; set; }
@@ -333,6 +333,8 @@ internal static partial class PdfWriter {
         public double ClipHeight { get; set; }
         public PdfImageSourceCrop? SourceCrop { get; set; }
         public bool IsBackgroundDecoration { get; set; }
+        public bool IsInlineDecoration { get; set; }
+        public bool IsDecorativeArtifact => IsBackgroundDecoration || IsInlineDecoration;
         public double Opacity { get; set; } = 1D;
         public double RotationAngle { get; set; }
         public bool HorizontalFlip { get; set; }

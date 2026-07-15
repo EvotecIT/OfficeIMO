@@ -80,6 +80,21 @@ public sealed class PdfExternalValidatorProof {
     /// <summary>Process exit code reported by the primary validation result, when supplied.</summary>
     public int? ExitCode => PrimaryValidation?.ExitCode;
 
+    /// <summary>Validator version from the primary validation result, when supplied.</summary>
+    public string? ValidatorVersion => PrimaryValidation?.ValidatorVersion;
+
+    /// <summary>SHA-256 of the exact validated PDF artifact, when supplied.</summary>
+    public string? ArtifactSha256 => PrimaryValidation?.ArtifactSha256;
+
+    /// <summary>Size of the exact validated PDF artifact, in bytes, when supplied.</summary>
+    public long? ArtifactSizeBytes => PrimaryValidation?.ArtifactSizeBytes;
+
+    /// <summary>UTC proof timestamp from the primary validation result, when supplied.</summary>
+    public System.DateTimeOffset? ValidatedAtUtc => PrimaryValidation?.ValidatedAtUtc;
+
+    /// <summary>Warnings from the primary validation result.</summary>
+    public IReadOnlyList<string> Warnings => PrimaryValidation?.Warnings ?? Array.Empty<string>();
+
     private PdfExternalValidationResult? Find(PdfExternalValidationStatus status) {
         for (int i = 0; i < Validations.Count; i++) {
             PdfExternalValidationResult validation = Validations[i];

@@ -4,7 +4,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
     private static readonly char[] SpaceSeparators = { ' ' };
     private static readonly double[] DefaultBorderDashPattern = { 3D };
 
-    internal static string BuildTextAnnotation(double x1, double y1, double x2, double y2, string contents, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, PdfColor? color = null, bool open = false) {
+    internal static string BuildTextAnnotation(double x1, double y1, double x2, double y2, string contents, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, PdfColor? color = null, bool open = false, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
         PdfDocument.ValidateTextAnnotationIcon(icon, nameof(icon));
@@ -20,10 +20,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             PdfSyntaxEscaper.Name(GetTextAnnotationIconName(icon)) +
             (color.HasValue ? " /C [" + FormatCoordinate(color.Value.R) + " " + FormatCoordinate(color.Value.G) + " " + FormatCoordinate(color.Value.B) + "]" : string.Empty) +
             (open ? " /Open true" : string.Empty) +
+            BuildStructParentEntry(structParentIndex) +
             " >>\n";
     }
 
-    internal static string BuildFreeTextAnnotation(double x1, double y1, double x2, double y2, string contents, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, int normalAppearanceId = 0) {
+    internal static string BuildFreeTextAnnotation(double x1, double y1, double x2, double y2, string contents, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, int normalAppearanceId = 0, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
         ValidateFinite(fontSize, nameof(fontSize));
@@ -52,10 +53,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             (borderColor.HasValue && borderWidth > 0D ? " /C [" + FormatColor(borderColor.Value) + "]" : string.Empty) +
             (fillColor.HasValue ? " /IC [" + FormatColor(fillColor.Value) + "]" : string.Empty) +
             BuildNormalAppearanceEntry(normalAppearanceId) +
+            BuildStructParentEntry(structParentIndex) +
             " >>\n";
     }
 
-    internal static string BuildHighlightAnnotation(double x1, double y1, double x2, double y2, string contents, PdfColor? color = null, int normalAppearanceId = 0) {
+    internal static string BuildHighlightAnnotation(double x1, double y1, double x2, double y2, string contents, PdfColor? color = null, int normalAppearanceId = 0, int? structParentIndex = null) {
         ValidateRectangle(x1, y1, x2, y2);
         Guard.NotNullOrWhiteSpace(contents, nameof(contents));
         PdfColor resolvedColor = color ?? new PdfColor(1D, 0.92D, 0.2D);
@@ -80,6 +82,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             FormatCoordinate(y1) +
             "]" +
             BuildNormalAppearanceEntry(normalAppearanceId) +
+            BuildStructParentEntry(structParentIndex) +
             " >>\n";
     }
 

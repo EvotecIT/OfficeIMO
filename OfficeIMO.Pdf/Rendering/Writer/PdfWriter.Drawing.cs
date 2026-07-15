@@ -947,7 +947,7 @@ internal static partial class PdfWriter {
             .Font(fontRes, fontSize)
             .FillColor(effective ?? PdfColor.Black)
             .TextMatrix(x, y)
-            .ShowHexText(EncodeTextHex(text, font, opts))
+            .ShowText(EncodeTextShowCommand(text, font, opts), fontSize)
             .EndText();
     }
 

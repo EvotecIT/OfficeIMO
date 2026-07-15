@@ -38,13 +38,14 @@ PdfDocument.Create(new PdfOptions {
 
 ## What it does
 
-- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, styled containers, block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives.
+- Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, mixed inline images and boxes, dictionary-driven hyphenation, styled multipage containers, balanced block-flow columns, conditional/replayable flow, position capture, sections, generated TOCs, optional-content layers, tables, images, vector drawing, headers, footers, watermarks, metadata, portfolios, and form primitives.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, portfolios, outlines, forms, bounded immutable raw-structure views, active-content diagnostics, and security/revision markers.
 - Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, watermarks, and complete-page overlay/underlay while preserving source PDF header versions on shared rewrite paths.
-- Renders supported embedded TrueType fonts from their exact outlines and shares managed CMYK, Lab, XYZ, calibrated-color conversion, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`.
+- Renders supported embedded TrueType and OpenType/CFF fonts with stable-glyph subsetting. Built-in shaping remains dependency-free, while `IPdfTextShapingProvider` can supply positioned glyph advances and offsets for scripts that need a host-owned shaping engine.
+- Shares managed CMYK, Lab, XYZ, calibrated-color conversion, vector tiling fills, standard blend modes, and alpha/luminosity soft masks with `OfficeIMO.Drawing`.
 - Bounds completed page/effect content and serialized-object retention with separate memory limits, temporary-file spillover, direct large-stream spooling, and chunked final assembly during stream saves. Per-page metadata and the authored block model remain proportional to document size, and `ToBytes()` buffers the final artifact.
 - Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
-- Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off.
+- Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off. Compliance proof records bind external validator name, version, profile, result, warnings, SHA-256, byte length, and validation time to the exact artifact.
 - Provides reusable rewrite-preservation proof for page geometry, metadata, navigation, catalog/viewer/action state, optional content, tagged content, security signatures, document versions, and source-structure markers such as incremental updates, xref streams, and object streams.
 - Provides a reusable rewrite-preservation matrix for classifying named manipulation scenarios as rewrite-safe, preservation-failed, blocked by safety checks, or operation-failed, including optional-content/layer drift, targeted form-fill preservation, form/tagged/active-content/signature blockers, and fluent `PdfDocument` helpers for normal document rewrite operations.
 - Serves as the shared engine for Word, Excel, Markdown, HTML, and PowerPoint PDF adapters.
@@ -119,6 +120,27 @@ PdfDocument.Create()
     })
     .Save("summary.pdf");
 ```
+
+### Hyphenation and inline visuals
+
+```csharp
+byte[] statusIcon = File.ReadAllBytes("status.png");
+var hyphenation = new PdfHyphenationLexicon(new[] {
+    "auto-ma-tion",
+    "ty-pog-ra-phy",
+    "re-port-ing"
+});
+
+PdfDocument.Create(new PdfOptions()
+        .UseTextHyphenationDictionary(hyphenation))
+    .Paragraph(paragraph => paragraph
+        .Text("Automation status ")
+        .InlineImage(statusIcon, 12, 12, alternativeText: "Healthy")
+        .Text(" remains available during long reporting runs."))
+    .Save("inline-status.pdf");
+```
+
+Inline elements participate in normal line wrapping. In tagged output, image and box alternative text is carried into the structure tree.
 
 ### Sections, generated navigation, and bounded stream output
 
@@ -274,24 +296,44 @@ PdfDocument.Load("application-form.pdf")
     .Save("application-form-filled.pdf");
 ```
 
-### Assess compliance proof without overclaiming
+### Generate and assess validator-backed PDF/A
 
 ```csharp
 using OfficeIMO.Pdf;
 
-PdfDocument document = PdfDocument.Create(new PdfOptions()
-        .UsePdfA(PdfComplianceProfile.PdfA3B))
-    .Paragraph(paragraph => paragraph.Text("Groundwork can be assessed before a formal claim."));
+byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
+var options = new PdfOptions()
+    .UsePdfA(PdfComplianceProfile.PdfA2B)
+    .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
+    .RequireCompliance(PdfComplianceProfile.PdfA2B);
+
+PdfDocument document = PdfDocument.Create(options)
+    .Meta(title: "Archive copy")
+    .Paragraph(paragraph => paragraph.Text("This artifact is ready for external validation."));
+
+byte[] pdf = document.ToBytes();
+File.WriteAllBytes("archive.pdf", pdf);
+
+// Create this result from the validator invocation in your build or release lane.
+PdfExternalValidationResult validation = PdfExternalValidationResult.PassedForArtifact(
+    PdfExternalValidatorKind.VeraPdf,
+    "veraPDF",
+    "1.30.2",
+    "PDF/A-2b validation passed.",
+    pdf,
+    "PDF/A-2b");
 
 PdfComplianceProofReport proof = document.AssessComplianceProof(
-    PdfComplianceProfile.PdfA3B,
-    externalValidations: null);
+    PdfComplianceProfile.PdfA2B,
+    pdf,
+    new[] { validation });
 
 if (!proof.CanClaimConformance) {
-    Console.WriteLine(proof.ProofStatus);
-    Console.WriteLine(proof.ExternalProofSummary);
+    throw new InvalidOperationException(proof.ExternalProofSummary);
 }
 ```
+
+Formal generation gates are available for PDF/A-2b, PDF/A-3b, PDF/UA-1, Factur-X, and ZUGFeRD. `RequireCompliance(...)` rejects incomplete generation settings. A conformance claim still requires a passing external result for the same profile, SHA-256, and byte length; validators are build-time tools and are not runtime dependencies of `OfficeIMO.Pdf`.
 
 ### Choose converter-friendly text fallbacks
 
@@ -314,18 +356,26 @@ result.Save("proposal.pdf");
 
 The Markdown, Word, Excel, and PowerPoint PDF adapters expose the same `TextFallbacks` enum. Use `PdfTextFallbackFeatures.None` when strict standard-font output is preferred, or `AllowSystemFontEmbedding = true` when the converter may embed installed host fonts for Unicode, symbols, and emoji.
 
-### Add e-invoice groundwork
+### Generate a formal e-invoice carrier
 
 ```csharp
 using OfficeIMO.Pdf;
 
 byte[] invoiceXml = File.ReadAllBytes("factur-x.xml");
+byte[] fontBytes = File.ReadAllBytes("SourceSerif4-Regular.otf");
 
 PdfDocument.Create(new PdfOptions()
-        .UseFacturX(invoiceXml, textFallbacks: PdfTextFallbackFeatures.DocumentFont))
+        .UseFacturX(
+            invoiceXml,
+            relationship: PdfAssociatedFileRelationship.Alternative,
+            textFallbacks: PdfTextFallbackFeatures.None)
+        .EmbedStandardFont(PdfStandardFont.Helvetica, fontBytes, "Source Serif 4")
+        .RequireCompliance(PdfComplianceProfile.FacturX))
     .Paragraph("Invoice preview")
     .Save("invoice.pdf");
 ```
+
+The XML must be a valid EN 16931 CrossIndustryInvoice payload. The formal carrier gate checks the PDF/A-3 attachment, metadata, font, Unicode, and invoice rules before writing; exact-artifact PDF/A and invoice-validator results are still required before claiming conformance.
 
 ### Page setup, watermarks, and metadata
 

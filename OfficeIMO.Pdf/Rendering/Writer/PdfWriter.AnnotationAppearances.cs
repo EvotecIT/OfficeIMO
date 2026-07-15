@@ -188,24 +188,18 @@ internal static partial class PdfWriter {
         PdfStandardFont font,
         PdfColor color,
         PdfOptions pageOptions) {
-        sb.Append("BT /")
-            .Append(PdfSyntaxEscaper.Name(fontResource))
-            .Append(' ')
-            .Append(FormatAppearanceNumber(fontSize))
-            .Append(" Tf ");
+        var content = new ContentStreamBuilder(sb)
+            .BeginText()
+            .Font(PdfSyntaxEscaper.Name(fontResource), fontSize);
         if (Math.Abs(textRise) > 0.0001D) {
-            sb.Append(FormatAppearanceNumber(textRise))
-                .Append(" Ts ");
+            content.TextRise(textRise);
         }
 
-        sb.Append(FormatAppearanceColor(color))
-            .Append(" rg ")
-            .Append(FormatAppearanceNumber(x))
-            .Append(' ')
-            .Append(FormatAppearanceNumber(y))
-            .Append(" Td <")
-            .Append(EncodeTextHex(text, font, pageOptions))
-            .Append("> Tj ET\n");
+        content
+            .FillColor(color)
+            .MoveText(x, y)
+            .ShowText(EncodeTextShowCommand(text, font, pageOptions), fontSize, textRise)
+            .EndText();
     }
 
     private static string GetFreeTextAppearanceFontResourceName(PdfStandardFont font, PdfOptions pageOptions) =>

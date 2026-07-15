@@ -194,7 +194,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot);
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language);
         }
 
         if (options != null &&
@@ -214,7 +214,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot);
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.Language);
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);

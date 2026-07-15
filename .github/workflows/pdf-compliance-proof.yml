@@ -77,6 +77,9 @@ env:
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
   VERAPDF_CLI_IMAGE: ghcr.io/verapdf/cli:v1.31.105@sha256:7f28bd1ea0814e4eb8d99fc43c78dc6940047f4819c89b4194dbb8213f45b6de
+  MUSTANG_VERSION: 2.24.0
+  MUSTANG_CLI_URL: https://github.com/ZUGFeRD/mustangproject/releases/download/core-2.24.0/Mustang-CLI-2.24.0.jar
+  MUSTANG_CLI_SHA256: e4904ffa0afdce3f5836dceb927c440a05ed5d60386fdd37e17a4b2f7652edbf
 
 jobs:
   pdf-compliance-proof:
@@ -108,7 +111,7 @@ jobs:
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install --yes qpdf poppler-utils
+          sudo apt-get install --yes openjdk-17-jre-headless qpdf poppler-utils
 
       - name: Prepare veraPDF validator
         if: github.event_name != 'workflow_dispatch' || inputs.verapdf_path == '' || inputs.pdfua_validator_path == ''
@@ -143,6 +146,17 @@ jobs:
           BASH
           chmod +x "$wrapper"
           echo "OFFICEIMO_VERAPDF_DOCKER=$wrapper" >> "$GITHUB_ENV"
+
+      - name: Prepare Mustang validator
+        if: github.event_name != 'workflow_dispatch' || inputs.mustang_path == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          jar="$RUNNER_TEMP/Mustang-CLI-${MUSTANG_VERSION}.jar"
+          curl --fail --location --silent --show-error "$MUSTANG_CLI_URL" --output "$jar"
+          echo "${MUSTANG_CLI_SHA256}  ${jar}" | sha256sum --check
+          echo "OFFICEIMO_MUSTANG_JAR=$jar" >> "$GITHUB_ENV"
+          echo "OFFICEIMO_MUSTANG_VERSION=$MUSTANG_VERSION" >> "$GITHUB_ENV"
 
       - name: Generate PDF compliance proof
         shell: pwsh
@@ -196,6 +210,8 @@ jobs:
 
           if (-not [string]::IsNullOrWhiteSpace($env:MUSTANG_PATH)) {
             $parameters.MustangPath = $env:MUSTANG_PATH
+          } elseif (-not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_MUSTANG_JAR)) {
+            $parameters.MustangPath = $env:OFFICEIMO_MUSTANG_JAR
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:MUSTANG_ARGS)) {

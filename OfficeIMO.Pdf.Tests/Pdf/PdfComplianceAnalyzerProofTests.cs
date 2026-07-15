@@ -28,15 +28,19 @@ public partial class PdfComplianceAnalyzerTests {
     public void ProofReportAllowsPdfAClaimWhenRequiredValidatorPasses() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
-        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+        byte[] artifact = PdfDocument.Create(options).ToBytes();
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
+            "1.30.2",
             "PDF/A-3b profile accepted.",
+            artifact,
             "PDF/A-3b");
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.PdfA3B,
             options,
+            artifact,
             new[] { veraPdf },
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 
@@ -51,14 +55,18 @@ public partial class PdfComplianceAnalyzerTests {
     public void ProofReportCountsUnprofiledValidatorResultForRequestedProof() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
-        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+        byte[] artifact = PdfDocument.Create(options).ToBytes();
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
-            "PDF/A profile accepted.");
+            "1.30.2",
+            "PDF/A profile accepted.",
+            artifact);
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.PdfA3B,
             options,
+            artifact,
             new[] { veraPdf },
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 
@@ -71,17 +79,19 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void DocumentProofUsesGeneratedEvidenceBeforeAcceptingExternalPdfAValidation() {
-        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
-            PdfExternalValidatorKind.VeraPdf,
-            "veraPDF",
-            "PDF/A-3b profile accepted.",
-            "PDF/A-3b");
-
         PdfDocument document = PdfDocument.Create(new PdfOptions()
                 .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
             .Paragraph(paragraph => paragraph.Text("Generated text must still have embedded font proof."));
+        byte[] artifact = document.ToBytes();
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "1.30.2",
+            "PDF/A-3b profile accepted.",
+            artifact,
+            "PDF/A-3b");
 
-        PdfComplianceProofReport proof = document.AssessComplianceProof(PdfComplianceProfile.PdfA3B, new[] { veraPdf });
+        PdfComplianceProofReport proof = document.AssessComplianceProof(PdfComplianceProfile.PdfA3B, artifact, new[] { veraPdf });
 
         Assert.False(proof.IsInternallyReady);
         Assert.True(proof.HasRequiredExternalValidation);
@@ -91,7 +101,7 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
-    public void DocumentProofUsesConfiguredProfileAndExternalValidatorGate() {
+    public void DocumentProofWithoutArtifactCannotBeClaimable() {
         PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
@@ -105,9 +115,49 @@ public partial class PdfComplianceAnalyzerTests {
 
         Assert.Equal(PdfComplianceProfile.PdfA3B, proof.Profile);
         Assert.True(proof.IsInternallyReady);
-        Assert.True(proof.HasRequiredExternalValidation);
-        Assert.True(proof.CanClaimConformance);
-        Assert.Equal("Claimable", proof.ProofStatus);
+        Assert.False(proof.HasArtifactEvidence);
+        Assert.False(proof.HasRequiredExternalValidation);
+        Assert.False(proof.CanClaimConformance);
+        Assert.Equal("MissingArtifactEvidence", proof.ProofStatus);
+    }
+
+    [Fact]
+    public void ProofReportRejectsValidatorPassBoundToDifferentArtifactWithSameLength() {
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        byte[] validatedArtifact = PdfDocument.Create(options).ToBytes();
+        byte[] requestedArtifact = (byte[])validatedArtifact.Clone();
+        requestedArtifact[requestedArtifact.Length - 1] ^= 0x01;
+        var validatedAtUtc = new System.DateTimeOffset(2026, 7, 15, 0, 0, 0, System.TimeSpan.Zero);
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "1.30.2",
+            "PDF/A-3b profile accepted.",
+            validatedArtifact,
+            "PDF/A-3b",
+            warnings: new[] { "Informational validator warning." },
+            validatedAtUtc: validatedAtUtc);
+
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            PdfComplianceProfile.PdfA3B,
+            options,
+            requestedArtifact,
+            new[] { veraPdf },
+            generatedStandardFonts: Array.Empty<PdfStandardFont>());
+
+        Assert.True(proof.IsInternallyReady);
+        Assert.True(proof.HasArtifactEvidence);
+        Assert.False(proof.HasRequiredExternalValidation);
+        Assert.False(proof.CanClaimConformance);
+        Assert.Equal("MissingExternalValidation", proof.ProofStatus);
+        Assert.Contains(PdfExternalValidatorKind.VeraPdf, proof.MissingExternalValidators);
+        Assert.True(veraPdf.HasArtifactBinding);
+        Assert.Equal("1.30.2", veraPdf.ValidatorVersion);
+        Assert.Equal(validatedArtifact.LongLength, veraPdf.ArtifactSizeBytes);
+        Assert.NotEqual(proof.ArtifactSha256, veraPdf.ArtifactSha256);
+        Assert.Equal(validatedAtUtc, veraPdf.ValidatedAtUtc);
+        Assert.Equal(new[] { "Informational validator warning." }, veraPdf.Warnings);
     }
 
     [Fact]
@@ -150,15 +200,19 @@ public partial class PdfComplianceAnalyzerTests {
     public void ProofReportRejectsValidatorPassForDifferentProfile() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
-        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+        byte[] artifact = PdfDocument.Create(options).ToBytes();
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
+            "1.30.2",
             "PDF/A-2b profile accepted.",
+            artifact,
             "PDF/A-2b");
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.PdfA3B,
             options,
+            artifact,
             new[] { veraPdf },
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 
@@ -172,20 +226,26 @@ public partial class PdfComplianceAnalyzerTests {
     public void ProofReportFindExternalValidationReturnsRequestedProfileResult() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
-        PdfExternalValidationResult otherProfile = PdfExternalValidationResult.Passed(
+        byte[] artifact = PdfDocument.Create(options).ToBytes();
+        PdfExternalValidationResult otherProfile = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
+            "1.30.2",
             "PDF/A-2b profile accepted.",
+            artifact,
             "PDF/A-2b");
-        PdfExternalValidationResult requestedProfile = PdfExternalValidationResult.Passed(
+        PdfExternalValidationResult requestedProfile = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
+            "1.30.2",
             "PDF/A-3b profile accepted.",
+            artifact,
             "PDF/A-3b");
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.PdfA3B,
             options,
+            artifact,
             new[] { otherProfile, requestedProfile },
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 
@@ -196,21 +256,28 @@ public partial class PdfComplianceAnalyzerTests {
     public void ProofReportBlocksClaimWhenRequiredValidatorFailedEvenIfLaterResultPassed() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
-        PdfExternalValidationResult failed = PdfExternalValidationResult.Failed(
+        byte[] artifact = PdfDocument.Create(options).ToBytes();
+        PdfExternalValidationResult failed = PdfExternalValidationResult.FromExitCodeForArtifact(
             PdfExternalValidatorKind.VeraPdf,
+            1,
             "veraPDF",
+            "1.30.2",
             "Output intent failed policy validation.",
+            artifact,
             "PDF/A-3b",
-            exitCode: 1);
-        PdfExternalValidationResult passed = PdfExternalValidationResult.Passed(
+            successExitCode: 0);
+        PdfExternalValidationResult passed = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
+            "1.30.2",
             "A later run passed.",
+            artifact,
             "PDF/A-3b");
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.PdfA3B,
             options,
+            artifact,
             new[] { failed, passed },
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 
@@ -226,21 +293,28 @@ public partial class PdfComplianceAnalyzerTests {
     public void ProofReportExposesBlockingValidatorProofRowWhenFailureAndPassAreSupplied() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
-        PdfExternalValidationResult failed = PdfExternalValidationResult.Failed(
+        byte[] artifact = PdfDocument.Create(options).ToBytes();
+        PdfExternalValidationResult failed = PdfExternalValidationResult.FromExitCodeForArtifact(
             PdfExternalValidatorKind.VeraPdf,
+            1,
             "veraPDF",
+            "1.30.2",
             "Output intent failed policy validation.",
+            artifact,
             "PDF/A-3b",
-            exitCode: 1);
-        PdfExternalValidationResult passed = PdfExternalValidationResult.Passed(
+            successExitCode: 0);
+        PdfExternalValidationResult passed = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
+            "1.30.2",
             "A later run passed.",
+            artifact,
             "PDF/A-3b");
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.PdfA3B,
             options,
+            artifact,
             new[] { failed, passed },
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 
@@ -277,20 +351,26 @@ public partial class PdfComplianceAnalyzerTests {
 
     [Fact]
     public void ProofReportExposesPerValidatorRowsForElectronicInvoiceProfiles() {
-        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+        byte[] artifact = PdfDocument.Create(new PdfOptions().ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)).ToBytes();
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.PassedForArtifact(
             PdfExternalValidatorKind.VeraPdf,
             "veraPDF",
+            "1.30.2",
             "PDF/A-3b carrier accepted.",
+            artifact,
             "PDF/A-3b");
-        PdfExternalValidationResult mustang = PdfExternalValidationResult.NotRun(
+        PdfExternalValidationResult mustang = PdfExternalValidationResult.NotRunForArtifact(
             PdfExternalValidatorKind.Mustang,
             "Mustang",
+            "2.20.0",
             "Mustang is not configured on this runner.",
+            artifact,
             "Factur-X");
 
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.FacturX,
             new PdfOptions(),
+            artifact,
             externalValidations: new[] { veraPdf, mustang },
             generatedStandardFonts: Array.Empty<PdfStandardFont>());
 

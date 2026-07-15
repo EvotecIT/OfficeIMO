@@ -29,12 +29,19 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
 
     internal PdfOpenTypeCffCompactFontFile BuildCompactOpenTypeFontFilePlan() {
         var tables = new List<SubsetTable>();
+        IReadOnlyList<int> usedGlyphIds = GetUsedGlyphIds();
+        PdfCffCharStringSubset? charStringSubset = null;
         foreach (KeyValuePair<string, TableRecord> table in _tables.OrderBy(entry => entry.Key, StringComparer.Ordinal)) {
             if (!CompactOpenTypeCffTables.Contains(table.Key)) {
                 continue;
             }
 
             byte[] content = CopyTableData(table.Value);
+            if (string.Equals(table.Key, "CFF ", StringComparison.Ordinal)) {
+                charStringSubset = PdfCffCharStringSubsetter.Create(content, usedGlyphIds, GlyphCount);
+                content = charStringSubset.Data;
+            }
+
             if (string.Equals(table.Key, "head", StringComparison.Ordinal)) {
                 WriteUInt32(content, 8, 0);
             }
@@ -53,18 +60,20 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
                 originalTables,
                 originalTables,
                 Array.Empty<string>(),
-                Array.Empty<string>());
+                Array.Empty<string>(),
+                charStringSubset);
         }
 
         byte[] compact = BuildOpenTypeFile(tables);
-        if (compact.Length < _data.Length) {
+        if (compact.Length < _data.Length || (compact.Length == _data.Length && charStringSubset?.IsSubset == true)) {
             return new PdfOpenTypeCffCompactFontFile(
                 compact,
-                isCompact: true,
+                isCompact: compact.Length < _data.Length,
                 originalTables,
                 embeddedTables,
                 removedTables,
-                removedLayoutTables);
+                removedLayoutTables,
+                charStringSubset);
         }
 
         return new PdfOpenTypeCffCompactFontFile(
@@ -73,7 +82,8 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
             originalTables,
             originalTables,
             Array.Empty<string>(),
-            Array.Empty<string>());
+            Array.Empty<string>(),
+            charStringSubset: null);
     }
 
     private static bool ContainsRequiredCompactTables(IReadOnlyList<SubsetTable> tables) {
@@ -221,13 +231,15 @@ internal sealed class PdfOpenTypeCffCompactFontFile {
         IReadOnlyList<string> originalTables,
         IReadOnlyList<string> embeddedTables,
         IReadOnlyList<string> removedTables,
-        IReadOnlyList<string> removedLayoutTables) {
+        IReadOnlyList<string> removedLayoutTables,
+        PdfCffCharStringSubset? charStringSubset) {
         Data = data ?? throw new ArgumentNullException(nameof(data));
         IsCompact = isCompact;
         OriginalTables = originalTables?.ToArray() ?? throw new ArgumentNullException(nameof(originalTables));
         EmbeddedTables = embeddedTables?.ToArray() ?? throw new ArgumentNullException(nameof(embeddedTables));
         RemovedTables = removedTables?.ToArray() ?? throw new ArgumentNullException(nameof(removedTables));
         RemovedLayoutTables = removedLayoutTables?.ToArray() ?? throw new ArgumentNullException(nameof(removedLayoutTables));
+        CharStringSubset = charStringSubset;
     }
 
     public byte[] Data { get; }
@@ -236,4 +248,5 @@ internal sealed class PdfOpenTypeCffCompactFontFile {
     public IReadOnlyList<string> EmbeddedTables { get; }
     public IReadOnlyList<string> RemovedTables { get; }
     public IReadOnlyList<string> RemovedLayoutTables { get; }
+    public PdfCffCharStringSubset? CharStringSubset { get; }
 }

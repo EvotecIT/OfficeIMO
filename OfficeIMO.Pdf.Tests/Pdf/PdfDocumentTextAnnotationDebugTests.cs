@@ -62,7 +62,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Equal(2, CountOccurrences(pdf, "/OfficeIMOHighlightGs gs"));
         Assert.Equal(2, CountOccurrences(pdf, "/BM /Multiply"));
         Assert.Equal(2, CountOccurrences(pdf, "/ca 0.35"));
-        Assert.True(CountOccurrences(pdf, "BT /Helv") >= 4);
+        Assert.True(CountOccurrences(pdf, "BT\n/Helv") >= 4);
         Assert.Contains("/Subtype /Form /BBox [0 0 140 44]", pdf, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Form /BBox [0 0 120 12]", pdf, StringComparison.Ordinal);
         Assert.Contains("/Open true", pdf, StringComparison.Ordinal);
@@ -130,7 +130,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/Ann1 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("/Ann2 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("/Subtype /Form /BBox [0 0 140 44]", pdf, StringComparison.Ordinal);
-        Assert.Contains("BT /Helv", pdf, StringComparison.Ordinal);
+        Assert.Contains("BT\n/Helv", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOHighlightGs gs", pdf, StringComparison.Ordinal);
         Assert.Contains("/BM /Multiply", pdf, StringComparison.Ordinal);
         Assert.Contains("/ca 0.35", pdf, StringComparison.Ordinal);
@@ -174,7 +174,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/XObject << /OfficeIMOAnnot1 ", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot2 Do", pdf, StringComparison.Ordinal);
-        Assert.Contains("BT /Helv", pdf, StringComparison.Ordinal);
+        Assert.Contains("BT\n/Helv", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOHighlightGs gs", pdf, StringComparison.Ordinal);
         Assert.Contains("/BM /Multiply", pdf, StringComparison.Ordinal);
         Assert.Contains("/ca 0.35", pdf, StringComparison.Ordinal);
@@ -209,7 +209,7 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.DoesNotContain("/Subtype /FreeText", pdf, StringComparison.Ordinal);
         Assert.Contains("/XObject << /OfficeIMOAnnot1 ", pdf, StringComparison.Ordinal);
         Assert.Contains("/OfficeIMOAnnot1 Do", pdf, StringComparison.Ordinal);
-        Assert.Contains("BT /Helv", pdf, StringComparison.Ordinal);
+        Assert.Contains("BT\n/Helv", pdf, StringComparison.Ordinal);
     }
 
     [Fact]

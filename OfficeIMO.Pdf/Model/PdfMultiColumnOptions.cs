@@ -26,6 +26,8 @@ public sealed class PdfMultiColumnOptions {
 
     /// <summary>Whether the final page should distribute blocks toward similar column heights.</summary>
     public bool BalanceLastPage { get; set; } = true;
+    /// <summary>Whether long paragraphs may be split at already wrapped line boundaries to balance the final page.</summary>
+    public bool BalanceParagraphLines { get; set; } = true;
     /// <summary>Optional separator color between columns.</summary>
     public PdfColor? SeparatorColor { get; set; }
     /// <summary>Separator width in points.</summary>
@@ -41,6 +43,7 @@ public sealed class PdfMultiColumnOptions {
         ColumnCount = ColumnCount,
         Gap = Gap,
         BalanceLastPage = BalanceLastPage,
+        BalanceParagraphLines = BalanceParagraphLines,
         SeparatorColor = SeparatorColor,
         SeparatorWidth = SeparatorWidth
     };

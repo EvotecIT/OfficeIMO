@@ -78,6 +78,14 @@ public sealed class PdfParagraphBuilder {
     public PdfParagraphBuilder LineBreak() { _runs.Add(TextRun.LineBreak()); return this; }
     /// <summary>Adds an explicit paragraph tab using the current style flags.</summary>
     public PdfParagraphBuilder Tab(PdfTabLeaderStyle leader = PdfTabLeaderStyle.None, PdfTabAlignment alignment = PdfTabAlignment.Left) { _runs.Add(new TextRun("\t", _currentBold, _currentUnderline, _currentColor, _currentItalic, _currentStrike, fontSize: _currentFontSize, font: _currentFont, baseline: _currentBaseline, tabLeader: leader, tabAlignment: alignment, backgroundColor: _currentBackgroundColor)); return this; }
+    /// <summary>Adds a fixed-size visual that participates in paragraph wrapping.</summary>
+    public PdfParagraphBuilder Inline(PdfInlineElement element) { Guard.NotNull(element, nameof(element)); _runs.Add(TextRun.Inline(element)); return this; }
+    /// <summary>Adds an image that participates in paragraph wrapping.</summary>
+    public PdfParagraphBuilder InlineImage(byte[] imageBytes, double width, double height, string? alternativeText = null, OfficeIMO.Drawing.OfficeImageFit fit = OfficeIMO.Drawing.OfficeImageFit.Contain, double baselineOffset = 0D) =>
+        Inline(new PdfInlineImage(imageBytes, width, height, alternativeText, fit, baselineOffset));
+    /// <summary>Adds a filled and/or bordered box that participates in paragraph wrapping.</summary>
+    public PdfParagraphBuilder InlineBox(double width, double height, PdfColor? background = null, PdfColor? borderColor = null, double borderWidth = 0.5D, string? alternativeText = null, double baselineOffset = 0D) =>
+        Inline(new PdfInlineBox(width, height, background, borderColor, borderWidth, alternativeText, baselineOffset));
     /// <summary>Adds a bold text run.</summary>
     public PdfParagraphBuilder Bold(string text, PdfColor? color = null) { _runs.Add(new TextRun(text, bold: true, underline: false, color: color ?? _currentColor, italic: false, fontSize: _currentFontSize, font: _currentFont, backgroundColor: _currentBackgroundColor)); return this; }
     /// <summary>Adds an italic text run.</summary>

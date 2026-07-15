@@ -10,7 +10,8 @@ internal static class PdfLinearizationFileAssembler {
         Dictionary<int, PdfIndirectObject> objects,
         int catalogObjectNumber,
         PdfMetadata metadata,
-        byte[] sourcePdf) {
+        byte[] sourcePdf,
+        string trailerIdEntry) {
         PdfLinearizationPlan plan = PdfLinearizationPlanner.Create(objects, catalogObjectNumber);
         Numbering numbering = CreateNumbering(plan);
         SerializedObjects serialized = Serialize(objects, metadata, plan, numbering);
@@ -26,7 +27,8 @@ internal static class PdfLinearizationFileAssembler {
             numbering.TotalObjectCount + 1,
             0,
             numbering.CatalogObjectId,
-            numbering.InfoObjectId);
+            numbering.InfoObjectId,
+            trailerIdEntry);
 
         long linearizationOffset = header.LongLength;
         long firstXrefOffset = linearizationOffset + placeholderLinearization.LongLength;
@@ -62,7 +64,7 @@ internal static class PdfLinearizationFileAssembler {
         objectOffsets[numbering.InfoObjectId] = position;
         position += serialized.Info.LongLength;
         long mainXrefOffset = position;
-        byte[] mainXref = BuildMainXref(numbering.FirstGroupStart, objectOffsets, firstXrefOffset);
+        byte[] mainXref = BuildMainXref(numbering.FirstGroupStart, objectOffsets, firstXrefOffset, trailerIdEntry);
         long fileLength = mainXrefOffset + mainXref.LongLength;
         long mainXrefFirstEntryOffset = mainXrefOffset + (
             "xref\n0 " + numbering.FirstGroupStart.ToString(CultureInfo.InvariantCulture) + "\n").Length;
@@ -83,7 +85,8 @@ internal static class PdfLinearizationFileAssembler {
             numbering.TotalObjectCount + 1,
             mainXrefOffset,
             numbering.CatalogObjectId,
-            numbering.InfoObjectId);
+            numbering.InfoObjectId,
+            trailerIdEntry);
         if (linearization.Length != placeholderLinearization.Length || firstXref.Length != placeholderFirstXref.Length) {
             throw new InvalidOperationException("Linearized PDF fixed-width planning changed between assembly passes.");
         }
@@ -294,7 +297,8 @@ internal static class PdfLinearizationFileAssembler {
         int totalSize,
         long mainXrefOffset,
         int catalogObjectId,
-        int infoObjectId) {
+        int infoObjectId,
+        string trailerIdEntry) {
         var builder = new StringBuilder();
         builder.Append("xref\n").Append(firstGroupStart.ToString(CultureInfo.InvariantCulture)).Append(' ')
             .Append(firstGroupCount.ToString(CultureInfo.InvariantCulture)).Append('\n');
@@ -307,11 +311,12 @@ internal static class PdfLinearizationFileAssembler {
             .Append(" /Prev ").Append(Fixed(mainXrefOffset))
             .Append(" /Root ").Append(PdfSyntaxEscaper.IndirectReference(catalogObjectId))
             .Append(" /Info ").Append(PdfSyntaxEscaper.IndirectReference(infoObjectId))
+            .Append(trailerIdEntry)
             .Append(" >>\nstartxref\n0\n%%EOF\n");
         return PdfEncoding.Latin1GetBytes(builder.ToString());
     }
 
-    private static byte[] BuildMainXref(int firstGroupStart, Dictionary<int, long> offsets, long firstXrefOffset) {
+    private static byte[] BuildMainXref(int firstGroupStart, Dictionary<int, long> offsets, long firstXrefOffset, string trailerIdEntry) {
         var builder = new StringBuilder();
         builder.Append("xref\n0 ").Append(firstGroupStart.ToString(CultureInfo.InvariantCulture)).Append('\n');
         AppendXrefEntry(builder, 0, inUse: false);
@@ -320,6 +325,7 @@ internal static class PdfLinearizationFileAssembler {
             AppendXrefEntry(builder, offset, inUse: true);
         }
         builder.Append("trailer\n<< /Size ").Append(firstGroupStart.ToString(CultureInfo.InvariantCulture))
+            .Append(trailerIdEntry)
             .Append(" >>\nstartxref\n").Append(firstXrefOffset.ToString(CultureInfo.InvariantCulture)).Append("\n%%EOF\n");
         return PdfEncoding.Latin1GetBytes(builder.ToString());
     }

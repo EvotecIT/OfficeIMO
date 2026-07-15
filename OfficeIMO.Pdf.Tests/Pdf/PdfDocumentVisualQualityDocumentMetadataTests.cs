@@ -610,16 +610,11 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Theory]
-    [InlineData(PdfComplianceProfile.PdfA2B, "PDF/A-2b", "output-intent validation", "veraPDF")]
     [InlineData(PdfComplianceProfile.PdfA2U, "PDF/A-2u", "Unicode text mapping", "veraPDF")]
     [InlineData(PdfComplianceProfile.PdfA2A, "PDF/A-2a", "tagged PDF structure tree", "alternate text")]
-    [InlineData(PdfComplianceProfile.PdfA3B, "PDF/A-3b", "embedded-font coverage", "veraPDF")]
     [InlineData(PdfComplianceProfile.PdfA3U, "PDF/A-3u", "Unicode text mapping", "veraPDF")]
     [InlineData(PdfComplianceProfile.PdfA3A, "PDF/A-3a", "tagged PDF structure tree", "alternate text")]
-    [InlineData(PdfComplianceProfile.PdfUa1, "PDF/UA-1", "role map and reading order", "alternate text")]
-    [InlineData(PdfComplianceProfile.FacturX, "Factur-X", "embedded EN 16931 XML invoice payload", "Mustang")]
-    [InlineData(PdfComplianceProfile.Zugferd, "ZUGFeRD", "associated-file and embedded-file catalog entries", "Mustang")]
-    public void ComplianceProfile_RejectsFormalProfilesUntilCertifiedGenerationExists(PdfComplianceProfile profile, string displayName, string requirement, string validator) {
+    public void ComplianceProfile_RejectsUnsupportedFormalProfiles(PdfComplianceProfile profile, string displayName, string requirement, string validator) {
         var exception = Assert.Throws<NotSupportedException>(() =>
             PdfDocument.Create()
                 .Compliance(profile)
