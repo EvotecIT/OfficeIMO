@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint.LegacyPpt.Diagnostics;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
@@ -159,7 +160,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (slideShowInfo != null && slideShowInfo.PayloadLength >= 11) {
                 slide.Hidden = (slideShowInfo.ReadByte(10) & 0x04) != 0;
             }
-            ParseShapes(slideRecord, slide.AddShape, "slide", options);
+            LegacyPptColorScheme? effectiveScheme = slide.FollowsMasterColorScheme
+                ? _masters.FirstOrDefault(master => master.MasterId == slide.MasterId)?.ColorScheme
+                : slide.ColorScheme;
+            ParseShapes(slideRecord, slide.AddShape, "slide", options,
+                effectiveScheme ?? slide.ColorScheme);
         }
 
         private void ParseMasters(LegacyPptRecord document, byte[] documentStream,
@@ -206,13 +211,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     master.FollowsMasterBackground = (flags & 0x0004) != 0;
                 }
                 master.ColorScheme = ReadColorScheme(masterRecord);
-                ParseShapes(masterRecord, master.AddShape, isMainMaster ? "main master" : "title master", options);
+                LegacyPptColorScheme? effectiveScheme = !isMainMaster && master.FollowsMasterColorScheme
+                    ? _masters.FirstOrDefault(candidate => candidate.MasterId == master.ParentMasterId)?.ColorScheme
+                    : master.ColorScheme;
+                ParseShapes(masterRecord, master.AddShape, isMainMaster ? "main master" : "title master",
+                    options, effectiveScheme ?? master.ColorScheme);
                 _masters.Add(master);
             }
         }
 
         private void ParseShapes(LegacyPptRecord ownerRecord, Action<LegacyPptShape> addShape,
-            string ownerDescription, LegacyPptImportOptions options) {
+            string ownerDescription, LegacyPptImportOptions options, LegacyPptColorScheme? colorScheme) {
             LegacyPptRecord? drawing = ownerRecord.Children.FirstOrDefault(record => record.Type == RecordDrawing);
             if (drawing == null) return;
 
@@ -249,17 +258,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 string text = textbox == null ? string.Empty : ReadText(textbox);
                 LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
                 LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0);
+                LegacyPptRecord? fopt = shapeContainer.Children.FirstOrDefault(record =>
+                    record.Type == OfficeArtFopt);
+                OfficeArtShapeStyle style = ReadShapeStyle(fopt);
                 addShape(new LegacyPptShape(kind, shapeType, shapeId, shapeContainer.Offset,
-                    bounds, text, placeholder));
+                    bounds, text, placeholder, style,
+                    ResolveShapeColor(style.FillColor, colorScheme),
+                    ResolveShapeColor(style.LineColor, colorScheme)));
 
                 if (textbox != null && textbox.DescendantsAndSelf()
                         .Any(record => record.Type == RecordStyleTextPropAtom)) {
                     AddDiagnostic("PPT-TEXT-FORMATTING-FLATTENED", LegacyPptDiagnosticSeverity.Warning,
                         "Rich text and paragraph formatting was flattened to plain text.", textbox.Offset);
                 }
-                if (shapeContainer.Children.Any(record => record.Type == OfficeArtFopt)) {
-                    AddDiagnostic("PPT-SHAPE-STYLE-FLATTENED", LegacyPptDiagnosticSeverity.Warning,
-                        "OfficeArt fill, outline, or text-box styling was not projected.", shapeContainer.Offset);
+                if (fopt != null && fopt.Instance > 0 && style.Properties.Count == 0) {
+                    AddDiagnostic("PPT-SHAPE-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                        "The OfficeArt property table is truncated and could not be decoded.", fopt.Offset);
+                } else if (style.HasUnprojectedVisualStyle) {
+                    AddDiagnostic("PPT-SHAPE-STYLE-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
+                        "The shape uses a non-solid fill, compound line, custom dash, or enabled shadow that is preserved but not projected yet.",
+                        shapeContainer.Offset);
                 }
 
                 if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
@@ -306,6 +324,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 return CreateBounds(left, top, right, bottom);
             }
             throw new InvalidDataException("The OfficeArt anchor is too short.");
+        }
+
+        private static OfficeArtShapeStyle ReadShapeStyle(LegacyPptRecord? fopt) {
+            if (fopt == null || fopt.PayloadLength == 0 || fopt.Instance == 0) {
+                return OfficeArtShapeStyle.Decode(Array.Empty<OfficeArtProperty>());
+            }
+            byte[] recordBytes = fopt.CopyRecordBytes();
+            return OfficeArtShapeStyle.Decode(OfficeArtPropertyTableReader.Read(recordBytes, 8,
+                fopt.PayloadLength, fopt.Instance));
+        }
+
+        private static string? ResolveShapeColor(OfficeArtColorReference? reference,
+            LegacyPptColorScheme? colorScheme) {
+            if (!reference.HasValue) return null;
+            Func<byte, OfficeColor?>? resolver = colorScheme == null
+                ? null
+                : colorScheme.ResolveOfficeArtColor;
+            return reference.Value.TryResolve(resolver, out OfficeColor color)
+                ? color.ToRgbHex()
+                : null;
         }
 
         private static LegacyPptColorScheme? ReadColorScheme(LegacyPptRecord ownerRecord) {

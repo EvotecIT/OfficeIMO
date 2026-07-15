@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents the eight-color scheme stored by PowerPoint 97-2003.</summary>
     public sealed class LegacyPptColorScheme {
@@ -30,5 +32,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         public string Accent2 { get; }
         /// <summary>Gets accent color 3 as RRGGBB.</summary>
         public string Accent3 { get; }
+
+        /// <summary>Tries to get a color by its zero-based binary PowerPoint scheme index.</summary>
+        public bool TryGetColor(byte index, out string? color) {
+            color = index switch {
+                0 => Background,
+                1 => Text,
+                2 => Shadow,
+                3 => TitleText,
+                4 => Fill,
+                5 => Accent1,
+                6 => Accent2,
+                7 => Accent3,
+                _ => null
+            };
+            return color != null;
+        }
+
+        internal OfficeColor? ResolveOfficeArtColor(byte index) =>
+            TryGetColor(index, out string? color) && OfficeColor.TryParseHex(color, out OfficeColor parsed)
+                ? parsed
+                : null;
     }
 }

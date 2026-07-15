@@ -1,5 +1,5 @@
 using System.Security.Cryptography;
-using System.Text;
+using OfficeIMO.Drawing.Binary;
 using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
@@ -520,55 +520,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int contentEnd,
             ushort propertyCount,
             List<LegacyXlsDrawingShapeProperty> properties) {
-            int fixedLength = propertyCount * 6;
-            if (propertyCount == 0 || contentStart < 0 || contentStart + fixedLength > contentEnd) {
-                return;
+            if (contentStart < 0 || contentEnd < contentStart || contentEnd > payload.Length) return;
+            foreach (OfficeArtProperty property in OfficeArtPropertyTableReader.Read(payload,
+                         contentStart, contentEnd - contentStart, propertyCount)) {
+                properties.Add(new LegacyXlsDrawingShapeProperty(property));
             }
-
-            int complexOffset = contentStart + fixedLength;
-            for (int index = 0; index < propertyCount; index++) {
-                int propertyOffset = contentStart + index * 6;
-                ushort rawOperationId = BiffRecordReader.ReadUInt16(payload, propertyOffset);
-                uint value = BiffRecordReader.ReadUInt32(payload, propertyOffset + 2);
-                bool isComplex = (rawOperationId & 0x8000) != 0;
-                int? availableComplexDataLength = null;
-                string? complexText = null;
-                if (isComplex) {
-                    availableComplexDataLength = GetAvailableComplexDataLength(value, complexOffset, contentEnd);
-                    ushort propertyId = checked((ushort)(rawOperationId & 0x3fff));
-                    complexText = TryReadComplexTextProperty(payload, complexOffset, availableComplexDataLength.Value, propertyId);
-                    complexOffset += availableComplexDataLength.Value;
-                }
-
-                properties.Add(new LegacyXlsDrawingShapeProperty(index, rawOperationId, value, availableComplexDataLength, complexText));
-            }
-        }
-
-        private static string? TryReadComplexTextProperty(byte[] payload, int offset, int byteCount, ushort propertyId) {
-            if (!IsComplexTextProperty(propertyId) || byteCount <= 0 || offset < 0 || offset > payload.Length || byteCount > payload.Length - offset) {
-                return null;
-            }
-
-            int evenByteCount = byteCount - (byteCount % 2);
-            if (evenByteCount <= 0) {
-                return null;
-            }
-
-            string value = Encoding.Unicode.GetString(payload, offset, evenByteCount).TrimEnd('\0');
-            return string.IsNullOrWhiteSpace(value) ? null : value;
-        }
-
-        private static bool IsComplexTextProperty(ushort propertyId) {
-            return propertyId == 0x0380;
-        }
-
-        private static int GetAvailableComplexDataLength(uint declaredLength, int complexOffset, int contentEnd) {
-            if (declaredLength > int.MaxValue || complexOffset >= contentEnd) {
-                return 0;
-            }
-
-            int remaining = contentEnd - complexOffset;
-            return Math.Min((int)declaredLength, remaining);
         }
 
         private static bool TryReadEscherHeader(

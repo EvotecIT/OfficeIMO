@@ -244,6 +244,7 @@ namespace OfficeIMO.PowerPoint {
                     }),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = geometry });
             if (geometry == A.ShapeTypeValues.Line) shapeProperties.Append(new A.NoFill());
+            ApplyLegacyShapeStyle(shapeProperties, source);
 
             var shape = new Shape(
                 new NonVisualShapeProperties(
@@ -258,6 +259,172 @@ namespace OfficeIMO.PowerPoint {
                     new A.Paragraph(new A.Run(new A.Text(source.Text)))));
             }
             return shape;
+        }
+
+        internal static void ApplyLegacyShapeStyle(ShapeProperties properties, LegacyPptShape source) {
+            OfficeIMO.Drawing.Binary.OfficeArtShapeStyle style = source.Style;
+            if (style.FillEnabled == false) {
+                SetLegacyShapeFill(properties, new A.NoFill());
+            } else if (source.FillColor != null && style.FillType.GetValueOrDefault() == 0) {
+                SetLegacyShapeFill(properties, CreateLegacySolidFill(source.FillColor, style.FillOpacity));
+            }
+
+            bool hasLineStyle = style.LineEnabled.HasValue || source.LineColor != null
+                || style.LineOpacity.HasValue || style.LineWidthEmus.HasValue || style.LineDashing.HasValue
+                || style.LineStartArrowhead.HasValue || style.LineEndArrowhead.HasValue
+                || style.LineJoinStyle.HasValue || style.LineEndCapStyle.HasValue;
+            if (!hasLineStyle) return;
+
+            A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
+            if (outline.Parent == null) properties.Append(outline);
+            if (style.LineEnabled == false) {
+                SetLegacyOutlineFill(outline, new A.NoFill());
+                return;
+            }
+
+            if (source.LineColor != null) {
+                SetLegacyOutlineFill(outline, CreateLegacySolidFill(source.LineColor, style.LineOpacity));
+            }
+            if (style.LineWidthEmus is >= 0) outline.Width = style.LineWidthEmus.Value;
+            ApplyLegacyLineDash(outline, style.LineDashing);
+            ApplyLegacyLineJoin(outline, style.LineJoinStyle);
+            outline.CapType = MapLegacyLineCap(style.LineEndCapStyle);
+            ApplyLegacyLineEnd(outline, isHead: true, style.LineStartArrowhead,
+                style.LineStartArrowWidth, style.LineStartArrowLength);
+            ApplyLegacyLineEnd(outline, isHead: false, style.LineEndArrowhead,
+                style.LineEndArrowWidth, style.LineEndArrowLength);
+        }
+
+        private static A.SolidFill CreateLegacySolidFill(string color, double? opacity) {
+            var rgb = new A.RgbColorModelHex { Val = color };
+            if (opacity.HasValue) {
+                rgb.Append(new A.Alpha { Val = checked((int)Math.Round(
+                    Math.Max(0D, Math.Min(1D, opacity.Value)) * 100000D)) });
+            }
+            return new A.SolidFill(rgb);
+        }
+
+        private static void SetLegacyShapeFill(ShapeProperties properties, OpenXmlElement fill) {
+            properties.RemoveAllChildren<A.NoFill>();
+            properties.RemoveAllChildren<A.SolidFill>();
+            properties.RemoveAllChildren<A.GradientFill>();
+            properties.RemoveAllChildren<A.BlipFill>();
+            properties.RemoveAllChildren<A.PatternFill>();
+            A.Outline? outline = properties.GetFirstChild<A.Outline>();
+            if (outline != null) properties.InsertBefore(fill, outline);
+            else properties.Append(fill);
+        }
+
+        private static void SetLegacyOutlineFill(A.Outline outline, OpenXmlElement fill) {
+            outline.RemoveAllChildren<A.NoFill>();
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.RemoveAllChildren<A.GradientFill>();
+            outline.RemoveAllChildren<A.PatternFill>();
+            OpenXmlElement? first = outline.FirstChild;
+            if (first != null) outline.InsertBefore(fill, first);
+            else outline.Append(fill);
+        }
+
+        private static void ApplyLegacyLineDash(A.Outline outline, uint? value) {
+            outline.RemoveAllChildren<A.PresetDash>();
+            A.PresetLineDashValues? dash = value switch {
+                0 => A.PresetLineDashValues.Solid,
+                1 => A.PresetLineDashValues.SystemDash,
+                2 => A.PresetLineDashValues.SystemDot,
+                3 => A.PresetLineDashValues.SystemDashDot,
+                4 => A.PresetLineDashValues.SystemDashDotDot,
+                5 => A.PresetLineDashValues.Dot,
+                6 => A.PresetLineDashValues.Dash,
+                7 => A.PresetLineDashValues.LargeDash,
+                8 => A.PresetLineDashValues.DashDot,
+                9 => A.PresetLineDashValues.LargeDashDot,
+                10 => A.PresetLineDashValues.LargeDashDotDot,
+                _ => null
+            };
+            if (dash.HasValue) InsertLegacyOutlineChild(outline, new A.PresetDash { Val = dash.Value });
+        }
+
+        private static void ApplyLegacyLineJoin(A.Outline outline, uint? value) {
+            outline.RemoveAllChildren<A.Bevel>();
+            outline.RemoveAllChildren<A.Miter>();
+            outline.RemoveAllChildren<A.Round>();
+            OpenXmlElement? join = value switch {
+                0 => new A.Bevel(),
+                1 => new A.Miter(),
+                2 => new A.Round(),
+                _ => null
+            };
+            if (join != null) InsertLegacyOutlineChild(outline, join);
+        }
+
+        private static A.LineCapValues? MapLegacyLineCap(uint? value) => value switch {
+            0 => A.LineCapValues.Round,
+            1 => A.LineCapValues.Square,
+            2 => A.LineCapValues.Flat,
+            _ => null
+        };
+
+        private static void ApplyLegacyLineEnd(A.Outline outline, bool isHead, uint? type,
+            uint? width, uint? length) {
+            if (!type.HasValue && !width.HasValue && !length.HasValue) return;
+            if (isHead) {
+                A.HeadEnd head = outline.GetFirstChild<A.HeadEnd>() ?? new A.HeadEnd();
+                head.Type = MapLegacyLineEnd(type) ?? A.LineEndValues.None;
+                head.Width = MapLegacyLineEndWidth(width);
+                head.Length = MapLegacyLineEndLength(length);
+                if (head.Parent == null) InsertLegacyOutlineChild(outline, head);
+            } else {
+                A.TailEnd tail = outline.GetFirstChild<A.TailEnd>() ?? new A.TailEnd();
+                tail.Type = MapLegacyLineEnd(type) ?? A.LineEndValues.None;
+                tail.Width = MapLegacyLineEndWidth(width);
+                tail.Length = MapLegacyLineEndLength(length);
+                if (tail.Parent == null) InsertLegacyOutlineChild(outline, tail);
+            }
+        }
+
+        private static A.LineEndValues? MapLegacyLineEnd(uint? value) => value switch {
+            0 => A.LineEndValues.None,
+            1 => A.LineEndValues.Triangle,
+            2 => A.LineEndValues.Stealth,
+            3 => A.LineEndValues.Diamond,
+            4 => A.LineEndValues.Oval,
+            5 => A.LineEndValues.Arrow,
+            _ => null
+        };
+
+        private static A.LineEndWidthValues? MapLegacyLineEndWidth(uint? value) => value switch {
+            0 => A.LineEndWidthValues.Small,
+            1 => A.LineEndWidthValues.Medium,
+            2 => A.LineEndWidthValues.Large,
+            _ => null
+        };
+
+        private static A.LineEndLengthValues? MapLegacyLineEndLength(uint? value) => value switch {
+            0 => A.LineEndLengthValues.Small,
+            1 => A.LineEndLengthValues.Medium,
+            2 => A.LineEndLengthValues.Large,
+            _ => null
+        };
+
+        private static void InsertLegacyOutlineChild(A.Outline outline, OpenXmlElement child) {
+            int order = child switch {
+                A.NoFill or A.SolidFill or A.GradientFill or A.PatternFill => 0,
+                A.PresetDash or A.CustomDash => 1,
+                A.Round or A.Bevel or A.Miter => 2,
+                A.HeadEnd => 3,
+                A.TailEnd => 4,
+                _ => 100
+            };
+            OpenXmlElement? before = outline.ChildElements.FirstOrDefault(existing => (existing switch {
+                A.NoFill or A.SolidFill or A.GradientFill or A.PatternFill => 0,
+                A.PresetDash or A.CustomDash => 1,
+                A.Round or A.Bevel or A.Miter => 2,
+                A.HeadEnd => 3,
+                A.TailEnd => 4,
+                _ => 100
+            }) > order);
+            if (before != null) outline.InsertBefore(child, before);
+            else outline.Append(child);
         }
 
         private readonly struct LegacyPptLayoutTarget {

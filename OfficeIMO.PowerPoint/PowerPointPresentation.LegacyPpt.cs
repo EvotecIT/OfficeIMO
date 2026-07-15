@@ -94,6 +94,7 @@ namespace OfficeIMO.PowerPoint {
             long top = ToEmus(shape.Bounds.Top);
             long width = Math.Max(1L, ToEmus(shape.Bounds.Width));
             long height = Math.Max(1L, ToEmus(shape.Bounds.Height));
+            PowerPointShape? projectedShape = null;
             switch (shape.Kind) {
                 case LegacyPptShapeKind.TextBox:
                     PowerPointTextBox textBox = shape.PlaceholderKind == LegacyPptPlaceholderKind.Title
@@ -103,16 +104,21 @@ namespace OfficeIMO.PowerPoint {
                         : slide.AddTextBox(shape.Text, left, top, width, height);
                     PlaceholderValues? placeholder = MapPlaceholder(shape.PlaceholderKind);
                     if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value;
+                    projectedShape = textBox;
                     break;
                 case LegacyPptShapeKind.Rectangle:
-                    slide.AddShape(A.ShapeTypeValues.Rectangle, left, top, width, height);
+                    projectedShape = slide.AddShape(A.ShapeTypeValues.Rectangle, left, top, width, height);
                     break;
                 case LegacyPptShapeKind.Ellipse:
-                    slide.AddShape(A.ShapeTypeValues.Ellipse, left, top, width, height);
+                    projectedShape = slide.AddShape(A.ShapeTypeValues.Ellipse, left, top, width, height);
                     break;
                 case LegacyPptShapeKind.Line:
-                    slide.AddShape(A.ShapeTypeValues.Line, left, top, width, height);
+                    projectedShape = slide.AddShape(A.ShapeTypeValues.Line, left, top, width, height);
                     break;
+            }
+            if (projectedShape?.Element is DocumentFormat.OpenXml.Presentation.Shape projected
+                && projected.ShapeProperties != null) {
+                ApplyLegacyShapeStyle(projected.ShapeProperties, shape);
             }
         }
 

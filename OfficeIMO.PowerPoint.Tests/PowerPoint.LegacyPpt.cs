@@ -1,6 +1,7 @@
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.Drawing.Binary;
 using System.Threading.Tasks;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -32,7 +33,12 @@ namespace OfficeIMO.Tests {
             Assert.True(slide.FollowsMasterBackground);
             Assert.NotNull(slide.ColorScheme);
             Assert.Equal(3, slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.TextBox));
-            Assert.Contains(slide.Shapes, shape => shape.Text == "OfficeIMO PowerPoint Basics");
+            LegacyPptShape title = Assert.Single(slide.Shapes,
+                shape => shape.Text == "OfficeIMO PowerPoint Basics");
+            Assert.False(title.Style.FillEnabled);
+            Assert.False(title.Style.LineEnabled);
+            Assert.Equal("3465A4", title.LineColor);
+            Assert.Contains(title.Style.Properties, property => property.PropertyName == "lineColor");
             Assert.Contains(slide.Shapes, shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.Title);
             Assert.True(legacy.CreateImportReport().HasConversionLoss);
             Assert.Contains(legacy.Diagnostics, diagnostic => diagnostic.Code == "PPT-TEXT-FORMATTING-FLATTENED");
@@ -180,11 +186,60 @@ namespace OfficeIMO.Tests {
             Assert.Contains(masterShapes, shape => shape.TextBody?.InnerText == "Click to edit the title text format");
             Assert.Equal(3, slide.TextBoxes.Count());
             Assert.Contains(slide.TextBoxes, textBox => textBox.Text == "OfficeIMO PowerPoint Basics");
+            DocumentFormat.OpenXml.Presentation.Shape titleShape = slide.SlidePart.Slide!.CommonSlideData!
+                .ShapeTree!.Elements<DocumentFormat.OpenXml.Presentation.Shape>()
+                .Single(shape => shape.TextBody?.InnerText == "OfficeIMO PowerPoint Basics");
+            Assert.NotNull(titleShape.ShapeProperties!.GetFirstChild<A.NoFill>());
+            Assert.NotNull(titleShape.ShapeProperties.GetFirstChild<A.Outline>()?.GetFirstChild<A.NoFill>());
             slide.AddTextBox("Edited after binary import");
 
             using var pptx = presentation.ToStream();
             using PowerPointPresentation reopened = PowerPointPresentation.Load(pptx);
             Assert.Contains(reopened.Slides[0].TextBoxes, textBox => textBox.Text == "Edited after binary import");
+        }
+
+        [Fact]
+        public void OfficeArtStyleProjection_MapsSupportedSolidAndLineProperties() {
+            OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(new[] {
+                new OfficeArtProperty(0, 0x0181, 0x00332211U),
+                new OfficeArtProperty(1, 0x0182, 0x00008000U),
+                new OfficeArtProperty(2, 0x01BF, 0x00100010U),
+                new OfficeArtProperty(3, 0x01C0, 0x00665544U),
+                new OfficeArtProperty(4, 0x01C1, 0x0000C000U),
+                new OfficeArtProperty(5, 0x01CB, 12700U),
+                new OfficeArtProperty(6, 0x01CE, 3U),
+                new OfficeArtProperty(7, 0x01D0, 1U),
+                new OfficeArtProperty(8, 0x01D2, 0U),
+                new OfficeArtProperty(9, 0x01D3, 2U),
+                new OfficeArtProperty(10, 0x01D6, 1U),
+                new OfficeArtProperty(11, 0x01D7, 2U),
+                new OfficeArtProperty(12, 0x01FF, 0x00080008U)
+            });
+            var source = new LegacyPptShape(LegacyPptShapeKind.Rectangle, 1, 1, 0,
+                new LegacyPptBounds(0, 0, 100, 100), string.Empty, LegacyPptPlaceholderKind.None,
+                style, "112233", "445566");
+            var properties = new DocumentFormat.OpenXml.Presentation.ShapeProperties(
+                new A.Transform2D(),
+                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle });
+
+            PowerPointPresentation.ApplyLegacyShapeStyle(properties, source);
+
+            A.RgbColorModelHex fill = properties.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!;
+            Assert.Equal("112233", fill.Val!.Value);
+            Assert.Equal(50000, fill.GetFirstChild<A.Alpha>()!.Val!.Value);
+            A.Outline outline = properties.GetFirstChild<A.Outline>()!;
+            Assert.Equal(12700, outline.Width!.Value);
+            Assert.Equal(A.LineCapValues.Flat, outline.CapType!.Value);
+            Assert.Equal("445566", outline.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+            Assert.Equal(75000, outline.GetFirstChild<A.SolidFill>()!.RgbColorModelHex!
+                .GetFirstChild<A.Alpha>()!.Val!.Value);
+            Assert.Equal(A.PresetLineDashValues.SystemDashDot,
+                outline.GetFirstChild<A.PresetDash>()!.Val!.Value);
+            Assert.NotNull(outline.GetFirstChild<A.Miter>());
+            A.HeadEnd head = outline.GetFirstChild<A.HeadEnd>()!;
+            Assert.Equal(A.LineEndValues.Triangle, head.Type!.Value);
+            Assert.Equal(A.LineEndWidthValues.Small, head.Width!.Value);
+            Assert.Equal(A.LineEndLengthValues.Large, head.Length!.Value);
         }
 
         [Theory]

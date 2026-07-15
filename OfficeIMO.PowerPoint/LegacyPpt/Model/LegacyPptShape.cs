@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing.Binary;
+
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies the shape kinds currently projected from binary PowerPoint files.</summary>
     public enum LegacyPptShapeKind {
@@ -78,7 +80,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents a shape decoded from a binary PowerPoint slide.</summary>
     public sealed class LegacyPptShape {
         internal LegacyPptShape(LegacyPptShapeKind kind, ushort officeArtShapeType, uint shapeId,
-            long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholderKind placeholderKind) {
+            long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholderKind placeholderKind,
+            OfficeArtShapeStyle style, string? fillColor, string? lineColor) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -86,6 +89,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Bounds = bounds;
             Text = text ?? string.Empty;
             PlaceholderKind = placeholderKind;
+            Style = style ?? throw new ArgumentNullException(nameof(style));
+            FillColor = fillColor;
+            LineColor = lineColor;
         }
 
         /// <summary>Gets the projected shape kind.</summary>
@@ -108,5 +114,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the placeholder kind.</summary>
         public LegacyPptPlaceholderKind PlaceholderKind { get; }
+
+        /// <summary>Gets decoded OfficeArt fill, line, and shadow properties.</summary>
+        public OfficeArtShapeStyle Style { get; }
+
+        /// <summary>Gets the resolved solid fill color as RRGGBB, when available.</summary>
+        public string? FillColor { get; }
+
+        /// <summary>Gets the resolved line color as RRGGBB, when available.</summary>
+        public string? LineColor { get; }
     }
 }

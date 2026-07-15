@@ -1,0 +1,142 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+
+namespace OfficeIMO.Drawing.Binary;
+
+/// <summary>
+/// Decodes common fill, line, and shadow state from an OfficeArt property table.
+/// Numeric enum values remain available so application-specific projectors can map them without loss.
+/// </summary>
+public sealed class OfficeArtShapeStyle {
+    private OfficeArtShapeStyle(IReadOnlyList<OfficeArtProperty> properties) {
+        Properties = properties?.ToArray() ?? Array.Empty<OfficeArtProperty>();
+        FillType = GetUInt32(0x0180);
+        FillColor = GetColor(0x0181);
+        FillOpacity = GetFixedPoint(0x0182);
+        FillEnabled = GetBoolean(0x01BF, 0x00100000U, 0x00000010U);
+        LineColor = GetColor(0x01C0);
+        LineOpacity = GetFixedPoint(0x01C1);
+        LineType = GetUInt32(0x01C4);
+        LineWidthEmus = GetInt32(0x01CB);
+        LineStyle = GetUInt32(0x01CD);
+        LineDashing = GetUInt32(0x01CE);
+        LineStartArrowhead = GetUInt32(0x01D0);
+        LineEndArrowhead = GetUInt32(0x01D1);
+        LineStartArrowWidth = GetUInt32(0x01D2);
+        LineStartArrowLength = GetUInt32(0x01D3);
+        LineEndArrowWidth = GetUInt32(0x01D4);
+        LineEndArrowLength = GetUInt32(0x01D5);
+        LineJoinStyle = GetUInt32(0x01D6);
+        LineEndCapStyle = GetUInt32(0x01D7);
+        LineEnabled = GetBoolean(0x01FF, 0x00080000U, 0x00000008U);
+        ShadowEnabled = GetBoolean(0x023F, 0x00020000U, 0x00000002U);
+    }
+
+    /// <summary>Decodes a shape style from OfficeArt properties.</summary>
+    public static OfficeArtShapeStyle Decode(IReadOnlyList<OfficeArtProperty>? properties) =>
+        new OfficeArtShapeStyle(properties ?? Array.Empty<OfficeArtProperty>());
+
+    /// <summary>Gets the source property entries.</summary>
+    public IReadOnlyList<OfficeArtProperty> Properties { get; }
+
+    /// <summary>Gets the MSOFILLTYPE value.</summary>
+    public uint? FillType { get; }
+
+    /// <summary>Gets the fill color reference.</summary>
+    public OfficeArtColorReference? FillColor { get; }
+
+    /// <summary>Gets fill opacity from 0 through 1.</summary>
+    public double? FillOpacity { get; }
+
+    /// <summary>Gets explicit fill visibility, or null when the property inherits its default.</summary>
+    public bool? FillEnabled { get; }
+
+    /// <summary>Gets the line color reference.</summary>
+    public OfficeArtColorReference? LineColor { get; }
+
+    /// <summary>Gets line opacity from 0 through 1.</summary>
+    public double? LineOpacity { get; }
+
+    /// <summary>Gets the MSOLINETYPE value.</summary>
+    public uint? LineType { get; }
+
+    /// <summary>Gets the line width in English Metric Units.</summary>
+    public int? LineWidthEmus { get; }
+
+    /// <summary>Gets the MSOLINESTYLE value.</summary>
+    public uint? LineStyle { get; }
+
+    /// <summary>Gets the MSOLINEDASHING value.</summary>
+    public uint? LineDashing { get; }
+
+    /// <summary>Gets the start MSOLINEEND value.</summary>
+    public uint? LineStartArrowhead { get; }
+
+    /// <summary>Gets the end MSOLINEEND value.</summary>
+    public uint? LineEndArrowhead { get; }
+
+    /// <summary>Gets the start MSOLINEENDWIDTH value.</summary>
+    public uint? LineStartArrowWidth { get; }
+
+    /// <summary>Gets the start MSOLINEENDLENGTH value.</summary>
+    public uint? LineStartArrowLength { get; }
+
+    /// <summary>Gets the end MSOLINEENDWIDTH value.</summary>
+    public uint? LineEndArrowWidth { get; }
+
+    /// <summary>Gets the end MSOLINEENDLENGTH value.</summary>
+    public uint? LineEndArrowLength { get; }
+
+    /// <summary>Gets the MSOLINEJOIN value.</summary>
+    public uint? LineJoinStyle { get; }
+
+    /// <summary>Gets the MSOLINECAP value.</summary>
+    public uint? LineEndCapStyle { get; }
+
+    /// <summary>Gets explicit line visibility, or null when the property inherits its default.</summary>
+    public bool? LineEnabled { get; }
+
+    /// <summary>Gets explicit shadow visibility, or null when the property inherits its default.</summary>
+    public bool? ShadowEnabled { get; }
+
+    /// <summary>Gets whether this style includes fill or line values that can be projected directly.</summary>
+    public bool HasProjectableStyle => FillEnabled.HasValue || FillColor.HasValue || FillOpacity.HasValue
+        || LineEnabled.HasValue || LineColor.HasValue || LineOpacity.HasValue || LineWidthEmus.HasValue
+        || LineDashing.HasValue || LineStartArrowhead.HasValue || LineEndArrowhead.HasValue
+        || LineJoinStyle.HasValue || LineEndCapStyle.HasValue;
+
+    /// <summary>Gets whether enabled visual state requires a richer projector than solid fills and lines.</summary>
+    public bool HasUnprojectedVisualStyle =>
+        FillEnabled != false && FillType.GetValueOrDefault() > 0
+        || LineEnabled != false && (LineType.GetValueOrDefault() > 0 || LineStyle.GetValueOrDefault() > 0)
+        || LineEnabled != false && Properties.Any(property => property.PropertyId == 0x01CF)
+        || ShadowEnabled == true;
+
+    private OfficeArtProperty? GetProperty(ushort propertyId) =>
+        Properties.LastOrDefault(property => property.PropertyId == propertyId && !property.IsComplex);
+
+    private uint? GetUInt32(ushort propertyId) => GetProperty(propertyId)?.Value;
+
+    private int? GetInt32(ushort propertyId) {
+        OfficeArtProperty? property = GetProperty(propertyId);
+        return property == null ? null : unchecked((int)property.Value);
+    }
+
+    private OfficeArtColorReference? GetColor(ushort propertyId) {
+        uint? value = GetUInt32(propertyId);
+        return value.HasValue ? new OfficeArtColorReference(value.Value) : null;
+    }
+
+    private double? GetFixedPoint(ushort propertyId) {
+        uint? value = GetUInt32(propertyId);
+        if (!value.HasValue || value.Value > 0x00010000U) return null;
+        return value.Value / 65536D;
+    }
+
+    private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) {
+        uint? value = GetUInt32(propertyId);
+        if (!value.HasValue || (value.Value & useMask) == 0) return null;
+        return (value.Value & valueMask) != 0;
+    }
+}
