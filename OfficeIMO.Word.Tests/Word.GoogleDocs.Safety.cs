@@ -1,4 +1,5 @@
 using OfficeIMO.GoogleWorkspace;
+using OfficeIMO.Word;
 using OfficeIMO.Word.GoogleDocs;
 using System.Net;
 using System.Net.Http;
@@ -112,6 +113,50 @@ namespace OfficeIMO.Tests {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
                 }
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_TemporaryImageLease_SkipsBmpImages() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsBmpImage.docx");
+            string imagePath = Path.Combine(_directoryWithImages, "snail.bmp");
+
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("BMP ").InsertImage(imagePath);
+                var requestUris = new List<string>();
+                var batchBodies = new List<string>();
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    requestUris.Add(request.RequestUri!.AbsoluteUri);
+                    if (request.Method == HttpMethod.Post && request.RequestUri.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
+                        return CreateJsonResponse("{\"documentId\":\"doc-bmp\",\"title\":\"BMP Export\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-bmp:batchUpdate") {
+                        batchBodies.Add(await request.Content!.ReadAsStringAsync().ConfigureAwait(false));
+                        return CreateJsonResponse("{}");
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.NotFound) {
+                        Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
+                    };
+                }));
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Title = "BMP Export",
+                    InlineImageMode = GoogleDocsInlineImageMode.TemporaryPublicDriveLease,
+                });
+
+                Assert.DoesNotContain(requestUris, uri => uri.Contains("upload/drive/v3", StringComparison.Ordinal));
+                Assert.DoesNotContain(batchBodies, body => body.Contains("insertInlineImage", StringComparison.Ordinal));
+                Assert.Contains(result.Report.Notices, notice =>
+                    notice.Feature == "InlineImages"
+                    && notice.Message.Contains("does not accept", StringComparison.Ordinal));
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
             }
         }
     }

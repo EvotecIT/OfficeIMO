@@ -219,6 +219,15 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsBatch_DetectsMismatchedChartSeriesLengths() {
+            var series = new ExcelChartSeries("Sales", new[] { 2d, 5d });
+            var data = new ExcelChartData(new[] { "A", "B" }, new[] { series });
+            Assert.IsType<List<double>>(series.Values).RemoveAt(1);
+
+            Assert.False(GoogleSheetsBatchCompiler.HasAlignedChartSeries(data, dataRowCount: 2));
+        }
+
+        [Fact]
         public void Test_GoogleSheetsBatch_QualifiesSheetScopedNamedRanges() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNamedRangeScopes.xlsx");
             try {

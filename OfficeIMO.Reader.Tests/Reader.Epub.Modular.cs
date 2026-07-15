@@ -445,9 +445,9 @@ public sealed class ReaderEpubModularTests {
         var tempDirectory = Path.Combine(Path.GetTempPath(), "officeimo-reader-epub-canonical-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
         var epubPath = Path.Combine(tempDirectory, "canonical.epub");
-        var originalCurrentDirectory = Environment.CurrentDirectory;
 
         lock (ReaderCurrentDirectoryLock.Gate) {
+            var originalCurrentDirectory = Environment.CurrentDirectory;
             try {
                 BuildEpubWithSpine(epubPath);
 

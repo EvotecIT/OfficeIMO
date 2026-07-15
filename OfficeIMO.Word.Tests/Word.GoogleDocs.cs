@@ -831,14 +831,19 @@ namespace OfficeIMO.Tests {
                     .Single(request => request.SectionIndex == 1);
                 Assert.True(secondSectionParagraph.Paragraph.StartsNewSectionBefore);
                 Assert.Equal("NextPage", secondSectionParagraph.Paragraph.SectionBreakType);
+                Assert.Single(secondSectionParagraph.Paragraph.Runs).Bold = true;
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
                 var sectionBreakRequest = Assert.Single(payload.Requests, request => request.InsertSectionBreak != null);
                 var sectionBreakIndex = payload.Requests.IndexOf(sectionBreakRequest);
                 var secondSectionStyleIndex = payload.Requests.FindIndex(request =>
-                    request.UpdateSectionStyle?.Range.StartIndex == sectionBreakRequest.InsertSectionBreak!.Location.Index
+                    request.UpdateSectionStyle?.Range.StartIndex == sectionBreakRequest.InsertSectionBreak!.Location.Index + 1
                     && request.UpdateSectionStyle.SectionStyle.PageSize != null);
                 Assert.True(secondSectionStyleIndex > sectionBreakIndex);
+                var secondSectionTextStyle = Assert.Single(payload.Requests, request =>
+                    request.UpdateTextStyle?.TextStyle.Bold == true
+                    && request.UpdateTextStyle.Range.StartIndex == sectionBreakRequest.InsertSectionBreak!.Location.Index + 1);
+                Assert.True(payload.Requests.IndexOf(secondSectionTextStyle) > sectionBreakIndex);
                 Assert.Equal("NEXT_PAGE", sectionBreakRequest.InsertSectionBreak!.SectionType);
                 Assert.Equal(1, sectionBreakRequest.InsertSectionBreak.Location.Index);
                 Assert.Contains(batch.Report.Notices, notice => notice.Feature == "SectionBreaks");

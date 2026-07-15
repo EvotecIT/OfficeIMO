@@ -21,10 +21,14 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
 
             var sectionBreakIndexes = EnumerateSectionBreakIndexes(documentState).ToList();
+            bool selectedTabHasInitialSectionAnchor = !string.IsNullOrWhiteSpace(batch.TargetTabId)
+                && sectionBreakIndexes.Count > 0
+                && sectionBreakIndexes[0] == 0;
             foreach (var segment in executableSegments) {
                 GoogleDocsApiLocationPayload? sectionBreakLocation = null;
                 if (segment.SectionIndex > 0 || !string.IsNullOrWhiteSpace(batch.TargetTabId)) {
-                    if (sectionBreakIndexes.Count <= segment.SectionIndex) {
+                    int sectionBreakListIndex = segment.SectionIndex - 1 + (selectedTabHasInitialSectionAnchor ? 1 : 0);
+                    if (sectionBreakListIndex < 0 || sectionBreakIndexes.Count <= sectionBreakListIndex) {
                         batch.Report.Add(
                             TranslationSeverity.Warning,
                             "HeadersAndFooters",
@@ -33,7 +37,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     }
 
                     sectionBreakLocation = new GoogleDocsApiLocationPayload {
-                        Index = sectionBreakIndexes[segment.SectionIndex]
+                        Index = sectionBreakIndexes[sectionBreakListIndex]
                     };
                 }
 

@@ -184,13 +184,23 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     continue;
                 }
 
+                int dataRowCount = scatterDomain?.Count ?? snapshot.Data.Categories.Count;
+                if (!HasAlignedChartSeries(snapshot.Data, dataRowCount)) {
+                    HandleAdvancedUnsupported(
+                        report,
+                        "Charts",
+                        "SHEETS.CHART.SERIES_LENGTH_UNSUPPORTED",
+                        snapshot.Name,
+                        policy);
+                    continue;
+                }
+
                 GoogleSheetsUpdateCellsRequest data = GetOrCreateChartDataRequest(batch, out string chartDataSheetName);
                 int startRow = data.Cells.Count == 0 ? 0 : data.Cells.Max(cell => cell.RowIndex) + 2;
                 data.AddCell(new GoogleSheetsCellData { RowIndex = startRow, ColumnIndex = 0, Value = GoogleSheetsCellValue.String(scatterDomain == null ? "Category" : "X") });
                 for (int seriesIndex = 0; seriesIndex < snapshot.Data.Series.Count; seriesIndex++) {
                     data.AddCell(new GoogleSheetsCellData { RowIndex = startRow, ColumnIndex = seriesIndex + 1, Value = GoogleSheetsCellValue.String(snapshot.Data.Series[seriesIndex].Name) });
                 }
-                int dataRowCount = scatterDomain?.Count ?? snapshot.Data.Categories.Count;
                 for (int row = 0; row < dataRowCount; row++) {
                     data.AddCell(new GoogleSheetsCellData {
                         RowIndex = startRow + row + 1,
@@ -217,6 +227,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     AnchorColumnIndex = Math.Max(0, snapshot.ColumnIndex - 1),
                 });
             }
+        }
+
+        internal static bool HasAlignedChartSeries(ExcelChartData data, int dataRowCount) {
+            return data.Series.All(series => series.Values.Count == dataRowCount);
         }
 
         private static bool TryGetScatterDomain(ExcelChartData data, out IReadOnlyList<double>? domain) {

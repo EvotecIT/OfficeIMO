@@ -154,6 +154,11 @@ namespace OfficeIMO.Word.GoogleDocs {
                     return false;
                 }
 
+                if (!IsSupportedGoogleDocsImageMimeType(mimeType)) {
+                    diagnosticMessage = $"Inline image '{fileName}' uses content type '{mimeType}', which Google Docs insertInlineImage does not accept, so export kept the readable placeholder.";
+                    return false;
+                }
+
                 return true;
             }
 
@@ -162,6 +167,11 @@ namespace OfficeIMO.Word.GoogleDocs {
                 fileName = string.IsNullOrWhiteSpace(fileName) ? Path.GetFileName(existingFilePath) : fileName;
                 if (string.IsNullOrWhiteSpace(mimeType) && !TryGetImageMimeType(existingFilePath, out mimeType)) {
                     diagnosticMessage = $"Inline image '{existingFilePath}' uses an unsupported extension for the current Google Docs image upload slice, so export kept the readable placeholder.";
+                    return false;
+                }
+
+                if (!IsSupportedGoogleDocsImageMimeType(mimeType)) {
+                    diagnosticMessage = $"Inline image '{existingFilePath}' uses content type '{mimeType}', which Google Docs insertInlineImage does not accept, so export kept the readable placeholder.";
                     return false;
                 }
 
@@ -190,13 +200,16 @@ namespace OfficeIMO.Word.GoogleDocs {
                 case ".gif":
                     mimeType = "image/gif";
                     return true;
-                case ".bmp":
-                    mimeType = "image/bmp";
-                    return true;
                 default:
                     mimeType = string.Empty;
                     return false;
             }
+        }
+
+        private static bool IsSupportedGoogleDocsImageMimeType(string? mimeType) {
+            return string.Equals(mimeType, "image/png", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mimeType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mimeType, "image/gif", StringComparison.OrdinalIgnoreCase);
         }
 
     }

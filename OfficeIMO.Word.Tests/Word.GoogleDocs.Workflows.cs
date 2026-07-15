@@ -261,6 +261,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleDocsExporter_AttachesLaterSectionHeaderToPrecedingBreak() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsLaterSectionHeader.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("First section");
+                WordSection secondSection = document.AddSection();
+                secondSection.AddParagraph("Second section");
+                secondSection.AddHeadersAndFooters();
+                secondSection.Header.Default!.AddParagraph("Second section header");
+
+                var bodies = new List<string>();
+                const string state = "{\"documentId\":\"doc-later-header\",\"title\":\"Later header\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":10,\"paragraph\":{}},{\"startIndex\":10,\"endIndex\":11,\"sectionBreak\":{}},{\"startIndex\":11,\"endIndex\":30,\"paragraph\":{}}]}}";
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
+                        return CreateJsonResponse("{\"documentId\":\"doc-later-header\",\"title\":\"Later header\"}");
+                    }
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-later-header?includeTabsContent=true") {
+                        return CreateJsonResponse(state);
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-later-header:batchUpdate") {
+                        string body = await request.Content!.ReadAsStringAsync().ConfigureAwait(false);
+                        bodies.Add(body);
+                        return body.Contains("\"createHeader\"", StringComparison.Ordinal)
+                            ? CreateJsonResponse("{\"replies\":[{\"createHeader\":{\"headerId\":\"header-later\"}}]}")
+                            : CreateJsonResponse("{}");
+                    }
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }));
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions { Title = "Later header" });
+
+                string createHeaderBody = Assert.Single(bodies, body => body.Contains("\"createHeader\"", StringComparison.Ordinal));
+                using JsonDocument payload = JsonDocument.Parse(createHeaderBody);
+                JsonElement location = payload.RootElement.GetProperty("requests").EnumerateArray()
+                    .Single(request => request.TryGetProperty("createHeader", out _))
+                    .GetProperty("createHeader")
+                    .GetProperty("sectionBreakLocation");
+                Assert.Equal(10, location.GetProperty("index").GetInt32());
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public async Task Test_GoogleDocsImporter_NativeFlattensTabsWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
