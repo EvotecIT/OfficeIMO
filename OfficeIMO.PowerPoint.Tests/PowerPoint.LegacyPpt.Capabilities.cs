@@ -101,5 +101,26 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native,
                 capability.PptxToBinary);
         }
+
+        [Fact]
+        public void CapabilityContract_SeparatesClassicAndModernComments() {
+            LegacyPptCapability classic = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Comments);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                classic.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                classic.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                classic.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                classic.PptxToBinary);
+
+            LegacyPptCapability modern = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.ModernComments);
+            Assert.Equal(LegacyPptRepresentability.NotRepresentable,
+                modern.Representability);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                modern.PptxToBinary);
+        }
     }
 }

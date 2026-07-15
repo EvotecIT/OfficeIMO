@@ -25,6 +25,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "PPT-WRITE-VBA",
                     "VBA projects are not encoded by the native binary writer."));
             }
+            if (LegacyPptWriter.HasModernComments(presentation)) {
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
+                    "PPT-WRITE-MODERN-COMMENTS",
+                    "Modern threaded comments, replies, status, and shape anchors have no native PowerPoint 97-2003 representation."));
+            }
+            if (!LegacyPptWriter.TryReadAllClassicComments(presentation, out _,
+                    out string? commentReason)) {
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Comments,
+                    "PPT-WRITE-COMMENTS",
+                    commentReason ?? "Classic comments cannot be encoded by the native binary writer."));
+            }
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
                 if (HasUnsupportedRichNotes(slide)) {

@@ -77,7 +77,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
                     sourceSlide.Hidden, sourceSlide.HeaderFooter,
-                    sourceSlide.Transition, shapes,
+                    sourceSlide.Transition, sourceSlide.Comments, shapes,
                     sourceSlide.NotesPage == null
                         ? null
                         : new LegacyPptNotesProjection(sourceSlide.NotesPage.PersistId,
@@ -118,6 +118,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, uint masterId,
             bool hidden, LegacyPptHeaderFooterSettings? headerFooter,
             LegacyPptTransition? transition,
+            IReadOnlyList<LegacyPptComment> comments,
             IReadOnlyList<LegacyPptShapeProjection> shapes, LegacyPptNotesProjection? notes) {
             SlidePartUri = slidePartUri ?? throw new ArgumentNullException(nameof(slidePartUri));
             PersistId = persistId;
@@ -126,6 +127,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Hidden = hidden;
             HeaderFooter = headerFooter;
             Transition = transition;
+            Comments = new ReadOnlyCollection<LegacyPptComment>(comments.ToArray());
             Notes = notes;
             Shapes = new ReadOnlyCollection<LegacyPptShapeProjection>(shapes.ToArray());
             _shapesByOpenXmlId = new ReadOnlyDictionary<uint, LegacyPptShapeProjection>(shapes.ToDictionary(
@@ -145,6 +147,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal LegacyPptHeaderFooterSettings? HeaderFooter { get; }
 
         internal LegacyPptTransition? Transition { get; }
+
+        internal IReadOnlyList<LegacyPptComment> Comments { get; }
 
         internal LegacyPptNotesProjection? Notes { get; }
 

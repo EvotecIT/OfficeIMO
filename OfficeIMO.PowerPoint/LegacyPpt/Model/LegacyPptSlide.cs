@@ -3,6 +3,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     public sealed class LegacyPptSlide {
         private readonly List<LegacyPptShape> _shapes = new();
         private readonly List<LegacyPptConnectorRule> _connectorRules = new();
+        private readonly List<LegacyPptComment> _comments = new();
         private IReadOnlyList<LegacyPptPlaceholderKind> _layoutPlaceholderTypes =
             Array.Empty<LegacyPptPlaceholderKind>();
 
@@ -60,6 +61,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets this slide's transition and advance settings, when present.</summary>
         public LegacyPptTransition? Transition { get; internal set; }
 
+        /// <summary>Gets the legacy review comments in record order.</summary>
+        public IReadOnlyList<LegacyPptComment> Comments => _comments;
+
         /// <summary>Gets the projected shapes in drawing order.</summary>
         public IReadOnlyList<LegacyPptShape> Shapes => _shapes;
 
@@ -75,6 +79,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         internal void AddShape(LegacyPptShape shape) => _shapes.Add(shape);
 
         internal void AddConnectorRule(LegacyPptConnectorRule rule) => _connectorRules.Add(rule);
+
+        internal void AddComment(LegacyPptComment comment) => _comments.Add(comment);
 
         internal void SetLayoutPlaceholderTypes(
             IReadOnlyList<LegacyPptPlaceholderKind> placeholderTypes) =>

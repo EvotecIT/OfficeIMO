@@ -63,8 +63,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         NormalizeProjectedHeaderFooter(root);
                     }
                 },
-                part => !(part is SlidePart or NotesSlidePart),
-                (owner, relationship) => !(relationship.OpenXmlPart is SlidePart));
+                part => !(part is SlidePart or NotesSlidePart or SlideCommentsPart
+                    or CommentAuthorsPart),
+                (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
+                    or SlideCommentsPart or CommentAuthorsPart));
 
         private static string CreateSlide(PresentationDocument document, SlidePart slidePart,
             LegacyPptProjectionMap projectionMap) => PowerPointPackageFingerprint.Create(document,
@@ -72,7 +74,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             part => string.Equals(part.Uri.ToString(), slidePart.Uri.ToString(),
                         StringComparison.Ordinal)
                     || part is NotesSlidePart notesPart
-                    && ReferenceEquals(notesPart.SlidePart, slidePart));
+                    && ReferenceEquals(notesPart.SlidePart, slidePart),
+            (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart);
 
         private static void NormalizePresentationTopology(OpenXmlElement root) {
             if (root is not P.Presentation presentation || presentation.SlideIdList == null) return;

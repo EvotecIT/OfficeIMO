@@ -90,6 +90,8 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
+            ProjectLegacyComments(projected, legacy);
+
             byte[] packageBytes = projected.ToBytes();
             PowerPointPresentation presentation = LoadPackage(packageBytes, sourcePath, sourceStream, loadOptions);
             LegacyPptProjectionMap projectionMap = LegacyPptProjectionMap.Create(presentation, legacy);

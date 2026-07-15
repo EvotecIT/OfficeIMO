@@ -67,6 +67,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             TransitionSoundCount = presentation.Slides.Count(slide =>
                 slide.Transition?.PlaySound == true
                 || slide.Transition?.StopSound == true);
+            CommentCount = presentation.Slides.Sum(slide => slide.Comments.Count);
+            CommentAuthorCount = presentation.Slides.SelectMany(slide => slide.Comments)
+                .Select(comment => (comment.Author, comment.Initials))
+                .Distinct()
+                .Count();
             WarningCount = presentation.Diagnostics.Count(diagnostic =>
                 diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning);
             ErrorCount = presentation.Diagnostics.Count(diagnostic =>
@@ -144,6 +149,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of transitions that play or stop sound.</summary>
         public int TransitionSoundCount { get; }
+
+        /// <summary>Gets the number of decoded legacy review comments.</summary>
+        public int CommentCount { get; }
+
+        /// <summary>Gets the number of distinct embedded comment authors.</summary>
+        public int CommentAuthorCount { get; }
 
         /// <summary>Gets the warning count.</summary>
         public int WarningCount { get; }

@@ -45,6 +45,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(presentation);
             LegacyPptWritePreflight.ThrowIfBlocked(preflight, options);
+            if (!TryReadAllClassicComments(presentation,
+                    out IReadOnlyDictionary<string, IReadOnlyList<LegacyPptWriterComment>> commentsBySlide,
+                    out _)) {
+                commentsBySlide = new Dictionary<string, IReadOnlyList<LegacyPptWriterComment>>(
+                    StringComparer.Ordinal);
+            }
 
             LegacyPptWriterTemplate template = Template.Value;
             var notes = new List<LegacyPptWriterNote>();
@@ -73,8 +79,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 uint? notesId = notesBySlide.TryGetValue(index, out LegacyPptWriterNote? note)
                     ? note.NotesId
                     : null;
+                commentsBySlide.TryGetValue(slide.SlidePart.Uri.ToString(),
+                    out IReadOnlyList<LegacyPptWriterComment>? comments);
                 slideRecords.Add(BuildSlideRecord(template.SlidePrototype, slide, supportedShapes,
-                    unchecked((uint)(13 + index)), masterIdRef: null, notesId));
+                    unchecked((uint)(13 + index)), masterIdRef: null, notesId,
+                    comments ?? Array.Empty<LegacyPptWriterComment>()));
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId)).ToArray();
@@ -111,7 +120,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 throw new InvalidOperationException("The incremental slide contains an unsupported shape.");
             }
             return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
-                masterIdRef, notesIdRef: null);
+                masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide));
         }
 
         private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,
@@ -253,65 +262,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(BuildRecord(version: 0, instance: 0, RecordSlidePersistAtom, payload));
             }
             return BuildContainer(RecordSlideListWithText, instance: 0, children);
-        }
-
-        private static byte[] BuildSlideRecord(LegacyPptRecord prototype, PowerPointSlide slide,
-            IReadOnlyList<PowerPointShape> shapes, uint drawingId, uint? masterIdRef,
-            uint? notesIdRef) {
-            var children = new List<byte[]>();
-            bool hasSlideShowInfo = false;
-            if (!TryReadTransition(slide, out LegacyPptWriterTransition? transition,
-                    out string? transitionReason)) {
-                throw new NotSupportedException(transitionReason);
-            }
-            bool needsSlideShowInfo = slide.Hidden || transition != null;
-            bool hasHeaderFooter = prototype.Children.Any(child =>
-                child.Type == RecordHeadersFooters && child.Instance == 0);
-            LegacyPptWriterHeaderFooter? headerFooter = ReadSlideHeaderFooter(slide);
-            foreach (LegacyPptRecord child in prototype.Children) {
-                if (child.Type == RecordSlideAtom) {
-                    byte[] atom = child.CopyRecordBytes();
-                    LegacyPptSlideLayoutType layoutType = MapSlideLayout(slide, shapes);
-                    WriteUInt32(atom, 8, (uint)layoutType);
-                    byte[] placeholderTypes = BuildLayoutPlaceholderTypes(slide, shapes);
-                    for (int index = 0; index < placeholderTypes.Length; index++) {
-                        atom[12 + index] = placeholderTypes[index];
-                    }
-                    if (masterIdRef.HasValue) WriteUInt32(atom, 20, masterIdRef.Value);
-                    WriteUInt32(atom, 24, notesIdRef.GetValueOrDefault());
-                    children.Add(atom);
-                    if (headerFooter != null && !hasHeaderFooter
-                        && !prototype.Children.Any(candidate =>
-                            candidate.Type == RecordSlideShowSlideInfoAtom)) {
-                        children.Add(BuildHeaderFooterRecord(headerFooter,
-                            instance: 0, allowHeader: false));
-                    }
-                } else if (child.Type == RecordDrawing) {
-                    children.Add(BuildDrawingRecord(prototype, shapes, drawingId));
-                } else if (child.Type == RecordSlideShowSlideInfoAtom) {
-                    if (needsSlideShowInfo) {
-                        children.Add(PatchSlideShowInfo(child.CopyRecordBytes(), slide));
-                    }
-                    hasSlideShowInfo = true;
-                    if (headerFooter != null && !hasHeaderFooter) {
-                        children.Add(BuildHeaderFooterRecord(headerFooter,
-                            instance: 0, allowHeader: false));
-                    }
-                } else if (child.Type == RecordHeadersFooters
-                           && child.Instance == 0) {
-                    children.Add(BuildHeaderFooterRecord(
-                        headerFooter ?? LegacyPptWriterHeaderFooter.Empty,
-                        instance: 0, allowHeader: false));
-                } else if (child.Type != 0x1388) {
-                    children.Add(child.CopyRecordBytes());
-                }
-            }
-            if (needsSlideShowInfo && !hasSlideShowInfo) {
-                int slideAtomIndex = prototype.Children.TakeWhile(child => child.Type != RecordSlideAtom).Count();
-                children.Insert(Math.Min(children.Count, slideAtomIndex + 1),
-                    BuildSlideShowInfoRecord(slide));
-            }
-            return BuildContainer(RecordSlide, instance: 0, children);
         }
 
         private static byte[] BuildDrawingRecord(LegacyPptRecord slidePrototype,

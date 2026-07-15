@@ -174,6 +174,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 $"slide {slide.SlideId}", allowHeader: false, options);
             slide.ColorScheme = ReadColorScheme(slideRecord);
             ParseSlideShowInfo(slideRecord, slide, options);
+            ParseComments(slideRecord, slide, options);
             LegacyPptColorScheme? effectiveScheme = slide.FollowsMasterColorScheme
                 ? _masters.FirstOrDefault(master => master.MasterId == slide.MasterId)?.ColorScheme
                 : slide.ColorScheme;

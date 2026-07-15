@@ -75,6 +75,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
         HeadersAndFooters,
         /// <summary>Presentation comments.</summary>
         Comments,
+        /// <summary>Modern threaded comments, replies, status, and anchors.</summary>
+        ModernComments,
         /// <summary>Slide transition settings.</summary>
         Transitions,
         /// <summary>Animation and timing trees.</summary>
