@@ -146,6 +146,46 @@ public class PdfPkcsSignatureValidationTests {
         Assert.Equal(new DateTimeOffset(2026, 7, 14, 12, 34, 56, TimeSpan.Zero).AddTicks(fractionalTicks), result);
     }
 
+    [Theory]
+    [InlineData("491231235959Z", 2049)]
+    [InlineData("500101000000Z", 1950)]
+    [InlineData("300101000000Z", 2030)]
+    public void ManagedTimestampParserUsesDerUtcTimeYearWindow(string encodedTime, int expectedYear) {
+        byte[] encoded = PdfDerCodec.Wrap(0x17, Encoding.ASCII.GetBytes(encodedTime));
+
+        DateTimeOffset? result = PdfManagedCmsDocument.ReadTime(new PdfDerReader(encoded).Read());
+
+        Assert.NotNull(result);
+        Assert.Equal(expectedYear, result.Value.Year);
+    }
+
+    [Fact]
+    public void SignatureTimestampRejectsUntrustedTsaCertificateChain() {
+        using X509Certificate2 signerCertificate = CreateSigningCertificate();
+        using X509Certificate2 tsaCertificate = CreateSigningCertificate();
+        PdfExternalSignaturePreparation preparation = CreateSigningPreparation();
+        byte[] cms = CreateCustomCms(
+            signerCertificate,
+            preparation.SignedContent,
+            encapsulate: false,
+            includeMessageDigest: true,
+            useEcdsa: false,
+            signatureTimestampFactory: signature => CreateTimestampToken(tsaCertificate, signature));
+        byte[] signedPdf = PdfIncrementalUpdater.ApplyExternalSignature(preparation, cms);
+        var provider = new PdfPkcsSignatureCryptographyProvider(new PdfPkcsSignatureValidationOptions {
+            ValidateTimestamps = true,
+            ChainEvaluator = (certificate, _) => !string.Equals(certificate.Thumbprint, tsaCertificate.Thumbprint, StringComparison.OrdinalIgnoreCase)
+        });
+
+        PdfSignatureCryptographicResult result = Assert.Single(PdfSignatureValidator.Validate(signedPdf, provider).Signatures).CryptographicResult!;
+
+        Assert.Equal(PdfCryptographicValidationStatus.Valid, result.MathematicalSignatureStatus);
+        Assert.Equal(PdfCryptographicValidationStatus.Valid, result.CertificateChainStatus);
+        Assert.Equal(PdfCryptographicValidationStatus.Invalid, result.TimestampStatus);
+        Assert.Contains(result.Findings, finding => finding.Code == "CertificateChainUntrusted" && finding.Message.Contains("TSA", StringComparison.Ordinal));
+        Assert.Contains(result.Findings, finding => finding.Code == "SignatureTimestampInvalid");
+    }
+
     [Fact]
     public void ExternalSignerContractCompletesAndValidatesApprovalSignature() {
         using X509Certificate2 certificate = CreateSigningCertificate();
@@ -202,11 +242,13 @@ public class PdfPkcsSignatureValidationTests {
         bool includeMessageDigest,
         bool useEcdsa,
         X509Certificate2? signerIdentifierCertificate = null,
-        bool useSubjectKeyIdentifier = false) {
+        bool useSubjectKeyIdentifier = false,
+        Func<byte[], byte[]>? signatureTimestampFactory = null) {
         const string dataOid = "1.2.840.113549.1.7.1";
         const string signedDataOid = "1.2.840.113549.1.7.2";
         const string contentTypeAttributeOid = "1.2.840.113549.1.9.3";
         const string messageDigestAttributeOid = "1.2.840.113549.1.9.4";
+        const string signatureTimestampAttributeOid = "1.2.840.113549.1.9.16.2.14";
         const string sha256Oid = "2.16.840.1.101.3.4.2.1";
         const string rsaEncryptionOid = "1.2.840.113549.1.1.1";
         const string ecdsaWithSha256Oid = "1.2.840.10045.4.3.2";
@@ -240,13 +282,22 @@ public class PdfPkcsSignatureValidationTests {
                 Convert.FromHexString(Assert.IsType<X509SubjectKeyIdentifierExtension>(
                     Assert.Single(signerIdentifier.Extensions.Cast<X509Extension>(), extension => extension.Oid?.Value == "2.5.29.14")).SubjectKeyIdentifier!))
             : PdfDerCodec.Sequence(signerIdentifier.IssuerName.RawData, PdfDerCodec.Integer(serial));
-        byte[] signerInfo = PdfDerCodec.Sequence(
+        var signerInfoValues = new List<byte[]> {
             PdfDerCodec.Integer(useSubjectKeyIdentifier ? 3 : 1),
             encodedSignerIdentifier,
             PdfDerCodec.AlgorithmIdentifier(sha256Oid),
             PdfDerCodec.ReplaceTag(signedAttributes, 0xA0),
             PdfDerCodec.AlgorithmIdentifier(signatureAlgorithmOid, includeNull: !useEcdsa),
-            PdfDerCodec.OctetString(signature));
+            PdfDerCodec.OctetString(signature)
+        };
+        if (signatureTimestampFactory != null) {
+            byte[] timestampToken = signatureTimestampFactory(signature);
+            byte[] timestampAttribute = PdfDerCodec.Sequence(
+                PdfDerCodec.ObjectIdentifier(signatureTimestampAttributeOid),
+                PdfDerCodec.Set(timestampToken));
+            signerInfoValues.Add(PdfDerCodec.Context(1, timestampAttribute));
+        }
+        byte[] signerInfo = PdfDerCodec.Sequence(signerInfoValues.ToArray());
         byte[] contentInfo = encapsulate
             ? PdfDerCodec.Sequence(PdfDerCodec.ObjectIdentifier(dataOid), PdfDerCodec.Context(0, PdfDerCodec.OctetString(content)))
             : PdfDerCodec.Sequence(PdfDerCodec.ObjectIdentifier(dataOid));
@@ -254,6 +305,44 @@ public class PdfPkcsSignatureValidationTests {
             PdfDerCodec.Integer(1),
             PdfDerCodec.Set(PdfDerCodec.AlgorithmIdentifier(sha256Oid)),
             contentInfo,
+            PdfDerCodec.Context(0, certificate.RawData),
+            PdfDerCodec.Set(signerInfo));
+        return PdfDerCodec.Sequence(PdfDerCodec.ObjectIdentifier(signedDataOid), PdfDerCodec.Context(0, signedData));
+    }
+
+    private static byte[] CreateTimestampToken(X509Certificate2 certificate, byte[] expectedData) {
+        const string signedDataOid = "1.2.840.113549.1.7.2";
+        const string tstInfoOid = "1.2.840.113549.1.9.16.1.4";
+        const string contentTypeAttributeOid = "1.2.840.113549.1.9.3";
+        const string messageDigestAttributeOid = "1.2.840.113549.1.9.4";
+        const string sha256Oid = "2.16.840.1.101.3.4.2.1";
+        const string rsaEncryptionOid = "1.2.840.113549.1.1.1";
+        byte[] timestampInfo = PdfDerCodec.Sequence(
+            PdfDerCodec.Integer(1),
+            PdfDerCodec.ObjectIdentifier("1.2.3.4.1"),
+            PdfDerCodec.Sequence(
+                PdfDerCodec.AlgorithmIdentifier(sha256Oid),
+                PdfDerCodec.OctetString(SHA256.HashData(expectedData))),
+            PdfDerCodec.Integer(1),
+            PdfDerCodec.Wrap(0x18, Encoding.ASCII.GetBytes("20260715120000Z")));
+        byte[] signedAttributes = PdfDerCodec.Set(
+            PdfDerCodec.Sequence(PdfDerCodec.ObjectIdentifier(contentTypeAttributeOid), PdfDerCodec.Set(PdfDerCodec.ObjectIdentifier(tstInfoOid))),
+            PdfDerCodec.Sequence(PdfDerCodec.ObjectIdentifier(messageDigestAttributeOid), PdfDerCodec.Set(PdfDerCodec.OctetString(SHA256.HashData(timestampInfo)))));
+        using RSA rsa = certificate.GetRSAPrivateKey() ?? throw new InvalidOperationException("TSA test certificate has no private key.");
+        byte[] signature = rsa.SignData(signedAttributes, HashAlgorithmName.SHA256, RSASignaturePadding.Pkcs1);
+        byte[] serial = certificate.GetSerialNumber();
+        Array.Reverse(serial);
+        byte[] signerInfo = PdfDerCodec.Sequence(
+            PdfDerCodec.Integer(1),
+            PdfDerCodec.Sequence(certificate.IssuerName.RawData, PdfDerCodec.Integer(serial)),
+            PdfDerCodec.AlgorithmIdentifier(sha256Oid),
+            PdfDerCodec.ReplaceTag(signedAttributes, 0xA0),
+            PdfDerCodec.AlgorithmIdentifier(rsaEncryptionOid),
+            PdfDerCodec.OctetString(signature));
+        byte[] signedData = PdfDerCodec.Sequence(
+            PdfDerCodec.Integer(3),
+            PdfDerCodec.Set(PdfDerCodec.AlgorithmIdentifier(sha256Oid)),
+            PdfDerCodec.Sequence(PdfDerCodec.ObjectIdentifier(tstInfoOid), PdfDerCodec.Context(0, PdfDerCodec.OctetString(timestampInfo))),
             PdfDerCodec.Context(0, certificate.RawData),
             PdfDerCodec.Set(signerInfo));
         return PdfDerCodec.Sequence(PdfDerCodec.ObjectIdentifier(signedDataOid), PdfDerCodec.Context(0, signedData));

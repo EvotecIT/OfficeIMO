@@ -119,6 +119,7 @@ internal static class TextContentParser {
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
         IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
+        System.Func<string, string?>? drawingFontFamilyForResource = null,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double pageHeight = 0D,
         double paintOrderBase = 0D,
@@ -562,11 +563,11 @@ internal static class TextContentParser {
                 textOut = actualTextState.ActualText;
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
-                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder));
+                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder, drawingFontFamilyForResource?.Invoke(font)));
                     sbOutGlobal.Append(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
-                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder));
+                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder, drawingFontFamilyForResource?.Invoke(font)));
                 sbOutGlobal.Append(textOut);
             }
 

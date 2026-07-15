@@ -89,4 +89,23 @@ public class PdfSectionTableOfContentsTests {
         Assert.Contains("Deferred body", textByPage[1], StringComparison.Ordinal);
         Assert.NotEmpty(logical.GetLinksByDestinationName(destination));
     }
+
+    [Fact]
+    public void DeferredSection_GeneratedDestinationIsStableAcrossRepeatedRendering() {
+        PdfDocument document = PdfDocument.Create()
+            .TableOfContents()
+            .Deferred(_ => item => item.Section(
+                "Deferred details",
+                section => section.Paragraph(paragraph => paragraph.Text("Deferred body")),
+                new PdfSectionOptions { StartOnNewPage = true }));
+
+        byte[] first = document.ToBytes();
+        byte[] second = document.ToBytes();
+
+        string firstDestination = Assert.Single(PdfInspector.Inspect(first).NamedDestinationNames);
+        string secondDestination = Assert.Single(PdfInspector.Inspect(second).NamedDestinationNames);
+        Assert.Equal("section-1", firstDestination);
+        Assert.Equal(firstDestination, secondDestination);
+        Assert.NotEmpty(PdfDocument.Load(second).Read.Logical().GetLinksByDestinationName(secondDestination));
+    }
 }

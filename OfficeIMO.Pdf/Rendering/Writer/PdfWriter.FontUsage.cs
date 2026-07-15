@@ -2,13 +2,14 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     internal static System.Collections.Generic.IReadOnlyList<PdfStandardFont> CollectGeneratedStandardFonts(IEnumerable<IPdfBlock> blocks, PdfOptions options) {
-        return CollectGeneratedComplianceEvidence(blocks, options).StandardFonts;
+        return CollectGeneratedComplianceEvidence(document: null, blocks, options).StandardFonts;
     }
 
-    internal static PdfGeneratedDocumentComplianceEvidence CollectGeneratedComplianceEvidence(IEnumerable<IPdfBlock> blocks, PdfOptions options) {
+    internal static PdfGeneratedDocumentComplianceEvidence CollectGeneratedComplianceEvidence(PdfDocument? document, IEnumerable<IPdfBlock> blocks, PdfOptions options) {
         Guard.NotNull(blocks, nameof(blocks));
         Guard.NotNull(options, nameof(options));
 
+        using System.IDisposable? generatedSectionLayout = document?.BeginGeneratedSectionLayout();
         using LayoutResult layout = LayoutBlocks(blocks, options);
         var fonts = new System.Collections.Generic.HashSet<PdfStandardFont>();
         var fontUsages = new System.Collections.Generic.List<PdfGeneratedFontComplianceEvidence>();

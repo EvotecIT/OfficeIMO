@@ -199,7 +199,15 @@ internal sealed class PdfManagedCmsDocument {
     internal static DateTimeOffset? ReadTime(PdfDerElement value) {
         string text = Encoding.ASCII.GetString(value.Content());
         if (value.Tag == 0x17) {
-            return DateTimeOffset.TryParseExact(text, "yyMMddHHmmss'Z'", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset utcTime)
+            if (text.Length != 13 || text[12] != 'Z' ||
+                text[0] < '0' || text[0] > '9' || text[1] < '0' || text[1] > '9') return null;
+            int shortYear = ((text[0] - '0') * 10) + (text[1] - '0');
+            int year = shortYear >= 50 ? 1900 + shortYear : 2000 + shortYear;
+            var expandedBuilder = new StringBuilder(15);
+            expandedBuilder.Append(year.ToString("0000", CultureInfo.InvariantCulture));
+            expandedBuilder.Append(text, 2, text.Length - 2);
+            string expanded = expandedBuilder.ToString();
+            return DateTimeOffset.TryParseExact(expanded, "yyyyMMddHHmmss'Z'", CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out DateTimeOffset utcTime)
                 ? utcTime
                 : null;
         }

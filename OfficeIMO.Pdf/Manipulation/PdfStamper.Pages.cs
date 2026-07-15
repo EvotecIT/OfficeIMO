@@ -54,8 +54,12 @@ public static partial class PdfStamper {
         }
 
         PdfObject? sourceResources = GetInheritedPageValue(sourceObjects, sourcePageDictionary, "Resources");
+        PdfObject? sourceGroup = sourcePageDictionary.Items.TryGetValue("Group", out PdfObject? groupValue)
+            ? groupValue
+            : null;
         var sourceCollector = new PdfPageExtractor.ObjectCollector(sourceObjects);
         sourceCollector.CollectObjectGraph(sourceResources);
+        sourceCollector.CollectObjectGraph(sourceGroup);
         int nextObjectNumber = targetObjects.Count == 0 ? 1 : targetObjects.Keys.Max() + 1;
         var importedObjectNumbers = new Dictionary<int, int>();
         foreach (int sourceObjectNumber in sourceCollector.ObjectIds) importedObjectNumbers[sourceObjectNumber] = nextObjectNumber++;
@@ -75,6 +79,7 @@ public static partial class PdfStamper {
         formDictionary.Items["Resources"] = sourceResources == null
             ? new PdfDictionary()
             : CloneImportedObject(sourceResources, importedObjectNumbers);
+        if (sourceGroup != null) formDictionary.Items["Group"] = CloneImportedObject(sourceGroup, importedObjectNumbers);
         int formObjectNumber = nextObjectNumber++;
         targetObjects[formObjectNumber] = new PdfIndirectObject(formObjectNumber, 0, new PdfStream(formDictionary, formContent));
 
@@ -276,8 +281,15 @@ public static partial class PdfStamper {
                 foreach (KeyValuePair<string, PdfObject> item in dictionary.Items) clone.Items[item.Key] = CloneImportedObject(item.Value, numberMap);
                 return clone;
             }
-            case PdfStream stream:
-                return new PdfStream((PdfDictionary)CloneImportedObject(stream.Dictionary, numberMap), (byte[])stream.Data.Clone(), stream.DecodingFailed, stream.DecodingError);
+            case PdfStream stream: {
+                var dictionary = new PdfDictionary();
+                foreach (KeyValuePair<string, PdfObject> item in stream.Dictionary.Items) {
+                    if (!string.Equals(item.Key, "Length", StringComparison.Ordinal)) {
+                        dictionary.Items[item.Key] = CloneImportedObject(item.Value, numberMap);
+                    }
+                }
+                return new PdfStream(dictionary, (byte[])stream.Data.Clone(), stream.DecodingFailed, stream.DecodingError);
+            }
             default:
                 throw new NotSupportedException("Unsupported imported PDF resource object type " + value.GetType().Name + ".");
         }

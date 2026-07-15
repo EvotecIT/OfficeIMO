@@ -17,8 +17,10 @@ public sealed partial class PdfDocument {
         PdfFlowOptions? options = null,
         PdfLayoutPositionCapture? capture = null) {
         Guard.NotNull(composeFactory, nameof(composeFactory));
+        var generatedSectionOwner = new object();
         AddBlock(new FlowBlock(
             context => {
+                using GeneratedSectionMaterializationScope generatedSections = BeginGeneratedSectionMaterialization(generatedSectionOwner);
                 Action<PdfItemCompose> compose = composeFactory(context)
                     ?? throw new InvalidOperationException("Deferred PDF flow factory returned null.");
                 return BuildFlowBlocks(compose);

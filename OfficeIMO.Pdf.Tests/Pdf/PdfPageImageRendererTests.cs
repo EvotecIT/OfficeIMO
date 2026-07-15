@@ -412,6 +412,7 @@ public class PdfPageImageRendererTests {
         Assert.Equal(OfficeColor.Red, raster.GetPixel(21, 155));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(30, 155));
         Assert.Equal(OfficeColor.Red, raster.GetPixel(21, 178));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(30, 178));
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(21, 170));
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedTilingPatternId);
     }
@@ -584,6 +585,35 @@ public class PdfPageImageRendererTests {
         Assert.Equal("Courier New", text.Font.FamilyName);
         Assert.True(text.Font.IsBold);
         Assert.True(text.Font.IsItalic);
+    }
+
+    [Fact]
+    public void TextParser_PreservesDistinctEmbeddedSubsetFontIdentities() {
+        var first = new PdfFontResource("F1", "ABCDEF+Arial", "WinAnsiEncoding", hasToUnicode: false, embeddedTrueTypeFont: new byte[] { 1, 2, 3 });
+        var second = new PdfFontResource("F2", "GHIJKL+Arial", "WinAnsiEncoding", hasToUnicode: false, embeddedTrueTypeFont: new byte[] { 4, 5, 6 });
+        var fonts = new Dictionary<string, PdfFontResource>(StringComparer.Ordinal) {
+            ["F1"] = first,
+            ["F2"] = second
+        };
+
+        List<PdfTextSpan> spans = TextContentParser.Parse(
+            "BT /F1 12 Tf (First) Tj /F2 12 Tf (Second) Tj ET",
+            (_, bytes) => Encoding.ASCII.GetString(bytes),
+            (_, bytes) => bytes.Length * 500D,
+            baseFontForResource: resource => fonts[resource].BaseFont,
+            drawingFontFamilyForResource: resource => fonts[resource].DrawingFontFamily);
+
+        Assert.Collection(
+            spans,
+            span => {
+                Assert.Equal("ABCDEF+Arial", span.BaseFont);
+                Assert.Equal(first.DrawingFontFamily, span.DrawingFontFamily);
+            },
+            span => {
+                Assert.Equal("GHIJKL+Arial", span.BaseFont);
+                Assert.Equal(second.DrawingFontFamily, span.DrawingFontFamily);
+            });
+        Assert.NotEqual(spans[0].DrawingFontFamily, spans[1].DrawingFontFamily);
     }
 
     [Fact]

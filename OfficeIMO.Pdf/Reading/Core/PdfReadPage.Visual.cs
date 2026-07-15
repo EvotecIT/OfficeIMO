@@ -31,7 +31,7 @@ public sealed partial class PdfReadPage {
 
         foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
             if (font.EmbeddedTrueTypeFont == null) continue;
-            OfficeFontInfo info = ToOfficeFontInfo(font.BaseFont, 12D);
+            OfficeFontInfo info = ToOfficeFontInfo(font.BaseFont, 12D, font.DrawingFontFamily);
             drawing.Fonts.TryAdd(info.FamilyName, font.EmbeddedTrueTypeFont, info.Style);
         }
 
@@ -1211,7 +1211,7 @@ public sealed partial class PdfReadPage {
             y,
             width,
             height,
-            ToOfficeFontInfo(span.BaseFont, span.FontSize),
+            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
             span.Color ?? OfficeColor.Black,
             rotationDegrees: -span.RotationDegrees,
             rotationCenterX: x,
@@ -1276,7 +1276,7 @@ public sealed partial class PdfReadPage {
             clip.X,
             clip.Y,
             officeClipPath,
-            ToOfficeFontInfo(span.BaseFont, span.FontSize),
+            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
             span.Color ?? OfficeColor.Black,
             rotationDegrees: -span.RotationDegrees,
             rotationCenterX: x,
@@ -1285,7 +1285,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static OfficeFontInfo ToOfficeFontInfo(string? baseFont, double size) {
+    private static OfficeFontInfo ToOfficeFontInfo(string? baseFont, double size, string? drawingFontFamily = null) {
         string normalized = StripSubsetPrefix(baseFont);
         OfficeFontStyle style = OfficeFontStyle.Regular;
         if (ContainsFontStyleToken(normalized, "Bold") ||
@@ -1301,7 +1301,9 @@ public sealed partial class PdfReadPage {
             style |= OfficeFontStyle.Italic;
         }
 
-        string family = ResolveOfficeFontFamily(normalized);
+        string family = string.IsNullOrWhiteSpace(drawingFontFamily)
+            ? ResolveOfficeFontFamily(normalized)
+            : drawingFontFamily!;
         return new OfficeFontInfo(family, size, style);
     }
 

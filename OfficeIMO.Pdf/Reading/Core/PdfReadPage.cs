@@ -457,6 +457,8 @@ public sealed partial class PdfReadPage {
             widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
         string? ResolveBaseFont(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.BaseFont : null;
+        string? ResolveDrawingFontFamily(string fontRes) =>
+            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         string? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualText(resources, propertyName);
 
@@ -468,6 +470,7 @@ public sealed partial class PdfReadPage {
             graphicsStates: GetGraphicsStateResources(resources),
             colorSpaces: GetColorSpaceResources(resources),
             baseFontForResource: ResolveBaseFont,
+            drawingFontFamilyForResource: ResolveDrawingFontFamily,
             optionalContentVisibility: GetOptionalContentVisibility(resources),
             pageHeight: pageHeight,
             paintOrderBase: paintOrderBase,

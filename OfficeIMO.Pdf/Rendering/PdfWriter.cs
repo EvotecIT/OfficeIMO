@@ -19,6 +19,7 @@ internal static partial class PdfWriter {
         opts.ResetEmbeddedFontProgramUsage();
 
         // Layout blocks into pages and create per-page content streams.
+        using var generatedSectionLayout = doc.BeginGeneratedSectionLayout();
         using var layout = LayoutBlocks(blocks, opts);
         ValidateNamedDestinationLinks(layout.Pages);
         ValidateUriActionLinks(layout.Pages, opts);

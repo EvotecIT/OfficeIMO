@@ -1,3 +1,4 @@
+using System.Text;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -130,5 +131,61 @@ public class PdfPageOverlayTests {
         } finally {
             if (File.Exists(sourcePath)) File.Delete(sourcePath);
         }
+    }
+
+    [Fact]
+    public void OverlayPage_ClonesIndirectStreamLengthsAndPageTransparencyGroup() {
+        byte[] source = Encoding.ASCII.GetBytes("""
+            %PDF-1.4
+            1 0 obj
+            << /Type /Catalog /Pages 2 0 R >>
+            endobj
+            2 0 obj
+            << /Type /Pages /Count 1 /Kids [3 0 R] /MediaBox [0 0 100 100] >>
+            endobj
+            3 0 obj
+            << /Type /Page /Parent 2 0 R /Resources << /XObject << /Fx 5 0 R >> >> /Group 7 0 R /Contents 4 0 R >>
+            endobj
+            4 0 obj
+            << /Length 6 >>
+            stream
+            /Fx Do
+            endstream
+            endobj
+            5 0 obj
+            << /Type /XObject /Subtype /Form /BBox [0 0 10 10] /Resources << >> /Length 6 0 R >>
+            stream
+            q Q
+            endstream
+            endobj
+            6 0 obj
+            3
+            endobj
+            7 0 obj
+            << /S /Transparency /I true /K false /CS /DeviceRGB >>
+            endobj
+            trailer
+            << /Root 1 0 R >>
+            %%EOF
+            """);
+        byte[] target = PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Target")).ToBytes();
+
+        byte[] result = PdfStamper.OverlayPage(target, source);
+
+        var (objects, _) = PdfSyntax.ParseObjects(result);
+        PdfStream importedPage = objects.Values
+            .Select(static indirect => indirect.Value)
+            .OfType<PdfStream>()
+            .Single(stream => stream.Dictionary.Get<PdfName>("Subtype")?.Name == "Form" && stream.Dictionary.Items.ContainsKey("Group"));
+        PdfReference groupReference = Assert.IsType<PdfReference>(importedPage.Dictionary.Items["Group"]);
+        PdfDictionary group = Assert.IsType<PdfDictionary>(objects[groupReference.ObjectNumber].Value);
+        PdfDictionary resources = Assert.IsType<PdfDictionary>(importedPage.Dictionary.Items["Resources"]);
+        PdfDictionary xObjects = Assert.IsType<PdfDictionary>(resources.Items["XObject"]);
+        PdfReference nestedFormReference = Assert.IsType<PdfReference>(xObjects.Items["Fx"]);
+        PdfStream nestedForm = Assert.IsType<PdfStream>(objects[nestedFormReference.ObjectNumber].Value);
+
+        Assert.Equal("Transparency", group.Get<PdfName>("S")?.Name);
+        Assert.True(group.Get<PdfBoolean>("I")?.Value);
+        Assert.IsType<PdfNumber>(nestedForm.Dictionary.Items["Length"]);
     }
 }

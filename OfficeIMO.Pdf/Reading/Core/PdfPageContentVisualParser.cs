@@ -1050,7 +1050,7 @@ internal static class PdfPageContentVisualParser {
                 y1,
                 x2,
                 y2,
-                strokeGradient == null && strokeRadialGradient == null ? _state.StrokeColor : null,
+                strokeGradient == null && strokeRadialGradient == null && _strokeTilingPattern == null ? _state.StrokeColor : null,
                 strokeGradient,
                 strokeRadialGradient,
                 _state.StrokeWidth,

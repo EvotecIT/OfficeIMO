@@ -95,7 +95,7 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
             return InvalidTimestampResult(findings);
         }
 
-        ChainResult chain = ValidateCertificate(certificate, findings);
+        ChainResult chain = ValidateCertificate(certificate, findings, "TSA");
         return CreateResult(PdfCryptographicValidationStatus.Valid, PdfCryptographicValidationStatus.Valid, chain, new TimestampResult(PdfCryptographicValidationStatus.Valid, timestampTime), certificate, null, findings);
     }
 
@@ -147,7 +147,8 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
     private TimestampResult ValidateSignatureTimestamp(PdfManagedCmsDocument cms, List<PdfSignatureCryptographicFinding> findings) {
         if (cms.SignatureTimestamps.Count == 0) return TimestampResult.NotPerformed;
         for (int i = 0; i < cms.SignatureTimestamps.Count; i++) {
-            if (TryVerifyTimestampToken(cms.SignatureTimestamps[i], cms.SignatureValue, findings, out _, out DateTimeOffset? timestamp)) {
+            if (TryVerifyTimestampToken(cms.SignatureTimestamps[i], cms.SignatureValue, findings, out X509Certificate2? certificate, out DateTimeOffset? timestamp) &&
+                ValidateCertificate(certificate, findings, "TSA").ChainStatus != PdfCryptographicValidationStatus.Invalid) {
                 return new TimestampResult(PdfCryptographicValidationStatus.Valid, timestamp);
             }
         }
@@ -191,7 +192,7 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
         return timestamp.HasValue && TryGetHashAlgorithm(algorithmOid, out HashAlgorithmName algorithm) && FixedTimeEquals(Hash(expectedData, algorithm), actualDigest);
     }
 
-    private ChainResult ValidateCertificate(X509Certificate2? certificate, List<PdfSignatureCryptographicFinding> findings) {
+    private ChainResult ValidateCertificate(X509Certificate2? certificate, List<PdfSignatureCryptographicFinding> findings, string role = "Signer") {
         if (certificate == null) return new ChainResult(PdfCryptographicValidationStatus.Indeterminate, PdfCryptographicValidationStatus.NotPerformed);
         if (!_options.ValidateCertificateChain) return new ChainResult(PdfCryptographicValidationStatus.NotPerformed, PdfCryptographicValidationStatus.NotPerformed);
         using var chain = new X509Chain();
@@ -205,7 +206,7 @@ public sealed class PdfPkcsSignatureCryptographyProvider : IPdfSignatureCryptogr
         bool accepted = _options.ChainEvaluator?.Invoke(certificate, chain) ?? platformResult;
         if (!accepted) {
             string statuses = chain.ChainStatus.Length == 0 ? "no platform chain status" : string.Join(", ", chain.ChainStatus.Select(static status => status.Status.ToString()));
-            findings.Add(Finding(PdfDiagnosticSeverity.Warning, "CertificateChainUntrusted", "Signer certificate chain was not accepted: " + statuses + "."));
+            findings.Add(Finding(PdfDiagnosticSeverity.Warning, "CertificateChainUntrusted", role + " certificate chain was not accepted: " + statuses + "."));
         }
         return new ChainResult(accepted ? PdfCryptographicValidationStatus.Valid : PdfCryptographicValidationStatus.Invalid, ClassifyRevocation(chain));
     }
