@@ -79,6 +79,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
         ModernComments,
         /// <summary>Slide transition settings.</summary>
         Transitions,
+        /// <summary>Embedded sounds used by transitions and interactive actions.</summary>
+        TransitionAndActionSounds,
         /// <summary>Animation and timing trees.</summary>
         Animations,
         /// <summary>Audio and video content.</summary>

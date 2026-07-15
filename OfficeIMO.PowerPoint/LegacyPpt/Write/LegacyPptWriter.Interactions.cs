@@ -19,18 +19,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadInteractions(PowerPointPresentation presentation,
             out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            return TryReadInteractions(presentation.Slides, out catalog, out reason);
+            return TryReadInteractions(presentation.Slides,
+                new LegacyPptWriterSoundCatalog(), out catalog, out reason);
         }
 
         internal static bool TryReadInteractions(IEnumerable<PowerPointSlide> slides,
             out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
-            catalog = new LegacyPptWriterInteractionCatalog();
+            return TryReadInteractions(slides, new LegacyPptWriterSoundCatalog(),
+                out catalog, out reason);
+        }
+
+        internal static bool TryReadInteractions(IEnumerable<PowerPointSlide> slides,
+            LegacyPptWriterSoundCatalog soundCatalog,
+            out LegacyPptWriterInteractionCatalog catalog, out string? reason) {
+            catalog = new LegacyPptWriterInteractionCatalog(soundCatalog);
             reason = null;
             foreach (PowerPointSlide slide in slides) {
                 foreach (PowerPointShape shape in slide.Shapes) {
                     if (!TryReadShapeInteractions(slide.SlidePart, shape, catalog,
                             out LegacyPptWriterShapeInteractions interactions, out reason)) {
-                        catalog = new LegacyPptWriterInteractionCatalog();
+                        catalog = new LegacyPptWriterInteractionCatalog(soundCatalog);
                         return false;
                     }
                     if (interactions.HasInteractions) catalog.Add(shape.Element, interactions);
@@ -144,14 +152,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             interaction = null;
             reason = null;
             if (hyperlink == null) return true;
-            if (hyperlink.ChildElements.Count > 0
+            A.HyperlinkSound[] soundElements = hyperlink
+                .Elements<A.HyperlinkSound>().ToArray();
+            if (soundElements.Length > 1
+                || hyperlink.ChildElements.Any(child => child is not A.HyperlinkSound)
                 || hyperlink.GetAttributes().Any(attribute =>
                     !string.Equals(attribute.LocalName, "id", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "action", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "tooltip", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "highlightClick", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "endSnd", StringComparison.Ordinal))) {
-                reason = "Hyperlink target frames, history, sound children, and extension data are not encoded yet.";
+                reason = "Hyperlink target frames, history, duplicate sound children, and extension data are not encoded.";
                 return false;
             }
             string? relationshipId;
@@ -178,6 +189,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             byte flags = 0;
             if (typedHyperlink.HighlightClick?.Value == true) flags |= 0x01;
             if (typedHyperlink.EndSound?.Value == true) flags |= 0x02;
+            uint soundIdReference = 0;
+            LegacyPptWriterSound? sound = null;
+            if (soundElements.Length == 1
+                && !catalog.Sounds.TryGetOrAdd(slidePart, soundElements[0],
+                    out sound, out reason)) {
+                return false;
+            } else if (soundElements.Length == 1) {
+                soundIdReference = sound!.Id;
+            }
 
             if (TryParseCustomShowAction(action, out uint customShowId,
                     out bool returnsToSlide)) {
@@ -192,7 +212,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     LegacyPptInteractionAction.CustomShow,
                     LegacyPptInteractionJump.None, LegacyPptHyperlinkType.Nil,
                     hyperlinkIdReference: 0, name: customShowName,
-                    flags: flags);
+                    soundIdReference: soundIdReference, flags: flags);
                 return true;
             }
 
@@ -208,7 +228,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 interaction = new LegacyPptWriterInteraction(trigger,
                     LegacyPptInteractionAction.Macro,
                     LegacyPptInteractionJump.None, LegacyPptHyperlinkType.Nil,
-                    hyperlinkIdReference: 0, name: name, flags: flags);
+                    hyperlinkIdReference: 0, name: name,
+                    soundIdReference: soundIdReference, flags: flags);
                 return true;
             }
 
@@ -229,7 +250,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         LegacyPptInteractionAction.Hyperlink,
                         LegacyPptInteractionJump.None,
                         LegacyPptHyperlinkType.SlideNumber, internalTarget.Id,
-                        flags: flags);
+                        soundIdReference: soundIdReference, flags: flags);
                     return true;
                 }
                 if (string.Equals(action, "ppaction://program",
@@ -251,7 +272,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         LegacyPptInteractionAction.RunProgram,
                         LegacyPptInteractionJump.None,
                         LegacyPptHyperlinkType.Nil, hyperlinkIdReference: 0,
-                        name: programRelationship.Uri.OriginalString, flags: flags);
+                        name: programRelationship.Uri.OriginalString,
+                        soundIdReference: soundIdReference, flags: flags);
                     return true;
                 }
                 if (!string.IsNullOrEmpty(action)) {
@@ -270,10 +292,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 interaction = new LegacyPptWriterInteraction(trigger,
                     LegacyPptInteractionAction.Hyperlink, LegacyPptInteractionJump.None,
                     MapHyperlinkType(relationship.Uri), target.Id,
-                    flags: flags);
+                    soundIdReference: soundIdReference, flags: flags);
                 return true;
             }
 
+            if (string.IsNullOrEmpty(action)
+                && (soundIdReference != 0 || (flags & 0x02) != 0)) {
+                if (screenTip != null) {
+                    reason = "A sound-only action cannot carry a binary screen tip.";
+                    return false;
+                }
+                interaction = new LegacyPptWriterInteraction(trigger,
+                    LegacyPptInteractionAction.None,
+                    LegacyPptInteractionJump.None, LegacyPptHyperlinkType.Nil,
+                    hyperlinkIdReference: 0,
+                    soundIdReference: soundIdReference, flags: flags);
+                return true;
+            }
             if (!TryMapShowJump(action, out LegacyPptInteractionJump jump)) {
                 reason = string.IsNullOrEmpty(action)
                     ? "A DrawingML hyperlink has neither a relationship target nor a supported action."
@@ -286,7 +321,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             interaction = new LegacyPptWriterInteraction(trigger,
                 LegacyPptInteractionAction.Jump, jump, LegacyPptHyperlinkType.Nil,
-                hyperlinkIdReference: 0, flags: flags);
+                hyperlinkIdReference: 0,
+                soundIdReference: soundIdReference, flags: flags);
             return true;
         }
 
@@ -473,6 +509,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             private readonly Dictionary<string, LegacyPptWriterHyperlink> _hyperlinksByTarget =
                 new(StringComparer.Ordinal);
             private readonly List<LegacyPptWriterHyperlink> _hyperlinks = new();
+
+            internal LegacyPptWriterInteractionCatalog()
+                : this(new LegacyPptWriterSoundCatalog()) { }
+
+            internal LegacyPptWriterInteractionCatalog(
+                LegacyPptWriterSoundCatalog sounds) {
+                Sounds = sounds ?? throw new ArgumentNullException(nameof(sounds));
+            }
+
+            internal LegacyPptWriterSoundCatalog Sounds { get; }
 
             internal IReadOnlyList<LegacyPptWriterHyperlink> Hyperlinks =>
                 new ReadOnlyCollection<LegacyPptWriterHyperlink>(_hyperlinks);

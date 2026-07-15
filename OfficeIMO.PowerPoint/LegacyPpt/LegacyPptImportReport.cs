@@ -15,6 +15,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ImportableBlipCount = presentation.BlipStoreEntries.Count(entry => entry.HasImportableImage);
             FontCount = presentation.Fonts.Count;
             EmbeddedFontCount = presentation.Fonts.Count(font => font.HasEmbeddedData);
+            SoundCount = presentation.Sounds.Count;
+            ImportableSoundCount = presentation.Sounds.Count(sound =>
+                sound.HasData && sound.ContentType != null);
             TextRulerCount = presentation.Slides.Sum(slide =>
                 slide.Shapes.Count(shape => shape.TextBody.HasRulerRecord));
             PlaceholderShapeCount = presentation.Slides.Sum(slide =>
@@ -116,6 +119,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of font entries with preserved embedded font data.</summary>
         public int EmbeddedFontCount { get; }
+
+        /// <summary>Gets the number of decoded document-level sound entries.</summary>
+        public int SoundCount { get; }
+
+        /// <summary>Gets the number of sounds that can be projected as Open XML audio.</summary>
+        public int ImportableSoundCount { get; }
 
         /// <summary>Gets the number of slide text shapes that contain a TextRulerAtom.</summary>
         public int TextRulerCount { get; }

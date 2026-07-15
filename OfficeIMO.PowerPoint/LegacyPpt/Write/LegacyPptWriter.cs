@@ -56,7 +56,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? customShowReason)) {
                 throw new NotSupportedException(customShowReason);
             }
-            if (!TryReadInteractions(presentation,
+            var soundCatalog = new LegacyPptWriterSoundCatalog();
+            if (!TryReadInteractions(presentation.Slides, soundCatalog,
                     out LegacyPptWriterInteractionCatalog interactionCatalog,
                     out string? interactionReason)) {
                 throw new NotSupportedException(interactionReason);
@@ -100,7 +101,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             var persistObjects = new List<byte[]>(13 + slideRecords.Count + notesRecords.Length) {
                 BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes,
-                    interactionCatalog, customShows)
+                    interactionCatalog, customShows, soundCatalog)
             };
             persistObjects.AddRange(template.SharedPersistObjects);
             persistObjects.AddRange(slideRecords);
@@ -154,8 +155,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,
             IReadOnlyList<int> slideShapeCounts, IReadOnlyList<LegacyPptWriterNote> notes,
             LegacyPptWriterInteractionCatalog interactionCatalog,
-            LegacyPptWriterCustomShowCatalog customShows) {
+            LegacyPptWriterCustomShowCatalog customShows,
+            LegacyPptWriterSoundCatalog soundCatalog) {
             var children = new List<byte[]>();
+            bool wroteSounds = false;
             foreach (LegacyPptRecord child in document.Children) {
                 if (child.Type == RecordDocumentAtom) {
                     byte[] atom = child.CopyRecordBytes();
@@ -167,7 +170,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (externalObjects.Length > 0) children.Add(externalObjects);
                 } else if (child.Type == RecordExternalObjectList) {
                     continue;
+                } else if (child.Type == RecordSoundCollection) {
+                    if (soundCatalog.Sounds.Count > 0) {
+                        children.Add(BuildSoundCollectionRecord(soundCatalog));
+                        wroteSounds = true;
+                    }
                 } else if (child.Type == RecordDrawingGroup) {
+                    if (!wroteSounds && soundCatalog.Sounds.Count > 0) {
+                        children.Add(BuildSoundCollectionRecord(soundCatalog));
+                        wroteSounds = true;
+                    }
                     children.Add(BuildDrawingGroupRecord(child, slideShapeCounts, notes.Count));
                 } else if (child.Type == RecordHeadersFooters
                            && (child.Instance == 3 || child.Instance == 4)) {
@@ -180,6 +192,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } else {
                     children.Add(child.CopyRecordBytes());
                 }
+            }
+            if (!wroteSounds && soundCatalog.Sounds.Count > 0) {
+                children.Add(BuildSoundCollectionRecord(soundCatalog));
             }
             byte[] rebuilt = BuildContainer(RecordDocument, instance: 0, children);
             LegacyPptRecord rebuiltRecord = LegacyPptRecordReader.ReadSingle(rebuilt, 0,

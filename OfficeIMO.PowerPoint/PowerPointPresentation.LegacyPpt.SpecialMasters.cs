@@ -7,26 +7,28 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
         private static void ProjectLegacySpecialMasters(PowerPointPresentation presentation,
-            LegacyPptPresentation legacy) {
+            LegacyPptPresentation legacy,
+            LegacyPptSoundProjectionContext soundContext) {
             if (legacy.NotesMaster != null) {
                 ProjectLegacyNotesMaster(presentation, legacy.NotesMaster,
-                    legacy.NotesHeaderFooterDefaults);
+                    legacy.NotesHeaderFooterDefaults, soundContext);
             }
             if (legacy.HandoutMaster != null) {
                 ProjectLegacyHandoutMaster(presentation, legacy.HandoutMaster,
-                    legacy.NotesHeaderFooterDefaults);
+                    legacy.NotesHeaderFooterDefaults, soundContext);
             }
         }
 
         private static void ProjectLegacyNotesMaster(PowerPointPresentation presentation,
             LegacyPptSpecialMaster source,
-            LegacyPptHeaderFooterSettings? headerFooter) {
+            LegacyPptHeaderFooterSettings? headerFooter,
+            LegacyPptSoundProjectionContext soundContext) {
             NotesMasterPart part = PowerPointUtils.EnsureNotesMasterPart(
                 presentation._presentationPart);
             NotesMaster target = part.NotesMaster
                 ?? throw new InvalidDataException("The native PowerPoint scaffold has no notes master.");
             target.CommonSlideData = CreateLegacySpecialMasterCommonSlideData(part, source,
-                "Binary Notes Master");
+                "Binary Notes Master", soundContext);
             ApplyLegacySpecialMasterTheme(part.ThemePart, source.ColorScheme);
             ApplyLegacyHeaderFooter(target, target.CommonSlideData,
                 headerFooter, allowHeader: true);
@@ -35,14 +37,15 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ProjectLegacyHandoutMaster(PowerPointPresentation presentation,
             LegacyPptSpecialMaster source,
-            LegacyPptHeaderFooterSettings? headerFooter) {
+            LegacyPptHeaderFooterSettings? headerFooter,
+            LegacyPptSoundProjectionContext soundContext) {
             PresentationPart presentationPart = presentation._presentationPart;
             HandoutMasterPart part = presentationPart.HandoutMasterPart
                 ?? presentationPart.AddNewPart<HandoutMasterPart>();
             EnsureLegacySpecialMasterTheme(part, presentationPart);
 
             CommonSlideData commonSlideData = CreateLegacySpecialMasterCommonSlideData(part,
-                source, "Binary Handout Master");
+                source, "Binary Handout Master", soundContext);
             ColorMap colorMap = CloneLegacyColorMap(presentationPart);
             part.HandoutMaster = new HandoutMaster(commonSlideData, colorMap);
             ApplyLegacySpecialMasterTheme(part.ThemePart, source.ColorScheme);
@@ -62,9 +65,10 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static CommonSlideData CreateLegacySpecialMasterCommonSlideData(
-            OpenXmlPart ownerPart, LegacyPptSpecialMaster source, string name) {
+            OpenXmlPart ownerPart, LegacyPptSpecialMaster source, string name,
+            LegacyPptSoundProjectionContext soundContext) {
             var result = new CommonSlideData(CreateLegacyShapeTree(ownerPart, source.Shapes,
-                source.ConnectorRules)) { Name = name };
+                source.ConnectorRules, soundContext: soundContext)) { Name = name };
             if (source.Background != null) {
                 ApplyLegacyBackground(ownerPart, result, source.Background);
             } else if (source.ColorScheme != null) {

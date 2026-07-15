@@ -9,7 +9,8 @@ namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
         private static void ApplyLegacyShapeInteractions(OpenXmlPart ownerPart,
             OpenXmlElement target, LegacyPptShape source,
-            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null) {
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null,
+            LegacyPptSoundProjectionContext? soundContext = null) {
             NonVisualDrawingProperties? properties = target switch {
                 Shape shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties,
                 ConnectionShape connector => connector.NonVisualConnectionShapeProperties?
@@ -23,7 +24,8 @@ namespace OfficeIMO.PowerPoint {
             foreach (LegacyPptInteraction interaction in source.Interactions) {
                 foreach (OpenXmlElement element in ProjectLegacyInteraction(ownerPart,
                              interaction, shapeLevel: true,
-                             slidePartsByLegacyId: slidePartsByLegacyId)) {
+                             slidePartsByLegacyId: slidePartsByLegacyId,
+                             soundContext: soundContext)) {
                     if (element is A.HyperlinkOnClick) {
                         properties.RemoveAllChildren<A.HyperlinkOnClick>();
                     } else if (element is A.HyperlinkOnHover) {
@@ -37,8 +39,15 @@ namespace OfficeIMO.PowerPoint {
         private static IReadOnlyList<OpenXmlElement> ProjectLegacyInteraction(
             OpenXmlPart ownerPart, LegacyPptInteraction interaction,
             bool shapeLevel = false,
-            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null) {
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null,
+            LegacyPptSoundProjectionContext? soundContext = null) {
             string? customShowName = interaction.Name;
+            if (interaction.Action == LegacyPptInteractionAction.None
+                && (interaction.SoundIdReference != 0 || interaction.StopsSound)) {
+                return CreateLegacyInteractionElements(interaction, shapeLevel,
+                    string.Empty, action: null, ownerPart: ownerPart,
+                    soundContext: soundContext);
+            }
             if (interaction.Action == LegacyPptInteractionAction.CustomShow
                 && customShowName != null && customShowName.Length > 0
                 && TryResolveLegacyCustomShowId(ownerPart, customShowName,
@@ -50,12 +59,14 @@ namespace OfficeIMO.PowerPoint {
                     customShowAction += "&return=true";
                 }
                 return CreateLegacyInteractionElements(interaction, shapeLevel,
-                    string.Empty, customShowAction);
+                    string.Empty, customShowAction, ownerPart: ownerPart,
+                    soundContext: soundContext);
             }
             if (interaction.Action == LegacyPptInteractionAction.Macro
                 && !string.IsNullOrEmpty(interaction.Name)) {
                 return CreateLegacyInteractionElements(interaction, shapeLevel,
-                    string.Empty, "ppaction://macro?name=" + interaction.Name);
+                    string.Empty, "ppaction://macro?name=" + interaction.Name,
+                    ownerPart: ownerPart, soundContext: soundContext);
             }
             if (interaction.Action == LegacyPptInteractionAction.RunProgram
                 && !string.IsNullOrEmpty(interaction.Name)
@@ -64,7 +75,8 @@ namespace OfficeIMO.PowerPoint {
                 HyperlinkRelationship programRelationship = ownerPart
                     .AddHyperlinkRelationship(programUri, isExternal: true);
                 return CreateLegacyInteractionElements(interaction, shapeLevel,
-                    programRelationship.Id, "ppaction://program");
+                    programRelationship.Id, "ppaction://program",
+                    ownerPart: ownerPart, soundContext: soundContext);
             }
             if (interaction.Action == LegacyPptInteractionAction.Hyperlink
                 && interaction.HyperlinkType == LegacyPptHyperlinkType.SlideNumber
@@ -82,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
                 string relationshipId = ownerPart.GetIdOfPart(targetSlidePart);
                 return CreateLegacyInteractionElements(interaction, shapeLevel,
                     relationshipId, "ppaction://hlinksldjump",
-                    interaction.Hyperlink.ScreenTip);
+                    interaction.Hyperlink.ScreenTip, ownerPart, soundContext);
             }
             if (interaction.Action == LegacyPptInteractionAction.Hyperlink
                 && interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
@@ -92,18 +104,21 @@ namespace OfficeIMO.PowerPoint {
                     isExternal: true);
                 return CreateLegacyInteractionElements(interaction, shapeLevel,
                     relationship.Id, action: null,
-                    interaction.Hyperlink.ScreenTip);
+                    interaction.Hyperlink.ScreenTip, ownerPart, soundContext);
             }
 
             string? action = GetLegacyPowerPointAction(interaction);
             if (action == null) return Array.Empty<OpenXmlElement>();
             return CreateLegacyInteractionElements(interaction, shapeLevel,
-                string.Empty, action);
+                string.Empty, action, ownerPart: ownerPart,
+                soundContext: soundContext);
         }
 
         private static IReadOnlyList<OpenXmlElement> CreateLegacyInteractionElements(
             LegacyPptInteraction interaction, bool shapeLevel,
-            string relationshipId, string? action, string? tooltip = null) {
+            string relationshipId, string? action, string? tooltip = null,
+            OpenXmlPart? ownerPart = null,
+            LegacyPptSoundProjectionContext? soundContext = null) {
             A.HyperlinkType hyperlink = interaction.Trigger ==
                 LegacyPptInteractionTrigger.MouseOver
                 ? shapeLevel
@@ -115,6 +130,16 @@ namespace OfficeIMO.PowerPoint {
             hyperlink.Tooltip = tooltip;
             if (interaction.IsAnimated) hyperlink.HighlightClick = true;
             if (interaction.StopsSound) hyperlink.EndSound = true;
+            if (interaction.SoundIdReference != 0 && ownerPart != null
+                && soundContext?.TryProject(ownerPart,
+                    interaction.SoundIdReference, out LegacyPptSound? sound,
+                    out string? soundRelationshipId) == true) {
+                hyperlink.Append(new A.HyperlinkSound {
+                    Embed = soundRelationshipId,
+                    Name = sound!.Name,
+                    BuiltIn = sound.BuiltInId.HasValue
+                });
+            }
             return new OpenXmlElement[] { hyperlink };
         }
 

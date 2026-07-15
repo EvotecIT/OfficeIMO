@@ -65,8 +65,10 @@ namespace OfficeIMO.PowerPoint {
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
             using PowerPointPresentation projected = Create();
             ApplyLegacyDocumentSettings(projected, legacy);
-            LegacyPptLayoutCatalog layoutTargets = ProjectLegacyMasters(projected, legacy);
-            ProjectLegacySpecialMasters(projected, legacy);
+            var soundContext = new LegacyPptSoundProjectionContext(legacy);
+            LegacyPptLayoutCatalog layoutTargets = ProjectLegacyMasters(projected,
+                legacy, soundContext);
+            ProjectLegacySpecialMasters(projected, legacy, soundContext);
 
             var slideProjections = new List<(LegacyPptSlide Source, PowerPointSlide Target)>(
                 legacy.Slides.Count);
@@ -78,7 +80,7 @@ namespace OfficeIMO.PowerPoint {
                     : projected.AddSlide();
                 slide.Hidden = legacySlide.Hidden;
                 ProjectLegacySlideDesign(slide, legacySlide);
-                ProjectLegacyTransition(slide, legacySlide.Transition);
+                ProjectLegacyTransition(slide, legacySlide.Transition, soundContext);
                 slideProjections.Add((legacySlide, slide));
                 if (slidePartsByLegacyId.ContainsKey(legacySlide.SlideId)) {
                     throw new InvalidDataException(
@@ -92,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
                 var projectedShapeIds = new Dictionary<uint, uint>();
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
                     OpenXmlElement? projectedShape = ProjectLegacyShape(slide, shape,
-                        slidePartsByLegacyId);
+                        slidePartsByLegacyId, soundContext);
                     if (projectedShape != null) {
                         RegisterLegacyShapeIds(shape, projectedShape, projectedShapeIds);
                     }
@@ -115,7 +117,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OpenXmlElement? ProjectLegacyShape(PowerPointSlide slide, LegacyPptShape shape,
-            IReadOnlyDictionary<uint, SlidePart> slidePartsByLegacyId) {
+            IReadOnlyDictionary<uint, SlidePart> slidePartsByLegacyId,
+            LegacyPptSoundProjectionContext soundContext) {
             long left = ToEmus(shape.Bounds.Left);
             long top = ToEmus(shape.Bounds.Top);
             long width = Math.Max(1L, ToEmus(shape.Bounds.Width));
@@ -133,7 +136,8 @@ namespace OfficeIMO.PowerPoint {
                     LegacyPptTextProjection.Apply(
                         (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element, shape.TextBody,
                         interaction => ProjectLegacyInteraction(slide.SlidePart, interaction,
-                            slidePartsByLegacyId: slidePartsByLegacyId));
+                            slidePartsByLegacyId: slidePartsByLegacyId,
+                            soundContext: soundContext));
                     if (shape.OfficeArtShapeType != 202
                         && LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out A.ShapeTypeValues textGeometry)
@@ -179,7 +183,7 @@ namespace OfficeIMO.PowerPoint {
                         .DefaultIfEmpty(1U)
                         .Max() + 1U;
                     OpenXmlElement? group = CreateLegacyOpenXmlShape(slide.SlidePart, shape,
-                        ref nextShapeId, slidePartsByLegacyId);
+                        ref nextShapeId, slidePartsByLegacyId, soundContext);
                     if (group != null) tree.Append(group);
                     return group;
             }
@@ -209,7 +213,7 @@ namespace OfficeIMO.PowerPoint {
                 ApplyLegacyPlaceholder(projectedElement, shape);
                 ApplyLegacyShapeMetadata(projectedElement, shape);
                 ApplyLegacyShapeInteractions(slide.SlidePart, projectedElement, shape,
-                    slidePartsByLegacyId);
+                    slidePartsByLegacyId, soundContext);
             }
             return projectedShape?.Element;
         }

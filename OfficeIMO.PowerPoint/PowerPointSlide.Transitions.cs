@@ -59,6 +59,8 @@ namespace OfficeIMO.PowerPoint {
                 double? durationSeconds = TransitionDurationSeconds;
                 bool? advanceOnClick = TransitionAdvanceOnClick;
                 double? advanceAfterSeconds = TransitionAdvanceAfterSeconds;
+                SoundAction? soundAction = GetTransitionElement()?
+                    .GetFirstChild<SoundAction>()?.CloneNode(true) as SoundAction;
 
                 RemoveTransitionMarkup();
                 if (value == SlideTransition.None) {
@@ -104,6 +106,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 SlideRoot.Transition = transition;
+                if (soundAction != null) transition.Append(soundAction);
                 ApplyTransitionSettings(GetTransitionElement(), speed, durationSeconds, advanceOnClick, advanceAfterSeconds);
             }
         }

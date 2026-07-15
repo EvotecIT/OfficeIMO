@@ -79,7 +79,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out _)) {
                 return false;
             }
-            if (!LegacyPptWriter.TryReadInteractions(presentation,
+            var soundCatalog = new LegacyPptWriter.LegacyPptWriterSoundCatalog(
+                projectionMap.Sounds, projectionMap.SoundIdSeed);
+            if (!LegacyPptWriter.TryReadInteractions(presentation.Slides,
+                    soundCatalog,
                     out LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
                     out _)
                 || !LegacyPptWriter.TryReadCustomShows(presentation,
@@ -194,7 +197,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     bool headerFooterChanged = originalHeaderFooter == null
                         ? currentHeaderFooter != null
                         : !originalHeaderFooter.IsEquivalentTo(currentHeaderFooter);
-                    if (!LegacyPptWriter.TryReadTransition(slide,
+                    if (!LegacyPptWriter.TryReadTransition(slide, soundCatalog,
                             out LegacyPptWriter.LegacyPptWriterTransition? currentTransition,
                             out _)) return false;
                     LegacyPptWriter.LegacyPptWriterTransition? originalTransition =
@@ -214,6 +217,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         new LegacyPptImportOptions());
                     if (!TryRewriteSlide(slide, slideRecord, editsByOfficeArtId, hidden,
                             transitionChanged, currentTransition,
+                            soundCatalog,
                             headerFooterChanged, currentHeaderFooter,
                             commentsChanged, currentComments,
                             out RecordRewrite result)
@@ -256,6 +260,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     rewritten[package.DocumentPersistId] = documentWithHyperlinks;
+                }
+                if (soundCatalog.NewSounds.Count > 0) {
+                    rewritten.TryGetValue(package.DocumentPersistId,
+                        out byte[]? currentDocumentBytes);
+                    if (!TryAppendNewSounds(package, currentDocumentBytes,
+                            soundCatalog.NewSounds,
+                            out byte[] documentWithSounds)) {
+                        return false;
+                    }
+                    rewritten[package.DocumentPersistId] = documentWithSounds;
                 }
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException

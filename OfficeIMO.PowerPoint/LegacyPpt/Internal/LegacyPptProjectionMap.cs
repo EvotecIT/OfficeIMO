@@ -13,7 +13,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyDictionary<string, uint> masterIdsByLayoutPartUri,
             IReadOnlyList<LegacyPptHyperlink> hyperlinks,
             IReadOnlyList<LegacyPptCustomShow> customShows,
-            bool customShowsAreEditable) {
+            bool customShowsAreEditable,
+            IReadOnlyList<LegacyPptSound> sounds, uint? soundIdSeed) {
             Slides = new ReadOnlyCollection<LegacyPptSlideProjection>(slides.ToArray());
             _slidesByPartUri = new ReadOnlyDictionary<string, LegacyPptSlideProjection>(slides.ToDictionary(
                 slide => slide.SlidePartUri, StringComparer.Ordinal));
@@ -29,6 +30,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 && customShows.All(show => show.IsEditable)
                 && customShows.Select(show => show.Name)
                     .Distinct(StringComparer.Ordinal).Count() == customShows.Count;
+            Sounds = new ReadOnlyCollection<LegacyPptSound>(sounds.ToArray());
+            SoundIdSeed = soundIdSeed;
         }
 
         internal IReadOnlyList<LegacyPptSlideProjection> Slides { get; }
@@ -38,6 +41,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal IReadOnlyList<LegacyPptCustomShow> CustomShows { get; }
 
         internal bool CanEditCustomShows { get; }
+
+        internal IReadOnlyList<LegacyPptSound> Sounds { get; }
+
+        internal uint? SoundIdSeed { get; }
 
         internal bool TryGetSlide(PowerPointSlide slide, out LegacyPptSlideProjection? projection) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
@@ -68,6 +75,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
 
             var slides = new List<LegacyPptSlideProjection>(legacy.Slides.Count);
+            var projectableSoundIds = new HashSet<uint>(legacy.Sounds.Where(sound =>
+                sound.HasData && sound.ContentType != null).Select(sound => sound.Id));
             for (int slideIndex = 0; slideIndex < legacy.Slides.Count; slideIndex++) {
                 PowerPointSlide projectedSlide = presentation.Slides[slideIndex];
                 LegacyPptSlide sourceSlide = legacy.Slides[slideIndex];
@@ -97,7 +106,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     shapes.Add(new LegacyPptShapeProjection(openXmlShapeId.Value, sourceShape.ShapeId,
                         sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text,
                         textFormattingFingerprint, sourceShape.Interactions,
-                        sourceShape.TextBody.Interactions));
+                        sourceShape.TextBody.Interactions, projectableSoundIds));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
@@ -110,7 +119,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy),
                 legacy.Hyperlinks, legacy.CustomShows,
-                legacy.CustomShowsAreEditable);
+                legacy.CustomShowsAreEditable, legacy.Sounds,
+                legacy.SoundIdSeed);
         }
 
         private static IReadOnlyDictionary<string, uint> CreateLayoutMasterMap(
@@ -206,7 +216,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptShapeKind kind, LegacyPptBounds bounds, string text,
             string? textFormattingFingerprint,
             IReadOnlyList<LegacyPptInteraction> shapeInteractions,
-            IReadOnlyList<LegacyPptTextInteraction> textInteractions) {
+            IReadOnlyList<LegacyPptTextInteraction> textInteractions,
+            ISet<uint> projectableSoundIds) {
             OpenXmlShapeId = openXmlShapeId;
             OfficeArtShapeId = officeArtShapeId;
             RecordOffset = recordOffset;
@@ -218,8 +229,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 shapeInteractions.ToArray());
             TextInteractions = new ReadOnlyCollection<LegacyPptTextInteraction>(
                 textInteractions.ToArray());
-            CanEditInteractions = ShapeInteractions.All(IsEditableInteraction)
-                && TextInteractions.All(item => IsEditableInteraction(item.Interaction))
+            CanEditInteractions = ShapeInteractions.All(interaction =>
+                    IsEditableInteraction(interaction, projectableSoundIds))
+                && TextInteractions.All(item => IsEditableInteraction(
+                    item.Interaction, projectableSoundIds))
                 && ShapeInteractions.GroupBy(item => item.Trigger)
                     .All(group => group.Count() == 1)
                 && !HasOverlappingTextTriggers(TextInteractions);
@@ -245,11 +258,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool CanEditInteractions { get; }
 
-        private static bool IsEditableInteraction(LegacyPptInteraction interaction) {
+        private static bool IsEditableInteraction(LegacyPptInteraction interaction,
+            ISet<uint> projectableSoundIds) {
             byte allowedFlags = interaction.Action ==
                 LegacyPptInteractionAction.CustomShow ? (byte)0x07 : (byte)0x03;
-            if (interaction.SoundIdReference != 0 || interaction.OleVerb != 0
+            if (interaction.OleVerb != 0
                 || (interaction.Flags & ~allowedFlags) != 0) return false;
+            if (interaction.SoundIdReference != 0
+                && !projectableSoundIds.Contains(interaction.SoundIdReference)) {
+                return false;
+            }
             if (interaction.Action == LegacyPptInteractionAction.Macro) {
                 return !string.IsNullOrEmpty(interaction.Name)
                     && interaction.Jump == LegacyPptInteractionJump.None

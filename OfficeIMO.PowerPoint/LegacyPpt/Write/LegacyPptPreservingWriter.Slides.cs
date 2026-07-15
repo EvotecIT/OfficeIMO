@@ -8,6 +8,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyDictionary<uint, ProjectedShapeEdit> editsByOfficeArtId, bool? hidden,
             bool rewriteTransition,
             LegacyPptWriter.LegacyPptWriterTransition? transition,
+            LegacyPptWriter.LegacyPptWriterSoundCatalog soundCatalog,
             bool rewriteHeaderFooter,
             LegacyPptWriter.LegacyPptWriterHeaderFooter? headerFooter,
             bool rewriteComments,
@@ -48,7 +49,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                            && child.Type == RecordSlideShowSlideInfoAtom) {
                     if (rewriteTransition && needsSlideShowInfo) {
                         children.Add(LegacyPptWriter.PatchSlideShowInfo(
-                            child.CopyRecordBytes(), slide));
+                            child.CopyRecordBytes(), slide, soundCatalog));
                     } else if (!rewriteTransition) {
                         children.Add(PatchHiddenState(child.CopyRecordBytes(),
                             slide.Hidden));
@@ -65,7 +66,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (rewriteSlideShowInfo && needsSlideShowInfo && !hasSlideShowInfo
                     && child.Type == RecordSlideAtom) {
                     children.Add(rewriteTransition
-                        ? LegacyPptWriter.BuildSlideShowInfoRecord(slide)
+                        ? LegacyPptWriter.BuildSlideShowInfoRecord(slide,
+                            soundCatalog)
                         : BuildSlideShowInfo(slide.Hidden));
                     patchedSlideShowInfo = true;
                     changed = true;

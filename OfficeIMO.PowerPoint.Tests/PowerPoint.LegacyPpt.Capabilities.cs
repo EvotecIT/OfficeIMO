@@ -136,6 +136,17 @@ namespace OfficeIMO.Tests {
                 transitions.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Blocked,
                 transitions.PptxToBinary);
+
+            LegacyPptCapability sounds = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.TransitionAndActionSounds);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                sounds.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                sounds.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                sounds.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                sounds.PptxToBinary);
         }
     }
 }

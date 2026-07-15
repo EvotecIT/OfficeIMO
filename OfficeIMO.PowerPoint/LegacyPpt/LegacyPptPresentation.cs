@@ -18,6 +18,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
         private const ushort RecordColorSchemeAtom = 0x07F0;
         private const ushort RecordFontCollection = 0x07D5;
+        private const ushort RecordSoundCollection = 0x07E4;
+        private const ushort RecordSoundCollectionAtom = 0x07E5;
+        private const ushort RecordSound = 0x07E6;
+        private const ushort RecordSoundDataBlob = 0x07E7;
         private const ushort RecordDrawing = 0x040C;
         private const ushort RecordPlaceholder = 0x0BC3;
         private const ushort RecordTextHeaderAtom = 0x0F9F;
@@ -47,6 +51,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private readonly List<OfficeArtBlipStoreEntry> _blipStoreEntries = new();
         private readonly List<LegacyPptFont> _fonts = new();
         private readonly Dictionary<ushort, LegacyPptFont> _fontsByIndex = new();
+        private readonly List<LegacyPptSound> _sounds = new();
+        private readonly Dictionary<uint, LegacyPptSound> _soundsById = new();
         private readonly List<LegacyPptImportDiagnostic> _diagnostics = new();
 
         private LegacyPptPresentation() { }
@@ -73,6 +79,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets document fonts by their binary PowerPoint font index.</summary>
         public IReadOnlyList<LegacyPptFont> Fonts => _fonts;
+
+        /// <summary>Gets the document-level sounds referenced by transitions and interactive actions.</summary>
+        public IReadOnlyList<LegacyPptSound> Sounds => _sounds;
+
+        /// <summary>Gets the sound identifier seed stored by the document, when valid.</summary>
+        public uint? SoundIdSeed { get; private set; }
 
         /// <summary>Gets import diagnostics, including preserve-only content.</summary>
         public IReadOnlyList<LegacyPptImportDiagnostic> Diagnostics => _diagnostics;
@@ -124,6 +136,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             ParseBlipStore(document, package, options);
             ParseFontCollection(document, options);
+            ParseSoundCollection(document, options);
             ParseNamedShows(document, options);
             ParseHyperlinks(document, options);
 
@@ -136,6 +149,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 AddDiagnostic("PPT-SLIDES-MISSING", LegacyPptDiagnosticSeverity.Warning,
                     "The document has no slide list.", document.Offset);
                 ValidateCustomShowSlideReferences();
+                ValidateSoundReferences();
                 return;
             }
             IReadOnlyDictionary<uint, LegacyPptNotesDirectoryEntry> notesDirectory =
@@ -170,6 +184,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 _slides.Add(slide);
             }
             ValidateCustomShowSlideReferences();
+            ValidateSoundReferences();
         }
 
         private void ParseSlide(LegacyPptRecord slideRecord, LegacyPptSlide slide, LegacyPptImportOptions options) {

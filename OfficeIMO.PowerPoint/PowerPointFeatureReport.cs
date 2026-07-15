@@ -354,7 +354,11 @@ namespace OfficeIMO.PowerPoint {
                 "Notes-page drawings beyond speaker text are detected as preserve-only presentation content.",
                 richNotesDetails);
             Add(features, "Presentation", "Slide transitions", PowerPointFeatureSupportLevel.Editable, Slides.Count(HasTransitionMarkup), null,
-                "Common transitions, Morph fallback markup, speed, duration, and advance timing can be authored and round-tripped.");
+                "Common transitions, Morph fallback markup, speed, duration, advance timing, and transition sound actions can be authored and round-tripped.");
+            Add(features, "Media", "Transition and action sounds",
+                PowerPointFeatureSupportLevel.Editable,
+                Slides.Sum(CountTransitionAndActionSounds), null,
+                "Embedded sounds referenced by slide transitions and shape or text actions are detected and round-tripped.");
             var unsupportedTransitionDetails = DescribeUnsupportedTransitionMarkup();
             Add(features, "Presentation", "Unsupported transition markup", PowerPointFeatureSupportLevel.Preserved, unsupportedTransitionDetails.Count, null,
                 "Transition markup not mapped by OfficeIMO is detected as preserve-only slide metadata.",
@@ -505,8 +509,15 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool HasTransitionMarkup(PowerPointSlide slide) {
-            return slide.Transition != SlideTransition.None;
+            return slide.Transition != SlideTransition.None
+                || slide.SlidePart.Slide?.Transition != null;
         }
+
+        private static int CountTransitionAndActionSounds(PowerPointSlide slide) =>
+            (slide.SlidePart.Slide?.Transition?
+                .Descendants<DocumentFormat.OpenXml.Presentation.Sound>().Count() ?? 0)
+            + (slide.SlidePart.Slide?
+                .Descendants<A.HyperlinkSound>().Count() ?? 0);
 
         private static int CountSlideTextBoxes(PowerPointSlide slide) {
             int slideTextBoxes = slide.SlidePart.Slide?.Descendants<Shape>().Count(shape => shape.TextBody != null) ?? 0;
@@ -663,12 +674,26 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            return !transition.ChildElements.Any(IsMappedTransitionEffectElement)
-                || transition.ChildElements.Any(element => !IsMappedTransitionEffectElement(element))
+            return transition.ChildElements.Any(element =>
+                    !IsMappedTransitionEffectElement(element)
+                    && element is not SoundAction)
+                || transition.Elements<SoundAction>().Any(
+                    sound => !IsSupportedTransitionSoundAction(sound))
                 || transition.GetAttributes().Any(IsUnsupportedTransitionAttribute)
                 || transition.ChildElements
                     .Where(IsMappedTransitionEffectElement)
                     .Any(element => element.GetAttributes().Any(attribute => IsUnsupportedTransitionEffectAttribute(element, attribute)));
+        }
+
+        private static bool IsSupportedTransitionSoundAction(SoundAction sound) {
+            StartSoundAction[] starts = sound.Elements<StartSoundAction>().ToArray();
+            EndSoundAction[] ends = sound.Elements<EndSoundAction>().ToArray();
+            if (sound.ChildElements.Count != 1
+                || starts.Length + ends.Length != 1) return false;
+            if (ends.Length == 1) return true;
+            return starts[0].ChildElements.Count == 1
+                && starts[0].Elements<DocumentFormat.OpenXml.Presentation.Sound>()
+                    .Count() == 1;
         }
 
         private static bool IsMappedTransitionEffectElement(OpenXmlElement element) {

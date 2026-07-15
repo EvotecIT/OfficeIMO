@@ -304,11 +304,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             || value == 6 || value == 7 || value == 8 || value == 9
             || value == 10 || value == 255;
 
-        private static bool IsNativelyProjectable(LegacyPptInteraction interaction) {
+        private bool IsNativelyProjectable(LegacyPptInteraction interaction) {
             byte allowedFlags = interaction.Action ==
                 LegacyPptInteractionAction.CustomShow ? (byte)0x07 : (byte)0x03;
-            if (interaction.SoundIdReference != 0 || interaction.OleVerb != 0
+            if (interaction.OleVerb != 0
                 || (interaction.Flags & ~allowedFlags) != 0) return false;
+            if (interaction.SoundIdReference != 0) {
+                LegacyPptSound? sound = FindSound(interaction.SoundIdReference);
+                if (sound?.HasData != true || sound.ContentType == null) return false;
+            }
             if (interaction.Action == LegacyPptInteractionAction.None) {
                 return interaction.Jump == LegacyPptInteractionJump.None
                     && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil

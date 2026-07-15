@@ -9,7 +9,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterInteractionCatalog interactionCatalog) {
             var children = new List<byte[]>();
             bool hasSlideShowInfo = false;
-            if (!TryReadTransition(slide, out LegacyPptWriterTransition? transition,
+            if (!TryReadTransition(slide, interactionCatalog.Sounds,
+                    out LegacyPptWriterTransition? transition,
                     out string? transitionReason)) {
                 throw new NotSupportedException(transitionReason);
             }
@@ -41,7 +42,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         interactionCatalog));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     if (needsSlideShowInfo) {
-                        children.Add(PatchSlideShowInfo(child.CopyRecordBytes(), slide));
+                        children.Add(PatchSlideShowInfo(child.CopyRecordBytes(), slide,
+                            interactionCatalog.Sounds));
                     }
                     hasSlideShowInfo = true;
                     if (headerFooter != null && !hasHeaderFooter) {
@@ -69,7 +71,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 int slideAtomIndex = prototype.Children.TakeWhile(child =>
                     child.Type != RecordSlideAtom).Count();
                 children.Insert(Math.Min(children.Count, slideAtomIndex + 1),
-                    BuildSlideShowInfoRecord(slide));
+                    BuildSlideShowInfoRecord(slide, interactionCatalog.Sounds));
             }
             return BuildContainer(RecordSlide, instance: 0, children);
         }

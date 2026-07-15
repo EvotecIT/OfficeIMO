@@ -42,6 +42,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     $"Slide {slide.SlideId} has nonzero reserved transition flags.",
                     atom.Offset);
             }
+            if (options.ReportUnsupportedContent && transition.PlaySound
+                && transition.StopSound) {
+                AddDiagnostic("PPT-TRANSITION-SOUND-FLAGS",
+                    LegacyPptDiagnosticSeverity.Warning,
+                    $"Slide {slide.SlideId} both stops the current sound and starts a new sound; Open XML exposes the start action while the combined binary flags remain preserved until the transition is edited.",
+                    atom.Offset);
+            }
         }
     }
 }
