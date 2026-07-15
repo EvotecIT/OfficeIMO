@@ -781,6 +781,6 @@ public sealed partial class CsvObjectWriter : IDisposable
             return;
         }
 
-        CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _delimiter, _options.NewLine);
+        CsvWriter.WritePlainTextRecordBuffered(_writer, _rowBuffer, values, _delimiter, _options.NewLine);
     }
 }

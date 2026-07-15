@@ -1547,7 +1547,7 @@ internal static partial class CsvWriter
         return false;
     }
 
-    private static void WritePlainTextRecordBuffered(TextWriter writer, StringBuilder buffer, string?[] values, char delimiter, string newLine)
+    internal static void WritePlainTextRecordBuffered(TextWriter writer, StringBuilder buffer, string?[] values, char delimiter, string newLine)
     {
         if (buffer == null)
         {
