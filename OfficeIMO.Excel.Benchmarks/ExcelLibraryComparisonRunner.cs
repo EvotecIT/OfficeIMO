@@ -5529,7 +5529,9 @@ internal static partial class ExcelLibraryComparisonRunner {
            || string.Equals(scenario, "read-objects-stream", StringComparison.Ordinal)
            || string.Equals(scenario, "formula-heavy-read", StringComparison.Ordinal)
            || string.Equals(scenario, "read-shared-strings-stream", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-shared-strings-materialized", StringComparison.Ordinal)
            || string.Equals(scenario, "read-inline-strings-stream", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-inline-strings-materialized", StringComparison.Ordinal)
            || string.Equals(scenario, DenseHelloWorldReadRangeScenario, StringComparison.Ordinal)
            || string.Equals(scenario, DenseHelloWorldReadStreamScenario, StringComparison.Ordinal);
 

@@ -869,6 +869,23 @@ public class CsvDocumentBasicsTests
 
 #if NET6_0_OR_GREATER
     [Fact]
+    public void Default_Writer_Preserves_Long_Culture_Formatted_Dates()
+    {
+        var culture = (CultureInfo)CultureInfo.InvariantCulture.Clone();
+        culture.DateTimeFormat.ShortDatePattern = new string('y', 160);
+        culture.DateTimeFormat.LongTimePattern = "HH:mm:ss";
+        var value = new DateTime(2026, 7, 15, 12, 34, 56);
+        using var writer = new StringWriter(culture);
+
+        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { Culture = culture, NewLine = "\n" }))
+        {
+            csv.WriteRow(new[] { "Value" }, new object?[] { value });
+        }
+
+        Assert.Equal("Value\n" + value.ToString(culture) + "\n", writer.ToString());
+    }
+
+    [Fact]
     public void Default_Writer_Quotes_Custom_Span_Formatted_Values_When_Needed()
     {
         using var writer = new StringWriter();
