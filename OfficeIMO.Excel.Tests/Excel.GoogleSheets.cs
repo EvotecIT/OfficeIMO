@@ -1790,7 +1790,7 @@ namespace OfficeIMO.Tests {
                     recordedRequests.Add((request.RequestUri!, request.Method.Method, body));
 
                     if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.Contains("/v4/spreadsheets/existing123?", StringComparison.Ordinal)) {
-                        return CreateJsonResponse("{\"spreadsheetId\":\"existing123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":7,\"title\":\"Summary\"}},{\"properties\":{\"sheetId\":8,\"title\":\"Legacy\"}}]}");
+                        return CreateJsonResponse("{\"spreadsheetId\":\"existing123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Summary\"}},{\"properties\":{\"sheetId\":8,\"title\":\"Legacy\"}}]}");
                     }
 
                     if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
@@ -1845,6 +1845,9 @@ namespace OfficeIMO.Tests {
                     Assert.Contains("deleteSheet", requestKinds);
                     Assert.Contains("addSheet", requestKinds);
                     Assert.Contains("updateSpreadsheetProperties", requestKinds);
+                    Assert.Contains(requests.EnumerateArray(), request =>
+                        request.TryGetProperty("deleteSheet", out JsonElement deleteSheet)
+                        && deleteSheet.GetProperty("sheetId").GetInt32() == 0);
                 }
             } finally {
                 if (File.Exists(filePath)) {

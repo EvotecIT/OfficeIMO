@@ -29,6 +29,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             using var drive = new GoogleDriveClient(session);
             GoogleDriveFile source = await drive.GetFileAsync(documentId, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
             EnsureDocument(source, documentId);
+            EnsureDownloadable(source, documentId);
             byte[] bytes = await drive.ExportAsync(documentId, GoogleDriveMimeTypes.MicrosoftWord, options.Progress, report, cancellationToken).ConfigureAwait(false);
             var stream = new MemoryStream(bytes, writable: true);
             WordDocument document;
@@ -219,6 +220,9 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (!string.Equals(file.MimeType, GoogleDriveMimeTypes.Document, StringComparison.Ordinal)) {
                 throw new InvalidOperationException($"Drive file '{id}' is not a Google document (mimeType: '{file.MimeType}').");
             }
+        }
+
+        private static void EnsureDownloadable(GoogleDriveFile file, string id) {
             if (file.Capabilities != null && !file.Capabilities.CanDownload) throw new InvalidOperationException($"Drive file '{id}' cannot be exported by the current principal.");
         }
 

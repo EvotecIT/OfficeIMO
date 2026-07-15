@@ -85,9 +85,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         cancellationToken).ConfigureAwait(false);
 
                     var existingSheets = existingResponse.Sheets
-                        .Where(sheet => (sheet.Properties?.SheetId ?? 0) > 0)
+                        .Where(sheet => sheet.Properties?.SheetId.HasValue == true)
                         .ToDictionary(
-                            sheet => sheet.Properties!.SheetId,
+                            sheet => sheet.Properties!.SheetId.GetValueOrDefault(),
                             sheet => sheet.Properties!.Title ?? string.Empty);
                     var sheetIdMap = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch, existingSheets.Keys);
                     var replacePayload = GoogleSheetsApiPayloadBuilder.BuildReplaceSpreadsheetPayload(batch, existingSheets, sheetIdMap);
@@ -428,7 +428,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
     internal sealed class GoogleSheetsApiSheetMetadataPropertiesResponse {
         [System.Text.Json.Serialization.JsonPropertyName("sheetId")]
-        public int SheetId { get; set; }
+        public int? SheetId { get; set; }
 
         [System.Text.Json.Serialization.JsonPropertyName("title")]
         public string? Title { get; set; }

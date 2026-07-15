@@ -101,6 +101,47 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(GoogleDocsRevisionConflictMode.MergeAgainstTargetRevision)]
+        [InlineData(GoogleDocsRevisionConflictMode.OverwriteLatest)]
+        public async Task Test_GoogleDocsExporter_NonStrictRevisionModesAcceptStaleObservedRevision(GoogleDocsRevisionConflictMode mode) {
+            string filePath = Path.Combine(_directoryWithFiles, $"GoogleDocsNonStrictRevision-{mode}.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Local edit");
+                var bodies = new List<string>();
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return CreateJsonResponse(CreateTabbedDocumentStateJson("doc-nonstrict", "remote-revision", "tab-a", "Remote edit"));
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
+                        bodies.Add(await request.Content!.ReadAsStringAsync().ConfigureAwait(false));
+                        return CreateJsonResponse("{\"writeControl\":{\"requiredRevisionId\":\"revision-new\"}}");
+                    }
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Location = new GoogleDriveFileLocation { ExistingFileId = "doc-nonstrict" },
+                    Replace = new GoogleDocsReplaceOptions {
+                        ConflictMode = mode,
+                        ExpectedRevisionId = "observed-revision",
+                    },
+                });
+
+                Assert.NotEmpty(bodies);
+                if (mode == GoogleDocsRevisionConflictMode.MergeAgainstTargetRevision) {
+                    Assert.Contains("\"targetRevisionId\":\"observed-revision\"", bodies[0], StringComparison.Ordinal);
+                } else {
+                    Assert.All(bodies, body => Assert.DoesNotContain("writeControl", body, StringComparison.Ordinal));
+                }
+                Assert.Equal("revision-new", result.RevisionId);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
         [Fact]
         public async Task Test_GoogleDocsExporter_ChainsWriteControlAndSelectedTab() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsWriteControl.docx");
@@ -138,10 +179,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsImporter_NativeFlattensTabsWithHeadings() {
+        public async Task Test_GoogleDocsImporter_NativeFlattensTabsWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
-                    return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":7,\"capabilities\":{\"canDownload\":true}}"));
+                    return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":7,\"capabilities\":{\"canDownload\":false}}"));
                 }
                 if (request.RequestUri.Host == "docs.googleapis.com") {
                     const string json = "{\"documentId\":\"doc-import\",\"title\":\"Import\",\"revisionId\":\"revision-7\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"one\",\"title\":\"Tab One\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":7,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Alpha\\n\",\"textStyle\":{\"bold\":true}}}]}}]}}},{\"tabProperties\":{\"tabId\":\"two\",\"title\":\"Tab Two\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":6,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Beta\\n\"}}]}}]}}}]}";

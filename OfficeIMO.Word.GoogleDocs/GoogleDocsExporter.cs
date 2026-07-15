@@ -221,7 +221,9 @@ namespace OfficeIMO.Word.GoogleDocs {
                     batch.Report,
                     batch.Report.Notices.Where(notice => notice.Code == "DOCS.REPLACE.EXPECTED_REVISION_REQUIRED").ToArray());
             }
-            if (!string.IsNullOrWhiteSpace(expected) && !string.Equals(expected, document.RevisionId, StringComparison.Ordinal)) {
+            if (options.Replace.ConflictMode == GoogleDocsRevisionConflictMode.RequireRevision
+                && !string.IsNullOrWhiteSpace(expected)
+                && !string.Equals(expected, document.RevisionId, StringComparison.Ordinal)) {
                 batch.Report.Add(TranslationSeverity.Error, "ReplaceConflict", "The Google document revision changed after it was read.",
                     code: "DOCS.REPLACE.REVISION_CONFLICT", action: TranslationAction.Fail, targetId: document.DocumentId);
                 throw new GoogleWorkspaceConflictException(
@@ -231,7 +233,10 @@ namespace OfficeIMO.Word.GoogleDocs {
                     document.RevisionId,
                     batch.Report);
             }
-            batch.WriteControlState = new GoogleDocsWriteControlState(options.Replace.ConflictMode, expected ?? document.RevisionId);
+            string? writeRevision = options.Replace.ConflictMode == GoogleDocsRevisionConflictMode.OverwriteLatest
+                ? document.RevisionId
+                : expected;
+            batch.WriteControlState = new GoogleDocsWriteControlState(options.Replace.ConflictMode, writeRevision);
         }
 
         private static void ConfigureCreatedDocumentWrite(

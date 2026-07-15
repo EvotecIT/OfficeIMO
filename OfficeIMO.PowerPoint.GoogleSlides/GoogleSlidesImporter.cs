@@ -18,6 +18,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             using var drive = new GoogleDriveClient(session);
             GoogleDriveFile source = await drive.GetFileAsync(id, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
             EnsurePresentation(source, id);
+            EnsureDownloadable(source, id);
             byte[] bytes = await drive.ExportAsync(id, GoogleDriveMimeTypes.MicrosoftPowerPoint, options.Progress, report, cancellationToken).ConfigureAwait(false);
             var stream = new MemoryStream(bytes, writable: true);
             PowerPointPresentation presentation;
@@ -92,10 +93,31 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static string ExtractText(GoogleSlidesApiTextContent? text) => text == null ? string.Empty : string.Concat(text.TextElements.Select(element => element.TextRun?.Content));
         private static double ToPoints(GoogleSlidesApiDimension? dimension) => dimension == null ? 0 : ToPoints(dimension.Magnitude, dimension.Unit);
         private static double ToPoints(double value, string? unit) => string.Equals(unit, "EMU", StringComparison.OrdinalIgnoreCase) ? value / 12700d : value;
-        private static ImagePartType DetectImageType(byte[] bytes) => bytes.Length > 3 && bytes[0] == 0x89 && bytes[1] == 0x50 ? ImagePartType.Png : ImagePartType.Jpeg;
+        private static ImagePartType DetectImageType(byte[] bytes) {
+            if (bytes.Length >= 8
+                && bytes[0] == 0x89
+                && bytes[1] == 0x50
+                && bytes[2] == 0x4E
+                && bytes[3] == 0x47) {
+                return ImagePartType.Png;
+            }
+            if (bytes.Length >= 6
+                && bytes[0] == 0x47
+                && bytes[1] == 0x49
+                && bytes[2] == 0x46
+                && bytes[3] == 0x38
+                && (bytes[4] == 0x37 || bytes[4] == 0x39)
+                && bytes[5] == 0x61) {
+                return ImagePartType.Gif;
+            }
+            return ImagePartType.Jpeg;
+        }
 
         private static void EnsurePresentation(GoogleDriveFile file, string id) {
             if (!string.Equals(file.MimeType, GoogleDriveMimeTypes.Presentation, StringComparison.Ordinal)) throw new InvalidOperationException($"Drive file '{id}' is not a Google presentation.");
+        }
+
+        private static void EnsureDownloadable(GoogleDriveFile file, string id) {
             if (file.Capabilities != null && !file.Capabilities.CanDownload) throw new InvalidOperationException($"Drive file '{id}' cannot be exported by the current principal.");
         }
 

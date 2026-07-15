@@ -4,6 +4,7 @@ using OfficeIMO.PowerPoint.GoogleSlides;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
@@ -58,6 +59,39 @@ namespace OfficeIMO.Tests {
             Assert.Contains("\"requiredRevisionId\":\"revision-1\"", body);
             Assert.Equal("revision-2", result.RevisionId);
             Assert.Equal(2, result.DriveVersion);
+        }
+
+        [Fact]
+        public async Task Exporter_ScalesAndCentersElementsToTargetPageSize() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SlideSize.SetSizePoints(960, 540);
+            presentation.AddSlide().AddTextBoxPoints("Edge", 800, 400, 100, 100);
+            string? batchBody = null;
+            using var httpClient = new HttpClient(new DelegateHandler(async request => {
+                string uri = request.RequestUri!.AbsoluteUri;
+                if (request.Method == HttpMethod.Post && uri == "https://slides.googleapis.com/v1/presentations") return Json("{\"presentationId\":\"deck-scaled\"}");
+                if (request.Method == HttpMethod.Get && uri == "https://slides.googleapis.com/v1/presentations/deck-scaled") {
+                    return Json("{\"presentationId\":\"deck-scaled\",\"revisionId\":\"revision-1\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"initial-slide\"}]}");
+                }
+                if (request.Method == HttpMethod.Post && uri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    batchBody = await request.Content!.ReadAsStringAsync().ConfigureAwait(false);
+                    return Json("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}");
+                }
+                if (request.Method == HttpMethod.Get && request.RequestUri.Host == "www.googleapis.com") return Json("{\"id\":\"deck-scaled\",\"mimeType\":\"application/vnd.google-apps.presentation\"}");
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }));
+
+            GooglePresentationReference result = await presentation.ExportToGoogleSlidesAsync(Session(httpClient));
+
+            using JsonDocument payload = JsonDocument.Parse(Assert.IsType<string>(batchBody));
+            JsonElement shapeRequest = payload.RootElement.GetProperty("requests").EnumerateArray()
+                .Single(request => request.TryGetProperty("createShape", out _));
+            JsonElement properties = shapeRequest.GetProperty("createShape").GetProperty("elementProperties");
+            Assert.Equal(75, properties.GetProperty("size").GetProperty("width").GetProperty("magnitude").GetDouble());
+            Assert.Equal(75, properties.GetProperty("size").GetProperty("height").GetProperty("magnitude").GetDouble());
+            Assert.Equal(600, properties.GetProperty("transform").GetProperty("translateX").GetDouble());
+            Assert.Equal(300, properties.GetProperty("transform").GetProperty("translateY").GetDouble());
+            Assert.Contains(result.Report.Notices, notice => notice.Code == "SLIDES.PAGE_SIZE.SCALED");
         }
 
         [Fact]
@@ -142,9 +176,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task NativeImporter_ProjectsTextTableAndNotes() {
+        public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
-                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":true}}"));
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));
                 const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\",\"style\":{\"bold\":true}}}]}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\"}}]}}]}]}}],\"slideProperties\":{\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
@@ -156,6 +190,26 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Cell", Assert.Single(slide.Tables).RowItems[0].Cells[0].Text);
                 Assert.Equal("Imported notes", slide.Notes.Text);
                 Assert.Equal("r4", imported.Source.RevisionId);
+            }
+        }
+
+        [Fact]
+        public async Task NativeImporter_PreservesGifImages() {
+            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-gif\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
+                if (request.RequestUri.Host == "images.example.test") {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(gif) });
+                }
+                const string slides = "{\"presentationId\":\"deck-gif\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"image-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://images.example.test/image.gif\"}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+            using (imported.Presentation) {
+                PowerPointPicture picture = Assert.Single(Assert.Single(imported.Presentation.Slides).Pictures);
+                Assert.Equal("image/gif", picture.ContentType);
+                Assert.DoesNotContain(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.IMAGE_FALLBACK");
             }
         }
 

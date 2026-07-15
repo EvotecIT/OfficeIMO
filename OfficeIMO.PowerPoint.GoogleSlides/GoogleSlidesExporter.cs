@@ -100,24 +100,32 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
 
         private static List<object> BuildRequests(GoogleSlidesBatch batch, GoogleSlidesApiPresentationResponse current, IReadOnlyDictionary<string, string> imageUrls) {
+            ResolvePagePlacement(batch, current, out double scale, out double offsetX, out double offsetY);
             var requests = current.Slides.Where(slide => !string.IsNullOrWhiteSpace(slide.ObjectId)).Select(slide => (object)new { deleteObject = new { objectId = slide.ObjectId } }).ToList();
             foreach (GoogleSlidesSlide slide in batch.Slides) {
                 requests.Add(new { createSlide = new { objectId = slide.ObjectId, insertionIndex = slide.Index, slideLayoutReference = new { predefinedLayout = "BLANK" } } });
                 if (!string.IsNullOrWhiteSpace(slide.BackgroundColorHex)) requests.Add(new { updateSlideProperties = new { objectId = slide.ObjectId, slideProperties = new { background = new { solidFill = new { color = new { rgbColor = Rgb(slide.BackgroundColorHex!) } } } }, fields = "background" } });
-                foreach (GoogleSlidesElement element in slide.Elements) AddElementRequests(requests, slide.ObjectId, element, imageUrls);
+                foreach (GoogleSlidesElement element in slide.Elements) AddElementRequests(requests, slide.ObjectId, element, imageUrls, scale, offsetX, offsetY);
             }
             return requests;
         }
 
-        private static void AddElementRequests(ICollection<object> requests, string slideId, GoogleSlidesElement element, IReadOnlyDictionary<string, string> imageUrls) {
-            object properties = ElementProperties(slideId, element);
+        private static void AddElementRequests(
+            ICollection<object> requests,
+            string slideId,
+            GoogleSlidesElement element,
+            IReadOnlyDictionary<string, string> imageUrls,
+            double scale,
+            double offsetX,
+            double offsetY) {
+            object properties = ElementProperties(slideId, element, scale, offsetX, offsetY);
             switch (element) {
                 case GoogleSlidesTextBox text:
                     requests.Add(new { createShape = new { objectId = text.ObjectId, shapeType = "TEXT_BOX", elementProperties = properties } });
                     if (!string.IsNullOrEmpty(text.Text)) requests.Add(new { insertText = new { objectId = text.ObjectId, text = text.Text } });
                     var style = new Dictionary<string, object?>();
                     if (text.Bold) style["bold"] = true; if (text.Italic) style["italic"] = true; if (text.Underline) style["underline"] = true;
-                    if (text.FontSize.HasValue) style["fontSize"] = new { magnitude = text.FontSize.Value, unit = "PT" };
+                    if (text.FontSize.HasValue) style["fontSize"] = new { magnitude = Math.Max(1, text.FontSize.Value * scale), unit = "PT" };
                     if (!string.IsNullOrWhiteSpace(text.FontFamily)) style["fontFamily"] = text.FontFamily;
                     if (!string.IsNullOrWhiteSpace(text.ForegroundColorHex)) style["foregroundColor"] = new { opaqueColor = new { rgbColor = Rgb(text.ForegroundColorHex!) } };
                     if (!string.IsNullOrWhiteSpace(text.Hyperlink)) style["link"] = new { url = text.Hyperlink };
@@ -139,11 +147,44 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             }
         }
 
-        private static object ElementProperties(string slideId, GoogleSlidesElement element) => new {
+        private static object ElementProperties(string slideId, GoogleSlidesElement element, double scale, double offsetX, double offsetY) => new {
             pageObjectId = slideId,
-            size = new { width = new { magnitude = Math.Max(1, element.WidthPoints), unit = "PT" }, height = new { magnitude = Math.Max(1, element.HeightPoints), unit = "PT" } },
-            transform = new { scaleX = 1, scaleY = 1, translateX = element.LeftPoints, translateY = element.TopPoints, unit = "PT" },
+            size = new { width = new { magnitude = Math.Max(1, element.WidthPoints * scale), unit = "PT" }, height = new { magnitude = Math.Max(1, element.HeightPoints * scale), unit = "PT" } },
+            transform = new { scaleX = 1, scaleY = 1, translateX = offsetX + (element.LeftPoints * scale), translateY = offsetY + (element.TopPoints * scale), unit = "PT" },
         };
+
+        private static void ResolvePagePlacement(
+            GoogleSlidesBatch batch,
+            GoogleSlidesApiPresentationResponse current,
+            out double scale,
+            out double offsetX,
+            out double offsetY) {
+            scale = 1;
+            offsetX = 0;
+            offsetY = 0;
+            double targetWidth = ToPoints(current.PageSize?.Width);
+            double targetHeight = ToPoints(current.PageSize?.Height);
+            if (batch.WidthPoints <= 0 || batch.HeightPoints <= 0 || targetWidth <= 0 || targetHeight <= 0) return;
+
+            scale = Math.Min(targetWidth / batch.WidthPoints, targetHeight / batch.HeightPoints);
+            offsetX = (targetWidth - (batch.WidthPoints * scale)) / 2d;
+            offsetY = (targetHeight - (batch.HeightPoints * scale)) / 2d;
+            if (Math.Abs(targetWidth - batch.WidthPoints) < 0.01 && Math.Abs(targetHeight - batch.HeightPoints) < 0.01) return;
+
+            batch.Plan.Report.AddUnique(
+                TranslationSeverity.Info,
+                "PageSize",
+                $"Google Slides does not expose presentation page-size updates; elements were proportionally scaled and centered from {batch.WidthPoints:0.##}x{batch.HeightPoints:0.##} pt to {targetWidth:0.##}x{targetHeight:0.##} pt.",
+                code: "SLIDES.PAGE_SIZE.SCALED",
+                action: TranslationAction.Preserve);
+        }
+
+        private static double ToPoints(GoogleSlidesApiDimension? dimension) {
+            if (dimension == null) return 0;
+            return string.Equals(dimension.Unit, "EMU", StringComparison.OrdinalIgnoreCase)
+                ? dimension.Magnitude / 12700d
+                : dimension.Magnitude;
+        }
 
         private static Dictionary<string, double> Rgb(string hex) {
             string value = hex.TrimStart('#'); if (value.Length >= 6) value = value.Substring(value.Length - 6);
