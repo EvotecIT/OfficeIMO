@@ -33,6 +33,7 @@
     "OfficeIMO.Pdf": "2.0.X",
     "OfficeIMO.Pdf.Cryptography.Pkcs": "2.0.X",
     "OfficeIMO.PowerPoint": "2.0.X",
+    "OfficeIMO.PowerPoint.GoogleSlides": "2.0.X",
     "OfficeIMO.PowerPoint.OpenDocument": "2.0.X",
     "OfficeIMO.PowerPoint.Html": "2.0.X",
     "OfficeIMO.PowerPoint.Pdf": "2.0.X",

@@ -12,6 +12,8 @@ namespace OfficeIMO.GoogleWorkspace {
         public const string DocumentsReadonly = "https://www.googleapis.com/auth/documents.readonly";
         public const string Spreadsheets = "https://www.googleapis.com/auth/spreadsheets";
         public const string SpreadsheetsReadonly = "https://www.googleapis.com/auth/spreadsheets.readonly";
+        public const string Presentations = "https://www.googleapis.com/auth/presentations";
+        public const string PresentationsReadonly = "https://www.googleapis.com/auth/presentations.readonly";
 
         public static IReadOnlyList<string> DocsAuthoring { get; } = new[] {
             DriveFile,
@@ -23,10 +25,16 @@ namespace OfficeIMO.GoogleWorkspace {
             Spreadsheets
         };
 
+        public static IReadOnlyList<string> SlidesAuthoring { get; } = new[] {
+            DriveFile,
+            Presentations
+        };
+
         public static IReadOnlyList<string> WorkspaceAuthoring { get; } = new[] {
             DriveFile,
             Documents,
-            Spreadsheets
+            Spreadsheets,
+            Presentations
         };
     }
 }

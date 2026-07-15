@@ -1,0 +1,53 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <Description>Bidirectional OfficeIMO PowerPoint and Google Slides translation with safe replacement, template, and Drive fallback workflows.</Description>
+    <AssemblyName>OfficeIMO.PowerPoint.GoogleSlides</AssemblyName>
+    <AssemblyTitle>OfficeIMO.PowerPoint.GoogleSlides</AssemblyTitle>
+    <VersionPrefix>2.0.1</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>False</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.PowerPoint.GoogleSlides</PackageId>
+    <PackageTags>powerpoint;pptx;google;slides;workspace;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <IsPublishable>True</IsPublishable>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <GenerateDocumentationFile>True</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png" Pack="True" PackagePath="\" />
+    <None Include="README.md" Pack="True" PackagePath="README.md" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
+    <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
+    <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Drive\OfficeIMO.GoogleWorkspace.Drive.csproj" />
+    <ProjectReference Include="..\OfficeIMO.PowerPoint\OfficeIMO.PowerPoint.csproj" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.Net.Http" />
+  </ItemGroup>
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="System.Collections.Generic" />
+    <Using Include="System.IO" />
+    <Using Include="System.Linq" />
+    <Using Include="System.Net.Http" />
+    <Using Include="System.Threading" />
+    <Using Include="System.Threading.Tasks" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Tests" />
+  </ItemGroup>
+</Project>
