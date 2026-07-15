@@ -4,8 +4,7 @@ internal static class MimeWriter {
     private static readonly HashSet<string> ManagedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "Subject", "From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "Message-ID",
         "References", "In-Reply-To", "MIME-Version", "Content-Type", "Content-Transfer-Encoding",
-        "Content-Disposition", "Importance", "X-Priority", "Priority", "Sensitivity",
-        "Disposition-Notification-To", "Return-Receipt-To", "X-Unsent", "Status", "Keywords"
+        "Content-Disposition"
     };
 
     internal static byte[] Write(EmailDocument document, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {
@@ -45,11 +44,14 @@ internal static class MimeWriter {
         }
         WriteThreadingHeader(output, document, "References", document.MessageMetadata.InternetReferences);
         WriteThreadingHeader(output, document, "In-Reply-To", document.MessageMetadata.InReplyToId);
-        foreach (EmailHeader header in MimeMessageMetadataProjection.CreateHeaders(document)) {
+        EmailHeader[] projectedMetadataHeaders = MimeMessageMetadataProjection.CreateHeaders(document).ToArray();
+        foreach (EmailHeader header in projectedMetadataHeaders) {
             WriteProjectedMetadataHeader(output, header);
         }
+        var projectedMetadataNames = new HashSet<string>(
+            projectedMetadataHeaders.Select(header => header.Name), StringComparer.OrdinalIgnoreCase);
         foreach (EmailHeader header in document.Headers) {
-            if (ManagedHeaders.Contains(header.Name)) continue;
+            if (ManagedHeaders.Contains(header.Name) || projectedMetadataNames.Contains(header.Name)) continue;
             WriteRetainedHeader(output, header);
         }
     }

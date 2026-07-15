@@ -228,6 +228,38 @@ public sealed class EmailContactConversionTests {
     }
 
     [Fact]
+    public void BlocksVcardAddressSlotOverflowBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nADR;TYPE=HOME:;;First Street;Warsaw;;;\r\n" +
+            "ADR;TYPE=HOME:;;Second Street;London;;;\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void BlocksVcardUrlSlotOverflowBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nURL;TYPE=WORK:https://first.example\r\n" +
+            "URL;TYPE=WORK:https://second.example\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
     public void BlocksVcardPhoneSlotOverflowBeforeStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +

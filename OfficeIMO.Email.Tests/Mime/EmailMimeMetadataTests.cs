@@ -78,4 +78,20 @@ public sealed class EmailMimeMetadataTests {
         Assert.Equal("Łukasz", delivery.Name);
         Assert.Equal("delivery@example.com", delivery.Address);
     }
+
+    [Fact]
+    public void RetainsMetadataHeadersThatCannotBeProjected() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Importance: critical\r\nPriority: immediate\r\nX-Unsent: maybe\r\n" +
+            "Content-Type: text/plain; charset=utf-8\r\n\r\nBody\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        byte[] output = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(output);
+        MimeMessage message = MimeMessage.Load(stream);
+
+        Assert.Equal("critical", message.Headers["Importance"]);
+        Assert.Equal("immediate", message.Headers["Priority"]);
+        Assert.Equal("maybe", message.Headers["X-Unsent"]);
+    }
 }

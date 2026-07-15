@@ -55,7 +55,8 @@ internal static class VCardCodec {
         if (sensitivity.HasValue) document.MessageMetadata.Sensitivity = sensitivity;
 
         ApplyEmails(properties, contact);
-        document.MimeSemanticProjectionIsIncomplete |= ApplyPhones(properties, contact.Phones);
+        document.MimeSemanticProjectionIsIncomplete |= ApplyPhones(properties, contact.Phones) ||
+            HasAddressSlotOverflow(properties) || HasUrlSlotOverflow(properties);
         ApplyAddresses(properties, contact);
         ApplyUrls(properties, contact);
         ApplyExtensions(properties, contact);
@@ -265,6 +266,33 @@ internal static class VCardCodec {
         if (ContainsType(types, "PAGER")) return VCardPhoneSlot.Pager;
         if (ContainsType(types, "WORK")) return VCardPhoneSlot.Work;
         return VCardPhoneSlot.General;
+    }
+
+    private static bool HasAddressSlotOverflow(IEnumerable<VCardProperty> properties) =>
+        HasAddressSlotOverflow(properties, "ADR") || HasAddressSlotOverflow(properties, "LABEL");
+
+    private static bool HasAddressSlotOverflow(IEnumerable<VCardProperty> properties, string propertyName) {
+        int homeCount = 0;
+        int workCount = 0;
+        int otherCount = 0;
+        foreach (VCardProperty property in properties.Where(property => property.Name == propertyName)) {
+            string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
+            if (ContainsType(types, "HOME")) homeCount++;
+            else if (ContainsType(types, "WORK")) workCount++;
+            else otherCount++;
+        }
+        return homeCount > 1 || workCount > 2 || otherCount > 1;
+    }
+
+    private static bool HasUrlSlotOverflow(IEnumerable<VCardProperty> properties) {
+        int homeCount = 0;
+        int workCount = 0;
+        foreach (VCardProperty property in properties.Where(property => property.Name == "URL")) {
+            string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
+            if (ContainsType(types, "HOME")) homeCount++;
+            else workCount++;
+        }
+        return homeCount > 1 || workCount > 1;
     }
 
     private static void ApplyAddresses(IEnumerable<VCardProperty> properties, OutlookContact contact) {

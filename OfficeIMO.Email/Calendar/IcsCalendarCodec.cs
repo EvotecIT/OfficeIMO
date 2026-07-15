@@ -19,7 +19,7 @@ internal static partial class IcsCalendarCodec {
         IReadOnlyList<IcsProperty> alarmProperties = SelectActiveAlarmProperties(
             properties, activeComponent.Value);
         document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(
-            properties, activeProperties, alarmProperties, isEvent);
+            properties, activeProperties, alarmProperties, isEvent, document.Subject);
         string? calendarMethod = GetValue(activeProperties, "METHOD");
         if (!string.IsNullOrWhiteSpace(calendarMethod) && !string.IsNullOrWhiteSpace(mimeMethod) &&
             !string.Equals(calendarMethod, mimeMethod, StringComparison.OrdinalIgnoreCase) ||
@@ -91,7 +91,8 @@ internal static partial class IcsCalendarCodec {
     }
 
     private static bool HasIncompleteStoreProjection(IEnumerable<IcsProperty> properties,
-        IEnumerable<IcsProperty> activeProperties, IReadOnlyList<IcsProperty> alarmProperties, bool isEvent) {
+        IEnumerable<IcsProperty> activeProperties, IReadOnlyList<IcsProperty> alarmProperties, bool isEvent,
+        string? envelopeSubject) {
         int calendarItems = properties.Count(property => property.Name == "BEGIN" &&
             (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
              property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
@@ -103,21 +104,26 @@ internal static partial class IcsCalendarCodec {
             property.Value.Equals("VTIMEZONE", StringComparison.OrdinalIgnoreCase));
         bool hasUnsupportedComponent = properties.Any(property => property.Name == "BEGIN" &&
             !IsSupportedComponent(property.Value));
+        string? calendarSummary = Unescape(GetValue(activeProperties, "SUMMARY"));
+        string? reminderDescription = string.IsNullOrWhiteSpace(calendarSummary)
+            ? envelopeSubject
+            : calendarSummary;
         return calendarRoots != 1 || calendarItems > 1 || alarms > 1 || hasTimeZone || hasUnsupportedComponent ||
-            HasIncompleteAlarmProjection(alarms, alarmProperties) ||
+            HasIncompleteAlarmProjection(alarms, alarmProperties, reminderDescription) ||
             activeProperties.Any(property =>
             property.Name == "RRULE" || property.Name == "RDATE" ||
             property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
             property.Name == "CLASS" && !ParseCalendarSensitivity(property.Value).HasValue ||
             isEvent && property.Name == "STATUS" ||
             property.Name == "PRIORITY" ||
+            property.Name == "ATTENDEE" && HasIncompleteAttendeeProjection(property) ||
             property.Name == "ATTACH" || property.Name == "TRIGGER" &&
             property.Parameters.TryGetValue("RELATED", out string? related) &&
             related.Equals("END", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool HasIncompleteAlarmProjection(int alarmCount,
-        IReadOnlyList<IcsProperty> alarmProperties) {
+        IReadOnlyList<IcsProperty> alarmProperties, string? reminderDescription) {
         if (alarmCount == 0) return false;
         if (alarmCount != 1) return true;
         IcsProperty[] actions = alarmProperties.Where(property => property.Name == "ACTION").ToArray();
@@ -136,8 +142,36 @@ internal static partial class IcsCalendarCodec {
                         : !parameter.Key.Equals("VALUE", StringComparison.OrdinalIgnoreCase) ||
                           !parameter.Value.Equals("DURATION", StringComparison.OrdinalIgnoreCase))) return true;
         }
-        return alarmProperties.Any(property => property.Name != "ACTION" && property.Name != "TRIGGER" &&
-            property.Name != "DESCRIPTION");
+        IcsProperty[] descriptions = alarmProperties.Where(property => property.Name == "DESCRIPTION").ToArray();
+        string expectedDescription = string.IsNullOrWhiteSpace(reminderDescription)
+            ? "Reminder"
+            : reminderDescription!;
+        return descriptions.Length > 1 || descriptions.Length == 1 &&
+                !string.Equals(Unescape(descriptions[0].Value), expectedDescription, StringComparison.Ordinal) ||
+            alarmProperties.Any(property => property.Name != "ACTION" && property.Name != "TRIGGER" &&
+                property.Name != "DESCRIPTION");
+    }
+
+    private static bool HasIncompleteAttendeeProjection(IcsProperty attendee) {
+        foreach (KeyValuePair<string, string> parameter in attendee.Parameters) {
+            if (parameter.Key.Equals("CN", StringComparison.OrdinalIgnoreCase)) continue;
+            if (parameter.Key.Equals("CUTYPE", StringComparison.OrdinalIgnoreCase)) {
+                if (parameter.Value.Equals("INDIVIDUAL", StringComparison.OrdinalIgnoreCase) ||
+                    parameter.Value.Equals("ROOM", StringComparison.OrdinalIgnoreCase) ||
+                    parameter.Value.Equals("RESOURCE", StringComparison.OrdinalIgnoreCase)) continue;
+                return true;
+            }
+            if (!parameter.Key.Equals("ROLE", StringComparison.OrdinalIgnoreCase)) return true;
+            bool roomOrResource = attendee.Parameters.TryGetValue("CUTYPE", out string? calendarUserType) &&
+                (calendarUserType.Equals("ROOM", StringComparison.OrdinalIgnoreCase) ||
+                 calendarUserType.Equals("RESOURCE", StringComparison.OrdinalIgnoreCase));
+            if (roomOrResource
+                    ? parameter.Value.Equals("NON-PARTICIPANT", StringComparison.OrdinalIgnoreCase)
+                    : parameter.Value.Equals("REQ-PARTICIPANT", StringComparison.OrdinalIgnoreCase) ||
+                      parameter.Value.Equals("OPT-PARTICIPANT", StringComparison.OrdinalIgnoreCase)) continue;
+            return true;
+        }
+        return false;
     }
 
     private static bool IsSupportedComponent(string value) =>
@@ -754,7 +788,7 @@ internal static partial class IcsCalendarCodec {
         .Replace("\r", string.Empty).Replace("\n", " ");
 
     private static string EscapeUriValue(string value) => value.Replace("\r", string.Empty).Replace("\n", string.Empty)
-        .Replace(";", "%3B").Replace(",", "%2C");
+        .Replace("%", "%25").Replace(";", "%3B").Replace(",", "%2C");
 
     private sealed class IcsProperty {
         internal IcsProperty(string name, string value) { Name = name; Value = value; }

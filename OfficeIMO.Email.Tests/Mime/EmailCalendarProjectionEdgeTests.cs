@@ -76,6 +76,27 @@ public sealed class EmailCalendarProjectionEdgeTests {
     }
 
     [Fact]
+    public void PreservesLiteralPercentSequencesInCalendarMailboxes() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            OutlookItemKind = OutlookItemKind.Appointment,
+            Subject = "Percent mailbox",
+            Appointment = new OutlookAppointment {
+                Start = new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero)
+            }
+        };
+        source.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+            new EmailAddress("user%2Ctag@example.com")));
+
+        byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(eml).Document;
+
+        Assert.Contains("mailto:user%252Ctag@example.com", CalendarText(eml), StringComparison.Ordinal);
+        Assert.Contains(roundTrip.Recipients,
+            recipient => recipient.Address.Address == "user%2Ctag@example.com");
+    }
+
+    [Fact]
     public void BlocksCalendarPriorityBeforeStoreConversion() {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:priority@example.com\r\nDTSTART:20260801T100000Z\r\n" +
@@ -260,12 +281,45 @@ public sealed class EmailCalendarProjectionEdgeTests {
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
     }
 
+    [Theory]
+    [InlineData("PARTSTAT=ACCEPTED")]
+    [InlineData("RSVP=TRUE")]
+    public void BlocksAttendeeParametersThatStoreRecipientsCannotRepresent(string parameter) {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:attendee-state@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "ATTENDEE;" + parameter + ":mailto:alice@example.com\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void BlocksCustomAlarmDescriptionsThatStoreRemindersCannotRepresent() {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:alarm-description@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "SUMMARY:Meeting\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\n" +
+            "DESCRIPTION:Bring the report\r\nTRIGGER:-PT15M\r\nEND:VALARM\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
     [Fact]
     public void PreservesAbsoluteAlarmTriggersThroughStoreConversion() {
         DateTimeOffset signal = new DateTimeOffset(2026, 8, 1, 9, 45, 0, TimeSpan.Zero);
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:absolute-alarm@example.com\r\nDTSTART:20260801T100000Z\r\n" +
-            "BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:Reminder\r\n" +
+            "SUMMARY:Reminder\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:Reminder\r\n" +
             "TRIGGER;VALUE=DATE-TIME:20260801T094500Z\r\nEND:VALARM\r\nEND:VEVENT\r\n");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
