@@ -1,6 +1,8 @@
 using System.Reflection;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -178,6 +180,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordSlideAtom) {
                     byte[] atom = child.CopyRecordBytes();
+                    LegacyPptSlideLayoutType layoutType = MapSlideLayout(slide, shapes);
+                    WriteUInt32(atom, 8, (uint)layoutType);
+                    byte[] placeholderTypes = BuildLayoutPlaceholderTypes(slide, shapes);
+                    for (int index = 0; index < placeholderTypes.Length; index++) {
+                        atom[12 + index] = placeholderTypes[index];
+                    }
                     if (masterIdRef.HasValue) WriteUInt32(atom, 20, masterIdRef.Value);
                     WriteUInt32(atom, 24, 0);
                     children.Add(atom);
@@ -259,8 +267,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 shapeType = 202;
                 children.Add(BuildFsp(shapeType, shapeId));
                 children.Add(BuildAnchor(shape));
-                byte placeholder = MapPlaceholder(textBox.PlaceholderType);
-                if (placeholder != 0) children.Add(BuildPlaceholder(shapeIndex, placeholder));
+                AppendPlaceholder(children, shape, shapeIndex);
                 children.Add(BuildTextBox(textBox.Text));
             } else if (shape is PowerPointAutoShape autoShape) {
                 shapeType = autoShape.ShapeType == A.ShapeTypeValues.Ellipse ? (ushort)3
@@ -268,6 +275,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     : (ushort)1;
                 children.Add(BuildFsp(shapeType, shapeId));
                 children.Add(BuildAnchor(shape));
+                AppendPlaceholder(children, shape, shapeIndex);
             } else {
                 throw new InvalidOperationException("Preflight admitted an unsupported PowerPoint shape.");
             }
@@ -302,10 +310,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildRecord(version: 0, instance: 0, OfficeArtClientAnchor, largePayload);
         }
 
-        private static byte[] BuildPlaceholder(int position, byte placeholderType) {
+        private static void AppendPlaceholder(ICollection<byte[]> children,
+            PowerPointShape shape, int shapeIndex) {
+            byte placeholderType = MapPlaceholder(shape.ShapePlaceholderType,
+                shape.ShapePlaceholderOrientation);
+            if (placeholderType == 0) return;
+            int position = checked((int)(shape.ShapePlaceholderIndex
+                ?? unchecked((uint)shapeIndex)));
+            children.Add(BuildPlaceholder(position, placeholderType,
+                MapPlaceholderSize(shape.ShapePlaceholderSize)));
+        }
+
+        private static byte[] BuildPlaceholder(int position, byte placeholderType,
+            byte placeholderSize) {
             var payload = new byte[8];
             WriteInt32(payload, 0, position);
             payload[4] = placeholderType;
+            payload[5] = placeholderSize;
             byte[] atom = BuildRecord(version: 0, instance: 0, RecordPlaceholder, payload);
             return BuildContainer(OfficeArtClientData, instance: 0, new[] { atom });
         }
@@ -318,13 +339,125 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(OfficeArtClientTextbox, instance: 0, new[] { header, chars });
         }
 
-        private static byte MapPlaceholder(P.PlaceholderValues? value) {
+        private static byte MapPlaceholder(P.PlaceholderValues? value,
+            P.DirectionValues? orientation = null) {
             if (!value.HasValue) return 0;
-            if (value.Value == P.PlaceholderValues.Title) return 0x0D;
+            bool vertical = orientation == P.DirectionValues.Vertical;
+            if (value.Value == P.PlaceholderValues.Title) return vertical ? (byte)0x11 : (byte)0x0D;
             if (value.Value == P.PlaceholderValues.CenteredTitle) return 0x0F;
             if (value.Value == P.PlaceholderValues.SubTitle) return 0x10;
-            if (value.Value == P.PlaceholderValues.Body || value.Value == P.PlaceholderValues.Object) return 0x0E;
+            if (value.Value == P.PlaceholderValues.Body) return vertical ? (byte)0x12 : (byte)0x0E;
+            if (value.Value == P.PlaceholderValues.Object) return vertical ? (byte)0x19 : (byte)0x13;
+            if (value.Value == P.PlaceholderValues.Chart) return 0x14;
+            if (value.Value == P.PlaceholderValues.Table) return 0x15;
+            if (value.Value == P.PlaceholderValues.ClipArt) return 0x16;
+            if (value.Value == P.PlaceholderValues.Diagram) return 0x17;
+            if (value.Value == P.PlaceholderValues.Media) return 0x18;
+            if (value.Value == P.PlaceholderValues.Picture) return 0x1A;
+            if (value.Value == P.PlaceholderValues.SlideImage) return 0x0B;
+            if (value.Value == P.PlaceholderValues.DateAndTime) return 0x07;
+            if (value.Value == P.PlaceholderValues.SlideNumber) return 0x08;
+            if (value.Value == P.PlaceholderValues.Footer) return 0x09;
+            if (value.Value == P.PlaceholderValues.Header) return 0x0A;
             return 0;
+        }
+
+        private static byte MapPlaceholderSize(P.PlaceholderSizeValues? size) {
+            if (size == P.PlaceholderSizeValues.Half) return 0x01;
+            if (size == P.PlaceholderSizeValues.Quarter) return 0x02;
+            return 0x00;
+        }
+
+        private static byte[] BuildLayoutPlaceholderTypes(PowerPointSlide slide,
+            IReadOnlyList<PowerPointShape> shapes) {
+            var result = new byte[8];
+            P.ShapeTree? layoutTree = slide.SlidePart.SlideLayoutPart?.SlideLayout?
+                .CommonSlideData?.ShapeTree;
+            if (layoutTree != null) {
+                foreach (OpenXmlElement element in layoutTree.ChildElements) {
+                    P.PlaceholderShape? placeholder = element switch {
+                        P.Shape item => item.NonVisualShapeProperties?
+                            .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                        P.Picture item => item.NonVisualPictureProperties?
+                            .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                        P.GraphicFrame item => item.NonVisualGraphicFrameProperties?
+                            .ApplicationNonVisualDrawingProperties?.PlaceholderShape,
+                        _ => null
+                    };
+                    if (placeholder == null) continue;
+                    AddLayoutPlaceholderType(result, placeholder.Type?.Value,
+                        placeholder.Orientation?.Value, placeholder.Index?.Value,
+                        replaceExisting: false);
+                }
+            }
+            foreach (PowerPointShape shape in shapes) {
+                AddLayoutPlaceholderType(result, shape.ShapePlaceholderType,
+                    shape.ShapePlaceholderOrientation, shape.ShapePlaceholderIndex,
+                    replaceExisting: true);
+            }
+            return result;
+        }
+
+        private static void AddLayoutPlaceholderType(byte[] result,
+            P.PlaceholderValues? type, P.DirectionValues? orientation, uint? requestedIndex,
+            bool replaceExisting) {
+            byte mapped = MapPlaceholder(type, orientation);
+            if (mapped == 0) return;
+            int index = requestedIndex.HasValue && requestedIndex.Value < result.Length
+                ? checked((int)requestedIndex.Value)
+                : Array.FindIndex(result, value => value == 0);
+            if (index >= 0 && (replaceExisting || result[index] == 0)) result[index] = mapped;
+        }
+
+        private static LegacyPptSlideLayoutType MapSlideLayout(PowerPointSlide slide,
+            IReadOnlyList<PowerPointShape> shapes) {
+            P.SlideLayoutValues? type = slide.SlidePart.SlideLayoutPart?.SlideLayout?.Type?.Value;
+            if (type == P.SlideLayoutValues.Title) return LegacyPptSlideLayoutType.TitleSlide;
+            if (type == P.SlideLayoutValues.Text || type == P.SlideLayoutValues.Table
+                || type == P.SlideLayoutValues.Chart || type == P.SlideLayoutValues.TextAndChart
+                || type == P.SlideLayoutValues.ChartAndText || type == P.SlideLayoutValues.TextAndClipArt
+                || type == P.SlideLayoutValues.ClipArtAndText || type == P.SlideLayoutValues.TextAndObject
+                || type == P.SlideLayoutValues.ObjectAndText || type == P.SlideLayoutValues.TextAndMedia
+                || type == P.SlideLayoutValues.MidiaAndText) {
+                return LegacyPptSlideLayoutType.TitleBody;
+            }
+            if (type == P.SlideLayoutValues.TitleOnly) return LegacyPptSlideLayoutType.TitleOnly;
+            if (type == P.SlideLayoutValues.TwoColumnText) return LegacyPptSlideLayoutType.TwoColumns;
+            if (type == P.SlideLayoutValues.TwoObjects) return LegacyPptSlideLayoutType.TwoRows;
+            if (type == P.SlideLayoutValues.ObjectAndTwoObjects) {
+                return LegacyPptSlideLayoutType.ColumnTwoRows;
+            }
+            if (type == P.SlideLayoutValues.TwoObjectsAndObject) {
+                return LegacyPptSlideLayoutType.TwoRowsColumn;
+            }
+            if (type == P.SlideLayoutValues.TwoObjectsOverText) {
+                return LegacyPptSlideLayoutType.TwoColumnsRow;
+            }
+            if (type == P.SlideLayoutValues.FourObjects) return LegacyPptSlideLayoutType.FourObjects;
+            if (type == P.SlideLayoutValues.ObjectOnly || type == P.SlideLayoutValues.Object) {
+                return LegacyPptSlideLayoutType.BigObject;
+            }
+            if (type == P.SlideLayoutValues.VerticalTitleAndText) {
+                return LegacyPptSlideLayoutType.VerticalTitleBody;
+            }
+            if (type == P.SlideLayoutValues.VerticalTitleAndTextOverChart) {
+                return LegacyPptSlideLayoutType.VerticalTwoRows;
+            }
+            if (type == P.SlideLayoutValues.Blank) return LegacyPptSlideLayoutType.Blank;
+
+            PowerPointShape[] placeholders = shapes
+                .Where(shape => shape.ShapePlaceholderType.HasValue)
+                .ToArray();
+            if (placeholders.Length == 0) return LegacyPptSlideLayoutType.Blank;
+            if (placeholders.Any(shape =>
+                    shape.ShapePlaceholderType == P.PlaceholderValues.CenteredTitle)) {
+                return LegacyPptSlideLayoutType.TitleSlide;
+            }
+            if (placeholders.Length == 1
+                && placeholders[0].ShapePlaceholderType == P.PlaceholderValues.Title) {
+                return LegacyPptSlideLayoutType.TitleOnly;
+            }
+            return LegacyPptSlideLayoutType.TitleBody;
         }
 
         private static byte[] BuildDocumentStream(IReadOnlyList<byte[]> persistObjects, int slideCount) {

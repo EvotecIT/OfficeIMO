@@ -93,7 +93,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents a shape decoded from a binary PowerPoint slide.</summary>
     public sealed class LegacyPptShape {
         internal LegacyPptShape(LegacyPptShapeKind kind, ushort officeArtShapeType, uint shapeId,
-            long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholderKind placeholderKind,
+            long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholder? placeholder,
             OfficeArtShapeStyle style, string? fillColor, string? lineColor,
             int? pictureStoreIndex = null, OfficeArtBlipStoreEntry? picture = null,
             OfficeArtShapeTransform? transform = null,
@@ -108,7 +108,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Bounds = bounds;
             Text = text ?? string.Empty;
             TextBody = textBody ?? LegacyPptTextBody.Plain(Text);
-            PlaceholderKind = placeholderKind;
+            Placeholder = placeholder;
             Style = style ?? throw new ArgumentNullException(nameof(style));
             FillColor = fillColor;
             LineColor = lineColor;
@@ -145,8 +145,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets decoded character-run and paragraph-style information for the shape text.</summary>
         public LegacyPptTextBody TextBody { get; }
 
+        /// <summary>Gets the decoded placeholder identity and size, when this is a placeholder shape.</summary>
+        public LegacyPptPlaceholder? Placeholder { get; }
+
         /// <summary>Gets the placeholder kind.</summary>
-        public LegacyPptPlaceholderKind PlaceholderKind { get; }
+        public LegacyPptPlaceholderKind PlaceholderKind => Placeholder?.Kind
+            ?? LegacyPptPlaceholderKind.None;
 
         /// <summary>Gets decoded OfficeArt fill, line, and shadow properties.</summary>
         public OfficeArtShapeStyle Style { get; }

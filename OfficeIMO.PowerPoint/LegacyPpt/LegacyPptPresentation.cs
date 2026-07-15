@@ -169,15 +169,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         }
 
         private void ParseSlide(LegacyPptRecord slideRecord, LegacyPptSlide slide, LegacyPptImportOptions options) {
-            LegacyPptRecord? slideAtom = slideRecord.Children.FirstOrDefault(record => record.Type == RecordSlideAtom);
-            if (slideAtom != null && slideAtom.PayloadLength >= 24) {
-                slide.LayoutType = slideAtom.ReadUInt32(0);
-                slide.MasterId = slideAtom.ReadUInt32(12);
-                ushort flags = slideAtom.ReadUInt16(20);
-                slide.FollowsMasterObjects = (flags & 0x0001) != 0;
-                slide.FollowsMasterColorScheme = (flags & 0x0002) != 0;
-                slide.FollowsMasterBackground = (flags & 0x0004) != 0;
-            }
+            ParseSlideAtom(slideRecord, slide, options);
             slide.ColorScheme = ReadColorScheme(slideRecord);
             LegacyPptRecord? slideShowInfo = slideRecord.Children.FirstOrDefault(record =>
                 record.Type == RecordSlideShowSlideInfoAtom);
@@ -228,12 +220,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     ? slideAtom.ReadUInt32(12)
                     : 0U;
                 var master = new LegacyPptMaster(masterId, persistId, isMainMaster, parentMasterId);
-                if (slideAtom != null && slideAtom.PayloadLength >= 22) {
-                    ushort flags = slideAtom.ReadUInt16(20);
-                    master.FollowsMasterObjects = (flags & 0x0001) != 0;
-                    master.FollowsMasterColorScheme = (flags & 0x0002) != 0;
-                    master.FollowsMasterBackground = (flags & 0x0004) != 0;
-                }
+                ParseMasterSlideAtom(masterRecord, master, slideAtom, options);
                 master.ColorScheme = ReadColorScheme(masterRecord);
                 LegacyPptColorScheme? effectiveScheme = !isMainMaster && master.FollowsMasterColorScheme
                     ? _masters.FirstOrDefault(candidate => candidate.MasterId == master.ParentMasterId)?.ColorScheme
@@ -361,7 +348,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptTextBody textBody = LegacyPptTextStyleReader.Read(text, textData.RawCharacterCount,
                 textStyle, colorScheme, _fontsByIndex, textType, textRuler,
                 hasRulerRecord: textRulerRecord != null, isRulerTruncated: isTextRulerTruncated);
-            LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
+            LegacyPptPlaceholder? placeholder = ReadPlaceholder(shapeContainer, options);
             LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,
                 (shapeFlags & (1U << 8)) != 0);
             LegacyPptRecord? fopt = shapeContainer.Children.FirstOrDefault(record =>
@@ -477,7 +464,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(fsp.ReadUInt32(4),
                 style.Properties);
             return new LegacyPptShape(LegacyPptShapeKind.Group, fsp.Instance, fsp.ReadUInt32(0),
-                groupContainer.Offset, bounds, string.Empty, LegacyPptPlaceholderKind.None,
+                groupContainer.Offset, bounds, string.Empty, placeholder: null,
                 style, ResolveShapeColor(style.FillColor, colorScheme),
                 ResolveShapeColor(style.LineColor, colorScheme), transform: transform,
                 groupCoordinateBounds: coordinateBounds, children: children,
@@ -640,16 +627,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             internal string Text { get; }
 
             internal int RawCharacterCount { get; }
-        }
-
-        private static LegacyPptPlaceholderKind ReadPlaceholder(LegacyPptRecord shapeContainer) {
-            LegacyPptRecord? placeholder = shapeContainer.DescendantsAndSelf()
-                .FirstOrDefault(record => record.Type == RecordPlaceholder);
-            if (placeholder == null || placeholder.PayloadLength < 5) return LegacyPptPlaceholderKind.None;
-            byte value = placeholder.ReadByte(4);
-            return Enum.IsDefined(typeof(LegacyPptPlaceholderKind), value)
-                ? (LegacyPptPlaceholderKind)value
-                : LegacyPptPlaceholderKind.None;
         }
 
         private static LegacyPptShapeKind ClassifyShape(ushort shapeType, bool hasText,

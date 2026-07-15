@@ -8,11 +8,12 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
-        private static IReadOnlyDictionary<uint, LegacyPptLayoutTarget> ProjectLegacyMasters(
+        private static LegacyPptLayoutCatalog ProjectLegacyMasters(
             PowerPointPresentation presentation, LegacyPptPresentation legacy) {
             LegacyPptMaster[] mainMasters = legacy.Masters.Where(master => master.IsMainMaster).ToArray();
+            var catalog = new LegacyPptLayoutCatalog();
             if (mainMasters.Length == 0) {
-                return new Dictionary<uint, LegacyPptLayoutTarget>();
+                return catalog;
             }
 
             SlideMasterPart firstMasterPart = presentation._presentationPart.SlideMasterParts.First();
@@ -22,25 +23,29 @@ namespace OfficeIMO.PowerPoint {
                 masterParts.Add(presentation.CloneSlideMasterPart(firstMasterPart, out _));
             }
 
-            var targets = new Dictionary<uint, LegacyPptLayoutTarget>();
+            var masterTargets = new Dictionary<uint, LegacyPptLayoutTarget>();
             for (int index = 0; index < mainMasters.Length; index++) {
                 LegacyPptMaster mainMaster = mainMasters[index];
                 SlideMasterPart masterPart = masterParts[index];
                 ApplyLegacyMaster(masterPart, mainMaster);
-                targets.Add(mainMaster.MasterId, new LegacyPptLayoutTarget(index, 0));
+                var target = new LegacyPptLayoutTarget(index, 0);
+                masterTargets.Add(mainMaster.MasterId, target);
+                ProjectLegacyMainMasterLayouts(catalog, legacy, mainMaster, masterPart, index);
             }
 
             foreach (LegacyPptMaster titleMaster in legacy.Masters.Where(master => !master.IsMainMaster)) {
                 LegacyPptLayoutTarget parentTarget;
-                if (!targets.TryGetValue(titleMaster.ParentMasterId, out parentTarget)) {
+                if (!masterTargets.TryGetValue(titleMaster.ParentMasterId, out parentTarget)) {
                     parentTarget = new LegacyPptLayoutTarget(0, 0);
                 }
                 SlideMasterPart parentPart = masterParts[parentTarget.MasterIndex];
                 int layoutIndex = AddLegacyTitleMasterLayout(parentPart, titleMaster);
-                targets[titleMaster.MasterId] = new LegacyPptLayoutTarget(parentTarget.MasterIndex, layoutIndex);
+                var titleTarget = new LegacyPptLayoutTarget(parentTarget.MasterIndex, layoutIndex);
+                masterTargets[titleMaster.MasterId] = titleTarget;
+                catalog.AddMasterFallback(titleMaster.MasterId, titleTarget);
             }
 
-            return targets;
+            return catalog;
         }
 
         private static void ResetLegacyMasterScaffold(SlideMasterPart masterPart, string name) {
@@ -288,9 +293,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             var applicationProperties = new ApplicationNonVisualDrawingProperties();
-            PlaceholderValues? placeholder = MapPlaceholder(source.PlaceholderKind);
-            if (placeholder.HasValue) {
-                applicationProperties.Append(new PlaceholderShape { Type = placeholder.Value });
+            if (source.Placeholder != null) {
+                applicationProperties.Append(CreateLegacyPlaceholderShape(source.Placeholder));
             }
             var shapeProperties = new ShapeProperties(
                 new A.Transform2D(
@@ -692,14 +696,5 @@ namespace OfficeIMO.PowerPoint {
             else outline.Append(child);
         }
 
-        private readonly struct LegacyPptLayoutTarget {
-            internal LegacyPptLayoutTarget(int masterIndex, int layoutIndex) {
-                MasterIndex = masterIndex;
-                LayoutIndex = layoutIndex;
-            }
-
-            internal int MasterIndex { get; }
-            internal int LayoutIndex { get; }
-        }
     }
 }

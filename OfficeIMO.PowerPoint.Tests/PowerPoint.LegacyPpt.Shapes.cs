@@ -220,12 +220,12 @@ namespace OfficeIMO.Tests {
             OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(Array.Empty<OfficeArtProperty>());
             var child = new LegacyPptShape(LegacyPptShapeKind.Rectangle, 1, 20, 0,
                 new LegacyPptBounds(0, 0, 100, 100), string.Empty,
-                LegacyPptPlaceholderKind.None, style, null, null);
+                placeholder: null, style, null, null);
             OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(1U << 6,
                 new[] { new OfficeArtProperty(0, 0x0004, 15U * 65536U) });
             var source = new LegacyPptShape(LegacyPptShapeKind.Group, 0, 10, 0,
                 new LegacyPptBounds(100, 200, 400, 300), string.Empty,
-                LegacyPptPlaceholderKind.None, style, null, null, transform: transform,
+                placeholder: null, style, null, null, transform: transform,
                 groupCoordinateBounds: new LegacyPptBounds(0, 0, 400, 300),
                 children: new[] { child });
             using PowerPointPresentation presentation = PowerPointPresentation.Create();

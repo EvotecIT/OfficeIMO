@@ -216,10 +216,7 @@ namespace OfficeIMO.PowerPoint {
         ///     Returns true if the textbox is tied to a slide placeholder.
         /// </summary>
         public bool IsPlaceholder {
-            get {
-                PlaceholderShape? placeholder = GetPlaceholderShape();
-                return placeholder?.Type != null || placeholder?.Index != null;
-            }
+            get => GetPlaceholderShape() != null;
         }
 
         /// <summary>
@@ -232,7 +229,7 @@ namespace OfficeIMO.PowerPoint {
                     PlaceholderShape? placeholder = GetPlaceholderShape();
                     if (placeholder != null) {
                         placeholder.Type = null;
-                        if (placeholder.Index == null && placeholder.HasChildren == false) {
+                        if (CanRemovePlaceholder(placeholder)) {
                             placeholder.Remove();
                         }
                     }
@@ -254,7 +251,7 @@ namespace OfficeIMO.PowerPoint {
                     PlaceholderShape? placeholder = GetPlaceholderShape();
                     if (placeholder != null) {
                         placeholder.Index = null;
-                        if (placeholder.Type == null && placeholder.HasChildren == false) {
+                        if (CanRemovePlaceholder(placeholder)) {
                             placeholder.Remove();
                         }
                     }
@@ -263,6 +260,42 @@ namespace OfficeIMO.PowerPoint {
 
                 PlaceholderShape shape = EnsurePlaceholderShape();
                 shape.Index = value.Value;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the preferred placeholder size.
+        /// </summary>
+        public PlaceholderSizeValues? PlaceholderSize {
+            get => GetPlaceholderShape()?.Size?.Value;
+            set {
+                if (value == null) {
+                    PlaceholderShape? placeholder = GetPlaceholderShape();
+                    if (placeholder != null) {
+                        placeholder.Size = null;
+                        if (CanRemovePlaceholder(placeholder)) placeholder.Remove();
+                    }
+                    return;
+                }
+                EnsurePlaceholderShape().Size = value.Value;
+            }
+        }
+
+        /// <summary>
+        ///     Gets or sets the placeholder orientation.
+        /// </summary>
+        public DirectionValues? PlaceholderOrientation {
+            get => GetPlaceholderShape()?.Orientation?.Value;
+            set {
+                if (value == null) {
+                    PlaceholderShape? placeholder = GetPlaceholderShape();
+                    if (placeholder != null) {
+                        placeholder.Orientation = null;
+                        if (CanRemovePlaceholder(placeholder)) placeholder.Remove();
+                    }
+                    return;
+                }
+                EnsurePlaceholderShape().Orientation = value.Value;
             }
         }
 
@@ -723,6 +756,11 @@ namespace OfficeIMO.PowerPoint {
             nonVisual.ApplicationNonVisualDrawingProperties ??= app;
             return app.PlaceholderShape ??= new PlaceholderShape();
         }
+
+        private static bool CanRemovePlaceholder(PlaceholderShape placeholder) =>
+            placeholder.Type == null && placeholder.Index == null
+            && placeholder.Size == null && placeholder.Orientation == null
+            && placeholder.HasCustomPrompt == null && !placeholder.HasChildren;
 
         private static int? ToEmusInt(double? value, double emusPerUnit) {
             return value != null ? (int)Math.Round(value.Value * emusPerUnit) : null;

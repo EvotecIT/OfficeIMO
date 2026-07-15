@@ -4,6 +4,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         private readonly List<LegacyPptShape> _shapes = new();
         private readonly List<LegacyPptConnectorRule> _connectorRules = new();
         private readonly List<LegacyPptTextMasterStyle> _textMasterStyles = new();
+        private IReadOnlyList<LegacyPptPlaceholderKind> _layoutPlaceholderTypes =
+            Array.Empty<LegacyPptPlaceholderKind>();
 
         internal LegacyPptMaster(uint masterId, uint persistId, bool isMainMaster, uint parentMasterId) {
             MasterId = masterId;
@@ -20,6 +22,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets whether this is a main master rather than a title master.</summary>
         public bool IsMainMaster { get; }
+
+        /// <summary>Gets the raw legacy layout hint stored on the master.</summary>
+        public uint LayoutType { get; internal set; }
+
+        /// <summary>Gets the typed legacy layout hint, or null when the source value is undefined.</summary>
+        public LegacyPptSlideLayoutType? Layout { get; internal set; }
+
+        /// <summary>Gets the eight placeholder-kind slots stored in the master's SlideAtom.</summary>
+        public IReadOnlyList<LegacyPptPlaceholderKind> LayoutPlaceholderTypes =>
+            _layoutPlaceholderTypes;
 
         /// <summary>Gets the main master identifier inherited by a title master, or zero when absent.</summary>
         public uint ParentMasterId { get; }
@@ -50,5 +62,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         internal void AddConnectorRule(LegacyPptConnectorRule rule) => _connectorRules.Add(rule);
 
         internal void AddTextMasterStyle(LegacyPptTextMasterStyle style) => _textMasterStyles.Add(style);
+
+        internal void SetLayoutPlaceholderTypes(
+            IReadOnlyList<LegacyPptPlaceholderKind> placeholderTypes) =>
+            _layoutPlaceholderTypes = placeholderTypes?.ToArray()
+                ?? throw new ArgumentNullException(nameof(placeholderTypes));
     }
 }

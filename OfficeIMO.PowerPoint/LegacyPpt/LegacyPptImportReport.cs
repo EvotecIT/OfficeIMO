@@ -17,6 +17,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             EmbeddedFontCount = presentation.Fonts.Count(font => font.HasEmbeddedData);
             TextRulerCount = presentation.Slides.Sum(slide =>
                 slide.Shapes.Count(shape => shape.TextBody.HasRulerRecord));
+            PlaceholderShapeCount = presentation.Slides.Sum(slide =>
+                slide.Shapes.Count(shape => shape.Placeholder != null))
+                + presentation.Masters.Sum(master =>
+                    master.Shapes.Count(shape => shape.Placeholder != null));
+            DistinctSlideLayoutCount = presentation.Slides
+                .Select(slide => $"{slide.MasterId:X8}:{slide.LayoutType:X8}:"
+                    + string.Join("-", slide.LayoutPlaceholderTypes
+                        .Select(value => ((byte)value).ToString("X2"))))
+                .Distinct(StringComparer.Ordinal)
+                .Count();
             MasterTextStyleCount = presentation.Masters.Sum(master => master.TextMasterStyles.Count);
             MasterTextStyleLevelCount = presentation.Masters.Sum(master =>
                 master.TextMasterStyles.Sum(style => style.Levels.Count));
@@ -58,6 +68,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of slide text shapes that contain a TextRulerAtom.</summary>
         public int TextRulerCount { get; }
+
+        /// <summary>Gets the number of decoded placeholder shapes across slides and masters.</summary>
+        public int PlaceholderShapeCount { get; }
+
+        /// <summary>Gets the number of distinct master/layout-signature combinations used by slides.</summary>
+        public int DistinctSlideLayoutCount { get; }
 
         /// <summary>Gets the number of decoded base master text styles.</summary>
         public int MasterTextStyleCount { get; }

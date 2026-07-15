@@ -89,8 +89,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             foreach (SlideMasterPart masterPart in masterParts) {
                 foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
                     string? name = layoutPart.SlideLayout?.CommonSlideData?.Name?.Value;
-                    if (name != null && masterIdsByName.TryGetValue(name, out uint masterId)) {
-                        result[layoutPart.Uri.ToString()] = masterId;
+                    if (name == null) continue;
+                    foreach (KeyValuePair<string, uint> candidate in masterIdsByName) {
+                        if (string.Equals(name, candidate.Key, StringComparison.Ordinal)
+                            || name.StartsWith(candidate.Key + " / ", StringComparison.Ordinal)) {
+                            result[layoutPart.Uri.ToString()] = candidate.Value;
+                            break;
+                        }
                     }
                 }
             }

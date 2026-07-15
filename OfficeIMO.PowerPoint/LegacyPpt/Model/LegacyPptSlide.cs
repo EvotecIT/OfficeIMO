@@ -3,6 +3,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     public sealed class LegacyPptSlide {
         private readonly List<LegacyPptShape> _shapes = new();
         private readonly List<LegacyPptConnectorRule> _connectorRules = new();
+        private IReadOnlyList<LegacyPptPlaceholderKind> _layoutPlaceholderTypes =
+            Array.Empty<LegacyPptPlaceholderKind>();
 
         internal LegacyPptSlide(uint slideId, uint persistId) {
             SlideId = slideId;
@@ -26,6 +28,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the legacy layout hint stored on this slide.</summary>
         public uint LayoutType { get; internal set; }
+
+        /// <summary>Gets the typed legacy layout hint, or null when the source value is undefined.</summary>
+        public LegacyPptSlideLayoutType? Layout { get; internal set; }
+
+        /// <summary>Gets the eight placeholder-kind slots stored in the SlideAtom layout signature.</summary>
+        public IReadOnlyList<LegacyPptPlaceholderKind> LayoutPlaceholderTypes =>
+            _layoutPlaceholderTypes;
+
+        /// <summary>Gets the legacy notes-slide identifier referenced by this slide.</summary>
+        public uint NotesId { get; internal set; }
 
         /// <summary>Gets whether the slide inherits shapes from its master.</summary>
         public bool FollowsMasterObjects { get; internal set; }
@@ -51,5 +63,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         internal void AddShape(LegacyPptShape shape) => _shapes.Add(shape);
 
         internal void AddConnectorRule(LegacyPptConnectorRule rule) => _connectorRules.Add(rule);
+
+        internal void SetLayoutPlaceholderTypes(
+            IReadOnlyList<LegacyPptPlaceholderKind> placeholderTypes) =>
+            _layoutPlaceholderTypes = placeholderTypes?.ToArray()
+                ?? throw new ArgumentNullException(nameof(placeholderTypes));
     }
 }

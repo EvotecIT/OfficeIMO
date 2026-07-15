@@ -1,5 +1,6 @@
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.Drawing.Binary;
 using System.Threading.Tasks;
@@ -41,10 +42,25 @@ namespace OfficeIMO.Tests {
             Assert.True(slide.FollowsMasterObjects);
             Assert.True(slide.FollowsMasterColorScheme);
             Assert.True(slide.FollowsMasterBackground);
+            Assert.Equal(LegacyPptSlideLayoutType.TitleSlide, slide.Layout);
+            Assert.Equal(new[] {
+                LegacyPptPlaceholderKind.Title,
+                LegacyPptPlaceholderKind.Subtitle,
+                LegacyPptPlaceholderKind.None,
+                LegacyPptPlaceholderKind.None,
+                LegacyPptPlaceholderKind.None,
+                LegacyPptPlaceholderKind.None,
+                LegacyPptPlaceholderKind.None,
+                LegacyPptPlaceholderKind.None
+            }, slide.LayoutPlaceholderTypes);
             Assert.NotNull(slide.ColorScheme);
             Assert.Equal(3, slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.TextBox));
             LegacyPptShape title = Assert.Single(slide.Shapes,
                 shape => shape.Text == "OfficeIMO PowerPoint Basics");
+            LegacyPptPlaceholder titlePlaceholder = Assert.IsType<LegacyPptPlaceholder>(
+                title.Placeholder);
+            Assert.Equal(0, titlePlaceholder.Position);
+            Assert.Equal(LegacyPptPlaceholderSize.Full, titlePlaceholder.Size);
             Assert.False(title.Style.FillEnabled);
             Assert.False(title.Style.LineEnabled);
             Assert.Equal("3465A4", title.LineColor);
@@ -68,6 +84,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, report.TextRulerCount);
             Assert.Equal(88, report.MasterTextStyleCount);
             Assert.Equal(440, report.MasterTextStyleLevelCount);
+            Assert.Equal(1, report.DistinctSlideLayoutCount);
+            Assert.True(report.PlaceholderShapeCount >= 4);
             Assert.True(report.HasConversionLoss);
             Assert.DoesNotContain(legacy.Diagnostics,
                 diagnostic => diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY"
@@ -429,6 +447,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal("000000", presentation.GetThemeColor(PowerPointThemeColor.Dark1));
             Assert.Equal("3333CC", presentation.GetThemeColor(PowerPointThemeColor.Accent1));
             Assert.Null(slide.SlidePart.ThemeOverridePart);
+            Assert.Equal(P.SlideLayoutValues.Title,
+                slide.SlidePart.SlideLayoutPart!.SlideLayout!.Type!.Value);
+            PowerPointLayoutPlaceholderInfo[] layoutPlaceholders = slide.GetLayoutPlaceholders()
+                .OrderBy(placeholder => placeholder.PlaceholderIndex)
+                .ToArray();
+            Assert.Equal(2, layoutPlaceholders.Length);
+            Assert.Equal(P.PlaceholderValues.Title, layoutPlaceholders[0].PlaceholderType);
+            Assert.Equal(0U, layoutPlaceholders[0].PlaceholderIndex);
+            Assert.Equal(P.PlaceholderValues.SubTitle, layoutPlaceholders[1].PlaceholderType);
+            Assert.Equal(1U, layoutPlaceholders[1].PlaceholderIndex);
             PowerPointSlideBackground background = slide.GetBackground();
             Assert.Equal(PowerPointSlideBackgroundKind.SolidColor, background.Kind);
             Assert.Equal("FFFFFF", background.Color);
@@ -437,6 +465,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains(masterShapes, shape => shape.TextBody?.InnerText == "Click to edit the title text format");
             Assert.Equal(3, slide.TextBoxes.Count());
             Assert.Contains(slide.TextBoxes, textBox => textBox.Text == "OfficeIMO PowerPoint Basics");
+            PowerPointTextBox projectedTitle = Assert.Single(slide.TextBoxes,
+                textBox => textBox.Text == "OfficeIMO PowerPoint Basics");
+            Assert.Equal(0U, projectedTitle.ShapePlaceholderIndex);
+            Assert.Equal(P.PlaceholderSizeValues.Full, projectedTitle.ShapePlaceholderSize);
             DocumentFormat.OpenXml.Presentation.Shape titleShape = slide.SlidePart.Slide!.CommonSlideData!
                 .ShapeTree!.Elements<DocumentFormat.OpenXml.Presentation.Shape>()
                 .Single(shape => shape.TextBody?.InnerText == "OfficeIMO PowerPoint Basics");
@@ -467,7 +499,7 @@ namespace OfficeIMO.Tests {
                 new OfficeArtProperty(12, 0x01FF, 0x00080008U)
             });
             var source = new LegacyPptShape(LegacyPptShapeKind.Rectangle, 1, 1, 0,
-                new LegacyPptBounds(0, 0, 100, 100), string.Empty, LegacyPptPlaceholderKind.None,
+                new LegacyPptBounds(0, 0, 100, 100), string.Empty, placeholder: null,
                 style, "112233", "445566");
             var properties = new DocumentFormat.OpenXml.Presentation.ShapeProperties(
                 new A.Transform2D(),
@@ -677,6 +709,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains(saved.Slides[1].Shapes, shape => shape.Kind == LegacyPptShapeKind.Rectangle);
             Assert.True(saved.Slides[1].Hidden);
             Assert.Equal(source.Slides[0].MasterId, saved.Slides[1].MasterId);
+            Assert.Equal(LegacyPptSlideLayoutType.TitleSlide, saved.Slides[1].Layout);
+            Assert.Equal(LegacyPptPlaceholderKind.Title,
+                saved.Slides[1].LayoutPlaceholderTypes[0]);
+            Assert.Equal(LegacyPptPlaceholderKind.Subtitle,
+                saved.Slides[1].LayoutPlaceholderTypes[1]);
             Assert.Equal(source.Package.UserEdits.Count + 1, saved.Package.UserEdits.Count);
             Assert.True(saved.Package.DocumentStream.AsSpan(0, source.Package.DocumentStream.Length)
                 .SequenceEqual(source.Package.DocumentStream));

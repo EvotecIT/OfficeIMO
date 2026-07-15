@@ -27,6 +27,8 @@ namespace OfficeIMO.Tests {
             Assert.True(LegacyPptCapabilityCatalog.HasRemainingParityWork);
             Assert.Contains(LegacyPptCapabilityCatalog.RemainingParityWork,
                 row => row.Feature == LegacyPptFeature.Masters);
+            Assert.Contains(LegacyPptCapabilityCatalog.RemainingParityWork,
+                row => row.Feature == LegacyPptFeature.Layouts);
             Assert.Contains("| Preservation | UnknownRecordsAndStreams |",
                 LegacyPptCapabilityCatalog.ToMarkdown());
         }
@@ -66,6 +68,23 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Preserved, accessibility.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Planned, accessibility.NewBinaryWrite);
             Assert.Equal(LegacyPptCapabilityState.Planned, accessibility.PptxToBinary);
+        }
+
+        [Fact]
+        public void CapabilityContract_ReportsLayoutSubsetWithoutOverstatingCustomLayoutWriting() {
+            LegacyPptCapability layouts = LegacyPptCapabilityCatalog.Get(LegacyPptFeature.Layouts);
+
+            Assert.Equal(LegacyPptCapabilityState.Native, layouts.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Planned, layouts.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved, layouts.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Planned, layouts.PptxToBinary);
+
+            LegacyPptCapability placeholders = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Placeholders);
+            Assert.Equal(LegacyPptCapabilityState.Native, placeholders.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native, placeholders.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved, placeholders.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native, placeholders.PptxToBinary);
         }
     }
 }

@@ -96,6 +96,17 @@ namespace OfficeIMO.PowerPoint {
         public uint? ShapePlaceholderIndex => GetPlaceholderShape()?.Index?.Value;
 
         /// <summary>
+        ///     Preferred placeholder size associated with the shape, if any.
+        /// </summary>
+        public PlaceholderSizeValues? ShapePlaceholderSize => GetPlaceholderShape()?.Size?.Value;
+
+        /// <summary>
+        ///     Placeholder orientation associated with the shape, if any.
+        /// </summary>
+        public DirectionValues? ShapePlaceholderOrientation =>
+            GetPlaceholderShape()?.Orientation?.Value;
+
+        /// <summary>
         ///     Primary content type represented by this shape wrapper.
         /// </summary>
         public PowerPointShapeContentType ShapeContentType => Element switch {

@@ -64,11 +64,10 @@ namespace OfficeIMO.PowerPoint {
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
             using PowerPointPresentation projected = Create();
             projected.SlideSize.SetSizeEmus(ToEmus(legacy.SlideWidth), ToEmus(legacy.SlideHeight));
-            IReadOnlyDictionary<uint, LegacyPptLayoutTarget> layoutTargets =
-                ProjectLegacyMasters(projected, legacy);
+            LegacyPptLayoutCatalog layoutTargets = ProjectLegacyMasters(projected, legacy);
 
             foreach (LegacyPptSlide legacySlide in legacy.Slides) {
-                PowerPointSlide slide = layoutTargets.TryGetValue(legacySlide.MasterId,
+                PowerPointSlide slide = layoutTargets.TryGet(legacySlide,
                     out LegacyPptLayoutTarget target)
                     ? projected.AddSlide(target.MasterIndex, target.LayoutIndex)
                     : projected.AddSlide();
@@ -183,6 +182,7 @@ namespace OfficeIMO.PowerPoint {
                 ApplyLegacyPictureEffects(projectedPicture.BlipFill?.Blip, shape);
             }
             if (projectedShape?.Element is OpenXmlElement projectedElement) {
+                ApplyLegacyPlaceholder(projectedElement, shape);
                 ApplyLegacyShapeMetadata(projectedElement, shape);
             }
             return projectedShape?.Element;
@@ -301,8 +301,8 @@ namespace OfficeIMO.PowerPoint {
                 case LegacyPptPlaceholderKind.Media: return PlaceholderValues.Media;
                 case LegacyPptPlaceholderKind.Picture: return PlaceholderValues.Picture;
                 case LegacyPptPlaceholderKind.Object:
-                case LegacyPptPlaceholderKind.OrganizationChart:
                 case LegacyPptPlaceholderKind.VerticalObject: return PlaceholderValues.Object;
+                case LegacyPptPlaceholderKind.OrganizationChart: return PlaceholderValues.Diagram;
                 default: return null;
             }
         }

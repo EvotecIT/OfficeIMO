@@ -51,10 +51,10 @@ namespace OfficeIMO.Tests {
             });
             var child = new LegacyPptShape(LegacyPptShapeKind.Rectangle, 1, 20, 0,
                 new LegacyPptBounds(0, 0, 100, 100), string.Empty,
-                LegacyPptPlaceholderKind.None, childStyle, null, null);
+                placeholder: null, childStyle, null, null);
             var source = new LegacyPptShape(LegacyPptShapeKind.Group, 0, 10, 0,
                 new LegacyPptBounds(100, 200, 400, 300), string.Empty,
-                LegacyPptPlaceholderKind.None, groupStyle, null, null,
+                placeholder: null, groupStyle, null, null,
                 groupCoordinateBounds: new LegacyPptBounds(0, 0, 400, 300),
                 children: new[] { child });
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
