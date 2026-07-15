@@ -8,7 +8,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             bool hasUnprojectedCharacterFormatting, bool hasUnprojectedParagraphFormatting,
             bool isStyleTruncated = false, LegacyPptTextType? textType = null,
             LegacyPptTextRuler? ruler = null, bool hasRulerRecord = false,
-            bool isRulerTruncated = false) {
+            bool isRulerTruncated = false,
+            IReadOnlyList<LegacyPptTextInteraction>? interactions = null) {
             Text = text ?? string.Empty;
             CharacterRuns = new ReadOnlyCollection<LegacyPptCharacterRun>(
                 characterRuns?.ToArray() ?? throw new ArgumentNullException(nameof(characterRuns)));
@@ -22,6 +23,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Ruler = ruler;
             HasRulerRecord = hasRulerRecord;
             IsRulerTruncated = isRulerTruncated;
+            Interactions = new ReadOnlyCollection<LegacyPptTextInteraction>(
+                interactions?.ToArray() ?? Array.Empty<LegacyPptTextInteraction>());
         }
 
         /// <summary>Gets the normalized text, with binary paragraph separators represented by line feeds.</summary>
@@ -61,6 +64,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets whether the text ruler was malformed or truncated.</summary>
         public bool IsRulerTruncated { get; }
 
+        /// <summary>Gets click and mouse-over actions anchored to text ranges.</summary>
+        public IReadOnlyList<LegacyPptTextInteraction> Interactions { get; }
+
+        /// <summary>Gets whether the text contains at least one interactive range.</summary>
+        public bool HasInteractions => Interactions.Count > 0;
+
         /// <summary>Gets whether at least one character run carries explicit formatting.</summary>
         public bool HasExplicitCharacterFormatting => CharacterRuns.Any(run => run.HasExplicitFormatting);
 
@@ -68,6 +77,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Array.Empty<LegacyPptCharacterRun>(), Array.Empty<LegacyPptParagraphRun>(),
             hasStyleRecord: false, hasUnprojectedCharacterFormatting: false,
             hasUnprojectedParagraphFormatting: false);
+
+        internal LegacyPptTextBody WithInteractions(
+            IReadOnlyList<LegacyPptTextInteraction> interactions) => new(Text,
+                CharacterRuns, ParagraphRuns, HasStyleRecord,
+                HasUnprojectedCharacterFormatting, HasUnprojectedParagraphFormatting,
+                IsStyleTruncated, TextType, Ruler, HasRulerRecord,
+                IsRulerTruncated, interactions);
     }
 
     /// <summary>Represents one character-formatting run from a binary PowerPoint text box.</summary>

@@ -72,6 +72,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 .Select(comment => (comment.Author, comment.Initials))
                 .Distinct()
                 .Count();
+            HyperlinkTargetCount = presentation.Hyperlinks.Count;
+            LegacyPptShape[] interactiveShapes = EnumerateShapes(presentation).ToArray();
+            ShapeInteractionCount = interactiveShapes.Sum(shape => shape.Interactions.Count);
+            TextInteractionCount = interactiveShapes.Sum(shape =>
+                shape.TextBody.Interactions.Count);
             WarningCount = presentation.Diagnostics.Count(diagnostic =>
                 diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning);
             ErrorCount = presentation.Diagnostics.Count(diagnostic =>
@@ -156,6 +161,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets the number of distinct embedded comment authors.</summary>
         public int CommentAuthorCount { get; }
 
+        /// <summary>Gets the number of decoded document-level hyperlink targets.</summary>
+        public int HyperlinkTargetCount { get; }
+
+        /// <summary>Gets the number of decoded shape-level click and mouse-over actions.</summary>
+        public int ShapeInteractionCount { get; }
+
+        /// <summary>Gets the number of decoded text-range interactions.</summary>
+        public int TextInteractionCount { get; }
+
         /// <summary>Gets the warning count.</summary>
         public int WarningCount { get; }
 
@@ -186,5 +200,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private static int CountProjectableSpecialMasterBackground(
             LegacyPptSpecialMaster? master) =>
             master?.Background?.HasProjectableFill == true ? 1 : 0;
+
+        private static IEnumerable<LegacyPptShape> EnumerateShapes(
+            LegacyPptPresentation presentation) {
+            IEnumerable<LegacyPptShape> roots = presentation.Slides
+                .SelectMany(slide => slide.Shapes)
+                .Concat(presentation.Slides.SelectMany(slide =>
+                    slide.NotesPage?.Shapes ?? Array.Empty<LegacyPptShape>()))
+                .Concat(presentation.Masters.SelectMany(master => master.Shapes))
+                .Concat(presentation.NotesMaster?.Shapes ?? Array.Empty<LegacyPptShape>())
+                .Concat(presentation.HandoutMaster?.Shapes ?? Array.Empty<LegacyPptShape>());
+            foreach (LegacyPptShape shape in roots) {
+                foreach (LegacyPptShape item in EnumerateShape(shape)) yield return item;
+            }
+        }
+
+        private static IEnumerable<LegacyPptShape> EnumerateShape(LegacyPptShape shape) {
+            yield return shape;
+            foreach (LegacyPptShape child in shape.Children) {
+                foreach (LegacyPptShape item in EnumerateShape(child)) yield return item;
+            }
+        }
     }
 }

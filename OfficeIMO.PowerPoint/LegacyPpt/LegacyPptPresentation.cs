@@ -124,6 +124,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             ParseBlipStore(document, package, options);
             ParseFontCollection(document, options);
+            ParseHyperlinks(document, options);
 
             ParseSpecialMasters(documentAtom, documentStream, persistOffsets, options);
             ParseMasters(document, documentStream, persistOffsets, options);
@@ -353,7 +354,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 out bool isTextRulerTruncated);
             LegacyPptTextBody textBody = LegacyPptTextStyleReader.Read(text, textData.RawCharacterCount,
                 textStyle, colorScheme, _fontsByIndex, textType, textRuler,
-                hasRulerRecord: textRulerRecord != null, isRulerTruncated: isTextRulerTruncated);
+                hasRulerRecord: textRulerRecord != null, isRulerTruncated: isTextRulerTruncated)
+                .WithInteractions(ReadTextInteractions(textbox, text.Length, options));
             LegacyPptPlaceholder? placeholder = ReadPlaceholder(shapeContainer, options);
             LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,
                 (shapeFlags & (1U << 8)) != 0);
@@ -375,7 +377,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 ResolveShapeColor(style.FillColor, colorScheme),
                 ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture,
                 transform, shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme),
-                textBody: textBody);
+                textBody: textBody, interactions: ReadShapeInteractions(shapeContainer, options));
 
             if (textBody.IsStyleTruncated) {
                 AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,

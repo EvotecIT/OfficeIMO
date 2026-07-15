@@ -262,9 +262,12 @@ namespace OfficeIMO.PowerPoint {
                 LegacyPptShapeKind.Picture => CreateLegacyPicture(ownerPart, source, shapeId),
                 LegacyPptShapeKind.Group => CreateLegacyGroupShape(ownerPart, source, shapeId,
                     ref nextShapeId),
-                _ => CreateLegacyShape(source, shapeId)
+                _ => CreateLegacyShape(ownerPart, source, shapeId)
             };
-            if (projected != null) ApplyLegacyShapeMetadata(projected, source);
+            if (projected != null) {
+                ApplyLegacyShapeMetadata(projected, source);
+                ApplyLegacyShapeInteractions(ownerPart, projected, source);
+            }
             return projected;
         }
 
@@ -282,7 +285,8 @@ namespace OfficeIMO.PowerPoint {
             if (source.Metadata.Description != null) properties.Description = source.Metadata.Description;
         }
 
-        private static OpenXmlElement? CreateLegacyShape(LegacyPptShape source, uint shapeId) {
+        private static OpenXmlElement? CreateLegacyShape(OpenXmlPart ownerPart,
+            LegacyPptShape source, uint shapeId) {
             if (source.Kind == LegacyPptShapeKind.Connector
                 && LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
                     out A.ShapeTypeValues connectorGeometry)) {
@@ -341,7 +345,9 @@ namespace OfficeIMO.PowerPoint {
             if (source.Kind == LegacyPptShapeKind.TextBox) {
                 shape.Append(source.TextBody.HasExplicitCharacterFormatting
                     || source.TextBody.HasParagraphFormatting
-                    ? LegacyPptTextProjection.CreateTextBody(source.TextBody)
+                    || source.TextBody.HasInteractions
+                    ? LegacyPptTextProjection.CreateTextBody(source.TextBody,
+                        interaction => ProjectLegacyInteraction(ownerPart, interaction))
                     : new TextBody(
                         new A.BodyProperties(),
                         new A.ListStyle(),

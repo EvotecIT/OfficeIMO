@@ -80,6 +80,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out _)) {
                 return false;
             }
+            if (!LegacyPptWriter.TryReadInteractions(presentation,
+                    out LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
+                    out _)
+                || !TryCreateInteractionContext(package, projectionMap,
+                    interactionCatalog, out PreservingInteractionContext interactionContext)) {
+                return false;
+            }
 
             try {
                 var currentSlideOrder = new List<LegacyPptSlideProjection>(presentation.Slides.Count);
@@ -151,9 +158,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 changedText = currentText;
                             }
                         }
-                        if (changedBounds.HasValue || changedText != null) {
+                        LegacyPptWriter.LegacyPptWriterShapeInteractions currentInteractions =
+                            interactionCatalog.Get(shape);
+                        if (!shapeProjection.CanEditInteractions
+                            && currentInteractions.HasInteractions) return false;
+                        bool shapeInteractionsChanged = shapeProjection.CanEditInteractions
+                            && !ShapeInteractionsEqual(shapeProjection, currentInteractions,
+                                interactionCatalog);
+                        bool textInteractionsChanged = shapeProjection.CanEditInteractions
+                            && !TextInteractionsEqual(shapeProjection, currentInteractions,
+                                interactionCatalog);
+                        ProjectedInteractionEdit? interactionEdit =
+                            shapeInteractionsChanged || textInteractionsChanged
+                                ? new ProjectedInteractionEdit(
+                                    interactionContext.Remap(currentInteractions),
+                                    shapeInteractionsChanged, textInteractionsChanged)
+                                : null;
+                        if (changedBounds.HasValue || changedText != null
+                            || interactionEdit != null) {
                             editsByOfficeArtId.Add(shapeProjection.OfficeArtShapeId,
-                                new ProjectedShapeEdit(changedBounds, shapeProjection.Text, changedText));
+                                new ProjectedShapeEdit(changedBounds, shapeProjection.Text,
+                                    changedText, interactionEdit));
                         }
                     }
                     bool? hidden = slide.Hidden == slideProjection.Hidden ? null : slide.Hidden;
@@ -196,6 +221,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (addedSlides.Count > 0) {
                     if (originalTopologyChanged || currentSlideOrder.Count != projectionMap.Slides.Count
                         || !TryAppendNewSlides(package, projectionMap, addedSlides, rewritten,
+                            interactionCatalog, interactionContext,
                             out IReadOnlyList<uint> addedSlideIds)) {
                         return false;
                     }
@@ -206,6 +232,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     rewritten.Add(package.DocumentPersistId, documentRecord);
+                }
+                if (interactionContext.NewHyperlinks.Count > 0) {
+                    rewritten.TryGetValue(package.DocumentPersistId,
+                        out byte[]? currentDocumentBytes);
+                    if (!TryAppendNewHyperlinks(package, currentDocumentBytes,
+                            interactionContext.NewHyperlinks, out byte[] documentWithHyperlinks)) {
+                        return false;
+                    }
+                    rewritten[package.DocumentPersistId] = documentWithHyperlinks;
                 }
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException
@@ -249,23 +284,58 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool TryRewriteShapeContainer(LegacyPptRecord shapeContainer, ProjectedShapeEdit edit,
             out byte[] bytes) {
-            var children = new List<byte[]>(shapeContainer.Children.Count);
+            var children = new List<byte[]>(shapeContainer.Children.Count + 1);
             bool patchedAnchor = !edit.Bounds.HasValue;
-            bool patchedText = edit.Text == null;
+            bool patchedText = edit.Text == null
+                && edit.Interactions?.RewriteTextInteractions != true;
+            bool patchedShapeInteractions = edit.Interactions?.RewriteShapeInteractions != true;
+            bool appendedShapeInteractions = false;
+            bool sawClientData = false;
             foreach (LegacyPptRecord child in shapeContainer.Children) {
                 if (!patchedAnchor && edit.Bounds.HasValue
                     && (child.Type == OfficeArtClientAnchor || child.Type == OfficeArtChildAnchor)) {
                     children.Add(BuildAnchor(child.Type, child.Instance, edit.Bounds.Value));
                     patchedAnchor = true;
-                } else if (!patchedText && child.Type == OfficeArtClientTextbox
-                           && TryRewriteTextBox(child, edit.OriginalText, edit.Text!, out byte[] textbox)) {
+                } else if (!patchedText && child.Type == OfficeArtClientTextbox) {
+                    bool rewritten = edit.Interactions?.RewriteTextInteractions == true
+                        ? TryRewriteTextInteractions(child, edit.OriginalText,
+                            edit.Text, edit.Interactions.Interactions.TextInteractions,
+                            out byte[] textbox)
+                        : TryRewriteTextBox(child, edit.OriginalText, edit.Text!,
+                            out textbox);
+                    if (!rewritten) {
+                        bytes = shapeContainer.CopyRecordBytes();
+                        return false;
+                    }
                     children.Add(textbox);
                     patchedText = true;
+                } else if (edit.Interactions?.RewriteShapeInteractions == true
+                           && child.Type == OfficeArtClientData) {
+                    sawClientData = true;
+                    if (!TryRewriteClientDataInteractions(child,
+                            edit.Interactions.Interactions.ShapeInteractions,
+                            append: !appendedShapeInteractions,
+                            out byte[] clientData)) {
+                        bytes = shapeContainer.CopyRecordBytes();
+                        return false;
+                    }
+                    children.Add(clientData);
+                    appendedShapeInteractions = true;
+                    patchedShapeInteractions = true;
                 } else {
                     children.Add(child.CopyRecordBytes());
                 }
             }
-            if (!patchedAnchor || !patchedText) {
+            if (edit.Interactions?.RewriteShapeInteractions == true
+                && !sawClientData
+                && edit.Interactions.Interactions.ShapeInteractions.Count > 0) {
+                byte[][] actionRecords = edit.Interactions.Interactions.ShapeInteractions
+                    .Select(LegacyPptWriter.BuildInteractiveInfoRecord).ToArray();
+                children.Add(BuildRecord(version: 0x0F, instance: 0,
+                    OfficeArtClientData, Concat(actionRecords)));
+                patchedShapeInteractions = true;
+            }
+            if (!patchedAnchor || !patchedText || !patchedShapeInteractions) {
                 bytes = shapeContainer.CopyRecordBytes();
                 return false;
             }
@@ -353,7 +423,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             string normalizedReplacement = NormalizeLogicalText(replacementText);
-            if (normalizedReplacement.Length != contentLength && !IsStructurallyPlainTextBox(textbox)) {
+            if (normalizedReplacement.Length != contentLength
+                && !IsStructurallyPlainTextBox(textbox)
+                && !IsStructurallyPlainInteractiveTextBox(textbox)) {
                 bytes = textRecord.CopyRecordBytes();
                 return false;
             }
@@ -374,6 +446,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool IsStructurallyPlainTextBox(LegacyPptRecord textbox) => textbox.Children.All(child =>
             child.Type == RecordTextHeader || child.Type == RecordTextChars || child.Type == RecordTextBytes);
+
+        private static bool IsStructurallyPlainInteractiveTextBox(
+            LegacyPptRecord textbox) {
+            for (int index = 0; index < textbox.Children.Count; index++) {
+                LegacyPptRecord child = textbox.Children[index];
+                if (child.Type == RecordTextHeader || child.Type == RecordTextChars
+                    || child.Type == RecordTextBytes) continue;
+                if (child.Type != RecordInteractiveInfo
+                    || !IsRewritableInteractiveInfo(child)
+                    || index + 1 >= textbox.Children.Count
+                    || textbox.Children[index + 1].Type != RecordTextInteractiveInfoAtom
+                    || textbox.Children[index + 1].Version != 0
+                    || textbox.Children[index + 1].Instance != child.Instance
+                    || textbox.Children[index + 1].PayloadLength != 8) return false;
+                index++;
+            }
+            return true;
+        }
 
         private static bool TryReplaceDescendant(LegacyPptRecord record, int targetOffset, byte[] replacement,
             out byte[] bytes) {
@@ -524,7 +614,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             return !shape.TextBody.Descendants<A.RunProperties>().Any(properties =>
-                       properties.HasAttributes || properties.HasChildren)
+                       properties.HasAttributes || properties.ChildElements.Any(child =>
+                           child is not A.HyperlinkOnClick
+                               and not A.HyperlinkOnMouseOver))
                 && !shape.TextBody.Descendants<A.ParagraphProperties>().Any(properties =>
                     properties.HasAttributes || properties.HasChildren)
                 && !shape.TextBody.Descendants<A.EndParagraphRunProperties>().Any(properties =>
@@ -614,10 +706,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private sealed class ProjectedShapeEdit {
-            internal ProjectedShapeEdit(LegacyPptBounds? bounds, string originalText, string? text) {
+            internal ProjectedShapeEdit(LegacyPptBounds? bounds, string originalText,
+                string? text, ProjectedInteractionEdit? interactions) {
                 Bounds = bounds;
                 OriginalText = originalText ?? string.Empty;
                 Text = text;
+                Interactions = interactions;
             }
 
             internal LegacyPptBounds? Bounds { get; }
@@ -625,6 +719,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal string OriginalText { get; }
 
             internal string? Text { get; }
+
+            internal ProjectedInteractionEdit? Interactions { get; }
         }
     }
 }

@@ -9,7 +9,8 @@ namespace OfficeIMO.PowerPoint {
         internal static string Create(PresentationDocument document,
             Action<OpenXmlPart, OpenXmlElement>? normalizeRoot = null,
             Func<OpenXmlPart, bool>? includePart = null,
-            Func<OpenXmlPart, IdPartPair, bool>? includeRelationship = null) {
+            Func<OpenXmlPart, IdPartPair, bool>? includeRelationship = null,
+            Func<OpenXmlPart, ReferenceRelationship, bool>? includeReferenceRelationship = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var parts = new HashSet<OpenXmlPart>();
             foreach (IdPartPair pair in document.Parts) CollectParts(pair.OpenXmlPart, parts);
@@ -42,6 +43,17 @@ namespace OfficeIMO.PowerPoint {
                     if (includeRelationship != null && !includeRelationship(part, relationship)) continue;
                     content.Append('|').Append(relationship.RelationshipId).Append('=')
                         .Append(relationship.OpenXmlPart.Uri);
+                }
+                IEnumerable<ReferenceRelationship> references = part.ExternalRelationships
+                    .Cast<ReferenceRelationship>()
+                    .Concat(part.HyperlinkRelationships)
+                    .OrderBy(item => item.Id, StringComparer.Ordinal);
+                foreach (ReferenceRelationship relationship in references) {
+                    if (includeReferenceRelationship != null
+                        && !includeReferenceRelationship(part, relationship)) continue;
+                    content.Append("|ref:").Append(relationship.Id).Append('=')
+                        .Append(relationship.RelationshipType).Append('>')
+                        .Append(relationship.Uri.OriginalString);
                 }
             }
 

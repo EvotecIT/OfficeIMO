@@ -75,7 +75,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         StringComparison.Ordinal)
                     || part is NotesSlidePart notesPart
                     && ReferenceEquals(notesPart.SlidePart, slidePart),
-            (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart);
+            (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart,
+            (owner, relationship) => relationship is not HyperlinkRelationship);
 
         private static void NormalizePresentationTopology(OpenXmlElement root) {
             if (root is not P.Presentation presentation || presentation.SlideIdList == null) return;
@@ -120,7 +121,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
             foreach (P.Shape shape in root.Descendants<P.Shape>()) {
                 uint? shapeId = shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value, out _)) continue;
+                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value,
+                        out LegacyPptShapeProjection? shapeProjection)
+                    || shapeProjection == null) continue;
+                if (shapeProjection.CanEditInteractions) {
+                    shape.NonVisualShapeProperties?.NonVisualDrawingProperties?
+                        .RemoveAllChildren<A.HyperlinkOnClick>();
+                    shape.NonVisualShapeProperties?.NonVisualDrawingProperties?
+                        .RemoveAllChildren<A.HyperlinkOnHover>();
+                }
                 var transform = shape.ShapeProperties?.Transform2D;
                 if (transform?.Offset != null) {
                     transform.Offset.X = 0L;
@@ -134,7 +143,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             foreach (P.Picture picture in root.Descendants<P.Picture>()) {
                 uint? shapeId = picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value, out _)) continue;
+                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value,
+                        out LegacyPptShapeProjection? shapeProjection)
+                    || shapeProjection == null) continue;
+                if (shapeProjection.CanEditInteractions) {
+                    picture.NonVisualPictureProperties?.NonVisualDrawingProperties?
+                        .RemoveAllChildren<A.HyperlinkOnClick>();
+                    picture.NonVisualPictureProperties?.NonVisualDrawingProperties?
+                        .RemoveAllChildren<A.HyperlinkOnHover>();
+                }
                 A.Transform2D? transform = picture.ShapeProperties?.Transform2D;
                 if (transform?.Offset != null) {
                     transform.Offset.X = 0L;
@@ -148,7 +165,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             foreach (P.ConnectionShape connection in root.Descendants<P.ConnectionShape>()) {
                 uint? shapeId = connection.NonVisualConnectionShapeProperties?
                     .NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value, out _)) continue;
+                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value,
+                        out LegacyPptShapeProjection? shapeProjection)
+                    || shapeProjection == null) continue;
+                if (shapeProjection.CanEditInteractions) {
+                    connection.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?
+                        .RemoveAllChildren<A.HyperlinkOnClick>();
+                    connection.NonVisualConnectionShapeProperties?.NonVisualDrawingProperties?
+                        .RemoveAllChildren<A.HyperlinkOnHover>();
+                }
                 A.Transform2D? transform = connection.ShapeProperties?.Transform2D;
                 if (transform?.Offset != null) {
                     transform.Offset.X = 0L;
@@ -161,7 +186,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             foreach (P.GroupShape group in root.Descendants<P.GroupShape>()) {
                 uint? shapeId = group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
-                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value, out _)) continue;
+                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value,
+                        out LegacyPptShapeProjection? shapeProjection)
+                    || shapeProjection == null) continue;
+                if (shapeProjection.CanEditInteractions) {
+                    group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?
+                        .RemoveAllChildren<A.HyperlinkOnClick>();
+                    group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?
+                        .RemoveAllChildren<A.HyperlinkOnHover>();
+                }
                 A.TransformGroup? transform = group.GroupShapeProperties?.TransformGroup;
                 if (transform?.Offset != null) {
                     transform.Offset.X = 0L;

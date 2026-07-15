@@ -100,7 +100,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LegacyPptBounds? groupCoordinateBounds = null,
             IReadOnlyList<LegacyPptShape>? children = null,
             string? shadowColor = null,
-            LegacyPptTextBody? textBody = null) {
+            LegacyPptTextBody? textBody = null,
+            IReadOnlyList<LegacyPptInteraction>? interactions = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -122,6 +123,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             GroupCoordinateBounds = groupCoordinateBounds;
             Children = new ReadOnlyCollection<LegacyPptShape>(
                 children?.ToArray() ?? Array.Empty<LegacyPptShape>());
+            Interactions = new ReadOnlyCollection<LegacyPptInteraction>(
+                interactions?.ToArray() ?? Array.Empty<LegacyPptInteraction>());
         }
 
         /// <summary>Gets the projected shape kind.</summary>
@@ -187,5 +190,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets nested shapes in drawing order when this is a group shape.</summary>
         public IReadOnlyList<LegacyPptShape> Children { get; }
+
+        /// <summary>Gets shape-level click and mouse-over interactions.</summary>
+        public IReadOnlyList<LegacyPptInteraction> Interactions { get; }
+
+        /// <summary>Gets the shape-level click interaction, when present.</summary>
+        public LegacyPptInteraction? ClickInteraction => Interactions.FirstOrDefault(
+            interaction => interaction.Trigger == LegacyPptInteractionTrigger.MouseClick);
+
+        /// <summary>Gets the shape-level mouse-over interaction, when present.</summary>
+        public LegacyPptInteraction? MouseOverInteraction => Interactions.FirstOrDefault(
+            interaction => interaction.Trigger == LegacyPptInteractionTrigger.MouseOver);
     }
 }

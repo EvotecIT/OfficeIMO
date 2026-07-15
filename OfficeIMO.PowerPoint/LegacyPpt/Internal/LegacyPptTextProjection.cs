@@ -5,14 +5,20 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Projects decoded binary text runs into native DrawingML text and fingerprints formatting.</summary>
     internal static class LegacyPptTextProjection {
-        internal static void Apply(P.Shape shape, LegacyPptTextBody source) {
+        internal static void Apply(P.Shape shape, LegacyPptTextBody source,
+            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction = null) {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
             if (source == null) throw new ArgumentNullException(nameof(source));
-            if (!source.HasExplicitCharacterFormatting && !source.HasParagraphFormatting) return;
-            shape.TextBody = CreateTextBody(source);
+            if (!source.HasExplicitCharacterFormatting && !source.HasParagraphFormatting
+                && !source.HasInteractions) return;
+            shape.TextBody = CreateTextBody(source, projectInteraction);
         }
 
-        internal static P.TextBody CreateTextBody(LegacyPptTextBody source) {
+        internal static P.TextBody CreateTextBody(LegacyPptTextBody source) =>
+            CreateTextBody(source, projectInteraction: null);
+
+        internal static P.TextBody CreateTextBody(LegacyPptTextBody source,
+            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             var textBody = new P.TextBody(new A.BodyProperties(), new A.ListStyle());
             string[] paragraphs = source.Text.Split(new[] { '\n' }, StringSplitOptions.None);
@@ -21,7 +27,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 int paragraphEnd = checked(paragraphStart + paragraphText.Length);
                 var paragraph = new A.Paragraph();
                 ApplyParagraphProperties(paragraph, source, paragraphStart);
-                AppendParagraphRuns(paragraph, source, paragraphStart, paragraphEnd);
+                AppendParagraphRuns(paragraph, source, paragraphStart, paragraphEnd,
+                    projectInteraction);
                 if (!paragraph.Elements<A.Run>().Any()) {
                     paragraph.Append(new A.Run(new A.Text(string.Empty)));
                 }
@@ -179,29 +186,68 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (textBody == null) return string.Empty;
             var clone = (P.TextBody)textBody.CloneNode(true);
             foreach (A.Text text in clone.Descendants<A.Text>()) text.Text = string.Empty;
+            foreach (A.RunProperties properties in clone.Descendants<A.RunProperties>()
+                         .ToArray()) {
+                properties.RemoveAllChildren<A.HyperlinkOnClick>();
+                properties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
+                if (!properties.HasAttributes && !properties.HasChildren) properties.Remove();
+            }
             return clone.OuterXml;
         }
 
         private static void AppendParagraphRuns(A.Paragraph paragraph, LegacyPptTextBody source,
-            int paragraphStart, int paragraphEnd) {
-            int cursor = paragraphStart;
-            foreach (LegacyPptCharacterRun run in source.CharacterRuns.OrderBy(item => item.Start)) {
-                int runEnd = checked(run.Start + run.Length);
-                int start = Math.Max(paragraphStart, run.Start);
-                int end = Math.Min(paragraphEnd, runEnd);
-                if (end <= start) continue;
-                if (start > cursor) AppendRun(paragraph, source.Text.Substring(cursor, start - cursor), null);
-                AppendRun(paragraph, source.Text.Substring(start, end - start), run);
-                cursor = Math.Max(cursor, end);
+            int paragraphStart, int paragraphEnd,
+            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
+            var boundaries = new SortedSet<int> { paragraphStart, paragraphEnd };
+            foreach (LegacyPptCharacterRun run in source.CharacterRuns) {
+                AddClippedBoundaries(boundaries, run.Start,
+                    checked(run.Start + run.Length), paragraphStart, paragraphEnd);
             }
-            if (cursor < paragraphEnd) {
-                AppendRun(paragraph, source.Text.Substring(cursor, paragraphEnd - cursor), null);
+            foreach (LegacyPptTextInteraction interaction in source.Interactions) {
+                AddClippedBoundaries(boundaries, interaction.Start,
+                    checked(interaction.Start + interaction.Length), paragraphStart, paragraphEnd);
+            }
+            int[] values = boundaries.ToArray();
+            for (int index = 0; index < values.Length - 1; index++) {
+                int start = values[index];
+                int end = values[index + 1];
+                if (end <= start) continue;
+                LegacyPptCharacterRun? formatting = source.CharacterRuns.FirstOrDefault(run =>
+                    start >= run.Start && start < run.Start + run.Length);
+                LegacyPptInteraction[] interactions = source.Interactions.Where(item =>
+                        start >= item.Start && end <= item.Start + item.Length)
+                    .Select(item => item.Interaction)
+                    .ToArray();
+                AppendRun(paragraph, source.Text.Substring(start, end - start), formatting,
+                    interactions, projectInteraction);
             }
         }
 
-        private static void AppendRun(A.Paragraph paragraph, string text, LegacyPptCharacterRun? source) {
+        private static void AddClippedBoundaries(ISet<int> boundaries, int start, int end,
+            int paragraphStart, int paragraphEnd) {
+            int clippedStart = Math.Max(paragraphStart, start);
+            int clippedEnd = Math.Min(paragraphEnd, end);
+            if (clippedEnd <= clippedStart) return;
+            boundaries.Add(clippedStart);
+            boundaries.Add(clippedEnd);
+        }
+
+        private static void AppendRun(A.Paragraph paragraph, string text,
+            LegacyPptCharacterRun? source,
+            IReadOnlyList<LegacyPptInteraction> interactions,
+            Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
             var run = new A.Run(new A.Text(text));
             A.RunProperties? properties = source == null ? null : CreateRunProperties(source);
+            if (projectInteraction != null && interactions.Count > 0) {
+                properties ??= new A.RunProperties();
+                foreach (LegacyPptInteraction interaction in interactions
+                             .GroupBy(item => item.Trigger)
+                             .Select(group => group.First())) {
+                    foreach (OpenXmlElement element in projectInteraction(interaction)) {
+                        properties.Append(element);
+                    }
+                }
+            }
             if (properties != null) run.PrependChild(properties);
             paragraph.Append(run);
         }

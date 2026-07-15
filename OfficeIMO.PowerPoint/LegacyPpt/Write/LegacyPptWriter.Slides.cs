@@ -5,7 +5,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private static byte[] BuildSlideRecord(LegacyPptRecord prototype, PowerPointSlide slide,
             IReadOnlyList<PowerPointShape> shapes, uint drawingId, uint? masterIdRef,
-            uint? notesIdRef, IReadOnlyList<LegacyPptWriterComment> comments) {
+            uint? notesIdRef, IReadOnlyList<LegacyPptWriterComment> comments,
+            LegacyPptWriterInteractionCatalog interactionCatalog) {
             var children = new List<byte[]>();
             bool hasSlideShowInfo = false;
             if (!TryReadTransition(slide, out LegacyPptWriterTransition? transition,
@@ -36,7 +37,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             instance: 0, allowHeader: false));
                     }
                 } else if (child.Type == RecordDrawing) {
-                    children.Add(BuildDrawingRecord(prototype, shapes, drawingId));
+                    children.Add(BuildDrawingRecord(prototype, shapes, drawingId,
+                        interactionCatalog));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     if (needsSlideShowInfo) {
                         children.Add(PatchSlideShowInfo(child.CopyRecordBytes(), slide));

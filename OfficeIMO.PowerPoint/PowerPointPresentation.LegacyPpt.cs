@@ -115,7 +115,8 @@ namespace OfficeIMO.PowerPoint {
                     PlaceholderValues? placeholder = MapPlaceholder(shape.PlaceholderKind);
                     if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value;
                     LegacyPptTextProjection.Apply(
-                        (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element, shape.TextBody);
+                        (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element, shape.TextBody,
+                        interaction => ProjectLegacyInteraction(slide.SlidePart, interaction));
                     if (shape.OfficeArtShapeType != 202
                         && LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out A.ShapeTypeValues textGeometry)
@@ -190,6 +191,7 @@ namespace OfficeIMO.PowerPoint {
             if (projectedShape?.Element is OpenXmlElement projectedElement) {
                 ApplyLegacyPlaceholder(projectedElement, shape);
                 ApplyLegacyShapeMetadata(projectedElement, shape);
+                ApplyLegacyShapeInteractions(slide.SlidePart, projectedElement, shape);
             }
             return projectedShape?.Element;
         }

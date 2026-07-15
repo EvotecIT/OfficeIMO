@@ -4,7 +4,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
         private static bool TryAppendNewSlides(LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap, IReadOnlyList<PowerPointSlide> addedSlides,
-            IDictionary<uint, byte[]> rewritten, out IReadOnlyList<uint> addedSlideIds) {
+            IDictionary<uint, byte[]> rewritten,
+            LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
+            PreservingInteractionContext interactionContext,
+            out IReadOnlyList<uint> addedSlideIds) {
             var slideIds = new List<uint>(addedSlides.Count);
             addedSlideIds = slideIds;
             if (addedSlides.Count == 0 || projectionMap.Slides.Count == 0
@@ -25,6 +28,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint persistId = package.PersistObjects.Count == 0 ? 1U : package.PersistObjects.Keys.Max();
             uint slideId = projectionMap.Slides.Max(slide => slide.SlideId);
             uint drawingId = clusters.Count == 0 ? 0U : clusters.Max(cluster => cluster.Key);
+            LegacyPptWriter.LegacyPptWriterInteractionCatalog remappedInteractions =
+                interactionContext.RemapCatalog(addedSlides, interactionCatalog);
             var appendedSlideAtoms = new List<byte[]>(addedSlides.Count);
             foreach (PowerPointSlide slide in addedSlides) {
                 if (persistId >= 0x000FFFFE || slideId >= 0x7FFFFFFF || drawingId >= 0x003FFFFF) {
@@ -37,7 +42,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 uint nextShapeIndex = checked(unchecked((uint)slide.Shapes.Count) + 2U);
                 clusters.Add(new KeyValuePair<uint, uint>(drawingId, nextShapeIndex));
                 rewritten.Add(persistId,
-                    LegacyPptWriter.BuildIncrementalSlideRecord(slide, drawingId, masterIdRef));
+                    LegacyPptWriter.BuildIncrementalSlideRecord(slide, drawingId,
+                        masterIdRef, remappedInteractions));
                 appendedSlideAtoms.Add(BuildSlidePersistAtom(persistId, slideId));
                 slideIds.Add(slideId);
             }

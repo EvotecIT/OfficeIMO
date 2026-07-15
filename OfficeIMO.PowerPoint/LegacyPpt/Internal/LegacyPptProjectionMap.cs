@@ -9,16 +9,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private readonly IReadOnlyDictionary<string, uint> _masterIdsByLayoutPartUri;
 
         private LegacyPptProjectionMap(IReadOnlyList<LegacyPptSlideProjection> slides,
-            IReadOnlyDictionary<string, uint> masterIdsByLayoutPartUri) {
+            IReadOnlyDictionary<string, uint> masterIdsByLayoutPartUri,
+            IReadOnlyList<LegacyPptHyperlink> hyperlinks) {
             Slides = new ReadOnlyCollection<LegacyPptSlideProjection>(slides.ToArray());
             _slidesByPartUri = new ReadOnlyDictionary<string, LegacyPptSlideProjection>(slides.ToDictionary(
                 slide => slide.SlidePartUri, StringComparer.Ordinal));
             _masterIdsByLayoutPartUri = new ReadOnlyDictionary<string, uint>(
                 masterIdsByLayoutPartUri.ToDictionary(pair => pair.Key, pair => pair.Value,
                     StringComparer.Ordinal));
+            Hyperlinks = new ReadOnlyCollection<LegacyPptHyperlink>(hyperlinks.ToArray());
         }
 
         internal IReadOnlyList<LegacyPptSlideProjection> Slides { get; }
+
+        internal IReadOnlyList<LegacyPptHyperlink> Hyperlinks { get; }
 
         internal bool TryGetSlide(PowerPointSlide slide, out LegacyPptSlideProjection? projection) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
@@ -66,13 +70,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                             $"Projected slide {slideIndex + 1}, shape {shapeIndex + 1} has no Open XML shape id.");
                     }
                     LegacyPptShape sourceShape = sourceShapes[shapeIndex];
-                    string? textFormattingFingerprint = sourceShape.TextBody.HasStyleRecord
+                    string? textFormattingFingerprint = (sourceShape.TextBody.HasStyleRecord
+                        || sourceShape.TextBody.HasInteractions)
                         && projectedShapes[shapeIndex].Element is DocumentFormat.OpenXml.Presentation.Shape projectedTextShape
                         ? LegacyPptTextProjection.CreateFormattingFingerprint(projectedTextShape.TextBody)
                         : null;
                     shapes.Add(new LegacyPptShapeProjection(openXmlShapeId.Value, sourceShape.ShapeId,
                         sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text,
-                        textFormattingFingerprint));
+                        textFormattingFingerprint, sourceShape.Interactions,
+                        sourceShape.TextBody.Interactions));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
@@ -83,7 +89,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         : new LegacyPptNotesProjection(sourceSlide.NotesPage.PersistId,
                             sourceSlide.NotesPage.NotesId, sourceSlide.NotesPage.Text)));
             }
-            return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy));
+            return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy),
+                legacy.Hyperlinks);
         }
 
         private static IReadOnlyDictionary<string, uint> CreateLayoutMasterMap(
@@ -177,7 +184,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal sealed class LegacyPptShapeProjection {
         internal LegacyPptShapeProjection(uint openXmlShapeId, uint officeArtShapeId, long recordOffset,
             LegacyPptShapeKind kind, LegacyPptBounds bounds, string text,
-            string? textFormattingFingerprint) {
+            string? textFormattingFingerprint,
+            IReadOnlyList<LegacyPptInteraction> shapeInteractions,
+            IReadOnlyList<LegacyPptTextInteraction> textInteractions) {
             OpenXmlShapeId = openXmlShapeId;
             OfficeArtShapeId = officeArtShapeId;
             RecordOffset = recordOffset;
@@ -185,6 +194,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Bounds = bounds;
             Text = text ?? string.Empty;
             TextFormattingFingerprint = textFormattingFingerprint;
+            ShapeInteractions = new ReadOnlyCollection<LegacyPptInteraction>(
+                shapeInteractions.ToArray());
+            TextInteractions = new ReadOnlyCollection<LegacyPptTextInteraction>(
+                textInteractions.ToArray());
+            CanEditInteractions = ShapeInteractions.All(IsEditableInteraction)
+                && TextInteractions.All(item => IsEditableInteraction(item.Interaction))
+                && ShapeInteractions.GroupBy(item => item.Trigger)
+                    .All(group => group.Count() == 1)
+                && !HasOverlappingTextTriggers(TextInteractions);
         }
 
         internal uint OpenXmlShapeId { get; }
@@ -200,5 +218,39 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal string Text { get; }
 
         internal string? TextFormattingFingerprint { get; }
+
+        internal IReadOnlyList<LegacyPptInteraction> ShapeInteractions { get; }
+
+        internal IReadOnlyList<LegacyPptTextInteraction> TextInteractions { get; }
+
+        internal bool CanEditInteractions { get; }
+
+        private static bool IsEditableInteraction(LegacyPptInteraction interaction) {
+            if (interaction.SoundIdReference != 0 || interaction.OleVerb != 0
+                || interaction.Flags != 0 || !string.IsNullOrEmpty(interaction.Name)) return false;
+            if (interaction.Action == LegacyPptInteractionAction.Jump) {
+                return interaction.Jump != LegacyPptInteractionJump.None;
+            }
+            if (interaction.Action != LegacyPptInteractionAction.Hyperlink) return false;
+            return interaction.Hyperlink?.Uri != null
+                || interaction.HyperlinkType == LegacyPptHyperlinkType.NextSlide
+                || interaction.HyperlinkType == LegacyPptHyperlinkType.PreviousSlide
+                || interaction.HyperlinkType == LegacyPptHyperlinkType.FirstSlide
+                || interaction.HyperlinkType == LegacyPptHyperlinkType.LastSlide;
+        }
+
+        private static bool HasOverlappingTextTriggers(
+            IReadOnlyList<LegacyPptTextInteraction> interactions) {
+            foreach (IGrouping<LegacyPptInteractionTrigger, LegacyPptTextInteraction> group
+                     in interactions.GroupBy(item => item.Interaction.Trigger)) {
+                int previousEnd = -1;
+                foreach (LegacyPptTextInteraction item in group.OrderBy(item => item.Start)) {
+                    if (item.Start < previousEnd) return true;
+                    previousEnd = Math.Max(previousEnd,
+                        checked(item.Start + item.Length));
+                }
+            }
+            return false;
+        }
     }
 }

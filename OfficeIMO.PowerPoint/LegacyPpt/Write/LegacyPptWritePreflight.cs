@@ -36,6 +36,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     "PPT-WRITE-COMMENTS",
                     commentReason ?? "Classic comments cannot be encoded by the native binary writer."));
             }
+            if (!LegacyPptWriter.TryReadInteractions(presentation, out _,
+                    out string? interactionReason)) {
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Hyperlinks,
+                    "PPT-WRITE-INTERACTION",
+                    interactionReason ?? "A hyperlink or action cannot be encoded by the native binary writer."));
+            }
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
                 if (HasUnsupportedRichNotes(slide)) {
@@ -99,6 +105,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 || slideRoot?.CommonSlideData?.Background != null) {
                 return false;
             }
+            if (!LegacyPptWriter.TryReadInteractions(new[] { slide },
+                    out _, out _)) return false;
             foreach (PowerPointShape shape in slide.Shapes) {
                 if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)) return false;
                 if (shape is PowerPointTextBox textBox && HasRichTextFormatting(textBox)) return false;
@@ -153,7 +161,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             || shape.Rotation != null
             || shape.HorizontalFlip != null
             || shape.VerticalFlip != null
-            || shape.Hyperlink != null
             || shape.Hidden
             || !string.IsNullOrWhiteSpace(shape.AltText)
             || shape.Element.Descendants<A.EffectList>().Any();
@@ -162,7 +169,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             P.Shape? shape = textBox.Element as P.Shape;
             if (shape?.TextBody == null) return false;
             return shape.TextBody.Descendants<A.RunProperties>().Any(properties =>
-                       properties.HasAttributes || properties.HasChildren)
+                       properties.HasAttributes || properties.ChildElements.Any(child =>
+                           child is not A.HyperlinkOnClick
+                               and not A.HyperlinkOnMouseOver))
                 || shape.TextBody.Descendants<A.ParagraphProperties>().Any(properties =>
                     properties.HasAttributes || properties.HasChildren);
         }
