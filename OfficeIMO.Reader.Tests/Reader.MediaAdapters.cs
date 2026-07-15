@@ -43,8 +43,29 @@ public sealed class ReaderMediaAdapterTests {
 
         Assert.Null(Assert.Single(result.Assets).PayloadBytes);
         Assert.Empty(result.OcrCandidates);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "ocr-needed");
         Assert.DoesNotContain("bytes are available", result.Markdown, StringComparison.Ordinal);
         Assert.Contains("source bytes were not retained", result.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ImageAdapter_RejectsAnImageExtensionWithoutAnImageSignature() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(Encoding.UTF8.GetBytes("not an image"), "renamed.png"));
+    }
+
+    [Fact]
+    public void ImageAdapter_IdentifiesWebpFromItsHeader() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(CreateWebpExtendedHeader(3, 2), "image.webp");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal("image/webp", asset.MediaType);
+        Assert.Equal(3, asset.Width);
+        Assert.Equal(2, asset.Height);
     }
 
     [Fact]
@@ -101,6 +122,37 @@ public sealed class ReaderMediaAdapterTests {
 
         Assert.Single(result.Chunks);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "notebook-cell-limit");
+    }
+
+    [Fact]
+    public void NotebookAdapter_WarnsWhenOneOutputFillsTheBudgetBeforeAnotherOutput() {
+        const string notebook = """
+            {
+              "cells": [
+                {
+                  "cell_type": "code",
+                  "source": "print('bounded')",
+                  "outputs": [
+                    { "output_type": "stream", "text": "1234" },
+                    { "output_type": "stream", "text": "omitted" }
+                  ]
+                }
+              ],
+              "metadata": {},
+              "nbformat": 4,
+              "nbformat_minor": 0
+            }
+            """;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddNotebookHandler(new ReaderNotebookOptions { MaxOutputCharactersPerCell = 4 })
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(notebook), "bounded.ipynb");
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Contains("1234", chunk.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain("omitted", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxOutputCharactersPerCell", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -163,6 +215,30 @@ public sealed class ReaderMediaAdapterTests {
         Assert.Contains(capabilities, item => item.Id == OfficeDocumentReaderBuilderSubtitleExtensions.HandlerId);
     }
 
+    [Fact]
+    public void MediaAdapters_DoNotCaptureUnrelatedTextJsonOrUnknownInputsByKind() {
+        OfficeDocumentReader allReader = new OfficeDocumentReaderBuilder().AddAllOfficeIMOHandlers().Build();
+
+        OfficeDocumentReadResult text = allReader.ReadDocument(Encoding.UTF8.GetBytes("ordinary text"), "notes.txt");
+        OfficeDocumentReadResult json = allReader.ReadDocument(Encoding.UTF8.GetBytes("{\"value\":42}"), "payload.bin");
+        OfficeDocumentReadResult unknown = allReader.ReadDocument(new byte[] { 0, 1, 2, 3 }, "payload.dat");
+
+        Assert.Contains("ordinary text", text.Markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain(OfficeDocumentReaderBuilderSubtitleExtensions.HandlerId, text.CapabilitiesUsed);
+        Assert.Contains("officeimo.reader.json", json.CapabilitiesUsed);
+        Assert.DoesNotContain(OfficeDocumentReaderBuilderNotebookExtensions.HandlerId, json.CapabilitiesUsed);
+        Assert.DoesNotContain(OfficeDocumentReaderBuilderImageExtensions.HandlerId, unknown.CapabilitiesUsed);
+    }
+
+    [Fact]
+    public void NotebookOnlyRegistration_DoesNotCaptureGenericJsonByDetectedKind() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddNotebookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes("{\"value\":42}"), "payload.bin");
+
+        Assert.DoesNotContain(OfficeDocumentReaderBuilderNotebookExtensions.HandlerId, result.CapabilitiesUsed);
+    }
+
     private static byte[] CreatePng(int width, int height) {
         byte[] rgba = new byte[checked(width * height * 4)];
         for (int index = 0; index < rgba.Length; index += 4) {
@@ -172,5 +248,22 @@ public sealed class ReaderMediaAdapterTests {
             rgba[index + 3] = 255;
         }
         return OfficePngWriter.EncodeRgba(width, height, rgba);
+    }
+
+    private static byte[] CreateWebpExtendedHeader(int width, int height) {
+        var bytes = new byte[30];
+        Encoding.ASCII.GetBytes("RIFF").CopyTo(bytes, 0);
+        BitConverter.GetBytes(22).CopyTo(bytes, 4);
+        Encoding.ASCII.GetBytes("WEBPVP8X").CopyTo(bytes, 8);
+        BitConverter.GetBytes(10).CopyTo(bytes, 16);
+        WriteUInt24LittleEndian(bytes, 24, width - 1);
+        WriteUInt24LittleEndian(bytes, 27, height - 1);
+        return bytes;
+    }
+
+    private static void WriteUInt24LittleEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
     }
 }

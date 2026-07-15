@@ -20,6 +20,7 @@ public static class OfficeDocumentReaderBuilderNotebookExtensions {
             DisplayName = "Jupyter Notebook Reader Adapter",
             Description = "Bounded Jupyter Notebook Markdown, code, and text-output projection.",
             Kind = ReaderInputKind.Json,
+            UseDetectedKindFallback = false,
             Extensions = new[] { ".ipynb" },
             DefaultMaxInputBytes = DefaultMaxInputBytes,
             ReadPath = (path, options, cancellationToken) => NotebookReaderAdapter

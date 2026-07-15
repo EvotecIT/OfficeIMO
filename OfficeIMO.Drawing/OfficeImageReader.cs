@@ -74,6 +74,7 @@ public static class OfficeImageReader {
             TryReadPcx(data, out info) ||
             TryReadEmf(data, out info) ||
             TryReadWmf(data, out info) ||
+            TryReadWebp(data, out info) ||
             TryReadSvg(data, fileName, out info)) {
             return true;
         }
@@ -555,6 +556,35 @@ public static class OfficeImageReader {
         }
     }
 
+    private static bool TryReadWebp(byte[] data, out OfficeImageInfo info) {
+        info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+        if (data.Length < 25 ||
+            GetAscii(data, 0, 4) != "RIFF" ||
+            GetAscii(data, 8, 4) != "WEBP") {
+            return false;
+        }
+
+        string chunkType = GetAscii(data, 12, 4);
+        int width;
+        int height;
+        if (chunkType == "VP8X" && data.Length >= 30) {
+            width = 1 + ReadUInt24LittleEndian(data, 24);
+            height = 1 + ReadUInt24LittleEndian(data, 27);
+        } else if (chunkType == "VP8L" && data.Length >= 25 && data[20] == 0x2F) {
+            width = 1 + data[21] + ((data[22] & 0x3F) << 8);
+            height = 1 + ((data[22] & 0xC0) >> 6) + (data[23] << 2) + ((data[24] & 0x0F) << 10);
+        } else if (chunkType == "VP8 " && data.Length >= 30 &&
+            data[23] == 0x9D && data[24] == 0x01 && data[25] == 0x2A) {
+            width = ReadUInt16LittleEndian(data, 26) & 0x3FFF;
+            height = ReadUInt16LittleEndian(data, 28) & 0x3FFF;
+        } else {
+            return false;
+        }
+
+        info = new OfficeImageInfo(OfficeImageFormat.Webp, width, height);
+        return width > 0 && height > 0;
+    }
+
     private static bool TryParseSvgLength(string? value, out double result) {
         result = 0D;
         if (string.IsNullOrWhiteSpace(value)) {
@@ -680,6 +710,9 @@ public static class OfficeImageReader {
 
     private static int ReadUInt16LittleEndian(byte[] data, int offset) =>
         offset + 2 <= data.Length ? data[offset] | (data[offset + 1] << 8) : 0;
+
+    private static int ReadUInt24LittleEndian(byte[] data, int offset) =>
+        offset + 3 <= data.Length ? data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) : 0;
 
     private static int ReadUInt16BigEndian(byte[] data, int offset) =>
         offset + 2 <= data.Length ? (data[offset] << 8) | data[offset + 1] : 0;

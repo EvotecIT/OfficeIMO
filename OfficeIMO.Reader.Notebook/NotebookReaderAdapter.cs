@@ -142,7 +142,6 @@ internal static class NotebookReaderAdapter {
             }
             projected.Add(new NotebookOutput(text, value.Value.IsMarkdown));
             totalCharacters += text.Length;
-            if (text.Length == remaining) break;
         }
         return projected;
     }

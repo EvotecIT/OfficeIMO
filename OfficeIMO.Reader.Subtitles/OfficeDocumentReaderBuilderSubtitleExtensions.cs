@@ -20,6 +20,7 @@ public static class OfficeDocumentReaderBuilderSubtitleExtensions {
             DisplayName = "Subtitle Reader Adapter",
             Description = "Bounded SRT and WebVTT transcript and cue-timing projection.",
             Kind = ReaderInputKind.Text,
+            UseDetectedKindFallback = false,
             Extensions = new[] { ".srt", ".vtt" },
             DefaultMaxInputBytes = DefaultMaxInputBytes,
             ReadPath = (path, options, cancellationToken) => SubtitleReaderAdapter

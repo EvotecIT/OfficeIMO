@@ -17,7 +17,8 @@ internal static partial class DocumentReaderEngine {
         ReaderInputKind fallbackKind,
         OfficeDocumentSource? source = null,
         IEnumerable<string>? capabilities = null,
-        IReadOnlyList<OfficeDocumentAsset>? assets = null) {
+        IReadOnlyList<OfficeDocumentAsset>? assets = null,
+        IReadOnlyList<OfficeDocumentOcrCandidate>? ocrCandidates = null) {
         if (chunks == null) throw new ArgumentNullException(nameof(chunks));
         ReaderChunk[] materializedChunks = chunks.ToArray();
         ReaderChunk? first = materializedChunks.Length == 0 ? null : materializedChunks[0];
@@ -34,7 +35,8 @@ internal static partial class DocumentReaderEngine {
             sourceName,
             fallbackKind,
             effectiveSource,
-            assets);
+            assets,
+            ocrCandidates: ocrCandidates);
         if (capabilities != null) {
             result.CapabilitiesUsed = result.CapabilitiesUsed
                 .Concat(capabilities)

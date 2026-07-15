@@ -39,7 +39,7 @@ internal static class ImageReaderAdapter {
         CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();
         string sourceName = input.Source.Path ?? "image.bin";
-        if (!OfficeImageReader.TryIdentify(input.Bytes, sourceName, out OfficeImageInfo info) ||
+        if (!OfficeImageReader.TryIdentify(input.Bytes, fileName: null, out OfficeImageInfo info) ||
             info.Format == OfficeImageFormat.Unknown) {
             throw new NotSupportedException("Image format is not supported: " + sourceName);
         }
@@ -93,15 +93,6 @@ internal static class ImageReaderAdapter {
             }
         };
         DocumentReaderEngine.ApplyAdapterSource(chunk, input, readerOptions.ComputeHashes);
-        OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
-            new[] { chunk },
-            ReaderInputKind.Unknown,
-            input.Source,
-            new[] { OfficeDocumentReaderBuilderImageExtensions.HandlerId, "officeimo.drawing.image-identification" },
-            new[] { asset });
-        result.Source.Title = Path.GetFileName(sourceName);
-        result.Metadata = result.Metadata.Concat(BuildMetadata(info, input.Bytes.LongLength)).ToArray();
-        result.Visuals = chunk.Visuals ?? Array.Empty<ReaderVisual>();
         IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates = imageOptions.CreateOcrCandidate
             ? new[] {
                 new OfficeDocumentOcrCandidate {
@@ -116,10 +107,16 @@ internal static class ImageReaderAdapter {
                 }
             }
             : Array.Empty<OfficeDocumentOcrCandidate>();
-        result.OcrCandidates = ocrCandidates;
-        foreach (OfficeDocumentPage page in result.Pages) {
-            page.OcrCandidates = ocrCandidates;
-        }
+        OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
+            new[] { chunk },
+            ReaderInputKind.Unknown,
+            input.Source,
+            new[] { OfficeDocumentReaderBuilderImageExtensions.HandlerId, "officeimo.drawing.image-identification" },
+            new[] { asset },
+            ocrCandidates);
+        result.Source.Title = Path.GetFileName(sourceName);
+        result.Metadata = result.Metadata.Concat(BuildMetadata(info, input.Bytes.LongLength)).ToArray();
+        result.Visuals = chunk.Visuals ?? Array.Empty<ReaderVisual>();
         return result;
     }
 

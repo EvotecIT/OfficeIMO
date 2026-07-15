@@ -181,14 +181,17 @@ internal static partial class DocumentReaderEngine {
         ReaderInputKind fallbackKind,
         OfficeDocumentSource source,
         IReadOnlyList<OfficeDocumentAsset>? assets = null,
-        ReaderDetectionResult? detection = null) {
+        ReaderDetectionResult? detection = null,
+        IReadOnlyList<OfficeDocumentOcrCandidate>? ocrCandidates = null) {
         ReaderInputKind kind = chunks.Count > 0 ? chunks[0].Kind : fallbackKind;
         ReaderTable[] tables = ExtractTables(chunks).ToArray();
         ReaderVisual[] visuals = ExtractVisuals(chunks).ToArray();
         OfficeDocumentAsset[] assetArray = assets == null || assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets.ToArray();
         OfficeDocumentBlock[] blocks = BuildChunkDocumentBlocks(chunks).ToArray();
-        OfficeDocumentOcrCandidate[] ocrCandidates = BuildChunkDocumentOcrCandidates(blocks, assetArray).ToArray();
-        IReadOnlyList<OfficeDocumentPage> pages = BuildChunkDocumentPages(chunks, blocks, tables, assetArray, ocrCandidates);
+        OfficeDocumentOcrCandidate[] candidateArray = ocrCandidates == null
+            ? BuildChunkDocumentOcrCandidates(blocks, assetArray).ToArray()
+            : ocrCandidates.ToArray();
+        IReadOnlyList<OfficeDocumentPage> pages = BuildChunkDocumentPages(chunks, blocks, tables, assetArray, candidateArray);
 
         return new OfficeDocumentReadResult {
             Kind = kind,
@@ -201,11 +204,11 @@ internal static partial class DocumentReaderEngine {
             Blocks = blocks,
             Tables = tables,
             Visuals = visuals,
-            Diagnostics = BuildChunkDocumentDiagnostics(chunks, ocrCandidates, detection),
+            Diagnostics = BuildChunkDocumentDiagnostics(chunks, candidateArray, detection),
             Assets = assetArray,
             Links = Array.Empty<OfficeDocumentLink>(),
             Forms = Array.Empty<OfficeDocumentFormField>(),
-            OcrCandidates = ocrCandidates
+            OcrCandidates = candidateArray
         };
     }
 
