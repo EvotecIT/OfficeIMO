@@ -161,7 +161,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             await Transport.SendJsonAsync<object>(
                 token,
                 HttpMethod.Delete,
-                $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments/{Escape(commentId)}?supportsAllDrives={Bool(Options.SupportsAllDrives)}",
+                $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments/{Escape(commentId)}",
                 null,
                 GoogleWorkspaceRequestSafety.Idempotent,
                 "Google Drive API",
@@ -210,7 +210,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             await Transport.SendJsonAsync<object>(
                 token,
                 HttpMethod.Delete,
-                $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments/{Escape(commentId)}/replies/{Escape(replyId)}?supportsAllDrives={Bool(Options.SupportsAllDrives)}",
+                $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments/{Escape(commentId)}/replies/{Escape(replyId)}",
                 null,
                 GoogleWorkspaceRequestSafety.Idempotent,
                 "Google Drive API",

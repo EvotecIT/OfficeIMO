@@ -201,6 +201,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_DriveClient_ResumableUpload_CompletesZeroByteFiles() {
+            string? contentRange = null;
+            int bodyLength = -1;
+            using var httpClient = new HttpClient(new FakeHandler(async request => {
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
+                    var response = Json("{}");
+                    response.Headers.Location = new Uri("https://upload.example.test/session-empty");
+                    return response;
+                }
+
+                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.example.test/session-empty") {
+                    contentRange = request.Content!.Headers.GetValues("Content-Range").Single();
+                    bodyLength = (await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false)).Length;
+                    return new HttpResponseMessage(HttpStatusCode.Created) {
+                        Content = new StringContent("{\"id\":\"resumable-empty\",\"name\":\"empty.bin\"}", Encoding.UTF8, "application/json")
+                    };
+                }
+
+                return NotFound();
+            }));
+            using var client = CreateClient(httpClient, quotaUser: "tenant-user");
+
+            GoogleDriveFile file = await client.UploadResumableAsync(
+                Array.Empty<byte>(),
+                new GoogleDriveUploadOptions { Name = "empty.bin", ContentType = "application/octet-stream" });
+
+            Assert.Equal("resumable-empty", file.Id);
+            Assert.Equal("bytes */0", contentRange);
+            Assert.Equal(0, bodyLength);
+        }
+
+        [Fact]
         public async Task Test_DriveClient_ResumableUpload_RepeatsChunkWhenRangeIsMissing() {
             var ranges = new List<string>();
             using var httpClient = new HttpClient(new FakeHandler(async request => {
@@ -366,19 +398,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_DriveClient_DeletesCommentThreadsAndRepliesWithSharedDriveSupport() {
+        public async Task Test_DriveClient_CommentEndpoints_UseDocumentedParameters() {
             var requests = new List<string>();
             using var httpClient = new HttpClient(new FakeHandler(request => {
                 requests.Add(request.Method.Method + " " + request.RequestUri!.AbsoluteUri);
+                if (request.Method == HttpMethod.Get) {
+                    return Task.FromResult(Json("{\"comments\":[]}"));
+                }
+                if (request.Method == HttpMethod.Post && request.RequestUri.AbsolutePath.EndsWith("/replies", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"id\":\"reply-1\",\"content\":\"Reply\"}"));
+                }
+                if (request.Method == HttpMethod.Post) {
+                    return Task.FromResult(Json("{\"id\":\"comment-1\",\"content\":\"Comment\"}"));
+                }
                 return Task.FromResult(Json("{}"));
             }));
             using var client = CreateClient(httpClient);
 
+            await client.ListCommentsAsync("file-1");
+            await client.CreateCommentAsync("file-1", "Comment");
+            await client.CreateReplyAsync("file-1", "comment-1", "Reply");
             await client.DeleteReplyAsync("file-1", "comment-1", "reply-1");
             await client.DeleteCommentAsync("file-1", "comment-1");
 
-            Assert.Contains(requests, request => request == "DELETE https://www.googleapis.com/drive/v3/files/file-1/comments/comment-1/replies/reply-1?supportsAllDrives=true");
-            Assert.Contains(requests, request => request == "DELETE https://www.googleapis.com/drive/v3/files/file-1/comments/comment-1?supportsAllDrives=true");
+            Assert.Equal(5, requests.Count);
+            Assert.DoesNotContain(requests, request => request.Contains("supportsAllDrives", StringComparison.Ordinal));
+            Assert.Contains(requests, request => request == "DELETE https://www.googleapis.com/drive/v3/files/file-1/comments/comment-1/replies/reply-1");
+            Assert.Contains(requests, request => request == "DELETE https://www.googleapis.com/drive/v3/files/file-1/comments/comment-1");
         }
 
         private static GoogleDriveClient CreateClient(HttpClient httpClient, RecordingCredentialSource? credential = null, string? quotaUser = null) {

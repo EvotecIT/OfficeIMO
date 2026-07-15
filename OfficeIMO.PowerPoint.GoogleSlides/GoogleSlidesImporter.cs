@@ -128,7 +128,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             } catch { presentation.Dispose(); stream.Dispose(); throw; }
         }
 
-        private static string ExtractText(GoogleSlidesApiTextContent? text) => text == null ? string.Empty : string.Concat(text.TextElements.Select(element => element.TextRun?.Content));
+        private static string ExtractText(GoogleSlidesApiTextContent? text) {
+            if (text == null) return string.Empty;
+            string value = string.Concat(text.TextElements.Select(element => element.TextRun?.Content));
+            return value.EndsWith("\n", StringComparison.Ordinal) ? value.Substring(0, value.Length - 1) : value;
+        }
         private static double ToPoints(GoogleSlidesApiDimension? dimension) => dimension == null ? 0 : ToPoints(dimension.Magnitude, dimension.Unit);
         private static double ToPoints(double value, string? unit) => string.Equals(unit, "EMU", StringComparison.OrdinalIgnoreCase) ? value / 12700d : value;
         private static string ToHex(GoogleSlidesApiRgbColor color) => $"{ToByte(color.Red):X2}{ToByte(color.Green):X2}{ToByte(color.Blue):X2}";

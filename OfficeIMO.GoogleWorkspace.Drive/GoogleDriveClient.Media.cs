@@ -90,6 +90,21 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             string sessionUri = initiation.GetHeader("Location")
                 ?? throw new InvalidOperationException("Google Drive did not return a resumable upload session URI.");
 
+            if (content.LongLength == 0) {
+                GoogleWorkspaceHttpResponse response = await QueryResumableStatusAsync(
+                    token,
+                    sessionUri,
+                    0,
+                    report,
+                    cancellationToken).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.OK || response.StatusCode == HttpStatusCode.Created) {
+                    options.Progress?.Report(new GoogleDriveTransferProgress(0, 0));
+                    return response.DeserializeJson<GoogleDriveFile>();
+                }
+
+                throw new InvalidOperationException("Google Drive did not complete the zero-byte resumable upload.");
+            }
+
             long offset = 0;
             while (offset < content.LongLength) {
                 cancellationToken.ThrowIfCancellationRequested();
