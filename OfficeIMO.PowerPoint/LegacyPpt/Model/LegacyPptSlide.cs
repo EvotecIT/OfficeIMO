@@ -20,6 +20,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets whether the slide is hidden during a slide show.</summary>
         public bool Hidden { get; internal set; }
 
+        /// <summary>Gets the legacy master identifier referenced by this slide.</summary>
+        public uint MasterId { get; internal set; }
+
         /// <summary>Gets the projected shapes in drawing order.</summary>
         public IReadOnlyList<LegacyPptShape> Shapes => _shapes;
 

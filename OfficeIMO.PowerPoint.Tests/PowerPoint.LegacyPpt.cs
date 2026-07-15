@@ -17,6 +17,11 @@ namespace OfficeIMO.Tests {
             LegacyPptSlide slide = Assert.Single(legacy.Slides);
             Assert.Equal(7680, legacy.SlideWidth);
             Assert.Equal(4320, legacy.SlideHeight);
+            Assert.Equal(11, legacy.Masters.Count);
+            Assert.All(legacy.Masters, master => Assert.True(master.IsMainMaster));
+            Assert.Equal(legacy.Masters[0].MasterId, slide.MasterId);
+            Assert.Contains(legacy.Masters[0].Shapes,
+                shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.MasterTitle);
             Assert.Equal(3, slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.TextBox));
             Assert.Contains(slide.Shapes, shape => shape.Text == "OfficeIMO PowerPoint Basics");
             Assert.Contains(slide.Shapes, shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.Title);
@@ -141,13 +146,22 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void NormalLoad_RoutesPptAndProjectsEditablePptxModel() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
 
             Assert.Equal(PowerPointFileFormat.Ppt, presentation.SourceFormat);
             Assert.Equal(FixturePath, presentation.SourcePath);
             Assert.Single(presentation.LegacyPptProjectionMap!.Slides);
             Assert.Equal(3, presentation.LegacyPptProjectionMap.Slides[0].Shapes.Count);
+            Assert.Equal(legacy.Slides[0].MasterId,
+                presentation.LegacyPptProjectionMap.Slides[0].MasterId);
+            Assert.Equal(legacy.Masters.Count(master => master.IsMainMaster),
+                presentation.OpenXmlDocument.PresentationPart!.SlideMasterParts.Count());
+            Assert.Empty(presentation.ValidateDocument());
             PowerPointSlide slide = Assert.Single(presentation.Slides);
+            var masterShapes = slide.SlidePart.SlideLayoutPart!.SlideMasterPart!.SlideMaster!
+                .CommonSlideData!.ShapeTree!.Elements<DocumentFormat.OpenXml.Presentation.Shape>().ToArray();
+            Assert.Contains(masterShapes, shape => shape.TextBody?.InnerText == "Click to edit the title text format");
             Assert.Equal(3, slide.TextBoxes.Count());
             Assert.Contains(slide.TextBoxes, textBox => textBox.Text == "OfficeIMO PowerPoint Basics");
             slide.AddTextBox("Edited after binary import");
@@ -340,9 +354,32 @@ namespace OfficeIMO.Tests {
             Assert.Contains(saved.Slides[1].Shapes, shape => shape.Text == "Incremental new slide");
             Assert.Contains(saved.Slides[1].Shapes, shape => shape.Kind == LegacyPptShapeKind.Rectangle);
             Assert.True(saved.Slides[1].Hidden);
+            Assert.Equal(source.Slides[0].MasterId, saved.Slides[1].MasterId);
             Assert.Equal(source.Package.UserEdits.Count + 1, saved.Package.UserEdits.Count);
             Assert.True(saved.Package.DocumentStream.AsSpan(0, source.Package.DocumentStream.Length)
                 .SequenceEqual(source.Package.DocumentStream));
+        }
+
+        [Fact]
+        public void ImportedBinarySlideAddition_PreservesSelectedBinaryMaster() {
+            LegacyPptPresentation source = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptMaster selectedMaster = source.Masters.Where(master => master.IsMainMaster).ElementAt(1);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            PowerPointSlide added = presentation.AddSlide(masterIndex: 1, layoutIndex: 0);
+            added.AddTextBox("Uses second binary master", 200000, 200000, 4000000, 700000);
+
+            Assert.Equal($"Binary Main Master {selectedMaster.MasterId:X8}",
+                added.SlidePart.SlideLayoutPart!.SlideLayout!.CommonSlideData!.Name!.Value);
+            Assert.True(presentation.LegacyPptProjectionMap!.TryGetMasterId(added,
+                out uint projectedMasterId));
+            Assert.Equal(selectedMaster.MasterId, projectedMasterId);
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+
+            Assert.Equal(selectedMaster.MasterId, saved.Slides[1].MasterId);
+            Assert.Contains(saved.Slides[1].Shapes, shape => shape.Text == "Uses second binary master");
         }
 
         [Fact]

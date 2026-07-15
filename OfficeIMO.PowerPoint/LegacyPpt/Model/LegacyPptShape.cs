@@ -21,6 +21,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     public enum LegacyPptPlaceholderKind : byte {
         /// <summary>The shape is not a placeholder.</summary>
         None = 0x00,
+        /// <summary>Master title placeholder.</summary>
+        MasterTitle = 0x01,
+        /// <summary>Master body placeholder.</summary>
+        MasterBody = 0x02,
+        /// <summary>Master centered title placeholder.</summary>
+        MasterCenterTitle = 0x03,
+        /// <summary>Master subtitle placeholder.</summary>
+        MasterSubtitle = 0x04,
+        /// <summary>Master notes slide image placeholder.</summary>
+        MasterNotesSlideImage = 0x05,
+        /// <summary>Master notes body placeholder.</summary>
+        MasterNotesBody = 0x06,
+        /// <summary>Master date placeholder.</summary>
+        MasterDate = 0x07,
+        /// <summary>Master slide number placeholder.</summary>
+        MasterSlideNumber = 0x08,
+        /// <summary>Master footer placeholder.</summary>
+        MasterFooter = 0x09,
+        /// <summary>Master header placeholder.</summary>
+        MasterHeader = 0x0A,
+        /// <summary>Notes slide image placeholder.</summary>
+        NotesSlideImage = 0x0B,
         /// <summary>Notes body placeholder.</summary>
         NotesBody = 0x0C,
         /// <summary>Title placeholder.</summary>
@@ -34,7 +56,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Vertical title placeholder.</summary>
         VerticalTitle = 0x11,
         /// <summary>Vertical body placeholder.</summary>
-        VerticalBody = 0x12
+        VerticalBody = 0x12,
+        /// <summary>Generic object placeholder.</summary>
+        Object = 0x13,
+        /// <summary>Chart placeholder.</summary>
+        Graph = 0x14,
+        /// <summary>Table placeholder.</summary>
+        Table = 0x15,
+        /// <summary>Clip-art placeholder.</summary>
+        ClipArt = 0x16,
+        /// <summary>Organization-chart placeholder.</summary>
+        OrganizationChart = 0x17,
+        /// <summary>Media placeholder.</summary>
+        Media = 0x18,
+        /// <summary>Vertical object placeholder.</summary>
+        VerticalObject = 0x19,
+        /// <summary>Picture placeholder.</summary>
+        Picture = 0x1A
     }
 
     /// <summary>Represents a shape decoded from a binary PowerPoint slide.</summary>

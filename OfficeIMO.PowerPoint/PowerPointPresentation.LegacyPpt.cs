@@ -64,9 +64,14 @@ namespace OfficeIMO.PowerPoint {
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
             using PowerPointPresentation projected = Create();
             projected.SlideSize.SetSizeEmus(ToEmus(legacy.SlideWidth), ToEmus(legacy.SlideHeight));
+            IReadOnlyDictionary<uint, LegacyPptLayoutTarget> layoutTargets =
+                ProjectLegacyMasters(projected, legacy);
 
             foreach (LegacyPptSlide legacySlide in legacy.Slides) {
-                PowerPointSlide slide = projected.AddSlide();
+                PowerPointSlide slide = layoutTargets.TryGetValue(legacySlide.MasterId,
+                    out LegacyPptLayoutTarget target)
+                    ? projected.AddSlide(target.MasterIndex, target.LayoutIndex)
+                    : projected.AddSlide();
                 slide.Hidden = legacySlide.Hidden;
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
                     ProjectLegacyShape(slide, shape);
@@ -112,12 +117,32 @@ namespace OfficeIMO.PowerPoint {
 
         private static PlaceholderValues? MapPlaceholder(LegacyPptPlaceholderKind placeholder) {
             switch (placeholder) {
+                case LegacyPptPlaceholderKind.MasterTitle:
                 case LegacyPptPlaceholderKind.Title: return PlaceholderValues.Title;
+                case LegacyPptPlaceholderKind.MasterCenterTitle:
                 case LegacyPptPlaceholderKind.CenterTitle: return PlaceholderValues.CenteredTitle;
+                case LegacyPptPlaceholderKind.MasterSubtitle:
                 case LegacyPptPlaceholderKind.Subtitle: return PlaceholderValues.SubTitle;
+                case LegacyPptPlaceholderKind.MasterBody:
                 case LegacyPptPlaceholderKind.Body: return PlaceholderValues.Body;
                 case LegacyPptPlaceholderKind.VerticalTitle: return PlaceholderValues.Title;
                 case LegacyPptPlaceholderKind.VerticalBody: return PlaceholderValues.Body;
+                case LegacyPptPlaceholderKind.MasterNotesSlideImage:
+                case LegacyPptPlaceholderKind.NotesSlideImage: return PlaceholderValues.SlideImage;
+                case LegacyPptPlaceholderKind.MasterNotesBody:
+                case LegacyPptPlaceholderKind.NotesBody: return PlaceholderValues.Body;
+                case LegacyPptPlaceholderKind.MasterDate: return PlaceholderValues.DateAndTime;
+                case LegacyPptPlaceholderKind.MasterSlideNumber: return PlaceholderValues.SlideNumber;
+                case LegacyPptPlaceholderKind.MasterFooter: return PlaceholderValues.Footer;
+                case LegacyPptPlaceholderKind.MasterHeader: return PlaceholderValues.Header;
+                case LegacyPptPlaceholderKind.Graph: return PlaceholderValues.Chart;
+                case LegacyPptPlaceholderKind.Table: return PlaceholderValues.Table;
+                case LegacyPptPlaceholderKind.ClipArt: return PlaceholderValues.ClipArt;
+                case LegacyPptPlaceholderKind.Media: return PlaceholderValues.Media;
+                case LegacyPptPlaceholderKind.Picture: return PlaceholderValues.Picture;
+                case LegacyPptPlaceholderKind.Object:
+                case LegacyPptPlaceholderKind.OrganizationChart:
+                case LegacyPptPlaceholderKind.VerticalObject: return PlaceholderValues.Object;
                 default: return null;
             }
         }

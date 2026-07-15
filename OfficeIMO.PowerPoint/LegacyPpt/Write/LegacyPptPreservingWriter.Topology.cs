@@ -8,8 +8,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var slideIds = new List<uint>(addedSlides.Count);
             addedSlideIds = slideIds;
             if (addedSlides.Count == 0 || projectionMap.Slides.Count == 0
-                || !TryReadDocumentAndMaster(package, projectionMap,
-                    out LegacyPptRecord? document, out uint masterIdRef)
+                || !TryReadDocument(package, out LegacyPptRecord? document)
                 || document == null) {
                 return false;
             }
@@ -31,6 +30,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (persistId >= 0x000FFFFE || slideId >= 0x7FFFFFFF || drawingId >= 0x003FFFFF) {
                     return false;
                 }
+                if (!projectionMap.TryGetMasterId(slide, out uint masterIdRef)) return false;
                 persistId++;
                 slideId++;
                 drawingId++;
@@ -69,24 +69,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryReadDocumentAndMaster(LegacyPptPackage package,
-            LegacyPptProjectionMap projectionMap, out LegacyPptRecord? document, out uint masterIdRef) {
+        private static bool TryReadDocument(LegacyPptPackage package, out LegacyPptRecord? document) {
             document = null;
-            masterIdRef = 0;
             if (!package.PersistObjects.TryGetValue(package.DocumentPersistId,
-                    out LegacyPptPersistObject? documentObject) || documentObject == null
-                || !package.PersistObjects.TryGetValue(projectionMap.Slides[0].PersistId,
-                    out LegacyPptPersistObject? slideObject) || slideObject == null) {
+                    out LegacyPptPersistObject? documentObject) || documentObject == null) {
                 return false;
             }
             document = LegacyPptRecordReader.ReadSingle(documentObject.RecordBytes, 0,
                 new LegacyPptImportOptions());
-            LegacyPptRecord sourceSlide = LegacyPptRecordReader.ReadSingle(slideObject.RecordBytes, 0,
-                new LegacyPptImportOptions());
-            LegacyPptRecord? slideAtom = sourceSlide.Children.FirstOrDefault(child => child.Type == RecordSlideAtom);
-            if (slideAtom == null || slideAtom.PayloadLength < 8) return false;
-            masterIdRef = slideAtom.ReadUInt32(4);
-            return masterIdRef != 0;
+            return true;
         }
 
         private static bool TryReadDggClusters(LegacyPptRecord dgg,

@@ -1,15 +1,21 @@
 using System.Collections.ObjectModel;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Links projected Open XML slides and shapes back to their original binary persist records.</summary>
     internal sealed class LegacyPptProjectionMap {
         private readonly IReadOnlyDictionary<string, LegacyPptSlideProjection> _slidesByPartUri;
+        private readonly IReadOnlyDictionary<string, uint> _masterIdsByLayoutPartUri;
 
-        private LegacyPptProjectionMap(IReadOnlyList<LegacyPptSlideProjection> slides) {
+        private LegacyPptProjectionMap(IReadOnlyList<LegacyPptSlideProjection> slides,
+            IReadOnlyDictionary<string, uint> masterIdsByLayoutPartUri) {
             Slides = new ReadOnlyCollection<LegacyPptSlideProjection>(slides.ToArray());
             _slidesByPartUri = new ReadOnlyDictionary<string, LegacyPptSlideProjection>(slides.ToDictionary(
                 slide => slide.SlidePartUri, StringComparer.Ordinal));
+            _masterIdsByLayoutPartUri = new ReadOnlyDictionary<string, uint>(
+                masterIdsByLayoutPartUri.ToDictionary(pair => pair.Key, pair => pair.Value,
+                    StringComparer.Ordinal));
         }
 
         internal IReadOnlyList<LegacyPptSlideProjection> Slides { get; }
@@ -17,6 +23,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool TryGetSlide(PowerPointSlide slide, out LegacyPptSlideProjection? projection) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             return _slidesByPartUri.TryGetValue(slide.SlidePart.Uri.ToString(), out projection);
+        }
+
+        internal bool TryGetMasterId(PowerPointSlide slide, out uint masterId) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            masterId = 0;
+            SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
+            return layoutPart != null
+                && _masterIdsByLayoutPartUri.TryGetValue(layoutPart.Uri.ToString(), out masterId);
         }
 
         internal static LegacyPptProjectionMap Create(PowerPointPresentation presentation,
@@ -53,9 +67,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
-                    sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.Hidden, shapes));
+                    sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
+                    sourceSlide.Hidden, shapes));
             }
-            return new LegacyPptProjectionMap(slides);
+            return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy));
+        }
+
+        private static IReadOnlyDictionary<string, uint> CreateLayoutMasterMap(
+            PowerPointPresentation presentation, LegacyPptPresentation legacy) {
+            SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
+                .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
+            var result = new Dictionary<string, uint>(StringComparer.Ordinal);
+            var masterIdsByName = legacy.Masters.ToDictionary(master =>
+                $"Binary {(master.IsMainMaster ? "Main" : "Title")} Master {master.MasterId:X8}",
+                master => master.MasterId, StringComparer.Ordinal);
+            foreach (SlideMasterPart masterPart in masterParts) {
+                foreach (SlideLayoutPart layoutPart in masterPart.SlideLayoutParts) {
+                    string? name = layoutPart.SlideLayout?.CommonSlideData?.Name?.Value;
+                    if (name != null && masterIdsByName.TryGetValue(name, out uint masterId)) {
+                        result[layoutPart.Uri.ToString()] = masterId;
+                    }
+                }
+            }
+            return result;
         }
     }
 
@@ -63,11 +97,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal sealed class LegacyPptSlideProjection {
         private readonly IReadOnlyDictionary<uint, LegacyPptShapeProjection> _shapesByOpenXmlId;
 
-        internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, bool hidden,
+        internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, uint masterId,
+            bool hidden,
             IReadOnlyList<LegacyPptShapeProjection> shapes) {
             SlidePartUri = slidePartUri ?? throw new ArgumentNullException(nameof(slidePartUri));
             PersistId = persistId;
             SlideId = slideId;
+            MasterId = masterId;
             Hidden = hidden;
             Shapes = new ReadOnlyCollection<LegacyPptShapeProjection>(shapes.ToArray());
             _shapesByOpenXmlId = new ReadOnlyDictionary<uint, LegacyPptShapeProjection>(shapes.ToDictionary(
@@ -79,6 +115,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal uint PersistId { get; }
 
         internal uint SlideId { get; }
+
+        internal uint MasterId { get; }
 
         internal bool Hidden { get; }
 

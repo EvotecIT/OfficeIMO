@@ -178,8 +178,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordSlideAtom) {
                     byte[] atom = child.CopyRecordBytes();
-                    if (masterIdRef.HasValue) WriteUInt32(atom, 12, masterIdRef.Value);
-                    WriteUInt32(atom, 16, 0);
+                    if (masterIdRef.HasValue) WriteUInt32(atom, 20, masterIdRef.Value);
+                    WriteUInt32(atom, 24, 0);
                     children.Add(atom);
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId));

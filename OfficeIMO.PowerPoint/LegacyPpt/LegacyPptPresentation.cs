@@ -13,6 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordSlide = 0x03EE;
         private const ushort RecordSlideAtom = 0x03EF;
         private const ushort RecordSlidePersistAtom = 0x03F3;
+        private const ushort RecordMainMaster = 0x03F8;
         private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
         private const ushort RecordDrawing = 0x040C;
         private const ushort RecordPlaceholder = 0x0BC3;
@@ -28,6 +29,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort OfficeArtClientAnchor = 0xF010;
 
         private readonly List<LegacyPptSlide> _slides = new();
+        private readonly List<LegacyPptMaster> _masters = new();
         private readonly List<LegacyPptImportDiagnostic> _diagnostics = new();
 
         private LegacyPptPresentation() { }
@@ -42,6 +44,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the decoded slides in display order.</summary>
         public IReadOnlyList<LegacyPptSlide> Slides => _slides;
+
+        /// <summary>Gets decoded main masters and title masters in document order.</summary>
+        public IReadOnlyList<LegacyPptMaster> Masters => _masters;
 
         /// <summary>Gets import diagnostics, including preserve-only content.</summary>
         public IReadOnlyList<LegacyPptImportDiagnostic> Diagnostics => _diagnostics;
@@ -97,6 +102,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 }
             }
 
+            ParseMasters(document, documentStream, persistOffsets, options);
+
             LegacyPptRecord? slideList = document.Children.FirstOrDefault(record =>
                 record.Type == RecordSlideListWithText && record.Instance == 0);
             if (slideList == null) {
@@ -136,12 +143,63 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         }
 
         private void ParseSlide(LegacyPptRecord slideRecord, LegacyPptSlide slide, LegacyPptImportOptions options) {
+            LegacyPptRecord? slideAtom = slideRecord.Children.FirstOrDefault(record => record.Type == RecordSlideAtom);
+            if (slideAtom != null && slideAtom.PayloadLength >= 16) {
+                slide.MasterId = slideAtom.ReadUInt32(12);
+            }
             LegacyPptRecord? slideShowInfo = slideRecord.Children.FirstOrDefault(record =>
                 record.Type == RecordSlideShowSlideInfoAtom);
             if (slideShowInfo != null && slideShowInfo.PayloadLength >= 11) {
                 slide.Hidden = (slideShowInfo.ReadByte(10) & 0x04) != 0;
             }
-            LegacyPptRecord? drawing = slideRecord.Children.FirstOrDefault(record => record.Type == RecordDrawing);
+            ParseShapes(slideRecord, slide.AddShape, "slide", options);
+        }
+
+        private void ParseMasters(LegacyPptRecord document, byte[] documentStream,
+            IReadOnlyDictionary<uint, uint> persistOffsets, LegacyPptImportOptions options) {
+            LegacyPptRecord? masterList = document.Children.FirstOrDefault(record =>
+                record.Type == RecordSlideListWithText && record.Instance == 1);
+            if (masterList == null) return;
+
+            foreach (LegacyPptRecord masterPersist in masterList.Children.Where(record =>
+                         record.Type == RecordSlidePersistAtom)) {
+                if (masterPersist.PayloadLength < 20) {
+                    AddDiagnostic("PPT-MASTER-PERSIST-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                        "A master directory entry is truncated and was skipped.", masterPersist.Offset);
+                    continue;
+                }
+                uint persistId = masterPersist.ReadUInt32(0);
+                uint masterId = masterPersist.ReadUInt32(12);
+                if (!persistOffsets.TryGetValue(persistId, out uint masterOffset)) {
+                    AddDiagnostic("PPT-MASTER-PERSIST-MISSING", LegacyPptDiagnosticSeverity.Warning,
+                        $"Master 0x{masterId:X8} references missing persist object {persistId}.", masterPersist.Offset);
+                    continue;
+                }
+
+                LegacyPptRecord masterRecord = LegacyPptRecordReader.ReadSingle(documentStream,
+                    ToBoundedOffset(masterOffset, documentStream.Length, "master persist object"), options);
+                bool isMainMaster = masterRecord.Type == RecordMainMaster;
+                if (!isMainMaster && masterRecord.Type != RecordSlide) {
+                    AddDiagnostic("PPT-MASTER-TYPE", LegacyPptDiagnosticSeverity.Warning,
+                        $"Master 0x{masterId:X8} points to record 0x{masterRecord.Type:X4}; it was skipped.",
+                        masterRecord.Offset);
+                    continue;
+                }
+
+                LegacyPptRecord? slideAtom = masterRecord.Children.FirstOrDefault(record =>
+                    record.Type == RecordSlideAtom);
+                uint parentMasterId = slideAtom != null && slideAtom.PayloadLength >= 16
+                    ? slideAtom.ReadUInt32(12)
+                    : 0U;
+                var master = new LegacyPptMaster(masterId, persistId, isMainMaster, parentMasterId);
+                ParseShapes(masterRecord, master.AddShape, isMainMaster ? "main master" : "title master", options);
+                _masters.Add(master);
+            }
+        }
+
+        private void ParseShapes(LegacyPptRecord ownerRecord, Action<LegacyPptShape> addShape,
+            string ownerDescription, LegacyPptImportOptions options) {
+            LegacyPptRecord? drawing = ownerRecord.Children.FirstOrDefault(record => record.Type == RecordDrawing);
             if (drawing == null) return;
 
             LegacyPptRecord? primaryShapeGroup = drawing.DescendantsAndSelf()
@@ -150,7 +208,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             if (primaryShapeGroup.Children.Any(record => record.Type == 0xF003)) {
                 AddDiagnostic("PPT-GROUP-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
-                    "Grouped OfficeArt shapes are not projected because their nested coordinate system is not yet supported.",
+                    $"Grouped OfficeArt shapes on a {ownerDescription} are not projected because their nested coordinate system is not yet supported.",
                     primaryShapeGroup.Offset);
             }
 
@@ -177,7 +235,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 string text = textbox == null ? string.Empty : ReadText(textbox);
                 LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
                 LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0);
-                slide.AddShape(new LegacyPptShape(kind, shapeType, shapeId, shapeContainer.Offset,
+                addShape(new LegacyPptShape(kind, shapeType, shapeId, shapeContainer.Offset,
                     bounds, text, placeholder));
 
                 if (textbox != null && textbox.DescendantsAndSelf()
@@ -192,7 +250,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
                 if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
                     AddDiagnostic("PPT-SHAPE-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
-                        $"OfficeArt shape type {shapeType} is not projected to the editable PowerPoint model.", shapeContainer.Offset);
+                        $"OfficeArt shape type {shapeType} on a {ownerDescription} is not projected to the editable PowerPoint model.", shapeContainer.Offset);
                 }
             }
         }
@@ -200,8 +258,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private void TryReadNotes(LegacyPptRecord slideRecord, LegacyPptSlide slide, byte[] documentStream,
             IReadOnlyDictionary<uint, uint> persistOffsets, LegacyPptImportOptions options) {
             LegacyPptRecord? slideAtom = slideRecord.Children.FirstOrDefault(record => record.Type == RecordSlideAtom);
-            if (slideAtom == null || slideAtom.PayloadLength < 12) return;
-            uint notesPersistId = slideAtom.ReadUInt32(8);
+            if (slideAtom == null || slideAtom.PayloadLength < 20) return;
+            uint notesPersistId = slideAtom.ReadUInt32(16);
             if (notesPersistId == 0 || !persistOffsets.TryGetValue(notesPersistId, out uint notesOffset)) return;
 
             try {
