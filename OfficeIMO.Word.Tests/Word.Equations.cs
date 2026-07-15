@@ -430,6 +430,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EquationContentSegments_PictureControlEmitsDrawingArtifactBesideEquation() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            var drawing = new DocumentFormat.OpenXml.Wordprocessing.Drawing();
+            var contentControl = new SdtRun(
+                new SdtProperties(new SdtContentPicture()),
+                new SdtContentRun(
+                    new Run(drawing),
+                    new M.OfficeMath(new M.Run(new M.Text("pictured")))));
+            paragraph._paragraph.Append(contentControl);
+
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(document, paragraph._paragraph);
+            IReadOnlyList<WordEquationContentSegment> segments = WordEquation.GetVisibleContentSegments(contentControl, occurrences);
+
+            Assert.Collection(
+                segments,
+                segment => {
+                    Assert.True(segment.IsRunArtifact);
+                    Assert.Same(drawing, segment.ArtifactElement);
+                },
+                segment => Assert.Equal("pictured", segment.Equation?.Text));
+        }
+
+        [Fact]
         public void WordFieldType_ExistingNumericValuesRemainStableWhenEqIsAdded() {
             Assert.Equal(19, (int)WordFieldType.FileName);
             Assert.Equal(71, (int)WordFieldType.Formula);

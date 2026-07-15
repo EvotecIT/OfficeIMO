@@ -186,7 +186,8 @@ public static partial class WordRtfConverterExtensions {
                         paragraph,
                         ref previousRun,
                         rtfDocument,
-                        revisionAuthorIndexes);
+                        revisionAuthorIndexes,
+                        complexFields);
                     break;
                 case SdtRun sdtRun:
                     hasRuns |= AppendInlineContainerContent(
@@ -239,8 +240,17 @@ public static partial class WordRtfConverterExtensions {
         RtfParagraph paragraph,
         ref RtfRun? previousRun,
         RtfDocument rtfDocument,
-        Dictionary<string, int> revisionAuthorIndexes) {
-        RtfField hyperlinkField = paragraph.AddField(CreateHyperlinkFieldInstruction(wordParagraph, hyperlink));
+        Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> complexFields,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
+        ComplexFieldCapture? activeCapture = complexFields.Count > 0 ? complexFields.Peek() : null;
+        if (activeCapture != null && !activeCapture.CapturingResult) {
+            return false;
+        }
+
+        RtfParagraph destination = activeCapture?.Result ?? paragraph;
+        RtfField hyperlinkField = destination.AddField(CreateHyperlinkFieldInstruction(wordParagraph, hyperlink));
         RtfRun? hyperlinkPreviousRun = null;
         bool hasContent = AppendInlineContainerContent(
             wordParagraph,
@@ -249,7 +259,12 @@ public static partial class WordRtfConverterExtensions {
             ref hyperlinkPreviousRun,
             rtfDocument,
             revisionAuthorIndexes,
-            new Stack<ComplexFieldCapture>());
+            new Stack<ComplexFieldCapture>(),
+            revisionKind,
+            revisionAuthorIndex);
+        if (activeCapture != null) {
+            activeCapture.PreviousRun = null;
+        }
         previousRun = null;
         return hasContent;
     }
@@ -261,7 +276,9 @@ public static partial class WordRtfConverterExtensions {
         ref RtfRun? previousRun,
         RtfDocument rtfDocument,
         Dictionary<string, int> revisionAuthorIndexes,
-        Stack<ComplexFieldCapture> complexFields) {
+        Stack<ComplexFieldCapture> complexFields,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
         bool hasContent = false;
         foreach (OpenXmlElement child in container.ChildElements) {
             switch (child) {
@@ -272,7 +289,9 @@ public static partial class WordRtfConverterExtensions {
                         paragraph,
                         rtfDocument,
                         revisionAuthorIndexes,
-                        complexFields)) {
+                        complexFields,
+                        revisionKind,
+                        revisionAuthorIndex)) {
                         previousRun = null;
                         hasContent = true;
                         break;
@@ -283,20 +302,29 @@ public static partial class WordRtfConverterExtensions {
                         paragraph,
                         ref previousRun,
                         rtfDocument,
-                        revisionAuthorIndexes);
+                        revisionAuthorIndexes,
+                        revisionKind,
+                        revisionAuthorIndex);
                     break;
                 case M.OfficeMath officeMath:
-                    AppendEquationField(paragraph, officeMath, complexFields);
+                    AppendEquationField(paragraph, officeMath, complexFields, revisionKind, revisionAuthorIndex);
                     previousRun = null;
                     hasContent = true;
                     break;
                 case M.Paragraph mathParagraph:
-                    AppendEquationField(paragraph, mathParagraph, complexFields);
+                    AppendEquationField(paragraph, mathParagraph, complexFields, revisionKind, revisionAuthorIndex);
                     previousRun = null;
                     hasContent = true;
                     break;
                 case SimpleField simpleField:
-                    AppendSimpleField(wordParagraph, simpleField, paragraph, rtfDocument, revisionAuthorIndexes);
+                    AppendSimpleField(
+                        wordParagraph,
+                        simpleField,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        revisionKind,
+                        revisionAuthorIndex);
                     previousRun = null;
                     hasContent = true;
                     break;
@@ -336,7 +364,9 @@ public static partial class WordRtfConverterExtensions {
                         ref previousRun,
                         rtfDocument,
                         revisionAuthorIndexes,
-                        complexFields);
+                        complexFields,
+                        revisionKind,
+                        revisionAuthorIndex);
                     break;
                 case Hyperlink nestedHyperlink:
                     hasContent |= AppendHyperlinkContent(
@@ -346,7 +376,10 @@ public static partial class WordRtfConverterExtensions {
                         paragraph,
                         ref previousRun,
                         rtfDocument,
-                        revisionAuthorIndexes);
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        revisionAuthorIndex);
                     break;
             }
         }
@@ -435,6 +468,32 @@ public static partial class WordRtfConverterExtensions {
                         authorIndex);
                     previousRun = null;
                     hasContent = true;
+                    break;
+                case Hyperlink hyperlink:
+                    hasContent |= AppendHyperlinkContent(
+                        wordParagraph,
+                        hyperlink,
+                        hyperlink,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        authorIndex);
+                    break;
+                case SdtRun:
+                case SdtContentRun:
+                    hasContent |= AppendInlineContainerContent(
+                        wordParagraph,
+                        child,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        authorIndex);
                     break;
             }
         }

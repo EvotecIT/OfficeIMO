@@ -878,7 +878,13 @@ namespace OfficeIMO.Word.Markdown {
                     paragraph._paragraph,
                     fallbackRun);
                 if (segment.IsRunArtifact) {
-                    AppendEquationArtifact(sequence, sourceRun, segment, options);
+                    AppendEquationArtifact(
+                        sequence,
+                        sourceRun,
+                        segment,
+                        options,
+                        preferredCodeFont,
+                        implicitCodeFont);
                     continue;
                 }
                 if (string.IsNullOrEmpty(segment.Text)) continue;
@@ -933,7 +939,9 @@ namespace OfficeIMO.Word.Markdown {
             InlineSequence sequence,
             WordParagraph sourceRun,
             WordEquationContentSegment segment,
-            WordToMarkdownOptions options) {
+            WordToMarkdownOptions options,
+            string? preferredCodeFont,
+            string? implicitCodeFont) {
             if (segment.ArtifactElement is Break || segment.ArtifactElement is CarriageReturn) {
                 if (sourceRun.PageBreak == null) sequence.HardBreak();
                 return;
@@ -942,6 +950,18 @@ namespace OfficeIMO.Word.Markdown {
             if (segment.ArtifactElement is FootnoteReference &&
                 sourceRun.FootNote?.ReferenceId is long footnoteId) {
                 sequence.FootnoteRef(footnoteId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                return;
+            }
+
+            if (segment.ArtifactElement is SdtRun &&
+                !string.IsNullOrEmpty(segment.ArtifactVisibleText)) {
+                AppendRunInlines(
+                    sequence,
+                    sourceRun,
+                    options,
+                    preferredCodeFont,
+                    implicitCodeFont,
+                    segment.ArtifactVisibleText);
                 return;
             }
 

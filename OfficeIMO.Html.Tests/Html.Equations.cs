@@ -176,6 +176,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToHtml_PreservesPictureControlSharingInlineContainerWithEquation() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            WordPictureControl picture = paragraph.AddPictureControl(imagePath, alias: "Equation picture", tag: "EquationPicture");
+            picture._sdtRun.SdtContentRun!.Append(
+                new M.OfficeMath(new M.Run(new M.Text("pictured-equation"))));
+
+            IDocument parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
+            IElement image = Assert.IsAssignableFrom<IElement>(parsed.QuerySelector("img"));
+            IElement math = Assert.IsAssignableFrom<IElement>(parsed.QuerySelector("math[aria-label='pictured-equation']"));
+
+            Assert.StartsWith("data:image/png;base64,", image.GetAttribute("src"), StringComparison.Ordinal);
+            Assert.Same(image.ParentElement, math.ParentElement);
+            Assert.True(
+                Array.IndexOf(image.ParentElement!.Children.ToArray(), image) < Array.IndexOf(math.ParentElement!.Children.ToArray(), math),
+                image.ParentElement.InnerHtml);
+        }
+
+        [Fact]
         public void WordToHtml_ExpandsHyperlinkWhoseVisibleEquationContentIsWrappedByInlineControl() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("before ");

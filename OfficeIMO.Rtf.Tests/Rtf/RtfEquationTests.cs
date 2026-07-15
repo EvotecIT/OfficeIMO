@@ -239,6 +239,57 @@ public sealed class RtfEquationTests {
     }
 
     [Fact]
+    public void WordToRtf_PreservesRevisionWrappedContainersInsideActiveComplexFieldResult() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" HYPERLINK \\l \"outer\" ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new InsertedRun(
+                new Hyperlink(
+                    new Run(new Text("linked-prefix ")),
+                    new M.OfficeMath(new M.Run(new M.Text("linked-equation"))),
+                    new Run(new Text(" linked-suffix"))) {
+                    Anchor = "inner"
+                },
+                new SdtRun(
+                    new SdtProperties(new SdtId { Val = 2082 }),
+                    new SdtContentRun(
+                        new Run(new Text(" controlled-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("controlled-equation"))),
+                        new Run(new Text(" controlled-suffix"))))) {
+                Id = "2083",
+                Author = "Reviewer"
+            },
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfField outerHyperlink = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
+        RtfField innerHyperlink = Assert.Single(
+            outerHyperlink.Result.Inlines.OfType<RtfField>(),
+            field => field.HyperlinkField?.SubAddress == "inner");
+        RtfField linkedEquation = Assert.Single(innerHyperlink.Result.Inlines.OfType<RtfField>());
+        RtfField controlledEquation = Assert.Single(
+            outerHyperlink.Result.Inlines.OfType<RtfField>(),
+            field => field.IsEquation);
+
+        Assert.Equal("outer", outerHyperlink.HyperlinkField?.SubAddress);
+        Assert.Equal("linked-equation", linkedEquation.ToPlainText());
+        Assert.Equal("controlled-equation", controlledEquation.ToPlainText());
+        Assert.Equal(
+            "linked-prefix linked-equation linked-suffix controlled-prefix controlled-equation controlled-suffix",
+            outerHyperlink.ToPlainText());
+        Assert.All(innerHyperlink.Result.Inlines.OfType<RtfRun>(), run =>
+            Assert.Equal(RtfRevisionKind.Inserted, run.RevisionKind));
+        Assert.All(linkedEquation.Result.Inlines.OfType<RtfRun>(), run =>
+            Assert.Equal(RtfRevisionKind.Inserted, run.RevisionKind));
+        Assert.All(controlledEquation.Result.Inlines.OfType<RtfRun>(), run =>
+            Assert.Equal(RtfRevisionKind.Inserted, run.RevisionKind));
+        Assert.Empty(rtfParagraph.Inlines.Skip(1));
+    }
+
+    [Fact]
     public void WordToRtf_MapsTopLevelInlineContentControlWithoutDroppingNestedEquation() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("before ");

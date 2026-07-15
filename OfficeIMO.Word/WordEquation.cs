@@ -240,8 +240,7 @@ namespace OfficeIMO.Word {
             sdtRun.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2010.Word.SdtContentCheckBox>().Any() == true ||
             sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().Any() == true ||
             sdtRun.SdtProperties?.Elements<SdtContentComboBox>().Any() == true ||
-            sdtRun.SdtProperties?.Elements<SdtContentDate>().Any() == true ||
-            sdtRun.SdtProperties?.Elements<SdtContentPicture>().Any() == true;
+            sdtRun.SdtProperties?.Elements<SdtContentDate>().Any() == true;
 
         internal static bool IsVisibleEquationContentContainer(OpenXmlElement element) =>
             element is Hyperlink ||

@@ -468,6 +468,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_PreservesFormControlValueSharingContainerWithEquation() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Choice: ");
+            WordDropDownList dropDown = paragraph.AddDropDownList(new[] { "First", "Selected" }, "Equation choice", "EquationChoice");
+            dropDown.SelectedValue = "Selected";
+            dropDown._sdtRun.SdtContentRun!.Append(
+                new M.OfficeMath(new M.Run(new M.Text("selected-equation"))));
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("Choice: Selected", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "Selected" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "selected-equation" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_PreservesPictureControlSharingContainerWithEquation() {
+            string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Picture: ");
+            WordPictureControl picture = paragraph.AddPictureControl(imagePath, alias: "Equation picture", tag: "EquationPicture");
+            picture._sdtRun.SdtContentRun!.Append(
+                new M.OfficeMath(new M.Run(new M.Text("picture-equation"))));
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("data:image/png;base64", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "picture-equation" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
         public void WordToMarkdown_ExportsComplexEqFieldOnceAsMathFence() {
             using var doc = WordDocument.Create();
             WordParagraph paragraph = doc.AddParagraph("before ");
