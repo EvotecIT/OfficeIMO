@@ -63,7 +63,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
-            using (var driveClient = new GoogleDriveClient(session)) {
+            using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
 
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
@@ -146,6 +146,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                             ?? (!string.IsNullOrWhiteSpace(existingResponse.SpreadsheetUrl)
                                 ? existingResponse.SpreadsheetUrl
                                 : BuildSpreadsheetWebViewLink(existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId)),
+                        DriveVersion = updatedDriveMetadata?.Version,
+                        ModifiedTime = updatedDriveMetadata?.ModifiedTime,
                         Location = effectiveLocation,
                         Report = batch.Report,
                     };
@@ -205,6 +207,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         ?? (!string.IsNullOrWhiteSpace(createResponse.SpreadsheetUrl)
                             ? createResponse.SpreadsheetUrl
                             : BuildSpreadsheetWebViewLink(createResponse.SpreadsheetId)),
+                    DriveVersion = createdDriveMetadata?.Version,
+                    ModifiedTime = createdDriveMetadata?.ModifiedTime,
                     Location = effectiveLocation,
                     Report = batch.Report,
                 };
@@ -245,12 +249,16 @@ namespace OfficeIMO.Excel.GoogleSheets {
             GoogleDriveFileLocation location,
             TranslationReport report,
             CancellationToken cancellationToken) {
-            if (string.IsNullOrWhiteSpace(fileId) || string.IsNullOrWhiteSpace(location.FolderId)) {
+            if (string.IsNullOrWhiteSpace(fileId)) {
                 return null;
             }
 
-            await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
-            return await driveClient.MoveFileAsync(fileId!, location.FolderId!, report, cancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(location.FolderId)) {
+                await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
+                return await driveClient.MoveFileAsync(fileId!, location.FolderId!, report, cancellationToken).ConfigureAwait(false);
+            }
+
+            return await driveClient.GetFileAsync(fileId!, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         private static async Task ValidateReplaceTargetAsync(

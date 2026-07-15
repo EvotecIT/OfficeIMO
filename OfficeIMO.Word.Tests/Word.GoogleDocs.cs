@@ -986,6 +986,8 @@ namespace OfficeIMO.Tests {
                 var footerSegment = Assert.Single(batch.Segments, segment => segment.Kind == "footer");
                 Assert.Equal("first", footerSegment.Variant);
                 Assert.Equal("First footer text", footerSegment.Paragraphs[0].Text);
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-header");
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1016,6 +1018,8 @@ namespace OfficeIMO.Tests {
                 var documentStyle = Assert.Single(payload.Requests, request => request.UpdateDocumentStyle != null);
                 Assert.Equal("useEvenPageHeaderFooter", documentStyle.UpdateDocumentStyle!.Fields);
                 Assert.True(documentStyle.UpdateDocumentStyle.DocumentStyle.UseEvenPageHeaderFooter);
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2981,7 +2985,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_ReplaysEvenHeaderTableCells() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenHeaderTablesWhenNativeSegmentBindingIsUnavailable() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenHeaderTable.docx");
 
             try {
@@ -3029,36 +3033,13 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-header-table", result.DocumentId);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", headerCreate.Body!);
-
-                var headerInsertTable = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"insertTable\"", StringComparison.Ordinal));
-                Assert.Contains("\"rows\":2", headerInsertTable.Body!);
-                Assert.Contains("\"columns\":2", headerInsertTable.Body!);
-
-                var headerTableReplay = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"H1\\n\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"H4\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"text\":\"H2\\n\"", headerTableReplay.Body!);
-                Assert.Contains("\"text\":\"H3\\n\"", headerTableReplay.Body!);
-
-                var headerTableStyle = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"updateTableCellStyle\"", StringComparison.Ordinal));
-                Assert.Contains("\"backgroundColor\"", headerTableStyle.Body!);
-                Assert.Contains("\"borderRight\"", headerTableStyle.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3067,7 +3048,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_ReplaysFirstFooterTableCells() {
+        public async Task Test_GoogleDocsExporter_SkipsFirstFooterTablesWhenNativeSegmentBindingIsUnavailable() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterFirstFooterTable.docx");
 
             try {
@@ -3115,30 +3096,11 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-first-footer-table", result.DocumentId);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"FIRST_PAGE\"", footerCreate.Body!);
-
-                var footerInsertTable = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"firstFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"insertTable\"", StringComparison.Ordinal));
-                Assert.Contains("\"rows\":2", footerInsertTable.Body!);
-
-                var footerTableReplay = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"firstFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F1\\n\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F4\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"text\":\"F2\\n\"", footerTableReplay.Body!);
-
-                var footerTableStyle = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"firstFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"updateTableCellStyle\"", StringComparison.Ordinal));
-                Assert.Contains("\"backgroundColor\"", footerTableStyle.Body!);
+                Assert.Contains(recordedRequests, request => request.Body?.Contains("\"useFirstPageHeaderFooter\":true", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3147,7 +3109,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_ReplaysEvenFooterTableCells() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenFooterTablesWhenNativeSegmentBindingIsUnavailable() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenFooterTable.docx");
 
             try {
@@ -3195,33 +3157,13 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-footer-table", result.DocumentId);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", footerCreate.Body!);
-
-                var footerInsertTable = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"insertTable\"", StringComparison.Ordinal));
-                Assert.Contains("\"rows\":2", footerInsertTable.Body!);
-
-                var footerTableReplay = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F1\\n\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F4\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"text\":\"F2\\n\"", footerTableReplay.Body!);
-
-                var footerTableStyle = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"updateTableCellStyle\"", StringComparison.Ordinal));
-                Assert.Contains("\"backgroundColor\"", footerTableStyle.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3230,7 +3172,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_CreatesFirstPageHeaderAndFooterSegments() {
+        public async Task Test_GoogleDocsExporter_SkipsFirstPageSegmentsThatTheApiCannotBind() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterFirstPageHeaderFooter.docx");
 
             try {
@@ -3277,20 +3219,13 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-first-hf", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
-
-                var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"FIRST_PAGE\"", headerCreate.Body!);
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"FIRST_PAGE\"", footerCreate.Body!);
-
-                var headerWrite = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("header-first-123", StringComparison.Ordinal) && request.Body.Contains("First header text", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"header-first-123\"", headerWrite.Body!);
-
-                var footerWrite = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("footer-first-123", StringComparison.Ordinal) && request.Body.Contains("First footer text", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"footer-first-123\"", footerWrite.Body!);
+                Assert.Contains(recordedRequests, request => request.Body?.Contains("\"useFirstPageHeaderFooter\":true", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-header");
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3299,7 +3234,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_CreatesEvenPageHeaderAndFooterSegments() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenPageSegmentsThatTheApiCannotBind() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenPageHeaderFooter.docx");
 
             try {
@@ -3346,23 +3281,15 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-hf", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", headerCreate.Body!);
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", footerCreate.Body!);
-
-                var headerWrite = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("header-even-123", StringComparison.Ordinal) && request.Body.Contains("Even header text", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"header-even-123\"", headerWrite.Body!);
-
-                var footerWrite = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("footer-even-123", StringComparison.Ordinal) && request.Body.Contains("Even footer text", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"footer-even-123\"", footerWrite.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3433,7 +3360,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_CreatesNamedRangesForEvenHeaderTableBookmarks() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenHeaderTableBookmarksWithTheirSegment() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenHeaderTableBookmark.docx");
 
             try {
@@ -3485,27 +3412,14 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-header-table-bookmark", result.DocumentId);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", headerCreate.Body!);
-
-                var headerTableWrite = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTableBookmark123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"H1\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"insertText\"", headerTableWrite.Body!);
-
-                var namedRangeWrite = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTableBookmark123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"createNamedRange\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"name\":\"HeaderCellBookmark\"", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"evenHeaderTableBookmark123\"", namedRangeWrite.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createNamedRange\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3514,7 +3428,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_CreatesNamedRangesForEvenFooterTableBookmarks() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenFooterTableBookmarksWithTheirSegment() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenFooterTableBookmark.docx");
 
             try {
@@ -3566,27 +3480,14 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-footer-table-bookmark", result.DocumentId);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", footerCreate.Body!);
-
-                var footerTableWrite = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTableBookmark123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F1\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"insertText\"", footerTableWrite.Body!);
-
-                var namedRangeWrite = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTableBookmark123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"createNamedRange\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"name\":\"FooterCellBookmark\"", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"evenFooterTableBookmark123\"", namedRangeWrite.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createNamedRange\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

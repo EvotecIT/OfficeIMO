@@ -339,6 +339,41 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(GoogleDocsSuggestionsMode.Default, "DEFAULT_FOR_CURRENT_ACCESS")]
+        [InlineData(GoogleDocsSuggestionsMode.Accepted, "PREVIEW_SUGGESTIONS_ACCEPTED")]
+        [InlineData(GoogleDocsSuggestionsMode.Inline, "SUGGESTIONS_INLINE")]
+        [InlineData(GoogleDocsSuggestionsMode.Rejected, "PREVIEW_WITHOUT_SUGGESTIONS")]
+        public async Task Test_GoogleDocsImporter_MapsSuggestionModesToNativeApiValues(
+            GoogleDocsSuggestionsMode mode,
+            string expectedApiValue) {
+            Uri? docsUri = null;
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-suggestions\",\"name\":\"Suggestions\",\"mimeType\":\"application/vnd.google-apps.document\"}"));
+                }
+
+                if (request.RequestUri.Host == "docs.googleapis.com") {
+                    docsUri = request.RequestUri;
+                    return Task.FromResult(CreateJsonResponse("{\"documentId\":\"doc-suggestions\",\"title\":\"Suggestions\",\"body\":{\"content\":[]}}"));
+                }
+
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+            var session = new GoogleWorkspaceSession(
+                new FakeGoogleWorkspaceCredentialSource(),
+                new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+            GoogleDocsImportResult imported = await new GoogleDocsImporter().ImportAsync(
+                "doc-suggestions",
+                session,
+                new GoogleDocsImportOptions { Mode = GoogleDocsImportMode.Native, Suggestions = mode });
+            using (imported.Document) {
+                Assert.NotNull(docsUri);
+                Assert.Contains("suggestionsViewMode=" + expectedApiValue, docsUri!.Query, StringComparison.Ordinal);
+            }
+        }
+
         [Fact]
         public async Task Test_GoogleDocsExporter_CreatesUnanchoredDriveCommentThreads() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsComments.docx");

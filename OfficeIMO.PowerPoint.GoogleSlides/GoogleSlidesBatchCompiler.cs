@@ -1,5 +1,6 @@
 using OfficeIMO.GoogleWorkspace;
 using OfficeIMO.PowerPoint;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
     internal static class GoogleSlidesBatchCompiler {
@@ -47,7 +48,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             }
                             target.Add(text); plan.NativeTextBoxCount++;
                             break;
-                        case PowerPointTable table:
+                        case PowerPointTable table when !HasMergedCells(table):
                             IReadOnlyList<IReadOnlyList<string>> cells = table.RowItems.Select(row => (IReadOnlyList<string>)row.Cells.Select(cell => cell.Text).ToArray()).ToArray();
                             target.Add(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells));
                             plan.NativeTableCount++;
@@ -67,8 +68,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                 code: "SLIDES.IMAGE.FORMAT_SKIPPED",
                                 action: TranslationAction.Skip);
                             break;
-                        case PowerPointAutoShape autoShape:
-                            target.Add(new GoogleSlidesShape(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, MapShape(autoShape)));
+                        case PowerPointAutoShape autoShape when TryMapShape(autoShape, out string slidesShapeType):
+                            target.Add(new GoogleSlidesShape(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, slidesShapeType));
                             plan.NativeShapeCount++;
                             break;
                         default:
@@ -85,6 +86,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
 
         private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointPicture picture && !IsSupportedSlidesImage(picture))
+            || (shape is PowerPointAutoShape autoShape && !TryMapShape(autoShape, out _))
+            || (shape is PowerPointTable table && HasMergedCells(table))
             || shape.ShapeContentType == PowerPointShapeContentType.Chart
             || shape.ShapeContentType == PowerPointShapeContentType.SmartArt
             || shape.ShapeContentType == PowerPointShapeContentType.Media
@@ -107,12 +110,27 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             _ => ".png",
         };
 
-        private static string MapShape(PowerPointAutoShape shape) {
-            string name = shape.ShapeType?.ToString() ?? string.Empty;
-            if (name.IndexOf("Ellipse", StringComparison.OrdinalIgnoreCase) >= 0) return "ELLIPSE";
-            if (name.IndexOf("Triangle", StringComparison.OrdinalIgnoreCase) >= 0) return "TRIANGLE";
-            if (name.IndexOf("Arrow", StringComparison.OrdinalIgnoreCase) >= 0) return "RIGHT_ARROW";
-            return "RECTANGLE";
+        private static bool HasMergedCells(PowerPointTable table) {
+            return table.RowItems.SelectMany(row => row.Cells).Any(cell => cell.IsMergedCell || cell.IsMergeAnchor);
+        }
+
+        private static bool TryMapShape(PowerPointAutoShape shape, out string slidesShapeType) {
+            A.ShapeTypeValues? shapeType = shape.ShapeType;
+            if (shapeType == A.ShapeTypeValues.Rectangle) slidesShapeType = "RECTANGLE";
+            else if (shapeType == A.ShapeTypeValues.RoundRectangle) slidesShapeType = "ROUND_RECTANGLE";
+            else if (shapeType == A.ShapeTypeValues.Ellipse) slidesShapeType = "ELLIPSE";
+            else if (shapeType == A.ShapeTypeValues.Triangle) slidesShapeType = "TRIANGLE";
+            else if (shapeType == A.ShapeTypeValues.RightTriangle) slidesShapeType = "RIGHT_TRIANGLE";
+            else if (shapeType == A.ShapeTypeValues.Parallelogram) slidesShapeType = "PARALLELOGRAM";
+            else if (shapeType == A.ShapeTypeValues.Trapezoid) slidesShapeType = "TRAPEZOID";
+            else if (shapeType == A.ShapeTypeValues.Diamond) slidesShapeType = "DIAMOND";
+            else if (shapeType == A.ShapeTypeValues.RightArrow) slidesShapeType = "RIGHT_ARROW";
+            else {
+                slidesShapeType = string.Empty;
+                return false;
+            }
+
+            return true;
         }
 
         private static string ObjectId(string kind, int slideIndex, int elementIndex) => $"officeimo_{kind}_{slideIndex + 1:D4}_{elementIndex + 1:D4}";

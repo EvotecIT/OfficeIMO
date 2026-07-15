@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.Tests {
     public sealed class GoogleSlidesTests {
@@ -53,6 +54,35 @@ namespace OfficeIMO.Tests {
             } finally {
                 if (File.Exists(svgPath)) File.Delete(svgPath);
             }
+        }
+
+        [Fact]
+        public void BatchCompiler_RasterizesUnmappedAutoShapesInsteadOfChangingTheirGeometry() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddShapePoints(A.ShapeTypeValues.Cloud, 20, 20, 160, 90);
+
+            GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
+
+            GoogleSlidesSlide slide = Assert.Single(batch.Slides);
+            Assert.True(slide.IsRasterized);
+            Assert.Single(slide.Elements.OfType<GoogleSlidesImage>());
+            Assert.Empty(slide.Elements.OfType<GoogleSlidesShape>());
+            Assert.Equal(1, batch.Plan.RasterizedSlideCount);
+        }
+
+        [Fact]
+        public void BatchCompiler_RasterizesMergedTablesToPreserveCellLayout() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointTable table = presentation.AddSlide().AddTablePoints(2, 2, 20, 20, 300, 120);
+            table.MergeCells(0, 0, 1, 1);
+
+            GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
+
+            GoogleSlidesSlide slide = Assert.Single(batch.Slides);
+            Assert.True(slide.IsRasterized);
+            Assert.Single(slide.Elements.OfType<GoogleSlidesImage>());
+            Assert.Empty(slide.Elements.OfType<GoogleSlidesTable>());
+            Assert.Equal(1, batch.Plan.RasterizedSlideCount);
         }
 
         [Fact]

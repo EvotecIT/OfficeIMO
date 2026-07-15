@@ -209,8 +209,10 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         private static string MapSuggestions(GoogleDocsSuggestionsMode mode) => mode switch {
             GoogleDocsSuggestionsMode.Default => "DEFAULT_FOR_CURRENT_ACCESS",
+            GoogleDocsSuggestionsMode.Accepted => "PREVIEW_SUGGESTIONS_ACCEPTED",
             GoogleDocsSuggestionsMode.Inline => "SUGGESTIONS_INLINE",
-            _ => "PREVIEW_WITHOUT_SUGGESTIONS",
+            GoogleDocsSuggestionsMode.Rejected => "PREVIEW_WITHOUT_SUGGESTIONS",
+            _ => throw new ArgumentOutOfRangeException(nameof(mode), mode, "Unsupported Google Docs suggestions mode."),
         };
 
         private static string ToHex(GoogleDocsApiRgbColorPayload color) => $"{ToByte(color.Red):X2}{ToByte(color.Green):X2}{ToByte(color.Blue):X2}";

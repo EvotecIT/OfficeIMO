@@ -248,6 +248,9 @@ namespace OfficeIMO.Tests {
                         valueCalls++;
                         return Task.FromResult(CreateJsonResponse("{}"));
                     }
+                    if (request.Method == HttpMethod.Get && request.RequestUri.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/chunk123?", StringComparison.Ordinal)) {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"chunk123\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":2}"));
+                    }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
                 var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });

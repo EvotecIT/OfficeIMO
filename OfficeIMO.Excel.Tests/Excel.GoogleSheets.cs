@@ -1413,6 +1413,10 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/spread123?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"spread123\",\"name\":\"Create Export\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":11,\"modifiedTime\":\"2026-07-15T12:00:00Z\",\"webViewLink\":\"https://docs.google.com/spreadsheets/d/spread123/edit\"}");
+                    }
+
                     return new HttpResponseMessage(HttpStatusCode.NotFound) {
                         Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
                     };
@@ -1430,7 +1434,9 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("spread123", result.SpreadsheetId);
                 Assert.Equal("https://docs.google.com/spreadsheets/d/spread123/edit", result.WebViewLink);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(11, result.DriveVersion);
+                Assert.Equal(DateTimeOffset.Parse("2026-07-15T12:00:00Z"), result.ModifiedTime);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, r => Assert.Equal("Bearer fake-access-token", r.Authorization));
 
                 var createRequest = Assert.Single(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets");
@@ -1790,6 +1796,7 @@ namespace OfficeIMO.Tests {
                 summary.SetColumnWidth(1, 18);
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body)>();
+                int driveMetadataReads = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
                     string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
                     recordedRequests.Add((request.RequestUri!, request.Method.Method, body));
@@ -1799,7 +1806,10 @@ namespace OfficeIMO.Tests {
                     }
 
                     if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
-                        return CreateJsonResponse("{\"id\":\"existing123\",\"name\":\"Old Title\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":5,\"capabilities\":{\"canEdit\":true}}");
+                        driveMetadataReads++;
+                        return driveMetadataReads == 1
+                            ? CreateJsonResponse("{\"id\":\"existing123\",\"name\":\"Old Title\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":5,\"capabilities\":{\"canEdit\":true}}")
+                            : CreateJsonResponse("{\"id\":\"existing123\",\"name\":\"Replacement Export\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":6,\"modifiedTime\":\"2026-07-15T13:00:00Z\",\"webViewLink\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"capabilities\":{\"canEdit\":true}}");
                     }
 
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/existing123:batchUpdate") {
@@ -1831,13 +1841,16 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("existing123", result.SpreadsheetId);
                 Assert.Equal("https://docs.google.com/spreadsheets/d/existing123/edit", result.WebViewLink);
-                Assert.Equal(5, recordedRequests.Count);
+                Assert.Equal(6, result.DriveVersion);
+                Assert.Equal(DateTimeOffset.Parse("2026-07-15T13:00:00Z"), result.ModifiedTime);
+                Assert.Equal(6, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
                 Assert.Equal("GET", recordedRequests[1].Method);
                 Assert.Contains("sheets(properties(sheetId,title))", recordedRequests[1].Uri.Query, StringComparison.Ordinal);
                 Assert.Equal("POST", recordedRequests[2].Method);
                 Assert.Equal("POST", recordedRequests[3].Method);
                 Assert.Equal("POST", recordedRequests[4].Method);
+                Assert.Equal("GET", recordedRequests[5].Method);
                 Assert.DoesNotContain(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets");
                 Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingSpreadsheet");
 

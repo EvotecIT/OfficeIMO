@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     report.Add(
                         TranslationSeverity.Info,
                         "HeadersAndFooters",
-                        "Word section header/footer metadata is preserved in the snapshot. Default, first-page, and even-page header/footer execution are implemented through the current Google Docs export path.");
+                        "Word section header/footer metadata is preserved in the snapshot. Default segments are created natively; first-page and even-page segments remain explicit fidelity diagnostics because their Google Docs IDs are read-only.");
                 }
 
                 AddSegment(batch, report, section.Index, section.DefaultHeader);
@@ -302,11 +302,21 @@ namespace OfficeIMO.Word.GoogleDocs {
                 }
             }
 
-            if (source.TableCount > 0) {
+            if (source.TableCount > 0 && string.Equals(source.Variant, "default", StringComparison.OrdinalIgnoreCase)) {
                 report.Add(
                     TranslationSeverity.Info,
                     "HeadersAndFooters",
                     $"A {source.Kind} {source.Variant} segment contains {source.TableCount} table block(s); the Google Docs exporter now replays simple header/footer tables using the same staged insertion and cell-fill path as body tables.");
+            }
+
+            if (!string.Equals(source.Variant, "default", StringComparison.OrdinalIgnoreCase)) {
+                report.Add(
+                    TranslationSeverity.Warning,
+                    "HeadersAndFooters",
+                    $"Skipped the {source.Variant} {source.Kind} in section {sectionIndex + 1} because the Google Docs API only creates DEFAULT header/footer segments; first-page and even-page segment IDs are read-only.",
+                    path: $"section/{sectionIndex + 1}/{source.Variant}-{source.Kind}",
+                    code: "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED",
+                    action: TranslationAction.Skip);
             }
 
             batch.AddSegment(segment);

@@ -5,6 +5,16 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         public IReadOnlyList<string> ReadScopes { get; set; } = new[] { GoogleWorkspaceScopeCatalog.DriveReadonly };
         public IReadOnlyList<string> WriteScopes { get; set; } = new[] { GoogleWorkspaceScopeCatalog.DriveFile };
         public bool SupportsAllDrives { get; set; } = true;
+
+        /// <summary>
+        /// Creates an option set for an authoring workflow that only reads files created or opened by the app.
+        /// </summary>
+        public static GoogleDriveClientOptions ForFileAuthoring() {
+            return new GoogleDriveClientOptions {
+                ReadScopes = new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+                WriteScopes = new[] { GoogleWorkspaceScopeCatalog.DriveFile },
+            };
+        }
     }
 
     public sealed class GoogleDriveListOptions {

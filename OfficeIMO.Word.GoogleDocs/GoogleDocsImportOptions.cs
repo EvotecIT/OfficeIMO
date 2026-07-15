@@ -11,9 +11,14 @@ namespace OfficeIMO.Word.GoogleDocs {
     }
 
     public enum GoogleDocsSuggestionsMode {
+        /// <summary>Uses the API default for the current principal.</summary>
         Default = 0,
+        /// <summary>Returns a preview with suggestions accepted.</summary>
         Accepted = 1,
+        /// <summary>Returns suggestions inline with the document content.</summary>
         Inline = 2,
+        /// <summary>Returns a preview with suggestions rejected.</summary>
+        Rejected = 3,
     }
 
     public sealed class GoogleDocsImportOptions {

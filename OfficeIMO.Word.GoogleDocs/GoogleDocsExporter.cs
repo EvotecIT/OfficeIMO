@@ -69,7 +69,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
 
             using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
-            using (var driveClient = new GoogleDriveClient(session)) {
+            using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
                     var existingDocument = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(

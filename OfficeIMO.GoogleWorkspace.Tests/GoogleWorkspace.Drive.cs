@@ -10,6 +10,14 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class GoogleWorkspaceDriveTests {
         [Fact]
+        public void Test_DriveClientOptions_FileAuthoringUsesDriveFileForReadsAndWrites() {
+            GoogleDriveClientOptions options = GoogleDriveClientOptions.ForFileAuthoring();
+
+            Assert.Equal(GoogleWorkspaceScopeCatalog.DriveFile, Assert.Single(options.ReadScopes));
+            Assert.Equal(GoogleWorkspaceScopeCatalog.DriveFile, Assert.Single(options.WriteScopes));
+        }
+
+        [Fact]
         public async Task Test_DriveClient_DiscoversImportAndExportFormats() {
             Uri? requestedUri = null;
             using var httpClient = new HttpClient(new FakeHandler(request => {
@@ -237,6 +245,60 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] {
                 "bytes 0-262143/307200",
                 "bytes 0-262143/307200",
+                "bytes 262144-307199/307200",
+            }, ranges);
+        }
+
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Test_DriveClient_ResumableUpload_QueriesCommittedOffsetAfterAmbiguousTransportFailure(bool perRequestTimeout) {
+            var ranges = new List<string>();
+            int chunkAttempts = 0;
+            using var httpClient = new HttpClient(new FakeHandler(async request => {
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
+                    var response = Json("{}");
+                    response.Headers.Location = new Uri("https://upload.example.test/session-ambiguous");
+                    return response;
+                }
+
+                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.example.test/session-ambiguous") {
+                    string range = request.Content!.Headers.GetValues("Content-Range").Single();
+                    ranges.Add(range);
+                    _ = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    if (range == "bytes 0-262143/307200" && ++chunkAttempts == 1) {
+                        throw perRequestTimeout
+                            ? new TaskCanceledException("per-request timeout after upload")
+                            : new HttpRequestException("connection closed after upload");
+                    }
+
+                    if (range == "bytes */307200") {
+                        var status = new HttpResponseMessage((HttpStatusCode)308) { Content = new StringContent(string.Empty) };
+                        status.Headers.TryAddWithoutValidation("Range", "bytes=0-262143");
+                        return status;
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.Created) {
+                        Content = new StringContent("{\"id\":\"resumable-recovered\",\"name\":\"large.bin\"}", Encoding.UTF8, "application/json")
+                    };
+                }
+
+                return NotFound();
+            }));
+            using var client = CreateClient(httpClient);
+
+            GoogleDriveFile file = await client.UploadResumableAsync(
+                new byte[300 * 1024],
+                new GoogleDriveUploadOptions {
+                    Name = "large.bin",
+                    ContentType = "application/octet-stream",
+                    ResumableChunkSize = 256 * 1024,
+                });
+
+            Assert.Equal("resumable-recovered", file.Id);
+            Assert.Equal(new[] {
+                "bytes 0-262143/307200",
+                "bytes */307200",
                 "bytes 262144-307199/307200",
             }, ranges);
         }

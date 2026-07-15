@@ -116,7 +116,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
 
                     offset = ResolveNextOffset(response, offset);
                     options.Progress?.Report(new GoogleDriveTransferProgress(offset, content.LongLength));
-                } catch (GoogleWorkspaceApiException exception) when ((int)exception.ResponseStatusCode >= 500) {
+                } catch (Exception exception) when (IsAmbiguousResumableChunkFailure(exception, cancellationToken)) {
                     var status = await QueryResumableStatusAsync(token, sessionUri, content.LongLength, report, cancellationToken).ConfigureAwait(false);
                     if (status.StatusCode == HttpStatusCode.OK || status.StatusCode == HttpStatusCode.Created) {
                         options.Progress?.Report(new GoogleDriveTransferProgress(content.LongLength, content.LongLength));
@@ -129,6 +129,15 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             }
 
             throw new InvalidOperationException("Google Drive resumable upload ended without final file metadata.");
+        }
+
+        private static bool IsAmbiguousResumableChunkFailure(Exception exception, CancellationToken cancellationToken) {
+            if (cancellationToken.IsCancellationRequested) return false;
+            if (exception is GoogleWorkspaceApiException apiException) {
+                return (int)apiException.ResponseStatusCode >= 500;
+            }
+
+            return exception is HttpRequestException || exception is TaskCanceledException;
         }
 
         public async Task<byte[]> DownloadAsync(
