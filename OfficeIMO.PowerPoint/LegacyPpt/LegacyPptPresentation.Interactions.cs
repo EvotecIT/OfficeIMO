@@ -297,11 +297,38 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             || value == 10 || value == 255;
 
         private static bool IsNativelyProjectable(LegacyPptInteraction interaction) {
-            if (interaction.Action == LegacyPptInteractionAction.None) return true;
+            if (interaction.SoundIdReference != 0 || interaction.OleVerb != 0
+                || (interaction.Flags & ~0x03) != 0) return false;
+            if (interaction.Action == LegacyPptInteractionAction.None) {
+                return interaction.Jump == LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0
+                    && string.IsNullOrEmpty(interaction.Name);
+            }
+            if (interaction.Action == LegacyPptInteractionAction.Macro) {
+                return !string.IsNullOrEmpty(interaction.Name)
+                    && interaction.Jump == LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0;
+            }
+            if (interaction.Action == LegacyPptInteractionAction.RunProgram) {
+                return !string.IsNullOrEmpty(interaction.Name)
+                    && interaction.Jump == LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0
+                    && Uri.TryCreate(interaction.Name, UriKind.RelativeOrAbsolute,
+                        out _);
+            }
             if (interaction.Action == LegacyPptInteractionAction.Jump) {
-                return interaction.Jump != LegacyPptInteractionJump.None;
+                return interaction.Jump != LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0
+                    && string.IsNullOrEmpty(interaction.Name);
             }
             if (interaction.Action != LegacyPptInteractionAction.Hyperlink) return false;
+            if (interaction.Jump != LegacyPptInteractionJump.None
+                || !string.IsNullOrEmpty(interaction.Name)
+                || interaction.Hyperlink?.ExtensionFlags != 0) return false;
             return (interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
                     && interaction.Hyperlink?.Uri != null)
                 || (interaction.HyperlinkType == LegacyPptHyperlinkType.SlideNumber

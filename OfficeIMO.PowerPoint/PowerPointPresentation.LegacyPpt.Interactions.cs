@@ -37,6 +37,20 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlPart ownerPart, LegacyPptInteraction interaction,
             bool shapeLevel = false,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null) {
+            if (interaction.Action == LegacyPptInteractionAction.Macro
+                && !string.IsNullOrEmpty(interaction.Name)) {
+                return CreateLegacyInteractionElements(interaction, shapeLevel,
+                    string.Empty, "ppaction://macro?name=" + interaction.Name);
+            }
+            if (interaction.Action == LegacyPptInteractionAction.RunProgram
+                && !string.IsNullOrEmpty(interaction.Name)
+                && Uri.TryCreate(interaction.Name, UriKind.RelativeOrAbsolute,
+                    out Uri? programUri)) {
+                HyperlinkRelationship programRelationship = ownerPart
+                    .AddHyperlinkRelationship(programUri, isExternal: true);
+                return CreateLegacyInteractionElements(interaction, shapeLevel,
+                    programRelationship.Id, "ppaction://program");
+            }
             if (interaction.Action == LegacyPptInteractionAction.Hyperlink
                 && interaction.HyperlinkType == LegacyPptHyperlinkType.SlideNumber
                 && interaction.Hyperlink?.TargetSlideId is uint targetSlideId) {
@@ -51,55 +65,41 @@ namespace OfficeIMO.PowerPoint {
                     ownerPart.AddPart(targetSlidePart);
                 }
                 string relationshipId = ownerPart.GetIdOfPart(targetSlidePart);
-                const string internalSlideAction = "ppaction://hlinksldjump";
-                return interaction.Trigger == LegacyPptInteractionTrigger.MouseOver
-                    ? new OpenXmlElement[] { shapeLevel
-                        ? new A.HyperlinkOnHover {
-                            Id = relationshipId,
-                            Action = internalSlideAction,
-                            Tooltip = interaction.Hyperlink.ScreenTip
-                        }
-                        : new A.HyperlinkOnMouseOver {
-                            Id = relationshipId,
-                            Action = internalSlideAction,
-                            Tooltip = interaction.Hyperlink.ScreenTip
-                        } }
-                    : new OpenXmlElement[] { new A.HyperlinkOnClick {
-                        Id = relationshipId,
-                        Action = internalSlideAction,
-                        Tooltip = interaction.Hyperlink.ScreenTip
-                    } };
+                return CreateLegacyInteractionElements(interaction, shapeLevel,
+                    relationshipId, "ppaction://hlinksldjump",
+                    interaction.Hyperlink.ScreenTip);
             }
             if (interaction.Action == LegacyPptInteractionAction.Hyperlink
                 && interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
                 && interaction.Hyperlink?.Uri is Uri uri) {
                 HyperlinkRelationship relationship = ownerPart.AddHyperlinkRelationship(uri,
                     isExternal: true);
-                return interaction.Trigger == LegacyPptInteractionTrigger.MouseOver
-                    ? new OpenXmlElement[] { shapeLevel
-                        ? new A.HyperlinkOnHover {
-                            Id = relationship.Id,
-                            Tooltip = interaction.Hyperlink.ScreenTip
-                        }
-                        : new A.HyperlinkOnMouseOver {
-                            Id = relationship.Id,
-                            Tooltip = interaction.Hyperlink.ScreenTip
-                        } }
-                    : new OpenXmlElement[] { new A.HyperlinkOnClick {
-                        Id = relationship.Id,
-                        Tooltip = interaction.Hyperlink.ScreenTip
-                    } };
+                return CreateLegacyInteractionElements(interaction, shapeLevel,
+                    relationship.Id, action: null,
+                    interaction.Hyperlink.ScreenTip);
             }
 
             string? action = GetLegacyPowerPointAction(interaction);
             if (action == null) return Array.Empty<OpenXmlElement>();
-            return interaction.Trigger == LegacyPptInteractionTrigger.MouseOver
-                ? new OpenXmlElement[] { shapeLevel
-                    ? new A.HyperlinkOnHover { Id = string.Empty, Action = action }
-                    : new A.HyperlinkOnMouseOver { Id = string.Empty, Action = action } }
-                : new OpenXmlElement[] {
-                    new A.HyperlinkOnClick { Id = string.Empty, Action = action }
-                };
+            return CreateLegacyInteractionElements(interaction, shapeLevel,
+                string.Empty, action);
+        }
+
+        private static IReadOnlyList<OpenXmlElement> CreateLegacyInteractionElements(
+            LegacyPptInteraction interaction, bool shapeLevel,
+            string relationshipId, string? action, string? tooltip = null) {
+            A.HyperlinkType hyperlink = interaction.Trigger ==
+                LegacyPptInteractionTrigger.MouseOver
+                ? shapeLevel
+                    ? new A.HyperlinkOnHover()
+                    : new A.HyperlinkOnMouseOver()
+                : new A.HyperlinkOnClick();
+            hyperlink.Id = relationshipId;
+            hyperlink.Action = action;
+            hyperlink.Tooltip = tooltip;
+            if (interaction.IsAnimated) hyperlink.HighlightClick = true;
+            if (interaction.StopsSound) hyperlink.EndSound = true;
+            return new OpenXmlElement[] { hyperlink };
         }
 
         private static string? GetLegacyPowerPointAction(

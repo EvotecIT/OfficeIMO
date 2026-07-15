@@ -63,8 +63,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 jump = hyperlinkJump;
             }
             if (source.Trigger != current.Trigger || action != current.Action
-                || jump != current.Jump) return false;
-            if (action != LegacyPptInteractionAction.Hyperlink) return true;
+                || jump != current.Jump
+                || source.SoundIdReference != current.SoundIdReference
+                || source.OleVerb != current.OleVerb
+                || source.Flags != current.Flags) return false;
+            if (action != LegacyPptInteractionAction.Hyperlink) {
+                return action is LegacyPptInteractionAction.Macro
+                        or LegacyPptInteractionAction.RunProgram
+                    ? string.Equals(source.Name, current.Name,
+                        StringComparison.Ordinal)
+                    : string.IsNullOrEmpty(source.Name)
+                        && string.IsNullOrEmpty(current.Name);
+            }
+            if (!string.IsNullOrEmpty(source.Name)
+                || !string.IsNullOrEmpty(current.Name)) return false;
             LegacyPptWriter.LegacyPptWriterHyperlink? currentHyperlink =
                 catalog.FindHyperlink(current.HyperlinkIdReference);
             if (source.Hyperlink?.TargetSlideId is uint sourceSlideId) {
@@ -410,7 +422,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     ? 0
                     : _binaryIdsByCatalogId[source.HyperlinkIdReference];
                 return new LegacyPptWriter.LegacyPptWriterInteraction(source.Trigger,
-                    source.Action, source.Jump, source.HyperlinkType, hyperlinkId);
+                    source.Action, source.Jump, source.HyperlinkType, hyperlinkId,
+                    source.Name, source.SoundIdReference, source.OleVerb,
+                    source.Flags);
             }
         }
 

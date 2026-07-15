@@ -148,8 +148,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 || hyperlink.GetAttributes().Any(attribute =>
                     !string.Equals(attribute.LocalName, "id", StringComparison.Ordinal)
                     && !string.Equals(attribute.LocalName, "action", StringComparison.Ordinal)
-                    && !string.Equals(attribute.LocalName, "tooltip", StringComparison.Ordinal))) {
-                reason = "Hyperlink target frames, history/highlight flags, sounds, and extension data are not encoded yet.";
+                    && !string.Equals(attribute.LocalName, "tooltip", StringComparison.Ordinal)
+                    && !string.Equals(attribute.LocalName, "highlightClick", StringComparison.Ordinal)
+                    && !string.Equals(attribute.LocalName, "endSnd", StringComparison.Ordinal))) {
+                reason = "Hyperlink target frames, history, sound children, and extension data are not encoded yet.";
                 return false;
             }
             string? relationshipId;
@@ -171,6 +173,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = $"Unsupported DrawingML interaction element {hyperlink.LocalName}.";
                 return false;
             }
+            A.HyperlinkType typedHyperlink = (A.HyperlinkType)hyperlink;
+            byte flags = 0;
+            if (typedHyperlink.HighlightClick?.Value == true) flags |= 0x01;
+            if (typedHyperlink.EndSound?.Value == true) flags |= 0x02;
+
+            const string MacroPrefix = "ppaction://macro?name=";
+            if (action != null && action.StartsWith(MacroPrefix,
+                    StringComparison.OrdinalIgnoreCase)) {
+                string name = action.Substring(MacroPrefix.Length);
+                if (!string.IsNullOrEmpty(relationshipId) || name.Length == 0
+                    || screenTip != null) {
+                    reason = "Macro actions require a nonempty name and cannot combine a relationship or screen tip.";
+                    return false;
+                }
+                interaction = new LegacyPptWriterInteraction(trigger,
+                    LegacyPptInteractionAction.Macro,
+                    LegacyPptInteractionJump.None, LegacyPptHyperlinkType.Nil,
+                    hyperlinkIdReference: 0, name: name, flags: flags);
+                return true;
+            }
 
             if (!string.IsNullOrEmpty(relationshipId)) {
                 if (slidePart.TryGetPartById(relationshipId!,
@@ -188,7 +210,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interaction = new LegacyPptWriterInteraction(trigger,
                         LegacyPptInteractionAction.Hyperlink,
                         LegacyPptInteractionJump.None,
-                        LegacyPptHyperlinkType.SlideNumber, internalTarget.Id);
+                        LegacyPptHyperlinkType.SlideNumber, internalTarget.Id,
+                        flags: flags);
+                    return true;
+                }
+                if (string.Equals(action, "ppaction://program",
+                        StringComparison.OrdinalIgnoreCase)) {
+                    if (screenTip != null) {
+                        reason = "Run-program actions cannot carry a binary screen tip.";
+                        return false;
+                    }
+                    HyperlinkRelationship? programRelationship = slidePart
+                        .HyperlinkRelationships.FirstOrDefault(candidate =>
+                            string.Equals(candidate.Id, relationshipId,
+                                StringComparison.Ordinal));
+                    if (programRelationship == null
+                        || !programRelationship.IsExternal) {
+                        reason = $"Run-program relationship '{relationshipId}' is missing or is not external.";
+                        return false;
+                    }
+                    interaction = new LegacyPptWriterInteraction(trigger,
+                        LegacyPptInteractionAction.RunProgram,
+                        LegacyPptInteractionJump.None,
+                        LegacyPptHyperlinkType.Nil, hyperlinkIdReference: 0,
+                        name: programRelationship.Uri.OriginalString, flags: flags);
                     return true;
                 }
                 if (!string.IsNullOrEmpty(action)) {
@@ -206,7 +251,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     screenTip);
                 interaction = new LegacyPptWriterInteraction(trigger,
                     LegacyPptInteractionAction.Hyperlink, LegacyPptInteractionJump.None,
-                    MapHyperlinkType(relationship.Uri), target.Id);
+                    MapHyperlinkType(relationship.Uri), target.Id,
+                    flags: flags);
                 return true;
             }
 
@@ -222,7 +268,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             interaction = new LegacyPptWriterInteraction(trigger,
                 LegacyPptInteractionAction.Jump, jump, LegacyPptHyperlinkType.Nil,
-                hyperlinkIdReference: 0);
+                hyperlinkIdReference: 0, flags: flags);
             return true;
         }
 
@@ -341,14 +387,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] BuildInteractiveInfoRecord(
             LegacyPptWriterInteraction interaction) {
             var payload = new byte[16];
+            WriteUInt32(payload, 0, interaction.SoundIdReference);
             WriteUInt32(payload, 4, interaction.HyperlinkIdReference);
             payload[8] = (byte)interaction.Action;
+            payload[9] = interaction.OleVerb;
             payload[10] = (byte)interaction.Jump;
+            payload[11] = interaction.Flags;
             payload[12] = (byte)interaction.HyperlinkType;
             byte[] atom = BuildRecord(version: 0, instance: 0,
                 RecordInteractiveInfoAtom, payload);
+            var children = new List<byte[]> { atom };
+            if (!string.IsNullOrEmpty(interaction.Name)) {
+                children.Add(BuildRecord(version: 0, instance: 0, RecordCString,
+                    System.Text.Encoding.Unicode.GetBytes(interaction.Name)));
+            }
             return BuildContainer(RecordInteractiveInfo,
-                (ushort)interaction.Trigger, new[] { atom });
+                (ushort)interaction.Trigger, children);
         }
 
         internal static byte[] BuildTextInteractiveInfoRecord(
@@ -432,12 +486,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal sealed class LegacyPptWriterInteraction {
             internal LegacyPptWriterInteraction(LegacyPptInteractionTrigger trigger,
                 LegacyPptInteractionAction action, LegacyPptInteractionJump jump,
-                LegacyPptHyperlinkType hyperlinkType, uint hyperlinkIdReference) {
+                LegacyPptHyperlinkType hyperlinkType, uint hyperlinkIdReference,
+                string? name = null, uint soundIdReference = 0,
+                byte oleVerb = 0, byte flags = 0) {
                 Trigger = trigger;
                 Action = action;
                 Jump = jump;
                 HyperlinkType = hyperlinkType;
                 HyperlinkIdReference = hyperlinkIdReference;
+                Name = name;
+                SoundIdReference = soundIdReference;
+                OleVerb = oleVerb;
+                Flags = flags;
             }
 
             internal LegacyPptInteractionTrigger Trigger { get; }
@@ -445,6 +505,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal LegacyPptInteractionJump Jump { get; }
             internal LegacyPptHyperlinkType HyperlinkType { get; }
             internal uint HyperlinkIdReference { get; }
+            internal string? Name { get; }
+            internal uint SoundIdReference { get; }
+            internal byte OleVerb { get; }
+            internal byte Flags { get; }
         }
 
         internal sealed class LegacyPptWriterTextInteraction {

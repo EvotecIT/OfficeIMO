@@ -234,12 +234,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static bool IsEditableInteraction(LegacyPptInteraction interaction) {
             if (interaction.SoundIdReference != 0 || interaction.OleVerb != 0
-                || interaction.Flags != 0 || !string.IsNullOrEmpty(interaction.Name)) return false;
+                || (interaction.Flags & ~0x03) != 0) return false;
+            if (interaction.Action == LegacyPptInteractionAction.Macro) {
+                return !string.IsNullOrEmpty(interaction.Name)
+                    && interaction.Jump == LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0;
+            }
+            if (interaction.Action == LegacyPptInteractionAction.RunProgram) {
+                return !string.IsNullOrEmpty(interaction.Name)
+                    && interaction.Jump == LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0
+                    && Uri.TryCreate(interaction.Name, UriKind.RelativeOrAbsolute,
+                        out _);
+            }
             if (interaction.Action == LegacyPptInteractionAction.Jump) {
-                return interaction.Jump != LegacyPptInteractionJump.None;
+                return interaction.Jump != LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0
+                    && string.IsNullOrEmpty(interaction.Name);
             }
             if (interaction.Action != LegacyPptInteractionAction.Hyperlink) return false;
-            if (interaction.Hyperlink != null
+            if (interaction.Jump != LegacyPptInteractionJump.None
+                || !string.IsNullOrEmpty(interaction.Name)
+                || interaction.Hyperlink != null
                 && interaction.Hyperlink.ExtensionFlags != 0) return false;
             return (interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
                     && interaction.Hyperlink?.Uri != null)
