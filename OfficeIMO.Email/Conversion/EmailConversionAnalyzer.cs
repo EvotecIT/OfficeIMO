@@ -81,7 +81,7 @@ internal static class EmailConversionAnalyzer {
             hasPotentialDataLoss = true;
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                 "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE",
-                "The calendar or vCard contains recurrence, exception, time-zone, photo, key, or relationship semantics that cannot be projected completely into MSG/TNEF properties.",
+                "The calendar or vCard contains semantics that cannot be projected completely into MSG/TNEF properties.",
                 "semantic-content"));
         }
 

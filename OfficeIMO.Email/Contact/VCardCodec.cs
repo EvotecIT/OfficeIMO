@@ -60,7 +60,8 @@ internal static class VCardCodec {
     internal static EmailAttachment? FindSemanticAttachment(EmailDocument document) {
         if (document.OutlookItemKind != OutlookItemKind.Contact) return null;
         return document.Attachments.FirstOrDefault(attachment => attachment.IsProjectedSemanticContent &&
-            IsVCardContentType(attachment.ContentType));
+            IsVCardContentType(attachment.ContentType,
+                attachment.ContentTypeParameters.TryGetValue("profile", out string? profile) ? profile : null));
     }
 
     internal static EmailAttachment CreateAttachment(EmailDocument document, EmailAttachment? source = null) {
@@ -85,10 +86,12 @@ internal static class VCardCodec {
         !string.IsNullOrWhiteSpace(address.Address) && !string.IsNullOrWhiteSpace(address.AddressType) &&
         !string.Equals(address.AddressType, "SMTP", StringComparison.OrdinalIgnoreCase);
 
-    internal static bool IsVCardContentType(string? contentType) =>
+    internal static bool IsVCardContentType(string? contentType, string? profile = null) =>
         string.Equals(contentType, "text/vcard", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(contentType, "text/x-vcard", StringComparison.OrdinalIgnoreCase) ||
-        string.Equals(contentType, "application/vcard", StringComparison.OrdinalIgnoreCase);
+        string.Equals(contentType, "application/vcard", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(contentType, "text/directory", StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(profile, "vcard", StringComparison.OrdinalIgnoreCase);
 
     private static byte[] Create(EmailDocument document) {
         OutlookContact contact = document.Contact ?? new OutlookContact();
@@ -217,6 +220,7 @@ internal static class VCardCodec {
             target.StateOrProvince = ValueAt(values, 4);
             target.PostalCode = ValueAt(values, 5);
             target.Country = ValueAt(values, 6);
+            if (property.Parameters.TryGetValue("LABEL", out string? label)) target.Formatted = Unescape(label);
         }
         int labelWorkIndex = 0;
         foreach (VCardProperty property in properties.Where(property => property.Name == "LABEL")) {
@@ -319,15 +323,15 @@ internal static class VCardCodec {
         }
         var result = new List<VCardProperty>();
         foreach (string line in unfolded) {
-            int colon = line.IndexOf(':');
+            int colon = FindUnquotedSeparator(line, ':');
             if (colon <= 0) continue;
-            string[] tokens = line.Substring(0, colon).Split(';');
+            IReadOnlyList<string> tokens = SplitUnquoted(line.Substring(0, colon), ';');
             string name = tokens[0];
             int dot = name.LastIndexOf('.');
             if (dot >= 0) name = name.Substring(dot + 1);
             var property = new VCardProperty(name.Trim().ToUpperInvariant(), line.Substring(colon + 1));
-            for (int index = 1; index < tokens.Length; index++) {
-                int equals = tokens[index].IndexOf('=');
+            for (int index = 1; index < tokens.Count; index++) {
+                int equals = FindUnquotedSeparator(tokens[index], '=');
                 if (equals > 0) {
                     string parameterName = tokens[index].Substring(0, equals).Trim();
                     string parameterValue = tokens[index].Substring(equals + 1).Trim().Trim('"');
@@ -342,6 +346,34 @@ internal static class VCardCodec {
                     ? string.Concat(prior, ",", tokens[index]) : tokens[index];
             }
             result.Add(property);
+        }
+        return result;
+    }
+
+    private static int FindUnquotedSeparator(string value, char separator) {
+        bool quoted = false;
+        bool escaped = false;
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            if (escaped) escaped = false;
+            else if (character == '\\') escaped = true;
+            else if (character == '"') quoted = !quoted;
+            else if (!quoted && character == separator) return index;
+        }
+        return -1;
+    }
+
+    private static IReadOnlyList<string> SplitUnquoted(string value, char separator) {
+        var result = new List<string>();
+        int start = 0;
+        while (start <= value.Length) {
+            int relative = FindUnquotedSeparator(value.Substring(start), separator);
+            if (relative < 0) {
+                result.Add(value.Substring(start));
+                break;
+            }
+            result.Add(value.Substring(start, relative));
+            start += relative + 1;
         }
         return result;
     }

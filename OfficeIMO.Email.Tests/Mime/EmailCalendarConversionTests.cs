@@ -248,6 +248,117 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void BlocksUnsupportedCalendarComponentsBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:event@example.com\r\nDTSTART:20260801T100000Z\r\nEND:VEVENT\r\n" +
+            "BEGIN:VJOURNAL\r\nUID:journal@example.com\r\nSUMMARY:Journal\r\nEND:VJOURNAL\r\n" +
+            "END:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void MarksSubMinuteDurationsAndTriggersIncomplete() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:seconds@example.com\r\nDTSTART:20260801T100000Z\r\nDURATION:PT90S\r\n" +
+            "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-PT30S\r\nEND:VALARM\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            read.Document, EmailFileFormat.OutlookMsg);
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 1, 30, TimeSpan.Zero), read.Document.Appointment!.End);
+        Assert.Equal(1, read.Document.Appointment.DurationMinutes);
+        Assert.Equal(0, read.Document.Appointment.ReminderDeltaMinutes);
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_DURATION_PRECISION_LOSS");
+        Assert.False(report.CanWrite);
+    }
+
+    [Fact]
+    public void MarksUnresolvedTimeZonesIncompleteForStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:timezone@example.com\r\n" +
+            "DTSTART;TZID=OfficeIMO/Unknown:20260801T100000\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            read.Document, EmailFileFormat.OutlookMsg);
+
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED");
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void MarksEndRelativeAlarmsIncompleteForStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:end-alarm@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "DTEND:20260801T110000Z\r\nBEGIN:VALARM\r\nACTION:DISPLAY\r\n" +
+            "TRIGGER;RELATED=END:-PT15M\r\nEND:VALARM\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("TRANSPARENT", 0)]
+    [InlineData("OPAQUE", 2)]
+    public void MapsStandardTransparencyToOutlookBusyStatus(string transparency, int busyStatus) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:busy@example.com\r\nDTSTART:20260801T100000Z\r\nTRANSP:" + transparency +
+            "\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        Assert.Equal(busyStatus, document.Appointment!.BusyStatus);
+    }
+
+    [Theory]
+    [InlineData("PRIVATE", 2)]
+    [InlineData("CONFIDENTIAL", 3)]
+    public void PreservesEventPrivacyThroughStoreConversion(string calendarClass, int sensitivity) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:private@example.com\r\nDTSTART:20260801T100000Z\r\nCLASS:" + calendarClass +
+            "\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        byte[] regeneratedEml = new EmailDocumentWriter().ToBytes(storeRoundTrip, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(regeneratedEml);
+        MimePart calendar = Assert.Single(MimeMessage.Load(stream).BodyParts.OfType<MimePart>(),
+            part => part.ContentType.MimeType == "text/calendar");
+        using var content = new MemoryStream();
+        calendar.Content!.DecodeTo(content);
+
+        Assert.Equal(sensitivity, document.MessageMetadata.Sensitivity);
+        Assert.Equal(sensitivity, storeRoundTrip.MessageMetadata.Sensitivity);
+        Assert.Contains("CLASS:" + calendarClass, Encoding.UTF8.GetString(content.ToArray()),
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void ConvertsTaskThroughVtodo() {
         DateTimeOffset start = new DateTimeOffset(2026, 9, 3, 8, 0, 0, TimeSpan.Zero);
         var source = new EmailDocument {

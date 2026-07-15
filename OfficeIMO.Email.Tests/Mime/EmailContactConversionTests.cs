@@ -88,6 +88,39 @@ public sealed class EmailContactConversionTests {
     }
 
     [Fact]
+    public void ParsesQuotedVcardParameterDelimiters() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\n" +
+            "ADR;TYPE=HOME;LABEL=\"12: Main; Apt\":;;Main Street;Warsaw;Mazovia;00-001;Poland\r\n" +
+            "END:VCARD\r\n");
+
+        OutlookPostalAddress address = new EmailDocumentReader().Read(eml).Document.Contact!.HomeAddress;
+
+        Assert.Equal("12: Main; Apt", address.Formatted);
+        Assert.Equal("Main Street", address.Street);
+        Assert.Equal("Warsaw", address.City);
+        Assert.Equal("Mazovia", address.StateOrProvince);
+        Assert.Equal("00-001", address.PostalCode);
+        Assert.Equal("Poland", address.Country);
+    }
+
+    [Fact]
+    public void ProjectsTextDirectoryVcards() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/directory; profile=vCard; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\n" +
+            "EMAIL;TYPE=WORK:ada@example.com\r\nEND:VCARD\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        Assert.Equal(OutlookItemKind.Contact, document.OutlookItemKind);
+        Assert.Equal("Ada Lovelace", document.Contact!.DisplayName);
+        Assert.Equal("ada@example.com", document.Contact.Email1.Address);
+        Assert.True(Assert.Single(document.Attachments).IsProjectedSemanticContent);
+    }
+
+    [Fact]
     public void DecodesVcardProjectionUsingTheDeclaredCharset() {
         byte[] prefix = Encoding.ASCII.GetBytes("Content-Type: text/vcard; charset=windows-1252\r\n\r\n");
         byte[] vcard = Encoding.ASCII.GetBytes(

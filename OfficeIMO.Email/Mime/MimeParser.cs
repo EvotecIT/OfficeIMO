@@ -114,7 +114,7 @@ internal static class MimeParser {
         bool embeddedMessage = string.Equals(contentType.Value, "message/rfc822", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase);
         bool calendarContent = string.Equals(contentType.Value, "text/calendar", StringComparison.OrdinalIgnoreCase);
-        bool vcardContent = VCardCodec.IsVCardContentType(contentType.Value);
+        bool vcardContent = VCardCodec.IsVCardContentType(contentType.Value, contentType.GetParameter("profile"));
         bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage &&
             !calendarContent && !vcardContent;
         long decodedLength = isBody ? 0 : MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
