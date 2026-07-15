@@ -167,16 +167,16 @@ public static partial class WordRtfConverterExtensions {
                     hasRuns |= AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, runElement), paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes);
                     break;
                 case InsertedRun insertedRun:
-                    hasRuns |= AppendRevisionContent(wordParagraph, insertedRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Inserted, insertedRun.Author?.Value);
+                    hasRuns |= AppendRevisionContent(wordParagraph, insertedRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, complexFields, RtfRevisionKind.Inserted, insertedRun.Author?.Value);
                     break;
                 case MoveToRun moveToRun:
-                    hasRuns |= AppendRevisionContent(wordParagraph, moveToRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Inserted, moveToRun.Author?.Value);
+                    hasRuns |= AppendRevisionContent(wordParagraph, moveToRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, complexFields, RtfRevisionKind.Inserted, moveToRun.Author?.Value);
                     break;
                 case DeletedRun deletedRun:
-                    hasRuns |= AppendRevisionContent(wordParagraph, deletedRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Deleted, deletedRun.Author?.Value);
+                    hasRuns |= AppendRevisionContent(wordParagraph, deletedRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, complexFields, RtfRevisionKind.Deleted, deletedRun.Author?.Value);
                     break;
                 case MoveFromRun moveFromRun:
-                    hasRuns |= AppendRevisionContent(wordParagraph, moveFromRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Deleted, moveFromRun.Author?.Value);
+                    hasRuns |= AppendRevisionContent(wordParagraph, moveFromRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, complexFields, RtfRevisionKind.Deleted, moveFromRun.Author?.Value);
                     break;
                 case Hyperlink hyperlink:
                     hasRuns |= AppendHyperlinkContent(
@@ -196,7 +196,7 @@ public static partial class WordRtfConverterExtensions {
                         ref previousRun,
                         rtfDocument,
                         revisionAuthorIndexes,
-                        new Stack<ComplexFieldCapture>());
+                        complexFields);
                     break;
                 case SdtContentRun sdtContentRun:
                     hasRuns |= AppendInlineContainerContent(
@@ -206,7 +206,7 @@ public static partial class WordRtfConverterExtensions {
                         ref previousRun,
                         rtfDocument,
                         revisionAuthorIndexes,
-                        new Stack<ComplexFieldCapture>());
+                        complexFields);
                     break;
                 case SimpleField simpleField:
                     AppendSimpleField(wordParagraph, simpleField, paragraph, rtfDocument, revisionAuthorIndexes);
@@ -311,6 +311,7 @@ public static partial class WordRtfConverterExtensions {
                         ref previousRun,
                         rtfDocument,
                         revisionAuthorIndexes,
+                        complexFields,
                         RtfRevisionKind.Inserted,
                         insertedRun.Author?.Value);
                     break;
@@ -322,6 +323,7 @@ public static partial class WordRtfConverterExtensions {
                         ref previousRun,
                         rtfDocument,
                         revisionAuthorIndexes,
+                        complexFields,
                         RtfRevisionKind.Inserted,
                         moveToRun.Author?.Value);
                     break;
@@ -381,11 +383,11 @@ public static partial class WordRtfConverterExtensions {
         ref RtfRun? previousRun,
         RtfDocument rtfDocument,
         Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> complexFields,
         RtfRevisionKind revisionKind,
         string? author) {
         bool hasContent = false;
         int? authorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, author, revisionAuthorIndexes);
-        var complexFields = new Stack<ComplexFieldCapture>();
         foreach (OpenXmlElement child in revision.ChildElements) {
             switch (child) {
                 case Run childRun:

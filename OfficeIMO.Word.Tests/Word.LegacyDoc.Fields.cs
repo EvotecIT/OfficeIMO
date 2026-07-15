@@ -480,8 +480,9 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_WritesHyperlinkedOmmlAsNestedEqFieldsAndReloads() {
+        public void LegacyDoc_SaveDocPath_WritesHyperlinkedOmmlAsNestedEqFieldsAndResaves() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string resavedDocPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
@@ -540,8 +541,35 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("note-linked", Assert.Single(noteHyperlink.Elements<SimpleField>()).InnerText);
                 Assert.Equal(new[] { "linked", "nested" }, reloaded.Equations.Select(equation => equation.Text));
                 Assert.Empty(reloaded.ValidateDocument());
+
+                reloaded.Save(resavedDocPath);
+                string resavedAscii = Encoding.ASCII.GetString(ReadCompoundStream(File.ReadAllBytes(resavedDocPath), "WordDocument"));
+                Assert.Contains("HYPERLINK", resavedAscii, StringComparison.Ordinal);
+                Assert.Contains(" EQ linked", resavedAscii, StringComparison.Ordinal);
+                Assert.Contains(" EQ nested", resavedAscii, StringComparison.Ordinal);
+
+                using WordDocument resaved = WordDocument.Load(resavedDocPath);
+                Assert.Equal(WordFileFormat.Doc, resaved.SourceFormat);
+                Assert.Empty(resaved.LegacyDocUnsupportedFeatures);
+                MainDocumentPart resavedMainPart = resaved._wordprocessingDocument!.MainDocumentPart!;
+                Hyperlink resavedBodyHyperlink = Assert.Single(resavedMainPart.Document.Descendants<Hyperlink>());
+                Assert.Equal(
+                    new[] { "linked", "nested" },
+                    resavedBodyHyperlink.Elements<SimpleField>()
+                        .Where(field => field.Instruction?.Value.TrimStart().StartsWith("EQ", StringComparison.OrdinalIgnoreCase) == true)
+                        .Select(field => field.InnerText));
+                Assert.Equal(
+                    "header-linked",
+                    Assert.Single(resavedMainPart.HeaderParts.SelectMany(part => part.Header.Descendants<Hyperlink>()))
+                        .Elements<SimpleField>().Single().InnerText);
+                Assert.Equal(
+                    "note-linked",
+                    Assert.Single(resavedMainPart.FootnotesPart!.Footnotes!.Descendants<Hyperlink>())
+                        .Elements<SimpleField>().Single().InnerText);
+                Assert.Empty(resaved.ValidateDocument());
             } finally {
                 DeleteIfExists(docPath);
+                DeleteIfExists(resavedDocPath);
             }
         }
 
