@@ -1,0 +1,201 @@
+using OfficeIMO.Reader.Tool;
+using System.Threading.Tasks;
+using Xunit;
+
+namespace OfficeIMO.Reader.Tests;
+
+public sealed class ReaderToolTests {
+    [Fact]
+    public async Task ReadsStandardInputAsMarkdown() {
+        await using var input = new MemoryStream(Encoding.UTF8.GetBytes("# Tool heading\n\nBody"));
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "read", "-", "--name", "input.md" },
+            input,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.Success, exitCode);
+        Assert.Contains("# Tool heading", output.ToString(), StringComparison.Ordinal);
+        Assert.Equal(string.Empty, error.ToString());
+    }
+
+    [Fact]
+    public async Task EmitsStableV5Json() {
+        await using var input = new MemoryStream(Encoding.UTF8.GetBytes("plain text"));
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "read", "-", "--name", "input.txt", "--format", "json" },
+            input,
+            output,
+            error);
+        OfficeDocumentReadResult document = OfficeDocumentReadResultJson.Deserialize(output.ToString());
+
+        Assert.Equal((int)ReaderToolExitCode.Success, exitCode);
+        Assert.Equal(OfficeDocumentReadResultSchema.CurrentVersion, document.SchemaVersion);
+        Assert.Equal(OfficeDocumentReadResultSchema.Id, document.SchemaId);
+    }
+
+    [Fact]
+    public async Task ConvertsFolderWithDeterministicRelativeOutputs() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string inputRoot = Path.Combine(temporary.Path, "input");
+        string nestedRoot = Path.Combine(inputRoot, "nested");
+        string outputRoot = Path.Combine(temporary.Path, "output");
+        Directory.CreateDirectory(nestedRoot);
+        await File.WriteAllTextAsync(Path.Combine(inputRoot, "alpha.md"), "# Alpha");
+        await File.WriteAllTextAsync(Path.Combine(nestedRoot, "data.csv"), "name,value\none,1");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] {
+                "folder", inputRoot,
+                "--output", outputRoot,
+                "--format", "json",
+                "--concurrency", "2"
+            },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.Success, exitCode);
+        Assert.True(File.Exists(Path.Combine(outputRoot, "alpha.md.reader.json")));
+        Assert.True(File.Exists(Path.Combine(outputRoot, "nested", "data.csv.reader.json")));
+        Assert.Equal("Converted 2 document(s)." + Environment.NewLine, error.ToString());
+    }
+
+    [Fact]
+    public async Task CapabilityListExcludesDependencyBackedProviders() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "capabilities" },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.Success, exitCode);
+        Assert.Contains("officeimo.reader.epub", output.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain("ocr", output.ToString(), StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("provider", output.ToString(), StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task InvalidArgumentsReturnDocumentedUsageCode() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "folder", "missing-output" },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.Usage, exitCode);
+        Assert.Contains("requires --output", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MissingInputReturnsDocumentedNotFoundCode() {
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "read", Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"), "missing.md") },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.InputNotFound, exitCode);
+    }
+
+    [Fact]
+    public async Task CorruptInputReturnsDocumentedReadFailureCode() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string path = Path.Combine(temporary.Path, "legacy.doc");
+        await File.WriteAllBytesAsync(path, new byte[] { 1, 2, 3 });
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "read", path },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.ReadFailed, exitCode);
+    }
+
+    [Fact]
+    public async Task UnsupportedInputReturnsDocumentedFormatCode() {
+        await using var input = new ReaderToolUnsupportedStream();
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "read", "-", "--name", "input.txt" },
+            input,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.UnsupportedInput, exitCode);
+    }
+
+    [Fact]
+    public async Task FolderRejectsOutputInsideInputTree() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string outputPath = Path.Combine(temporary.Path, "converted");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "folder", temporary.Path, "--output", outputPath },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Contains("outside the input folder", error.ToString(), StringComparison.Ordinal);
+    }
+}
+
+internal sealed class ReaderToolTemporaryDirectory : IDisposable {
+    internal ReaderToolTemporaryDirectory() {
+        Path = System.IO.Path.Combine(System.IO.Path.GetTempPath(), "OfficeIMO.Reader.Tool.Tests", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(Path);
+    }
+
+    internal string Path { get; }
+
+    public void Dispose() {
+        try {
+            Directory.Delete(Path, recursive: true);
+        } catch (DirectoryNotFoundException) {
+        } catch (IOException) {
+        } catch (UnauthorizedAccessException) {
+        }
+    }
+}
+
+internal sealed class ReaderToolUnsupportedStream : Stream {
+    public override bool CanRead => true;
+    public override bool CanSeek => false;
+    public override bool CanWrite => false;
+    public override long Length => throw new NotSupportedException();
+    public override long Position {
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
+
+    public override void Flush() { }
+    public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException("Unsupported input stream.");
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+}
