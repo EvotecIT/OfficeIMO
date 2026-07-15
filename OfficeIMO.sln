@@ -172,6 +172,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Markdown.Benchmar
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.GoogleWorkspace", "OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj", "{60B57235-CFAC-4433-BB96-7ED3A5D4BF52}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.GoogleWorkspace.Auth.GoogleApis", "OfficeIMO.GoogleWorkspace.Auth.GoogleApis\OfficeIMO.GoogleWorkspace.Auth.GoogleApis.csproj", "{AE93E52E-7E92-4058-9876-A35D2013D1E7}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.GoogleWorkspace.Drive", "OfficeIMO.GoogleWorkspace.Drive\OfficeIMO.GoogleWorkspace.Drive.csproj", "{D5F8CE08-188F-4D8D-B523-AB633B27B19F}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Word.GoogleDocs", "OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj", "{C7DC20FB-C242-4022-8FE2-BD12EF68BF98}"
@@ -658,6 +660,18 @@ Global
 		{60B57235-CFAC-4433-BB96-7ED3A5D4BF52}.Release|x64.Build.0 = Release|Any CPU
 		{60B57235-CFAC-4433-BB96-7ED3A5D4BF52}.Release|x86.ActiveCfg = Release|Any CPU
 		{60B57235-CFAC-4433-BB96-7ED3A5D4BF52}.Release|x86.Build.0 = Release|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Debug|x64.Build.0 = Debug|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Debug|x86.Build.0 = Debug|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Release|x64.ActiveCfg = Release|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Release|x64.Build.0 = Release|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Release|x86.ActiveCfg = Release|Any CPU
+		{AE93E52E-7E92-4058-9876-A35D2013D1E7}.Release|x86.Build.0 = Release|Any CPU
 		{D5F8CE08-188F-4D8D-B523-AB633B27B19F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D5F8CE08-188F-4D8D-B523-AB633B27B19F}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D5F8CE08-188F-4D8D-B523-AB633B27B19F}.Debug|x64.ActiveCfg = Debug|Any CPU
