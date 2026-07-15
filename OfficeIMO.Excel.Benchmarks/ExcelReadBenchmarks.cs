@@ -1,11 +1,9 @@
 using BenchmarkDotNet.Attributes;
-using BenchmarkDotNet.Jobs;
 using ClosedXML.Excel;
 
 namespace OfficeIMO.Excel.Benchmarks;
 
 [MemoryDiagnoser]
-[SimpleJob(RuntimeMoniker.Net80)]
 public class ExcelReadBenchmarks {
     private byte[] _workbookBytes = [];
     private string _range = string.Empty;

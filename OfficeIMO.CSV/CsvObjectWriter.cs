@@ -22,6 +22,7 @@ public sealed partial class CsvObjectWriter : IDisposable
     private readonly bool _useAlwaysQuotedWritePath;
     private readonly bool _useFormattedValueOptions;
     private readonly bool _leaveOpen;
+    private readonly StringBuilder? _stringWriterBuffer;
     private readonly StringBuilder _rowBuffer = new(1024);
     private const int WideTextRowThreshold = 20;
     private IReadOnlyList<string>? _columns;
@@ -57,6 +58,9 @@ public sealed partial class CsvObjectWriter : IDisposable
             && _options.QuoteMode == CsvQuoteMode.Always
             && _quoteFields == null;
         _leaveOpen = leaveOpen;
+        _stringWriterBuffer = writer.GetType() == typeof(StringWriter)
+            ? ((StringWriter)writer).GetStringBuilder()
+            : null;
     }
 
     /// <summary>
@@ -657,6 +661,12 @@ public sealed partial class CsvObjectWriter : IDisposable
     {
         if (_useDefaultWritePath)
         {
+            if (_stringWriterBuffer != null)
+            {
+                CsvWriter.AppendRecordDefault(_stringWriterBuffer, values, _delimiter, _options.NewLine, _options.Culture);
+                return;
+            }
+
             CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _delimiter, _options.NewLine, _options.Culture);
             return;
         }
@@ -703,6 +713,12 @@ public sealed partial class CsvObjectWriter : IDisposable
     {
         if (_useDefaultWritePath)
         {
+            if (_stringWriterBuffer != null)
+            {
+                CsvWriter.AppendRecordDefault(_stringWriterBuffer, values, _delimiter, _options.NewLine);
+                return;
+            }
+
             WriteDefaultTextRecord(values);
             return;
         }
@@ -747,6 +763,12 @@ public sealed partial class CsvObjectWriter : IDisposable
 
     private void WriteDefaultTextRecord(string?[] values)
     {
+        if (_stringWriterBuffer != null)
+        {
+            CsvWriter.AppendRecordDefault(_stringWriterBuffer, values, _delimiter, _options.NewLine);
+            return;
+        }
+
         if (CsvWriter.TextRowNeedsEscaping(values, _delimiter))
         {
             CsvWriter.WriteRecordDefault(_writer, values, _delimiter, _options.NewLine);
