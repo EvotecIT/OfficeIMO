@@ -11,13 +11,14 @@ namespace OfficeIMO.Word.GoogleDocs {
             bool reconcileExistingComments,
             TranslationReport report,
             CancellationToken cancellationToken) {
-            if (options.Comments != GoogleDocsCommentMode.UnanchoredDriveComments || document.Comments.Count == 0) return;
+            if (options.Comments != GoogleDocsCommentMode.UnanchoredDriveComments) return;
             var existingComments = reconcileExistingComments
                 ? await ListCommentsAsync(drive, fileId, report, cancellationToken).ConfigureAwait(false)
                 : new List<GoogleDriveComment>();
             var usedCommentIds = new HashSet<string>(StringComparer.Ordinal);
             int createdCount = 0;
             int reusedCount = 0;
+            int deletedCount = 0;
             foreach (WordComment comment in document.Comments.Where(comment => comment.ParentComment == null)) {
                 string rootContent = FormatComment(comment);
                 GoogleDriveComment? target = existingComments.FirstOrDefault(candidate =>
@@ -56,6 +57,16 @@ namespace OfficeIMO.Word.GoogleDocs {
                     await drive.CreateReplyAsync(fileId, target.Id!, replyContent, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
                     createdCount++;
                 }
+                if (reconcileExistingComments) {
+                    foreach (GoogleDriveReply staleReply in target.Replies.Where(candidate =>
+                        !candidate.Deleted
+                        && string.IsNullOrWhiteSpace(candidate.Action)
+                        && !string.IsNullOrWhiteSpace(candidate.Id)
+                        && !usedReplyIds.Contains(candidate.Id!))) {
+                        await drive.DeleteReplyAsync(fileId, target.Id!, staleReply.Id!, report, cancellationToken).ConfigureAwait(false);
+                        deletedCount++;
+                    }
+                }
                 if (comment.IsResolved.HasValue && comment.IsResolved.Value != target.Resolved) {
                     await drive.CreateReplyAsync(
                         fileId,
@@ -64,6 +75,15 @@ namespace OfficeIMO.Word.GoogleDocs {
                         action: comment.IsResolved.Value ? "resolve" : "reopen",
                         report: report,
                         cancellationToken: cancellationToken).ConfigureAwait(false);
+                }
+            }
+            if (reconcileExistingComments) {
+                foreach (GoogleDriveComment staleComment in existingComments.Where(candidate =>
+                    !candidate.Deleted
+                    && !string.IsNullOrWhiteSpace(candidate.Id)
+                    && !usedCommentIds.Contains(candidate.Id!))) {
+                    await drive.DeleteCommentAsync(fileId, staleComment.Id!, report, cancellationToken).ConfigureAwait(false);
+                    deletedCount++;
                 }
             }
             if (createdCount > 0) {
@@ -84,6 +104,16 @@ namespace OfficeIMO.Word.GoogleDocs {
                     code: "DOCS.COMMENT.UNANCHORED_REUSED",
                     action: TranslationAction.Preserve,
                     count: reusedCount,
+                    targetId: fileId);
+            }
+            if (deletedCount > 0) {
+                report.Add(
+                    TranslationSeverity.Info,
+                    "Comments",
+                    $"Removed {deletedCount} stale Drive comment/reply item(s) while replacing the document.",
+                    code: "DOCS.COMMENT.UNANCHORED_DELETED",
+                    action: TranslationAction.Preserve,
+                    count: deletedCount,
                     targetId: fileId);
             }
         }

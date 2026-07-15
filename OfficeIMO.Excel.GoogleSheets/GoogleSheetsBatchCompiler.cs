@@ -41,7 +41,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             bool cellValidationNoticeAdded = false;
 
             foreach (var worksheet in workbookSnapshot.Worksheets) {
-                ResolveGridSize(worksheet, workbookSnapshot.NamedRanges, options, out int rowCount, out int columnCount);
+                ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, worksheet.Name, StringComparison.OrdinalIgnoreCase));
+                ResolveGridSize(worksheet, sourceSheet, workbookSnapshot.NamedRanges, options, out int rowCount, out int columnCount);
                 batch.Add(new GoogleSheetsAddSheetRequest {
                     SheetName = worksheet.Name,
                     SheetIndex = worksheet.Index,
@@ -151,7 +152,6 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Add(filterRequest);
                 }
 
-                ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, worksheet.Name, StringComparison.OrdinalIgnoreCase));
                 IReadOnlyList<NativePivotCompilation> nativePivots = sourceSheet == null
                     ? Array.Empty<NativePivotCompilation>()
                     : CompilePivotTables(sourceSheet, workbookSnapshot, report, options.UnsupportedFeatures.PivotTables);
@@ -245,6 +245,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static void ResolveGridSize(
             ExcelWorksheetSnapshot worksheet,
+            ExcelSheet? sourceSheet,
             IReadOnlyList<ExcelNamedRangeSnapshot> namedRanges,
             GoogleSheetsSaveOptions options,
             out int rowCount,
@@ -269,6 +270,23 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             foreach (ExcelTableSnapshot table in worksheet.Tables) {
                 ExpandGridToInclude(table.A1Range, ref rowCount, ref columnCount);
+            }
+
+            if (worksheet.AutoFilter != null) {
+                ExpandGridToInclude(worksheet.AutoFilter.A1Range, ref rowCount, ref columnCount);
+            }
+
+            if (sourceSheet != null) {
+                foreach (ExcelConditionalFormattingInfo rule in sourceSheet.GetConditionalFormattingRules()) {
+                    ExpandGridToInclude(rule.Range, ref rowCount, ref columnCount);
+                }
+
+                foreach (ExcelChart chart in sourceSheet.Charts) {
+                    if (chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
+                        rowCount = Math.Max(rowCount, snapshot.RowIndex);
+                        columnCount = Math.Max(columnCount, snapshot.ColumnIndex);
+                    }
+                }
             }
 
             foreach (ExcelRowSnapshot row in worksheet.Rows) {

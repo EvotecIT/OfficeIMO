@@ -31,6 +31,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsBatch_SizesGridsForFiltersConditionalFormatsAndChartAnchors() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsAdvancedMetadataGridSizing.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet filters = document.AddWorksheet("Filters");
+                filters.AddAutoFilter("A1:AA2001");
+
+                ExcelSheet conditional = document.AddWorksheet("Conditional");
+                conditional.AddConditionalRule("B2:AB2002", ConditionalFormattingOperatorValues.GreaterThan, "10");
+
+                ExcelSheet charts = document.AddWorksheet("Charts");
+                charts.AddChart(
+                    new ExcelChartData(new[] { "A" }, new[] { new ExcelChartSeries("Sales", new[] { 1d }) }),
+                    row: 2003,
+                    column: 29,
+                    type: ExcelChartType.ColumnClustered);
+
+                GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
+
+                GoogleSheetsAddSheetRequest filterSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Filters");
+                Assert.Equal(2001, filterSheet.RowCount);
+                Assert.Equal(27, filterSheet.ColumnCount);
+
+                GoogleSheetsAddSheetRequest conditionalSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Conditional");
+                Assert.Equal(2002, conditionalSheet.RowCount);
+                Assert.Equal(28, conditionalSheet.ColumnCount);
+
+                GoogleSheetsAddSheetRequest chartSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Charts");
+                Assert.Equal(2003, chartSheet.RowCount);
+                Assert.Equal(29, chartSheet.ColumnCount);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsBatch_AnchorsDuplicateAndUniqueCountRanges() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCountIfRanges.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.AddConditionalDuplicateValuesRule("A2:A100");
+                sheet.AddConditionalUniqueValuesRule("B2:B100");
+
+                GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
+                GoogleSheetsAddConditionalFormatRuleRequest[] rules = batch.Requests
+                    .OfType<GoogleSheetsAddConditionalFormatRuleRequest>()
+                    .ToArray();
+
+                Assert.Contains(rules, rule => Assert.Single(rule.Values) == "=COUNTIF($A$2:$A$100,A2)>1");
+                Assert.Contains(rules, rule => Assert.Single(rule.Values) == "=COUNTIF($B$2:$B$100,B2)=1");
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleSheetsBatch_HonorsWorkbookDateSystemForValidationDates() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheets1904Validation.xlsx");
             try {

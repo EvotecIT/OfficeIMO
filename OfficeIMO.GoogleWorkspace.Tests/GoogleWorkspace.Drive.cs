@@ -365,6 +365,22 @@ namespace OfficeIMO.Tests {
             Assert.Contains(report.Notices, notice => notice.Code == "DRIVE.COMMENT.EDITOR_ANCHOR_UNAVAILABLE");
         }
 
+        [Fact]
+        public async Task Test_DriveClient_DeletesCommentThreadsAndRepliesWithSharedDriveSupport() {
+            var requests = new List<string>();
+            using var httpClient = new HttpClient(new FakeHandler(request => {
+                requests.Add(request.Method.Method + " " + request.RequestUri!.AbsoluteUri);
+                return Task.FromResult(Json("{}"));
+            }));
+            using var client = CreateClient(httpClient);
+
+            await client.DeleteReplyAsync("file-1", "comment-1", "reply-1");
+            await client.DeleteCommentAsync("file-1", "comment-1");
+
+            Assert.Contains(requests, request => request == "DELETE https://www.googleapis.com/drive/v3/files/file-1/comments/comment-1/replies/reply-1?supportsAllDrives=true");
+            Assert.Contains(requests, request => request == "DELETE https://www.googleapis.com/drive/v3/files/file-1/comments/comment-1?supportsAllDrives=true");
+        }
+
         private static GoogleDriveClient CreateClient(HttpClient httpClient, RecordingCredentialSource? credential = null, string? quotaUser = null) {
             return new GoogleDriveClient(new GoogleWorkspaceSession(
                 credential ?? new RecordingCredentialSource(),

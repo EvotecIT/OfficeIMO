@@ -304,6 +304,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Exporter_RejectsFolderFromUnexpectedSharedDriveBeforeTemplateCopy() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("Local");
+            int mutations = 0;
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(Json("{\"id\":\"folder-1\",\"name\":\"Folder\",\"mimeType\":\"application/vnd.google-apps.folder\",\"driveId\":\"drive-a\"}"));
+                }
+                if (request.Method != HttpMethod.Get) mutations++;
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+
+            InvalidOperationException exception = await Assert.ThrowsAsync<InvalidOperationException>(() => presentation.ExportToGoogleSlidesAsync(
+                Session(httpClient),
+                new GoogleSlidesSaveOptions {
+                    TemplatePresentationId = "template-1",
+                    Location = new GoogleDriveFileLocation { FolderId = "folder-1", DriveId = "drive-b" },
+                }));
+
+            Assert.Contains("drive-a", exception.Message, StringComparison.Ordinal);
+            Assert.Contains("drive-b", exception.Message, StringComparison.Ordinal);
+            Assert.Equal(0, mutations);
+        }
+
+        [Fact]
         public async Task Exporter_PreservesInvalidRequestDiagnosticsWhenRevisionStillMatches() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             presentation.AddSlide().AddTextBox("Local");

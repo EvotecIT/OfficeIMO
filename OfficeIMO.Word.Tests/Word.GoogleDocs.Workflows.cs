@@ -488,6 +488,7 @@ namespace OfficeIMO.Tests {
                 WordComment comment = WordComment.GetAllComments(document).Single();
                 comment.AddReply("Bob", "B", "Reviewed");
                 int createdCommentItems = 0;
+                int deletedCommentItems = 0;
                 int commentListReads = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                     if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "docs.googleapis.com") {
@@ -499,7 +500,7 @@ namespace OfficeIMO.Tests {
                     if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal)) {
                         commentListReads++;
                         return Task.FromResult(request.RequestUri.Query.Contains("pageToken=next", StringComparison.Ordinal)
-                            ? CreateJsonResponse("{\"comments\":[{\"id\":\"comment-1\",\"content\":\"Alice: Please review\",\"replies\":[{\"id\":\"reply-1\",\"content\":\"Bob: Reviewed\"}]}]}")
+                            ? CreateJsonResponse("{\"comments\":[{\"id\":\"comment-1\",\"content\":\"Alice: Please review\",\"replies\":[{\"id\":\"reply-1\",\"content\":\"Bob: Reviewed\"},{\"id\":\"reply-stale\",\"content\":\"Old reply\"}]}]}")
                             : CreateJsonResponse("{\"nextPageToken\":\"next\",\"comments\":[]}"));
                     }
                     if (request.Method == HttpMethod.Post
@@ -507,6 +508,13 @@ namespace OfficeIMO.Tests {
                             || request.RequestUri.AbsolutePath.EndsWith("/replies", StringComparison.Ordinal))) {
                         createdCommentItems++;
                         return Task.FromResult(CreateJsonResponse("{}"));
+                    }
+                    if (request.Method == HttpMethod.Delete && request.RequestUri!.AbsolutePath.EndsWith("/replies/reply-stale", StringComparison.Ordinal)) {
+                        deletedCommentItems++;
+                        return Task.FromResult(CreateJsonResponse("{}"));
+                    }
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-comments\",\"name\":\"Comments\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":2}"));
                     }
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
                 }));
@@ -521,7 +529,49 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal(2, commentListReads);
                 Assert.Equal(0, createdCommentItems);
+                Assert.Equal(1, deletedCommentItems);
                 Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_REUSED" && notice.Count == 2);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_DELETED" && notice.Count == 1);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_RemovesStaleDriveCommentsOnReplacement() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsCommentRemoval.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Replacement without comments");
+                var deletedUris = new List<string>();
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse(CreateTabbedDocumentStateJson("doc-comments", "revision-1", "tab-a", "Remote")));
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}"));
+                    }
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal)) {
+                        return Task.FromResult(CreateJsonResponse("{\"comments\":[{\"id\":\"stale-comment\",\"content\":\"Old review\"}]}"));
+                    }
+                    if (request.Method == HttpMethod.Delete && request.RequestUri!.AbsolutePath.EndsWith("/comments/stale-comment", StringComparison.Ordinal)) {
+                        deletedUris.Add(request.RequestUri.AbsoluteUri);
+                        return Task.FromResult(CreateJsonResponse("{}"));
+                    }
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-comments\",\"name\":\"Comments\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":2}"));
+                    }
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Location = new GoogleDriveFileLocation { ExistingFileId = "doc-comments" },
+                    Replace = new GoogleDocsReplaceOptions { ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest },
+                });
+
+                Assert.Single(deletedUris);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_DELETED" && notice.Count == 1);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

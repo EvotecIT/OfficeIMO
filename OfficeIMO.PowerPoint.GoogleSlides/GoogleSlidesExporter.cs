@@ -29,6 +29,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             var leases = new List<GoogleDriveTemporaryContentLease>();
             string? presentationId = null;
             try {
+                if (!string.IsNullOrWhiteSpace(location.FolderId)) {
+                    await drive.ResolveFolderAsync(location.FolderId!, location.DriveId, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
+                }
+
                 bool copiedTemplate = !string.IsNullOrWhiteSpace(effective.TemplatePresentationId);
                 if (copiedTemplate) {
                     GoogleDriveFile copy = await drive.CopyFileAsync(effective.TemplatePresentationId!, batch.Title, location.FolderId, batch.Plan.Report, cancellationToken).ConfigureAwait(false);

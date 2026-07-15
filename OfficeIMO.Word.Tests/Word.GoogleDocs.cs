@@ -2490,6 +2490,14 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"comments\":[]}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return CreateJsonResponse("{\"id\":\"existing-doc-123\",\"name\":\"Old Title\",\"mimeType\":\"application/vnd.google-apps.document\"}");
+                    }
+
                     return new HttpResponseMessage(HttpStatusCode.NotFound) {
                         Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
                     };
@@ -2513,11 +2521,13 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("existing-doc-123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/existing-doc-123/edit", result.WebViewLink);
-                Assert.Equal(5, recordedRequests.Count);
+                Assert.Equal(6, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
                 Assert.Equal("POST", recordedRequests[1].Method);
                 Assert.Equal("POST", recordedRequests[2].Method);
                 Assert.Equal("GET", recordedRequests[3].Method);
+                Assert.EndsWith("/comments?includeDeleted=true&fields=nextPageToken,comments(id,content,anchor,resolved,deleted,createdTime,modifiedTime,replies(id,content,action,deleted,createdTime))", recordedRequests[4].Uri.AbsoluteUri, StringComparison.Ordinal);
+                Assert.Equal("GET", recordedRequests[5].Method);
                 Assert.DoesNotContain(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents");
                 Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingDocument");
 

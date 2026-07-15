@@ -120,12 +120,31 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 values = Array.Empty<string>();
             } else if (type.Equals("DuplicateValues", StringComparison.OrdinalIgnoreCase)) {
                 conditionType = "CUSTOM_FORMULA";
-                values = new[] { $"=COUNTIF({rule.Range},{FirstCell(rule.Range)})>1" };
+                values = new[] { $"=COUNTIF({AbsoluteRange(rule.Range)},{FirstCell(rule.Range)})>1" };
             } else if (type.Equals("UniqueValues", StringComparison.OrdinalIgnoreCase)) {
                 conditionType = "CUSTOM_FORMULA";
-                values = new[] { $"=COUNTIF({rule.Range},{FirstCell(rule.Range)})=1" };
+                values = new[] { $"=COUNTIF({AbsoluteRange(rule.Range)},{FirstCell(rule.Range)})=1" };
             }
             return conditionType.Length > 0;
+        }
+
+        private static string AbsoluteRange(string range) {
+            string value = range;
+            string prefix = string.Empty;
+            int bang = value.LastIndexOf('!');
+            if (bang >= 0) {
+                prefix = value.Substring(0, bang + 1);
+                value = value.Substring(bang + 1);
+            }
+
+            string normalized = value.Replace("$", string.Empty);
+            if (!A1.TryParseRange(normalized, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return range;
+            }
+
+            return prefix
+                + "$" + A1.ColumnIndexToLetters(firstColumn) + "$" + firstRow.ToString(CultureInfo.InvariantCulture)
+                + ":$" + A1.ColumnIndexToLetters(lastColumn) + "$" + lastRow.ToString(CultureInfo.InvariantCulture);
         }
 
         private static string FirstCell(string range) {

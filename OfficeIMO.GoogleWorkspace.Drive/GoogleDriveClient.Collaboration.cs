@@ -148,6 +148,27 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 cancellationToken).ConfigureAwait(false);
         }
 
+        /// <summary>Deletes a Drive comment thread from a file.</summary>
+        public async Task DeleteCommentAsync(
+            string fileId,
+            string commentId,
+            TranslationReport? report = null,
+            CancellationToken cancellationToken = default) {
+            ValidateResourceId(fileId, nameof(fileId));
+            ValidateResourceId(commentId, nameof(commentId));
+            report ??= new TranslationReport();
+            string token = await AcquireTokenAsync(Options.WriteScopes, report, "Google Drive comment deletion", cancellationToken).ConfigureAwait(false);
+            await Transport.SendJsonAsync<object>(
+                token,
+                HttpMethod.Delete,
+                $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments/{Escape(commentId)}?supportsAllDrives={Bool(Options.SupportsAllDrives)}",
+                null,
+                GoogleWorkspaceRequestSafety.Idempotent,
+                "Google Drive API",
+                report,
+                cancellationToken).ConfigureAwait(false);
+        }
+
         public async Task<GoogleDriveReply> CreateReplyAsync(
             string fileId,
             string commentId,
@@ -169,6 +190,29 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments/{Escape(commentId)}/replies?fields=id,content,action,deleted,createdTime",
                 new { content, action },
                 GoogleWorkspaceRequestSafety.NonIdempotent,
+                "Google Drive API",
+                report,
+                cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>Deletes a reply from a Drive comment thread.</summary>
+        public async Task DeleteReplyAsync(
+            string fileId,
+            string commentId,
+            string replyId,
+            TranslationReport? report = null,
+            CancellationToken cancellationToken = default) {
+            ValidateResourceId(fileId, nameof(fileId));
+            ValidateResourceId(commentId, nameof(commentId));
+            ValidateResourceId(replyId, nameof(replyId));
+            report ??= new TranslationReport();
+            string token = await AcquireTokenAsync(Options.WriteScopes, report, "Google Drive comment reply deletion", cancellationToken).ConfigureAwait(false);
+            await Transport.SendJsonAsync<object>(
+                token,
+                HttpMethod.Delete,
+                $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/comments/{Escape(commentId)}/replies/{Escape(replyId)}?supportsAllDrives={Bool(Options.SupportsAllDrives)}",
+                null,
+                GoogleWorkspaceRequestSafety.Idempotent,
                 "Google Drive API",
                 report,
                 cancellationToken).ConfigureAwait(false);
