@@ -6,7 +6,9 @@ internal static class VCardCodec {
         if (!properties.Any(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase))) return false;
 
-        document.MimeSemanticProjectionIsIncomplete |= properties.Any(property =>
+        int cardCount = properties.Count(property => property.Name == "BEGIN" &&
+            property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase));
+        document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 || properties.Any(property =>
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
             property.Name == "RELATED" || property.Name == "MEMBER");
@@ -50,17 +52,14 @@ internal static class VCardCodec {
     internal static EmailAttachment? FindSemanticAttachment(EmailDocument document) {
         if (document.OutlookItemKind != OutlookItemKind.Contact) return null;
         return document.Attachments.FirstOrDefault(attachment => attachment.IsProjectedSemanticContent &&
-            IsVCardContentType(attachment.ContentType)) ?? document.Attachments.FirstOrDefault(attachment =>
             IsVCardContentType(attachment.ContentType));
     }
 
-    internal static EmailAttachment CreateAttachment(EmailDocument document, long maximumBytes,
-        EmailAttachment? source = null) {
-        byte[] content = source == null
-            ? Create(document)
-            : EmailAttachmentContent.ReadOrNull(source, maximumBytes) ?? Create(document);
+    internal static EmailAttachment CreateAttachment(EmailDocument document, EmailAttachment? source = null) {
+        if (source != null) return source;
+        byte[] content = Create(document);
         var attachment = new EmailAttachment {
-            FileName = source?.FileName ?? "contact.vcf",
+            FileName = "contact.vcf",
             ContentType = "text/vcard",
             Content = content,
             Length = content.LongLength,
@@ -146,8 +145,17 @@ internal static class VCardCodec {
     private static void ApplyEmails(IEnumerable<VCardProperty> properties, OutlookContact contact) {
         VCardProperty[] emails = properties.Where(property => property.Name == "EMAIL").ToArray();
         OutlookContactEmailAddress[] targets = { contact.Email1, contact.Email2, contact.Email3 };
-        for (int index = 0; index < Math.Min(emails.Length, targets.Length); index++) {
-            targets[index].Address = Unescape(emails[index].Value);
+        var used = new bool[targets.Length];
+        foreach (VCardProperty email in emails) {
+            string types = email.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
+            int preferredIndex = ContainsType(types, "HOME") ? 1 : ContainsType(types, "OTHER") ? 2 :
+                ContainsType(types, "WORK") ? 0 : -1;
+            int index = preferredIndex >= 0 && !used[preferredIndex]
+                ? preferredIndex
+                : Array.FindIndex(used, value => !value);
+            if (index < 0) break;
+            used[index] = true;
+            targets[index].Address = Unescape(email.Value);
             targets[index].AddressType = "SMTP";
             string prefix = string.Concat("X-OFFICEIMO-EMAIL",
                 (index + 1).ToString(CultureInfo.InvariantCulture));

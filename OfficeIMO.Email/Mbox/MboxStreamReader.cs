@@ -19,7 +19,8 @@ internal static class MboxStreamReader {
         long entryBytes = 0;
         int pendingByte = -1;
         try {
-            while (TryReadLine(stream, cancellationToken, ref pendingByte, out byte[] line, out byte[] ending)) {
+            while (TryReadLine(stream, cancellationToken, ref pendingByte, totalBytes, message.Length,
+                       envelope != null, options, out byte[] line, out byte[] ending)) {
                 long lineBytes = checked(line.LongLength + ending.LongLength);
                 totalBytes = checked(totalBytes + lineBytes);
                 if (totalBytes > options.MaxMailboxBytes) {
@@ -95,13 +96,18 @@ internal static class MboxStreamReader {
     }
 
     private static bool TryReadLine(Stream stream, CancellationToken cancellationToken, ref int pendingByte,
+        long totalBytes, long messageBytes, bool hasEnvelope, EmailMailboxReaderOptions options,
         out byte[] line, out byte[] ending) {
         using (var content = new MemoryStream()) {
             int current = pendingByte;
             pendingByte = -1;
+            bool couldBeEnvelope = hasEnvelope;
             while (current >= 0 || (current = stream.ReadByte()) >= 0) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (current == '\n') {
+                    bool envelopeCandidate = couldBeEnvelope && content.Length >= 5;
+                    EnsureLineWithinLimits(content.Length + 1, envelopeCandidate, totalBytes, messageBytes,
+                        hasEnvelope, options);
                     line = content.ToArray();
                     if (line.Length > 0 && line[line.Length - 1] == '\r') {
                         Array.Resize(ref line, line.Length - 1);
@@ -112,15 +118,25 @@ internal static class MboxStreamReader {
                 if (current == '\r') {
                     int next = stream.ReadByte();
                     if (next == '\n') {
+                        bool envelopeCandidate = couldBeEnvelope && content.Length >= 5;
+                        EnsureLineWithinLimits(content.Length + 2, envelopeCandidate, totalBytes, messageBytes,
+                            hasEnvelope, options);
                         line = content.ToArray();
                         ending = new byte[] { (byte)'\r', (byte)'\n' };
                         return true;
                     }
+                    bool bareEnvelopeCandidate = couldBeEnvelope && content.Length >= 5;
+                    EnsureLineWithinLimits(content.Length + 1, bareEnvelopeCandidate, totalBytes, messageBytes,
+                        hasEnvelope, options);
                     line = content.ToArray();
                     ending = new byte[] { (byte)'\r' };
                     pendingByte = next;
                     return true;
                 }
+                if (couldBeEnvelope && content.Length < 5 &&
+                    current != "From "[(int)content.Length]) couldBeEnvelope = false;
+                EnsureLineWithinLimits(content.Length + 1, couldBeEnvelope, totalBytes, messageBytes,
+                    hasEnvelope, options);
                 content.WriteByte((byte)current);
                 current = -1;
             }
@@ -129,9 +145,26 @@ internal static class MboxStreamReader {
                 ending = Array.Empty<byte>();
                 return false;
             }
+            EnsureLineWithinLimits(content.Length, couldBeEnvelope && content.Length >= 5, totalBytes,
+                messageBytes, hasEnvelope, options);
             line = content.ToArray();
             ending = Array.Empty<byte>();
             return true;
+        }
+    }
+
+    private static void EnsureLineWithinLimits(long lineBytes, bool couldBeEnvelope, long totalBytes,
+        long messageBytes, bool hasEnvelope, EmailMailboxReaderOptions options) {
+        long aggregateLength = checked(totalBytes + lineBytes);
+        if (aggregateLength > options.MaxMailboxBytes) {
+            throw new EmailLimitExceededException(nameof(EmailMailboxReaderOptions.MaxMailboxBytes),
+                aggregateLength, options.MaxMailboxBytes);
+        }
+        if (!hasEnvelope || couldBeEnvelope) return;
+        long messageLength = checked(messageBytes + lineBytes);
+        if (messageLength > options.MessageOptions.MaxInputBytes) {
+            throw new EmailLimitExceededException(nameof(EmailReaderOptions.MaxInputBytes), messageLength,
+                options.MessageOptions.MaxInputBytes);
         }
     }
 

@@ -25,9 +25,7 @@ internal static class IcsCalendarCodec {
         if (document.OutlookItemKind != OutlookItemKind.Appointment &&
             document.OutlookItemKind != OutlookItemKind.Task) return null;
         return document.Attachments.FirstOrDefault(attachment => attachment.IsProjectedSemanticContent &&
-            string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase)) ??
-            document.Attachments.FirstOrDefault(attachment =>
-                string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
+            string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
     }
 
     internal static bool ShouldWriteAsAttachment(EmailAttachment attachment) => !attachment.IsMimeBodyPart;
@@ -470,6 +468,19 @@ internal static class IcsCalendarCodec {
 
     private static TimeSpan? ParseDuration(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
+        string normalized = value!.Trim().ToUpperInvariant();
+        bool negative = normalized.StartsWith("-", StringComparison.Ordinal);
+        if (negative || normalized.StartsWith("+", StringComparison.Ordinal)) normalized = normalized.Substring(1);
+        if (normalized.Length > 2 && normalized[0] == 'P' && normalized[normalized.Length - 1] == 'W' &&
+            long.TryParse(normalized.Substring(1, normalized.Length - 2), NumberStyles.None,
+                CultureInfo.InvariantCulture, out long weeks)) {
+            try {
+                long ticks = checked(weeks * 7L * TimeSpan.TicksPerDay);
+                return TimeSpan.FromTicks(negative ? checked(-ticks) : ticks);
+            } catch (OverflowException) {
+                return null;
+            }
+        }
         try {
             return System.Xml.XmlConvert.ToTimeSpan(value);
         } catch (FormatException) {

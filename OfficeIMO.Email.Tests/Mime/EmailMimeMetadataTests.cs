@@ -1,3 +1,4 @@
+using MimeKit;
 using OfficeIMO.Email;
 using Xunit;
 
@@ -49,5 +50,31 @@ public sealed class EmailMimeMetadataTests {
         Assert.True(report.HasPotentialDataLoss);
         Assert.Contains(report.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_SOURCE_METADATA_NOT_REPRESENTED_IN_EML");
+    }
+
+    [Fact]
+    public void FormatsReceiptDestinationsAsMailboxHeaders() {
+        var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "Receipts" };
+        source.MessageMetadata.ReadReceiptRequested = true;
+        source.MessageMetadata.ReadReceiptDestination = "Żaneta <read@example.com>";
+        source.MessageMetadata.DeliveryReceiptRequested = true;
+        source.MessageMetadata.DeliveryReceiptDestination = "Łukasz <delivery@example.com>";
+
+        byte[] output = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(output);
+        MimeMessage message = MimeMessage.Load(stream);
+        string? readHeader = message.Headers["Disposition-Notification-To"];
+        string? deliveryHeader = message.Headers["Return-Receipt-To"];
+        Assert.NotNull(readHeader);
+        Assert.NotNull(deliveryHeader);
+        MailboxAddress read = Assert.IsType<MailboxAddress>(Assert.Single(
+            InternetAddressList.Parse(readHeader!)));
+        MailboxAddress delivery = Assert.IsType<MailboxAddress>(Assert.Single(
+            InternetAddressList.Parse(deliveryHeader!)));
+
+        Assert.Equal("Żaneta", read.Name);
+        Assert.Equal("read@example.com", read.Address);
+        Assert.Equal("Łukasz", delivery.Name);
+        Assert.Equal("delivery@example.com", delivery.Address);
     }
 }

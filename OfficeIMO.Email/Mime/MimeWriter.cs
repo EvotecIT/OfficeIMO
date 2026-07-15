@@ -46,7 +46,7 @@ internal static class MimeWriter {
         WriteThreadingHeader(output, document, "References", document.MessageMetadata.InternetReferences);
         WriteThreadingHeader(output, document, "In-Reply-To", document.MessageMetadata.InReplyToId);
         foreach (EmailHeader header in MimeMessageMetadataProjection.CreateHeaders(document)) {
-            WriteLine(output, string.Concat(header.Name, ": ", EncodeHeaderText(header.Value)));
+            WriteProjectedMetadataHeader(output, header);
         }
         foreach (EmailHeader header in document.Headers) {
             if (ManagedHeaders.Contains(header.Name)) continue;
@@ -63,6 +63,20 @@ internal static class MimeWriter {
         }
 
         WriteLine(output, string.Concat(name, ": ", EncodeHeaderText(header.Value)));
+    }
+
+    private static void WriteProjectedMetadataHeader(Stream output, EmailHeader header) {
+        if (!string.Equals(header.Name, "Disposition-Notification-To", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(header.Name, "Return-Receipt-To", StringComparison.OrdinalIgnoreCase)) {
+            WriteLine(output, string.Concat(header.Name, ": ", EncodeHeaderText(header.Value)));
+            return;
+        }
+
+        var diagnostics = new List<EmailDiagnostic>();
+        string[] addresses = MimeAddressParser.ParseMany(header.Value, diagnostics,
+            string.Concat("transport/", header.Name)).Select(FormatAddress).ToArray();
+        string value = addresses.Length == 0 ? EncodeHeaderText(header.Value) : string.Join(",\r\n ", addresses);
+        WriteLine(output, string.Concat(header.Name, ": ", value));
     }
 
     private static void WriteFoldedRawHeader(Stream output, string name, string value) {
@@ -162,7 +176,7 @@ internal static class MimeWriter {
                 : IcsCalendarCodec.CreateRegeneratedAttachment(document, calendarAttachment));
         }
         if (document.OutlookItemKind == OutlookItemKind.Contact && document.Contact != null) {
-            regularAttachmentList.Add(VCardCodec.CreateAttachment(document, state.Options.MaxOutputBytes,
+            regularAttachmentList.Add(VCardCodec.CreateAttachment(document,
                 semanticSourceUnchanged ? vcardAttachment : null));
         } else if (vcardAttachment != null) {
             regularAttachmentList.Add(vcardAttachment);
@@ -308,7 +322,10 @@ internal static class MimeWriter {
         string method = source != null && source.ContentTypeParameters.TryGetValue("method", out string? retainedMethod)
             ? retainedMethod
             : IcsCalendarCodec.GetMethod(document);
-        WriteLine(output, string.Concat("Content-Type: text/calendar; method=", SanitizeToken(method), "; charset=utf-8"));
+        string charset = source != null && source.ContentTypeParameters.TryGetValue("charset", out string? retainedCharset)
+            ? string.Concat("; charset=", SanitizeToken(retainedCharset))
+            : source == null ? "; charset=utf-8" : string.Empty;
+        WriteLine(output, string.Concat("Content-Type: text/calendar; method=", SanitizeToken(method), charset));
         WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
         WriteBase64(output, content, base64LineLength);

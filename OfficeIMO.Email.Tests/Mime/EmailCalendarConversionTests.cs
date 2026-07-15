@@ -92,8 +92,29 @@ public sealed class EmailCalendarConversionTests {
         }
 
         EmailDocument document = new EmailDocumentReader().Read(prefix.Concat(calendar).ToArray()).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml)).Document;
 
         Assert.Equal("Café", document.Subject);
+        Assert.Equal("Café", roundTrip.Subject);
+        EmailAttachment retained = Assert.Single(roundTrip.Attachments,
+            attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal("windows-1252", retained.ContentTypeParameters["charset"]);
+    }
+
+    [Fact]
+    public void ParsesWeekFormEventAndReminderDurations() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:weekly@example.com\r\nDTSTART:20260801T100000Z\r\nDURATION:P1W\r\n" +
+            "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-P1W\r\nEND:VALARM\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        OutlookAppointment appointment = new EmailDocumentReader().Read(eml).Document.Appointment!;
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 8, 10, 0, 0, TimeSpan.Zero), appointment.End);
+        Assert.Equal(7 * 24 * 60, appointment.DurationMinutes);
+        Assert.Equal(7 * 24 * 60, appointment.ReminderDeltaMinutes);
     }
 
     [Fact]
@@ -347,6 +368,42 @@ public sealed class EmailCalendarConversionTests {
         Assert.Equal("text/calendar", attachment.ContentType.MimeType);
         Assert.Equal("invite.ics", attachment.FileName);
         Assert.True(attachment.IsAttachment);
+    }
+
+    [Fact]
+    public void KeepsOrdinaryCalendarAttachmentSeparateFromGeneratedAppointmentContent() {
+        DateTimeOffset start = new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero);
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            OutlookItemKind = OutlookItemKind.Appointment,
+            Subject = "Generated appointment",
+            Appointment = new OutlookAppointment { Start = start, End = start.AddHours(1) }
+        };
+        source.Attachments.Add(new EmailAttachment {
+            FileName = "ordinary.ics",
+            ContentType = "text/calendar",
+            Content = Encoding.ASCII.GetBytes(
+                "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:ordinary@example.com\r\n" +
+                "DTSTART:20260901T100000Z\r\nSUMMARY:Ordinary file\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+        });
+        source.Attachments[0].Length = source.Attachments[0].Content!.LongLength;
+
+        byte[] output = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(output);
+        MimePart[] calendars = MimeMessage.Load(stream).BodyParts.OfType<MimePart>()
+            .Where(part => part.ContentType.MimeType == "text/calendar").ToArray();
+        MimePart attached = Assert.Single(calendars, part => part.IsAttachment);
+        MimePart generated = Assert.Single(calendars, part => !part.IsAttachment);
+        using var attachedContent = new MemoryStream();
+        attached.Content!.DecodeTo(attachedContent);
+        using var generatedContent = new MemoryStream();
+        generated.Content!.DecodeTo(generatedContent);
+
+        Assert.Equal("ordinary.ics", attached.FileName);
+        Assert.Contains("SUMMARY:Ordinary file", Encoding.ASCII.GetString(attachedContent.ToArray()),
+            StringComparison.Ordinal);
+        Assert.Contains("SUMMARY:Generated appointment", Encoding.UTF8.GetString(generatedContent.ToArray()),
+            StringComparison.Ordinal);
     }
 
     [Fact]

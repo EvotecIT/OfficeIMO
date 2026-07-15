@@ -221,4 +221,49 @@ public sealed class EmailMailboxTests {
         Assert.Equal(nameof(EmailReaderOptions.MaxInputBytes), synchronous.LimitName);
         Assert.Equal(nameof(EmailReaderOptions.MaxInputBytes), asynchronous.LimitName);
     }
+
+    [Fact]
+    public void StopsReadingAnOversizedUnterminatedMboxLineAtTheMessageLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "From sender@example.com Fri Jul 10 12:00:00 2026\n" + new string('x', 10000));
+        var options = new EmailMailboxReaderOptions(maxMailboxBytes: source.Length + 10,
+            messageOptions: new EmailReaderOptions(maxInputBytes: 64));
+        using var stream = new GuardedMemoryStream(source, maximumReads: 200);
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailMailboxReader(options).ReadEntries(stream).ToArray());
+
+        Assert.Equal(nameof(EmailReaderOptions.MaxInputBytes), exception.LimitName);
+        Assert.True(stream.BytesRead < 200);
+    }
+
+    [Fact]
+    public void StopsReadingAnOversizedUnterminatedMboxLineAtTheMailboxLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(new string('x', 10000));
+        var options = new EmailMailboxReaderOptions(maxMailboxBytes: 64);
+        using var stream = new GuardedMemoryStream(source, maximumReads: 200);
+
+        EmailLimitExceededException exception = Assert.Throws<EmailLimitExceededException>(() =>
+            new EmailMailboxReader(options).ReadEntries(stream).ToArray());
+
+        Assert.Equal(nameof(EmailMailboxReaderOptions.MaxMailboxBytes), exception.LimitName);
+        Assert.True(stream.BytesRead < 200);
+    }
+
+    private sealed class GuardedMemoryStream : MemoryStream {
+        private readonly int _maximumReads;
+
+        internal GuardedMemoryStream(byte[] source, int maximumReads) : base(source) {
+            _maximumReads = maximumReads;
+        }
+
+        internal int BytesRead { get; private set; }
+
+        public override int ReadByte() {
+            if (BytesRead >= _maximumReads) throw new InvalidOperationException("The reader did not stop at its limit.");
+            int value = base.ReadByte();
+            if (value >= 0) BytesRead++;
+            return value;
+        }
+    }
 }

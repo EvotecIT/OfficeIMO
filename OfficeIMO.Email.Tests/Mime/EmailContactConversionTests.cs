@@ -96,8 +96,80 @@ public sealed class EmailContactConversionTests {
         }
 
         EmailDocument document = new EmailDocumentReader().Read(prefix.Concat(vcard).ToArray()).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml)).Document;
 
         Assert.Equal("André", document.Contact!.DisplayName);
         Assert.Equal("André", document.Contact.GivenName);
+        Assert.Equal("André", roundTrip.Contact!.DisplayName);
+        EmailAttachment retained = Assert.Single(roundTrip.Attachments,
+            attachment => VCardContentType(attachment.ContentType));
+        Assert.Equal("windows-1252", retained.ContentTypeParameters["charset"]);
     }
+
+    [Fact]
+    public void MapsHomeAndOtherVcardEmailsToTheirOutlookSlots() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nEMAIL;TYPE=HOME:ada@home.example\r\n" +
+            "X-OFFICEIMO-EMAIL2-DISPLAY-NAME:Home Ada\r\n" +
+            "X-OFFICEIMO-EMAIL2-ORIGINAL-DISPLAY-NAME:Ada Original\r\n" +
+            "EMAIL;TYPE=OTHER:ada@other.example\r\nEND:VCARD\r\n");
+
+        OutlookContact contact = new EmailDocumentReader().Read(eml).Document.Contact!;
+
+        Assert.Null(contact.Email1.Address);
+        Assert.Equal("ada@home.example", contact.Email2.Address);
+        Assert.Equal("Home Ada", contact.Email2.DisplayName);
+        Assert.Equal("Ada Original", contact.Email2.OriginalDisplayName);
+        Assert.Equal("ada@other.example", contact.Email3.Address);
+    }
+
+    [Fact]
+    public void MarksMultiContactVcardProjectionIncompleteForStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:First\r\nEND:VCARD\r\n" +
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Second\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void KeepsOrdinaryVcardAttachmentAlongsideGeneratedContact() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            OutlookItemKind = OutlookItemKind.Contact,
+            Subject = "Generated contact",
+            Contact = new OutlookContact { DisplayName = "Generated contact" }
+        };
+        byte[] ordinary = Encoding.ASCII.GetBytes(
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ordinary file\r\nEND:VCARD\r\n");
+        source.Attachments.Add(new EmailAttachment {
+            FileName = "ordinary.vcf",
+            ContentType = "text/vcard",
+            Content = ordinary,
+            Length = ordinary.LongLength
+        });
+
+        byte[] output = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(output);
+        MimePart[] vcards = MimeMessage.Load(stream).Attachments.OfType<MimePart>()
+            .Where(part => VCardContentType(part.ContentType.MimeType)).ToArray();
+
+        Assert.Equal(2, vcards.Length);
+        Assert.Contains(vcards, part => part.FileName == "ordinary.vcf");
+        Assert.Contains(vcards, part => part.FileName == "contact.vcf");
+    }
+
+    private static bool VCardContentType(string? contentType) =>
+        string.Equals(contentType, "text/vcard", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(contentType, "text/x-vcard", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(contentType, "application/vcard", StringComparison.OrdinalIgnoreCase);
 }
