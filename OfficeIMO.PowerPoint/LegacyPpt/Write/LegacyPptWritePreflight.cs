@@ -36,6 +36,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     "PPT-WRITE-COMMENTS",
                     commentReason ?? "Classic comments cannot be encoded by the native binary writer."));
             }
+            if (!LegacyPptWriter.TryReadCustomShows(presentation, out _,
+                    out string? customShowReason)) {
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.CustomShows,
+                    "PPT-WRITE-CUSTOM-SHOW",
+                    customShowReason
+                    ?? "A custom show cannot be encoded by the native binary writer."));
+            }
             if (!LegacyPptWriter.TryReadInteractions(presentation, out _,
                     out string? interactionReason)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Hyperlinks,

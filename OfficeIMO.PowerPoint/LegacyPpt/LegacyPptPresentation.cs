@@ -124,6 +124,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             ParseBlipStore(document, package, options);
             ParseFontCollection(document, options);
+            ParseNamedShows(document, options);
             ParseHyperlinks(document, options);
 
             ParseSpecialMasters(documentAtom, documentStream, persistOffsets, options);
@@ -134,6 +135,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (slideList == null) {
                 AddDiagnostic("PPT-SLIDES-MISSING", LegacyPptDiagnosticSeverity.Warning,
                     "The document has no slide list.", document.Offset);
+                ValidateCustomShowSlideReferences();
                 return;
             }
             IReadOnlyDictionary<uint, LegacyPptNotesDirectoryEntry> notesDirectory =
@@ -167,6 +169,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 TryReadNotes(slide, documentStream, persistOffsets, notesDirectory, options);
                 _slides.Add(slide);
             }
+            ValidateCustomShowSlideReferences();
         }
 
         private void ParseSlide(LegacyPptRecord slideRecord, LegacyPptSlide slide, LegacyPptImportOptions options) {

@@ -15,7 +15,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordSlidePersistAtom = 0x03F3;
         private const ushort RecordSlideAtom = 0x03EF;
         private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
-        private const ushort RecordNamedShows = 0x0410;
         private const ushort RecordSlideListWithText = 0x0FF0;
         private const ushort RecordTextHeader = 0x0F9F;
         private const ushort RecordTextChars = 0x0FA0;
@@ -83,10 +82,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!LegacyPptWriter.TryReadInteractions(presentation,
                     out LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
                     out _)
+                || !LegacyPptWriter.TryReadCustomShows(presentation,
+                    out LegacyPptWriter.LegacyPptWriterCustomShowCatalog customShows,
+                    out _)
                 || !TryCreateInteractionContext(presentation, package, projectionMap,
                     interactionCatalog, out PreservingInteractionContext interactionContext)) {
                 return false;
             }
+            bool customShowsChanged = !CustomShowsEqual(projectionMap, customShows);
+            if (customShowsChanged && !projectionMap.CanEditCustomShows) return false;
 
             try {
                 var currentSlideOrder = new List<LegacyPptSlideProjection>(presentation.Slides.Count);
@@ -232,6 +236,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     rewritten.Add(package.DocumentPersistId, documentRecord);
+                }
+                if (customShowsChanged) {
+                    rewritten.TryGetValue(package.DocumentPersistId,
+                        out byte[]? currentDocumentBytes);
+                    if (!TryRewriteCustomShows(package, currentDocumentBytes,
+                            customShows, interactionContext,
+                            out byte[] documentWithCustomShows)) {
+                        return false;
+                    }
+                    rewritten[package.DocumentPersistId] =
+                        documentWithCustomShows;
                 }
                 if (interactionContext.NewHyperlinks.Count > 0) {
                     rewritten.TryGetValue(package.DocumentPersistId,

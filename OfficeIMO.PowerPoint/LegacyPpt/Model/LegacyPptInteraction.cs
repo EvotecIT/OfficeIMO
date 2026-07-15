@@ -176,7 +176,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LegacyPptInteractionAction action, LegacyPptInteractionJump jump,
             LegacyPptHyperlinkType hyperlinkType, uint soundIdReference,
             uint hyperlinkIdReference, byte oleVerb, byte flags, string? name,
-            LegacyPptHyperlink? hyperlink) {
+            LegacyPptHyperlink? hyperlink, LegacyPptCustomShow? customShow) {
             Trigger = trigger;
             Action = action;
             Jump = jump;
@@ -187,6 +187,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Flags = flags;
             Name = name;
             Hyperlink = hyperlink;
+            CustomShow = customShow;
         }
 
         /// <summary>Gets the interaction trigger.</summary>
@@ -218,6 +219,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the resolved document-level hyperlink, when present.</summary>
         public LegacyPptHyperlink? Hyperlink { get; }
+
+        /// <summary>Gets the resolved named show for a custom-show action, when present.</summary>
+        public LegacyPptCustomShow? CustomShow { get; }
 
         /// <summary>Gets whether the action is marked as animated.</summary>
         public bool IsAnimated => (Flags & 0x01) != 0;

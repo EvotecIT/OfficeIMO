@@ -118,6 +118,15 @@ namespace OfficeIMO.PowerPoint {
 
             if (!string.IsNullOrWhiteSpace(relIdValue)) {
                 string relId = relIdValue!;
+                IEnumerable<SlideListEntry> customShowEntries = PresentationRoot
+                    .CustomShowList?.Descendants<SlideListEntry>()
+                    ?? Enumerable.Empty<SlideListEntry>();
+                foreach (SlideListEntry customShowEntry in customShowEntries.ToArray()) {
+                    if (string.Equals(customShowEntry.Id?.Value, relId,
+                            StringComparison.Ordinal)) {
+                        customShowEntry.Remove();
+                    }
+                }
                 OpenXmlPart part = _presentationPart.GetPartById(relId);
                 _presentationPart.DeletePart(part);
             }

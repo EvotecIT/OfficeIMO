@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
@@ -37,6 +38,20 @@ namespace OfficeIMO.PowerPoint {
             OpenXmlPart ownerPart, LegacyPptInteraction interaction,
             bool shapeLevel = false,
             IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null) {
+            string? customShowName = interaction.Name;
+            if (interaction.Action == LegacyPptInteractionAction.CustomShow
+                && customShowName != null && customShowName.Length > 0
+                && TryResolveLegacyCustomShowId(ownerPart, customShowName,
+                    out uint customShowId)) {
+                string customShowAction = "ppaction://customshow?id="
+                    + customShowId.ToString(
+                        System.Globalization.CultureInfo.InvariantCulture);
+                if (interaction.ReturnsFromCustomShow) {
+                    customShowAction += "&return=true";
+                }
+                return CreateLegacyInteractionElements(interaction, shapeLevel,
+                    string.Empty, customShowAction);
+            }
             if (interaction.Action == LegacyPptInteractionAction.Macro
                 && !string.IsNullOrEmpty(interaction.Name)) {
                 return CreateLegacyInteractionElements(interaction, shapeLevel,
@@ -71,6 +86,7 @@ namespace OfficeIMO.PowerPoint {
             }
             if (interaction.Action == LegacyPptInteractionAction.Hyperlink
                 && interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
+                && interaction.HyperlinkType != LegacyPptHyperlinkType.CustomShow
                 && interaction.Hyperlink?.Uri is Uri uri) {
                 HyperlinkRelationship relationship = ownerPart.AddHyperlinkRelationship(uri,
                     isExternal: true);
@@ -100,6 +116,23 @@ namespace OfficeIMO.PowerPoint {
             if (interaction.IsAnimated) hyperlink.HighlightClick = true;
             if (interaction.StopsSound) hyperlink.EndSound = true;
             return new OpenXmlElement[] { hyperlink };
+        }
+
+        private static bool TryResolveLegacyCustomShowId(OpenXmlPart ownerPart,
+            string name, out uint customShowId) {
+            customShowId = 0;
+            PresentationPart? presentationPart = ownerPart.OpenXmlPackage.RootPart
+                as PresentationPart;
+            P.CustomShow[] matches = presentationPart?.Presentation?.CustomShowList?
+                .Elements<P.CustomShow>().Where(show => string.Equals(
+                    show.Name?.Value, name, StringComparison.Ordinal)).ToArray()
+                ?? Array.Empty<P.CustomShow>();
+            uint? id = matches.Length == 1 ? matches[0].Id?.Value : null;
+            if (!id.HasValue) {
+                return false;
+            }
+            customShowId = id.Value;
+            return true;
         }
 
         private static string? GetLegacyPowerPointAction(

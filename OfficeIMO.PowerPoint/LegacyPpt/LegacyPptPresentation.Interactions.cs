@@ -247,12 +247,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "An interaction has duplicate or malformed macro/program/show name data.",
                     container.Offset);
             }
+            LegacyPptCustomShow? customShow = null;
+            if (action == LegacyPptInteractionAction.CustomShow && name != null) {
+                LegacyPptCustomShow[] matches = _customShows.Where(show =>
+                    string.Equals(show.Name, name, StringComparison.Ordinal)).ToArray();
+                if (matches.Length == 1 && matches[0].IsEditable) {
+                    customShow = matches[0];
+                }
+            }
             var interaction = new LegacyPptInteraction(
                 (LegacyPptInteractionTrigger)container.Instance, action,
                 (LegacyPptInteractionJump)jumpValue,
                 (LegacyPptHyperlinkType)hyperlinkTypeValue,
                 atom.ReadUInt32(0), hyperlinkId, atom.ReadByte(9), flags,
-                name, hyperlink);
+                name, hyperlink, customShow);
             if (options.ReportUnsupportedContent && !IsNativelyProjectable(interaction)) {
                 AddDiagnostic("PPT-ACTION-PRESERVE-ONLY",
                     LegacyPptDiagnosticSeverity.Warning,
@@ -297,8 +305,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             || value == 10 || value == 255;
 
         private static bool IsNativelyProjectable(LegacyPptInteraction interaction) {
+            byte allowedFlags = interaction.Action ==
+                LegacyPptInteractionAction.CustomShow ? (byte)0x07 : (byte)0x03;
             if (interaction.SoundIdReference != 0 || interaction.OleVerb != 0
-                || (interaction.Flags & ~0x03) != 0) return false;
+                || (interaction.Flags & ~allowedFlags) != 0) return false;
             if (interaction.Action == LegacyPptInteractionAction.None) {
                 return interaction.Jump == LegacyPptInteractionJump.None
                     && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
@@ -319,6 +329,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     && Uri.TryCreate(interaction.Name, UriKind.RelativeOrAbsolute,
                         out _);
             }
+            if (interaction.Action == LegacyPptInteractionAction.CustomShow) {
+                return interaction.CustomShow != null
+                    && interaction.Jump == LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0;
+            }
             if (interaction.Action == LegacyPptInteractionAction.Jump) {
                 return interaction.Jump != LegacyPptInteractionJump.None
                     && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
@@ -328,7 +344,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (interaction.Action != LegacyPptInteractionAction.Hyperlink) return false;
             if (interaction.Jump != LegacyPptInteractionJump.None
                 || !string.IsNullOrEmpty(interaction.Name)
-                || interaction.Hyperlink?.ExtensionFlags != 0) return false;
+                || interaction.Hyperlink?.ExtensionFlags != 0
+                || interaction.HyperlinkType == LegacyPptHyperlinkType.CustomShow) {
+                return false;
+            }
             return (interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
                     && interaction.Hyperlink?.Uri != null)
                 || (interaction.HyperlinkType == LegacyPptHyperlinkType.SlideNumber

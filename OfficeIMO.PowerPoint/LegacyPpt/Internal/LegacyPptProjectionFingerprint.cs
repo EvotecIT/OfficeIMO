@@ -80,8 +80,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             (owner, relationship) => relationship is not HyperlinkRelationship);
 
         private static void NormalizePresentationTopology(OpenXmlElement root) {
-            if (root is not P.Presentation presentation || presentation.SlideIdList == null) return;
-            presentation.SlideIdList.RemoveAllChildren<P.SlideId>();
+            if (root is not P.Presentation presentation) return;
+            presentation.SlideIdList?.RemoveAllChildren<P.SlideId>();
+            presentation.RemoveAllChildren<P.CustomShowList>();
         }
 
         private static void NormalizeProjectedHeaderFooter(OpenXmlElement root) {

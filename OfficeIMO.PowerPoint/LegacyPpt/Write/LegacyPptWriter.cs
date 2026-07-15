@@ -51,6 +51,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 commentsBySlide = new Dictionary<string, IReadOnlyList<LegacyPptWriterComment>>(
                     StringComparer.Ordinal);
             }
+            if (!TryReadCustomShows(presentation,
+                    out LegacyPptWriterCustomShowCatalog customShows,
+                    out string? customShowReason)) {
+                throw new NotSupportedException(customShowReason);
+            }
             if (!TryReadInteractions(presentation,
                     out LegacyPptWriterInteractionCatalog interactionCatalog,
                     out string? interactionReason)) {
@@ -95,7 +100,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             var persistObjects = new List<byte[]>(13 + slideRecords.Count + notesRecords.Length) {
                 BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes,
-                    interactionCatalog)
+                    interactionCatalog, customShows)
             };
             persistObjects.AddRange(template.SharedPersistObjects);
             persistObjects.AddRange(slideRecords);
@@ -148,7 +153,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,
             IReadOnlyList<int> slideShapeCounts, IReadOnlyList<LegacyPptWriterNote> notes,
-            LegacyPptWriterInteractionCatalog interactionCatalog) {
+            LegacyPptWriterInteractionCatalog interactionCatalog,
+            LegacyPptWriterCustomShowCatalog customShows) {
             var children = new List<byte[]>();
             foreach (LegacyPptRecord child in document.Children) {
                 if (child.Type == RecordDocumentAtom) {
@@ -177,6 +183,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             byte[] rebuilt = BuildContainer(RecordDocument, instance: 0, children);
             LegacyPptRecord rebuiltRecord = LegacyPptRecordReader.ReadSingle(rebuilt, 0,
+                new LegacyPptImportOptions());
+            var slideIdsByPartUri = presentation.Slides.Select((slide, index) =>
+                    new KeyValuePair<string, uint>(slide.SlidePart.Uri.ToString(),
+                        checked(unchecked((uint)index) + 256U)))
+                .ToDictionary(pair => pair.Key, pair => pair.Value,
+                    StringComparer.Ordinal);
+            if (!TryBuildNamedShowsRecord(customShows, partUri =>
+                    slideIdsByPartUri.TryGetValue(partUri, out uint slideId)
+                        ? slideId
+                        : (uint?)null,
+                    out byte[] namedShows)
+                || !TryRewriteDocumentNamedShows(rebuiltRecord, namedShows,
+                    out byte[] withNamedShows)) {
+                throw new InvalidDataException(
+                    "The presentation custom-show list cannot be mapped to binary slide identifiers.");
+            }
+            rebuiltRecord = LegacyPptRecordReader.ReadSingle(withNamedShows, 0,
                 new LegacyPptImportOptions());
             if (!TryRewriteDocumentHyperlinkExtensions(rebuiltRecord,
                     interactionCatalog.Hyperlinks, replaceExisting: true,

@@ -11,7 +11,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private LegacyPptProjectionMap(IReadOnlyList<LegacyPptSlideProjection> slides,
             IReadOnlyDictionary<string, uint> masterIdsByLayoutPartUri,
-            IReadOnlyList<LegacyPptHyperlink> hyperlinks) {
+            IReadOnlyList<LegacyPptHyperlink> hyperlinks,
+            IReadOnlyList<LegacyPptCustomShow> customShows,
+            bool customShowsAreEditable) {
             Slides = new ReadOnlyCollection<LegacyPptSlideProjection>(slides.ToArray());
             _slidesByPartUri = new ReadOnlyDictionary<string, LegacyPptSlideProjection>(slides.ToDictionary(
                 slide => slide.SlidePartUri, StringComparer.Ordinal));
@@ -21,11 +23,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 masterIdsByLayoutPartUri.ToDictionary(pair => pair.Key, pair => pair.Value,
                     StringComparer.Ordinal));
             Hyperlinks = new ReadOnlyCollection<LegacyPptHyperlink>(hyperlinks.ToArray());
+            CustomShows = new ReadOnlyCollection<LegacyPptCustomShow>(
+                customShows.ToArray());
+            CanEditCustomShows = customShowsAreEditable
+                && customShows.All(show => show.IsEditable)
+                && customShows.Select(show => show.Name)
+                    .Distinct(StringComparer.Ordinal).Count() == customShows.Count;
         }
 
         internal IReadOnlyList<LegacyPptSlideProjection> Slides { get; }
 
         internal IReadOnlyList<LegacyPptHyperlink> Hyperlinks { get; }
+
+        internal IReadOnlyList<LegacyPptCustomShow> CustomShows { get; }
+
+        internal bool CanEditCustomShows { get; }
 
         internal bool TryGetSlide(PowerPointSlide slide, out LegacyPptSlideProjection? projection) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
@@ -97,7 +109,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                             sourceSlide.NotesPage.NotesId, sourceSlide.NotesPage.Text)));
             }
             return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy),
-                legacy.Hyperlinks);
+                legacy.Hyperlinks, legacy.CustomShows,
+                legacy.CustomShowsAreEditable);
         }
 
         private static IReadOnlyDictionary<string, uint> CreateLayoutMasterMap(
@@ -233,8 +246,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool CanEditInteractions { get; }
 
         private static bool IsEditableInteraction(LegacyPptInteraction interaction) {
+            byte allowedFlags = interaction.Action ==
+                LegacyPptInteractionAction.CustomShow ? (byte)0x07 : (byte)0x03;
             if (interaction.SoundIdReference != 0 || interaction.OleVerb != 0
-                || (interaction.Flags & ~0x03) != 0) return false;
+                || (interaction.Flags & ~allowedFlags) != 0) return false;
             if (interaction.Action == LegacyPptInteractionAction.Macro) {
                 return !string.IsNullOrEmpty(interaction.Name)
                     && interaction.Jump == LegacyPptInteractionJump.None
@@ -249,6 +264,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     && Uri.TryCreate(interaction.Name, UriKind.RelativeOrAbsolute,
                         out _);
             }
+            if (interaction.Action == LegacyPptInteractionAction.CustomShow) {
+                return interaction.CustomShow?.IsEditable == true
+                    && interaction.Jump == LegacyPptInteractionJump.None
+                    && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
+                    && interaction.HyperlinkIdReference == 0;
+            }
             if (interaction.Action == LegacyPptInteractionAction.Jump) {
                 return interaction.Jump != LegacyPptInteractionJump.None
                     && interaction.HyperlinkType == LegacyPptHyperlinkType.Nil
@@ -258,6 +279,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (interaction.Action != LegacyPptInteractionAction.Hyperlink) return false;
             if (interaction.Jump != LegacyPptInteractionJump.None
                 || !string.IsNullOrEmpty(interaction.Name)
+                || interaction.HyperlinkType == LegacyPptHyperlinkType.CustomShow
                 || interaction.Hyperlink != null
                 && interaction.Hyperlink.ExtensionFlags != 0) return false;
             return (interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber

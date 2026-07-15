@@ -173,10 +173,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = $"Unsupported DrawingML interaction element {hyperlink.LocalName}.";
                 return false;
             }
+            if (screenTip?.Length == 0) screenTip = null;
             A.HyperlinkType typedHyperlink = (A.HyperlinkType)hyperlink;
             byte flags = 0;
             if (typedHyperlink.HighlightClick?.Value == true) flags |= 0x01;
             if (typedHyperlink.EndSound?.Value == true) flags |= 0x02;
+
+            if (TryParseCustomShowAction(action, out uint customShowId,
+                    out bool returnsToSlide)) {
+                if (!string.IsNullOrEmpty(relationshipId) || screenTip != null
+                    || !TryResolveCustomShowName(slidePart, customShowId,
+                        out string? customShowName)) {
+                    reason = "Custom-show actions require a valid show id and cannot combine a relationship or screen tip.";
+                    return false;
+                }
+                if (returnsToSlide) flags |= 0x04;
+                interaction = new LegacyPptWriterInteraction(trigger,
+                    LegacyPptInteractionAction.CustomShow,
+                    LegacyPptInteractionJump.None, LegacyPptHyperlinkType.Nil,
+                    hyperlinkIdReference: 0, name: customShowName,
+                    flags: flags);
+                return true;
+            }
 
             const string MacroPrefix = "ppaction://macro?name=";
             if (action != null && action.StartsWith(MacroPrefix,
@@ -293,6 +311,40 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             }
             return false;
+        }
+
+        private static bool TryParseCustomShowAction(string? action,
+            out uint customShowId, out bool returnsToSlide) {
+            const string Prefix = "ppaction://customshow?id=";
+            const string ReturnSuffix = "&return=true";
+            customShowId = 0;
+            returnsToSlide = false;
+            if (action == null || !action.StartsWith(Prefix,
+                    StringComparison.OrdinalIgnoreCase)) return false;
+            string value = action.Substring(Prefix.Length);
+            if (value.EndsWith(ReturnSuffix, StringComparison.OrdinalIgnoreCase)) {
+                returnsToSlide = true;
+                value = value.Substring(0, value.Length - ReturnSuffix.Length);
+            }
+            return value.Length > 0 && value.IndexOf('&') < 0
+                && uint.TryParse(value,
+                    System.Globalization.NumberStyles.None,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out customShowId);
+        }
+
+        private static bool TryResolveCustomShowName(SlidePart slidePart,
+            uint customShowId, out string? name) {
+            name = null;
+            PresentationPart? presentationPart = slidePart.OpenXmlPackage.RootPart
+                as PresentationPart;
+            P.CustomShow[] matches = presentationPart?.Presentation?.CustomShowList?
+                .Elements<P.CustomShow>().Where(show => show.Id?.Value == customShowId)
+                .ToArray() ?? Array.Empty<P.CustomShow>();
+            if (matches.Length != 1 || string.IsNullOrEmpty(
+                    matches[0].Name?.Value)) return false;
+            name = matches[0].Name!.Value;
+            return true;
         }
 
         private static bool TryMapShowJump(string? action,

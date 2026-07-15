@@ -70,6 +70,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (action != LegacyPptInteractionAction.Hyperlink) {
                 return action is LegacyPptInteractionAction.Macro
                         or LegacyPptInteractionAction.RunProgram
+                        or LegacyPptInteractionAction.CustomShow
                     ? string.Equals(source.Name, current.Name,
                         StringComparison.Ordinal)
                     : string.IsNullOrEmpty(source.Name)
@@ -361,6 +362,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             internal IReadOnlyList<LegacyPptWriter.LegacyPptWriterHyperlink> NewHyperlinks =>
                 _newHyperlinks;
+
+            internal uint? ResolveSlideId(string partUri) =>
+                _slideTargetsByPartUri.TryGetValue(partUri,
+                    out LegacyPptWriter.LegacyPptWriterSlideTarget target)
+                    ? target.BinarySlideId
+                    : (uint?)null;
 
             internal bool TryMap(LegacyPptWriter.LegacyPptWriterHyperlink hyperlink,
                 out uint binaryId) {

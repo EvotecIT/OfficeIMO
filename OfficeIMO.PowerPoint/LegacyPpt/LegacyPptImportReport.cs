@@ -77,6 +77,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 hyperlink.ScreenTip != null);
             HyperlinkExtensionFlagCount = presentation.Hyperlinks.Count(hyperlink =>
                 hyperlink.ExtensionFlags != 0);
+            CustomShowCount = presentation.CustomShows.Count;
+            CustomShowSlideEntryCount = presentation.CustomShows.Sum(show =>
+                show.SlideIds.Count);
             LegacyPptShape[] interactiveShapes = EnumerateShapes(presentation).ToArray();
             ShapeInteractionCount = interactiveShapes.Sum(shape => shape.Interactions.Count);
             TextInteractionCount = interactiveShapes.Sum(shape =>
@@ -173,6 +176,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of decoded hyperlinks with nonzero PowerPoint 2000+ flags.</summary>
         public int HyperlinkExtensionFlagCount { get; }
+
+        /// <summary>Gets the number of decoded named custom shows.</summary>
+        public int CustomShowCount { get; }
+
+        /// <summary>Gets the number of ordered slide entries across named custom shows.</summary>
+        public int CustomShowSlideEntryCount { get; }
 
         /// <summary>Gets the number of decoded shape-level click and mouse-over actions.</summary>
         public int ShapeInteractionCount { get; }

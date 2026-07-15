@@ -137,10 +137,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             LegacyPptRecord document = LegacyPptRecordReader.ReadSingle(documentObject.RecordBytes, 0,
                 new LegacyPptImportOptions());
-            if (slideOrder.Count < projectionMap.Slides.Count
-                && document.DescendantsAndSelf().Any(record => record.Type == RecordNamedShows)) {
-                return false;
-            }
             LegacyPptRecord? slideList = document.Children.FirstOrDefault(child =>
                 child.Type == RecordSlideListWithText && child.Instance == 0);
             if (slideList == null || !TryReorderSlideList(slideList, projectionMap, slideOrder,

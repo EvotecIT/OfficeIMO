@@ -87,6 +87,7 @@ namespace OfficeIMO.PowerPoint {
                 slidePartsByLegacyId.Add(legacySlide.SlideId, slide.SlidePart);
             }
 
+            ProjectLegacyCustomShows(projected, legacy, slidePartsByLegacyId);
             foreach ((LegacyPptSlide legacySlide, PowerPointSlide slide) in slideProjections) {
                 var projectedShapeIds = new Dictionary<uint, uint>();
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
