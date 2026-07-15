@@ -128,6 +128,30 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtPictureProperties_DecodesPictureEffectsAndBooleanUseBits() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x0107, 0x00030201U),
+            new OfficeArtProperty(1, 0x0108, 45875U),
+            new OfficeArtProperty(2, 0x0109, unchecked((uint)-8192)),
+            new OfficeArtProperty(3, 0x011A, 0x00060504U),
+            new OfficeArtProperty(4, 0x013F, (1U << 18) | (1U << 2) | (1U << 1))
+        };
+
+        OfficeArtPictureProperties picture = OfficeArtPictureProperties.Decode(properties);
+
+        Assert.True(picture.HasPictureEffect);
+        Assert.Equal(new OfficeArtColorReference(0x00030201U), picture.TransparentColor);
+        Assert.Equal(45875, picture.ContrastRaw);
+        Assert.Equal(-8192, picture.BrightnessRaw);
+        Assert.Equal(-0.3D, picture.ContrastAdjustment!.Value, 4);
+        Assert.Equal(-0.25D, picture.BrightnessAdjustment);
+        Assert.Equal(new OfficeArtColorReference(0x00060504U), picture.RecolorColor);
+        Assert.True(picture.Grayscale);
+        Assert.Null(picture.BiLevel);
+        Assert.Equal("pictureBrightness", properties[2].PropertyName);
+    }
+
+    [Fact]
     public void OfficeArtPropertyTableReader_RejectsTruncatedFixedTableWithoutOverread() {
         byte[] payload = { 0x81, 0x01, 0x33, 0x22, 0x11 };
 

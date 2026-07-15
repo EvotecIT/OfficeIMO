@@ -390,6 +390,7 @@ namespace OfficeIMO.PowerPoint {
                 new A.Blip { Embed = relationshipId },
                 new A.Stretch(new A.FillRectangle()));
             ApplyLegacyPictureCrop(blipFill, source);
+            ApplyLegacyPictureEffects(blipFill.Blip, source);
             return new Picture(
                 new NonVisualPictureProperties(
                     new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Picture {shapeId - 1U}" },
@@ -414,6 +415,32 @@ namespace OfficeIMO.PowerPoint {
                 || double.IsInfinity(fraction.Value)) return null;
             double value = Math.Round(fraction.Value * 100000D, MidpointRounding.AwayFromZero);
             return value < int.MinValue || value > int.MaxValue ? null : (int)value;
+        }
+
+        private static void ApplyLegacyPictureEffects(A.Blip? target, LegacyPptShape source) {
+            if (target == null) return;
+            int? brightness = ToOpenXmlPictureAdjustment(
+                source.PictureProperties.BrightnessAdjustment);
+            int? contrast = ToOpenXmlPictureAdjustment(
+                source.PictureProperties.ContrastAdjustment);
+            if (brightness.HasValue || contrast.HasValue) {
+                target.Append(new A.LuminanceEffect {
+                    Brightness = brightness,
+                    Contrast = contrast
+                });
+            }
+            if (source.PictureProperties.BiLevel == true) {
+                target.Append(new A.BiLevel { Threshold = 50000 });
+            } else if (source.PictureProperties.Grayscale == true) {
+                target.Append(new A.Grayscale());
+            }
+        }
+
+        private static int? ToOpenXmlPictureAdjustment(double? fraction) {
+            if (!fraction.HasValue || double.IsNaN(fraction.Value)
+                || double.IsInfinity(fraction.Value)) return null;
+            return (int)Math.Round(Math.Max(-1D, Math.Min(1D, fraction.Value)) * 100000D,
+                MidpointRounding.AwayFromZero);
         }
 
         internal static void ApplyLegacyShapeTransform(A.Transform2D transform, LegacyPptShape source) {

@@ -63,7 +63,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                 Planned(LegacyPptFeature.MetafilePictures, "Images", "WMF and EMF BLIP records.",
                     "Shared OfficeArt decoding can extract compressed and uncompressed WMF/EMF payloads for import; corpus interoperability and binary authoring remain planned."),
                 Planned(LegacyPptFeature.PictureCrop, "Images", "Picture crop, transform, and recolor properties.",
-                    "All four signed OfficeArt crop edges are decoded as 16.16 image fractions and projected natively for slide, master, layout, and grouped pictures, including negative crop-out values. Crop editing, recolor, brightness, contrast, and fresh binary authoring remain planned."),
+                    "All four signed OfficeArt crop edges are decoded as 16.16 image fractions and projected natively for slide, master, layout, and grouped pictures, including negative crop-out values. Brightness, contrast, grayscale, and bi-level display state are also projected as native DrawingML effects. Effect thresholds, transparent-color and recolor projection, effect editing, and fresh binary authoring remain planned."),
                 Planned(LegacyPptFeature.Tables, "Content", "Native OfficeArt tables and cell formatting."),
                 Planned(LegacyPptFeature.Charts, "Content", "Legacy Microsoft Graph and embedded chart objects."),
                 Planned(LegacyPptFeature.SmartArt, "Content", "SmartArt diagrams.", LegacyPptRepresentability.Approximation,

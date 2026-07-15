@@ -44,6 +44,13 @@ the other uses negative top and left crop-out values. It exercises signed 16.16 
 decoding, native DrawingML source-rectangle projection, and exact no-op saves. Its SHA-256 digest is
 `42b9007c1d995ecd0471bdc195a9b2a72acdc89dfbd4cee73f47000099068dc9`.
 
+`PictureEffectsPowerPoint.ppt` was generated from a one-slide PPTX containing brightness,
+negative and positive contrast, grayscale, bi-level, and recolor examples, then converted with
+LibreOffice. It exercises signed effect values, the OfficeArt Boolean use/value masks, native
+DrawingML luminance and monochrome projection, baked-image fallback, and exact no-op saves. Its
+SHA-256 digest is
+`db2eadf76110641fe46230949f04ac4c54cb158678b7cd301ceea193161e27d2`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

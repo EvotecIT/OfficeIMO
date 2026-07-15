@@ -18,6 +18,9 @@ namespace OfficeIMO.Tests {
         private static string CroppedPictureFixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "CroppedPicturePowerPoint.ppt");
 
+        private static string PictureEffectsFixturePath => Path.Combine(AppContext.BaseDirectory,
+            "Documents", "LegacyPptCorpus", "PictureEffectsPowerPoint.ppt");
+
         [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
@@ -125,6 +128,70 @@ namespace OfficeIMO.Tests {
             Assert.Equal(-4094, negative.CropFromTopRaw);
             Assert.Equal(-8192, negative.CropFromLeftRaw);
             Assert.True(negative.HasCrop);
+        }
+
+        [Fact]
+        public void NeutralReader_DecodesPictureEffectProperties() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(PictureEffectsFixturePath);
+            LegacyPptShape[] pictures = Assert.Single(legacy.Slides).Shapes
+                .Where(shape => shape.Kind == LegacyPptShapeKind.Picture)
+                .OrderBy(shape => shape.Bounds.Top)
+                .ThenBy(shape => shape.Bounds.Left)
+                .ToArray();
+
+            Assert.Equal(6, pictures.Length);
+            Assert.Equal(8175, pictures[0].PictureProperties.BrightnessRaw);
+            Assert.Equal(45875, pictures[1].PictureProperties.ContrastRaw);
+            Assert.Equal(109226, pictures[2].PictureProperties.ContrastRaw);
+            Assert.True(pictures[3].PictureProperties.Grayscale);
+            Assert.Null(pictures[3].PictureProperties.BiLevel);
+            Assert.True(pictures[4].PictureProperties.Grayscale);
+            Assert.True(pictures[4].PictureProperties.BiLevel);
+            Assert.False(pictures[5].PictureProperties.HasPictureEffect);
+        }
+
+        [Fact]
+        public void NormalLoad_ProjectsNativePictureEffectsAndPreservesBinaryExactly() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+                PictureEffectsFixturePath);
+            P.Picture[] pictures = Assert.Single(presentation.Slides).Pictures
+                .OrderBy(picture => picture.Top)
+                .ThenBy(picture => picture.Left)
+                .Select(picture => Assert.IsType<P.Picture>(picture.Element))
+                .ToArray();
+
+            Assert.Equal(24948, pictures[0].BlipFill!.Blip!
+                .GetFirstChild<A.LuminanceEffect>()!.Brightness!.Value);
+            Assert.Equal(-30000, pictures[1].BlipFill!.Blip!
+                .GetFirstChild<A.LuminanceEffect>()!.Contrast!.Value);
+            Assert.Equal(40000, pictures[2].BlipFill!.Blip!
+                .GetFirstChild<A.LuminanceEffect>()!.Contrast!.Value);
+            Assert.NotNull(pictures[3].BlipFill!.Blip!.GetFirstChild<A.Grayscale>());
+            Assert.Null(pictures[3].BlipFill.Blip.GetFirstChild<A.BiLevel>());
+            Assert.Equal(50000, pictures[4].BlipFill!.Blip!
+                .GetFirstChild<A.BiLevel>()!.Threshold!.Value);
+            Assert.Null(pictures[4].BlipFill.Blip.GetFirstChild<A.Grayscale>());
+            Assert.Empty(presentation.ValidateDocument());
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.Equal(File.ReadAllBytes(PictureEffectsFixturePath),
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedPictureEffectEdit_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+                PictureEffectsFixturePath);
+            PowerPointPicture picture = presentation.Slides[0].Pictures
+                .OrderBy(item => item.Top)
+                .ThenBy(item => item.Left)
+                .First();
+            P.Picture element = Assert.IsType<P.Picture>(picture.Element);
+
+            element.BlipFill!.Blip!.GetFirstChild<A.LuminanceEffect>()!.Brightness = 10000;
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
         }
 
         [Fact]
