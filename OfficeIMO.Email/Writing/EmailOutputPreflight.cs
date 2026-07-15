@@ -26,6 +26,8 @@ internal static class EmailOutputPreflight {
                 }
             } else if (attachment.Content != null) {
                 total = Add(total, attachment.Content.LongLength, maxOutputBytes);
+            } else if (attachment.ContentSource?.Length is long sourceLength) {
+                total = Add(total, sourceLength, maxOutputBytes);
             }
         }
         return total;

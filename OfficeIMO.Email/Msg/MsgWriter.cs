@@ -28,10 +28,12 @@ internal static class MsgWriter {
         EmailRecipient[] storageRecipients = document.Recipients
             .Where(recipient => recipient.Kind != EmailRecipientKind.ReplyTo)
             .ToArray();
+        EmailAttachment[] writableAttachments = document.Attachments.Where(attachment =>
+            !attachment.IsProjectedSemanticContent).ToArray();
         int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
-        MsgPropertyBuilder messageProperties = CreateMessageProperties(document, diagnostics, prefix);
+        MsgPropertyBuilder messageProperties = CreateMessageProperties(document, diagnostics, prefix, options);
         MsgPropertyWriter.Write(prefix, kind, messageProperties.Properties, storageRecipients.Length,
-            document.Attachments.Count, names, streams, diagnostics, codePage);
+            writableAttachments.Length, names, streams, diagnostics, codePage);
 
         for (int index = 0; index < storageRecipients.Length; index++) {
             EmailRecipient recipient = storageRecipients[index];
@@ -42,16 +44,17 @@ internal static class MsgWriter {
                 0, 0, names, streams, diagnostics, codePage);
         }
 
-        for (int index = 0; index < document.Attachments.Count; index++) {
-            EmailAttachment attachment = document.Attachments[index];
+        for (int index = 0; index < writableAttachments.Length; index++) {
+            EmailAttachment attachment = writableAttachments[index];
+            byte[]? content = EmailAttachmentContent.ReadOrNull(attachment, options.MaxOutputBytes);
             string storage = MsgBinary.CombinePath(prefix,
                 string.Concat("__attach_version1.0_#", index.ToString("X8", CultureInfo.InvariantCulture)));
             int method = attachment.MapiAttachMethod ?? (attachment.EmbeddedDocument != null ? 5 :
                 attachment.StructuredStorageStreams.Count > 0 ? 6 : 1);
             EmailDocument? embeddedDocument = attachment.EmbeddedDocument ??
-                TryReadOpaqueEmbeddedTnef(attachment, diagnostics, storage);
+                TryReadOpaqueEmbeddedTnef(attachment, content, diagnostics, storage);
             MsgPropertyBuilder properties = CreateAttachmentProperties(attachment, index, method, diagnostics, storage,
-                embeddedDocument != null || attachment.StructuredStorageStreams.Count > 0 || attachment.Content != null);
+                embeddedDocument != null || attachment.StructuredStorageStreams.Count > 0 || content != null, content);
             MsgPropertyWriter.Write(storage, MsgPropertyStreamKind.ChildObject, properties.Properties,
                 0, 0, names, streams, diagnostics, codePage,
                 method == 5 ? 1U : method == 6 ? 4U : 0U);
@@ -65,19 +68,19 @@ internal static class MsgWriter {
                     .OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
                     streams.Add(new OfficeCompoundStream(MsgBinary.CombinePath(objectStorage, stream.Key), stream.Value));
                 }
-            } else if (method == 5 && attachment.Content != null) {
+            } else if (method == 5 && content != null) {
                 streams.Add(new OfficeCompoundStream(
-                    MsgBinary.CombinePath(objectStorage, "CONTENTS"), attachment.Content));
+                    MsgBinary.CombinePath(objectStorage, "CONTENTS"), content));
                 diagnostics.Add(new EmailDiagnostic("EMAIL_MSG_OPAQUE_EMBEDDED_CONTENT_WRAPPED",
                     "Opaque embedded attachment bytes were retained in the MSG object storage because the payload could not be projected as a nested message.",
                     EmailDiagnosticSeverity.Warning, objectStorage));
             } else if (method == 6) {
-                WriteStructuredAttachment(attachment, objectStorage, streams, diagnostics);
+                WriteStructuredAttachment(attachment, content, objectStorage, streams, diagnostics);
             }
         }
     }
 
-    private static void WriteStructuredAttachment(EmailAttachment attachment, string objectStorage,
+    private static void WriteStructuredAttachment(EmailAttachment attachment, byte[]? content, string objectStorage,
         IList<OfficeCompoundStream> streams, IList<EmailDiagnostic> diagnostics) {
         if (attachment.StructuredStorageStreams.Count > 0) {
             foreach (KeyValuePair<string, byte[]> stream in attachment.StructuredStorageStreams
@@ -87,8 +90,8 @@ internal static class MsgWriter {
             return;
         }
 
-        if (attachment.Content == null) return;
-        byte[] retained = attachment.Content;
+        if (content == null) return;
+        byte[] retained = content;
         byte[] compoundCandidate = retained.Length > 16 &&
             new Guid(MsgBinary.Slice(retained, 0, 16)) == StorageInterfaceId
                 ? MsgBinary.Slice(retained, 16, retained.Length - 16)
@@ -109,7 +112,7 @@ internal static class MsgWriter {
     }
 
     internal static MsgPropertyBuilder CreateMessageProperties(EmailDocument document,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        IList<EmailDiagnostic> diagnostics, string location, EmailWriterOptions? options = null) {
         var properties = new MsgPropertyBuilder(document.MapiProperties);
         int codePage = MapiStringEncodingContext.FromCodePage(document.OutlookCodePage ?? 65001).PrimaryCodePage;
         EmailMessageMetadata metadata = document.MessageMetadata;
@@ -120,8 +123,10 @@ internal static class MsgWriter {
             MapiPropertyType.Unicode, ResolveAcceptLanguage(document));
         properties.Set(0x340D, MapiPropertyType.Integer32, 0x00040E79);
         properties.Set(0x0002, MapiPropertyType.Boolean, true);
-        int messageFlags = 0x0002;
-        if (document.Attachments.Count > 0) messageFlags |= 0x0010;
+        const int managedMessageFlags = 0x0001 | 0x0002 | 0x0008 | 0x0010 | 0x0400;
+        int messageFlags = (MsgProjection.GetInt(document.MapiProperties, 0x0E07) ?? 0) & ~managedMessageFlags;
+        messageFlags |= 0x0002;
+        if (document.Attachments.Any(attachment => !attachment.IsProjectedSemanticContent)) messageFlags |= 0x0010;
         if (metadata.IsDraft) messageFlags |= 0x0008;
         if (metadata.IsRead == true) messageFlags |= 0x0001 | 0x0400;
         properties.Set(0x0E07, MapiPropertyType.Integer32, messageFlags);
@@ -208,10 +213,7 @@ internal static class MsgWriter {
         properties.Set(0x0050, MapiPropertyType.Unicode, JoinRecipients(document, EmailRecipientKind.ReplyTo));
         properties.SetNamed(MsgProjection.PsPublicStrings, "Keywords", MapiPropertyType.MultipleUnicode,
             metadata.Categories.Count == 0 ? null : metadata.Categories.Cast<object>().ToArray());
-        string? headers = document.Headers.Count == 0 ? null : string.Join("\r\n",
-            document.Headers.Select(header => string.Concat(
-                MimeHeaderSafety.SanitizeName(header.Name), ": ",
-                MimeHeaderSafety.SanitizeValue(header.RawValue ?? header.Value))));
+        string? headers = MimeWriter.CreateTransportHeaders(document, options ?? EmailWriterOptions.Default);
         properties.Set(0x007D, MapiPropertyType.Unicode, headers);
         AddTypedProperties(properties, document);
         return properties;
@@ -263,7 +265,8 @@ internal static class MsgWriter {
     }
 
     internal static MsgPropertyBuilder CreateAttachmentProperties(EmailAttachment attachment, int index, int method,
-        IList<EmailDiagnostic> diagnostics, string location, bool hasRetainedObjectContent = false) {
+        IList<EmailDiagnostic> diagnostics, string location, bool hasRetainedObjectContent = false,
+        byte[]? materializedContent = null) {
         var properties = new MsgPropertyBuilder(attachment.MapiProperties);
         properties.Set(0x0FFE, MapiPropertyType.Integer32, 7);
         properties.Set(0x3705, MapiPropertyType.Integer32, method);
@@ -295,9 +298,10 @@ internal static class MsgWriter {
                     "A structured MSG attachment has a declared length but no retained storage streams.",
                     EmailDiagnosticSeverity.Error, location));
             }
-        } else if (attachment.Content != null) {
-            properties.Set(0x3701, MapiPropertyType.Binary, attachment.Content);
-            properties.Set(0x0E20, MapiPropertyType.Integer32, attachment.Content.Length);
+        } else if (materializedContent != null || attachment.Content != null) {
+            byte[] content = materializedContent ?? attachment.Content!;
+            properties.Set(0x3701, MapiPropertyType.Binary, content);
+            properties.Set(0x0E20, MapiPropertyType.Integer32, content.Length);
         } else {
             properties.Set(0x3701, MapiPropertyType.Binary, null);
             properties.Set(0x0E20, MapiPropertyType.Integer32, checked((int)Math.Min(attachment.Length, int.MaxValue)));
@@ -310,9 +314,8 @@ internal static class MsgWriter {
         return properties;
     }
 
-    private static EmailDocument? TryReadOpaqueEmbeddedTnef(EmailAttachment attachment,
+    private static EmailDocument? TryReadOpaqueEmbeddedTnef(EmailAttachment attachment, byte[]? content,
         IList<EmailDiagnostic> diagnostics, string location) {
-        byte[]? content = attachment.Content;
         if (attachment.MapiAttachMethod != 5 || content == null || content.Length < 20 ||
             new Guid(MsgBinary.Slice(content, 0, 16)) != new Guid("00020307-0000-0000-C000-000000000046")) {
             return null;

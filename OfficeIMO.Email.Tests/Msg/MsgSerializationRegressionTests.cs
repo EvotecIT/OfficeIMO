@@ -5,6 +5,22 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class MsgSerializationRegressionTests {
     [Fact]
+    public void PreservesUnknownMessageFlagBitsWhileUpdatingManagedFlags() {
+        const int unknownFlag = 0x20000000;
+        var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "Flags" };
+        source.MapiProperties.Add(new MapiProperty(0x0E07, MapiPropertyType.Integer32, unknownFlag));
+        source.MessageMetadata.IsDraft = true;
+
+        EmailDocument result = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
+        int flags = Assert.IsType<int>(result.MapiProperties.Single(property =>
+            property.PropertyId == 0x0E07).Value);
+
+        Assert.NotEqual(0, flags & unknownFlag);
+        Assert.True(result.MessageMetadata.IsDraft);
+    }
+
+    [Fact]
     public void ClearingManagedValuesRemovesRetainedMsgProperties() {
         var source = new EmailDocument {
             Subject = "retained subject",

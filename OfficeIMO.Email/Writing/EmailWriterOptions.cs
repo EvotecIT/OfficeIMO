@@ -8,6 +8,14 @@ public sealed class EmailWriterOptions {
     /// <summary>Creates writer options.</summary>
     public EmailWriterOptions(bool usePreservedRawSource = false, bool includeBccHeader = false,
         int base64LineLength = 76, int maxNestedMessageDepth = 16,
+        long maxOutputBytes = 512L * 1024L * 1024L)
+        : this(EmailConversionLossPolicy.Block, usePreservedRawSource, includeBccHeader, base64LineLength,
+            maxNestedMessageDepth, maxOutputBytes) { }
+
+    /// <summary>Creates writer options with an explicit semantic-loss policy.</summary>
+    public EmailWriterOptions(EmailConversionLossPolicy conversionLossPolicy,
+        bool usePreservedRawSource = false, bool includeBccHeader = false,
+        int base64LineLength = 76, int maxNestedMessageDepth = 16,
         long maxOutputBytes = 512L * 1024L * 1024L) {
         if (base64LineLength < 4 || base64LineLength > 998 || base64LineLength % 4 != 0) {
             throw new ArgumentOutOfRangeException(nameof(base64LineLength), "Base64 line length must be a multiple of four from 4 through 996.");
@@ -19,6 +27,7 @@ public sealed class EmailWriterOptions {
         Base64LineLength = base64LineLength;
         MaxNestedMessageDepth = maxNestedMessageDepth;
         MaxOutputBytes = maxOutputBytes;
+        ConversionLossPolicy = conversionLossPolicy;
     }
 
     /// <summary>Whether an unchanged preserved source should be emitted instead of regenerating EML.</summary>
@@ -35,4 +44,7 @@ public sealed class EmailWriterOptions {
 
     /// <summary>Maximum serialized artifact size.</summary>
     public long MaxOutputBytes { get; }
+
+    /// <summary>Policy applied when the requested format cannot preserve known message semantics.</summary>
+    public EmailConversionLossPolicy ConversionLossPolicy { get; }
 }

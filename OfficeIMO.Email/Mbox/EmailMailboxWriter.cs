@@ -20,6 +20,7 @@ public sealed class EmailMailboxWriter {
     public EmailWriteResult Write(EmailMailbox mailbox, string filePath) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
+        if (result.HasErrors && bytes.Length == 0) return result;
         OfficeFileCommit.WriteAllBytes(filePath, bytes);
         return result;
     }
@@ -29,12 +30,53 @@ public sealed class EmailMailboxWriter {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
+        if (result.HasErrors && bytes.Length == 0) return result;
         OfficeStreamWriter.WriteAllBytes(stream, bytes);
         return result;
     }
 
     /// <summary>Writes a mailbox to memory.</summary>
-    public byte[] ToBytes(EmailMailbox mailbox) => ToBytes(mailbox, out _, CancellationToken.None);
+    public byte[] ToBytes(EmailMailbox mailbox) {
+        byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, CancellationToken.None);
+        if (result.HasErrors) {
+            EmailDiagnostic error = result.Diagnostics.First(diagnostic =>
+                diagnostic.Severity == EmailDiagnosticSeverity.Error);
+            throw new InvalidDataException(string.Concat("The mailbox could not be serialized: ", error.Code,
+                ": ", error.Message));
+        }
+        return bytes;
+    }
+
+    /// <summary>
+    /// Writes an entry sequence directly to a caller-owned stream while retaining at most one serialized message.
+    /// A limit or enumeration failure can leave already completed entries in the destination.
+    /// </summary>
+    public EmailWriteResult WriteEntries(IEnumerable<EmailMailboxEntry> entries, Stream stream,
+        CancellationToken cancellationToken = default) {
+        if (entries == null) throw new ArgumentNullException(nameof(entries));
+        if (stream == null) throw new ArgumentNullException(nameof(stream));
+        if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
+        var diagnostics = new List<EmailDiagnostic>();
+        long bytesWritten = 0;
+        int index = 0;
+        foreach (EmailMailboxEntry entry in entries) {
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] bytes = SerializeEntry(entry, index, diagnostics, cancellationToken);
+            if (bytes.Length == 0 && diagnostics.Any(diagnostic =>
+                diagnostic.Severity == EmailDiagnosticSeverity.Error)) {
+                return new EmailWriteResult(bytesWritten, diagnostics.AsReadOnly(), false);
+            }
+            long next = checked(bytesWritten + bytes.LongLength);
+            if (next > _options.MessageOptions.MaxOutputBytes) {
+                throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), next,
+                    _options.MessageOptions.MaxOutputBytes);
+            }
+            stream.Write(bytes, 0, bytes.Length);
+            bytesWritten = next;
+            index++;
+        }
+        return new EmailWriteResult(bytesWritten, diagnostics.AsReadOnly(), false);
+    }
 
     /// <summary>Asynchronously writes a mailbox file.</summary>
     public async Task<EmailWriteResult> WriteAsync(EmailMailbox mailbox, string filePath,
@@ -42,6 +84,7 @@ public sealed class EmailMailboxWriter {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, cancellationToken);
+        if (result.HasErrors && bytes.Length == 0) return result;
         await OfficeFileCommit.WriteAllBytesAsync(filePath, bytes, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
         return result;
@@ -54,6 +97,7 @@ public sealed class EmailMailboxWriter {
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
         byte[] bytes = ToBytes(mailbox, out EmailWriteResult result, cancellationToken);
+        if (result.HasErrors && bytes.Length == 0) return result;
         cancellationToken.ThrowIfCancellationRequested();
         await OfficeStreamWriter.WriteAllBytesAsync(stream, bytes, cancellationToken).ConfigureAwait(false);
         return result;
@@ -68,29 +112,50 @@ public sealed class EmailMailboxWriter {
                    _options.MessageOptions.MaxOutputBytes)) {
             for (int index = 0; index < mailbox.Messages.Count; index++) {
                 cancellationToken.ThrowIfCancellationRequested();
-                EmailMailboxEntry entry = mailbox.Messages[index];
-                string sender = entry.EnvelopeSender ?? entry.Document.From?.Address ?? "MAILER-DAEMON";
-                DateTimeOffset date = entry.EnvelopeDate ?? entry.Document.Date ??
-                    new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
-                string fromLine = string.Concat("From ", SanitizeSender(sender), " ",
-                    date.UtcDateTime.ToString("ddd MMM dd HH:mm:ss yyyy", CultureInfo.InvariantCulture), "\n");
-                byte[] fromBytes = Encoding.ASCII.GetBytes(fromLine);
-                output.Write(fromBytes, 0, fromBytes.Length);
-                byte[] eml;
-                using (MemoryStream messageOutput = new MemoryStream()) {
-                    EmailWriteResult messageResult = messageWriter.Write(entry.Document, messageOutput, EmailFileFormat.Eml);
-                    diagnostics.AddRange(messageResult.Diagnostics);
-                    eml = messageOutput.ToArray();
+                byte[] entry = SerializeEntry(mailbox.Messages[index], index, diagnostics, cancellationToken,
+                    messageWriter);
+                if (entry.Length == 0 && diagnostics.Any(diagnostic =>
+                    diagnostic.Severity == EmailDiagnosticSeverity.Error)) {
+                    result = new EmailWriteResult(0, diagnostics.AsReadOnly(), false);
+                    return Array.Empty<byte>();
                 }
-                byte[] normalized = NormalizeLineEndings(eml);
-                byte[] escaped = Escape(normalized, _options.Variant);
-                output.Write(escaped, 0, escaped.Length);
-                if (escaped.Length == 0 || escaped[escaped.Length - 1] != '\n') output.WriteByte((byte)'\n');
+                output.Write(entry, 0, entry.Length);
             }
             byte[] bytes = output.ToArray();
             cancellationToken.ThrowIfCancellationRequested();
             result = new EmailWriteResult(bytes.LongLength, diagnostics.AsReadOnly(), false);
             return bytes;
+        }
+    }
+
+    private byte[] SerializeEntry(EmailMailboxEntry entry, int index, IList<EmailDiagnostic> diagnostics,
+        CancellationToken cancellationToken, EmailDocumentWriter? existingWriter = null) {
+        var messageWriter = existingWriter ?? new EmailDocumentWriter(_options.MessageOptions);
+        byte[] eml;
+        EmailWriteResult messageResult;
+        using (var messageOutput = new MemoryStream()) {
+            messageResult = messageWriter.Write(entry.Document, messageOutput, EmailFileFormat.Eml);
+            eml = messageOutput.ToArray();
+        }
+        foreach (EmailDiagnostic diagnostic in messageResult.Diagnostics) {
+            diagnostics.Add(new EmailDiagnostic(diagnostic.Code, diagnostic.Message, diagnostic.Severity,
+                string.Concat("message[", index.ToString(CultureInfo.InvariantCulture), "]",
+                    diagnostic.Location == null ? string.Empty : string.Concat("/", diagnostic.Location))));
+        }
+        if (messageResult.HasErrors && eml.Length == 0) return Array.Empty<byte>();
+
+        string sender = entry.EnvelopeSender ?? entry.Document.From?.Address ?? "MAILER-DAEMON";
+        DateTimeOffset date = entry.EnvelopeDate ?? entry.Document.Date ??
+            new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        byte[] fromBytes = Encoding.ASCII.GetBytes(string.Concat("From ", SanitizeSender(sender), " ",
+            date.UtcDateTime.ToString("ddd MMM dd HH:mm:ss yyyy", CultureInfo.InvariantCulture), "\n"));
+        byte[] escaped = Escape(NormalizeLineEndings(eml), _options.Variant);
+        using (var output = new MemoryStream(checked(fromBytes.Length + escaped.Length + 1))) {
+            output.Write(fromBytes, 0, fromBytes.Length);
+            output.Write(escaped, 0, escaped.Length);
+            if (escaped.Length == 0 || escaped[escaped.Length - 1] != '\n') output.WriteByte((byte)'\n');
+            cancellationToken.ThrowIfCancellationRequested();
+            return output.ToArray();
         }
     }
 

@@ -4,7 +4,8 @@ internal static class MimeWriter {
     private static readonly HashSet<string> ManagedHeaders = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
         "Subject", "From", "Sender", "To", "Cc", "Bcc", "Reply-To", "Date", "Message-ID",
         "References", "In-Reply-To", "MIME-Version", "Content-Type", "Content-Transfer-Encoding",
-        "Content-Disposition"
+        "Content-Disposition", "Importance", "X-Priority", "Priority", "Sensitivity",
+        "Disposition-Notification-To", "Return-Receipt-To", "X-Unsent", "Status", "Keywords"
     };
 
     internal static byte[] Write(EmailDocument document, EmailWriterOptions options, IList<EmailDiagnostic> diagnostics) {
@@ -28,8 +29,8 @@ internal static class MimeWriter {
 
     private static void WriteEnvelopeHeaders(Stream output, EmailDocument document, EmailWriterOptions options) {
         if (!string.IsNullOrWhiteSpace(document.Subject)) WriteLine(output, string.Concat("Subject: ", EncodeHeaderText(document.Subject!)));
-        if (document.From != null) WriteLine(output, string.Concat("From: ", FormatAddress(document.From)));
-        if (document.Sender != null) WriteLine(output, string.Concat("Sender: ", FormatAddress(document.Sender)));
+        WriteAddressHeader(output, document, document.From, "From");
+        WriteAddressHeader(output, document, document.Sender, "Sender");
         WriteRecipientHeader(output, document, EmailRecipientKind.To, "To");
         WriteRecipientHeader(output, document, EmailRecipientKind.Cc, "Cc");
         if (options.IncludeBccHeader) WriteRecipientHeader(output, document, EmailRecipientKind.Bcc, "Bcc");
@@ -44,6 +45,9 @@ internal static class MimeWriter {
         }
         WriteThreadingHeader(output, document, "References", document.MessageMetadata.InternetReferences);
         WriteThreadingHeader(output, document, "In-Reply-To", document.MessageMetadata.InReplyToId);
+        foreach (EmailHeader header in MimeMessageMetadataProjection.CreateHeaders(document)) {
+            WriteLine(output, string.Concat(header.Name, ": ", EncodeHeaderText(header.Value)));
+        }
         foreach (EmailHeader header in document.Headers) {
             if (ManagedHeaders.Contains(header.Name)) continue;
             WriteRetainedHeader(output, header);
@@ -83,8 +87,32 @@ internal static class MimeWriter {
     }
 
     private static void WriteRecipientHeader(Stream output, EmailDocument document, EmailRecipientKind kind, string name) {
-        string[] addresses = document.Recipients.Where(item => item.Kind == kind).Select(item => FormatAddress(item.Address)).ToArray();
+        string[] addresses = document.Recipients.Where(item => item.Kind == kind)
+            .Select(item => FormatAddress(item.Address)).ToArray();
+        if (addresses.Length == 0) {
+            var parsed = new List<string>();
+            var diagnostics = new List<EmailDiagnostic>();
+            foreach (EmailHeader header in document.Headers.Where(header =>
+                         string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))) {
+                parsed.AddRange(MimeAddressParser.ParseMany(header.RawValue ?? header.Value, diagnostics,
+                    string.Concat("transport/", name)).Select(FormatAddress));
+            }
+            addresses = parsed.ToArray();
+        }
         if (addresses.Length > 0) WriteLine(output, string.Concat(name, ": ", string.Join(",\r\n ", addresses)));
+    }
+
+    private static void WriteAddressHeader(Stream output, EmailDocument document, EmailAddress? address, string name) {
+        if (address != null) {
+            WriteLine(output, string.Concat(name, ": ", FormatAddress(address)));
+            return;
+        }
+        var diagnostics = new List<EmailDiagnostic>();
+        EmailHeader? retained = document.Headers.FirstOrDefault(header =>
+            string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase));
+        EmailAddress? parsed = MimeAddressParser.ParseOne(retained?.RawValue ?? retained?.Value,
+            diagnostics, string.Concat("transport/", name));
+        if (parsed != null) WriteLine(output, string.Concat(name, ": ", FormatAddress(parsed)));
     }
 
     private static void WriteThreadingHeader(Stream output, EmailDocument document, string name, string? fallbackValue) {
@@ -110,46 +138,69 @@ internal static class MimeWriter {
     }
 
     private static void WriteContent(Stream output, EmailDocument document, MimeWriterState state, int depth, bool includeLeadingHeaders) {
-        bool hasAlternative = CountBodyAlternatives(document.Body) > 1;
-        bool hasRelatedResources = document.Attachments.Any(attachment => IsRelatedResource(document, attachment));
-        bool hasUnrelatedAttachments = document.Attachments.Any(attachment => !IsRelatedResource(document, attachment));
+        EmailAttachment? calendarAttachment = IcsCalendarCodec.FindSemanticAttachment(document);
+        byte[]? calendarContent = document.OutlookItemKind == OutlookItemKind.Appointment ||
+            document.OutlookItemKind == OutlookItemKind.Task
+            ? calendarAttachment == null
+                ? IcsCalendarCodec.Create(document)
+                : EmailAttachmentContent.ReadOrNull(calendarAttachment, state.Options.MaxOutputBytes) ??
+                  IcsCalendarCodec.Create(document)
+            : null;
+        EmailAttachment? vcardAttachment = VCardCodec.FindSemanticAttachment(document);
+        var regularAttachmentList = document.Attachments.Where(attachment =>
+            !ReferenceEquals(attachment, calendarAttachment) && !ReferenceEquals(attachment, vcardAttachment)).ToList();
+        if (document.OutlookItemKind == OutlookItemKind.Contact && document.Contact != null) {
+            bool unchanged = vcardAttachment != null && document.MimeSemanticSourceModelFingerprint != null &&
+                EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
+            regularAttachmentList.Add(VCardCodec.CreateAttachment(document, state.Options.MaxOutputBytes,
+                unchanged ? vcardAttachment : null));
+        } else if (vcardAttachment != null) {
+            regularAttachmentList.Add(vcardAttachment);
+        }
+        EmailAttachment[] regularAttachments = regularAttachmentList.ToArray();
+        bool hasAlternative = CountBodyAlternatives(document.Body) + (calendarContent == null ? 0 : 1) > 1;
+        bool hasRelatedResources = regularAttachments.Any(attachment => IsRelatedResource(document, attachment));
+        bool hasUnrelatedAttachments = regularAttachments.Any(attachment => !IsRelatedResource(document, attachment));
         if (hasUnrelatedAttachments) {
             string boundary = CreateBoundary(document, depth, "mixed");
             WriteLine(output, string.Concat("Content-Type: multipart/mixed; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
             WriteLine(output, string.Concat("--", boundary));
             if (hasRelatedResources) {
-                WriteRelatedBodyEntity(output, document, state, depth, hasAlternative);
+                WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
+                    calendarAttachment, regularAttachments);
             } else {
-                WriteBodyEntity(output, document, state, depth, hasAlternative);
+                WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent, calendarAttachment);
             }
-            for (int i = 0; i < document.Attachments.Count; i++) {
-                if (IsRelatedResource(document, document.Attachments[i])) continue;
+            for (int i = 0; i < regularAttachments.Length; i++) {
+                if (IsRelatedResource(document, regularAttachments[i])) continue;
                 WriteLine(output, string.Concat("--", boundary));
-                WriteAttachment(output, document.Attachments[i], state, depth + 1, i);
+                WriteAttachment(output, regularAttachments[i], state, depth + 1, i);
             }
             WriteLine(output, string.Concat("--", boundary, "--"));
             return;
         }
 
         if (hasRelatedResources) {
-            WriteRelatedBodyEntity(output, document, state, depth, hasAlternative);
+            WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
+                calendarAttachment, regularAttachments);
         } else {
-            WriteBodyEntity(output, document, state, depth, hasAlternative);
+            WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent, calendarAttachment);
         }
     }
 
     private static void WriteRelatedBodyEntity(Stream output, EmailDocument document, MimeWriterState state,
-        int depth, bool hasAlternative) {
+        int depth, bool hasAlternative, byte[]? calendarContent, EmailAttachment? calendarAttachment,
+        IReadOnlyList<EmailAttachment> attachments) {
         string boundary = CreateBoundary(document, depth, "related");
         WriteLine(output, string.Concat("Content-Type: multipart/related; boundary=\"", boundary, "\""));
         WriteLine(output, string.Empty);
         WriteLine(output, string.Concat("--", boundary));
-        WriteBodyEntity(output, document, state, depth, hasAlternative);
-        for (int i = 0; i < document.Attachments.Count; i++) {
-            if (!IsRelatedResource(document, document.Attachments[i])) continue;
+        WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent, calendarAttachment);
+        for (int i = 0; i < attachments.Count; i++) {
+            if (!IsRelatedResource(document, attachments[i])) continue;
             WriteLine(output, string.Concat("--", boundary));
-            WriteAttachment(output, document.Attachments[i], state, depth + 1, i);
+            WriteAttachment(output, attachments[i], state, depth + 1, i);
         }
         WriteLine(output, string.Concat("--", boundary, "--"));
     }
@@ -164,7 +215,8 @@ internal static class MimeWriter {
             MimeRelatedResourceReference.ContainsContentLocation(document.Body.Html!, attachment.ContentLocation!);
     }
 
-    private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth, bool hasAlternative) {
+    private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth,
+        bool hasAlternative, byte[]? calendarContent, EmailAttachment? calendarAttachment) {
         if (hasAlternative) {
             string boundary = CreateBoundary(document, depth, "alternative");
             WriteLine(output, string.Concat("Content-Type: multipart/alternative; boundary=\"", boundary, "\""));
@@ -181,7 +233,13 @@ internal static class MimeWriter {
                 WriteLine(output, string.Concat("--", boundary));
                 WriteRtfPart(output, document.Body.Rtf, state, "body/rtf");
             }
+            if (calendarContent != null) {
+                WriteLine(output, string.Concat("--", boundary));
+                WriteCalendarPart(output, document, calendarContent, calendarAttachment, state.Options.Base64LineLength);
+            }
             WriteLine(output, string.Concat("--", boundary, "--"));
+        } else if (calendarContent != null) {
+            WriteCalendarPart(output, document, calendarContent, calendarAttachment, state.Options.Base64LineLength);
         } else if (document.Body.Html != null) {
             WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength);
         } else if (document.Body.Rtf != null) {
@@ -189,6 +247,63 @@ internal static class MimeWriter {
         } else {
             WriteTextPart(output, "text/plain", document.Body.Text ?? string.Empty, state.Options.Base64LineLength);
         }
+    }
+
+    internal static string? CreateTransportHeaders(EmailDocument document, EmailWriterOptions options) {
+        if (document.Headers.Count == 0) return null;
+        using (var output = new MemoryStream()) {
+            WriteTransportAddressHeader(output, document, "From", document.From, null);
+            WriteTransportAddressHeader(output, document, "Sender", document.Sender, null);
+            WriteTransportAddressHeader(output, document, "To", null, EmailRecipientKind.To);
+            WriteTransportAddressHeader(output, document, "Cc", null, EmailRecipientKind.Cc);
+            if (options.IncludeBccHeader || HasHeader(document, "Bcc")) {
+                WriteTransportAddressHeader(output, document, "Bcc", null, EmailRecipientKind.Bcc);
+            }
+            WriteTransportAddressHeader(output, document, "Reply-To", null, EmailRecipientKind.ReplyTo);
+            foreach (EmailHeader header in document.Headers) {
+                if (IsAddressHeader(header.Name)) continue;
+                WriteLine(output, string.Concat(MimeHeaderSafety.SanitizeName(header.Name), ": ",
+                    MimeHeaderSafety.SanitizeValue(header.RawValue ?? header.Value)));
+            }
+            if (output.Length == 0) return null;
+            return Encoding.UTF8.GetString(output.ToArray()).TrimEnd('\r', '\n');
+        }
+    }
+
+    private static void WriteTransportAddressHeader(Stream output, EmailDocument document, string name,
+        EmailAddress? scalarAddress, EmailRecipientKind? recipientKind) {
+        bool retained = HasHeader(document, name);
+        bool structured = scalarAddress != null || recipientKind.HasValue &&
+            document.Recipients.Any(recipient => recipient.Kind == recipientKind.Value);
+        if (!retained && !structured) return;
+        if (recipientKind.HasValue) WriteRecipientHeader(output, document, recipientKind.Value, name);
+        else WriteAddressHeader(output, document, scalarAddress, name);
+    }
+
+    private static bool HasHeader(EmailDocument document, string name) => document.Headers.Any(header =>
+        string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsAddressHeader(string name) =>
+        string.Equals(name, "From", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "Sender", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "To", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "Cc", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "Bcc", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(name, "Reply-To", StringComparison.OrdinalIgnoreCase);
+
+    private static void WriteCalendarPart(Stream output, EmailDocument document, byte[] content,
+        EmailAttachment? source, int base64LineLength) {
+        string method = source != null && source.ContentTypeParameters.TryGetValue("method", out string? retainedMethod)
+            ? retainedMethod
+            : document.MessageClass != null && document.MessageClass.IndexOf("Canceled", StringComparison.OrdinalIgnoreCase) >= 0
+                ? "CANCEL"
+                : document.Recipients.Any(recipient => recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc)
+                    ? "REQUEST"
+                    : "PUBLISH";
+        WriteLine(output, string.Concat("Content-Type: text/calendar; method=", SanitizeToken(method), "; charset=utf-8"));
+        WriteLine(output, "Content-Transfer-Encoding: base64");
+        WriteLine(output, string.Empty);
+        WriteBase64(output, content, base64LineLength);
     }
 
     private static int CountBodyAlternatives(EmailBody body) {
@@ -247,8 +362,9 @@ internal static class MimeWriter {
             return;
         }
 
-        byte[] content = attachment.Content ?? Array.Empty<byte>();
-        if (attachment.Content == null && attachment.Length > 0) {
+        byte[]? retainedContent = EmailAttachmentContent.ReadOrNull(attachment, state.Options.MaxOutputBytes);
+        byte[] content = retainedContent ?? Array.Empty<byte>();
+        if (retainedContent == null && attachment.Length > 0) {
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE",
                 string.Concat("Attachment ", index.ToString(CultureInfo.InvariantCulture),
                     " has a declared length but no retained content; an empty payload was written."),

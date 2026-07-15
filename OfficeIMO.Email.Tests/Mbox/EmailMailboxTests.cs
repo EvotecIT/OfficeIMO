@@ -117,4 +117,74 @@ public sealed class EmailMailboxTests {
         Assert.Contains(result.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_ATTACHMENT_CONTENT_UNAVAILABLE");
     }
+
+    [Fact]
+    public void EnumeratesAndWritesMailboxEntriesWithoutAggregateMaterialization() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "From a@example.com Fri Jul 10 12:00:00 2026\nSubject: A\n\nA\n" +
+            "From b@example.com Fri Jul 10 13:00:00 2026\nSubject: B\n\nB\n");
+        using var input = new MemoryStream(source);
+        input.Position = 3;
+        var reader = new EmailMailboxReader();
+
+        EmailMailboxEntryReadResult[] entries = reader.ReadEntries(input).ToArray();
+        using var output = new MemoryStream();
+        EmailWriteResult write = new EmailMailboxWriter().WriteEntries(entries.Select(item => item.Entry), output);
+        EmailMailboxEntryReadResult[] roundTrip = reader.ReadEntries(new MemoryStream(output.ToArray())).ToArray();
+
+        Assert.Equal(3, input.Position);
+        Assert.Equal(new[] { "A", "B" }, entries.Select(item => item.Entry.Document.Subject));
+        Assert.Equal(2, roundTrip.Length);
+        Assert.Equal(output.Length, write.BytesWritten);
+    }
+
+    [Fact]
+    public void StreamingReaderAppliesMailboxAndPerMessageLimitsSeparately() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "From a@example.com Fri Jul 10 12:00:00 2026\nSubject: A\n\n1234567890\n" +
+            "From b@example.com Fri Jul 10 13:00:00 2026\nSubject: B\n\n1234567890\n");
+        var options = new EmailMailboxReaderOptions(maxMailboxBytes: 200,
+            messageOptions: new EmailReaderOptions(maxInputBytes: 80));
+
+        EmailMailboxEntryReadResult[] entries = new EmailMailboxReader(options)
+            .ReadEntries(new MemoryStream(source)).ToArray();
+
+        Assert.Equal(2, entries.Length);
+    }
+
+    [Fact]
+    public async Task AggregateReadersReportTheAggregateMailboxLimit() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "From a@example.com Fri Jul 10 12:00:00 2026\nSubject: A\n\n1234567890\n");
+        var options = new EmailMailboxReaderOptions(maxMailboxBytes: 20);
+        var reader = new EmailMailboxReader(options);
+
+        EmailLimitExceededException synchronous = Assert.Throws<EmailLimitExceededException>(() =>
+            reader.Read(new MemoryStream(source)));
+        EmailLimitExceededException asynchronous = await Assert.ThrowsAsync<EmailLimitExceededException>(() =>
+            reader.ReadAsync(new MemoryStream(source)));
+
+        Assert.Equal(nameof(EmailMailboxReaderOptions.MaxMailboxBytes), synchronous.LimitName);
+        Assert.Equal(nameof(EmailMailboxReaderOptions.MaxMailboxBytes), asynchronous.LimitName);
+    }
+
+    [Fact]
+    public void AcceptsUtf8BomAndRecoversUnescapedBodyFromLinesAsEntries() {
+        byte[] source = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.ASCII.GetBytes(
+            "From -\r\nSubject: First\r\n\r\nFrom Russia with love\r\n" +
+            "From -\r\nSubject: Second\r\n\r\nbody\r\n")).ToArray();
+        var reader = new EmailMailboxReader();
+
+        EmailMailboxReadResult aggregate = reader.Read(source);
+        EmailMailboxEntryReadResult[] streamed = reader.ReadEntries(new MemoryStream(source)).ToArray();
+
+        Assert.Equal(3, aggregate.Mailbox.Messages.Count);
+        Assert.Equal(3, streamed.Length);
+        Assert.Equal("First", aggregate.Mailbox.Messages[0].Document.Subject);
+        Assert.Equal("Second", aggregate.Mailbox.Messages[2].Document.Subject);
+        Assert.Contains(aggregate.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MBOX_MESSAGE_HEADERS_MISSING");
+        Assert.DoesNotContain(streamed.SelectMany(entry => entry.Diagnostics), diagnostic =>
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
 }

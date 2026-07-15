@@ -122,7 +122,7 @@ public sealed class EmailDocumentReader {
                     "The compound artifact is not an Outlook MSG item.", EmailDiagnosticSeverity.Error));
             }
             cancellationToken.ThrowIfCancellationRequested();
-            if (_options.PreserveRawSource) PreserveRawSource(document, data);
+            if (_options.PreserveRawSource || document.Protection.IsProtected) PreserveRawSource(document, data);
             return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
         }
 
@@ -153,7 +153,7 @@ public sealed class EmailDocumentReader {
                 break;
         }
         cancellationToken.ThrowIfCancellationRequested();
-        if (_options.PreserveRawSource) PreserveRawSource(document, data);
+        if (_options.PreserveRawSource || document.Protection.IsProtected) PreserveRawSource(document, data);
         return new EmailReadResult(document, diagnostics.AsReadOnly(), data.LongLength);
     }
 

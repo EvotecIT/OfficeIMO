@@ -105,8 +105,13 @@ internal static class TnefReader {
         while (offset < data.Length) {
             state.CountTnefAttribute();
             if (offset + 9 > data.Length) {
-                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_ATTRIBUTE_TRUNCATED",
-                    "A TNEF attribute header is truncated.", EmailDiagnosticSeverity.Error, location));
+                bool trailingGarbage = result.Count > 0 && data[offset] != 1 && data[offset] != 2;
+                state.Diagnostics.Add(new EmailDiagnostic(
+                    trailingGarbage ? "EMAIL_TNEF_TRAILING_DATA_IGNORED" : "EMAIL_TNEF_ATTRIBUTE_TRUNCATED",
+                    trailingGarbage
+                        ? "Trailing data after the final complete TNEF attribute was ignored."
+                        : "A TNEF attribute header is truncated.",
+                    trailingGarbage ? EmailDiagnosticSeverity.Warning : EmailDiagnosticSeverity.Error, location));
                 break;
             }
             byte rawLevel = data[offset++];
@@ -115,8 +120,13 @@ internal static class TnefReader {
             uint rawLength = MsgBinary.ReadUInt32(data, offset);
             offset += 4;
             if (rawLength > int.MaxValue || offset > data.Length - (int)rawLength - 2) {
-                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_ATTRIBUTE_LENGTH_INVALID",
-                    "A TNEF attribute length exceeds the remaining input.", EmailDiagnosticSeverity.Error, location));
+                bool trailingGarbage = result.Count > 0 && rawLevel != 1 && rawLevel != 2;
+                state.Diagnostics.Add(new EmailDiagnostic(
+                    trailingGarbage ? "EMAIL_TNEF_TRAILING_DATA_IGNORED" : "EMAIL_TNEF_ATTRIBUTE_LENGTH_INVALID",
+                    trailingGarbage
+                        ? "Trailing data after the final complete TNEF attribute was ignored."
+                        : "A TNEF attribute length exceeds the remaining input.",
+                    trailingGarbage ? EmailDiagnosticSeverity.Warning : EmailDiagnosticSeverity.Error, location));
                 break;
             }
             long attachmentMapiPayloadLength = 0;
@@ -248,16 +258,15 @@ internal static class TnefReader {
                     exception.LimitName, exception.ActualValue, exception.MaximumValue);
             }
             if (compoundRead && compound != null) {
-                long total = 0;
                 foreach (KeyValuePair<string, byte[]> stream in compound.Streams) {
                     state.ThrowIfCancellationRequested();
                     if (state.Options.IncludeAttachmentContent) {
                         attachment.StructuredStorageStreams[stream.Key] = stream.Value;
                     }
-                    total = checked(total + stream.Value.LongLength);
                 }
-                attachment.Length = total;
-                state.CountAttachment(total);
+                attachment.Length = compoundBytes.LongLength;
+                if (state.Options.IncludeAttachmentContent) attachment.Content = (byte[])compoundBytes.Clone();
+                state.CountAttachment(compoundBytes.LongLength);
             } else {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_TNEF_COMPOUND_ATTACHMENT_INVALID",
                     compoundError ?? "The TNEF compound attachment could not be read.",

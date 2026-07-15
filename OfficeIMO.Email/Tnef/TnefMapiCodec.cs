@@ -236,11 +236,12 @@ internal static class TnefMapiCodec {
         uint kind = cursor.ReadUInt32();
         if (kind == 0) return new MapiNamedProperty(propertySet, cursor.ReadUInt32());
         if (kind != 1) throw new InvalidDataException("Unknown TNEF named-property kind.");
-        uint characters = cursor.ReadUInt32();
-        if (characters > int.MaxValue / 2) throw new InvalidDataException("TNEF named-property string is too large.");
-        byte[] bytes = cursor.ReadBytes(checked((int)characters * 2));
+        uint byteCount = cursor.ReadUInt32();
+        if (byteCount > int.MaxValue) throw new InvalidDataException("TNEF named-property string is too large.");
+        byte[] bytes = cursor.ReadBytes((int)byteCount);
         cursor.Align4();
-        return new MapiNamedProperty(propertySet, Encoding.Unicode.GetString(bytes).TrimEnd('\0'));
+        return new MapiNamedProperty(propertySet,
+            Encoding.Unicode.GetString(bytes, 0, bytes.Length - bytes.Length % 2).TrimEnd('\0'));
     }
 
     private static object? DecodeValue(MapiPropertyType type, byte[] bytes, int codePage,
@@ -330,8 +331,8 @@ internal static class TnefMapiCodec {
             WriteUInt32(output, name.LocalId.GetValueOrDefault());
         } else {
             string text = string.Concat(name.Name, "\0");
-            WriteUInt32(output, unchecked((uint)text.Length));
             byte[] bytes = Encoding.Unicode.GetBytes(text);
+            WriteUInt32(output, unchecked((uint)bytes.Length));
             output.Write(bytes, 0, bytes.Length);
             Pad4(output);
         }
@@ -356,8 +357,10 @@ internal static class TnefMapiCodec {
 
     private static int GetFixedSize(MapiPropertyType type) {
         switch (type) {
+            case MapiPropertyType.Unspecified:
+            case MapiPropertyType.Null: return 0;
             case MapiPropertyType.Integer16:
-            case MapiPropertyType.Boolean: return 2;
+            case MapiPropertyType.Boolean: return 4;
             case MapiPropertyType.Integer32:
             case MapiPropertyType.ErrorCode:
             case MapiPropertyType.Floating32: return 4;
@@ -388,9 +391,9 @@ internal static class TnefMapiCodec {
             return;
         }
         if (kind != 1) throw new InvalidDataException("Unknown TNEF named-property kind.");
-        uint characters = cursor.ReadUInt32();
-        if (characters > int.MaxValue / 2) throw new InvalidDataException("TNEF named-property string is too large.");
-        cursor.Skip(checked((int)characters * 2));
+        uint byteCount = cursor.ReadUInt32();
+        if (byteCount > int.MaxValue) throw new InvalidDataException("TNEF named-property string is too large.");
+        cursor.Skip((int)byteCount);
         cursor.Align4();
     }
 

@@ -275,13 +275,29 @@ public sealed class EmailMimeReaderTests {
 
     [Fact]
     public void ParsesAddressGroupsAndIgnoresEmptyGroups() {
-        const string eml = "To: undisclosed-recipients:;, Team: Alice <alice@example.com>, Bob <bob@example.com>;\r\n\r\nbody";
+        const string eml = "To: undisclosed-recipients:; (no recipients), Team: Alice <alice@example.com>, " +
+            "Bob <bob@example.com>;\r\n\r\nbody";
 
         EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
 
         Assert.Equal(2, document.Recipients.Count);
         Assert.Equal("alice@example.com", document.Recipients[0].Address.Address);
         Assert.Equal("bob@example.com", document.Recipients[1].Address.Address);
+    }
+
+    [Fact]
+    public void RecoversBrokenMultipartAndBase64AsWarnings() {
+        const string eml = "Subject: recovery\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
+            "not valid base64!\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
     }
 
     [Fact]
@@ -386,5 +402,65 @@ public sealed class EmailMimeReaderTests {
         EmailAttachment roundTripAttachment = Assert.Single(roundTrip.Attachments);
         Assert.Equal("caption.txt", roundTripAttachment.ContentLocation);
         Assert.True(roundTripAttachment.IsInline);
+    }
+
+    [Fact]
+    public void DecodesFormatFlowedTextWithDelSpAndSpaceStuffing() {
+        const string eml = "Content-Type: text/plain; charset=utf-8; format=flowed; delsp=yes\r\n\r\n" +
+            "This is flow \r\ned.\r\n From space-stuffed\r\n>quoted \r\n>continuation\r\n-- \r\nsignature";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("This is flowed.\r\nFrom space-stuffed\r\n>quotedcontinuation\r\n-- \r\nsignature",
+            document.Body.Text);
+    }
+
+    [Fact]
+    public void KeepsFlowedJoinSpaceWhenDelSpIsNotEnabled() {
+        const string eml = "Content-Type: text/plain; charset=utf-8; format=flowed\r\n\r\n" +
+            "This is flow \r\ned.";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("This is flow ed.", document.Body.Text);
+    }
+
+    [Fact]
+    public void RemovesFinalFlowedSpaceMarkerWhenDelSpIsEnabled() {
+        const string eml = "Content-Type: text/plain; charset=utf-8; format=flowed; delsp=yes\r\n\r\n" +
+            "https://example.com/ ";
+
+        EmailDocument document = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal("https://example.com/", document.Body.Text);
+    }
+
+    [Fact]
+    public void RecoversCharsetlessInvalidUtf8AsWindows1252() {
+        byte[] headers = Encoding.ASCII.GetBytes("Content-Type: text/plain\r\n\r\nPrice: ");
+        byte[] eml = new byte[headers.Length + 1];
+        Buffer.BlockCopy(headers, 0, eml, 0, headers.Length);
+        eml[eml.Length - 1] = 0xA3;
+
+        EmailReadResult result = new EmailDocumentReader().Read(eml);
+
+        Assert.Equal("Price: £", result.Document.Body.Text);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_GUESSED" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+    }
+
+    [Fact]
+    public void KeepsCharsetlessValidUtf8WithoutGuessing() {
+        const string body = "Zażółć gęślą jaźń";
+        byte[] headers = Encoding.ASCII.GetBytes("Content-Type: text/plain\r\n\r\n");
+        byte[] bodyBytes = Encoding.UTF8.GetBytes(body);
+        byte[] eml = new byte[headers.Length + bodyBytes.Length];
+        Buffer.BlockCopy(headers, 0, eml, 0, headers.Length);
+        Buffer.BlockCopy(bodyBytes, 0, eml, headers.Length, bodyBytes.Length);
+
+        EmailReadResult result = new EmailDocumentReader().Read(eml);
+
+        Assert.Equal(body, result.Document.Body.Text);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_CHARSET_GUESSED");
     }
 }

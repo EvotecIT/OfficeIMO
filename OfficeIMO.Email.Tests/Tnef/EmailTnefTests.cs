@@ -50,6 +50,7 @@ public sealed class EmailTnefTests {
         Assert.Equal("child", result.Document.Attachments[1].EmbeddedDocument!.Subject);
         Assert.True(result.Document.Attachments[1].Length > 0);
         Assert.Equal(new byte[] { 9, 8, 7 }, result.Document.Attachments[2].StructuredStorageStreams["Contents"]);
+        Assert.NotNull(result.Document.Attachments[2].Content);
         Assert.Contains(result.Document.TnefAttributes, attribute => attribute.Tag == 0x0006F001);
         Assert.Equal(classId, result.Document.MapiProperties.Single(property => property.PropertyId == 0x66AB).Value);
         Assert.Equal(42, result.Document.MapiProperties.Single(property => property.PropertyId == 0x66AC).Value);
@@ -168,6 +169,41 @@ public sealed class EmailTnefTests {
 
         Assert.Equal(raw, property.RawData);
         Assert.Equal("€", property.Value);
+    }
+
+    [Fact]
+    public void RoundTripsStringNamedMapiPropertyUsingItsByteLength() {
+        Guid propertySet = new Guid("00020329-0000-0000-C000-000000000046");
+        var source = new MapiProperty(0x8001, MapiPropertyType.Unicode, "named value",
+            name: new MapiNamedProperty(propertySet, "UnicodeName"));
+        var diagnostics = new List<EmailDiagnostic>();
+
+        byte[] bytes = TnefMapiCodec.WriteProperties(new[] { source }, 1252, diagnostics, "tnef/mapi");
+        var state = new MsgParserState(EmailReaderOptions.Default, diagnostics, CancellationToken.None);
+        MapiProperty parsed = Assert.Single(TnefMapiCodec.ReadProperties(bytes, 1252, state, "tnef/mapi"));
+
+        Assert.Equal("UnicodeName", parsed.Name!.Name);
+        Assert.Equal("named value", parsed.Value);
+        Assert.DoesNotContain(diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
+
+    [Fact]
+    public void IgnoresTrailingBytesAfterCompleteTnefAttributes() {
+        var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "trailing bytes" };
+        byte[] valid = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef);
+        byte[] withTrailingBytes = valid.Concat(new byte[] { 0x7F, 2, 3, 4 }).ToArray();
+
+        EmailReadResult result = new EmailDocumentReader().Read(withTrailingBytes);
+
+        Assert.Equal("trailing bytes", result.Document.Subject);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_TRAILING_DATA_IGNORED" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+
+        byte[] truncatedAttribute = valid.Concat(new byte[] { 1, 2, 3, 4 }).ToArray();
+        EmailReadResult truncated = new EmailDocumentReader().Read(truncatedAttribute);
+        Assert.Contains(truncated.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_TNEF_ATTRIBUTE_TRUNCATED" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
     }
 
     [Fact]

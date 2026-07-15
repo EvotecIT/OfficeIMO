@@ -35,7 +35,18 @@ internal static class MimeTextCodec {
     }
 
     internal static string DecodeText(byte[] bytes, string? charset, IList<EmailDiagnostic> diagnostics, string location) {
-        string normalized = (charset ?? "utf-8").Trim().Trim('"').ToLowerInvariant();
+        if (string.IsNullOrWhiteSpace(charset)) {
+            try {
+                return new UTF8Encoding(false, true).GetString(bytes);
+            } catch (DecoderFallbackException) {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_CHARSET_GUESSED",
+                    "The charsetless text was not valid UTF-8; Windows-1252 recovery was used.",
+                    EmailDiagnosticSeverity.Warning, location));
+                return DecodeWindows1252(bytes);
+            }
+        }
+
+        string normalized = charset!.Trim().Trim('"').ToLowerInvariant();
         try {
             switch (normalized) {
                 case "us-ascii":
@@ -110,7 +121,7 @@ internal static class MimeTextCodec {
                 if (diagnostics != null && !validBase64) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
                         "The invalid Base64 payload was preserved without decoding.",
-                        EmailDiagnosticSeverity.Error, location));
+                        EmailDiagnosticSeverity.Warning, location));
                 } else if (diagnostics != null && recoveredPadding) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
                         "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
@@ -212,7 +223,8 @@ internal static class MimeTextCodec {
                     "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
                 return recovered;
             } catch (FormatException ex) {
-                diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID", ex.Message, EmailDiagnosticSeverity.Error, location));
+                diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID", ex.Message,
+                    EmailDiagnosticSeverity.Warning, location));
                 return Encoding.ASCII.GetBytes(value);
             }
         }
