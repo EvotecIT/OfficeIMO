@@ -37,9 +37,9 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                 string? segmentId;
                 if (string.Equals(segment.Kind, "header", StringComparison.OrdinalIgnoreCase)) {
-                    segmentId = await CreateHeaderAsync(transport, accessToken, documentId, sectionBreakLocation, segment.Variant, batch.Report, cancellationToken).ConfigureAwait(false);
+                    segmentId = await CreateHeaderAsync(transport, accessToken, documentId, sectionBreakLocation, segment.Variant, batch, cancellationToken).ConfigureAwait(false);
                 } else {
-                    segmentId = await CreateFooterAsync(transport, accessToken, documentId, sectionBreakLocation, segment.Variant, batch.Report, cancellationToken).ConfigureAwait(false);
+                    segmentId = await CreateFooterAsync(transport, accessToken, documentId, sectionBreakLocation, segment.Variant, batch, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(segmentId)) {
@@ -52,30 +52,14 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                 var segmentPayload = GoogleDocsApiPayloadBuilder.BuildSegmentBatchUpdatePayload(segment, batch.Report, segmentId!, imageUris);
                 if (segmentPayload.Requests.Count > 0) {
-                    await transport.SendJsonAsync<object>(
-                        accessToken,
-                        HttpMethod.Post,
-                        $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
-                        segmentPayload,
-                        GoogleWorkspaceRequestSafety.NonIdempotent,
-                        "Google Docs API",
-                        batch.Report,
-                        cancellationToken).ConfigureAwait(false);
+                    await SendBatchUpdateAsync(transport, accessToken, documentId, batch, segmentPayload, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (!segment.Requests.OfType<GoogleDocsInsertTableRequest>().Any()) {
                     continue;
                 }
 
-                var segmentDocumentState = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(
-                    accessToken,
-                    HttpMethod.Get,
-                    $"https://docs.googleapis.com/v1/documents/{documentId}",
-                    null,
-                    GoogleWorkspaceRequestSafety.Safe,
-                    "Google Docs API",
-                    batch.Report,
-                    cancellationToken).ConfigureAwait(false);
+                var segmentDocumentState = await GetDocumentAsync(transport, accessToken, documentId, batch, cancellationToken).ConfigureAwait(false);
 
                 var segmentTablePayload = GoogleDocsApiPayloadBuilder.BuildSegmentTableContentBatchUpdatePayload(
                     segment,
@@ -87,15 +71,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     continue;
                 }
 
-                await transport.SendJsonAsync<object>(
-                    accessToken,
-                    HttpMethod.Post,
-                    $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
-                    segmentTablePayload,
-                    GoogleWorkspaceRequestSafety.NonIdempotent,
-                    "Google Docs API",
-                    batch.Report,
-                    cancellationToken).ConfigureAwait(false);
+                await SendBatchUpdateAsync(transport, accessToken, documentId, batch, segmentTablePayload, cancellationToken).ConfigureAwait(false);
 
                 var segmentMergePayload = GoogleDocsApiPayloadBuilder.BuildSegmentTableMergeBatchUpdatePayload(
                     segment,
@@ -103,15 +79,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     batch.Report,
                     segmentId!);
                 if (segmentMergePayload.Requests.Count > 0) {
-                    await transport.SendJsonAsync<object>(
-                        accessToken,
-                        HttpMethod.Post,
-                        $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
-                        segmentMergePayload,
-                        GoogleWorkspaceRequestSafety.NonIdempotent,
-                        "Google Docs API",
-                        batch.Report,
-                        cancellationToken).ConfigureAwait(false);
+                    await SendBatchUpdateAsync(transport, accessToken, documentId, batch, segmentMergePayload, cancellationToken).ConfigureAwait(false);
                 }
 
                 var segmentTableStylePayload = GoogleDocsApiPayloadBuilder.BuildSegmentTableStyleBatchUpdatePayload(
@@ -123,15 +91,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     continue;
                 }
 
-                await transport.SendJsonAsync<object>(
-                    accessToken,
-                    HttpMethod.Post,
-                    $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
-                    segmentTableStylePayload,
-                    GoogleWorkspaceRequestSafety.NonIdempotent,
-                    "Google Docs API",
-                    batch.Report,
-                    cancellationToken).ConfigureAwait(false);
+                await SendBatchUpdateAsync(transport, accessToken, documentId, batch, segmentTableStylePayload, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -154,7 +114,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             string documentId,
             string? sectionBreakLocation,
             string variant,
-            TranslationReport report,
+            GoogleDocsBatch batch,
             CancellationToken cancellationToken) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
@@ -166,15 +126,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 }
             });
 
-            var response = await transport.SendJsonAsync<GoogleDocsApiBatchUpdateResponse>(
-                accessToken,
-                HttpMethod.Post,
-                $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
-                payload,
-                GoogleWorkspaceRequestSafety.NonIdempotent,
-                "Google Docs API",
-                report,
-                cancellationToken).ConfigureAwait(false);
+            var response = await SendBatchUpdateAsync(transport, accessToken, documentId, batch, payload, cancellationToken).ConfigureAwait(false);
 
             return response.Replies.FirstOrDefault()?.CreateHeader?.HeaderId;
         }
@@ -185,7 +137,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             string documentId,
             string? sectionBreakLocation,
             string variant,
-            TranslationReport report,
+            GoogleDocsBatch batch,
             CancellationToken cancellationToken) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
@@ -197,15 +149,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 }
             });
 
-            var response = await transport.SendJsonAsync<GoogleDocsApiBatchUpdateResponse>(
-                accessToken,
-                HttpMethod.Post,
-                $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
-                payload,
-                GoogleWorkspaceRequestSafety.NonIdempotent,
-                "Google Docs API",
-                report,
-                cancellationToken).ConfigureAwait(false);
+            var response = await SendBatchUpdateAsync(transport, accessToken, documentId, batch, payload, cancellationToken).ConfigureAwait(false);
 
             return response.Replies.FirstOrDefault()?.CreateFooter?.FooterId;
         }

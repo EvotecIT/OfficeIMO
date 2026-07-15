@@ -84,9 +84,11 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                         if (!capsNoticeAdded && paragraph.Runs.Any(run => string.Equals(run.CapsStyle, nameof(CapsStyle.Caps), StringComparison.OrdinalIgnoreCase))) {
                             report.Add(
-                                TranslationSeverity.Warning,
+                                TranslationSeverity.Info,
                                 "TextStyles",
-                                "Word all-caps run styling is preserved in the neutral Google Docs batch, but the current Google Docs export only emits native smallCaps. Full caps remains a dedicated follow-up slice.");
+                                "Word all-caps styling is materialized by uppercasing the affected run text because Google Docs has no all-caps text-style field.",
+                                code: "DOCS.TEXT.ALL_CAPS_FLATTENED",
+                                action: TranslationAction.Flatten);
                             capsNoticeAdded = true;
                         }
 
@@ -109,13 +111,15 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                         if (!tabStopNoticeAdded && paragraph.TabStops.Count > 0) {
                             report.Add(
-                                paragraph.TabStops.Any(tabStop => !string.IsNullOrWhiteSpace(tabStop.Leader) && !string.Equals(tabStop.Leader, "None", StringComparison.OrdinalIgnoreCase))
-                                    ? TranslationSeverity.Warning
-                                    : TranslationSeverity.Info,
+                                TranslationSeverity.Info,
                                 "ParagraphStyles",
                                 paragraph.TabStops.Any(tabStop => !string.IsNullOrWhiteSpace(tabStop.Leader) && !string.Equals(tabStop.Leader, "None", StringComparison.OrdinalIgnoreCase))
-                                    ? "Word tab stops are now emitted as native Google Docs paragraph tabStops, but Word tab leaders do not have a direct Google Docs paragraph-style equivalent in the current export path."
-                                    : "Word tab stops are now emitted as native Google Docs paragraph tabStops.");
+                                    ? "Word tab stops are emitted natively and tab leaders are materialized as leader characters because Google Docs has no leader-style property."
+                                    : "Word tab stops are emitted as native Google Docs paragraph tabStops.",
+                                code: "DOCS.PARAGRAPH.TAB_STOPS",
+                                action: paragraph.TabStops.Any(tabStop => !string.IsNullOrWhiteSpace(tabStop.Leader) && !string.Equals(tabStop.Leader, "None", StringComparison.OrdinalIgnoreCase))
+                                    ? TranslationAction.Flatten
+                                    : TranslationAction.Preserve);
                             tabStopNoticeAdded = true;
                         }
 
@@ -205,7 +209,62 @@ namespace OfficeIMO.Word.GoogleDocs {
                 }
             }
 
+            AppendExecutedFallbacks(document, options, batch);
+
             return batch;
+        }
+
+        private static void AppendExecutedFallbacks(WordDocument document, GoogleDocsSaveOptions options, GoogleDocsBatch batch) {
+            var flattened = new List<string>();
+            AddFallbackName(flattened, options.UnsupportedFeatures.FloatingContent, batch.Plan.ShapeCount + batch.Plan.TextBoxCount, "floating shapes/text boxes");
+            AddFallbackName(flattened, options.UnsupportedFeatures.Charts, batch.Plan.ChartCount, "charts");
+            AddFallbackName(flattened, options.UnsupportedFeatures.SmartArt, batch.Plan.SmartArtCount, "SmartArt");
+            AddFallbackName(flattened, options.UnsupportedFeatures.ContentControls,
+                batch.Plan.StructuredDocumentTagCount + batch.Plan.CheckBoxCount + batch.Plan.DatePickerCount + batch.Plan.DropDownListCount + batch.Plan.ComboBoxCount,
+                "content controls");
+            AddFallbackName(flattened, options.UnsupportedFeatures.EmbeddedObjects, batch.Plan.EmbeddedObjectCount, "embedded objects");
+            AddFallbackName(flattened, options.UnsupportedFeatures.Watermarks, batch.Plan.WatermarkCount, "watermarks");
+            AddFallbackName(flattened, options.UnsupportedFeatures.Equations, batch.Plan.EquationCount, "equations");
+            if (flattened.Count > 0) {
+                string text = "[OfficeIMO flattened unsupported Word content: " + string.Join(", ", flattened) + "]";
+                var paragraph = new GoogleDocsParagraph { Text = text };
+                paragraph.AddRun(new GoogleDocsParagraphRun { Text = text, Italic = true });
+                batch.Add(new GoogleDocsInsertParagraphRequest { SectionIndex = Math.Max(0, batch.Plan.SectionCount - 1), ElementIndex = int.MaxValue - 1, Paragraph = paragraph });
+            }
+
+            bool rasterize = HasRasterizedFallback(options.UnsupportedFeatures, batch.Plan);
+            if (!rasterize || options.InlineImageMode != GoogleDocsInlineImageMode.TemporaryPublicDriveLease) return;
+            byte[] png = document.ToPng(new WordImageExportOptions { IncludeDocumentContent = true, PageIndex = 0 });
+            var imageParagraph = new GoogleDocsParagraph { Text = "[Rendered Word fallback]" };
+            imageParagraph.AddRun(new GoogleDocsParagraphRun {
+                Text = string.Empty,
+                InlineImage = new GoogleDocsInlineImage {
+                    Bytes = png,
+                    FileName = "officeimo-word-fallback.png",
+                    ContentType = "image/png",
+                    Description = "Rendered first-page fallback for Word content without a native Google Docs representation.",
+                    Width = 612,
+                    Height = 792,
+                    IsInline = true,
+                },
+            });
+            batch.Add(new GoogleDocsInsertParagraphRequest { SectionIndex = Math.Max(0, batch.Plan.SectionCount - 1), ElementIndex = int.MaxValue, Paragraph = imageParagraph });
+            batch.Report.Add(TranslationSeverity.Warning, "RasterFallback", "Inserted a renderer-owned first-page PNG fallback for unsupported Word content.",
+                code: "DOCS.FALLBACK.RENDERED_FIRST_PAGE", action: TranslationAction.Rasterize);
+        }
+
+        private static void AddFallbackName(ICollection<string> names, UnsupportedFeatureMode mode, int count, string name) {
+            if (count > 0 && mode == UnsupportedFeatureMode.Flatten) names.Add($"{count} {name}");
+        }
+
+        private static bool HasRasterizedFallback(GoogleDocsUnsupportedFeatureOptions options, GoogleDocsTranslationPlan plan) {
+            return (plan.ShapeCount + plan.TextBoxCount > 0 && options.FloatingContent == UnsupportedFeatureMode.Rasterize)
+                || (plan.ChartCount > 0 && options.Charts == UnsupportedFeatureMode.Rasterize)
+                || (plan.SmartArtCount > 0 && options.SmartArt == UnsupportedFeatureMode.Rasterize)
+                || (plan.StructuredDocumentTagCount + plan.CheckBoxCount + plan.DatePickerCount + plan.DropDownListCount + plan.ComboBoxCount > 0 && options.ContentControls == UnsupportedFeatureMode.Rasterize)
+                || (plan.EmbeddedObjectCount > 0 && options.EmbeddedObjects == UnsupportedFeatureMode.Rasterize)
+                || (plan.WatermarkCount > 0 && options.Watermarks == UnsupportedFeatureMode.Rasterize)
+                || (plan.EquationCount > 0 && options.Equations == UnsupportedFeatureMode.Rasterize);
         }
 
         private static void AddSegment(
@@ -357,8 +416,12 @@ namespace OfficeIMO.Word.GoogleDocs {
             };
 
             foreach (var run in paragraph.Runs) {
+                string text = string.Equals(run.CapsStyle, nameof(CapsStyle.Caps), StringComparison.OrdinalIgnoreCase)
+                    ? (run.Text ?? string.Empty).ToUpperInvariant()
+                    : run.Text ?? string.Empty;
+                text = MaterializeTabLeaders(text, paragraph.TabStops);
                 converted.AddRun(new GoogleDocsParagraphRun {
-                    Text = run.Text,
+                    Text = text,
                     Bold = run.Bold,
                     Italic = run.Italic,
                     Underline = run.Underline,
@@ -398,6 +461,18 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
 
             return converted;
+        }
+
+        private static string MaterializeTabLeaders(string? text, IReadOnlyList<WordTabStopSnapshot> tabStops) {
+            string value = text ?? string.Empty;
+            if (value.IndexOf('\t') < 0 || tabStops == null || tabStops.Count == 0) return value;
+            WordTabStopSnapshot? leader = tabStops.FirstOrDefault(tab => !string.IsNullOrWhiteSpace(tab.Leader)
+                && !string.Equals(tab.Leader, "None", StringComparison.OrdinalIgnoreCase));
+            if (leader == null) return value;
+            string fill = leader.Leader!.IndexOf("Hyphen", StringComparison.OrdinalIgnoreCase) >= 0 ? "----"
+                : leader.Leader.IndexOf("Underscore", StringComparison.OrdinalIgnoreCase) >= 0 ? "____"
+                : "....";
+            return value.Replace("\t", fill + "\t");
         }
 
         private static GoogleDocsFootnote ConvertFootnote(WordFootnoteSnapshot footnote) {

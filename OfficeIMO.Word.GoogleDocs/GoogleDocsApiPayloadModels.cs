@@ -9,6 +9,10 @@ namespace OfficeIMO.Word.GoogleDocs {
     internal sealed class GoogleDocsApiBatchUpdatePayload {
         [JsonPropertyName("requests")]
         public List<GoogleDocsApiRequestPayload> Requests { get; } = new List<GoogleDocsApiRequestPayload>();
+
+        [JsonPropertyName("writeControl")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiWriteControlPayload? WriteControl { get; set; }
     }
 
     internal sealed class GoogleDocsApiRequestPayload {
@@ -87,6 +91,18 @@ namespace OfficeIMO.Word.GoogleDocs {
         [JsonPropertyName("deleteContentRange")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleDocsApiDeleteContentRangeRequestPayload? DeleteContentRange { get; set; }
+
+        [JsonPropertyName("deleteHeader")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiDeleteHeaderRequestPayload? DeleteHeader { get; set; }
+
+        [JsonPropertyName("deleteFooter")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiDeleteFooterRequestPayload? DeleteFooter { get; set; }
+
+        [JsonPropertyName("deleteNamedRange")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiDeleteNamedRangeRequestPayload? DeleteNamedRange { get; set; }
     }
 
     internal sealed class GoogleDocsApiInsertTextRequestPayload {
@@ -261,6 +277,35 @@ namespace OfficeIMO.Word.GoogleDocs {
         public GoogleDocsApiRangePayload Range { get; set; } = new GoogleDocsApiRangePayload();
     }
 
+    internal sealed class GoogleDocsApiDeleteHeaderRequestPayload {
+        [JsonPropertyName("headerId")]
+        public string HeaderId { get; set; } = string.Empty;
+        [JsonPropertyName("tabId")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TabId { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiDeleteFooterRequestPayload {
+        [JsonPropertyName("footerId")]
+        public string FooterId { get; set; } = string.Empty;
+        [JsonPropertyName("tabId")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TabId { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiDeleteNamedRangeRequestPayload {
+        [JsonPropertyName("name")]
+        public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("tabsCriteria")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiTabsCriteriaPayload? TabsCriteria { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiTabsCriteriaPayload {
+        [JsonPropertyName("tabIds")]
+        public List<string> TabIds { get; set; } = new List<string>();
+    }
+
     internal sealed class GoogleDocsApiLocationPayload {
         [JsonPropertyName("index")]
         public int Index { get; set; }
@@ -268,6 +313,10 @@ namespace OfficeIMO.Word.GoogleDocs {
         [JsonPropertyName("segmentId")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? SegmentId { get; set; }
+
+        [JsonPropertyName("tabId")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TabId { get; set; }
     }
 
     internal sealed class GoogleDocsApiRangePayload {
@@ -280,12 +329,20 @@ namespace OfficeIMO.Word.GoogleDocs {
         [JsonPropertyName("segmentId")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? SegmentId { get; set; }
+
+        [JsonPropertyName("tabId")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TabId { get; set; }
     }
 
     internal sealed class GoogleDocsApiEndOfSegmentLocationPayload {
         [JsonPropertyName("segmentId")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? SegmentId { get; set; }
+
+        [JsonPropertyName("tabId")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TabId { get; set; }
     }
 
     internal sealed class GoogleDocsApiTableRangePayload {
@@ -623,6 +680,18 @@ namespace OfficeIMO.Word.GoogleDocs {
         [JsonPropertyName("url")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Url { get; set; }
+
+        [JsonPropertyName("bookmark")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiBookmarkLinkPayload? Bookmark { get; set; }
+
+        [JsonPropertyName("heading")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiHeadingLinkPayload? Heading { get; set; }
+
+        [JsonPropertyName("tabId")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TabId { get; set; }
     }
 
     internal sealed class GoogleDocsApiCreateDocumentResponse {
@@ -631,6 +700,12 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         [JsonPropertyName("title")]
         public string? Title { get; set; }
+
+        [JsonPropertyName("revisionId")]
+        public string? RevisionId { get; set; }
+
+        [JsonPropertyName("tabs")]
+        public List<GoogleDocsApiTabResponse> Tabs { get; set; } = new List<GoogleDocsApiTabResponse>();
     }
 
     internal sealed class GoogleDocsApiDocumentResponse {
@@ -639,6 +714,12 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         [JsonPropertyName("title")]
         public string? Title { get; set; }
+
+        [JsonPropertyName("revisionId")]
+        public string? RevisionId { get; set; }
+
+        [JsonPropertyName("tabs")]
+        public List<GoogleDocsApiTabResponse> Tabs { get; set; } = new List<GoogleDocsApiTabResponse>();
 
         [JsonPropertyName("body")]
         public GoogleDocsApiBodyResponse? Body { get; set; }
@@ -656,6 +737,9 @@ namespace OfficeIMO.Word.GoogleDocs {
     internal sealed class GoogleDocsApiBatchUpdateResponse {
         [JsonPropertyName("replies")]
         public List<GoogleDocsApiBatchUpdateReplyPayload> Replies { get; set; } = new List<GoogleDocsApiBatchUpdateReplyPayload>();
+
+        [JsonPropertyName("writeControl")]
+        public GoogleDocsApiWriteControlPayload? WriteControl { get; set; }
     }
 
     internal sealed class GoogleDocsApiBatchUpdateReplyPayload {
@@ -727,6 +811,53 @@ namespace OfficeIMO.Word.GoogleDocs {
     }
 
     internal sealed class GoogleDocsApiParagraphElementResponse {
+        [JsonPropertyName("elements")]
+        public List<GoogleDocsApiParagraphInlineElementResponse> Elements { get; set; } = new List<GoogleDocsApiParagraphInlineElementResponse>();
+
+        [JsonPropertyName("paragraphStyle")]
+        public GoogleDocsApiParagraphStylePayload? ParagraphStyle { get; set; }
+
+        [JsonPropertyName("bullet")]
+        public GoogleDocsApiBulletResponse? Bullet { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiParagraphInlineElementResponse {
+        [JsonPropertyName("startIndex")]
+        public int? StartIndex { get; set; }
+        [JsonPropertyName("endIndex")]
+        public int? EndIndex { get; set; }
+        [JsonPropertyName("textRun")]
+        public GoogleDocsApiTextRunResponse? TextRun { get; set; }
+        [JsonPropertyName("inlineObjectElement")]
+        public GoogleDocsApiInlineObjectElementResponse? InlineObjectElement { get; set; }
+        [JsonPropertyName("footnoteReference")]
+        public GoogleDocsApiFootnoteReferenceResponse? FootnoteReference { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiTextRunResponse {
+        [JsonPropertyName("content")]
+        public string? Content { get; set; }
+        [JsonPropertyName("textStyle")]
+        public GoogleDocsApiTextStylePayload? TextStyle { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiInlineObjectElementResponse {
+        [JsonPropertyName("inlineObjectId")]
+        public string? InlineObjectId { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiFootnoteReferenceResponse {
+        [JsonPropertyName("footnoteId")]
+        public string? FootnoteId { get; set; }
+    }
+
+    internal sealed class GoogleDocsApiBulletResponse {
+        [JsonPropertyName("listId")]
+        public string? ListId { get; set; }
+        [JsonPropertyName("nestingLevel")]
+        public int NestingLevel { get; set; }
+        [JsonPropertyName("textStyle")]
+        public GoogleDocsApiTextStylePayload? TextStyle { get; set; }
     }
 
     internal sealed class GoogleDocsApiSectionBreakResponse {

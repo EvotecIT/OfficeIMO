@@ -45,36 +45,47 @@ namespace OfficeIMO.Word.GoogleDocs {
                     "DOCS.FLOATING_CONTENT",
                     plan.ShapeCount + plan.TextBoxCount,
                     options.UnsupportedFeatures.FloatingContent,
-                    "floating shapes and text boxes");
+                    "floating shapes and text boxes",
+                    options.InlineImageMode == GoogleDocsInlineImageMode.TemporaryPublicDriveLease);
             }
 
             if (plan.ChartCount > 0) {
-                AddUnsupported(report, "Charts", "DOCS.CHART", plan.ChartCount, options.UnsupportedFeatures.Charts, "Word charts");
+                AddUnsupported(report, "Charts", "DOCS.CHART", plan.ChartCount, options.UnsupportedFeatures.Charts, "Word charts", options.InlineImageMode == GoogleDocsInlineImageMode.TemporaryPublicDriveLease);
             }
 
             if (plan.SmartArtCount > 0) {
-                AddUnsupported(report, "SmartArt", "DOCS.SMART_ART", plan.SmartArtCount, options.UnsupportedFeatures.SmartArt, "SmartArt objects");
+                AddUnsupported(report, "SmartArt", "DOCS.SMART_ART", plan.SmartArtCount, options.UnsupportedFeatures.SmartArt, "SmartArt objects", options.InlineImageMode == GoogleDocsInlineImageMode.TemporaryPublicDriveLease);
             }
 
             if (plan.StructuredDocumentTagCount > 0 || plan.CheckBoxCount > 0 || plan.DatePickerCount > 0 || plan.DropDownListCount > 0 || plan.ComboBoxCount > 0) {
                 int contentControlCount = plan.StructuredDocumentTagCount + plan.CheckBoxCount + plan.DatePickerCount + plan.DropDownListCount + plan.ComboBoxCount;
-                AddUnsupported(report, "ContentControls", "DOCS.CONTENT_CONTROL", contentControlCount, options.UnsupportedFeatures.ContentControls, "Word content controls");
+                AddUnsupported(report, "ContentControls", "DOCS.CONTENT_CONTROL", contentControlCount, options.UnsupportedFeatures.ContentControls, "Word content controls", options.InlineImageMode == GoogleDocsInlineImageMode.TemporaryPublicDriveLease);
             }
 
             if (plan.EmbeddedObjectCount > 0) {
-                AddUnsupported(report, "EmbeddedObjects", "DOCS.EMBEDDED_OBJECT", plan.EmbeddedObjectCount, options.UnsupportedFeatures.EmbeddedObjects, "embedded OLE objects");
+                AddUnsupported(report, "EmbeddedObjects", "DOCS.EMBEDDED_OBJECT", plan.EmbeddedObjectCount, options.UnsupportedFeatures.EmbeddedObjects, "embedded OLE objects", options.InlineImageMode == GoogleDocsInlineImageMode.TemporaryPublicDriveLease);
             }
 
             if (plan.WatermarkCount > 0) {
-                AddUnsupported(report, "Watermarks", "DOCS.WATERMARK", plan.WatermarkCount, options.UnsupportedFeatures.Watermarks, "watermarks");
+                AddUnsupported(report, "Watermarks", "DOCS.WATERMARK", plan.WatermarkCount, options.UnsupportedFeatures.Watermarks, "watermarks", options.InlineImageMode == GoogleDocsInlineImageMode.TemporaryPublicDriveLease);
             }
 
             if (plan.CommentCount > 0) {
-                AddUnsupported(report, "Comments", "DOCS.COMMENT", plan.CommentCount, options.UnsupportedFeatures.Comments, "comments");
+                if (options.Comments == GoogleDocsCommentMode.UnanchoredDriveComments) {
+                    report.Add(
+                        TranslationSeverity.Warning,
+                        "Comments",
+                        $"{plan.CommentCount} Word comment(s) will be created as unanchored Drive comments because Google editors do not honor Drive API anchors.",
+                        code: "DOCS.COMMENT.UNANCHORED",
+                        action: TranslationAction.Flatten,
+                        count: plan.CommentCount);
+                } else {
+                    AddUnsupported(report, "Comments", "DOCS.COMMENT", plan.CommentCount, options.UnsupportedFeatures.Comments, "comments");
+                }
             }
 
             if (plan.EquationCount > 0) {
-                AddUnsupported(report, "Equations", "DOCS.EQUATION", plan.EquationCount, options.UnsupportedFeatures.Equations, "equations");
+                AddUnsupported(report, "Equations", "DOCS.EQUATION", plan.EquationCount, options.UnsupportedFeatures.Equations, "equations", options.InlineImageMode == GoogleDocsInlineImageMode.TemporaryPublicDriveLease);
             }
 
             if (plan.ImageCount > 0) {
@@ -106,7 +117,8 @@ namespace OfficeIMO.Word.GoogleDocs {
             string codePrefix,
             int count,
             UnsupportedFeatureMode mode,
-            string description) {
+            string description,
+            bool canRasterize = false) {
             switch (mode) {
                 case UnsupportedFeatureMode.Error:
                     report.Add(
@@ -127,11 +139,28 @@ namespace OfficeIMO.Word.GoogleDocs {
                         count: count);
                     break;
                 case UnsupportedFeatureMode.Flatten:
+                    report.Add(
+                        TranslationSeverity.Warning,
+                        feature,
+                        $"The document contains {count} {description}; a readable fallback notice will be inserted in the Google document.",
+                        code: codePrefix + ".FLATTENED",
+                        action: TranslationAction.Flatten,
+                        count: count);
+                    break;
+                case UnsupportedFeatureMode.Rasterize when canRasterize:
+                    report.Add(
+                        TranslationSeverity.Warning,
+                        feature,
+                        $"The document contains {count} {description}; the OfficeIMO renderer will add a first-page PNG fallback through a temporary Drive lease.",
+                        code: codePrefix + ".RASTERIZED",
+                        action: TranslationAction.Rasterize,
+                        count: count);
+                    break;
                 case UnsupportedFeatureMode.Rasterize:
                     report.Add(
                         TranslationSeverity.Error,
                         feature,
-                        $"The selected {mode} policy for {description} cannot execute because no compatible renderer is configured.",
+                        $"Rasterizing {description} requires InlineImageMode=TemporaryPublicDriveLease so Google Docs can fetch the rendered image safely.",
                         code: codePrefix + ".FALLBACK_UNAVAILABLE",
                         action: TranslationAction.Fail,
                         count: count);

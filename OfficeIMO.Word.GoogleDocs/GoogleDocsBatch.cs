@@ -26,6 +26,8 @@ namespace OfficeIMO.Word.GoogleDocs {
         public WordDocumentSnapshot Snapshot { get; }
         public IReadOnlyList<GoogleDocsRequest> Requests => _requests;
         public IReadOnlyList<GoogleDocsSegment> Segments => _segments;
+        internal GoogleDocsWriteControlState? WriteControlState { get; set; }
+        internal string? TargetTabId { get; set; }
 
         internal void Add(GoogleDocsRequest request) {
             if (request == null) throw new ArgumentNullException(nameof(request));

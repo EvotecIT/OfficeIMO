@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <Description>Google Docs planning and export scaffolding for OfficeIMO.Word.</Description>
+        <Description>Create, safely replace, import, diff, and translate Google Docs documents with OfficeIMO.Word.</Description>
         <AssemblyName>OfficeIMO.Word.GoogleDocs</AssemblyName>
         <AssemblyTitle>OfficeIMO.Word.GoogleDocs</AssemblyTitle>
         <VersionPrefix>2.0.1</VersionPrefix>

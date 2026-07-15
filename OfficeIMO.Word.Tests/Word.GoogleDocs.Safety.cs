@@ -28,7 +28,7 @@ namespace OfficeIMO.Tests {
                         return Task.FromResult(CreateJsonResponse("{}"));
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-safe-image") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-safe-image?includeTabsContent=true") {
                         return Task.FromResult(CreateJsonResponse(CreateBodyTableDocumentStateJson("doc-safe-image", "Safe Image Export")));
                     }
 

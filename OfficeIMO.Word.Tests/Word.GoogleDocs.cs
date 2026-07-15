@@ -259,7 +259,7 @@ namespace OfficeIMO.Tests {
                 var paragraphRequest = Assert.IsType<GoogleDocsInsertParagraphRequest>(batch.Requests[0]);
                 Assert.Contains(paragraphRequest.Paragraph.Runs, run => string.Equals(run.CapsStyle, "SmallCaps", StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(paragraphRequest.Paragraph.Runs, run => string.Equals(run.CapsStyle, "Caps", StringComparison.OrdinalIgnoreCase));
-                Assert.Contains(batch.Report.Notices, notice => notice.Feature == "TextStyles" && notice.Message.Contains("smallCaps", StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.TEXT.ALL_CAPS_FLATTENED");
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
                 var smallCapsStyle = Assert.Single(payload.Requests, request => request.UpdateTextStyle?.TextStyle.SmallCaps == true);
@@ -1232,7 +1232,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image?includeTabsContent=true") {
                         return CreateJsonResponse(CreateBodyTableDocumentStateJson("doc-table-image", "Table Image Export"));
                     }
 
@@ -2024,7 +2024,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-header-bookmark\",\"title\":\"Header Bookmark Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-bookmark") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-bookmark?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc-header-bookmark\",\"title\":\"Header Bookmark Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -2142,7 +2142,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-footnote") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-footnote?includeTabsContent=true") {
                         return CreateJsonResponse(CreateSingleCellBodyTableDocumentStateJson("doc-table-footnote", "Table Footnote Export"));
                     }
 
@@ -2242,7 +2242,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-merge-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-merge-table?includeTabsContent=true") {
                         return CreateJsonResponse(CreateBodyTableDocumentStateJson("doc-merge-table", "Merged Table Export"));
                     }
 
@@ -2320,7 +2320,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc123") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc123?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc123\",\"title\":\"Create Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}},{\"startIndex\":20,\"endIndex\":60,\"table\":{\"tableRows\":[{\"tableCells\":[{\"content\":[{\"startIndex\":25,\"endIndex\":26,\"paragraph\":{}}]},{\"content\":[{\"startIndex\":30,\"endIndex\":31,\"paragraph\":{}}]}]},{\"tableCells\":[{\"content\":[{\"startIndex\":35,\"endIndex\":36,\"paragraph\":{}}]},{\"content\":[{\"startIndex\":40,\"endIndex\":41,\"paragraph\":{}}]}]}]}},{\"startIndex\":60,\"endIndex\":80,\"paragraph\":{}}]}}");
                     }
 
@@ -2404,7 +2404,7 @@ namespace OfficeIMO.Tests {
                     string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
                     recordedRequests.Add((request.RequestUri!, request.Method.Method, body, request.Headers.Authorization?.ToString()));
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-123") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-123?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"existing-doc-123\",\"title\":\"Old Title\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -2425,6 +2425,9 @@ namespace OfficeIMO.Tests {
 
                 var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Title = "Replacement Export",
+                    Replace = new GoogleDocsReplaceOptions {
+                        ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest,
+                    },
                     Location = new GoogleDriveFileLocation {
                         ExistingFileId = "existing-doc-123",
                     }
@@ -2510,7 +2513,7 @@ namespace OfficeIMO.Tests {
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
                     string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-retry-123") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-retry-123?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"existing-doc-retry-123\",\"title\":\"Old Title\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -2542,6 +2545,9 @@ namespace OfficeIMO.Tests {
                 var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
                     document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                         Title = "Retry Replacement Export",
+                        Replace = new GoogleDocsReplaceOptions {
+                            ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest,
+                        },
                         Location = new GoogleDriveFileLocation {
                             ExistingFileId = "existing-doc-retry-123",
                         }
@@ -2701,7 +2707,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-hf\",\"title\":\"Header Footer Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-hf") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-hf?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc-hf\",\"title\":\"Header Footer Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -2770,7 +2776,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-header-table\",\"title\":\"Header Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-header-table\",\"title\":\"Header Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -2853,7 +2859,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-footer-table\",\"title\":\"Footer Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-footer-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-footer-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-footer-table\",\"title\":\"Footer Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -2936,7 +2942,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-header-table\",\"title\":\"Even Header Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-header-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-header-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-even-header-table\",\"title\":\"Even Header Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3022,7 +3028,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-first-footer-table\",\"title\":\"First Footer Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-first-footer-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-first-footer-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-first-footer-table\",\"title\":\"First Footer Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3102,7 +3108,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-footer-table\",\"title\":\"Even Footer Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-footer-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-footer-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-even-footer-table\",\"title\":\"Even Footer Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3185,7 +3191,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-first-hf\",\"title\":\"First Page Header Footer Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-first-hf") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-first-hf?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc-first-hf\",\"title\":\"First Page Header Footer Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -3254,7 +3260,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-hf\",\"title\":\"Even Page Header Footer Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-hf") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-hf?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-hf\",\"title\":\"Even Page Header Footer Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -3326,7 +3332,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-header-table-bookmark\",\"title\":\"Header Table Bookmark Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table-bookmark") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table-bookmark?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-header-table-bookmark\",\"title\":\"Header Table Bookmark Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3388,7 +3394,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-header-table-bookmark\",\"title\":\"Even Header Table Bookmark Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-header-table-bookmark") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-header-table-bookmark?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-even-header-table-bookmark\",\"title\":\"Even Header Table Bookmark Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3469,7 +3475,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-footer-table-bookmark\",\"title\":\"Even Footer Table Bookmark Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-footer-table-bookmark") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-footer-table-bookmark?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-even-footer-table-bookmark\",\"title\":\"Even Footer Table Bookmark Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
