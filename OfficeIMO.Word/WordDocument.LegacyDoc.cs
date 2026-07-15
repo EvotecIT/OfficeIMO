@@ -911,7 +911,9 @@ namespace OfficeIMO.Word {
             LegacyDocTextRun firstRun = sourceParagraph.Runs[0];
             WordParagraph paragraph;
             int remainingRunStartIndex;
-            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text) || firstRun.HyperlinkTarget.HasValue) {
+            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text)
+                || firstRun.HyperlinkTarget.HasValue
+                || firstRun.FieldKind != LegacyDocFieldKind.None) {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
                 remainingRunStartIndex = 0;
             } else {
@@ -971,6 +973,18 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, int startIndex, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
             for (int index = startIndex; index < paragraphRuns.Count; index++) {
                 LegacyDocTextRun legacyRun = paragraphRuns[index];
+                if (legacyRun.HyperlinkTarget.HasValue) {
+                    int hyperlinkStartIndex = index;
+                    LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
+                    while (index + 1 < paragraphRuns.Count
+                        && paragraphRuns[index + 1].HyperlinkTarget == hyperlinkTarget) {
+                        index++;
+                    }
+
+                    AddLegacyDocHyperlinkRunsContent(paragraph, paragraphRuns, hyperlinkStartIndex, index - hyperlinkStartIndex + 1, notes, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.IsPageNumber) {
                     AddLegacyDocPageNumber(paragraph, legacyRun, bookmarks);
                     continue;
@@ -983,18 +997,6 @@ namespace OfficeIMO.Word {
 
                 if (legacyRun.IsStaticDisplayField) {
                     AddLegacyDocStaticDisplayField(paragraph, legacyRun, bookmarks);
-                    continue;
-                }
-
-                if (legacyRun.HyperlinkTarget.HasValue) {
-                    int hyperlinkStartIndex = index;
-                    LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
-                    while (index + 1 < paragraphRuns.Count
-                        && paragraphRuns[index + 1].HyperlinkTarget == hyperlinkTarget) {
-                        index++;
-                    }
-
-                    AddLegacyDocHyperlinkRunsContent(paragraph, paragraphRuns, hyperlinkStartIndex, index - hyperlinkStartIndex + 1, notes, bookmarks);
                     continue;
                 }
 
@@ -1428,6 +1430,7 @@ namespace OfficeIMO.Word {
                 LegacyDocFieldKind.SaveDate => " SAVEDATE  ",
                 LegacyDocFieldKind.PrintDate => " PRINTDATE  ",
                 LegacyDocFieldKind.DocumentProperty => throw new NotSupportedException("Legacy DOC document-property field projection requires the source field instruction."),
+                LegacyDocFieldKind.Equation => " EQ ",
                 _ => " DATE  "
             };
         }
@@ -1507,6 +1510,19 @@ namespace OfficeIMO.Word {
         }
 
         private static void AppendLegacyDocHyperlinkRunContent(Hyperlink hyperlink, WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
+            if (legacyRun.IsStaticDisplayField) {
+                bookmarks.EmitAt(hyperlink, GetLegacyDocRunCharacterPosition(legacyRun, 0));
+                var simpleField = new SimpleField {
+                    Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction)
+                        ? GetLegacyDocStaticFieldInstruction(legacyRun.FieldKind)
+                        : legacyRun.FieldInstruction
+                };
+                AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text);
+                hyperlink.Append(simpleField);
+                bookmarks.EmitAt(hyperlink, GetLegacyDocRunEndCharacterPosition(legacyRun));
+                return;
+            }
+
             string text = legacyRun.Text;
             int segmentStart = 0;
             for (int index = 0; index < text.Length; index++) {
@@ -2311,10 +2327,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!string.IsNullOrEmpty(characterFormat.Language) || !string.IsNullOrEmpty(characterFormat.EastAsiaLanguage)) {
-                properties.Append(new Languages {
-                    Val = characterFormat.Language,
-                    EastAsia = characterFormat.EastAsiaLanguage
-                });
+                properties.Append(CreateLegacyDocLanguages(characterFormat.Language, characterFormat.EastAsiaLanguage));
                 hasProperties = true;
             }
 
@@ -2507,11 +2520,21 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(legacyRun.Language) || !string.IsNullOrEmpty(legacyRun.EastAsiaLanguage)) {
                 RunProperties runProperties = run._runProperties ?? new RunProperties();
                 run._runProperties = runProperties;
-                runProperties.Languages = new Languages {
-                    Val = legacyRun.Language,
-                    EastAsia = legacyRun.EastAsiaLanguage
-                };
+                runProperties.Languages = CreateLegacyDocLanguages(legacyRun.Language, legacyRun.EastAsiaLanguage);
             }
+        }
+
+        private static Languages CreateLegacyDocLanguages(string? language, string? eastAsiaLanguage) {
+            var languages = new Languages();
+            if (!string.IsNullOrEmpty(language)) {
+                languages.Val = language;
+            }
+
+            if (!string.IsNullOrEmpty(eastAsiaLanguage)) {
+                languages.EastAsia = eastAsiaLanguage;
+            }
+
+            return languages;
         }
 
         private static bool TryMapHighlight(LegacyDocHighlightColorKind highlightKind, out HighlightColorValues value) {

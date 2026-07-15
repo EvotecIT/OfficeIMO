@@ -187,6 +187,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationNoteField(builder, runs, bookmarks, officeMath, storyStart);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
+                        break;
                     case SdtRun sdtRun:
                         AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, id, storyStart);
                         break;
@@ -296,12 +302,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping, page, and column breaks.");
         }
 
-        private static void AppendSupportedNoteFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, int storyStart) {
+        private static void AppendSupportedNoteFieldFromSimpleField(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            SimpleField field,
+            int storyStart,
+            bool allowHyperlinkRunStyle = false) {
             if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
                 throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields in note paragraphs. Other field types are not supported yet.");
             }
 
-            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
+            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field, allowHyperlinkRunStyle);
             AppendSupportedNoteField(
                 text,
                 runs,
@@ -506,6 +518,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SdtRun sdtRun:
                         AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, bookmarks, sdtRun, id, noteKind, storyStart);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationNoteField(text, runs, bookmarks, officeMath, storyStart);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationNoteField(text, runs, bookmarks, mathParagraph, storyStart);
+                        break;
+                    case SimpleField simpleField:
+                        AppendSupportedNoteFieldFromSimpleField(
+                            text,
+                            runs,
+                            bookmarks,
+                            simpleField,
+                            storyStart,
+                            allowHyperlinkRunStyle: true);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + text.Length);
                         break;
@@ -517,7 +544,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} hyperlinks only when they contain text runs and inline content controls. Unsupported hyperlink element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} hyperlinks only when they contain text runs, supported fields, equations, and inline content controls. Unsupported hyperlink element: {child.LocalName}.");
                 }
             }
 
@@ -579,6 +606,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SdtRun nestedSdtRun:
                         AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, bookmarks, nestedSdtRun, id, noteKind, storyStart);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationNoteField(text, runs, bookmarks, officeMath, storyStart);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationNoteField(text, runs, bookmarks, mathParagraph, storyStart);
+                        break;
+                    case SimpleField simpleField:
+                        AppendSupportedNoteFieldFromSimpleField(
+                            text,
+                            runs,
+                            bookmarks,
+                            simpleField,
+                            storyStart,
+                            allowHyperlinkRunStyle: true);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + text.Length);
                         break;
@@ -590,7 +632,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports {noteKind} id '{id}' hyperlink inline content controls only when they contain supported text runs and nested inline content controls. Unsupported {noteKind} hyperlink inline content-control element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports {noteKind} id '{id}' hyperlink inline content controls only when they contain supported text runs, supported fields, equations, and nested inline content controls. Unsupported {noteKind} hyperlink inline content-control element: {child.LocalName}.");
                 }
             }
         }

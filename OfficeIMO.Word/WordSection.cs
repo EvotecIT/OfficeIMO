@@ -508,13 +508,13 @@ namespace OfficeIMO.Word {
         /// </summary>
         public List<WordEquation> Equations {
             get {
-                List<WordEquation> list = new List<WordEquation>();
-                var paragraphs = Paragraphs.Where(p => p.IsEquation).ToList();
-                foreach (var paragraph in paragraphs) {
-                    var equation = paragraph.Equation;
-                    if (equation != null) {
-                        list.Add(equation);
-                    }
+                var list = new List<WordEquation>();
+                foreach (Paragraph paragraph in Paragraphs
+                    .Select(wordParagraph => wordParagraph._paragraph)
+                    .Distinct()) {
+                    list.AddRange(WordEquation
+                        .GetOccurrences(_document, paragraph)
+                        .Select(occurrence => occurrence.Equation));
                 }
                 return list;
             }

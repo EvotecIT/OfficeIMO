@@ -34,6 +34,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, inheritedFormatting);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationField(text, runs, officeMath, inheritedFormatting);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
+                        break;
                     case SdtRun nestedSdtRun:
                         AppendSupportedInlineContentControlText(text, runs, bookmarks, nestedSdtRun, mainPart, footnotes, endnotes, inheritedFormatting, context);
                         break;
@@ -78,6 +84,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case SimpleField simpleField:
                         AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, paragraphText, bookmarks, simpleField, kind);
+                        break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, paragraphText, officeMath);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, paragraphText, mathParagraph);
                         break;
                     case SdtRun nestedSdtRun:
                         AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, paragraphText, bookmarks, nestedSdtRun, relationshipOwner, kind);
@@ -124,6 +136,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationNoteField(builder, runs, bookmarks, officeMath, storyStart);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
+                        break;
                     case SdtRun nestedSdtRun:
                         AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, id, storyStart);
                         break;
@@ -168,6 +186,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
+                        break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationNoteField(builder, runs, bookmarks, officeMath, storyStart);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
                         break;
                     case SdtRun nestedSdtRun:
                         AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, id, storyStart);

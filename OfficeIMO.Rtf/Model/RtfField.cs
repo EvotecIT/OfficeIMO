@@ -26,6 +26,15 @@ public sealed class RtfField : IRtfInline {
     /// <summary>Parsed metadata for <c>HYPERLINK</c> fields. The raw <see cref="Instruction"/> remains authoritative.</summary>
     public RtfHyperlinkFieldInfo? HyperlinkField { get; set; }
 
+    /// <summary>Gets whether this is a Word <c>EQ</c> mathematical equation field.</summary>
+    public bool IsEquation {
+        get {
+            string trimmed = Instruction.TrimStart();
+            return trimmed.StartsWith("EQ", StringComparison.OrdinalIgnoreCase)
+                && (trimmed.Length == 2 || char.IsWhiteSpace(trimmed[2]));
+        }
+    }
+
     /// <summary>Parsed hyperlink target for <c>HYPERLINK</c> fields.</summary>
     public Uri? Hyperlink {
         get => HyperlinkField?.Target;
