@@ -1,0 +1,77 @@
+namespace OfficeIMO.Reader.Web;
+
+/// <summary>
+/// Bounded, thread-safe HTTP transport over a caller-configured <see cref="OfficeDocumentReader"/>.
+/// </summary>
+/// <remarks>
+/// The caller owns the Reader and <see cref="HttpClient"/> lifetimes. This type does not mutate or dispose either.
+/// </remarks>
+public sealed class OfficeDocumentWebReader {
+    private readonly OfficeDocumentReader _reader;
+    private readonly HttpClient _httpClient;
+    private readonly ReaderWebOptions _options;
+    private readonly SemaphoreSlim _requestGate;
+
+    /// <summary>Creates a bounded web reader over existing Reader and HTTP client instances.</summary>
+    public OfficeDocumentWebReader(
+        OfficeDocumentReader reader,
+        HttpClient httpClient,
+        ReaderWebOptions? options = null) {
+        _reader = reader ?? throw new ArgumentNullException(nameof(reader));
+        _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _options = (options ?? new ReaderWebOptions()).CloneValidated();
+        _requestGate = new SemaphoreSlim(_options.MaxConcurrentRequests, _options.MaxConcurrentRequests);
+    }
+
+    /// <summary>
+    /// Downloads one bounded HTTP(S) response and routes its bytes through the configured Reader instance.
+    /// </summary>
+    public async Task<OfficeDocumentReadResult> ReadDocumentAsync(
+        Uri uri,
+        string? sourceName = null,
+        ReaderOptions? readerOptions = null,
+        CancellationToken cancellationToken = default) {
+        if (uri == null) throw new ArgumentNullException(nameof(uri));
+        ReaderWebUriPolicy.Validate(uri, _options);
+        string? normalizedSourceName = ReaderWebTransport.NormalizeExplicitSourceName(sourceName);
+        await _requestGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+        try {
+            long maxResponseBytes = _options.MaxResponseBytes;
+            if (readerOptions?.MaxInputBytes is long readerLimit && readerLimit >= 0) {
+                maxResponseBytes = Math.Min(maxResponseBytes, readerLimit);
+            }
+            ReaderWebDownload download = await ReaderWebTransport.DownloadAsync(
+                _httpClient,
+                uri,
+                normalizedSourceName,
+                maxResponseBytes,
+                _options,
+                cancellationToken).ConfigureAwait(false);
+            OfficeDocumentReadResult result = await _reader.ReadDocumentAsync(
+                download.Bytes,
+                download.SourceName,
+                readerOptions,
+                cancellationToken).ConfigureAwait(false);
+            download.ApplyTransportMetadata(result, _options);
+            return result;
+        } finally {
+            _requestGate.Release();
+        }
+    }
+
+    /// <summary>
+    /// Downloads one bounded HTTP(S) response and returns the Markdown emitted by the same rich Reader pipeline.
+    /// </summary>
+    public async Task<string> ConvertToMarkdownAsync(
+        Uri uri,
+        string? sourceName = null,
+        ReaderOptions? readerOptions = null,
+        CancellationToken cancellationToken = default) {
+        OfficeDocumentReadResult result = await ReadDocumentAsync(
+            uri,
+            sourceName,
+            readerOptions,
+            cancellationToken).ConfigureAwait(false);
+        return result.Markdown ?? string.Empty;
+    }
+}
