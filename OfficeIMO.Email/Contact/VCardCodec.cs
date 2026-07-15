@@ -18,6 +18,8 @@ internal static class VCardCodec {
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
             property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "UID" ||
+            property.Name == "REV" || property.Name == "KIND" &&
+            !property.Value.Trim().Equals("individual", StringComparison.OrdinalIgnoreCase) ||
             property.Name == "CLASS" &&
             !ParseVCardSensitivity(property.Value).HasValue);
 

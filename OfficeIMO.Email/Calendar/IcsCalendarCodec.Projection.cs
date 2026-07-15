@@ -27,11 +27,27 @@ internal static partial class IcsCalendarCodec {
                 property.Name == "CLASS" && !ParseCalendarSensitivity(property.Value).HasValue ||
                 isEvent && property.Name == "STATUS" ||
                 property.Name == "PRIORITY" || property.Name == "URL" ||
+                !isEvent && property.Name == "SEQUENCE" ||
                 !isEvent && IsDateOnlyTaskProperty(property) ||
                 property.Name == "ATTENDEE" && HasIncompleteAttendeeProjection(property) ||
+                property.Name == "ORGANIZER" && HasIncompleteOrganizerProjection(property) ||
+                (property.Name == "ORGANIZER" || property.Name == "ATTENDEE") &&
+                IsNonMailtoCalendarAddress(property.Value) ||
                 property.Name == "ATTACH" || property.Name == "TRIGGER" &&
                 property.Parameters.TryGetValue("RELATED", out string? related) &&
                 related.Equals("END", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool HasIncompleteTimestampProjection(IEnumerable<IcsProperty> activeProperties,
+        EmailDocument document, bool isEvent, IList<EmailDiagnostic> diagnostics, string location) {
+        IcsProperty? timestamp = GetProperty(activeProperties, "DTSTAMP");
+        if (timestamp == null) return false;
+        DateTimeOffset? parsed = ParseDate(timestamp, diagnostics, location, out bool isDateOnly);
+        if (!parsed.HasValue || isDateOnly) return true;
+        DateTimeOffset expected = document.Date ?? (isEvent
+            ? document.Appointment?.Start
+            : document.Task?.Start ?? document.Task?.Due) ?? DeterministicEpoch;
+        return !string.Equals(FormatUtc(parsed.Value), FormatUtc(expected), StringComparison.Ordinal);
     }
 
     private static bool IsDateOnlyTaskProperty(IcsProperty property) {
@@ -93,6 +109,22 @@ internal static partial class IcsCalendarCodec {
         }
         return false;
     }
+
+    private static bool HasIncompleteOrganizerProjection(IcsProperty organizer) =>
+        organizer.Parameters.Keys.Any(parameter =>
+            !parameter.Equals("CN", StringComparison.OrdinalIgnoreCase));
+
+    private static bool IsNonMailtoCalendarAddress(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return false;
+        string address = value!.Trim();
+        if (address.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) return false;
+        return Uri.TryCreate(address, UriKind.Absolute, out Uri? uri) &&
+            !uri.Scheme.Equals("mailto", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsStoreProjectableTaskMethod(string? method) => string.IsNullOrWhiteSpace(method) ||
+        string.Equals(method, "PUBLISH", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(method, "REQUEST", StringComparison.OrdinalIgnoreCase);
 
     private static bool IsSupportedComponent(string value) =>
         value.Equals("VCALENDAR", StringComparison.OrdinalIgnoreCase) ||

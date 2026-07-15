@@ -146,6 +146,94 @@ public sealed class EmailCalendarProjectionEdgeTests {
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
     }
 
+    [Theory]
+    [InlineData("VEVENT")]
+    [InlineData("VTODO")]
+    public void BlocksCalendarTimestampsBeforeStoreConversion(string component) {
+        byte[] eml = Calendar(
+            "BEGIN:" + component + "\r\nUID:timestamp@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nDTSTAMP:20260715T080000Z\r\nEND:" + component + "\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("CANCEL")]
+    [InlineData("REPLY")]
+    [InlineData("ADD")]
+    public void BlocksUnsupportedVtodoMethodsBeforeStoreConversion(string method) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; method=" + method + "; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:" + method + "\r\nBEGIN:VTODO\r\n" +
+            "UID:task-method@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "END:VTODO\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void BlocksVtodoSequenceBeforeStoreConversion() {
+        byte[] eml = Calendar(
+            "BEGIN:VTODO\r\nUID:task-sequence@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "SEQUENCE:3\r\nEND:VTODO\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("ORGANIZER:urn:uuid:owner")]
+    [InlineData("ATTENDEE:urn:uuid:attendee")]
+    public void BlocksNonMailtoCalendarAddressesBeforeStoreConversion(string property) {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:cal-address@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            property + "\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Null(document.From);
+        Assert.Empty(document.Recipients);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("SENT-BY=mailto:assistant@example.com")]
+    [InlineData("DIR=ldap://directory.example/owner")]
+    public void BlocksUnsupportedOrganizerParametersBeforeStoreConversion(string parameter) {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:organizer-parameter@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "ORGANIZER;" + parameter + ":mailto:owner@example.com\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
     [Fact]
     public void CalendarOptionalRoleOverridesEnvelopeRecipientKind() {
         byte[] eml = Encoding.ASCII.GetBytes(

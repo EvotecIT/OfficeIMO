@@ -25,14 +25,21 @@ internal static partial class IcsCalendarCodec {
         bool hasMethodConflict = !string.IsNullOrWhiteSpace(calendarMethod) &&
             !string.IsNullOrWhiteSpace(mimeMethod) &&
             !string.Equals(calendarMethod, mimeMethod, StringComparison.OrdinalIgnoreCase);
-        bool publishWouldBecomeRequest = isEvent &&
+        bool hasCalendarRecipients = HasCalendarRecipients(document) ||
+            activeProperties.Any(property => property.Name == "ATTENDEE");
+        bool methodWouldChange =
             string.Equals(effectiveMethod, "PUBLISH", StringComparison.OrdinalIgnoreCase) &&
-            (HasCalendarRecipients(document) || activeProperties.Any(property => property.Name == "ATTENDEE"));
-        if (hasMethodConflict || isEvent && !IsStoreProjectableMethod(effectiveMethod) || publishWouldBecomeRequest) {
+            hasCalendarRecipients || !isEvent &&
+            string.Equals(effectiveMethod, "REQUEST", StringComparison.OrdinalIgnoreCase) &&
+            !hasCalendarRecipients;
+        if (hasMethodConflict || isEvent && !IsStoreProjectableMethod(effectiveMethod) ||
+            !isEvent && !IsStoreProjectableTaskMethod(effectiveMethod) || methodWouldChange) {
             document.MimeSemanticProjectionIsIncomplete = true;
         }
         if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location, effectiveMethod);
         else ProjectTask(activeProperties, document, diagnostics, location);
+        document.MimeSemanticProjectionIsIncomplete |= HasIncompleteTimestampProjection(
+            activeProperties, document, isEvent, diagnostics, location);
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
             diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED" ||
             diagnostic.Code == "EMAIL_ICALENDAR_FLOATING_TIME" ||
@@ -443,6 +450,7 @@ internal static partial class IcsCalendarCodec {
     private static string? StripMailTo(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
         string result = value!.Trim();
+        if (IsNonMailtoCalendarAddress(result)) return null;
         if (!result.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) return result;
         string address = result.Substring(7);
         try {

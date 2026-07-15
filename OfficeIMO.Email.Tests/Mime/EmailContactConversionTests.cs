@@ -359,6 +359,24 @@ public sealed class EmailContactConversionTests {
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
     }
 
+    [Theory]
+    [InlineData("REV:20260715T080000Z")]
+    [InlineData("KIND:group")]
+    [InlineData("KIND:org")]
+    public void BlocksUnprojectedVcardIdentityMetadataBeforeStoreConversion(string property) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:4.0\r\n" +
+            "FN:Ada Lovelace\r\n" + property + "\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
     [Fact]
     public void BlocksDistinctMimeBodyAndVcardNoteBeforeStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
