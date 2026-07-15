@@ -33,6 +33,8 @@ internal static class PdfLinearizationFileAssembler {
         long catalogOffset = firstXrefOffset + placeholderFirstXref.LongLength;
         long hintOffset = catalogOffset + serialized.Catalog.LongLength;
 
+        // Hint-table offsets at or after /H are stored as if the hint stream were absent;
+        // readers add its declared length when resolving them (PDF 1.7, F.3).
         long rawFirstPageOffset = hintOffset;
         PageHintData pageHints = BuildPageHints(plan, numbering, serialized, rawFirstPageOffset);
         byte[] hintData = PdfObjectBytes.Concat(pageHints.PageOffsetTable, pageHints.SharedObjectTable);
@@ -63,7 +65,7 @@ internal static class PdfLinearizationFileAssembler {
         byte[] mainXref = BuildMainXref(numbering.FirstGroupStart, objectOffsets, firstXrefOffset);
         long fileLength = mainXrefOffset + mainXref.LongLength;
         long mainXrefFirstEntryOffset = mainXrefOffset + (
-            "xref\n0 " + numbering.FirstGroupStart.ToString(CultureInfo.InvariantCulture)).Length;
+            "xref\n0 " + numbering.FirstGroupStart.ToString(CultureInfo.InvariantCulture) + "\n").Length;
 
         byte[] linearization = BuildLinearizationDictionary(
             numbering.LinearizationObjectId,

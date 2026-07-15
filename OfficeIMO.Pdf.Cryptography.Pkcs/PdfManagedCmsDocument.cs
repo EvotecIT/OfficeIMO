@@ -25,6 +25,7 @@ internal sealed class PdfManagedCmsDocument {
     internal DateTimeOffset? SigningTime { get; private set; }
     internal byte[]? SignerSerialNumber { get; private set; }
     internal byte[]? SignerIssuer { get; private set; }
+    internal byte[]? SignerSubjectKeyIdentifier { get; private set; }
     internal List<X509Certificate2> Certificates { get; } = new List<X509Certificate2>();
     internal List<byte[]> SignatureTimestamps { get; } = new List<byte[]>();
 
@@ -99,6 +100,7 @@ internal sealed class PdfManagedCmsDocument {
         reader.Read(0x02);
         PdfDerElement sid = reader.Read();
         if (sid.Tag == 0x30) ReadIssuerAndSerial(sid);
+        else if (sid.Tag == 0x80) SignerSubjectKeyIdentifier = sid.Content();
         DigestAlgorithmOid = ReadAlgorithmIdentifier(reader.Read(0x30));
         PdfDerElement next = reader.Read();
         if (next.Tag == 0xA0) {
@@ -146,15 +148,34 @@ internal sealed class PdfManagedCmsDocument {
     internal X509Certificate2? FindSignerCertificate(X509Certificate2Collection extraCertificates) {
         foreach (X509Certificate2 certificate in Certificates) if (MatchesSigner(certificate)) return certificate;
         foreach (X509Certificate2 certificate in extraCertificates) if (MatchesSigner(certificate)) return certificate;
-        return Certificates.Count > 0 ? Certificates[0] : null;
+        return null;
     }
 
     private bool MatchesSigner(X509Certificate2 certificate) {
+        if (SignerSubjectKeyIdentifier != null) {
+            byte[]? certificateIdentifier = ReadSubjectKeyIdentifier(certificate);
+            return certificateIdentifier != null && FixedTimeEquals(certificateIdentifier, SignerSubjectKeyIdentifier);
+        }
         if (SignerSerialNumber == null || SignerIssuer == null) return false;
         byte[] serial = certificate.GetSerialNumber();
         Array.Reverse(serial);
         serial = NormalizeInteger(serial);
         return FixedTimeEquals(serial, SignerSerialNumber) && certificate.IssuerName.RawData.SequenceEqual(SignerIssuer);
+    }
+
+    private static byte[]? ReadSubjectKeyIdentifier(X509Certificate2 certificate) {
+        foreach (X509Extension extension in certificate.Extensions) {
+            if (!string.Equals(extension.Oid?.Value, "2.5.29.14", StringComparison.Ordinal)) continue;
+            try {
+                var reader = new PdfDerReader(extension.RawData);
+                byte[] identifier = reader.Read(0x04).Content();
+                reader.EnsureEnd();
+                return identifier;
+            } catch (InvalidDataException) {
+                return null;
+            }
+        }
+        return null;
     }
 
     internal static string ReadAlgorithmIdentifier(PdfDerElement value) {

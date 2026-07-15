@@ -5,36 +5,34 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfReadPage {
     private static void AddTilingPatternFill(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
         PdfPageTilingPatternPaint paint = primitive.FillTilingPattern!;
-        if (primitive.Width <= 0D || primitive.Height <= 0D || primitive.X < 0D || primitive.Y < 0D ||
-            primitive.X + primitive.Width > drawing.Width || primitive.Y + primitive.Height > drawing.Height) return;
+        if (primitive.Width <= 0D || primitive.Height <= 0D) return;
+        PdfPageClipPath shapeClip;
+        if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+            shapeClip = PdfPageClipPath.Rectangle(primitive.X, primitive.Y, primitive.Width, primitive.Height);
+        } else if (!PdfPageClipPath.TryCreatePath(primitive.PathCommands, primitive.FillRule, out shapeClip)) {
+            return;
+        }
+
+        if (primitive.ClipPath.HasValue) {
+            shapeClip = PdfPageClipPath.ResolveActiveClip(shapeClip, primitive.ClipPath.Value);
+        }
+        if (!TryFitClipToDrawing(shapeClip, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
+        OfficeClipPath? clip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
+        if (clip == null) return;
+
         OfficeDrawing tile = paint.Resource.Tile.Clone();
         if (paint.Tint.HasValue) TintPatternTile(tile, paint.Tint.Value);
-        var patternDrawing = new OfficeDrawing(primitive.Width, primitive.Height);
-        OfficeTransform localTransform = paint.Transform.Then(OfficeTransform.Translate(-primitive.X, -primitive.Y));
+        var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
+        OfficeTransform localTransform = paint.Transform.Then(OfficeTransform.Translate(-fitted.X, -fitted.Y));
         patternDrawing.AddTilingPattern(
             tile,
-            new OfficeImagePlacement(0D, 0D, primitive.Width, primitive.Height),
+            new OfficeImagePlacement(0D, 0D, fitted.Width, fitted.Height),
             paint.Resource.HorizontalStep,
             paint.Resource.VerticalStep,
             localTransform,
             maximumTileCount: 16384,
             opacity: paint.Opacity);
-        OfficeClipPath clip = primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle
-            ? OfficeClipPath.Rectangle(primitive.Width, primitive.Height)
-            : OfficeClipPath.Path(primitive.PathCommands, primitive.FillRule);
-
-        if (!primitive.ClipPath.HasValue) {
-            drawing.AddClippedDrawing(patternDrawing, primitive.X, primitive.Y, clip);
-            return;
-        }
-
-        PdfPageClipPath active = primitive.ClipPath.Value;
-        if (!TryFitClipToDrawing(active, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
-        OfficeClipPath? activeClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
-        if (activeClip == null) return;
-        var pageLayer = new OfficeDrawing(drawing.Width, drawing.Height);
-        pageLayer.AddClippedDrawing(patternDrawing, primitive.X, primitive.Y, clip);
-        drawing.AddClippedDrawing(pageLayer, fitted.X, fitted.Y, activeClip, -fitted.X, -fitted.Y);
+        drawing.AddClippedDrawing(patternDrawing, fitted.X, fitted.Y, clip);
     }
 
     private static void TintPatternTile(OfficeDrawing tile, OfficeColor tint) {

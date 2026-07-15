@@ -330,6 +330,72 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ClipsTilingPatternFillThatOverlapsPageEdge() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs\n/P1 scn\n-10 40 100 80 re f",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 155));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(15, 155));
+    }
+
+    [Fact]
+    public void RenderPage_UsesDeclaredCmykBaseColorForUncoloredTilingPattern() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/PatternCmyk cs\n0 1 1 0 /P1 scn\n20 40 100 80 re f",
+            "<< /ColorSpace << /PatternCmyk [ /Pattern /DeviceCMYK ] >> /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "0 g\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 155));
+    }
+
+    [Fact]
+    public void RenderPage_ClearsPreviousShadingWhenTilingPatternIsSelected() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs\n/S1 scn\n/P1 scn\n20 40 100 80 re f",
+            "<< /Pattern << /S1 5 0 R /P1 6 0 R >> >>",
+            "5 0 obj\n<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 120 80] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 1] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >>\nendobj",
+            BuildStreamObject(
+                6,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 155));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(35, 155));
+    }
+
+    [Fact]
+    public void RenderPage_SkipsAndReportsUnsupportedStrokeTilingPattern() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern CS\n/P1 SCN\n8 w\n20 40 100 80 re S",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(20, 120));
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic =>
+            diagnostic.Code == PdfRenderCapabilities.UnsupportedTilingPatternId && diagnostic.Subject == "P1:stroke");
+    }
+
+    [Fact]
     public void RenderPage_ReportsMalformedTilingPatternInsteadOfClaimingSupport() {
         byte[] pdf = BuildSingleStreamPdf(
             "/Pattern cs\n/P1 scn\n20 40 100 80 re f",

@@ -27,7 +27,7 @@ public sealed partial class PdfReadPage {
         if (resources == null) return;
         CollectFontCapabilityDiagnostics(resources, diagnostics, seen);
         CollectColorSpaceCapabilityDiagnostics(resources, diagnostics, seen);
-        CollectPatternCapabilityDiagnostics(resources, diagnostics, seen);
+        CollectPatternCapabilityDiagnostics(content, resources, diagnostics, seen);
         CollectGraphicsStateCapabilityDiagnostics(resources, diagnostics, seen);
         CollectXObjectCapabilityDiagnostics(resources, diagnostics, seen, activeForms, depth);
     }
@@ -59,9 +59,10 @@ public sealed partial class PdfReadPage {
         }
     }
 
-    private void CollectPatternCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
+    private void CollectPatternCapabilityDiagnostics(string content, PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
         PdfDictionary? patterns = ResolveDictionary(resources.Items.TryGetValue("Pattern", out PdfObject? value) ? value : null);
         if (patterns == null) return;
+        var supportedTilingPatterns = new HashSet<string>(StringComparer.Ordinal);
         foreach (KeyValuePair<string, PdfObject> entry in patterns.Items) {
             PdfObject? resolved = ResolveObject(entry.Value);
             PdfDictionary? pattern = resolved switch {
@@ -69,9 +70,23 @@ public sealed partial class PdfReadPage {
                 PdfStream stream => stream.Dictionary,
                 _ => null
             };
-            if (pattern?.Get<PdfNumber>("PatternType")?.Value == 1D && !IsStructurallySupportedTilingPattern(resolved, pattern)) {
-                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedTilingPatternId, entry.Key);
+            if (pattern?.Get<PdfNumber>("PatternType")?.Value == 1D) {
+                if (IsStructurallySupportedTilingPattern(resolved, pattern)) {
+                    supportedTilingPatterns.Add(entry.Key);
+                } else {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedTilingPatternId, entry.Key);
+                }
             }
+        }
+
+        if (supportedTilingPatterns.Count == 0) return;
+        var patternColorSpaces = new HashSet<string>(
+            GetColorSpaceResources(resources)
+                .Where(static entry => entry.Value == PdfPageColorSpaceKind.Pattern)
+                .Select(static entry => entry.Key),
+            StringComparer.Ordinal);
+        if (PdfRenderOperatorScanner.TryFindStrokeTilingPattern(content, patternColorSpaces, supportedTilingPatterns, _limits.MaxContentOperations, out string patternName)) {
+            AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedTilingPatternId, patternName + ":stroke");
         }
     }
 
@@ -201,6 +216,65 @@ internal static class PdfRenderOperatorScanner {
         }
 
         return result;
+    }
+
+    public static bool TryFindStrokeTilingPattern(
+        string content,
+        ISet<string> patternColorSpaces,
+        ISet<string> tilingPatterns,
+        int maxOperations,
+        out string patternName) {
+        patternName = string.Empty;
+        if (string.IsNullOrEmpty(content)) return false;
+        var names = new List<string>();
+        var strokePatternStack = new Stack<bool>();
+        bool strokePatternColorSpace = false;
+        int operationCount = 0;
+        int index = 0;
+        while (index < content.Length) {
+            SkipWhiteSpaceAndComments(content, ref index);
+            if (index >= content.Length) break;
+            char current = content[index];
+            if (current == '/') {
+                index++;
+                int nameStart = index;
+                SkipToken(content, ref index);
+                names.Add(content.Substring(nameStart, index - nameStart));
+                continue;
+            }
+            if (current == '(') { SkipLiteralString(content, ref index); continue; }
+            if (current == '<') { SkipAngleObject(content, ref index); continue; }
+            if (current == '[') { SkipBalanced(content, ref index, '[', ']'); continue; }
+            if (IsNumberStart(current)) { SkipToken(content, ref index); continue; }
+            string token = ReadToken(content, ref index);
+            if (token.Length == 0 || token == "true" || token == "false" || token == "null") continue;
+            operationCount++;
+            if (operationCount > maxOperations) throw PdfReadLimitException.Create(PdfReadLimitKind.ContentOperations, maxOperations, operationCount);
+            switch (token) {
+                case "q":
+                    strokePatternStack.Push(strokePatternColorSpace);
+                    break;
+                case "Q":
+                    strokePatternColorSpace = strokePatternStack.Count > 0 && strokePatternStack.Pop();
+                    break;
+                case "CS":
+                    strokePatternColorSpace = names.Count > 0 &&
+                        (string.Equals(names[names.Count - 1], "Pattern", StringComparison.Ordinal) || patternColorSpaces.Contains(names[names.Count - 1]));
+                    break;
+                case "SC":
+                case "SCN":
+                    if (strokePatternColorSpace && names.Count > 0 && tilingPatterns.Contains(names[names.Count - 1])) {
+                        patternName = names[names.Count - 1];
+                        return true;
+                    }
+                    break;
+                case "BI":
+                    SkipInlineImage(content, ref index);
+                    break;
+            }
+            names.Clear();
+        }
+        return false;
     }
 
     private static void SkipInlineImage(string content, ref int index) {

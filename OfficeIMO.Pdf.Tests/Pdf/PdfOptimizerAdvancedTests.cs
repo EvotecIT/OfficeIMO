@@ -71,6 +71,15 @@ public class PdfOptimizerAdvancedTests {
         Assert.InRange(hintOffset, 1, result.Bytes.Length - 1);
         Assert.InRange(hintLength, 1, result.Bytes.Length - hintOffset);
         Assert.Contains("/S ", PdfEncoding.Latin1GetString(result.Bytes.AsSpan(hintOffset, hintLength).ToArray()), StringComparison.Ordinal);
+        PdfStream hintStream = Assert.Single(
+            objects.Values.Select(static item => item.Value).OfType<PdfStream>(),
+            static stream => stream.Dictionary.Items.ContainsKey("S"));
+        uint hintedFirstPageOffset = System.Buffers.Binary.BinaryPrimitives.ReadUInt32BigEndian(hintStream.Data.AsSpan(4, 4));
+        int firstPageObjectId = checked((int)linearization.Get<PdfNumber>("O")!.Value);
+        int actualFirstPageOffset = raw.IndexOf(firstPageObjectId.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj\n", StringComparison.Ordinal);
+        Assert.Equal(actualFirstPageOffset, checked((int)hintedFirstPageOffset) + hintLength);
+        int mainXrefFirstEntryOffset = checked((int)linearization.Get<PdfNumber>("T")!.Value);
+        Assert.StartsWith("0000000000 65535 f ", raw.Substring(mainXrefFirstEntryOffset), StringComparison.Ordinal);
 
         var incompatible = PdfOptimizationOptions.Create(PdfOptimizationProfile.Custom);
         incompatible.Linearize = true;

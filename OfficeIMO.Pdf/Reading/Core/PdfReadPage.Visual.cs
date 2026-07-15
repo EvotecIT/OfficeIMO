@@ -380,7 +380,8 @@ public sealed partial class PdfReadPage {
             initialStrokeDashStyle,
             initialStrokeLineCap,
             initialStrokeLineJoin,
-            maxOperations: _limits.MaxContentOperations));
+            maxOperations: _limits.MaxContentOperations,
+            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources)));
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -749,6 +750,27 @@ public sealed partial class PdfReadPage {
             }
         }
 
+        return result;
+    }
+
+    private Dictionary<string, PdfPageColorSpaceKind> GetPatternBaseColorSpaceResources(PdfDictionary? resources) {
+        var result = new Dictionary<string, PdfPageColorSpaceKind>(StringComparer.Ordinal);
+        if (resources == null ||
+            !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
+            ResolveDictionary(colorSpacesObject) is not PdfDictionary colorSpaces) {
+            return result;
+        }
+
+        foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
+            if (ResolveObject(entry.Value) is not PdfArray array ||
+                array.Items.Count < 2 ||
+                ResolveObject(array.Items[0]) is not PdfName { Name: "Pattern" } ||
+                !TryReadColorSpaceResource(array.Items[1], out PdfPageColorSpaceKind baseColorSpace) ||
+                baseColorSpace == PdfPageColorSpaceKind.Pattern) {
+                continue;
+            }
+            result[entry.Key] = baseColorSpace;
+        }
         return result;
     }
 

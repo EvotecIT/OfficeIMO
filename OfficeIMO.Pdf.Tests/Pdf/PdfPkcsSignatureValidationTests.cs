@@ -105,6 +105,35 @@ public class PdfPkcsSignatureValidationTests {
         Assert.Equal(PdfCryptographicValidationStatus.Valid, result.CertificateChainStatus);
     }
 
+    [Fact]
+    public void ManagedProviderRejectsSignerIdentifierThatDoesNotMatchEmbeddedCertificate() {
+        using X509Certificate2 certificate = CreateSigningCertificate();
+        using X509Certificate2 unrelatedIdentifier = CreateSigningCertificate();
+        PdfExternalSignaturePreparation preparation = CreateSigningPreparation();
+        byte[] cms = CreateCustomCms(certificate, preparation.SignedContent, encapsulate: false, includeMessageDigest: true, useEcdsa: false, signerIdentifierCertificate: unrelatedIdentifier);
+        byte[] signedPdf = PdfIncrementalUpdater.ApplyExternalSignature(preparation, cms);
+        var provider = new PdfPkcsSignatureCryptographyProvider(new PdfPkcsSignatureValidationOptions { ChainEvaluator = (_, _) => true });
+
+        PdfSignatureCryptographicResult result = Assert.Single(PdfSignatureValidator.Validate(signedPdf, provider).Signatures).CryptographicResult!;
+
+        Assert.Equal(PdfCryptographicValidationStatus.Invalid, result.MathematicalSignatureStatus);
+        Assert.Contains(result.Findings, finding => finding.Code == "CmsSignerMissing");
+    }
+
+    [Fact]
+    public void ManagedProviderMatchesSignerBySubjectKeyIdentifier() {
+        using X509Certificate2 certificate = CreateSigningCertificate();
+        PdfExternalSignaturePreparation preparation = CreateSigningPreparation();
+        byte[] cms = CreateCustomCms(certificate, preparation.SignedContent, encapsulate: false, includeMessageDigest: true, useEcdsa: false, useSubjectKeyIdentifier: true);
+        byte[] signedPdf = PdfIncrementalUpdater.ApplyExternalSignature(preparation, cms);
+        var provider = new PdfPkcsSignatureCryptographyProvider(new PdfPkcsSignatureValidationOptions { ChainEvaluator = (_, _) => true });
+
+        PdfSignatureCryptographicResult result = Assert.Single(PdfSignatureValidator.Validate(signedPdf, provider).Signatures).CryptographicResult!;
+
+        Assert.Equal(PdfCryptographicValidationStatus.Valid, result.MathematicalSignatureStatus);
+        Assert.Equal(certificate.Thumbprint, result.SignerThumbprint);
+    }
+
     [Theory]
     [InlineData("20260714123456.7Z", 7000000L)]
     [InlineData("20260714123456.789Z", 7890000L)]
@@ -171,7 +200,9 @@ public class PdfPkcsSignatureValidationTests {
         byte[] content,
         bool encapsulate,
         bool includeMessageDigest,
-        bool useEcdsa) {
+        bool useEcdsa,
+        X509Certificate2? signerIdentifierCertificate = null,
+        bool useSubjectKeyIdentifier = false) {
         const string dataOid = "1.2.840.113549.1.7.1";
         const string signedDataOid = "1.2.840.113549.1.7.2";
         const string contentTypeAttributeOid = "1.2.840.113549.1.9.3";
@@ -200,11 +231,18 @@ public class PdfPkcsSignatureValidationTests {
             signatureAlgorithmOid = rsaEncryptionOid;
         }
 
-        byte[] serial = certificate.GetSerialNumber();
+        X509Certificate2 signerIdentifier = signerIdentifierCertificate ?? certificate;
+        byte[] serial = signerIdentifier.GetSerialNumber();
         Array.Reverse(serial);
+        byte[] encodedSignerIdentifier = useSubjectKeyIdentifier
+            ? PdfDerCodec.Wrap(
+                0x80,
+                Convert.FromHexString(Assert.IsType<X509SubjectKeyIdentifierExtension>(
+                    Assert.Single(signerIdentifier.Extensions.Cast<X509Extension>(), extension => extension.Oid?.Value == "2.5.29.14")).SubjectKeyIdentifier!))
+            : PdfDerCodec.Sequence(signerIdentifier.IssuerName.RawData, PdfDerCodec.Integer(serial));
         byte[] signerInfo = PdfDerCodec.Sequence(
-            PdfDerCodec.Integer(1),
-            PdfDerCodec.Sequence(certificate.IssuerName.RawData, PdfDerCodec.Integer(serial)),
+            PdfDerCodec.Integer(useSubjectKeyIdentifier ? 3 : 1),
+            encodedSignerIdentifier,
             PdfDerCodec.AlgorithmIdentifier(sha256Oid),
             PdfDerCodec.ReplaceTag(signedAttributes, 0xA0),
             PdfDerCodec.AlgorithmIdentifier(signatureAlgorithmOid, includeNull: !useEcdsa),
@@ -229,6 +267,7 @@ public class PdfPkcsSignatureValidationTests {
             HashAlgorithmName.SHA256,
             RSASignaturePadding.Pkcs1);
         request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
+        request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
     }
 
@@ -236,6 +275,7 @@ public class PdfPkcsSignatureValidationTests {
         using ECDsa ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var request = new CertificateRequest("CN=OfficeIMO PDF ECDSA Test", ecdsa, HashAlgorithmName.SHA256);
         request.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature, critical: true));
+        request.CertificateExtensions.Add(new X509SubjectKeyIdentifierExtension(request.PublicKey, critical: false));
         return request.CreateSelfSigned(DateTimeOffset.UtcNow.AddMinutes(-5), DateTimeOffset.UtcNow.AddDays(1));
     }
 
