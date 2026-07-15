@@ -168,11 +168,11 @@ namespace OfficeIMO.Word.Markdown {
             var paragraphBlocks = BuildParagraphBlocks(paragraph, options, hasCheckbox, checkboxChecked, allowQuoteHeuristic: false, trimBoundaryWhitespace: trimBoundaryWhitespace);
             paragraphBlocks = LiftLeadingPageBreakBlocks(addRootBlock, listStack, paragraphBlocks);
 
-            var unsupportedContentBlock = CreateUnsupportedParagraphContentBlock(paragraph, options);
-            if (unsupportedContentBlock != null) {
-                var extendedBlocks = new List<IMarkdownBlock>(paragraphBlocks.Count + 1);
+            IReadOnlyList<IMarkdownBlock> unsupportedContentBlocks = CreateUnsupportedParagraphContentBlocks(paragraph, options);
+            if (unsupportedContentBlocks.Count > 0) {
+                var extendedBlocks = new List<IMarkdownBlock>(paragraphBlocks.Count + unsupportedContentBlocks.Count);
                 extendedBlocks.AddRange(paragraphBlocks);
-                extendedBlocks.Add(unsupportedContentBlock);
+                extendedBlocks.AddRange(unsupportedContentBlocks);
                 paragraphBlocks = extendedBlocks;
             }
 
@@ -376,8 +376,7 @@ namespace OfficeIMO.Word.Markdown {
                         addRootBlock(block);
                     }
 
-                    var unsupportedContentBlock = CreateUnsupportedParagraphContentBlock(paragraph, options);
-                    if (unsupportedContentBlock != null) {
+                    foreach (IMarkdownBlock unsupportedContentBlock in CreateUnsupportedParagraphContentBlocks(paragraph, options)) {
                         addRootBlock(unsupportedContentBlock);
                     }
                     continue;
@@ -880,35 +879,34 @@ namespace OfficeIMO.Word.Markdown {
             }
         }
 
-        private IMarkdownBlock? CreateUnsupportedParagraphContentBlock(WordParagraph paragraph, WordToMarkdownOptions options) {
-            if (TryCreateEquationBlock(paragraph, out IMarkdownBlock? equationBlock)) {
-                return equationBlock;
+        private IReadOnlyList<IMarkdownBlock> CreateUnsupportedParagraphContentBlocks(WordParagraph paragraph, WordToMarkdownOptions options) {
+            List<IMarkdownBlock> equationBlocks = CreateEquationBlocks(paragraph);
+            if (equationBlocks.Count > 0) {
+                return equationBlocks;
             }
 
             if (!TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
-                return null;
+                return Array.Empty<IMarkdownBlock>();
             }
 
             if (TryCreateVisualFallbackBlock(paragraph, options, out var visualBlock)) {
-                return visualBlock;
+                return new[] { visualBlock };
             }
 
-            return CreateUnsupportedContentBlock(options, unsupportedParagraphKind);
+            IMarkdownBlock? unsupportedBlock = CreateUnsupportedContentBlock(options, unsupportedParagraphKind);
+            return unsupportedBlock == null ? Array.Empty<IMarkdownBlock>() : new[] { unsupportedBlock };
         }
 
-        private static bool TryCreateEquationBlock(WordParagraph paragraph, out IMarkdownBlock? block) {
-            DocumentFormat.OpenXml.OpenXmlElement? math = paragraph._paragraph.Descendants<M.Paragraph>().FirstOrDefault()
-                ?? (DocumentFormat.OpenXml.OpenXmlElement?)paragraph._paragraph.Descendants<M.OfficeMath>().FirstOrDefault();
-            string? latex = math != null
-                ? WordMath.ToLatex(math)
-                : paragraph.Equation?.ToLatex();
-            if (string.IsNullOrWhiteSpace(latex)) {
-                block = null;
-                return false;
+        private static List<IMarkdownBlock> CreateEquationBlocks(WordParagraph paragraph) {
+            var blocks = new List<IMarkdownBlock>();
+            foreach (WordEquationOccurrence occurrence in WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph)) {
+                string latex = occurrence.Equation.ToLatex();
+                if (!string.IsNullOrWhiteSpace(latex)) {
+                    blocks.Add(new CodeBlock("math", latex));
+                }
             }
 
-            block = new CodeBlock("math", latex!);
-            return true;
+            return blocks;
         }
 
         private static IMarkdownBlock? CreateUnsupportedContentBlock(WordToMarkdownOptions options, string contentKind) {

@@ -111,6 +111,45 @@ namespace OfficeIMO.Word {
 
         internal OpenXmlElement? MathElement => (OpenXmlElement?)_officeMath ?? _mathParagraph;
 
+        internal static IReadOnlyList<WordEquationOccurrence> GetOccurrences(WordDocument document, Paragraph paragraph) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
+
+            List<OpenXmlElement> children = paragraph.ChildElements.ToList();
+            var occurrences = new List<WordEquationOccurrence>();
+            foreach (WordParagraph logicalParagraph in WordSection.ConvertParagraphToWordParagraphs(document, paragraph)) {
+                WordEquation? equation = logicalParagraph.Equation;
+                if (equation == null || !equation.TryGetChildRange(children, out int startIndex, out int endIndex)) {
+                    continue;
+                }
+
+                occurrences.Add(new WordEquationOccurrence(equation, startIndex, endIndex));
+            }
+
+            return occurrences
+                .OrderBy(occurrence => occurrence.StartChildIndex)
+                .ToList();
+        }
+
+        private bool TryGetChildRange(IReadOnlyList<OpenXmlElement> children, out int startIndex, out int endIndex) {
+            OpenXmlElement? start = (OpenXmlElement?)_mathParagraph
+                ?? _officeMath
+                ?? _simpleField
+                ?? (OpenXmlElement?)_runs?.FirstOrDefault();
+            OpenXmlElement? end = (OpenXmlElement?)_runs?.LastOrDefault() ?? start;
+            startIndex = start == null ? -1 : IndexOfReference(children, start);
+            endIndex = end == null ? -1 : IndexOfReference(children, end);
+            return startIndex >= 0 && endIndex >= startIndex;
+        }
+
+        private static int IndexOfReference(IReadOnlyList<OpenXmlElement> elements, OpenXmlElement target) {
+            for (int i = 0; i < elements.Count; i++) {
+                if (ReferenceEquals(elements[i], target)) return i;
+            }
+
+            return -1;
+        }
+
         private WordParagraph? FieldParagraph => _simpleField != null
             ? new WordParagraph(_document, _paragraph, _simpleField)
             : _runs != null ? new WordParagraph(_document, _paragraph, _runs) : null;
@@ -121,5 +160,20 @@ namespace OfficeIMO.Word {
             .Replace(">", "&gt;")
             .Replace("\"", "&quot;")
             .Replace("'", "&apos;");
+    }
+
+    internal sealed class WordEquationOccurrence {
+        internal WordEquationOccurrence(WordEquation equation, int startChildIndex, int endChildIndex) {
+            Equation = equation;
+            StartChildIndex = startChildIndex;
+            EndChildIndex = endChildIndex;
+        }
+
+        internal WordEquation Equation { get; }
+        internal int StartChildIndex { get; }
+        internal int EndChildIndex { get; }
+
+        internal bool ContainsChildIndex(int childIndex) =>
+            childIndex >= StartChildIndex && childIndex <= EndChildIndex;
     }
 }

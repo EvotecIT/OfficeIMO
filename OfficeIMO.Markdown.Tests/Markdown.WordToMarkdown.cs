@@ -342,6 +342,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_ProjectsEveryEquationFromAMixedParagraph() {
+            const string first = "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>x=1</m:t></m:r></m:oMath>";
+            const string second = "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>y=2</m:t></m:r></m:oMath>";
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("before ");
+            paragraph.AddEquation(first);
+            paragraph.AddText(" between ");
+            paragraph.AddEquation(second);
+            paragraph.AddText(" after");
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Equal(2, markdown.Split(new[] { "```math" }, StringSplitOptions.None).Length - 1);
+            Assert.Contains("x=1", markdown, StringComparison.Ordinal);
+            Assert.Contains("y=2", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordToMarkdown_CreateReaderOptions_Parses_Header_And_Footer_Semantic_Blocks() {
             using var doc = WordDocument.Create();
             doc.AddHeadersAndFooters();

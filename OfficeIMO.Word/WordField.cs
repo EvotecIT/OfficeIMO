@@ -46,8 +46,6 @@ namespace OfficeIMO.Word {
         DocVariable,
         /// <summary>Embed field code.</summary>
         Embed,
-        /// <summary>EQ mathematical equation field code used by legacy Word and RTF.</summary>
-        EQ,
         /// <summary>FileName field code.</summary>
         FileName,
         /// <summary>FileSize field code.</summary>
@@ -153,7 +151,9 @@ namespace OfficeIMO.Word {
         /// <summary>Index entry field code.</summary>
         XE,
         /// <summary>Formula field code, represented in Word field instructions as an equals expression.</summary>
-        Formula
+        Formula,
+        /// <summary>EQ mathematical equation field code used by legacy Word and RTF.</summary>
+        EQ
     }
 
     /// <summary>

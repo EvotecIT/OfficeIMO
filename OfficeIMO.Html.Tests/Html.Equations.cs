@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using Xunit;
@@ -31,6 +32,28 @@ namespace OfficeIMO.Tests {
             int math = html.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
             int after = html.IndexOf(" after", StringComparison.Ordinal);
             Assert.True(before >= 0 && before < math && math < after, html);
+        }
+
+        [Fact]
+        public void WordToHtml_ExportsComplexEqFieldsAsMathMlWithoutCachedTextDuplication() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            paragraph._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" EQ \\f(a,b) ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("(a)/(b)")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            paragraph.AddText(" after");
+
+            string html = document.ToHtml();
+
+            int before = html.IndexOf("before ", StringComparison.Ordinal);
+            int math = html.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
+            int after = html.IndexOf(" after", StringComparison.Ordinal);
+            Assert.True(before >= 0 && before < math && math < after, html);
+            Assert.Contains("<mtext>(a)/(b)</mtext>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(2, html.Split(new[] { "(a)/(b)" }, StringSplitOptions.None).Length - 1);
         }
 
         [Fact]

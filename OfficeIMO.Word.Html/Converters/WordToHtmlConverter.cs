@@ -65,31 +65,22 @@ namespace OfficeIMO.Word.Html {
             void AppendRuns(IElement parent, WordParagraph para, bool processNotes = true) {
                 var runs = para.GetRuns().ToList();
                 var paragraphChildren = para._paragraph.ChildElements.ToList();
-                var equationChildren = paragraphChildren
-                    .Select((element, index) => (Element: element, Index: index))
-                    .Where(item => item.Element is M.OfficeMath
-                        || item.Element is M.Paragraph
-                        || item.Element is SimpleField simpleField
-                            && new WordParagraph(para._document, para._paragraph, simpleField).Equation != null)
-                    .ToList();
+                IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(para._document, para._paragraph);
                 List<INode> nodes = new();
                 int nextEquation = 0;
                 bool inQuote = false;
                 IElement? quote = null;
 
                 void AppendEquationNodesBefore(int childIndex) {
-                    while (nextEquation < equationChildren.Count && equationChildren[nextEquation].Index < childIndex) {
-                        DocumentFormat.OpenXml.OpenXmlElement child = equationChildren[nextEquation++].Element;
-                        WordEquation? equation = child is SimpleField simpleField
-                            ? new WordParagraph(para._document, para._paragraph, simpleField).Equation
-                            : null;
-                        string mathMl = equation?.ToMathMl() ?? WordMath.ToMathMl(child);
+                    while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex <= childIndex) {
+                        WordEquation equation = equations[nextEquation++].Equation;
+                        string mathMl = equation.ToMathMl();
                         IElement? mathNode = new HtmlParser()
                             .ParseFragment(mathMl, parent)
                             .OfType<IElement>()
                             .FirstOrDefault();
                         if (mathNode == null) continue;
-                        mathNode.SetAttribute("aria-label", equation?.Text ?? WordMath.GetText(child));
+                        mathNode.SetAttribute("aria-label", equation.Text);
                         nodes.Add(mathNode);
                     }
                 }
@@ -101,6 +92,9 @@ namespace OfficeIMO.Word.Html {
                         ?? run._run;
                     int runIndex = runContainer == null ? int.MaxValue : paragraphChildren.IndexOf(runContainer);
                     AppendEquationNodesBefore(runIndex < 0 ? int.MaxValue : runIndex);
+                    if (equations.Any(equation => equation.ContainsChildIndex(runIndex))) {
+                        continue;
+                    }
                     if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(run)) {
                         continue;
                     }

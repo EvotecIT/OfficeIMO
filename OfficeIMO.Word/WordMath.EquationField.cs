@@ -184,6 +184,7 @@ namespace OfficeIMO.Word {
         private static string EscapeEquationFieldLiteral(string? value) => (value ?? string.Empty)
             .Replace("\\", "\\\\")
             .Replace("(", "\\(")
+            .Replace(")", "\\)")
             .Replace(",", "\\,");
 
         private static string EscapeEquationFieldDelimiter(string value) => value == "\\" ? "\\\\" : "\\" + value;

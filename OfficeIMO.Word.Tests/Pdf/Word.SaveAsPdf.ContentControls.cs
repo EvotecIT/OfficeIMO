@@ -54,6 +54,33 @@ public partial class Word {
     }
 
     [Fact]
+    public void SaveAsPdf_OfficeIMOEngine_MapsSimpleAndComplexEqFieldsToStaticText() {
+        string docPath = Path.Combine(_directoryWithFiles, "PdfNativeEqFields.docx");
+        string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeEqFields.pdf");
+        var options = new PdfSaveOptions {
+            IncludePageNumbers = false
+        };
+
+        using (WordDocument document = WordDocument.Create(docPath)) {
+            WordParagraph simple = document.AddParagraph("Simple field: ");
+            AppendSimpleField(simple._paragraph, " EQ \\f(a,b) ", "(a)/(b)");
+
+            WordParagraph complex = document.AddParagraph("Complex field: ");
+            AppendComplexField(complex._paragraph, " EQ \\r(,x) ", "sqrt(x)");
+
+            document.Save();
+            document.SaveAsPdf(pdfPath, options);
+        }
+
+        Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
+        string text = NormalizePdfText(PdfCore.PdfTextExtractor.ExtractAllText(pdfPath));
+        Assert.Contains("Simple field:", text, StringComparison.Ordinal);
+        Assert.Contains("(a)/(b)", text, StringComparison.Ordinal);
+        Assert.Contains("Complex field:", text, StringComparison.Ordinal);
+        Assert.Contains("sqrt(x)", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_OfficeIMOEngine_Records_Warnings_For_Unsupported_Body_Content() {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyWarnings.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeBodyWarnings.pdf");

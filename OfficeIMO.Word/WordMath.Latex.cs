@@ -65,7 +65,7 @@ namespace OfficeIMO.Word {
                     AppendAccentLatex(builder, element);
                     return;
                 case "bar":
-                    builder.Append("\\overline{");
+                    builder.Append(ReadCharacter(element, "pos").Value == "bot" ? "\\underline{" : "\\overline{");
                     AppendLatexChild(builder, element, "e");
                     builder.Append('}');
                     return;

@@ -781,8 +781,17 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? GetNativeEquationText(WordParagraph paragraph) {
-            string text = WordMath.GetText(paragraph._paragraph);
-            return string.IsNullOrWhiteSpace(text) ? null : text;
+            string[] equationTexts = WordEquation
+                .GetOccurrences(paragraph._document, paragraph._paragraph)
+                .Select(occurrence => occurrence.Equation.Text)
+                .Where(text => !string.IsNullOrWhiteSpace(text))
+                .ToArray();
+            if (equationTexts.Length > 0) {
+                return string.Join(" ", equationTexts);
+            }
+
+            string ommlText = WordMath.GetText(paragraph._paragraph);
+            return string.IsNullOrWhiteSpace(ommlText) ? null : ommlText;
         }
 
         private static NativeHeaderFooterZone MapNativeTextBoxHeaderFooterZone(WordHorizontalAlignmentValues alignment) {

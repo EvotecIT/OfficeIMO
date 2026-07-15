@@ -142,5 +142,27 @@ namespace OfficeIMO.Tests {
             Assert.Contains("\\x\\to(z)", field, StringComparison.Ordinal);
             Assert.Contains("\\a\\co2(a,b)", field, StringComparison.Ordinal);
         }
+
+        [Fact]
+        public void Equation_ProjectionsEscapeClosingEqParenthesesAndHonorBottomBars() {
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath>" +
+                "<m:f><m:num><m:r><m:t>a)</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f>" +
+                "<m:bar><m:barPr><m:pos m:val=\"bot\"/></m:barPr><m:e><m:r><m:t>x</m:t></m:r></m:e></m:bar>" +
+                "</m:oMath></m:oMathPara>";
+            using WordDocument document = WordDocument.Create();
+            document.AddEquation(omml);
+
+            WordEquation equation = Assert.Single(document.Equations);
+
+            Assert.Contains("\\f(a\\),b)", equation.ToEquationFieldInstruction(), StringComparison.Ordinal);
+            Assert.Contains("\\underline{x}", equation.ToLatex(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordFieldType_ExistingNumericValuesRemainStableWhenEqIsAdded() {
+            Assert.Equal(19, (int)WordFieldType.FileName);
+            Assert.Equal(71, (int)WordFieldType.Formula);
+            Assert.Equal(72, (int)WordFieldType.EQ);
+        }
     }
 }
