@@ -20,13 +20,14 @@ internal static class EmailConversionAnalyzer {
 
         if (targetFormat == EmailFileFormat.Eml) {
             if (document.OutlookItemKind == OutlookItemKind.Appointment) {
-                if (document.Appointment == null || !document.Appointment.Start.HasValue) {
+                if ((document.Appointment == null || !document.Appointment.Start.HasValue) &&
+                    !HasUnchangedMimeSemanticSource(document)) {
                     hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_START_REQUIRED",
                         "An appointment needs a start time before it can be represented as an iCalendar VEVENT.",
                         "appointment/start"));
-                } else if (IcsCalendarCodec.HasOpaqueAppointmentState(document.Appointment) &&
+                } else if (document.Appointment != null && IcsCalendarCodec.HasOpaqueAppointmentState(document.Appointment) &&
                     !HasUnchangedMimeSemanticSource(document)) {
                     hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
@@ -118,10 +119,13 @@ internal static class EmailConversionAnalyzer {
 
     private static bool HasAddresslessAttendeeDisplayState(EmailDocument document) {
         OutlookAppointment appointment = document.Appointment!;
+        bool hasAddresslessRecipient = document.Recipients.Any(recipient =>
+            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc) &&
+            string.IsNullOrWhiteSpace(recipient.Address.Address));
         bool hasDisplayText = !string.IsNullOrWhiteSpace(appointment.AllAttendees) ||
             !string.IsNullOrWhiteSpace(appointment.RequiredAttendees) ||
             !string.IsNullOrWhiteSpace(appointment.OptionalAttendees);
-        return hasDisplayText && !document.Recipients.Any(recipient =>
+        return hasAddresslessRecipient || hasDisplayText && !document.Recipients.Any(recipient =>
             (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc) &&
             !string.IsNullOrWhiteSpace(recipient.Address.Address));
     }

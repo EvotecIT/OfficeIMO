@@ -139,9 +139,11 @@ internal static class MimeWriter {
 
     private static void WriteContent(Stream output, EmailDocument document, MimeWriterState state, int depth, bool includeLeadingHeaders) {
         EmailAttachment? calendarAttachment = IcsCalendarCodec.FindSemanticAttachment(document);
+        bool semanticSourceUnchanged = document.MimeSemanticSourceModelFingerprint != null &&
+            EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
         byte[]? calendarContent = document.OutlookItemKind == OutlookItemKind.Appointment ||
             document.OutlookItemKind == OutlookItemKind.Task
-            ? calendarAttachment == null
+            ? calendarAttachment == null || !semanticSourceUnchanged
                 ? IcsCalendarCodec.Create(document)
                 : EmailAttachmentContent.ReadOrNull(calendarAttachment, state.Options.MaxOutputBytes) ??
                   IcsCalendarCodec.Create(document)
@@ -150,10 +152,8 @@ internal static class MimeWriter {
         var regularAttachmentList = document.Attachments.Where(attachment =>
             !ReferenceEquals(attachment, calendarAttachment) && !ReferenceEquals(attachment, vcardAttachment)).ToList();
         if (document.OutlookItemKind == OutlookItemKind.Contact && document.Contact != null) {
-            bool unchanged = vcardAttachment != null && document.MimeSemanticSourceModelFingerprint != null &&
-                EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
             regularAttachmentList.Add(VCardCodec.CreateAttachment(document, state.Options.MaxOutputBytes,
-                unchanged ? vcardAttachment : null));
+                semanticSourceUnchanged ? vcardAttachment : null));
         } else if (vcardAttachment != null) {
             regularAttachmentList.Add(vcardAttachment);
         }

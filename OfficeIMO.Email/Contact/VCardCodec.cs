@@ -6,7 +6,7 @@ internal static class VCardCodec {
         if (!properties.Any(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase))) return false;
 
-        document.MimeSemanticProjectionIsIncomplete = properties.Any(property =>
+        document.MimeSemanticProjectionIsIncomplete |= properties.Any(property =>
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
             property.Name == "RELATED" || property.Name == "MEMBER");

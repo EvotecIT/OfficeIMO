@@ -133,6 +133,35 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void BlocksAddresslessRecipientRowsAndNeverEmitsEmptyMailtoValues() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            OutlookItemKind = OutlookItemKind.Appointment,
+            Appointment = new OutlookAppointment {
+                Start = new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero)
+            }
+        };
+        source.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+            new EmailAddress("valid@example.com", "Valid")));
+        source.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+            new EmailAddress(null, "No Address")));
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(source, EmailFileFormat.Eml);
+        byte[] warned = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn))
+            .ToBytes(source, EmailFileFormat.Eml);
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(warned).Document.Attachments,
+            attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
+        string text = Encoding.UTF8.GetString(Assert.IsType<byte[]>(calendar.Content));
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED");
+        Assert.Contains("mailto:valid@example.com", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("CN=\"No Address\"", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(":mailto:\r\n", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void KeepsRecurringIcalendarInEmlButBlocksIncompleteStoreProjection() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Subject: Recurring\r\nMIME-Version: 1.0\r\n" +
@@ -150,6 +179,68 @@ public sealed class EmailCalendarConversionTests {
         Assert.NotEmpty(writer.ToBytes(document, EmailFileFormat.Eml));
         Assert.False(msgReport.CanWrite);
         Assert.Contains(msgReport.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void KeepsUnchangedCalendarWithoutDtStartInEml() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Subject: Undated\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:undated@example.com\r\n" +
+            "SUMMARY:Undated\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        var writer = new EmailDocumentWriter();
+
+        EmailConversionReport report = writer.AnalyzeConversion(document, EmailFileFormat.Eml);
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(
+            writer.ToBytes(document, EmailFileFormat.Eml)).Document.Attachments,
+            attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
+        string rewritten = Encoding.ASCII.GetString(Assert.IsType<byte[]>(calendar.Content));
+
+        Assert.True(report.CanWrite);
+        Assert.Contains("UID:undated@example.com", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("DTSTART", rewritten, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RegeneratesEditedCalendarContentWhenLossIsAccepted() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Subject: Original\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:edit@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nSUMMARY:Original\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        document.Subject = "Edited";
+        document.Appointment!.Start = new DateTimeOffset(2026, 8, 1, 12, 0, 0, TimeSpan.Zero);
+
+        byte[] output = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn))
+            .ToBytes(document, EmailFileFormat.Eml);
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(output).Document.Attachments,
+            attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
+        string rewritten = Encoding.UTF8.GetString(Assert.IsType<byte[]>(calendar.Content));
+
+        Assert.Contains("DTSTART:20260801T120000Z", rewritten, StringComparison.Ordinal);
+        Assert.Contains("SUMMARY:Edited", rewritten, StringComparison.Ordinal);
+        Assert.DoesNotContain("DTSTART:20260801T100000Z", rewritten, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AccumulatesIncompleteStateAcrossMultipleSemanticParts() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Subject: Multiple\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/vcard\r\n\r\nBEGIN:VCARD\r\nVERSION:4.0\r\n" +
+            "FN:Ada\r\nPHOTO:https://example.com/ada.jpg\r\nEND:VCARD\r\n" +
+            "--x\r\nContent-Type: text/calendar\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:event@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
     }
 }

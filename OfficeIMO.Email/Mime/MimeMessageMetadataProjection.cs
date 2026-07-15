@@ -7,10 +7,12 @@ internal static class MimeMessageMetadataProjection {
             ParseXPriority(MimeHeaderParser.GetValue(headers, "X-Priority"));
         document.MessageMetadata.Priority = ParsePriority(MimeHeaderParser.GetValue(headers, "Priority"));
         document.MessageMetadata.Sensitivity = ParseSensitivity(MimeHeaderParser.GetValue(headers, "Sensitivity"));
-        document.MessageMetadata.ReadReceiptRequested =
-            !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Disposition-Notification-To"));
-        document.MessageMetadata.DeliveryReceiptRequested =
-            !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Return-Receipt-To"));
+        string? readReceiptDestination = MimeHeaderParser.GetValue(headers, "Disposition-Notification-To");
+        document.MessageMetadata.ReadReceiptDestination = readReceiptDestination;
+        document.MessageMetadata.ReadReceiptRequested = !string.IsNullOrWhiteSpace(readReceiptDestination);
+        string? deliveryReceiptDestination = MimeHeaderParser.GetValue(headers, "Return-Receipt-To");
+        document.MessageMetadata.DeliveryReceiptDestination = deliveryReceiptDestination;
+        document.MessageMetadata.DeliveryReceiptRequested = !string.IsNullOrWhiteSpace(deliveryReceiptDestination);
         document.MessageMetadata.IsDraft = IsTrue(MimeHeaderParser.GetValue(headers, "X-Unsent"));
         string? status = MimeHeaderParser.GetValue(headers, "Status");
         if (!string.IsNullOrWhiteSpace(status)) {
@@ -44,12 +46,14 @@ internal static class MimeMessageMetadataProjection {
                 ? "Private" : "Company-Confidential";
             yield return new EmailHeader("Sensitivity", value);
         }
-        string? receiptAddress = document.Sender?.Address ?? document.From?.Address;
-        if (!string.IsNullOrWhiteSpace(receiptAddress) && metadata.ReadReceiptRequested) {
-            yield return new EmailHeader("Disposition-Notification-To", receiptAddress!);
+        string? fallbackReceiptDestination = document.Sender?.Address ?? document.From?.Address;
+        string? readReceiptDestination = metadata.ReadReceiptDestination ?? fallbackReceiptDestination;
+        if (!string.IsNullOrWhiteSpace(readReceiptDestination) && metadata.ReadReceiptRequested) {
+            yield return new EmailHeader("Disposition-Notification-To", readReceiptDestination!);
         }
-        if (!string.IsNullOrWhiteSpace(receiptAddress) && metadata.DeliveryReceiptRequested) {
-            yield return new EmailHeader("Return-Receipt-To", receiptAddress!);
+        string? deliveryReceiptDestination = metadata.DeliveryReceiptDestination ?? fallbackReceiptDestination;
+        if (!string.IsNullOrWhiteSpace(deliveryReceiptDestination) && metadata.DeliveryReceiptRequested) {
+            yield return new EmailHeader("Return-Receipt-To", deliveryReceiptDestination!);
         }
         if (metadata.IsDraft) yield return new EmailHeader("X-Unsent", "1");
         if (metadata.IsRead.HasValue) yield return new EmailHeader("Status", metadata.IsRead.Value ? "RO" : "O");

@@ -125,12 +125,13 @@ internal static class MsgWriter {
         properties.Set(0x0002, MapiPropertyType.Boolean, true);
         const int managedMessageFlags = 0x0001 | 0x0002 | 0x0008 | 0x0010 | 0x0400;
         int messageFlags = (MsgProjection.GetInt(document.MapiProperties, 0x0E07) ?? 0) & ~managedMessageFlags;
+        bool hasAttachments = document.Attachments.Any(attachment => !attachment.IsProjectedSemanticContent);
         messageFlags |= 0x0002;
-        if (document.Attachments.Any(attachment => !attachment.IsProjectedSemanticContent)) messageFlags |= 0x0010;
+        if (hasAttachments) messageFlags |= 0x0010;
         if (metadata.IsDraft) messageFlags |= 0x0008;
         if (metadata.IsRead == true) messageFlags |= 0x0001 | 0x0400;
         properties.Set(0x0E07, MapiPropertyType.Integer32, messageFlags);
-        properties.Set(0x0E1B, MapiPropertyType.Boolean, document.Attachments.Count > 0);
+        properties.Set(0x0E1B, MapiPropertyType.Boolean, hasAttachments);
         properties.Set(0x0037, MapiPropertyType.Unicode, document.Subject);
         ResolveSubject(document.Subject, metadata, out string? subjectPrefix, out string? normalizedSubject);
         properties.Set(0x003D, MapiPropertyType.Unicode, subjectPrefix);

@@ -187,4 +187,38 @@ public sealed class EmailMailboxTests {
         Assert.DoesNotContain(streamed.SelectMany(entry => entry.Diagnostics), diagnostic =>
             diagnostic.Severity == EmailDiagnosticSeverity.Error);
     }
+
+    [Fact]
+    public void PreservesHeaderlessMboxEntryBody() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "From sender@example.com Fri Jul 10 12:00:00 2026\nplain body\n");
+        var reader = new EmailMailboxReader();
+
+        EmailMailboxEntry aggregate = Assert.Single(reader.Read(source).Mailbox.Messages);
+        EmailMailboxEntryReadResult streamed = Assert.Single(
+            reader.ReadEntries(new MemoryStream(source)).ToArray());
+
+        Assert.Equal("plain body", aggregate.Document.Body.Text!.Trim());
+        Assert.Equal("plain body", streamed.Entry.Document.Body.Text!.Trim());
+        Assert.Contains(streamed.Diagnostics, diagnostic =>
+            diagnostic.Code == "EMAIL_MBOX_MESSAGE_HEADERS_MISSING");
+    }
+
+    [Fact]
+    public async Task AggregateStreamReadersPreservePerMessageLimitFailures() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "From sender@example.com Fri Jul 10 12:00:00 2026\nSubject: oversized\n\n" +
+            new string('x', 100) + "\n");
+        var options = new EmailMailboxReaderOptions(maxMailboxBytes: source.Length + 10,
+            messageOptions: new EmailReaderOptions(maxInputBytes: 64));
+        var reader = new EmailMailboxReader(options);
+
+        EmailLimitExceededException synchronous = Assert.Throws<EmailLimitExceededException>(() =>
+            reader.Read(new MemoryStream(source)));
+        EmailLimitExceededException asynchronous = await Assert.ThrowsAsync<EmailLimitExceededException>(() =>
+            reader.ReadAsync(new MemoryStream(source)));
+
+        Assert.Equal(nameof(EmailReaderOptions.MaxInputBytes), synchronous.LimitName);
+        Assert.Equal(nameof(EmailReaderOptions.MaxInputBytes), asynchronous.LimitName);
+    }
 }

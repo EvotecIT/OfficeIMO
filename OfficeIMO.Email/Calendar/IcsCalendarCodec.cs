@@ -14,7 +14,7 @@ internal static class IcsCalendarCodec {
             property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase));
         if (!isEvent && !isTask) return false;
 
-        document.MimeSemanticProjectionIsIncomplete = HasStoreSpecificRecurrence(properties);
+        document.MimeSemanticProjectionIsIncomplete |= HasStoreSpecificRecurrence(properties);
 
         if (isEvent) ProjectEvent(properties, document, diagnostics, location);
         else ProjectTask(properties, document, diagnostics, location);
@@ -253,12 +253,13 @@ internal static class IcsCalendarCodec {
             AppendLine(output, string.Concat(organizer, ":mailto:", EscapeUriValue(document.From.Address!)));
         }
         foreach (EmailRecipient recipient in document.Recipients.Where(recipient =>
-            recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc)) {
+            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc) &&
+            !string.IsNullOrWhiteSpace(recipient.Address.Address))) {
             string role = recipient.Kind == EmailRecipientKind.Cc ? "OPT-PARTICIPANT" : "REQ-PARTICIPANT";
             string attendee = string.Concat("ATTENDEE;ROLE=", role);
             if (!string.IsNullOrWhiteSpace(recipient.Address.DisplayName)) attendee += string.Concat(";CN=\"",
                 EscapeParameter(recipient.Address.DisplayName!), "\"");
-            AppendLine(output, string.Concat(attendee, ":mailto:", EscapeUriValue(recipient.Address.Address ?? string.Empty)));
+            AppendLine(output, string.Concat(attendee, ":mailto:", EscapeUriValue(recipient.Address.Address!)));
         }
     }
 

@@ -37,12 +37,14 @@ public sealed class EmailMailboxReader {
     /// original position; non-seekable streams are read forward from their current position.
     /// </summary>
     public EmailMailboxReadResult Read(Stream stream, CancellationToken cancellationToken = default) {
+        byte[] data;
         try {
-            return Parse(EmailByteReader.ReadAll(stream, _options.MaxMailboxBytes, cancellationToken), cancellationToken);
+            data = EmailByteReader.ReadAll(stream, _options.MaxMailboxBytes, cancellationToken);
         } catch (EmailLimitExceededException exception) when
             (exception.LimitName == nameof(EmailReaderOptions.MaxInputBytes)) {
             throw CreateMailboxLimitException(exception);
         }
+        return Parse(data, cancellationToken);
     }
 
     /// <summary>Asynchronously reads a mailbox file.</summary>
@@ -59,13 +61,15 @@ public sealed class EmailMailboxReader {
     /// to their original position; non-seekable streams are read forward.
     /// </summary>
     public async Task<EmailMailboxReadResult> ReadAsync(Stream stream, CancellationToken cancellationToken = default) {
+        byte[] data;
         try {
-            byte[] data = await EmailByteReader.ReadAllAsync(stream, _options.MaxMailboxBytes, cancellationToken).ConfigureAwait(false);
-            return Parse(data, cancellationToken);
+            data = await EmailByteReader.ReadAllAsync(stream, _options.MaxMailboxBytes, cancellationToken)
+                .ConfigureAwait(false);
         } catch (EmailLimitExceededException exception) when
             (exception.LimitName == nameof(EmailReaderOptions.MaxInputBytes)) {
             throw CreateMailboxLimitException(exception);
         }
+        return Parse(data, cancellationToken);
     }
 
     /// <summary>Enumerates a mailbox file while retaining at most one decoded message in memory.</summary>
@@ -215,7 +219,11 @@ public sealed class EmailMailboxReader {
         diagnostics.Add(new EmailDiagnostic("EMAIL_MBOX_MESSAGE_HEADERS_MISSING",
             "An mbox entry without recognizable message headers was retained as a plain MIME body.",
             EmailDiagnosticSeverity.Warning));
-        EmailDocument document = MimeParser.Parse(messageBytes, options, diagnostics, cancellationToken);
+        byte[] mimeBody = new byte[messageBytes.Length + 2];
+        mimeBody[0] = (byte)'\r';
+        mimeBody[1] = (byte)'\n';
+        Buffer.BlockCopy(messageBytes, 0, mimeBody, 2, messageBytes.Length);
+        EmailDocument document = MimeParser.Parse(mimeBody, options, diagnostics, cancellationToken);
         return new EmailReadResult(document, diagnostics.AsReadOnly(), messageBytes.LongLength);
     }
 

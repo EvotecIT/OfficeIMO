@@ -15,7 +15,9 @@ public sealed class EmailMimeMetadataTests {
         source.MessageMetadata.Priority = EmailMessagePriority.Urgent;
         source.MessageMetadata.Sensitivity = 2;
         source.MessageMetadata.ReadReceiptRequested = true;
+        source.MessageMetadata.ReadReceiptDestination = "read-receipts@example.com";
         source.MessageMetadata.DeliveryReceiptRequested = true;
+        source.MessageMetadata.DeliveryReceiptDestination = "delivery-receipts@example.com";
         source.MessageMetadata.IsDraft = true;
         source.MessageMetadata.IsRead = true;
         source.MessageMetadata.Categories.Add("Blue");
@@ -28,7 +30,9 @@ public sealed class EmailMimeMetadataTests {
         Assert.Equal(EmailMessagePriority.Urgent, result.MessageMetadata.Priority);
         Assert.Equal(2, result.MessageMetadata.Sensitivity);
         Assert.True(result.MessageMetadata.ReadReceiptRequested);
+        Assert.Equal("read-receipts@example.com", result.MessageMetadata.ReadReceiptDestination);
         Assert.True(result.MessageMetadata.DeliveryReceiptRequested);
+        Assert.Equal("delivery-receipts@example.com", result.MessageMetadata.DeliveryReceiptDestination);
         Assert.True(result.MessageMetadata.IsDraft);
         Assert.True(result.MessageMetadata.IsRead);
         Assert.Equal(new[] { "Blue", "Project X" }, result.MessageMetadata.Categories);
