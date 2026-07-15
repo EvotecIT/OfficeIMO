@@ -70,10 +70,19 @@ public sealed class OfficeArtProperty {
     public byte[]? CopyComplexData() => _complexData == null ? null : (byte[])_complexData.Clone();
 
     private static string GetPropertyName(ushort propertyId) => propertyId switch {
+        0x0004 => "rotation",
         0x007F => "ProtectionBooleanProperties",
         0x00BF => "TextBooleanProperties",
         0x0104 => "pib",
         0x013F => "BlipBooleanProperties",
+        0x0147 => "adjustValue",
+        0x0148 => "adjust2Value",
+        0x0149 => "adjust3Value",
+        0x014A => "adjust4Value",
+        0x014B => "adjust5Value",
+        0x014C => "adjust6Value",
+        0x014D => "adjust7Value",
+        0x014E => "adjust8Value",
         0x0181 => "fillColor",
         0x0183 => "fillBackColor",
         0x01BF => "FillStyleBooleanProperties",
@@ -88,7 +97,8 @@ public sealed class OfficeArtProperty {
     };
 
     private static string GetPropertyGroupName(ushort propertyId) => propertyId switch {
-        >= 0x0000 and <= 0x007F => "Protection",
+        <= 0x003F => "Transform",
+        >= 0x0040 and <= 0x007F => "Protection",
         >= 0x0080 and <= 0x00BF => "Text",
         >= 0x0100 and <= 0x013F => "Blip",
         >= 0x0140 and <= 0x017F => "Geometry",

@@ -275,6 +275,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? fopt = shapeContainer.Children.FirstOrDefault(record =>
                 record.Type == OfficeArtFopt);
             OfficeArtShapeStyle style = ReadShapeStyle(fopt);
+            OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(fsp.ReadUInt32(4),
+                style.Properties);
             int? pictureStoreIndex = ReadPictureStoreIndex(style);
             OfficeArtBlipStoreEntry? picture = ResolvePicture(pictureStoreIndex);
             bool isPictureFrame = shapeType == 75;
@@ -286,7 +288,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             var shape = new LegacyPptShape(kind, shapeType, shapeId, shapeContainer.Offset,
                 bounds, text, placeholder, style,
                 ResolveShapeColor(style.FillColor, colorScheme),
-                ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture);
+                ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture,
+                transform);
 
             if (textbox != null && textbox.DescendantsAndSelf()
                     .Any(record => record.Type == RecordStyleTextPropAtom)) {
@@ -324,6 +327,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 && record.Children.Any(child => child.Type == OfficeArtFspgr));
             LegacyPptRecord? fspgr = descriptor?.Children.FirstOrDefault(record => record.Type == OfficeArtFspgr);
             LegacyPptRecord? fsp = descriptor?.Children.FirstOrDefault(record => record.Type == OfficeArtFsp);
+            LegacyPptRecord? fopt = descriptor?.Children.FirstOrDefault(record => record.Type == OfficeArtFopt);
             LegacyPptRecord? anchor = descriptor?.Children.FirstOrDefault(record =>
                 record.Type == OfficeArtClientAnchor || record.Type == OfficeArtChildAnchor);
             if (descriptor == null || fspgr == null || fsp == null || anchor == null
@@ -360,9 +364,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (shape != null) children.Add(shape);
             }
             if (children.Count == 0) return null;
+            OfficeArtShapeStyle style = ReadShapeStyle(fopt);
+            OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(fsp.ReadUInt32(4),
+                style.Properties);
             return new LegacyPptShape(LegacyPptShapeKind.Group, fsp.Instance, fsp.ReadUInt32(0),
                 groupContainer.Offset, bounds, string.Empty, LegacyPptPlaceholderKind.None,
-                OfficeArtShapeStyle.Decode(Array.Empty<OfficeArtProperty>()), null, null,
+                style, ResolveShapeColor(style.FillColor, colorScheme),
+                ResolveShapeColor(style.LineColor, colorScheme), transform: transform,
                 groupCoordinateBounds: coordinateBounds, children: children);
         }
 

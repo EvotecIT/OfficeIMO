@@ -96,6 +96,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholderKind placeholderKind,
             OfficeArtShapeStyle style, string? fillColor, string? lineColor,
             int? pictureStoreIndex = null, OfficeArtBlipStoreEntry? picture = null,
+            OfficeArtShapeTransform? transform = null,
             LegacyPptBounds? groupCoordinateBounds = null,
             IReadOnlyList<LegacyPptShape>? children = null) {
             Kind = kind;
@@ -110,6 +111,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LineColor = lineColor;
             PictureStoreIndex = pictureStoreIndex;
             Picture = picture;
+            Transform = transform ?? OfficeArtShapeTransform.Decode(0);
             GroupCoordinateBounds = groupCoordinateBounds;
             Children = new ReadOnlyCollection<LegacyPptShape>(
                 children?.ToArray() ?? Array.Empty<LegacyPptShape>());
@@ -150,6 +152,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the resolved OfficeArt picture entry, when available.</summary>
         public OfficeArtBlipStoreEntry? Picture { get; }
+
+        /// <summary>Gets decoded rotation and mirroring state.</summary>
+        public OfficeArtShapeTransform Transform { get; }
 
         /// <summary>Gets the coordinate system used by child anchors when this is a group shape.</summary>
         public LegacyPptBounds? GroupCoordinateBounds { get; }

@@ -2,13 +2,18 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.Drawing.Binary;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
         private static string ShapeFixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "ShapePowerPoint.ppt");
+
+        private static string TransformFixturePath => Path.Combine(AppContext.BaseDirectory,
+            "Documents", "LegacyPptCorpus", "TransformPowerPoint.ppt");
 
         public static IEnumerable<object[]> RepresentativeOfficeArtPresets => new[] {
             new object[] { (ushort)4, A.ShapeTypeValues.Diamond },
@@ -161,6 +166,86 @@ namespace OfficeIMO.Tests {
             PowerPointShape child = slide.GetGroupChildren(group)[0];
 
             child.Left += 15875;
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
+        public void NeutralReader_DecodesRotationAndFlips() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(TransformFixturePath);
+
+            LegacyPptSlide slide = Assert.Single(legacy.Slides);
+            Assert.Equal(5, slide.Shapes.Count);
+            Assert.Equal(30D, slide.Shapes.Single(shape => shape.Text == "Rotate 30")
+                .Transform.RotationDegrees);
+            Assert.Equal(315D, slide.Shapes.Single(shape => shape.Text == "Rotate -45")
+                .Transform.RotationDegrees);
+            Assert.True(slide.Shapes.Single(shape => shape.Text == "Flip H")
+                .Transform.FlipHorizontal);
+            Assert.True(slide.Shapes.Single(shape => shape.Text == "Flip V")
+                .Transform.FlipVertical);
+            Assert.Contains(slide.Shapes, shape => shape.Kind == LegacyPptShapeKind.Group);
+        }
+
+        [Fact]
+        public void NormalLoad_ProjectsRotationAndFlipsIntoValidPptxModel() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(TransformFixturePath);
+
+            PowerPointSlide slide = Assert.Single(presentation.Slides);
+            Assert.Equal(30D, slide.TextBoxes.Single(shape => shape.Text == "Rotate 30").Rotation);
+            Assert.Equal(315D, slide.TextBoxes.Single(shape => shape.Text == "Rotate -45").Rotation);
+            Assert.True(slide.TextBoxes.Single(shape => shape.Text == "Flip H").HorizontalFlip);
+            Assert.True(slide.TextBoxes.Single(shape => shape.Text == "Flip V").VerticalFlip);
+            Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
+            Assert.Empty(presentation.ValidateDocument());
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.Equal(File.ReadAllBytes(TransformFixturePath),
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void LegacyGroupProjection_UsesNativeRotationAndFlipAttributes() {
+            OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(Array.Empty<OfficeArtProperty>());
+            var child = new LegacyPptShape(LegacyPptShapeKind.Rectangle, 1, 20, 0,
+                new LegacyPptBounds(0, 0, 100, 100), string.Empty,
+                LegacyPptPlaceholderKind.None, style, null, null);
+            OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(1U << 6,
+                new[] { new OfficeArtProperty(0, 0x0004, 15U * 65536U) });
+            var source = new LegacyPptShape(LegacyPptShapeKind.Group, 0, 10, 0,
+                new LegacyPptBounds(100, 200, 400, 300), string.Empty,
+                LegacyPptPlaceholderKind.None, style, null, null, transform: transform,
+                groupCoordinateBounds: new LegacyPptBounds(0, 0, 400, 300),
+                children: new[] { child });
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            uint nextShapeId = 2;
+
+            P.GroupShape group = Assert.IsType<P.GroupShape>(
+                PowerPointPresentation.CreateLegacyOpenXmlShape(slide.SlidePart, source,
+                    ref nextShapeId));
+            A.TransformGroup projected = group.GroupShapeProperties!.TransformGroup!;
+
+            Assert.Equal(15 * 60000, projected.Rotation!.Value);
+            Assert.True(projected.HorizontalFlip!.Value);
+            Assert.Null(projected.VerticalFlip);
+            var wrapper = new PowerPointGroupShape(group, slide.SlidePart);
+            Assert.Equal(15D, wrapper.Rotation);
+            wrapper.Rotation = 20D;
+            wrapper.VerticalFlip = true;
+            Assert.Equal(20D, wrapper.Rotation);
+            Assert.True(wrapper.VerticalFlip);
+        }
+
+        [Fact]
+        public void ImportedTransformEdit_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(TransformFixturePath);
+            PowerPointTextBox shape = presentation.Slides[0].TextBoxes.Single(item =>
+                item.Text == "Rotate 30");
+
+            shape.Rotation = 42D;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);

@@ -48,7 +48,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                 Planned(LegacyPptFeature.Groups, "Drawing", "Nested drawing groups and child coordinate systems.",
                     "Nested OfficeArt group hierarchies and child coordinate systems are projected as native editable Open XML groups. Imported outer group geometry edits round-trip; child edits, reparenting, and fresh binary group authoring remain planned."),
                 Planned(LegacyPptFeature.ShapeTransforms, "Drawing", "Position, size, rotation, flip, and z-order.",
-                    "Imported mapped shapes, pictures, connectors, and outer group frames preserve position and size edits through incremental binary records; rotation, flip, child group transforms, and z-order edits remain planned."),
+                    "Position, size, clockwise rotation, and horizontal or vertical mirroring are projected for mapped shapes, pictures, connectors, and nested groups. Position and size edits round-trip through incremental binary records; rotation, flip, child group transforms, and z-order edits remain planned."),
                 new LegacyPptCapability(LegacyPptFeature.ShapeStyles, "Drawing",
                     "Fill, outline, transparency, and shape properties.", LegacyPptRepresentability.Native,
                     LegacyPptCapabilityState.Planned, LegacyPptCapabilityState.Planned,

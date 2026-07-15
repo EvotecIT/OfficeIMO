@@ -18,6 +18,12 @@ child coordinate systems, exact no-op saves, and incremental connector and outer
 edits. Its SHA-256 digest is
 `50f5094a5004cba187defe96d9d15f7e7302fcd8c1176711a1538eeee05eae20`.
 
+`TransformPowerPoint.ppt` was generated from a one-slide PPTX built with `python-pptx`, then
+converted with LibreOffice. It contains clockwise and counterclockwise shape rotations, horizontal
+and vertical mirroring, plus a nested group. The fixture exercises OfficeArt fixed-point rotation,
+FSP flip flags, exact no-op saves, and loss blocking for unsupported transform edits. Its SHA-256 digest is
+`eef8191b166d1a2eb4714bddac250390075eb16122c7ecbce6dd285ef707d2e2`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

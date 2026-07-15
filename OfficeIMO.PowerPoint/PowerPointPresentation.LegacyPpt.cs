@@ -157,9 +157,16 @@ namespace OfficeIMO.PowerPoint {
                 projectedShape?.Element switch {
                     DocumentFormat.OpenXml.Presentation.Shape projected => projected.ShapeProperties,
                     DocumentFormat.OpenXml.Presentation.ConnectionShape projected => projected.ShapeProperties,
+                    DocumentFormat.OpenXml.Presentation.Picture projected => projected.ShapeProperties,
                     _ => null
                 };
-            if (projectedProperties != null) ApplyLegacyShapeStyle(projectedProperties, shape);
+            if (projectedProperties != null) {
+                if (shape.Kind != LegacyPptShapeKind.Picture) {
+                    ApplyLegacyShapeStyle(projectedProperties, shape);
+                }
+                projectedProperties.Transform2D ??= new A.Transform2D();
+                ApplyLegacyShapeTransform(projectedProperties.Transform2D, shape);
+            }
         }
 
         private static ImagePartType GetLegacyPicturePartType(string contentType) => contentType switch {

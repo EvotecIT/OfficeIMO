@@ -112,6 +112,7 @@ namespace OfficeIMO.PowerPoint {
                 ConnectionShape c => c.ShapeProperties?.Transform2D?.Rotation?.Value,
                 Picture p => p.ShapeProperties?.Transform2D?.Rotation?.Value,
                 GraphicFrame g => g.Transform?.Rotation?.Value,
+                GroupShape g => g.GroupShapeProperties?.TransformGroup?.Rotation?.Value,
                 _ => null
             };
         }
@@ -137,6 +138,9 @@ namespace OfficeIMO.PowerPoint {
                     g.Transform ??= new Transform();
                     g.Transform.Rotation = rotation;
                     break;
+                case GroupShape g:
+                    EnsureTransformGroup(g).Rotation = rotation;
+                    break;
             }
         }
 
@@ -146,6 +150,7 @@ namespace OfficeIMO.PowerPoint {
                 ConnectionShape c => c.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
                 Picture p => p.ShapeProperties?.Transform2D?.HorizontalFlip?.Value,
                 GraphicFrame g => g.Transform?.HorizontalFlip?.Value,
+                GroupShape g => g.GroupShapeProperties?.TransformGroup?.HorizontalFlip?.Value,
                 _ => null
             };
         }
@@ -171,6 +176,9 @@ namespace OfficeIMO.PowerPoint {
                     g.Transform ??= new Transform();
                     g.Transform.HorizontalFlip = value;
                     break;
+                case GroupShape g:
+                    EnsureTransformGroup(g).HorizontalFlip = value;
+                    break;
             }
         }
 
@@ -180,6 +188,7 @@ namespace OfficeIMO.PowerPoint {
                 ConnectionShape c => c.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
                 Picture p => p.ShapeProperties?.Transform2D?.VerticalFlip?.Value,
                 GraphicFrame g => g.Transform?.VerticalFlip?.Value,
+                GroupShape g => g.GroupShapeProperties?.TransformGroup?.VerticalFlip?.Value,
                 _ => null
             };
         }
@@ -204,6 +213,9 @@ namespace OfficeIMO.PowerPoint {
                 case GraphicFrame g:
                     g.Transform ??= new Transform();
                     g.Transform.VerticalFlip = value;
+                    break;
+                case GroupShape g:
+                    EnsureTransformGroup(g).VerticalFlip = value;
                     break;
             }
         }

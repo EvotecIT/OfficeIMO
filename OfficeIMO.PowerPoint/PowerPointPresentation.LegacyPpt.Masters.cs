@@ -277,6 +277,7 @@ namespace OfficeIMO.PowerPoint {
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = geometry });
             if (geometry == A.ShapeTypeValues.Line) shapeProperties.Append(new A.NoFill());
             ApplyLegacyShapeStyle(shapeProperties, source);
+            ApplyLegacyShapeTransform(shapeProperties.Transform2D!, source);
 
             var shape = new Shape(
                 new NonVisualShapeProperties(
@@ -304,6 +305,7 @@ namespace OfficeIMO.PowerPoint {
                     }),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = geometry });
             ApplyLegacyShapeStyle(properties, source);
+            ApplyLegacyShapeTransform(properties.Transform2D!, source);
             return new ConnectionShape(
                 new NonVisualConnectionShapeProperties(
                     new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Connector {shapeId - 1U}" },
@@ -316,29 +318,30 @@ namespace OfficeIMO.PowerPoint {
             uint shapeId, ref uint nextShapeId) {
             if (!source.GroupCoordinateBounds.HasValue || source.Children.Count == 0) return null;
             LegacyPptBounds coordinate = source.GroupCoordinateBounds.Value;
+            var transform = new A.TransformGroup(
+                new A.Offset {
+                    X = ToEmus(source.Bounds.Left),
+                    Y = ToEmus(source.Bounds.Top)
+                },
+                new A.Extents {
+                    Cx = Math.Max(1L, ToEmus(source.Bounds.Width)),
+                    Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
+                },
+                new A.ChildOffset {
+                    X = ToEmus(coordinate.Left),
+                    Y = ToEmus(coordinate.Top)
+                },
+                new A.ChildExtents {
+                    Cx = Math.Max(1L, ToEmus(coordinate.Width)),
+                    Cy = Math.Max(1L, ToEmus(coordinate.Height))
+                });
+            ApplyLegacyShapeTransform(transform, source);
             var group = new GroupShape(
                 new NonVisualGroupShapeProperties(
                     new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Group {shapeId - 1U}" },
                     new NonVisualGroupShapeDrawingProperties(),
                     new ApplicationNonVisualDrawingProperties()),
-                new GroupShapeProperties(
-                    new A.TransformGroup(
-                        new A.Offset {
-                            X = ToEmus(source.Bounds.Left),
-                            Y = ToEmus(source.Bounds.Top)
-                        },
-                        new A.Extents {
-                            Cx = Math.Max(1L, ToEmus(source.Bounds.Width)),
-                            Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
-                        },
-                        new A.ChildOffset {
-                            X = ToEmus(coordinate.Left),
-                            Y = ToEmus(coordinate.Top)
-                        },
-                        new A.ChildExtents {
-                            Cx = Math.Max(1L, ToEmus(coordinate.Width)),
-                            Cy = Math.Max(1L, ToEmus(coordinate.Height))
-                        })));
+                new GroupShapeProperties(transform));
             foreach (LegacyPptShape child in source.Children) {
                 OpenXmlElement? projected = CreateLegacyOpenXmlShape(ownerPart, child, ref nextShapeId);
                 if (projected != null) group.Append(projected);
@@ -362,6 +365,15 @@ namespace OfficeIMO.PowerPoint {
                 imagePart.FeedData(stream);
             }
             string relationshipId = ownerPart.GetIdOfPart(imagePart);
+            var properties = new ShapeProperties(
+                new A.Transform2D(
+                    new A.Offset { X = ToEmus(source.Bounds.Left), Y = ToEmus(source.Bounds.Top) },
+                    new A.Extents {
+                        Cx = Math.Max(1L, ToEmus(source.Bounds.Width)),
+                        Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
+                    }),
+                new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle });
+            ApplyLegacyShapeTransform(properties.Transform2D!, source);
             return new Picture(
                 new NonVisualPictureProperties(
                     new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Picture {shapeId - 1U}" },
@@ -370,14 +382,26 @@ namespace OfficeIMO.PowerPoint {
                 new BlipFill(
                     new A.Blip { Embed = relationshipId },
                     new A.Stretch(new A.FillRectangle())),
-                new ShapeProperties(
-                    new A.Transform2D(
-                        new A.Offset { X = ToEmus(source.Bounds.Left), Y = ToEmus(source.Bounds.Top) },
-                        new A.Extents {
-                            Cx = Math.Max(1L, ToEmus(source.Bounds.Width)),
-                            Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
-                        }),
-                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }));
+                properties);
+        }
+
+        internal static void ApplyLegacyShapeTransform(A.Transform2D transform, LegacyPptShape source) {
+            transform.Rotation = ToOpenXmlRotation(source.Transform.RotationDegrees);
+            transform.HorizontalFlip = source.Transform.FlipHorizontal ? true : null;
+            transform.VerticalFlip = source.Transform.FlipVertical ? true : null;
+        }
+
+        private static void ApplyLegacyShapeTransform(A.TransformGroup transform, LegacyPptShape source) {
+            transform.Rotation = ToOpenXmlRotation(source.Transform.RotationDegrees);
+            transform.HorizontalFlip = source.Transform.FlipHorizontal ? true : null;
+            transform.VerticalFlip = source.Transform.FlipVertical ? true : null;
+        }
+
+        private static int? ToOpenXmlRotation(double? degrees) {
+            if (!degrees.HasValue) return null;
+            double value = degrees.Value * 60000D;
+            if (value < int.MinValue || value > int.MaxValue) return null;
+            return (int)Math.Round(value);
         }
 
         internal static void ApplyLegacyShapeStyle(ShapeProperties properties, LegacyPptShape source) {

@@ -56,6 +56,37 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtShapeTransform_DecodesSignedRotationAndFspFlips() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x0004, unchecked((uint)(-45 * 65536)))
+        };
+
+        OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(
+            (1U << 6) | (1U << 7), properties);
+
+        Assert.Equal(-45D, transform.RotationDegrees);
+        Assert.True(transform.FlipHorizontal);
+        Assert.True(transform.FlipVertical);
+        Assert.True(transform.HasTransform);
+        Assert.Equal("rotation", properties[0].PropertyName);
+        Assert.Equal("Transform", properties[0].PropertyGroupName);
+    }
+
+    [Fact]
+    public void OfficeArtShapeTransform_HonorsExplicitFlipOverrides() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x033F,
+                (1U << 8) | (1U << 9) | (1U << 25))
+        };
+
+        OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(
+            (1U << 6) | (1U << 7), properties);
+
+        Assert.False(transform.FlipHorizontal);
+        Assert.True(transform.FlipVertical);
+    }
+
+    [Fact]
     public void OfficeArtPropertyTableReader_RejectsTruncatedFixedTableWithoutOverread() {
         byte[] payload = { 0x81, 0x01, 0x33, 0x22, 0x11 };
 
