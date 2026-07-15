@@ -73,6 +73,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsCheckpoint_HashesSupportedCellFormattingAndHyperlinks() {
+            string CellHash(Action<ExcelSheet>? configure = null) {
+                string path = Path.Combine(_directoryWithFiles, $"GoogleSheetsCellHash-{Guid.NewGuid():N}.xlsx");
+                try {
+                    using var document = ExcelDocument.Create(path);
+                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    sheet.CellValue(1, 1, "Value");
+                    configure?.Invoke(sheet);
+                    return GoogleSheetsDiffPlanner.CreateCheckpoint(document).ContentHashes["sheet/Data/cell/1:1"];
+                } finally {
+                    if (File.Exists(path)) File.Delete(path);
+                }
+            }
+
+            string baseline = CellHash();
+
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBold(1, 1)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellItalic(1, 1)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellFontSize(1, 1, 18)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellAlign(1, 1, HorizontalAlignmentValues.Center)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.CellBorder(1, 1, BorderStyleValues.Medium, "#FF0000")));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.WrapCells(1, 1, 1)));
+            Assert.NotEqual(baseline, CellHash(sheet => sheet.SetHyperlink(1, 1, "https://example.test/", display: "Value", style: false)));
+        }
+
+        [Fact]
         public void Test_GoogleSheetsPivot_UsesOnlyHeadersInsideSourceRange() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsPivotSourceHeaders.xlsx");
             try {

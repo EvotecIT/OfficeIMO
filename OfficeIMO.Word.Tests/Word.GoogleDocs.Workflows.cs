@@ -383,6 +383,30 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public async Task Test_GoogleDocsDiffPlanner_ReportsDriveVersionChanges() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsDriveVersionDiff.docx");
+            try {
+                using var source = WordDocument.Create(filePath);
+                source.AddParagraph("Same");
+                GoogleDocsSyncCheckpoint checkpoint = GoogleDocsDiffPlanner.CreateCheckpoint(source, revisionId: "revision-1", driveVersion: 7);
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.RequestUri!.Host == "www.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-diff\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":8,\"capabilities\":{\"canDownload\":false}}"));
+                    }
+                    const string docs = "{\"documentId\":\"doc-diff\",\"title\":\"Diff\",\"revisionId\":\"revision-1\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":6,\"paragraph\":{\"elements\":[{\"textRun\":{\"content\":\"Same\\n\"}}]}}]}}";
+                    return Task.FromResult(CreateJsonResponse(docs));
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleDocsDiffPlan plan = await GoogleDocsDiffPlanner.BuildAsync(source, "doc-diff", session, checkpoint);
+
+                Assert.Contains(plan.Items, item => item.Kind == GoogleDocsDiffKind.RemoteChange && item.Path == "document/driveVersion");
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
         [Theory]
         [InlineData(GoogleDocsSuggestionsMode.Default, "DEFAULT_FOR_CURRENT_ACCESS")]
         [InlineData(GoogleDocsSuggestionsMode.Accepted, "PREVIEW_SUGGESTIONS_ACCEPTED")]

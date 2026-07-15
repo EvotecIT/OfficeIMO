@@ -38,6 +38,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_PreservesTextBearingPresetGeometry() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextShapePoints(A.ShapeTypeValues.RightArrow, "Next step", 20, 30, 180, 60);
+            slide.AddTextBoxPoints("Plain text", 20, 110, 180, 60);
+
+            GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch();
+
+            GoogleSlidesTextBox[] textShapes = Assert.Single(batch.Slides).Elements.OfType<GoogleSlidesTextBox>().ToArray();
+            Assert.Equal("RIGHT_ARROW", Assert.Single(textShapes, shape => shape.Text == "Next step").ShapeType);
+            Assert.Equal("TEXT_BOX", Assert.Single(textShapes, shape => shape.Text == "Plain text").ShapeType);
+        }
+
+        [Fact]
         public void BatchCompiler_DoesNotSendUnsupportedNativeImageFormats() {
             string svgPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".svg");
             try {
@@ -109,6 +123,7 @@ namespace OfficeIMO.Tests {
             authoredSlide.Hidden = true;
             authoredSlide.BackgroundColor = "112233";
             authoredSlide.AddTextBoxPoints("Hello Slides", 20, 30, 300, 80);
+            authoredSlide.AddTextShapePoints(A.ShapeTypeValues.RightArrow, "Next step", 340, 30, 160, 80);
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
                 string uri = request.RequestUri!.AbsoluteUri;
@@ -160,6 +175,8 @@ namespace OfficeIMO.Tests {
             }
             Assert.Contains("\"createShape\"", body);
             Assert.Contains("Hello Slides", body);
+            Assert.Contains("\"shapeType\":\"RIGHT_ARROW\"", body);
+            Assert.Contains("Next step", body);
             Assert.Contains("\"requiredRevisionId\":\"revision-1\"", body);
             Assert.Equal("revision-2", result.RevisionId);
             Assert.Equal(2, result.DriveVersion);
@@ -343,6 +360,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Exporter_PreservesLaterBatchDiagnosticsWhenActiveRevisionStillMatches() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide slide = presentation.AddSlide();
+            slide.AddTextBox("Local");
+            slide.Notes.Text = "Notes";
+            int presentationReads = 0;
+            int batchWrites = 0;
+            var batchBodies = new List<string>();
+            using var httpClient = new HttpClient(new DelegateHandler(async request => {
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") {
+                    presentationReads++;
+                    return presentationReads == 1
+                        ? Json("{\"presentationId\":\"existing\",\"revisionId\":\"observed\",\"slides\":[]}")
+                        : Json("{\"presentationId\":\"existing\",\"revisionId\":\"revision-2\",\"slides\":[{\"objectId\":\"officeimo_slide_0001_0001\",\"slideProperties\":{\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"}}}}]}");
+                }
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    batchWrites++;
+                    batchBodies.Add(await request.Content!.ReadAsStringAsync().ConfigureAwait(false));
+                    if (batchWrites == 1) return Json("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}");
+                    return new HttpResponseMessage(HttpStatusCode.BadRequest) {
+                        Content = new StringContent("{\"error\":{\"status\":\"INVALID_ARGUMENT\",\"message\":\"Invalid speaker notes request\"}}", Encoding.UTF8, "application/json")
+                    };
+                }
+                return new HttpResponseMessage(HttpStatusCode.NotFound);
+            }));
+
+            GoogleWorkspaceApiException exception = await Assert.ThrowsAsync<GoogleWorkspaceApiException>(() => presentation.ExportToGoogleSlidesAsync(Session(httpClient), new GoogleSlidesSaveOptions {
+                Location = new GoogleDriveFileLocation { ExistingFileId = "existing" },
+                Replace = new GoogleSlidesReplaceOptions { ExpectedRevisionId = "observed" },
+            }));
+
+            Assert.Contains("Invalid speaker notes request", exception.ResponseBody);
+            Assert.Equal(3, presentationReads);
+            Assert.Equal(2, batchWrites);
+            Assert.Contains("\"requiredRevisionId\":\"revision-2\"", batchBodies[1]);
+        }
+
+        [Fact]
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));
@@ -416,6 +471,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DiffPlanner_HashesPictureContentAndCrop() {
+            byte[] firstImage = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+            byte[] secondImage = (byte[])firstImage.Clone();
+            secondImage[secondImage.Length - 12] ^= 0x01;
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            using var firstStream = new MemoryStream(firstImage);
+            PowerPointPicture picture = presentation.AddSlide().AddPicture(firstStream, ImagePartType.Png);
+            string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+
+            using (var secondStream = new MemoryStream(secondImage)) picture.UpdateImage(secondStream, ImagePartType.Png);
+            string contentChanged = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+            picture.Crop(10, 0, 0, 0);
+            string cropChanged = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+
+            Assert.NotEqual(baseline, contentChanged);
+            Assert.NotEqual(contentChanged, cropChanged);
+        }
+
+        [Fact]
+        public async Task DiffPlanner_ReportsDriveVersionChanges() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("Same");
+            GoogleSlidesSyncCheckpoint checkpoint = GoogleSlidesDiffPlanner.CreateCheckpoint(presentation, revisionId: "revision-1", driveVersion: 4);
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-diff\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":5,\"capabilities\":{\"canDownload\":false}}"));
+                const string slides = "{\"presentationId\":\"deck-diff\",\"revisionId\":\"revision-1\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Same\"}}]}}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesDiffPlan plan = await GoogleSlidesDiffPlanner.BuildAsync(presentation, "deck-diff", Session(httpClient), checkpoint);
+
+            Assert.Contains(plan.Items, item => item.Kind == GoogleSlidesDiffKind.RemoteChange && item.Path == "presentation/driveVersion");
+        }
+
+        [Fact]
         public void SupportCatalog_IsExplicitAboutRasterAndDriveFallbacks() {
             Assert.Contains(GoogleSlidesFeatureSupportCatalog.Features, row => row.Feature == "Charts and SmartArt" && row.Export == GoogleSlidesFeatureSupportLevel.Rasterized);
             Assert.Contains(GoogleSlidesFeatureSupportCatalog.Features, row => row.Import == GoogleSlidesFeatureSupportLevel.DriveFallback);
@@ -425,6 +515,8 @@ namespace OfficeIMO.Tests {
             new StaticAccessTokenCredentialSource("token"),
             new GoogleWorkspaceSessionOptions { HttpClient = client, QuotaUser = quotaUser });
         private static HttpResponseMessage Json(string value) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(value, Encoding.UTF8, "application/json") };
+        private static string ElementHash(GoogleSlidesSyncCheckpoint checkpoint) =>
+            Assert.Single(checkpoint.ContentHashes, pair => pair.Key.Contains("/element/", StringComparison.Ordinal)).Value;
         private sealed class DelegateHandler : HttpMessageHandler {
             private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
             public DelegateHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) { _handler = handler; }

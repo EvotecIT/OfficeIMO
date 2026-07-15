@@ -51,6 +51,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     switch (shape) {
                         case PowerPointTextBox textBox:
                             var text = new GoogleSlidesTextBox(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, textBox.Text);
+                            if (!textBox.UsesTextBoxGeometry && TryMapShape(textBox.ShapeType, out string textShapeType)) text.ShapeType = textShapeType;
                             PowerPointTextRun? firstRun = textBox.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (firstRun != null) {
                                 text.Bold = firstRun.Bold; text.Italic = firstRun.Italic; text.Underline = firstRun.Underline;
@@ -125,8 +126,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return table.RowItems.SelectMany(row => row.Cells).Any(cell => cell.IsMergedCell || cell.IsMergeAnchor);
         }
 
-        private static bool TryMapShape(PowerPointAutoShape shape, out string slidesShapeType) {
-            A.ShapeTypeValues? shapeType = shape.ShapeType;
+        private static bool TryMapShape(PowerPointAutoShape shape, out string slidesShapeType) =>
+            TryMapShape(shape.ShapeType, out slidesShapeType);
+
+        private static bool TryMapShape(A.ShapeTypeValues? shapeType, out string slidesShapeType) {
             if (shapeType == A.ShapeTypeValues.Rectangle) slidesShapeType = "RECTANGLE";
             else if (shapeType == A.ShapeTypeValues.RoundRectangle) slidesShapeType = "ROUND_RECTANGLE";
             else if (shapeType == A.ShapeTypeValues.Ellipse) slidesShapeType = "ELLIPSE";

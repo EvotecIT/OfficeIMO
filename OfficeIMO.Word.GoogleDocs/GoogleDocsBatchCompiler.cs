@@ -1,4 +1,5 @@
 using OfficeIMO.GoogleWorkspace;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using System.IO;
 
@@ -215,6 +216,12 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static void AppendExecutedFallbacks(WordDocument document, GoogleDocsSaveOptions options, GoogleDocsBatch batch) {
+            int targetSectionIndex = Math.Max(0, batch.Plan.SectionCount - 1);
+            int fallbackElementIndex = batch.Requests
+                .Where(request => request.SectionIndex == targetSectionIndex)
+                .Select(request => request.ElementIndex)
+                .DefaultIfEmpty(-1)
+                .Max() + 1;
             var flattened = new List<string>();
             AddFallbackName(flattened, options.UnsupportedFeatures.FloatingContent, batch.Plan.ShapeCount + batch.Plan.TextBoxCount, "floating shapes/text boxes");
             AddFallbackName(flattened, options.UnsupportedFeatures.Charts, batch.Plan.ChartCount, "charts");
@@ -229,28 +236,33 @@ namespace OfficeIMO.Word.GoogleDocs {
                 string text = "[OfficeIMO flattened unsupported Word content: " + string.Join(", ", flattened) + "]";
                 var paragraph = new GoogleDocsParagraph { Text = text };
                 paragraph.AddRun(new GoogleDocsParagraphRun { Text = text, Italic = true });
-                batch.Add(new GoogleDocsInsertParagraphRequest { SectionIndex = Math.Max(0, batch.Plan.SectionCount - 1), ElementIndex = int.MaxValue - 1, Paragraph = paragraph });
+                batch.Add(new GoogleDocsInsertParagraphRequest { SectionIndex = targetSectionIndex, ElementIndex = fallbackElementIndex++, Paragraph = paragraph });
             }
 
             bool rasterize = HasRasterizedFallback(options.UnsupportedFeatures, batch.Plan);
             if (!rasterize || options.InlineImageMode != GoogleDocsInlineImageMode.TemporaryPublicDriveLease) return;
-            byte[] png = document.ToPng(new WordImageExportOptions { IncludeDocumentContent = true, PageIndex = 0 });
-            var imageParagraph = new GoogleDocsParagraph { Text = "[Rendered Word fallback]" };
-            imageParagraph.AddRun(new GoogleDocsParagraphRun {
-                Text = string.Empty,
-                InlineImage = new GoogleDocsInlineImage {
-                    Bytes = png,
-                    FileName = "officeimo-word-fallback.png",
-                    ContentType = "image/png",
-                    Description = "Rendered first-page fallback for Word content without a native Google Docs representation.",
-                    Width = 612,
-                    Height = 792,
-                    IsInline = true,
-                },
-            });
-            batch.Add(new GoogleDocsInsertParagraphRequest { SectionIndex = Math.Max(0, batch.Plan.SectionCount - 1), ElementIndex = int.MaxValue, Paragraph = imageParagraph });
-            batch.Report.Add(TranslationSeverity.Warning, "RasterFallback", "Inserted a renderer-owned first-page PNG fallback for unsupported Word content.",
-                code: "DOCS.FALLBACK.RENDERED_FIRST_PAGE", action: TranslationAction.Rasterize);
+            int pageCount = document.GetEstimatedImagePageCount();
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+                OfficeImageExportResult rendered = document.ExportImage(
+                    OfficeImageExportFormat.Png,
+                    new WordImageExportOptions { IncludeDocumentContent = true, PageIndex = pageIndex });
+                var imageParagraph = new GoogleDocsParagraph { Text = $"[Rendered Word fallback page {pageIndex + 1} of {pageCount}]" };
+                imageParagraph.AddRun(new GoogleDocsParagraphRun {
+                    Text = string.Empty,
+                    InlineImage = new GoogleDocsInlineImage {
+                        Bytes = rendered.Bytes,
+                        FileName = $"officeimo-word-fallback-page-{pageIndex + 1}.png",
+                        ContentType = "image/png",
+                        Description = $"Rendered page {pageIndex + 1} of {pageCount} for Word content without a native Google Docs representation.",
+                        Width = rendered.Width,
+                        Height = rendered.Height,
+                        IsInline = true,
+                    },
+                });
+                batch.Add(new GoogleDocsInsertParagraphRequest { SectionIndex = targetSectionIndex, ElementIndex = fallbackElementIndex++, Paragraph = imageParagraph });
+            }
+            batch.Report.Add(TranslationSeverity.Warning, "RasterFallback", $"Inserted {pageCount} renderer-owned PNG fallback page(s) for unsupported Word content.",
+                code: "DOCS.FALLBACK.RENDERED_PAGES", action: TranslationAction.Rasterize, count: pageCount);
         }
 
         private static void AddFallbackName(ICollection<string> names, UnsupportedFeatureMode mode, int count, string name) {

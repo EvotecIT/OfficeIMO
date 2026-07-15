@@ -45,16 +45,17 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 GoogleSlidesApiPresentationResponse current = await GetPresentationAsync(transport, token.AccessToken, presentationId, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
                 bool ownsNewCopy = copiedTemplate || string.IsNullOrWhiteSpace(location.ExistingFileId);
                 bool overwritingExisting = !ownsNewCopy && effective.Replace.ConflictMode == GoogleSlidesRevisionConflictMode.OverwriteLatest;
+                bool classifyRevisionConflicts = !ownsNewCopy && effective.Replace.ConflictMode == GoogleSlidesRevisionConflictMode.RequireRevision;
                 string? revision = ResolveRevision(effective, current, ownsNewCopy, batch.Plan.Report);
                 IReadOnlyDictionary<string, string> imageUrls = await CreateImageLeasesAsync(drive, batch, leases, cancellationToken).ConfigureAwait(false);
                 List<object> requests = BuildRequests(batch, current, imageUrls);
-                revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, requests, revision, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
+                revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, requests, revision, classifyRevisionConflicts, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
 
                 if (batch.Slides.Any(slide => !string.IsNullOrWhiteSpace(slide.SpeakerNotes))) {
                     GoogleSlidesApiPresentationResponse withNotes = await GetPresentationAsync(transport, token.AccessToken, presentationId, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
                     revision = withNotes.RevisionId ?? revision;
                     List<object> noteRequests = BuildSpeakerNotesRequests(batch, withNotes);
-                    revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, noteRequests, revision, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
+                    revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, noteRequests, revision, classifyRevisionConflicts, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (overwritingExisting || string.IsNullOrWhiteSpace(revision)) {
@@ -77,27 +78,6 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     WebViewLink = metadata.WebViewLink ?? $"https://docs.google.com/presentation/d/{presentationId}/edit",
                     Location = location, RevisionId = revision, DriveVersion = metadata.Version, ModifiedTime = metadata.ModifiedTime, Report = batch.Plan.Report,
                 };
-            } catch (GoogleWorkspaceApiException ex) when (
-                effective.Replace.ConflictMode == GoogleSlidesRevisionConflictMode.RequireRevision
-                && !string.IsNullOrWhiteSpace(effective.Replace.ExpectedRevisionId)
-                && ex.ResponseStatusCode == System.Net.HttpStatusCode.BadRequest) {
-                string? latestRevision = await TryGetPresentationRevisionAsync(
-                    transport,
-                    token.AccessToken,
-                    presentationId,
-                    batch.Plan.Report,
-                    cancellationToken).ConfigureAwait(false);
-                if (!string.IsNullOrWhiteSpace(latestRevision)
-                    && !string.Equals(effective.Replace.ExpectedRevisionId, latestRevision, StringComparison.Ordinal)) {
-                    throw new GoogleWorkspaceConflictException(
-                        "Google presentation changed before the batch could be applied.",
-                        presentationId ?? "presentation",
-                        effective.Replace.ExpectedRevisionId,
-                        latestRevision,
-                        batch.Plan.Report);
-                }
-
-                throw;
             } finally {
                 foreach (GoogleDriveTemporaryContentLease lease in leases.AsEnumerable().Reverse()) await lease.CleanupAsync(CancellationToken.None).ConfigureAwait(false);
             }
@@ -201,7 +181,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             object properties = ElementProperties(slideId, element, scale, offsetX, offsetY);
             switch (element) {
                 case GoogleSlidesTextBox text:
-                    requests.Add(new { createShape = new { objectId = text.ObjectId, shapeType = "TEXT_BOX", elementProperties = properties } });
+                    requests.Add(new { createShape = new { objectId = text.ObjectId, shapeType = text.ShapeType, elementProperties = properties } });
                     if (!string.IsNullOrEmpty(text.Text)) requests.Add(new { insertText = new { objectId = text.ObjectId, text = text.Text } });
                     var style = new Dictionary<string, object?>();
                     if (text.Bold) style["bold"] = true; if (text.Italic) style["italic"] = true; if (text.Underline) style["underline"] = true;
@@ -284,14 +264,46 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return requests;
         }
 
-        private static async Task<string?> SendRequestsAsync(GoogleWorkspaceHttpTransport transport, string token, string id, IReadOnlyList<object> requests, string? revision, TranslationReport report, CancellationToken cancellationToken) {
+        private static async Task<string?> SendRequestsAsync(
+            GoogleWorkspaceHttpTransport transport,
+            string token,
+            string id,
+            IReadOnlyList<object> requests,
+            string? revision,
+            bool classifyRevisionConflicts,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
             for (int offset = 0; offset < requests.Count; offset += RequestsPerBatch) {
                 object[] chunk = requests.Skip(offset).Take(RequestsPerBatch).ToArray();
                 var payload = new Dictionary<string, object?> { ["requests"] = chunk };
                 if (!string.IsNullOrWhiteSpace(revision)) payload["writeControl"] = new { requiredRevisionId = revision };
-                GoogleSlidesApiBatchResponse response = await transport.SendJsonAsync<GoogleSlidesApiBatchResponse>(token, HttpMethod.Post,
-                    $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}:batchUpdate", payload, GoogleWorkspaceRequestSafety.NonIdempotent, "Google Slides API", report, cancellationToken).ConfigureAwait(false);
-                revision = response.WriteControl?.RequiredRevisionId ?? revision;
+                string? attemptedRevision = revision;
+                try {
+                    GoogleSlidesApiBatchResponse response = await transport.SendJsonAsync<GoogleSlidesApiBatchResponse>(token, HttpMethod.Post,
+                        $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}:batchUpdate", payload, GoogleWorkspaceRequestSafety.NonIdempotent, "Google Slides API", report, cancellationToken).ConfigureAwait(false);
+                    revision = response.WriteControl?.RequiredRevisionId ?? revision;
+                } catch (GoogleWorkspaceApiException ex) when (
+                    classifyRevisionConflicts
+                    && !string.IsNullOrWhiteSpace(attemptedRevision)
+                    && ex.ResponseStatusCode == System.Net.HttpStatusCode.BadRequest) {
+                    string? latestRevision = await TryGetPresentationRevisionAsync(
+                        transport,
+                        token,
+                        id,
+                        report,
+                        cancellationToken).ConfigureAwait(false);
+                    if (!string.IsNullOrWhiteSpace(latestRevision)
+                        && !string.Equals(attemptedRevision, latestRevision, StringComparison.Ordinal)) {
+                        throw new GoogleWorkspaceConflictException(
+                            "Google presentation changed before the batch could be applied.",
+                            id,
+                            attemptedRevision,
+                            latestRevision,
+                            report);
+                    }
+
+                    throw;
+                }
             }
             return revision;
         }

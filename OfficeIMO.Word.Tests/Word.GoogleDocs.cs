@@ -113,6 +113,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleDocsBatchCompiler_RasterizesEveryEstimatedPage() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsMultiPageFallback.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Page one");
+                document.AddPageBreak();
+                document.AddParagraph("Page two");
+                document.AddStructuredDocumentTag("Unsupported control");
+                var options = new GoogleDocsSaveOptions {
+                    InlineImageMode = GoogleDocsInlineImageMode.TemporaryPublicDriveLease,
+                };
+                options.UnsupportedFeatures.ContentControls = UnsupportedFeatureMode.Rasterize;
+
+                GoogleDocsBatch batch = document.BuildGoogleDocsBatch(options);
+
+                Assert.Equal(2, document.GetEstimatedImagePageCount());
+                GoogleDocsInlineImage[] fallbacks = batch.Requests
+                    .OfType<GoogleDocsInsertParagraphRequest>()
+                    .SelectMany(request => request.Paragraph.Runs)
+                    .Select(run => run.InlineImage)
+                    .Where(image => image?.FileName.StartsWith("officeimo-word-fallback-page-", StringComparison.Ordinal) == true)
+                    .Cast<GoogleDocsInlineImage>()
+                    .ToArray();
+                Assert.Equal(2, fallbacks.Length);
+                Assert.Equal("officeimo-word-fallback-page-1.png", fallbacks[0].FileName);
+                Assert.Equal("officeimo-word-fallback-page-2.png", fallbacks[1].FileName);
+                Assert.Contains("page 1 of 2", fallbacks[0].Description, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("page 2 of 2", fallbacks[1].Description, StringComparison.OrdinalIgnoreCase);
+                Assert.All(fallbacks, image => Assert.True(image.Bytes.Length > 0));
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.FALLBACK.RENDERED_PAGES" && notice.Count == 2);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleDocsApiPayloadBuilder_EmitsParagraphStyleAndTableRequests() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsPayload.docx");
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");

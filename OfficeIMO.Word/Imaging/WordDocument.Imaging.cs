@@ -24,6 +24,14 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Estimates how many pages the dependency-free image renderer will produce for this document.
+        /// </summary>
+        /// <remarks>
+        /// This follows OfficeIMO's renderer layout model and is not a substitute for Word's application-owned pagination.
+        /// </remarks>
+        public int GetEstimatedImagePageCount() => WordDocumentImageRenderer.EstimatePageCount(this);
+
+        /// <summary>
         /// Renders the requested document page to dependency-free PNG bytes.
         /// </summary>
         public byte[] ToPng(WordImageExportOptions? options = null) =>

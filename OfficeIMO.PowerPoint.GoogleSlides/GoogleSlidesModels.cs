@@ -28,6 +28,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     public sealed class GoogleSlidesTextBox : GoogleSlidesElement {
         public GoogleSlidesTextBox(string id, double left, double top, double width, double height, string text) : base(id, left, top, width, height) { Text = text; }
         public string Text { get; }
+        public string ShapeType { get; internal set; } = "TEXT_BOX";
         public bool Bold { get; internal set; }
         public bool Italic { get; internal set; }
         public bool Underline { get; internal set; }

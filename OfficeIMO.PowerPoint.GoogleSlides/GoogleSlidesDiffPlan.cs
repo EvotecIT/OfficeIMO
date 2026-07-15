@@ -38,6 +38,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 List<GoogleSlidesDiffItem> items = Compare(Hashes(source), Hashes(imported.Presentation), checkpoint);
                 foreach (TranslationNotice notice in imported.Report.Notices.Where(notice => notice.Severity >= TranslationSeverity.Warning)) items.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
                 if (checkpoint?.RevisionId != null && imported.Source.RevisionId != null && !string.Equals(checkpoint.RevisionId, imported.Source.RevisionId, StringComparison.Ordinal)) items.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.RemoteChange, "presentation/revision", "The Google presentation revision changed after the checkpoint."));
+                if (checkpoint?.DriveVersion != null && imported.Source.DriveVersion != null && checkpoint.DriveVersion != imported.Source.DriveVersion) items.Add(new GoogleSlidesDiffItem(GoogleSlidesDiffKind.RemoteChange, "presentation/driveVersion", "The Google presentation Drive version changed after the checkpoint."));
                 return new GoogleSlidesDiffPlan(imported.Source, items, imported.Report);
             }
         }
@@ -61,12 +62,17 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash($"{slide.Hidden}|{background.Kind}|{background.Color}");
                 foreach (PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
                     string text = shape is PowerPointTextBox box ? box.Text : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany(row => row.Cells).Select(cell => cell.Text)) : string.Empty;
-                    result[$"{root}/element/{shape.DrawingOrder}"] = Hash($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{text}");
+                    string geometry = shape is PowerPointTextBox textBox ? textBox.ShapeType?.ToString() ?? string.Empty : string.Empty;
+                    string picture = shape is PowerPointPicture image
+                        ? $"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}"
+                        : string.Empty;
+                    result[$"{root}/element/{shape.DrawingOrder}"] = Hash($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{geometry}|{text}|{picture}");
                 }
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);
             }
             return result;
         }
         private static string Hash(string value) { using SHA256 sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(value ?? string.Empty))).Replace("-", string.Empty); }
+        private static string Hash(byte[] value) { using SHA256 sha = SHA256.Create(); return BitConverter.ToString(sha.ComputeHash(value ?? Array.Empty<byte>())).Replace("-", string.Empty); }
     }
 }

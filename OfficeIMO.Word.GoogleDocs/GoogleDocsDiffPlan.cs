@@ -74,6 +74,10 @@ namespace OfficeIMO.Word.GoogleDocs {
                     && !string.Equals(checkpoint.RevisionId, imported.Source.RevisionId, StringComparison.Ordinal)) {
                     items.Add(new GoogleDocsDiffItem(GoogleDocsDiffKind.RemoteChange, "document/revision", "The Google document revision changed after the checkpoint."));
                 }
+                if (checkpoint?.DriveVersion != null && imported.Source.DriveVersion != null
+                    && checkpoint.DriveVersion != imported.Source.DriveVersion) {
+                    items.Add(new GoogleDocsDiffItem(GoogleDocsDiffKind.RemoteChange, "document/driveVersion", "The Google document Drive version changed after the checkpoint."));
+                }
                 return new GoogleDocsDiffPlan(imported.Source, items, imported.Report);
             }
         }

@@ -111,7 +111,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             foreach (ExcelWorksheetSnapshot sheet in snapshot.Worksheets) {
                 result[$"sheet/{sheet.Name}"] = Hash($"{sheet.Index}|{sheet.Hidden}|{sheet.RightToLeft}|{sheet.ShowGridlines}|{sheet.FrozenRowCount}|{sheet.FrozenColumnCount}");
                 foreach (ExcelCellSnapshot cell in sheet.Cells) {
-                    result[$"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}"] = Hash($"{cell.Value}|{cell.Formula}|{cell.Style?.NumberFormatCode}|{cell.Style?.FontColorArgb}|{cell.Style?.FillColorArgb}|{cell.Comment?.Text}");
+                    result[$"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}"] = Hash($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}");
                 }
                 foreach (ExcelMergedRangeSnapshot merge in sheet.MergedRanges) result[$"sheet/{sheet.Name}/merge/{merge.A1Range}"] = Hash(merge.A1Range);
                 foreach (ExcelTableSnapshot table in sheet.Tables) result[$"sheet/{sheet.Name}/table/{table.Name}"] = Hash($"{table.A1Range}|{table.StyleName}|{table.TotalsRowShown}");
@@ -124,6 +124,25 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
             return result;
         }
+
+        private static string StyleFingerprint(ExcelCellStyleSnapshot? style) {
+            if (style == null) return string.Empty;
+            return $"{style.NumberFormatId}|{style.NumberFormatCode}|{style.IsDateLike}|{style.Bold}|{style.Italic}|{style.Underline}|{style.Strikethrough}|{style.FontName}|{style.FontSize}|{style.FontColorArgb}|{style.FillColorArgb}|{BorderFingerprint(style.Border)}|{style.HorizontalAlignment}|{style.VerticalAlignment}|{style.WrapText}|{style.TextRotation}|{style.TextIndent}";
+        }
+
+        private static string BorderFingerprint(ExcelCellBorderSnapshot? border) {
+            if (border == null) return string.Empty;
+            return $"{BorderSideFingerprint(border.Left)}|{BorderSideFingerprint(border.Right)}|{BorderSideFingerprint(border.Top)}|{BorderSideFingerprint(border.Bottom)}";
+        }
+
+        private static string BorderSideFingerprint(ExcelBorderSideSnapshot? side) =>
+            side == null ? string.Empty : $"{side.Style}|{side.ColorArgb}";
+
+        private static string HyperlinkFingerprint(ExcelHyperlinkSnapshot? hyperlink) =>
+            hyperlink == null ? string.Empty : $"{hyperlink.IsExternal}|{hyperlink.Target}";
+
+        private static string RichTextFingerprint(IReadOnlyList<ExcelRichTextRun> runs) => string.Join("~", runs.Select(run =>
+            $"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strikethrough}|{run.FontName}|{run.FontSize}|{run.FontColor}"));
 
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();
