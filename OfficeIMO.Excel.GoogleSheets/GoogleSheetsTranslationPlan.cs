@@ -18,6 +18,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public int HeaderFooterImageSheetCount { get; internal set; }
         public int NamedRangeCount { get; internal set; }
         public bool HasFormulaTranslationRisk { get; internal set; }
+        public int FormulaCount { get; internal set; }
+        public int UnsupportedFormulaCount { get; internal set; }
         public bool HasPrintLayoutRisk { get; internal set; }
     }
 }

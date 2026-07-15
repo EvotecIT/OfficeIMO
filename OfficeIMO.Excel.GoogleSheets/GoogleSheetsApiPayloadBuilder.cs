@@ -17,6 +17,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     Title = batch.Title,
                 }
             };
+            ApplySpreadsheetProperties(payload.Properties, batch.Requests.OfType<GoogleSheetsUpdateSpreadsheetPropertiesRequest>().LastOrDefault());
 
             foreach (var sheet in batch.Requests.OfType<GoogleSheetsAddSheetRequest>()) {
                 if (!sheetIds.TryGetValue(sheet.SheetName, out var sheetId)) {
@@ -34,6 +35,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         GridProperties = new GoogleSheetsApiGridPropertiesPayload {
                             FrozenRowCount = sheet.FrozenRowCount > 0 ? sheet.FrozenRowCount : (int?)null,
                             FrozenColumnCount = sheet.FrozenColumnCount > 0 ? sheet.FrozenColumnCount : (int?)null,
+                            HideGridlines = sheet.HideGridlines,
                         }
                     }
                 });
@@ -55,7 +57,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         internal static GoogleSheetsApiBatchUpdatePayload BuildBatchUpdatePayload(
             GoogleSheetsBatch batch,
             IReadOnlyDictionary<string, int> sheetIds,
-            string? spreadsheetId) {
+            string? spreadsheetId,
+            bool includeCellValues = true) {
             if (batch == null) throw new ArgumentNullException(nameof(batch));
             if (sheetIds == null) throw new ArgumentNullException(nameof(sheetIds));
             var payload = new GoogleSheetsApiBatchUpdatePayload();
@@ -63,6 +66,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
             foreach (var request in batch.Requests) {
                 switch (request) {
                     case GoogleSheetsAddSheetRequest:
+                        break;
+                    case GoogleSheetsUpdateSpreadsheetPropertiesRequest:
+                        // Create and replace payloads apply these properties atomically with the title.
                         break;
                     case GoogleSheetsUpdateDimensionPropertiesRequest updateDimension:
                         if (!sheetIds.TryGetValue(updateDimension.SheetName, out var dimensionSheetId)) {
@@ -90,7 +96,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                             continue;
                         }
 
-                        AppendUpdateCellsRequests(batch, payload, updateSheetId, updateCells, sheetIds, spreadsheetId);
+                        AppendUpdateCellsRequests(batch, payload, updateSheetId, updateCells, sheetIds, spreadsheetId, includeCellValues);
                         break;
                     case GoogleSheetsMergeCellsRequest merge:
                         if (!sheetIds.TryGetValue(merge.SheetName, out var mergeSheetId)) {
@@ -138,6 +144,60 @@ namespace OfficeIMO.Excel.GoogleSheets {
                                     },
                                     Description = protectedRange.Description,
                                     WarningOnly = protectedRange.WarningOnly,
+                                    Editors = protectedRange.EditorEmailAddresses.Count > 0 || protectedRange.DomainUsersCanEdit
+                                        ? new GoogleSheetsApiEditorsPayload {
+                                            Users = protectedRange.EditorEmailAddresses.Count > 0 ? protectedRange.EditorEmailAddresses.ToList() : null,
+                                            DomainUsersCanEdit = protectedRange.DomainUsersCanEdit,
+                                        }
+                                        : null,
+                                    UnprotectedRanges = BuildUnprotectedRanges(sheetIds, protectedRange),
+                                }
+                            }
+                        });
+                        break;
+                    case GoogleSheetsAddDimensionGroupRequest group:
+                        if (!sheetIds.TryGetValue(group.SheetName, out var groupSheetId)) continue;
+                        payload.Requests.Add(new GoogleSheetsApiRequestPayload {
+                            AddDimensionGroup = new GoogleSheetsApiAddDimensionGroupRequestPayload {
+                                Range = new GoogleSheetsApiDimensionRangePayload {
+                                    SheetId = groupSheetId,
+                                    Dimension = group.DimensionKind == GoogleSheetsDimensionKind.Columns ? "COLUMNS" : "ROWS",
+                                    StartIndex = group.StartIndex,
+                                    EndIndex = group.EndIndexExclusive,
+                                }
+                            }
+                        });
+                        break;
+                    case GoogleSheetsAddConditionalFormatRuleRequest conditional:
+                        if (!TryBuildGridRange(sheetIds, conditional.SheetName, conditional.A1Range, out var conditionalRange)) continue;
+                        var conditionalPayload = new GoogleSheetsApiConditionalFormatRulePayload {
+                            BooleanRule = new GoogleSheetsApiBooleanRulePayload {
+                                Condition = new GoogleSheetsApiBooleanConditionPayload {
+                                    Type = conditional.ConditionType,
+                                    Values = conditional.Values.Count == 0 ? null : conditional.Values.Select(value => new GoogleSheetsApiConditionValuePayload { UserEnteredValue = value }).ToList(),
+                                },
+                                Format = BuildCellFormat(conditional.Format) ?? new GoogleSheetsApiCellFormatPayload(),
+                            }
+                        };
+                        conditionalPayload.Ranges.Add(conditionalRange);
+                        payload.Requests.Add(new GoogleSheetsApiRequestPayload {
+                            AddConditionalFormatRule = new GoogleSheetsApiAddConditionalFormatRuleRequestPayload { Rule = conditionalPayload, Index = conditional.Index }
+                        });
+                        break;
+                    case GoogleSheetsAddChartRequest chart:
+                        if (!TryBuildChartPayload(sheetIds, chart, out var chartPayload)) continue;
+                        payload.Requests.Add(new GoogleSheetsApiRequestPayload { AddChart = chartPayload });
+                        break;
+                    case GoogleSheetsAddPivotTableRequest pivot:
+                        if (!TryBuildPivotTablePayload(sheetIds, pivot, out var pivotUpdate)) continue;
+                        payload.Requests.Add(pivotUpdate);
+                        break;
+                    case GoogleSheetsAddDeveloperMetadataRequest metadata:
+                        payload.Requests.Add(new GoogleSheetsApiRequestPayload {
+                            AddDeveloperMetadata = new GoogleSheetsApiAddDeveloperMetadataRequestPayload {
+                                DeveloperMetadata = new GoogleSheetsApiDeveloperMetadataPayload {
+                                    MetadataKey = metadata.Key,
+                                    MetadataValue = metadata.Value,
                                 }
                             }
                         });
@@ -209,6 +269,36 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return payload;
         }
 
+        internal static GoogleSheetsApiBatchUpdateValuesPayload BuildValuesBatchUpdatePayload(
+            GoogleSheetsBatch batch,
+            IReadOnlyDictionary<string, int> sheetIds,
+            string? spreadsheetId) {
+            if (batch == null) throw new ArgumentNullException(nameof(batch));
+            if (sheetIds == null) throw new ArgumentNullException(nameof(sheetIds));
+            var payload = new GoogleSheetsApiBatchUpdateValuesPayload();
+            foreach (GoogleSheetsUpdateCellsRequest update in batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>()) {
+                if (!sheetIds.ContainsKey(update.SheetName)) continue;
+                foreach (IGrouping<int, GoogleSheetsCellData> row in update.Cells
+                    .OrderBy(cell => cell.RowIndex)
+                    .ThenBy(cell => cell.ColumnIndex)
+                    .GroupBy(cell => cell.RowIndex)) {
+                    var segment = new List<GoogleSheetsCellData>();
+                    int expected = -1;
+                    foreach (GoogleSheetsCellData cell in row) {
+                        if (segment.Count == 0 || cell.ColumnIndex == expected) {
+                            segment.Add(cell);
+                        } else {
+                            AddValueRange(payload, batch, update.SheetName, row.Key, segment, sheetIds, spreadsheetId);
+                            segment = new List<GoogleSheetsCellData> { cell };
+                        }
+                        expected = cell.ColumnIndex + 1;
+                    }
+                    if (segment.Count > 0) AddValueRange(payload, batch, update.SheetName, row.Key, segment, sheetIds, spreadsheetId);
+                }
+            }
+            return payload;
+        }
+
         internal static IReadOnlyDictionary<string, int> BuildSheetIdMap(
             GoogleSheetsBatch batch,
             IEnumerable<int>? reservedSheetIds = null) {
@@ -240,12 +330,15 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (desiredSheetIds == null) throw new ArgumentNullException(nameof(desiredSheetIds));
 
             var payload = new GoogleSheetsApiBatchUpdatePayload();
+            var replaceProperties = new GoogleSheetsApiSpreadsheetPropertiesPayload {
+                Title = batch.Title,
+            };
+            GoogleSheetsUpdateSpreadsheetPropertiesRequest? requestedProperties = batch.Requests.OfType<GoogleSheetsUpdateSpreadsheetPropertiesRequest>().LastOrDefault();
+            ApplySpreadsheetProperties(replaceProperties, requestedProperties);
             payload.Requests.Add(new GoogleSheetsApiRequestPayload {
                 UpdateSpreadsheetProperties = new GoogleSheetsApiUpdateSpreadsheetPropertiesRequestPayload {
-                    Properties = new GoogleSheetsApiSpreadsheetPropertiesPayload {
-                        Title = batch.Title,
-                    },
-                    Fields = "title",
+                    Properties = replaceProperties,
+                    Fields = "title," + BuildSpreadsheetPropertyFields(requestedProperties),
                 }
             });
 
@@ -265,7 +358,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                             TabColor = BuildColor(sheet.TabColorArgb),
                             GridProperties = new GoogleSheetsApiGridPropertiesPayload {
                                 FrozenRowCount = sheet.FrozenRowCount > 0 ? sheet.FrozenRowCount : (int?)null,
-                                FrozenColumnCount = sheet.FrozenColumnCount > 0 ? sheet.FrozenColumnCount : (int?)null,
+                                    FrozenColumnCount = sheet.FrozenColumnCount > 0 ? sheet.FrozenColumnCount : (int?)null,
+                                    HideGridlines = sheet.HideGridlines,
                             }
                         }
                     }
@@ -289,7 +383,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             int sheetId,
             GoogleSheetsUpdateCellsRequest request,
             IReadOnlyDictionary<string, int> sheetIds,
-            string? spreadsheetId) {
+            string? spreadsheetId,
+            bool includeCellValues) {
             var groupedRows = request.Cells
                 .OrderBy(cell => cell.RowIndex)
                 .ThenBy(cell => cell.ColumnIndex)
@@ -312,13 +407,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         continue;
                     }
 
-                    AddCellSegment(batch, payload, sheetId, rowGroup.Key, currentSegment, request.SheetName, sheetIds, spreadsheetId);
+                    AddCellSegment(batch, payload, sheetId, rowGroup.Key, currentSegment, request.SheetName, sheetIds, spreadsheetId, includeCellValues);
                     currentSegment = new List<GoogleSheetsCellData> { cell };
                     expectedColumn = cell.ColumnIndex + 1;
                 }
 
                 if (currentSegment.Count > 0) {
-                    AddCellSegment(batch, payload, sheetId, rowGroup.Key, currentSegment, request.SheetName, sheetIds, spreadsheetId);
+                    AddCellSegment(batch, payload, sheetId, rowGroup.Key, currentSegment, request.SheetName, sheetIds, spreadsheetId, includeCellValues);
                 }
             }
         }
@@ -331,18 +426,23 @@ namespace OfficeIMO.Excel.GoogleSheets {
             IReadOnlyList<GoogleSheetsCellData> cells,
             string sourceSheetName,
             IReadOnlyDictionary<string, int> sheetIds,
-            string? spreadsheetId) {
+            string? spreadsheetId,
+            bool includeCellValues) {
             var rowData = new GoogleSheetsApiRowDataPayload();
             bool includeFormat = false;
             bool includeNote = false;
             bool includeValidation = false;
 
             foreach (var cell in cells) {
-                var apiCell = BuildCellData(batch, cell, sourceSheetName, sheetIds, spreadsheetId, out var hasFormat, out var hasNote, out var hasValidation);
+                var apiCell = BuildCellData(batch, cell, sourceSheetName, sheetIds, spreadsheetId, includeCellValues, out var hasFormat, out var hasNote, out var hasValidation);
                 rowData.Values.Add(apiCell);
                 includeFormat |= hasFormat;
                 includeNote |= hasNote;
                 includeValidation |= hasValidation;
+            }
+
+            if (!includeCellValues && !includeFormat && !includeNote && !includeValidation) {
+                return;
             }
 
             payload.Requests.Add(new GoogleSheetsApiRequestPayload {
@@ -353,9 +453,48 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         ColumnIndex = cells[0].ColumnIndex,
                     },
                     Rows = new List<GoogleSheetsApiRowDataPayload> { rowData },
-                    Fields = BuildUpdateCellsFields(includeFormat, includeNote, includeValidation),
+                    Fields = BuildUpdateCellsFields(includeCellValues, includeFormat, includeNote, includeValidation),
                 }
             });
+        }
+
+        private static void AddValueRange(
+            GoogleSheetsApiBatchUpdateValuesPayload payload,
+            GoogleSheetsBatch batch,
+            string sheetName,
+            int rowIndex,
+            IReadOnlyList<GoogleSheetsCellData> cells,
+            IReadOnlyDictionary<string, int> sheetIds,
+            string? spreadsheetId) {
+            var range = new GoogleSheetsApiValueRangePayload {
+                Range = $"'{sheetName.Replace("'", "''")}'!{ToColumnName(cells[0].ColumnIndex + 1)}{rowIndex + 1}:{ToColumnName(cells[cells.Count - 1].ColumnIndex + 1)}{rowIndex + 1}",
+            };
+            var values = new List<object?>();
+            foreach (GoogleSheetsCellData cell in cells) {
+                GoogleSheetsApiExtendedValuePayload? value = BuildExtendedValue(cell, batch, sheetName, sheetIds, spreadsheetId, out _);
+                values.Add(ToValueInput(value));
+            }
+            range.Values.Add(values);
+            payload.Data.Add(range);
+        }
+
+        private static object? ToValueInput(GoogleSheetsApiExtendedValuePayload? value) {
+            if (value == null) return null;
+            if (value.FormulaValue != null) return value.FormulaValue;
+            if (value.StringValue != null) return value.StringValue;
+            if (value.NumberValue.HasValue) return value.NumberValue.Value;
+            if (value.BoolValue.HasValue) return value.BoolValue.Value;
+            return null;
+        }
+
+        private static string ToColumnName(int column) {
+            var characters = new Stack<char>();
+            while (column > 0) {
+                column--;
+                characters.Push((char)('A' + column % 26));
+                column /= 26;
+            }
+            return new string(characters.ToArray());
         }
 
     }

@@ -1412,6 +1412,10 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spread123/values:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
                     return new HttpResponseMessage(HttpStatusCode.NotFound) {
                         Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
                     };
@@ -1429,7 +1433,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("spread123", result.SpreadsheetId);
                 Assert.Equal("https://docs.google.com/spreadsheets/d/spread123/edit", result.WebViewLink);
-                Assert.Equal(2, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, r => Assert.Equal("Bearer fake-access-token", r.Authorization));
 
                 var createRequest = Assert.Single(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets");
@@ -1439,11 +1443,12 @@ namespace OfficeIMO.Tests {
                 }
 
                 var updateRequest = Assert.Single(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spread123:batchUpdate");
+                var valuesRequest = Assert.Single(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spread123/values:batchUpdate");
                 Assert.Equal("POST", updateRequest.Method);
-                Assert.Contains("HYPERLINK", updateRequest.Body!);
-                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=2", updateRequest.Body!);
+                Assert.Contains("HYPERLINK", valuesRequest.Body!);
+                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=2", valuesRequest.Body!);
                 Assert.Contains("OfficeIMO internal link target: Target!B5", updateRequest.Body!);
-                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=1", updateRequest.Body!);
+                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=1", valuesRequest.Body!);
                 Assert.Contains("Tester (TT): Jump note", updateRequest.Body!);
                 Assert.Contains("OfficeIMO internal link target: LocalData -\\u003E Summary!B2:B3", updateRequest.Body!);
             } finally {
@@ -1586,6 +1591,10 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spreadMove/values:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
                     if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/folder123?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"folder123\",\"name\":\"Requested Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}");
                     }
@@ -1648,6 +1657,10 @@ namespace OfficeIMO.Tests {
                     }
 
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spreadRetryDrive:batchUpdate") {
+                        return Task.FromResult(CreateJsonResponse("{}"));
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spreadRetryDrive/values:batchUpdate") {
                         return Task.FromResult(CreateJsonResponse("{}"));
                     }
 
@@ -1724,6 +1737,10 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spreadDefaultFolder/values:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
                     if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/sessionFolder123?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"sessionFolder123\",\"name\":\"Session Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}");
                     }
@@ -1784,7 +1801,15 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"spreadsheetId\":\"existing123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":7}},{\"properties\":{\"sheetId\":8}}]}");
                     }
 
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return CreateJsonResponse("{\"id\":\"existing123\",\"name\":\"Old Title\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":5,\"capabilities\":{\"canEdit\":true}}");
+                    }
+
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/existing123:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/existing123/values:batchUpdate") {
                         return CreateJsonResponse("{}");
                     }
 
@@ -1803,19 +1828,22 @@ namespace OfficeIMO.Tests {
                     Title = "Replacement Export",
                     Location = new GoogleDriveFileLocation {
                         ExistingFileId = "existing123",
-                    }
+                    },
+                    Replace = new GoogleSheetsReplaceOptions { ExpectedDriveVersion = 5 },
                 });
 
                 Assert.Equal("existing123", result.SpreadsheetId);
                 Assert.Equal("https://docs.google.com/spreadsheets/d/existing123/edit", result.WebViewLink);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(5, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
-                Assert.Equal("POST", recordedRequests[1].Method);
+                Assert.Equal("GET", recordedRequests[1].Method);
                 Assert.Equal("POST", recordedRequests[2].Method);
+                Assert.Equal("POST", recordedRequests[3].Method);
+                Assert.Equal("POST", recordedRequests[4].Method);
                 Assert.DoesNotContain(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets");
                 Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingSpreadsheet");
 
-                using (var resetJson = JsonDocument.Parse(recordedRequests[1].Body!)) {
+                using (var resetJson = JsonDocument.Parse(recordedRequests[2].Body!)) {
                     var requests = resetJson.RootElement.GetProperty("requests");
                     Assert.True(requests.GetArrayLength() >= 3);
                     var requestKinds = requests.EnumerateArray()
@@ -1850,6 +1878,10 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"spreadsheetId\":\"existingRetry123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existingRetry123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":7}}]}");
                     }
 
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return CreateJsonResponse("{\"id\":\"existingRetry123\",\"name\":\"Old Title\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":9,\"capabilities\":{\"canEdit\":true}}");
+                    }
+
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/existingRetry123:batchUpdate") {
                         if (body != null && body.Contains("\"deleteSheet\"", StringComparison.Ordinal)) {
                             replaceAttempts++;
@@ -1880,7 +1912,8 @@ namespace OfficeIMO.Tests {
                         Title = "Retry Replacement Export",
                         Location = new GoogleDriveFileLocation {
                             ExistingFileId = "existingRetry123",
-                        }
+                        },
+                        Replace = new GoogleSheetsReplaceOptions { ExpectedDriveVersion = 9 },
                     }));
 
                 Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);

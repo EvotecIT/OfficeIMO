@@ -139,10 +139,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return true;
         }
 
-        private static string BuildUpdateCellsFields(bool includeFormat, bool includeNote, bool includeValidation) {
-            var fields = new List<string> { "userEnteredValue" };
+        private static string BuildUpdateCellsFields(bool includeValue, bool includeFormat, bool includeNote, bool includeValidation) {
+            var fields = new List<string>();
+            if (includeValue) {
+                fields.Add("userEnteredValue");
+            }
             if (includeFormat) {
                 fields.Add("userEnteredFormat");
+                fields.Add("textFormatRuns");
             }
             if (includeValidation) {
                 fields.Add("dataValidationRule");

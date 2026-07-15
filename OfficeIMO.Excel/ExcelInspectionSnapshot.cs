@@ -432,6 +432,9 @@ namespace OfficeIMO.Excel {
         /// Preserve-only threaded comment metadata attached to the cell, when present.
         /// </summary>
         public ExcelThreadedCommentSnapshot? ThreadedComment { get; internal set; }
+
+        /// <summary>Rich inline text runs attached to the cell, when present.</summary>
+        public IReadOnlyList<ExcelRichTextRun> RichTextRuns { get; internal set; } = Array.Empty<ExcelRichTextRun>();
     }
 
     /// <summary>
@@ -881,6 +884,11 @@ namespace OfficeIMO.Excel {
         public bool Underline { get; internal set; }
 
         /// <summary>
+        /// Whether the font uses strikethrough.
+        /// </summary>
+        public bool Strikethrough { get; internal set; }
+
+        /// <summary>
         /// Resolved font family name, when available.
         /// </summary>
         public string? FontName { get; internal set; }
@@ -963,6 +971,7 @@ namespace OfficeIMO.Excel {
             Bold ||
             Italic ||
             Underline ||
+            Strikethrough ||
             FontColorArgb != null ||
             FillColorArgb != null ||
             FillPatternType != null ||

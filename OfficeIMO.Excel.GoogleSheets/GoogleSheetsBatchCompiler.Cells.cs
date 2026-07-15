@@ -6,23 +6,20 @@ namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private static GoogleSheetsCellValue BuildCellValue(
             ExcelCellSnapshot cell,
-            TranslationReport report,
-            ref bool formulaNoticeAdded) {
+            GoogleSheetsFormulaOptions formulaOptions) {
             if (!string.IsNullOrWhiteSpace(cell.Formula)) {
-                if (!formulaNoticeAdded) {
-                    report.Add(
-                        TranslationSeverity.Warning,
-                        "FormulaExecution",
-                        "Formula cells are sent using their Excel formula text, but function-by-function Google Sheets compatibility is not yet verified.",
-                        code: "SHEETS.FORMULA.COMPATIBILITY_UNVERIFIED",
-                        action: TranslationAction.Preserve);
-                    formulaNoticeAdded = true;
+                GoogleSheetsFormulaTranslation translation = GoogleSheetsFormulaCatalog.Translate(cell.Formula!, formulaOptions);
+                if (!translation.IsSupported
+                    && formulaOptions.UnsupportedFormulaMode == GoogleSheetsUnsupportedFormulaMode.UseCachedValue) {
+                    return BuildTypedValue(cell.Value);
                 }
-
-                return GoogleSheetsCellValue.Formula(NormalizeFormula(cell.Formula!));
+                return GoogleSheetsCellValue.Formula(translation.Formula);
             }
 
-            var typedValue = cell.Value;
+            return BuildTypedValue(cell.Value);
+        }
+
+        private static GoogleSheetsCellValue BuildTypedValue(object? typedValue) {
             if (typedValue == null) {
                 return GoogleSheetsCellValue.Blank();
             }
@@ -46,14 +43,6 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             return GoogleSheetsCellValue.String(Convert.ToString(typedValue, System.Globalization.CultureInfo.InvariantCulture));
-        }
-
-        private static string NormalizeFormula(string formulaText) {
-            if (string.IsNullOrWhiteSpace(formulaText)) {
-                return "=";
-            }
-
-            return formulaText[0] == '=' ? formulaText : "=" + formulaText;
         }
 
         private static string? GetNumberFormatHint(object? typedValue, ExcelCellStyleSnapshot? style) {
@@ -81,12 +70,17 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 Bold = style.Bold,
                 Italic = style.Italic,
                 Underline = style.Underline,
+                Strikethrough = style.Strikethrough,
+                FontName = style.FontName,
+                FontSize = style.FontSize,
                 FontColorArgb = style.FontColorArgb,
                 FillColorArgb = style.FillColorArgb,
                 Borders = BuildBorders(style.Border),
                 HorizontalAlignment = style.HorizontalAlignment,
                 VerticalAlignment = style.VerticalAlignment,
                 WrapText = style.WrapText,
+                TextRotation = style.TextRotation,
+                TextIndent = style.TextIndent,
             };
         }
 
@@ -147,6 +141,28 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 Author = string.IsNullOrWhiteSpace(comment.Author) ? null : comment.Author,
                 Text = comment.Text,
             };
+        }
+
+        private static IReadOnlyList<GoogleSheetsTextFormatRun> BuildTextFormatRuns(IReadOnlyList<ExcelRichTextRun> runs) {
+            if (runs == null || runs.Count == 0) return Array.Empty<GoogleSheetsTextFormatRun>();
+            var result = new List<GoogleSheetsTextFormatRun>(runs.Count);
+            int startIndex = 0;
+            foreach (ExcelRichTextRun run in runs) {
+                result.Add(new GoogleSheetsTextFormatRun {
+                    StartIndex = startIndex,
+                    Format = new GoogleSheetsCellStyle {
+                        Bold = run.Bold,
+                        Italic = run.Italic,
+                        Underline = run.Underline,
+                        Strikethrough = run.Strikethrough,
+                        FontName = run.FontName,
+                        FontSize = run.FontSize,
+                        FontColorArgb = run.FontColor,
+                    },
+                });
+                startIndex += (run.Text ?? string.Empty).Length;
+            }
+            return result;
         }
     }
 }

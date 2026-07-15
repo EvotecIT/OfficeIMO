@@ -17,8 +17,17 @@ namespace OfficeIMO.Excel.GoogleSheets {
             var title = ResolveTitle(document, workbookSnapshot, options);
             var batch = new GoogleSheetsBatch(title, plan, report);
 
+            batch.Add(new GoogleSheetsUpdateSpreadsheetPropertiesRequest {
+                Locale = options.Spreadsheet.Locale,
+                TimeZone = options.Spreadsheet.TimeZone,
+                RecalculationInterval = options.Spreadsheet.RecalculationInterval,
+            });
+            if (options.Identity.WriteDeveloperMetadata) {
+                batch.Add(new GoogleSheetsAddDeveloperMetadataRequest { Key = options.Identity.SourceKey, Value = options.Identity.SourceValue });
+                batch.Add(new GoogleSheetsAddDeveloperMetadataRequest { Key = options.Identity.SchemaKey, Value = options.Identity.SchemaValue });
+            }
+
             bool styleNoticeAdded = false;
-            bool formulaNoticeAdded = false;
             bool builtInNameNoticeAdded = false;
             bool tableStyleNoticeAdded = false;
             bool multipleFilterNoticeAdded = false;
@@ -37,6 +46,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     TabColorArgb = worksheet.TabColorArgb,
                     FrozenRowCount = worksheet.FrozenRowCount,
                     FrozenColumnCount = worksheet.FrozenColumnCount,
+                    HideGridlines = !worksheet.ShowGridlines,
                 });
 
                 if (worksheet.Protection != null) {
@@ -59,7 +69,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Add(new GoogleSheetsAddProtectedRangeRequest {
                         SheetName = worksheet.Name,
                         Description = BuildProtectionDescription(worksheet.Name, worksheet.Protection),
-                        WarningOnly = false,
+                        WarningOnly = options.Protection.WarningOnly,
+                        DomainUsersCanEdit = options.Protection.DomainUsersCanEdit,
+                        EditorEmailAddresses = options.Protection.EditorEmailAddresses.ToArray(),
+                        UnprotectedA1Ranges = options.Protection.UnprotectedRangesBySheet.TryGetValue(worksheet.Name, out var unprotectedRanges)
+                            ? unprotectedRanges.ToArray()
+                            : Array.Empty<string>(),
                     });
                 }
 
@@ -71,6 +86,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         EndIndexExclusive = column.EndIndex,
                         PixelSize = column.Width.HasValue ? ConvertExcelColumnWidthToPixels(column.Width.Value) : null,
                         Hidden = column.Hidden,
+                        OutlineLevel = column.OutlineLevel,
                     });
                 }
 
@@ -82,8 +98,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         EndIndexExclusive = row.Index,
                         PixelSize = row.Height.HasValue ? ConvertPointsToPixels(row.Height.Value) : null,
                         Hidden = row.Hidden,
+                        OutlineLevel = row.OutlineLevel,
                     });
                 }
+
+                AppendDimensionGroups(batch, worksheet);
 
                 foreach (var table in worksheet.Tables) {
                     if (!tableStyleNoticeAdded && !string.IsNullOrWhiteSpace(table.StyleName)) {
@@ -140,7 +159,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         styleNoticeAdded = true;
                     }
 
-                    var cellValue = BuildCellValue(cell, report, ref formulaNoticeAdded);
+                    var cellValue = BuildCellValue(cell, options.Formulas);
                     emittedCellKeys.Add(CreateCellKey(cell.Row, cell.Column));
                     updateCells.AddCell(new GoogleSheetsCellData {
                         RowIndex = cell.Row - 1,
@@ -151,6 +170,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         DataValidationRule = BuildCellValidationRule(workbookSnapshot, worksheet, cell.Row, cell.Column, report, ref cellValidationNoticeAdded),
                         Hyperlink = BuildHyperlink(cell.Hyperlink),
                         Comment = BuildComment(cell.Comment),
+                        TextFormatRuns = BuildTextFormatRuns(cell.RichTextRuns),
                     });
                 }
 
@@ -169,6 +189,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         StartColumnIndex = mergedRange.StartColumn - 1,
                         EndColumnIndexExclusive = mergedRange.EndColumn,
                     });
+                }
+
+                ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, worksheet.Name, StringComparison.OrdinalIgnoreCase));
+                if (sourceSheet != null) {
+                    AppendConditionalFormatting(batch, sourceSheet, report);
+                    AppendCharts(batch, sourceSheet, worksheet, report, options.UnsupportedFeatures.Charts);
+                    AppendPivotTables(batch, sourceSheet, workbookSnapshot, report, options.UnsupportedFeatures.PivotTables);
                 }
             }
 

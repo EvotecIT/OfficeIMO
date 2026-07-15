@@ -8,18 +8,20 @@ namespace OfficeIMO.Excel.GoogleSheets {
             string sourceSheetName,
             IReadOnlyDictionary<string, int> sheetIds,
             string? spreadsheetId,
+            bool includeValue,
             out bool hasFormat,
             out bool hasNote,
             out bool hasValidation) {
-            hasFormat = cell.Style != null;
+            hasFormat = cell.Style != null || cell.TextFormatRuns.Count > 0;
             hasNote = false;
             hasValidation = cell.DataValidationRule != null;
             var valuePayload = BuildExtendedValue(cell, batch, sourceSheetName, sheetIds, spreadsheetId, out var hyperlinkNote);
             var payload = new GoogleSheetsApiCellDataPayload {
-                UserEnteredValue = valuePayload,
+                UserEnteredValue = includeValue ? valuePayload : null,
                 UserEnteredFormat = BuildCellFormat(cell.Style),
                 DataValidationRule = BuildDataValidationRule(cell.DataValidationRule),
                 Note = ComposeNote(cell.Comment, hyperlinkNote),
+                TextFormatRuns = BuildTextFormatRuns(cell.TextFormatRuns),
             };
             hasNote = !string.IsNullOrWhiteSpace(payload.Note);
             return payload;
