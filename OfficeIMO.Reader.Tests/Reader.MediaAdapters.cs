@@ -115,6 +115,26 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void NotebookAdapter_PreservesLeadingWhitespaceInMarkdownCells() {
+        const string notebook = """
+            {
+              "cells": [
+                { "cell_type": "markdown", "source": ["    indented code\n", "\n"] }
+              ],
+              "metadata": {},
+              "nbformat": 4,
+              "nbformat_minor": 5
+            }
+            """;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddNotebookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(notebook), "indented.ipynb");
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.StartsWith("    indented code", chunk.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void NotebookAdapter_ReportsConfiguredCellLimit() {
         const string notebook = """
             {

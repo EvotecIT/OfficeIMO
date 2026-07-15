@@ -176,7 +176,7 @@ internal static class NotebookReaderAdapter {
         string language,
         string source,
         IReadOnlyList<NotebookOutput> outputs) {
-        if (cellType == "markdown") return source.Trim();
+        if (cellType == "markdown") return source.TrimEnd();
         var markdown = new StringBuilder();
         markdown.Append("### ")
             .Append(cellType == "code" ? "Code" : "Raw")
@@ -192,7 +192,7 @@ internal static class NotebookReaderAdapter {
             for (int index = 0; index < outputs.Count; index++) {
                 NotebookOutput output = outputs[index];
                 if (output.IsMarkdown) {
-                    markdown.AppendLine(output.Text.Trim());
+                    markdown.AppendLine(output.Text.TrimEnd());
                 } else {
                     string outputFence = BuildFence(output.Text);
                     markdown.AppendLine(outputFence).AppendLine(output.Text.TrimEnd()).AppendLine(outputFence);
