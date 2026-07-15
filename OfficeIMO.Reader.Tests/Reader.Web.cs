@@ -182,6 +182,17 @@ public sealed class ReaderWebTests {
         Assert.Contains("effective web input byte limit", exception.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(null, 0)]
+    [InlineData(1024L, 1024)]
+    [InlineData(65536L, 65536)]
+    [InlineData(1073741824L, 65536)]
+    public void WebReader_CapsInitialBufferCapacityIndependentOfTheResponseLimit(
+        long? declaredLength,
+        int expectedCapacity) {
+        Assert.Equal(expectedCapacity, ReaderWebTransport.GetInitialBufferCapacity(declaredLength));
+    }
+
     [Fact]
     public async Task WebReader_ReportsItsOwnRequestTimeout() {
         var handler = new DelegateHttpHandler(async (request, cancellationToken) => {

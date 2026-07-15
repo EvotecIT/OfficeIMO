@@ -2,6 +2,7 @@ namespace OfficeIMO.Reader.Web;
 
 internal static class ReaderWebTransport {
     internal const string CapabilityId = "officeimo.reader.web";
+    internal const int MaximumInitialBufferCapacity = 64 * 1024;
 
     internal static async Task<ReaderWebDownload> DownloadAsync(
         HttpClient httpClient,
@@ -59,9 +60,7 @@ internal static class ReaderWebTransport {
         long? declaredLength,
         long maxResponseBytes,
         CancellationToken cancellationToken) {
-        int capacity = declaredLength.HasValue
-            ? (int)Math.Min(declaredLength.Value, maxResponseBytes)
-            : 0;
+        int capacity = GetInitialBufferCapacity(declaredLength);
         using var output = capacity > 0 ? new MemoryStream(capacity) : new MemoryStream();
         using Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false);
         byte[] buffer = new byte[64 * 1024];
@@ -79,6 +78,11 @@ internal static class ReaderWebTransport {
             total += read;
         }
         return output.ToArray();
+    }
+
+    internal static int GetInitialBufferCapacity(long? declaredLength) {
+        if (!declaredLength.HasValue || declaredLength.Value <= 0) return 0;
+        return (int)Math.Min(declaredLength.Value, MaximumInitialBufferCapacity);
     }
 
     private static string ResolveSourceName(
