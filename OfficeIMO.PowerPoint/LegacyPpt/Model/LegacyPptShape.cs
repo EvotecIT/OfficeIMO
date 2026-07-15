@@ -113,6 +113,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Picture = picture;
             Transform = transform ?? OfficeArtShapeTransform.Decode(0);
             Geometry = OfficeArtShapeGeometry.Decode(style.Properties);
+            PictureProperties = OfficeArtPictureProperties.Decode(style.Properties);
             GroupCoordinateBounds = groupCoordinateBounds;
             Children = new ReadOnlyCollection<LegacyPptShape>(
                 children?.ToArray() ?? Array.Empty<LegacyPptShape>());
@@ -159,6 +160,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets raw shape-specific OfficeArt geometry adjustment values.</summary>
         public OfficeArtShapeGeometry Geometry { get; }
+
+        /// <summary>Gets decoded OfficeArt picture-frame crop properties.</summary>
+        public OfficeArtPictureProperties PictureProperties { get; }
 
         /// <summary>Gets the coordinate system used by child anchors when this is a group shape.</summary>
         public LegacyPptBounds? GroupCoordinateBounds { get; }

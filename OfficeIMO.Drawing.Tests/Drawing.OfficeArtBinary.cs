@@ -106,6 +106,28 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtPictureProperties_DecodesSignedCropFractionsAndUsesLastValue() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x0102, 8192U),
+            new OfficeArtProperty(1, 0x0100, unchecked((uint)-4096)),
+            new OfficeArtProperty(2, 0x0102, 16384U),
+            new OfficeArtProperty(3, 0x0103, 0U)
+        };
+
+        OfficeArtPictureProperties picture = OfficeArtPictureProperties.Decode(properties);
+
+        Assert.True(picture.HasExplicitCrop);
+        Assert.True(picture.HasCrop);
+        Assert.Equal(16384, picture.CropFromLeftRaw);
+        Assert.Equal(0.25D, picture.CropFromLeft);
+        Assert.Equal(-0.0625D, picture.CropFromTop);
+        Assert.Equal(0D, picture.CropFromRight);
+        Assert.Null(picture.CropFromBottom);
+        Assert.Equal("cropFromLeft", properties[0].PropertyName);
+        Assert.Equal("Blip", properties[0].PropertyGroupName);
+    }
+
+    [Fact]
     public void OfficeArtPropertyTableReader_RejectsTruncatedFixedTableWithoutOverread() {
         byte[] payload = { 0x81, 0x01, 0x33, 0x22, 0x11 };
 

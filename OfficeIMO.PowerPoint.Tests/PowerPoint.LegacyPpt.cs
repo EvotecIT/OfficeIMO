@@ -5,6 +5,7 @@ using OfficeIMO.Drawing.Binary;
 using System.Threading.Tasks;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
@@ -13,6 +14,9 @@ namespace OfficeIMO.Tests {
 
         private static string PictureFixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "PicturePowerPoint.ppt");
+
+        private static string CroppedPictureFixturePath => Path.Combine(AppContext.BaseDirectory,
+            "Documents", "LegacyPptCorpus", "CroppedPicturePowerPoint.ppt");
 
         [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
@@ -101,6 +105,61 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation reopened = PowerPointPresentation.Load(pptx);
             Assert.Equal(expected, Assert.Single(reopened.Slides[0].Pictures).GetImageBytes());
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NeutralReader_DecodesSignedPictureCropFractions() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(CroppedPictureFixturePath);
+            LegacyPptShape[] pictures = Assert.Single(legacy.Slides).Shapes
+                .Where(shape => shape.Kind == LegacyPptShapeKind.Picture)
+                .OrderBy(shape => shape.Bounds.Left)
+                .ToArray();
+
+            Assert.Equal(2, pictures.Length);
+            OfficeArtPictureProperties positive = pictures[0].PictureProperties;
+            Assert.Equal(16379, positive.CropFromTopRaw);
+            Assert.Equal(8189, positive.CropFromBottomRaw);
+            Assert.Equal(8192, positive.CropFromLeftRaw);
+            Assert.Equal(4093, positive.CropFromRightRaw);
+            OfficeArtPictureProperties negative = pictures[1].PictureProperties;
+            Assert.Equal(-4094, negative.CropFromTopRaw);
+            Assert.Equal(-8192, negative.CropFromLeftRaw);
+            Assert.True(negative.HasCrop);
+        }
+
+        [Fact]
+        public void NormalLoad_ProjectsSignedPictureCropAndPreservesBinaryExactly() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+                CroppedPictureFixturePath);
+            PowerPointPicture[] pictures = Assert.Single(presentation.Slides).Pictures
+                .OrderBy(picture => picture.Left)
+                .ToArray();
+
+            Assert.Equal(2, pictures.Length);
+            Assert.Equal(0.125D, pictures[0].CropLeftRatio, 5);
+            Assert.Equal(0.24992D, pictures[0].CropTopRatio, 5);
+            Assert.Equal(0.06245D, pictures[0].CropRightRatio, 5);
+            Assert.Equal(0.12495D, pictures[0].CropBottomRatio, 5);
+            P.Picture negative = Assert.IsType<P.Picture>(pictures[1].Element);
+            Assert.Equal(-12500, negative.BlipFill!.SourceRectangle!.Left!.Value);
+            Assert.Equal(-6247, negative.BlipFill.SourceRectangle.Top!.Value);
+            Assert.Empty(presentation.ValidateDocument());
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.Equal(File.ReadAllBytes(CroppedPictureFixturePath),
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedPictureCropEdit_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+                CroppedPictureFixturePath);
+            PowerPointPicture picture = presentation.Slides[0].Pictures.OrderBy(item => item.Left).First();
+
+            picture.Crop(10D, 20D, 5D, 10D);
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
         }
 
         [Fact]

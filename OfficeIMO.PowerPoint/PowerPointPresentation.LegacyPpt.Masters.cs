@@ -386,15 +386,34 @@ namespace OfficeIMO.PowerPoint {
                     }),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle });
             ApplyLegacyShapeTransform(properties.Transform2D!, source);
+            var blipFill = new BlipFill(
+                new A.Blip { Embed = relationshipId },
+                new A.Stretch(new A.FillRectangle()));
+            ApplyLegacyPictureCrop(blipFill, source);
             return new Picture(
                 new NonVisualPictureProperties(
                     new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Picture {shapeId - 1U}" },
                     new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
                     new ApplicationNonVisualDrawingProperties()),
-                new BlipFill(
-                    new A.Blip { Embed = relationshipId },
-                    new A.Stretch(new A.FillRectangle())),
+                blipFill,
                 properties);
+        }
+
+        private static void ApplyLegacyPictureCrop(BlipFill? target, LegacyPptShape source) {
+            if (target == null || !source.PictureProperties.HasCrop) return;
+            target.SourceRectangle = new A.SourceRectangle {
+                Left = ToOpenXmlCrop(source.PictureProperties.CropFromLeft),
+                Top = ToOpenXmlCrop(source.PictureProperties.CropFromTop),
+                Right = ToOpenXmlCrop(source.PictureProperties.CropFromRight),
+                Bottom = ToOpenXmlCrop(source.PictureProperties.CropFromBottom)
+            };
+        }
+
+        private static int? ToOpenXmlCrop(double? fraction) {
+            if (!fraction.HasValue || double.IsNaN(fraction.Value)
+                || double.IsInfinity(fraction.Value)) return null;
+            double value = Math.Round(fraction.Value * 100000D, MidpointRounding.AwayFromZero);
+            return value < int.MinValue || value > int.MaxValue ? null : (int)value;
         }
 
         internal static void ApplyLegacyShapeTransform(A.Transform2D transform, LegacyPptShape source) {

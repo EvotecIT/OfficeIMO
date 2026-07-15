@@ -38,6 +38,12 @@ shape-family mapping, exact round-rectangle and donut guide projection, delibera
 unmapped shape-specific values, and exact no-op saves. Its SHA-256 digest is
 `cfbcdc8249b0cd886a6abcf6c00fe00eb85753eaa693dd933299d47b68a42599`.
 
+`CroppedPicturePowerPoint.ppt` was generated from a one-slide PPTX containing two copies of a
+four-quadrant PNG, then converted with LibreOffice. One picture uses four positive crop edges and
+the other uses negative top and left crop-out values. It exercises signed 16.16 OfficeArt crop
+decoding, native DrawingML source-rectangle projection, and exact no-op saves. Its SHA-256 digest is
+`42b9007c1d995ecd0471bdc195a9b2a72acdc89dfbd4cee73f47000099068dc9`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

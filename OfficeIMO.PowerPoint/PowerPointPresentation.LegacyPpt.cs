@@ -176,6 +176,9 @@ namespace OfficeIMO.PowerPoint {
                         shape.Geometry, preset);
                 }
             }
+            if (projectedShape?.Element is Picture projectedPicture) {
+                ApplyLegacyPictureCrop(projectedPicture.BlipFill, shape);
+            }
             return projectedShape?.Element;
         }
 
