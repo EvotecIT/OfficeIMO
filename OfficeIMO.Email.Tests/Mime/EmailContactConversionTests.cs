@@ -180,6 +180,39 @@ public sealed class EmailContactConversionTests {
     }
 
     [Fact]
+    public void BlocksVcardsWithMoreThanThreeEmailAddressesBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nEMAIL:first@example.com\r\nEMAIL:second@example.com\r\n" +
+            "EMAIL:third@example.com\r\nEMAIL:fourth@example.com\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("BDAY")]
+    [InlineData("ANNIVERSARY")]
+    public void BlocksDateTimeVcardDatesBeforeStoreConversion(string property) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\n" + property + ":19960415T231000Z\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
     public void BlocksVcardUidBeforeStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +

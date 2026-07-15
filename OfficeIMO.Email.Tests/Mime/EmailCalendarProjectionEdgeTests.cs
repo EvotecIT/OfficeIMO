@@ -33,9 +33,61 @@ public sealed class EmailCalendarProjectionEdgeTests {
 
         EmailDocument roundTrip = new EmailDocumentReader().Read(
             new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        string regenerated = CalendarText(new EmailDocumentWriter().ToBytes(roundTrip, EmailFileFormat.Eml));
 
         Assert.Contains(document.Recipients, recipient => recipient.Address.Address == "assignee@example.com");
         Assert.Contains(roundTrip.Recipients, recipient => recipient.Address.Address == "assignee@example.com");
+        Assert.Contains("ATTENDEE;ROLE=REQ-PARTICIPANT;CN=\"Assignee\":mailto:assignee@example.com",
+            regenerated, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BlocksFloatingCalendarTimesBeforeStoreConversion() {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:floating@example.com\r\nDTSTART:20260715T090000\r\nEND:VEVENT\r\n");
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailDocument document = read.Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_FLOATING_TIME");
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void DecodesPercentEncodedCalendarMailboxesBeforeStoreConversion() {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:encoded-address@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "ORGANIZER:mailto:owner%2Bcalendar@example.com\r\n" +
+            "ATTENDEE:mailto:alice%2Btag@example.com\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Equal("owner+calendar@example.com", document.From!.Address);
+        Assert.Equal("alice+tag@example.com", Assert.Single(document.Recipients).Address.Address);
+        Assert.Equal("owner+calendar@example.com", roundTrip.From!.Address);
+        Assert.Equal("alice+tag@example.com", Assert.Single(roundTrip.Recipients).Address.Address);
+    }
+
+    [Fact]
+    public void BlocksCalendarPriorityBeforeStoreConversion() {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:priority@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "PRIORITY:1\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
     }
 
     [Fact]

@@ -24,6 +24,7 @@ internal static partial class IcsCalendarCodec {
         else ProjectTask(activeProperties, document, diagnostics, location);
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
             diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED" ||
+            diagnostic.Code == "EMAIL_ICALENDAR_FLOATING_TIME" ||
             diagnostic.Code == "EMAIL_ICALENDAR_DATE_INVALID");
         return true;
     }
@@ -102,6 +103,7 @@ internal static partial class IcsCalendarCodec {
             property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
             property.Name == "CLASS" && !ParseCalendarSensitivity(property.Value).HasValue ||
             isEvent && property.Name == "STATUS" ||
+            property.Name == "PRIORITY" ||
             property.Name == "ATTACH" || property.Name == "TRIGGER" &&
             property.Parameters.TryGetValue("RELATED", out string? related) &&
             related.Equals("END", StringComparison.OrdinalIgnoreCase));
@@ -381,6 +383,7 @@ internal static partial class IcsCalendarCodec {
         foreach (string contact in task.Contacts) AppendText(output, "CONTACT", contact);
         foreach (string company in task.Companies) AppendText(output, "X-OFFICEIMO-COMPANY", company);
         WriteReminderMetadata(output, task.ReminderTime, task.ReminderSignalTime);
+        WriteAttendees(output, document);
         WriteAlarm(output, task.ReminderIsSet, task.ReminderDeltaMinutes,
             task.ReminderSignalTime ?? task.ReminderTime, document.Subject);
         AppendLine(output, "END:VTODO");
@@ -413,6 +416,10 @@ internal static partial class IcsCalendarCodec {
                 EscapeParameter(document.From.DisplayName!), "\"");
             AppendLine(output, string.Concat(organizer, ":mailto:", EscapeUriValue(document.From.Address!)));
         }
+        WriteAttendees(output, document);
+    }
+
+    private static void WriteAttendees(StringBuilder output, EmailDocument document) {
         foreach (EmailRecipient recipient in document.Recipients.Where(recipient =>
             (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
              recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
@@ -478,7 +485,13 @@ internal static partial class IcsCalendarCodec {
     private static string? StripMailTo(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
         string result = value!.Trim();
-        return result.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase) ? result.Substring(7) : result;
+        if (!result.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) return result;
+        string address = result.Substring(7);
+        try {
+            return Uri.UnescapeDataString(address);
+        } catch (UriFormatException) {
+            return address;
+        }
     }
 
     private static int? ParseInt(string? value) => int.TryParse(value, NumberStyles.Integer,

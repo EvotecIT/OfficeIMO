@@ -8,7 +8,8 @@ internal static class VCardCodec {
 
         int cardCount = properties.Count(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase));
-        document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 || properties.Any(property =>
+        document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 ||
+            properties.Count(property => property.Name == "EMAIL") > 3 || properties.Any(property =>
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
             property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "UID" ||
@@ -37,8 +38,13 @@ internal static class VCardCodec {
         contact.Profession = Unescape(GetValue(properties, "ROLE"));
         contact.Language = Unescape(GetValue(properties, "LANG"));
         contact.InstantMessagingAddress = Unescape(GetValue(properties, "IMPP"));
-        contact.Birthday = ParseDate(GetValue(properties, "BDAY"));
-        contact.WeddingAnniversary = ParseDate(GetValue(properties, "ANNIVERSARY"));
+        string? birthday = GetValue(properties, "BDAY");
+        string? anniversary = GetValue(properties, "ANNIVERSARY");
+        contact.Birthday = ParseDate(birthday);
+        contact.WeddingAnniversary = ParseDate(anniversary);
+        document.MimeSemanticProjectionIsIncomplete |=
+            !string.IsNullOrWhiteSpace(birthday) && !contact.Birthday.HasValue ||
+            !string.IsNullOrWhiteSpace(anniversary) && !contact.WeddingAnniversary.HasValue;
         int? sensitivity = ParseVCardSensitivity(GetValue(properties, "CLASS"));
         contact.IsPrivate = sensitivity.HasValue ? sensitivity.Value != 0 : (bool?)null;
         if (sensitivity.HasValue) document.MessageMetadata.Sensitivity = sensitivity;
