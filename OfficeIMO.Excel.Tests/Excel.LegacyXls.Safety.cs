@@ -91,6 +91,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Load_WhenInputIsLegacyPowerPoint_ReportsFormatMismatch() {
+            string path = Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "LegacyPptCorpus",
+                "BasicPowerPoint.ppt");
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(path));
+
+            Assert.Contains("legacy PowerPoint presentation", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void FormatApi_UsesCanonicalExcelNamingWithoutLegacyAliases() {
             Type documentType = typeof(ExcelDocument);
             Type importOptionsType = typeof(LegacyXlsImportOptions);

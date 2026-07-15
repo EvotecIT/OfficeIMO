@@ -1,0 +1,107 @@
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.PowerPoint.LegacyPpt;
+
+namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
+    internal static class LegacyPptWritePreflight {
+        internal static LegacyPptWritePreflightReport Analyze(PowerPointPresentation presentation) {
+            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            var findings = new List<LegacyPptWriteFinding>();
+            if (presentation.GetSections().Count > 0) {
+                findings.Add(new LegacyPptWriteFinding("PPT-WRITE-SECTIONS",
+                    "Presentation sections are not encoded by the native binary writer."));
+            }
+            if (presentation.OpenXmlDocument.PresentationPart?.VbaProjectPart != null) {
+                findings.Add(new LegacyPptWriteFinding("PPT-WRITE-VBA",
+                    "VBA projects are not encoded by the native binary writer."));
+            }
+            for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
+                PowerPointSlide slide = presentation.Slides[slideIndex];
+                if (slide.Hidden) {
+                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-HIDDEN-SLIDE",
+                        "Hidden-slide state is not encoded by the native binary writer.", slideIndex));
+                }
+                if (slide.SlidePart.NotesSlidePart != null && !string.IsNullOrWhiteSpace(slide.Notes.Text)) {
+                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-NOTES",
+                        "Speaker notes are not encoded by the native binary writer.", slideIndex));
+                }
+                P.Slide? slideRoot = slide.SlidePart.Slide;
+                if (slide.Transition != SlideTransition.None) {
+                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-TRANSITION",
+                        "Slide transitions are not encoded by the native binary writer.", slideIndex));
+                }
+                if (slideRoot?.Timing != null) {
+                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-TIMING",
+                        "Animations and media timing are not encoded by the native binary writer.", slideIndex));
+                }
+                if (slideRoot?.CommonSlideData?.Background != null) {
+                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-BACKGROUND",
+                        "Custom slide backgrounds are not encoded by the native binary writer.", slideIndex));
+                }
+                for (int shapeIndex = 0; shapeIndex < slide.Shapes.Count; shapeIndex++) {
+                    PowerPointShape shape = slide.Shapes[shapeIndex];
+                    bool supportedShape = shape is PowerPointTextBox
+                        || shape is PowerPointAutoShape autoShape
+                        && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
+                            || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
+                            || autoShape.ShapeType == A.ShapeTypeValues.Line);
+                    if (!supportedShape) {
+                        findings.Add(new LegacyPptWriteFinding("PPT-WRITE-SHAPE",
+                            $"{shape.ShapeContentType} content is outside the native writer's text/rectangle/ellipse/line subset.",
+                            slideIndex, shapeIndex));
+                        continue;
+                    }
+                    if (HasUnsupportedVisualStyle(shape)) {
+                        findings.Add(new LegacyPptWriteFinding("PPT-WRITE-SHAPE-STYLE",
+                            "Fill, outline, transform, effects, hyperlink, visibility, or alternative-text styling is not encoded.",
+                            slideIndex, shapeIndex));
+                    }
+                    if (shape is PowerPointTextBox textBox && HasRichTextFormatting(textBox)) {
+                        findings.Add(new LegacyPptWriteFinding("PPT-WRITE-RICH-TEXT",
+                            "Rich run or paragraph formatting is flattened to plain text.", slideIndex, shapeIndex));
+                    }
+                }
+            }
+
+            foreach (var diagnostic in presentation.LegacyPptImportDiagnostics) {
+                if (diagnostic.Severity == Diagnostics.LegacyPptDiagnosticSeverity.Warning
+                    || diagnostic.Severity == Diagnostics.LegacyPptDiagnosticSeverity.Error) {
+                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-IMPORT-LOSS",
+                        $"Imported legacy content was not fully projected: {diagnostic.Code}."));
+                }
+            }
+            return new LegacyPptWritePreflightReport(findings);
+        }
+
+        private static bool HasUnsupportedVisualStyle(PowerPointShape shape) =>
+            shape.FillColor != null
+            || shape.FillTransparency != null
+            || shape.OutlineColor != null
+            || shape.OutlineWidthPoints != null
+            || shape.OutlineDash != null
+            || shape.Rotation != null
+            || shape.HorizontalFlip != null
+            || shape.VerticalFlip != null
+            || shape.Hyperlink != null
+            || shape.Hidden
+            || !string.IsNullOrWhiteSpace(shape.AltText)
+            || shape.Element.Descendants<A.EffectList>().Any();
+
+        private static bool HasRichTextFormatting(PowerPointTextBox textBox) {
+            P.Shape? shape = textBox.Element as P.Shape;
+            if (shape?.TextBody == null) return false;
+            return shape.TextBody.Descendants<A.RunProperties>().Any(properties =>
+                       properties.HasAttributes || properties.HasChildren)
+                || shape.TextBody.Descendants<A.ParagraphProperties>().Any(properties =>
+                    properties.HasAttributes || properties.HasChildren);
+        }
+
+        internal static void ThrowIfBlocked(LegacyPptWritePreflightReport report, PowerPointSaveOptions? options) {
+            if (!report.HasConversionLoss || options?.LossPolicy == PowerPointConversionLossPolicy.Allow) return;
+            string details = string.Join("; ", report.Findings.Take(8));
+            throw new NotSupportedException(
+                "Native PPT/POT/PPS saving is blocked because known content cannot be encoded without loss. "
+                + details + " Set PowerPointSaveOptions.LossPolicy to Allow only when that loss is intentional.");
+        }
+    }
+}

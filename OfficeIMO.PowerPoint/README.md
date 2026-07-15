@@ -3,7 +3,9 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.PowerPoint)](https://www.nuget.org/packages/OfficeIMO.PowerPoint)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.PowerPoint?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.PowerPoint)
 
-`OfficeIMO.PowerPoint` creates and edits `.pptx` presentations with Open XML. It is for generating editable decks without COM automation and without Microsoft PowerPoint installed.
+`OfficeIMO.PowerPoint` creates and edits `.pptx` presentations and reads or writes a supported PowerPoint
+97-2003 `.ppt`, `.pot`, and `.pps` subset. It works without COM automation and without Microsoft PowerPoint
+installed.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -53,9 +55,66 @@ streamed.AddSlide().AddTitle("Stream-backed deck");
 streamed.Save();
 ```
 
+### PowerPoint 97-2003 binary files
+
+Normal loading detects the OLE document streams, so callers do not need a separate code path for `.ppt`,
+`.pot`, or `.pps` input. Supported binary content is projected into the same editable model used for PPTX:
+
+```csharp
+using var presentation = PowerPointPresentation.Load("legacy-deck.ppt");
+
+Console.WriteLine(presentation.SourceFormat); // Ppt
+presentation.ReplaceText("Draft", "Approved");
+presentation.SaveCopy("updated.pptx");
+```
+
+Use `LoadLegacyPptWithReport(...)` when an import gate needs parser diagnostics and a conversion-loss result:
+
+```csharp
+using OfficeIMO.PowerPoint.LegacyPpt;
+
+using LegacyPptLoadResult result =
+    PowerPointPresentation.LoadLegacyPptWithReport("legacy-deck.ppt");
+
+result.EnsureNoImportErrors();
+if (result.HasConversionLoss) {
+    foreach (var diagnostic in result.Diagnostics) {
+        Console.WriteLine(diagnostic);
+    }
+}
+
+PowerPointPresentation presentation = result.Document;
+```
+
+Native binary saving is selected by a `.ppt`, `.pot`, or `.pps` destination, or explicitly through
+`ToBytes(PowerPointFileFormat.Ppt)`. The current writer covers slides, slide size, positioned plain text,
+title/body/subtitle placeholders, rectangles, ellipses, and lines:
+
+```csharp
+using OfficeIMO.PowerPoint.LegacyPpt;
+
+using var presentation = PowerPointPresentation.Create("simple-deck.ppt");
+var slide = presentation.AddSlide();
+slide.AddTitle("Binary PowerPoint");
+slide.AddTextBox("Written without PowerPoint automation.");
+slide.AddRectangle(600000, 3200000, 1800000, 700000);
+
+LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();
+if (report.CanWrite) {
+    presentation.Save();
+}
+```
+
+Pictures, tables, charts, SmartArt, media, grouped shapes, speaker notes, hidden-slide state, animations,
+transitions, macros, embedded objects, and rich formatting are outside this first native writer subset. Saving
+blocks on known loss by default. After reviewing `AnalyzeLegacyPptWrite()`, callers can opt in with
+`new PowerPointSaveOptions { LossPolicy = PowerPointConversionLossPolicy.Allow }`; unsupported content is
+then omitted rather than silently approximated. Encrypted binary PowerPoint files are not supported.
+
 ## What it does
 
 - Creates and edits PowerPoint presentations, slides, slide size, text boxes, pictures, tables, charts, backgrounds, transitions, notes, and metadata.
+- Reads `.ppt`, `.pot`, and `.pps` through a dependency-free binary parser and writes the documented simple native subset with loss preflight.
 - Keeps generated output as editable PowerPoint content instead of screenshots.
 - Reports editable, partially editable, preserved, and unsupported deck features through `InspectFeatures()` before edit-heavy round trips.
 - Composes reusable semantic plans through one `presentation.Compose(plan, options)` workflow.

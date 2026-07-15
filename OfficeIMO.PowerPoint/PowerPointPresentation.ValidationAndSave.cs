@@ -11,6 +11,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Drawing;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
@@ -82,7 +83,11 @@ namespace OfficeIMO.PowerPoint {
                 return;
             }
             if (_sourceStream != null) {
-                Save(_sourceStream);
+                if (IsLegacyBinaryFormat(SourceFormat)) {
+                    Save(_sourceStream, SourceFormat);
+                } else {
+                    Save(_sourceStream);
+                }
                 return;
             }
             throw new InvalidOperationException(
@@ -90,11 +95,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Saves the presentation to a file and associates that path with subsequent <see cref="Save()"/> calls.</summary>
-        public void Save(string filePath) {
+        public void Save(string filePath) => Save(filePath, options: null);
+
+        /// <summary>Saves to a file with an explicit conversion-loss policy.</summary>
+        public void Save(string filePath, PowerPointSaveOptions? options) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
-            byte[] packageBytes = CreatePackageBytesForSave();
+            byte[] packageBytes = CreateBytesForPath(filePath, options);
             OfficeFileCommit.WriteAllBytes(filePath, packageBytes);
             _filePath = filePath;
             _discardChangesOnDispose = false;
@@ -110,21 +118,29 @@ namespace OfficeIMO.PowerPoint {
         }
 
         /// <summary>Saves an independent copy without changing the presentation's associated destination.</summary>
-        public void SaveCopy(string filePath) {
+        public void SaveCopy(string filePath) => SaveCopy(filePath, options: null);
+
+        /// <summary>Saves an independent copy with an explicit conversion-loss policy.</summary>
+        public void SaveCopy(string filePath, PowerPointSaveOptions? options) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
-            OfficeFileCommit.WriteAllBytes(filePath, CreatePackageBytesForSave());
+            OfficeFileCommit.WriteAllBytes(filePath, CreateBytesForPath(filePath, options));
             _discardChangesOnDispose = false;
         }
 
         /// <summary>Asynchronously saves an independent copy without changing the presentation's associated destination.</summary>
-        public async Task SaveCopyAsync(string filePath, CancellationToken cancellationToken = default) {
+        public Task SaveCopyAsync(string filePath, CancellationToken cancellationToken = default) =>
+            SaveCopyAsync(filePath, options: null, cancellationToken);
+
+        /// <summary>Asynchronously saves an independent copy with an explicit conversion-loss policy.</summary>
+        public async Task SaveCopyAsync(string filePath, PowerPointSaveOptions? options,
+            CancellationToken cancellationToken = default) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] packageBytes = CreatePackageBytesForSave();
+            byte[] packageBytes = CreateBytesForPath(filePath, options);
             await OfficeFileCommit.WriteAllBytesAsync(filePath, packageBytes, cancellationToken: cancellationToken)
                 .ConfigureAwait(false);
             _discardChangesOnDispose = false;
@@ -133,8 +149,23 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>Encodes the presentation as a PPTX package.</summary>
         public byte[] ToBytes() => CreatePackageBytesForSave();
 
+        /// <summary>Encodes the presentation in the requested PowerPoint format.</summary>
+        public byte[] ToBytes(PowerPointFileFormat format, PowerPointSaveOptions? options = null) =>
+            IsLegacyBinaryFormat(format) ? CreateLegacyPptBytesForSave(options) : CreatePackageBytesForSave();
+
         /// <summary>Encodes the presentation in a new writable memory stream positioned at the beginning.</summary>
         public MemoryStream ToStream() => new MemoryStream(ToBytes());
+
+        /// <summary>Encodes the presentation in a new stream using the requested format.</summary>
+        public MemoryStream ToStream(PowerPointFileFormat format, PowerPointSaveOptions? options = null) =>
+            new MemoryStream(ToBytes(format, options));
+
+        /// <summary>Saves to a stream using an explicit physical PowerPoint format.</summary>
+        public void Save(Stream destination, PowerPointFileFormat format, PowerPointSaveOptions? options = null) {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            OfficeStreamWriter.WriteAllBytes(destination, ToBytes(format, options));
+            _discardChangesOnDispose = false;
+        }
 
         /// <summary>Asynchronously saves to the associated file or stream.</summary>
         public Task SaveAsync(CancellationToken cancellationToken = default) {
@@ -142,21 +173,29 @@ namespace OfficeIMO.PowerPoint {
                 return SaveAsync(_filePath, cancellationToken);
             }
             if (_sourceStream != null) {
-                return SaveAsync(_sourceStream, cancellationToken);
+                return IsLegacyBinaryFormat(SourceFormat)
+                    ? SaveAsync(_sourceStream, SourceFormat, options: null, cancellationToken)
+                    : SaveAsync(_sourceStream, cancellationToken);
             }
             throw new InvalidOperationException(
                 "The presentation has no associated destination. Use SaveAsync(string) or SaveAsync(Stream).");
         }
 
         /// <summary>Asynchronously saves to a file and associates it with subsequent saves.</summary>
+        public Task SaveAsync(
+            string filePath,
+            CancellationToken cancellationToken = default) => SaveAsync(filePath, options: null, cancellationToken);
+
+        /// <summary>Asynchronously saves to a file with an explicit conversion-loss policy.</summary>
         public async Task SaveAsync(
             string filePath,
+            PowerPointSaveOptions? options,
             CancellationToken cancellationToken = default) {
             if (filePath == null) throw new ArgumentNullException(nameof(filePath));
             if (string.IsNullOrWhiteSpace(filePath)) throw new ArgumentException("File path cannot be empty.", nameof(filePath));
             EnsureDestinationFileWritable(filePath);
             cancellationToken.ThrowIfCancellationRequested();
-            byte[] packageBytes = CreatePackageBytesForSave();
+            byte[] packageBytes = CreateBytesForPath(filePath, options);
             await OfficeFileCommit.WriteAllBytesAsync(filePath, packageBytes,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
             _filePath = filePath;
@@ -170,6 +209,16 @@ namespace OfficeIMO.PowerPoint {
             byte[] packageBytes = CreatePackageBytesForSave();
             await OfficeStreamWriter.WriteAllBytesAsync(destination, packageBytes, cancellationToken)
                 .ConfigureAwait(false);
+            _discardChangesOnDispose = false;
+        }
+
+        /// <summary>Asynchronously saves once to a stream using an explicit physical PowerPoint format.</summary>
+        public async Task SaveAsync(Stream destination, PowerPointFileFormat format,
+            PowerPointSaveOptions? options = null, CancellationToken cancellationToken = default) {
+            if (destination == null) throw new ArgumentNullException(nameof(destination));
+            cancellationToken.ThrowIfCancellationRequested();
+            byte[] bytes = ToBytes(format, options);
+            await OfficeStreamWriter.WriteAllBytesAsync(destination, bytes, cancellationToken).ConfigureAwait(false);
             _discardChangesOnDispose = false;
         }
 
@@ -191,6 +240,24 @@ namespace OfficeIMO.PowerPoint {
                 // Dispose finalizes the cloned package before its bytes are committed.
             }
             return packageStream.ToArray();
+        }
+
+        private byte[] CreateBytesForPath(string filePath, PowerPointSaveOptions? options) {
+            PowerPointFileFormat format = PowerPointPresentationLoadRouting.GetFormat(filePath);
+            return IsLegacyBinaryFormat(format)
+                ? CreateLegacyPptBytesForSave(options)
+                : CreatePackageBytesForSave();
+        }
+
+        private byte[] CreateLegacyPptBytesForSave(PowerPointSaveOptions? options) {
+            ThrowIfDisposed();
+            if (AccessMode == DocumentAccessMode.ReadOnly) {
+                throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
+            }
+            foreach (PowerPointSlide slide in _slides) slide.Save();
+            PresentationRoot.Save();
+            _document!.Save();
+            return LegacyPptWriter.WritePresentation(this, options);
         }
 
         /// <summary>

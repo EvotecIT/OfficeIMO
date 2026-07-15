@@ -1,0 +1,446 @@
+using System.Reflection;
+using OfficeIMO.Drawing.Internal;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
+using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
+
+namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
+    internal static class LegacyPptWriter {
+        private const string BaseDocumentResource = "OfficeIMO.PowerPoint.Resources.legacy-ppt-base-document.bin";
+        private static readonly Guid PowerPointClassId = new("64818D10-4F9B-11CF-86EA-00AA00B929E8");
+        private static readonly Lazy<LegacyPptWriterTemplate> Template = new(LoadTemplate);
+
+        private const ushort RecordDocument = 0x03E8;
+        private const ushort RecordDocumentAtom = 0x03E9;
+        private const ushort RecordSlide = 0x03EE;
+        private const ushort RecordSlideAtom = 0x03EF;
+        private const ushort RecordSlidePersistAtom = 0x03F3;
+        private const ushort RecordDrawingGroup = 0x040B;
+        private const ushort RecordDrawing = 0x040C;
+        private const ushort RecordPlaceholder = 0x0BC3;
+        private const ushort RecordTextHeader = 0x0F9F;
+        private const ushort RecordTextChars = 0x0FA0;
+        private const ushort RecordSlideListWithText = 0x0FF0;
+        private const ushort RecordCurrentUser = 0x0FF6;
+        private const ushort RecordUserEdit = 0x0FF5;
+        private const ushort RecordPersistDirectory = 0x1772;
+        private const ushort OfficeArtDggContainer = 0xF000;
+        private const ushort OfficeArtDgg = 0xF006;
+        private const ushort OfficeArtDgContainer = 0xF002;
+        private const ushort OfficeArtSpgrContainer = 0xF003;
+        private const ushort OfficeArtSpContainer = 0xF004;
+        private const ushort OfficeArtDg = 0xF008;
+        private const ushort OfficeArtFsp = 0xF00A;
+        private const ushort OfficeArtClientTextbox = 0xF00D;
+        private const ushort OfficeArtClientAnchor = 0xF010;
+        private const ushort OfficeArtClientData = 0xF011;
+
+        internal static byte[] WritePresentation(PowerPointPresentation presentation,
+            PowerPointSaveOptions? options = null) {
+            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            if (presentation.Slides.Count > 4082) {
+                throw new NotSupportedException("Native binary PowerPoint saving supports at most 4,082 slides per presentation.");
+            }
+            LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(presentation);
+            LegacyPptWritePreflight.ThrowIfBlocked(preflight, options);
+
+            LegacyPptWriterTemplate template = Template.Value;
+            var slideRecords = new List<byte[]>(presentation.Slides.Count);
+            var slideShapeCounts = new List<int>(presentation.Slides.Count);
+            for (int index = 0; index < presentation.Slides.Count; index++) {
+                PowerPointSlide slide = presentation.Slides[index];
+                IReadOnlyList<PowerPointShape> supportedShapes = slide.Shapes.Where(IsSupportedShape).ToArray();
+                slideShapeCounts.Add(supportedShapes.Count);
+                slideRecords.Add(BuildSlideRecord(template.SlidePrototype, supportedShapes, index));
+            }
+
+            var persistObjects = new List<byte[]>(13 + slideRecords.Count) {
+                BuildDocumentRecord(template.Document, presentation, slideShapeCounts)
+            };
+            persistObjects.AddRange(template.SharedPersistObjects);
+            persistObjects.AddRange(slideRecords);
+
+            byte[] documentStream = BuildDocumentStream(persistObjects, presentation.Slides.Count);
+            byte[] currentUserStream = BuildCurrentUserStream(FindUserEditOffset(documentStream));
+            var streams = new[] {
+                new OfficeCompoundStream("Current User", currentUserStream),
+                new OfficeCompoundStream("PowerPoint Document", documentStream)
+            };
+            return OfficeCompoundFileWriter.Write(streams, PowerPointClassId);
+        }
+
+        private static bool IsSupportedShape(PowerPointShape shape) {
+            if (shape is PowerPointTextBox) return true;
+            return shape is PowerPointAutoShape autoShape
+                && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
+                    || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
+                    || autoShape.ShapeType == A.ShapeTypeValues.Line);
+        }
+
+        private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,
+            IReadOnlyList<int> slideShapeCounts) {
+            var children = new List<byte[]>();
+            foreach (LegacyPptRecord child in document.Children) {
+                if (child.Type == RecordDocumentAtom) {
+                    byte[] atom = child.CopyRecordBytes();
+                    WriteInt32(atom, 8, ToMasterUnits(presentation.SlideSize.WidthEmus));
+                    WriteInt32(atom, 12, ToMasterUnits(presentation.SlideSize.HeightEmus));
+                    children.Add(atom);
+                } else if (child.Type == RecordDrawingGroup) {
+                    children.Add(BuildDrawingGroupRecord(child, slideShapeCounts));
+                } else if (child.Type == RecordSlideListWithText && child.Instance == 0) {
+                    children.Add(BuildSlideList(presentation.Slides.Count));
+                } else if (child.Type == RecordSlideListWithText && child.Instance == 2) {
+                    // Notes persist objects are intentionally omitted by the supported native subset.
+                } else {
+                    children.Add(child.CopyRecordBytes());
+                }
+            }
+            return BuildContainer(RecordDocument, instance: 0, children);
+        }
+
+        private static byte[] BuildDrawingGroupRecord(LegacyPptRecord drawingGroup,
+            IReadOnlyList<int> slideShapeCounts) {
+            var drawingGroupChildren = new List<byte[]>();
+            foreach (LegacyPptRecord child in drawingGroup.Children) {
+                if (child.Type != OfficeArtDggContainer) {
+                    drawingGroupChildren.Add(child.CopyRecordBytes());
+                    continue;
+                }
+
+                var dggChildren = new List<byte[]>();
+                foreach (LegacyPptRecord dggChild in child.Children) {
+                    dggChildren.Add(dggChild.Type == OfficeArtDgg
+                        ? BuildDggAtom(dggChild, slideShapeCounts)
+                        : dggChild.CopyRecordBytes());
+                }
+                drawingGroupChildren.Add(BuildContainer(OfficeArtDggContainer, child.Instance, dggChildren));
+            }
+            return BuildContainer(RecordDrawingGroup, drawingGroup.Instance, drawingGroupChildren);
+        }
+
+        private static byte[] BuildDggAtom(LegacyPptRecord baseAtom, IReadOnlyList<int> slideShapeCounts) {
+            var clusters = new List<KeyValuePair<uint, uint>>();
+            int baseClusterCount = Math.Max(0, unchecked((int)baseAtom.ReadUInt32(4)) - 1);
+            for (int index = 0; index < baseClusterCount && 16 + index * 8 + 8 <= baseAtom.PayloadLength; index++) {
+                uint drawingId = baseAtom.ReadUInt32(16 + index * 8);
+                uint nextShapeIndex = baseAtom.ReadUInt32(20 + index * 8);
+                if (drawingId <= 12) clusters.Add(new KeyValuePair<uint, uint>(drawingId, nextShapeIndex));
+            }
+            for (int index = 0; index < slideShapeCounts.Count; index++) {
+                clusters.Add(new KeyValuePair<uint, uint>(unchecked((uint)(13 + index)),
+                    unchecked((uint)(slideShapeCounts[index] + 2))));
+            }
+
+            uint maxDrawingId = clusters.Count == 0 ? 1U : clusters.Max(cluster => cluster.Key);
+            uint shapeCount = unchecked((uint)clusters.Sum(cluster => checked((int)cluster.Value - 1)));
+            uint lastNextShapeIndex = clusters.Count == 0 ? 1U : clusters[clusters.Count - 1].Value;
+            var payload = new byte[checked(16 + clusters.Count * 8)];
+            WriteUInt32(payload, 0, checked((maxDrawingId << 10) + lastNextShapeIndex));
+            WriteUInt32(payload, 4, unchecked((uint)(clusters.Count + 1)));
+            WriteUInt32(payload, 8, shapeCount);
+            WriteUInt32(payload, 12, unchecked((uint)clusters.Count));
+            for (int index = 0; index < clusters.Count; index++) {
+                WriteUInt32(payload, 16 + index * 8, clusters[index].Key);
+                WriteUInt32(payload, 20 + index * 8, clusters[index].Value);
+            }
+            return BuildRecord(version: 0, baseAtom.Instance, OfficeArtDgg, payload);
+        }
+
+        private static byte[] BuildSlideList(int slideCount) {
+            var children = new List<byte[]>(slideCount);
+            for (int index = 0; index < slideCount; index++) {
+                var payload = new byte[20];
+                WriteUInt32(payload, 0, unchecked((uint)(14 + index)));
+                WriteUInt32(payload, 4, 4);
+                WriteUInt32(payload, 12, unchecked((uint)(256 + index)));
+                children.Add(BuildRecord(version: 0, instance: 0, RecordSlidePersistAtom, payload));
+            }
+            return BuildContainer(RecordSlideListWithText, instance: 0, children);
+        }
+
+        private static byte[] BuildSlideRecord(LegacyPptRecord prototype,
+            IReadOnlyList<PowerPointShape> shapes, int slideIndex) {
+            var children = new List<byte[]>();
+            foreach (LegacyPptRecord child in prototype.Children) {
+                if (child.Type == RecordSlideAtom) {
+                    byte[] atom = child.CopyRecordBytes();
+                    WriteUInt32(atom, 16, 0);
+                    children.Add(atom);
+                } else if (child.Type == RecordDrawing) {
+                    children.Add(BuildDrawingRecord(prototype, shapes, slideIndex));
+                } else if (child.Type != 0x1388) {
+                    children.Add(child.CopyRecordBytes());
+                }
+            }
+            return BuildContainer(RecordSlide, instance: 0, children);
+        }
+
+        private static byte[] BuildDrawingRecord(LegacyPptRecord slidePrototype,
+            IReadOnlyList<PowerPointShape> shapes, int slideIndex) {
+            LegacyPptRecord baseDrawing = slidePrototype.Children.First(record => record.Type == RecordDrawing);
+            LegacyPptRecord baseDgContainer = baseDrawing.Children.First(record => record.Type == OfficeArtDgContainer);
+            LegacyPptRecord baseSpgr = baseDgContainer.Children.First(record => record.Type == OfficeArtSpgrContainer);
+            LegacyPptRecord baseRootShape = baseSpgr.Children.First(record => record.Type == OfficeArtSpContainer);
+            LegacyPptRecord baseBackground = baseDgContainer.Children.Last(record => record.Type == OfficeArtSpContainer);
+
+            uint drawingId = unchecked((uint)(13 + slideIndex));
+            uint baseShapeId = drawingId << 10;
+            var spgrChildren = new List<byte[]> { PatchShapeId(baseRootShape.CopyRecordBytes(), baseShapeId) };
+            for (int index = 0; index < shapes.Count; index++) {
+                spgrChildren.Add(BuildShapeRecord(shapes[index], checked(baseShapeId + unchecked((uint)index) + 2U), index));
+            }
+
+            byte[] background = PatchShapeId(baseBackground.CopyRecordBytes(), checked(baseShapeId + 1));
+            var dgPayload = new byte[8];
+            WriteUInt32(dgPayload, 0, unchecked((uint)(shapes.Count + 1)));
+            WriteUInt32(dgPayload, 4, checked(baseShapeId + unchecked((uint)shapes.Count) + 1U));
+            byte[] dgAtom = BuildRecord(version: 0, unchecked((ushort)drawingId), OfficeArtDg, dgPayload);
+            byte[] spgr = BuildContainer(OfficeArtSpgrContainer, instance: 0, spgrChildren);
+            byte[] dgContainer = BuildContainer(OfficeArtDgContainer, instance: 0,
+                new[] { dgAtom, spgr, background });
+            return BuildContainer(RecordDrawing, instance: 0, new[] { dgContainer });
+        }
+
+        private static byte[] PatchShapeId(byte[] spContainer, uint shapeId) {
+            // The template SpContainers begin with FSPGR/FSP or FSP. Locate the FSP record defensively.
+            for (int offset = 8; offset <= spContainer.Length - 16;) {
+                ushort type = ReadUInt16(spContainer, offset + 2);
+                int length = checked((int)ReadUInt32(spContainer, offset + 4));
+                if (type == OfficeArtFsp) {
+                    WriteUInt32(spContainer, offset + 8, shapeId);
+                    return spContainer;
+                }
+                offset = checked(offset + 8 + length);
+            }
+            throw new InvalidDataException("The embedded PowerPoint shape template has no FSP atom.");
+        }
+
+        private static byte[] BuildShapeRecord(PowerPointShape shape, uint shapeId, int shapeIndex) {
+            ushort shapeType;
+            var children = new List<byte[]>();
+            if (shape is PowerPointTextBox textBox) {
+                shapeType = 202;
+                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildAnchor(shape));
+                byte placeholder = MapPlaceholder(textBox.PlaceholderType);
+                if (placeholder != 0) children.Add(BuildPlaceholder(shapeIndex, placeholder));
+                children.Add(BuildTextBox(textBox.Text));
+            } else if (shape is PowerPointAutoShape autoShape) {
+                shapeType = autoShape.ShapeType == A.ShapeTypeValues.Ellipse ? (ushort)3
+                    : autoShape.ShapeType == A.ShapeTypeValues.Line ? (ushort)20
+                    : (ushort)1;
+                children.Add(BuildFsp(shapeType, shapeId));
+                children.Add(BuildAnchor(shape));
+            } else {
+                throw new InvalidOperationException("Preflight admitted an unsupported PowerPoint shape.");
+            }
+            return BuildContainer(OfficeArtSpContainer, instance: 0, children);
+        }
+
+        private static byte[] BuildFsp(ushort shapeType, uint shapeId) {
+            var payload = new byte[8];
+            WriteUInt32(payload, 0, shapeId);
+            WriteUInt32(payload, 4, 0x00000A00);
+            return BuildRecord(version: 2, shapeType, OfficeArtFsp, payload);
+        }
+
+        private static byte[] BuildAnchor(PowerPointShape shape) {
+            int left = ToMasterUnits(shape.Left);
+            int top = ToMasterUnits(shape.Top);
+            int right = checked(left + ToMasterUnits(shape.Width));
+            int bottom = checked(top + ToMasterUnits(shape.Height));
+            if (FitsInt16(left) && FitsInt16(top) && FitsInt16(right) && FitsInt16(bottom)) {
+                var payload = new byte[8];
+                WriteInt16(payload, 0, unchecked((short)top));
+                WriteInt16(payload, 2, unchecked((short)left));
+                WriteInt16(payload, 4, unchecked((short)right));
+                WriteInt16(payload, 6, unchecked((short)bottom));
+                return BuildRecord(version: 0, instance: 0, OfficeArtClientAnchor, payload);
+            }
+            var largePayload = new byte[16];
+            WriteInt32(largePayload, 0, top);
+            WriteInt32(largePayload, 4, left);
+            WriteInt32(largePayload, 8, right);
+            WriteInt32(largePayload, 12, bottom);
+            return BuildRecord(version: 0, instance: 0, OfficeArtClientAnchor, largePayload);
+        }
+
+        private static byte[] BuildPlaceholder(int position, byte placeholderType) {
+            var payload = new byte[8];
+            WriteInt32(payload, 0, position);
+            payload[4] = placeholderType;
+            byte[] atom = BuildRecord(version: 0, instance: 0, RecordPlaceholder, payload);
+            return BuildContainer(OfficeArtClientData, instance: 0, new[] { atom });
+        }
+
+        private static byte[] BuildTextBox(string text) {
+            string normalized = (text ?? string.Empty).Replace("\r\n", "\r").Replace("\n", "\r");
+            if (!normalized.EndsWith("\r", StringComparison.Ordinal)) normalized += "\r";
+            byte[] header = BuildRecord(version: 0, instance: 0, RecordTextHeader, new byte[4]);
+            byte[] chars = BuildRecord(version: 0, instance: 0, RecordTextChars, Encoding.Unicode.GetBytes(normalized));
+            return BuildContainer(OfficeArtClientTextbox, instance: 0, new[] { header, chars });
+        }
+
+        private static byte MapPlaceholder(P.PlaceholderValues? value) {
+            if (!value.HasValue) return 0;
+            if (value.Value == P.PlaceholderValues.Title) return 0x0D;
+            if (value.Value == P.PlaceholderValues.CenteredTitle) return 0x0F;
+            if (value.Value == P.PlaceholderValues.SubTitle) return 0x10;
+            if (value.Value == P.PlaceholderValues.Body || value.Value == P.PlaceholderValues.Object) return 0x0E;
+            return 0;
+        }
+
+        private static byte[] BuildDocumentStream(IReadOnlyList<byte[]> persistObjects, int slideCount) {
+            using var output = new MemoryStream();
+            var offsets = new uint[persistObjects.Count];
+            for (int index = 0; index < persistObjects.Count; index++) {
+                offsets[index] = checked((uint)output.Position);
+                output.Write(persistObjects[index], 0, persistObjects[index].Length);
+            }
+
+            uint directoryOffset = checked((uint)output.Position);
+            var directoryPayload = new byte[checked(4 + persistObjects.Count * 4)];
+            WriteUInt32(directoryPayload, 0, checked((unchecked((uint)persistObjects.Count) << 20) | 1U));
+            for (int index = 0; index < offsets.Length; index++) WriteUInt32(directoryPayload, 4 + index * 4, offsets[index]);
+            byte[] directory = BuildRecord(version: 0, instance: 0, RecordPersistDirectory, directoryPayload);
+            output.Write(directory, 0, directory.Length);
+
+            uint userEditOffset = checked((uint)output.Position);
+            var editPayload = new byte[28];
+            WriteUInt32(editPayload, 0, slideCount == 0 ? 0U : unchecked((uint)(255 + slideCount)));
+            editPayload[4] = 0xBC;
+            editPayload[5] = 0x0D;
+            editPayload[7] = 0x03;
+            WriteUInt32(editPayload, 12, directoryOffset);
+            WriteUInt32(editPayload, 16, 1);
+            WriteUInt32(editPayload, 20, unchecked((uint)persistObjects.Count));
+            WriteUInt32(editPayload, 24, 0x00120001);
+            byte[] edit = BuildRecord(version: 0, instance: 0, RecordUserEdit, editPayload);
+            output.Write(edit, 0, edit.Length);
+            if (userEditOffset != FindUserEditOffset(output.ToArray())) {
+                throw new InvalidOperationException("The generated UserEditAtom offset is inconsistent.");
+            }
+            return output.ToArray();
+        }
+
+        private static uint FindUserEditOffset(byte[] documentStream) {
+            int position = 0;
+            int lastUserEdit = -1;
+            while (position <= documentStream.Length - 8) {
+                ushort type = ReadUInt16(documentStream, position + 2);
+                int length = checked((int)ReadUInt32(documentStream, position + 4));
+                if (type == RecordUserEdit) lastUserEdit = position;
+                position = checked(position + 8 + length);
+            }
+            if (lastUserEdit < 0) throw new InvalidDataException("The generated PowerPoint Document stream has no UserEditAtom.");
+            return unchecked((uint)lastUserEdit);
+        }
+
+        private static byte[] BuildCurrentUserStream(uint userEditOffset) {
+            var payload = new byte[36];
+            WriteUInt32(payload, 0, 20);
+            WriteUInt32(payload, 4, 0xE391C05F);
+            WriteUInt32(payload, 8, userEditOffset);
+            WriteUInt16(payload, 12, 12);
+            payload[14] = 0xF4;
+            payload[15] = 0x03;
+            payload[16] = 0x03;
+            Encoding.ASCII.GetBytes("Current User", 0, 12, payload, 20);
+            WriteUInt32(payload, 32, 8);
+            return BuildRecord(version: 0, instance: 0, RecordCurrentUser, payload);
+        }
+
+        private static LegacyPptWriterTemplate LoadTemplate() {
+            using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(BaseDocumentResource)
+                ?? throw new InvalidOperationException($"Embedded resource '{BaseDocumentResource}' is missing.");
+            using var memory = new MemoryStream();
+            stream.CopyTo(memory);
+            byte[] bytes = memory.ToArray();
+            var options = new LegacyPptImportOptions();
+            IReadOnlyList<LegacyPptRecord> topLevel = LegacyPptRecordReader.ReadSequence(bytes, 0, bytes.Length, options);
+            LegacyPptRecord directory = topLevel.Last(record => record.Type == RecordPersistDirectory);
+            var offsets = new Dictionary<uint, uint>();
+            int position = 0;
+            while (position < directory.PayloadLength) {
+                uint packed = directory.ReadUInt32(position);
+                position += 4;
+                uint id = packed & 0x000FFFFF;
+                int count = unchecked((int)(packed >> 20));
+                for (int index = 0; index < count; index++) {
+                    offsets[id + unchecked((uint)index)] = directory.ReadUInt32(position);
+                    position += 4;
+                }
+            }
+            LegacyPptRecord ReadPersist(uint id) => LegacyPptRecordReader.ReadSingle(bytes,
+                checked((int)offsets[id]), options);
+            LegacyPptRecord document = ReadPersist(1);
+            var shared = new List<byte[]>(12);
+            for (uint id = 2; id <= 13; id++) shared.Add(ReadPersist(id).CopyRecordBytes());
+            return new LegacyPptWriterTemplate(document, shared, ReadPersist(14));
+        }
+
+        private static byte[] BuildContainer(ushort type, ushort instance, IEnumerable<byte[]> children) =>
+            BuildRecord(version: 0x0F, instance, type, Concat(children));
+
+        private static byte[] BuildRecord(byte version, ushort instance, ushort type, byte[] payload) {
+            var bytes = new byte[checked(8 + payload.Length)];
+            WriteUInt16(bytes, 0, unchecked((ushort)((instance << 4) | version)));
+            WriteUInt16(bytes, 2, type);
+            WriteUInt32(bytes, 4, unchecked((uint)payload.Length));
+            Buffer.BlockCopy(payload, 0, bytes, 8, payload.Length);
+            return bytes;
+        }
+
+        private static byte[] Concat(IEnumerable<byte[]> records) {
+            byte[][] values = records.ToArray();
+            int length = values.Sum(record => record.Length);
+            var result = new byte[length];
+            int offset = 0;
+            foreach (byte[] record in values) {
+                Buffer.BlockCopy(record, 0, result, offset, record.Length);
+                offset += record.Length;
+            }
+            return result;
+        }
+
+        private static int ToMasterUnits(long emus) => checked((int)Math.Round(
+            emus / 1587.5d, MidpointRounding.AwayFromZero));
+
+        private static bool FitsInt16(int value) => value >= short.MinValue && value <= short.MaxValue;
+
+        private static ushort ReadUInt16(byte[] bytes, int offset) => unchecked((ushort)(bytes[offset] | bytes[offset + 1] << 8));
+
+        private static uint ReadUInt32(byte[] bytes, int offset) => unchecked((uint)(bytes[offset]
+            | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24));
+
+        private static void WriteInt16(byte[] bytes, int offset, short value) => WriteUInt16(bytes, offset, unchecked((ushort)value));
+
+        private static void WriteUInt16(byte[] bytes, int offset, ushort value) {
+            bytes[offset] = unchecked((byte)value);
+            bytes[offset + 1] = unchecked((byte)(value >> 8));
+        }
+
+        private static void WriteInt32(byte[] bytes, int offset, int value) => WriteUInt32(bytes, offset, unchecked((uint)value));
+
+        private static void WriteUInt32(byte[] bytes, int offset, uint value) {
+            bytes[offset] = unchecked((byte)value);
+            bytes[offset + 1] = unchecked((byte)(value >> 8));
+            bytes[offset + 2] = unchecked((byte)(value >> 16));
+            bytes[offset + 3] = unchecked((byte)(value >> 24));
+        }
+
+        private sealed class LegacyPptWriterTemplate {
+            internal LegacyPptWriterTemplate(LegacyPptRecord document, IReadOnlyList<byte[]> sharedPersistObjects,
+                LegacyPptRecord slidePrototype) {
+                Document = document;
+                SharedPersistObjects = sharedPersistObjects;
+                SlidePrototype = slidePrototype;
+            }
+
+            internal LegacyPptRecord Document { get; }
+            internal IReadOnlyList<byte[]> SharedPersistObjects { get; }
+            internal LegacyPptRecord SlidePrototype { get; }
+        }
+    }
+}

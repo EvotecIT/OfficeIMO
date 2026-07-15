@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
                 source.CopyTo(buffer);
                 bytes = buffer.ToArray();
             }
-            return LoadPackage(bytes, filePath, sourceStream: null, options ?? new PowerPointLoadOptions());
+            return LoadDocument(bytes, filePath, sourceStream: null, options ?? new PowerPointLoadOptions());
         }
 
         /// <summary>Loads a presentation from a caller-owned stream into memory. Editable writable seekable sources become the associated destination; other sources remain detached.</summary>
@@ -187,7 +187,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            return LoadPackage(ReadAllBytes(stream), filePath: null, stream, resolved);
+            return LoadDocument(ReadAllBytes(stream), filePath: null, stream, resolved);
         }
 
         /// <summary>Asynchronously loads an existing presentation into detached memory.</summary>
@@ -209,7 +209,7 @@ namespace OfficeIMO.PowerPoint {
                 81920,
                 useAsync: true);
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(source, cancellationToken).ConfigureAwait(false);
-            return LoadPackage(bytes, fullPath, sourceStream: null, options ?? new PowerPointLoadOptions());
+            return LoadDocument(bytes, fullPath, sourceStream: null, options ?? new PowerPointLoadOptions());
         }
 
         /// <summary>Asynchronously loads a presentation from a caller-owned stream.</summary>
@@ -223,7 +223,7 @@ namespace OfficeIMO.PowerPoint {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "presentation");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
             byte[] bytes = await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
-            return LoadPackage(bytes, filePath: null, stream, resolved);
+            return LoadDocument(bytes, filePath: null, stream, resolved);
         }
 
         /// <summary>Loads a password-encrypted presentation into detached memory.</summary>
@@ -326,11 +326,23 @@ namespace OfficeIMO.PowerPoint {
                     document.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null) {
                     presentation._signedPackageOpenFingerprint = CreatePackageFingerprint(document);
                 }
+                presentation.MarkLoadedFromOpenXml();
                 return presentation;
             } catch {
                 packageStream.Dispose();
                 throw;
             }
+        }
+
+        private static PowerPointPresentation LoadDocument(
+            byte[] bytes,
+            string? filePath,
+            Stream? sourceStream,
+            PowerPointLoadOptions options) {
+            if (PowerPointPresentationLoadRouting.IsLegacyBinary(bytes, filePath)) {
+                return LoadLegacyPptFromNormalFlow(bytes, filePath, sourceStream, options);
+            }
+            return LoadPackage(bytes, filePath, sourceStream, options);
         }
 
         private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {

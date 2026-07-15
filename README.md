@@ -10,7 +10,7 @@
 
 OfficeIMO is a family of COM-free .NET libraries for creating, reading, editing, converting, and exporting Office and document formats. It runs in services, desktop applications, build agents, containers, and automation hosts without Microsoft Office, Excel, PowerPoint, Visio, or LibreOffice automation.
 
-This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, and legacy Excel `.xls` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
+This is not one facade over a collection of unrelated document libraries. OfficeIMO owns its PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP, drawing, legacy Word `.doc`, legacy Excel `.xls`, and legacy PowerPoint `.ppt`/`.pot`/`.pps` implementations. Word, Excel, and PowerPoint use the Open XML SDK for package mechanics; HTML uses AngleSharp for DOM and CSS parsing. Converters compose the same first-party object models used by the native packages and return diagnostics when a target format cannot carry everything from the source.
 
 The current coordinated package line is `2.0.x`. Applications should upgrade OfficeIMO packages together because `2.0` deliberately removed contradictory aliases and standardized document lifecycle and conversion APIs. See the [2.0 breaking API migration](Docs/officeimo.breaking-api-migration.md).
 
@@ -23,7 +23,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Package family | Direct external runtime dependency | What OfficeIMO owns |
 | --- | --- | --- |
 | Drawing, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
-| Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls` support |
+| Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls`/`.ppt` support |
 | HTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, media filtering, layout scene, Office/RTF mappings, and PDF/PNG/SVG output |
 | Visio | `System.IO.Packaging` | VSDX model, diagram builders, editing, validation, topology, and SVG/PNG export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
@@ -45,7 +45,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Markdown renderer and OfficeIMO Markup surfaces | 10 |
 | Runnable example projects | 1 |
 | Modern Office authoring/editing | `.docx`, `.xlsx`, `.pptx`, `.vsdx` |
-| First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls` |
+| First-party legacy binary support | Word 97–2003 `.doc`, Excel BIFF8 `.xls`, PowerPoint 97–2003 `.ppt`/`.pot`/`.pps` |
 | Managed PNG/SVG-capable document surfaces | Word, Excel, PowerPoint, Visio, HTML, and PDF |
 
 The checkboxes describe the exact level of support: authoring, editing, reading, preserving, inspecting, converting, or exporting. A checked inspection or preservation item is not presented as full authoring support.
@@ -117,6 +117,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.xls` sup
 #### [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md)
 
 - [x] Create, load, edit, inspect, and save editable `.pptx` presentations
+- [x] Read `.ppt`, `.pot`, and `.pps`, project supported content into the editable model, and write the supported native binary subset with loss preflight
 - [x] Slide creation, duplication, deletion, reordering, sections, presentation sizes, layouts, placeholders, and templates
 - [x] Text boxes, rich runs, paragraphs, bullets, alignment, spacing, auto-fit, hyperlinks, and theme-aware typography
 - [x] PNG/JPEG/SVG pictures from files and streams with crop, replacement, validation, positioning, and effects
@@ -130,7 +131,7 @@ _Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy `.xls` sup
 - [x] Encrypted presentation save/load and read-only, stream-backed, detached-load, and explicit-persistence lifecycles
 - [x] Slide export to PNG and SVG and presentation-wide image export; adapters add PDF, HTML, and ODP
 
-_Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; composition, editing, charting, and managed image export are OfficeIMO implementations.
+_Dependency footprint:_ Open XML SDK plus `OfficeIMO.Drawing`; legacy binary support, composition, editing, charting, and managed image export are OfficeIMO implementations.
 
 #### [OfficeIMO.Visio](OfficeIMO.Visio/README.md)
 
