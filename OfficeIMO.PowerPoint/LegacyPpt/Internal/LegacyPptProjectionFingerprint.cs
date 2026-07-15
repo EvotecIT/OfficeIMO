@@ -56,13 +56,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 (part, root) => {
                     if (part is PresentationPart) NormalizePresentationTopology(root);
                 },
-                part => !(part is SlidePart),
+                part => !(part is SlidePart or NotesSlidePart),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart));
 
         private static string CreateSlide(PresentationDocument document, SlidePart slidePart,
             LegacyPptProjectionMap projectionMap) => PowerPointPackageFingerprint.Create(document,
-            (part, root) => NormalizeProjectedSlide(root, part.Uri, projectionMap),
-            part => string.Equals(part.Uri.ToString(), slidePart.Uri.ToString(), StringComparison.Ordinal));
+            (part, root) => NormalizeProjectedSlide(root, slidePart.Uri, projectionMap),
+            part => string.Equals(part.Uri.ToString(), slidePart.Uri.ToString(),
+                        StringComparison.Ordinal)
+                    || part is NotesSlidePart notesPart
+                    && ReferenceEquals(notesPart.SlidePart, slidePart));
 
         private static void NormalizePresentationTopology(OpenXmlElement root) {
             if (root is not P.Presentation presentation || presentation.SlideIdList == null) return;
@@ -74,6 +77,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptSlideProjection? slideProjection = projectionMap.Slides.FirstOrDefault(slide =>
                 string.Equals(slide.SlidePartUri, partUri.ToString(), StringComparison.Ordinal));
             if (slideProjection == null) return;
+            if (root is P.NotesSlide notesRoot && slideProjection.Notes != null) {
+                foreach (P.Shape shape in notesRoot.CommonSlideData?.ShapeTree?
+                             .Elements<P.Shape>() ?? Enumerable.Empty<P.Shape>()) {
+                    P.PlaceholderShape? placeholder = shape.NonVisualShapeProperties?
+                        .ApplicationNonVisualDrawingProperties?.PlaceholderShape;
+                    if (placeholder?.Type?.Value == P.PlaceholderValues.Body
+                        && shape.TextBody != null) {
+                        shape.TextBody.RemoveAllChildren<A.Paragraph>();
+                    }
+                }
+                return;
+            }
             if (root is P.Slide slideRoot) slideRoot.Show = null;
 
             foreach (P.Shape shape in root.Descendants<P.Shape>()) {

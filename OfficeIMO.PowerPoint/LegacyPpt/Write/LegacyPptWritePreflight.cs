@@ -27,9 +27,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
-                if (slide.SlidePart.NotesSlidePart != null && !string.IsNullOrWhiteSpace(slide.Notes.Text)) {
-                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.SpeakerNotes, "PPT-WRITE-NOTES",
-                        "Speaker notes are not encoded by the native binary writer.", slideIndex));
+                if (HasUnsupportedRichNotes(slide)) {
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichNotes,
+                        "PPT-WRITE-RICH-NOTES",
+                        "Notes-page drawings beyond the speaker-notes body are not encoded by the native binary writer.",
+                        slideIndex));
                 }
                 P.Slide? slideRoot = slide.SlidePart.Slide;
                 if (slide.Transition != SlideTransition.None) {
@@ -95,6 +97,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
                 || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
                 || autoShape.ShapeType == A.ShapeTypeValues.Line);
+
+        private static bool HasUnsupportedRichNotes(PowerPointSlide slide) {
+            P.ShapeTree? tree = slide.SlidePart.NotesSlidePart?.NotesSlide?
+                .CommonSlideData?.ShapeTree;
+            if (tree == null) return false;
+            int bodyPlaceholderCount = 0;
+            foreach (OpenXmlElement child in tree.ChildElements) {
+                if (child is P.NonVisualGroupShapeProperties or P.GroupShapeProperties) continue;
+                if (child is not P.Shape shape) return true;
+                P.PlaceholderShape? placeholder = shape.NonVisualShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape;
+                if (placeholder?.Type?.Value != P.PlaceholderValues.Body) return true;
+                bodyPlaceholderCount++;
+            }
+            return bodyPlaceholderCount > 1;
+        }
 
         private static LegacyPptFeature MapShapeFeature(PowerPointShape shape) {
             switch (shape.ShapeContentType) {

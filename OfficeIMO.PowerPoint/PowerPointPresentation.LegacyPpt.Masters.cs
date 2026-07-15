@@ -439,6 +439,7 @@ namespace OfficeIMO.PowerPoint {
                 SlidePart slidePart => slidePart.AddImagePart(partType),
                 SlideMasterPart masterPart => masterPart.AddImagePart(partType),
                 SlideLayoutPart layoutPart => layoutPart.AddImagePart(partType),
+                NotesSlidePart notesSlidePart => notesSlidePart.AddImagePart(partType),
                 NotesMasterPart notesPart => notesPart.AddImagePart(partType),
                 HandoutMasterPart handoutPart => handoutPart.AddImagePart(partType),
                 _ => throw new NotSupportedException(

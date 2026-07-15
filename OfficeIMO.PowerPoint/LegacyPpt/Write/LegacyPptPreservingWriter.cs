@@ -20,6 +20,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordTextHeader = 0x0F9F;
         private const ushort RecordTextChars = 0x0FA0;
         private const ushort RecordTextBytes = 0x0FA8;
+        private const ushort RecordPlaceholder = 0x0BC3;
         private const ushort OfficeArtSpContainer = 0xF004;
         private const ushort OfficeArtDgg = 0xF006;
         private const ushort OfficeArtFsp = 0xF00A;
@@ -92,6 +93,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     currentSlideOrder.Add(slideProjection);
                     slideIds.Add(slideProjection.SlideId);
+
+                    string currentNotes = slide.Notes.TryGetText(out string noteText)
+                        ? NormalizeLogicalText(noteText)
+                        : string.Empty;
+                    if (slideProjection.Notes == null) {
+                        if (currentNotes.Length > 0) return false;
+                    } else if (!string.Equals(currentNotes,
+                                   NormalizeLogicalText(slideProjection.Notes.Text),
+                                   StringComparison.Ordinal)) {
+                        if (!package.PersistObjects.TryGetValue(
+                                slideProjection.Notes.PersistId,
+                                out LegacyPptPersistObject? notesPersistObject)
+                            || notesPersistObject == null) {
+                            return false;
+                        }
+                        LegacyPptRecord notesRecord = LegacyPptRecordReader.ReadSingle(
+                            notesPersistObject.RecordBytes, 0, new LegacyPptImportOptions());
+                        if (!TryRewriteNotesRecord(notesRecord,
+                                slideProjection.Notes.Text, currentNotes,
+                                out byte[] rewrittenNotes)) {
+                            return false;
+                        }
+                        rewritten.Add(slideProjection.Notes.PersistId, rewrittenNotes);
+                    }
 
                     PowerPointShape[] shapes = slide.Shapes.ToArray();
                     if (shapes.Length != slideProjection.Shapes.Count) return false;
@@ -262,6 +287,57 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             return TryReplaceDescendant(textbox, textRecords[0].Offset, replacementRecord, out bytes);
+        }
+
+        private static bool TryRewriteNotesRecord(LegacyPptRecord record,
+            string originalText, string replacementText, out byte[] bytes) {
+            if (record.Type == OfficeArtSpContainer && IsNotesBodyShape(record)) {
+                var children = new List<byte[]>(record.Children.Count);
+                bool replaced = false;
+                foreach (LegacyPptRecord child in record.Children) {
+                    if (!replaced && child.Type == OfficeArtClientTextbox
+                        && TryRewriteTextBox(child, originalText, replacementText,
+                            out byte[] textbox)) {
+                        children.Add(textbox);
+                        replaced = true;
+                    } else {
+                        children.Add(child.CopyRecordBytes());
+                    }
+                }
+                bytes = replaced
+                    ? BuildRecord(record.Version, record.Instance, record.Type,
+                        Concat(children))
+                    : record.CopyRecordBytes();
+                return replaced;
+            }
+            if (record.Version != 0x0F || record.Children.Count == 0) {
+                bytes = record.CopyRecordBytes();
+                return false;
+            }
+
+            var rewrittenChildren = new List<byte[]>(record.Children.Count);
+            bool changed = false;
+            foreach (LegacyPptRecord child in record.Children) {
+                if (!changed && TryRewriteNotesRecord(child, originalText, replacementText,
+                        out byte[] rewrittenChild)) {
+                    rewrittenChildren.Add(rewrittenChild);
+                    changed = true;
+                } else {
+                    rewrittenChildren.Add(child.CopyRecordBytes());
+                }
+            }
+            bytes = changed
+                ? BuildRecord(record.Version, record.Instance, record.Type,
+                    Concat(rewrittenChildren))
+                : record.CopyRecordBytes();
+            return changed;
+        }
+
+        private static bool IsNotesBodyShape(LegacyPptRecord shapeContainer) {
+            LegacyPptRecord? placeholder = shapeContainer.DescendantsAndSelf()
+                .FirstOrDefault(record => record.Type == RecordPlaceholder
+                    && record.PayloadLength >= 5);
+            return placeholder?.ReadByte(4) is 0x06 or 0x0C;
         }
 
         private static bool TryBuildTextRecord(LegacyPptRecord textbox, LegacyPptRecord textRecord,

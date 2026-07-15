@@ -134,6 +134,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "The document has no slide list.", document.Offset);
                 return;
             }
+            IReadOnlyDictionary<uint, LegacyPptNotesDirectoryEntry> notesDirectory =
+                ReadNotesDirectory(document, options);
 
             int slideIndex = 0;
             foreach (LegacyPptRecord slidePersist in slideList.Children.Where(record => record.Type == RecordSlidePersistAtom)) {
@@ -160,7 +162,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
                 var slide = new LegacyPptSlide(slideId, persistId) { Name = $"Slide {++slideIndex}" };
                 ParseSlide(slideRecord, slide, options);
-                TryReadNotes(slideRecord, slide, documentStream, persistOffsets, options);
+                TryReadNotes(slide, documentStream, persistOffsets, notesDirectory, options);
                 _slides.Add(slide);
             }
         }
@@ -519,27 +521,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 AddDiagnostic("PPT-PICTURE-FORMAT-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
                     $"The {picture.BlipRecordTypeName ?? picture.RecordInstanceBlipTypeName} picture cannot be projected to an editable Open XML image part.",
                     offset);
-            }
-        }
-
-        private void TryReadNotes(LegacyPptRecord slideRecord, LegacyPptSlide slide, byte[] documentStream,
-            IReadOnlyDictionary<uint, uint> persistOffsets, LegacyPptImportOptions options) {
-            LegacyPptRecord? slideAtom = slideRecord.Children.FirstOrDefault(record => record.Type == RecordSlideAtom);
-            if (slideAtom == null || slideAtom.PayloadLength < 20) return;
-            uint notesPersistId = slideAtom.ReadUInt32(16);
-            if (notesPersistId == 0 || !persistOffsets.TryGetValue(notesPersistId, out uint notesOffset)) return;
-
-            try {
-                LegacyPptRecord notes = LegacyPptRecordReader.ReadSingle(documentStream,
-                    ToBoundedOffset(notesOffset, documentStream.Length, "notes persist object"), options);
-                string notesText = string.Join("\n", notes.DescendantsAndSelf()
-                    .Where(record => record.Type == OfficeArtClientTextbox)
-                    .Select(record => ReadText(record).Text)
-                    .Where(text => !string.IsNullOrWhiteSpace(text)));
-                slide.NotesText = notesText;
-            } catch (InvalidDataException exception) {
-                AddDiagnostic("PPT-NOTES-READ", LegacyPptDiagnosticSeverity.Warning,
-                    $"Speaker notes could not be decoded: {exception.Message}", notesOffset);
             }
         }
 

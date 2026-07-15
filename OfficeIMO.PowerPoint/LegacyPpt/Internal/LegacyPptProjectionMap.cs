@@ -73,7 +73,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
-                    sourceSlide.Hidden, shapes));
+                    sourceSlide.Hidden, shapes, sourceSlide.NotesPage == null
+                        ? null
+                        : new LegacyPptNotesProjection(sourceSlide.NotesPage.PersistId,
+                            sourceSlide.NotesPage.NotesId, sourceSlide.NotesPage.Text)));
             }
             return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy));
         }
@@ -109,12 +112,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, uint masterId,
             bool hidden,
-            IReadOnlyList<LegacyPptShapeProjection> shapes) {
+            IReadOnlyList<LegacyPptShapeProjection> shapes, LegacyPptNotesProjection? notes) {
             SlidePartUri = slidePartUri ?? throw new ArgumentNullException(nameof(slidePartUri));
             PersistId = persistId;
             SlideId = slideId;
             MasterId = masterId;
             Hidden = hidden;
+            Notes = notes;
             Shapes = new ReadOnlyCollection<LegacyPptShapeProjection>(shapes.ToArray());
             _shapesByOpenXmlId = new ReadOnlyDictionary<uint, LegacyPptShapeProjection>(shapes.ToDictionary(
                 shape => shape.OpenXmlShapeId));
@@ -130,10 +134,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool Hidden { get; }
 
+        internal LegacyPptNotesProjection? Notes { get; }
+
         internal IReadOnlyList<LegacyPptShapeProjection> Shapes { get; }
 
         internal bool TryGetShape(uint openXmlShapeId, out LegacyPptShapeProjection? projection) =>
             _shapesByOpenXmlId.TryGetValue(openXmlShapeId, out projection);
+    }
+
+    /// <summary>Maps projected speaker-note text to its binary NotesContainer.</summary>
+    internal sealed class LegacyPptNotesProjection {
+        internal LegacyPptNotesProjection(uint persistId, uint notesId, string text) {
+            PersistId = persistId;
+            NotesId = notesId;
+            Text = text ?? string.Empty;
+        }
+
+        internal uint PersistId { get; }
+
+        internal uint NotesId { get; }
+
+        internal string Text { get; }
     }
 
     /// <summary>Maps one projected Open XML shape to its OfficeArt shape container.</summary>

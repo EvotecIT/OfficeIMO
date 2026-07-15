@@ -60,6 +60,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets OfficeArt connector attachment rules in solver order.</summary>
         public IReadOnlyList<LegacyPptConnectorRule> ConnectorRules => _connectorRules;
 
+        /// <summary>Gets the associated notes page, when the slide references one.</summary>
+        public LegacyPptNotesPage? NotesPage { get; internal set; }
+
         /// <summary>Gets speaker notes flattened to plain text.</summary>
         public string NotesText { get; internal set; } = string.Empty;
 

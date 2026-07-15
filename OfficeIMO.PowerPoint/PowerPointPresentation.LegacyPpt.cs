@@ -82,7 +82,9 @@ namespace OfficeIMO.PowerPoint {
                     }
                 }
                 ProjectLegacyConnectorRules(slide, legacySlide.ConnectorRules, projectedShapeIds);
-                if (!string.IsNullOrWhiteSpace(legacySlide.NotesText)) {
+                if (legacySlide.NotesPage != null) {
+                    ProjectLegacyNotesPage(slide, legacySlide.NotesPage);
+                } else if (!string.IsNullOrWhiteSpace(legacySlide.NotesText)) {
                     slide.Notes.Text = legacySlide.NotesText;
                 }
             }

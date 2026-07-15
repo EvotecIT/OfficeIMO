@@ -7,7 +7,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
-    internal static class LegacyPptWriter {
+    internal static partial class LegacyPptWriter {
         private const string BaseDocumentResource = "OfficeIMO.PowerPoint.Resources.legacy-ppt-base-document.bin";
         private static readonly Guid PowerPointClassId = new("64818D10-4F9B-11CF-86EA-00AA00B929E8");
         private static readonly Lazy<LegacyPptWriterTemplate> Template = new(LoadTemplate);
@@ -16,6 +16,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordDocumentAtom = 0x03E9;
         private const ushort RecordSlide = 0x03EE;
         private const ushort RecordSlideAtom = 0x03EF;
+        private const ushort RecordNotes = 0x03F0;
+        private const ushort RecordNotesAtom = 0x03F1;
         private const ushort RecordSlidePersistAtom = 0x03F3;
         private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
         private const ushort RecordDrawingGroup = 0x040B;
@@ -41,28 +43,48 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static byte[] WritePresentation(PowerPointPresentation presentation,
             PowerPointSaveOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            if (presentation.Slides.Count > 4082) {
-                throw new NotSupportedException("Native binary PowerPoint saving supports at most 4,082 slides per presentation.");
-            }
             LegacyPptWritePreflightReport preflight = LegacyPptWritePreflight.Analyze(presentation);
             LegacyPptWritePreflight.ThrowIfBlocked(preflight, options);
 
             LegacyPptWriterTemplate template = Template.Value;
+            var notes = new List<LegacyPptWriterNote>();
+            for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
+                PowerPointSlide slide = presentation.Slides[slideIndex];
+                if (!slide.Notes.TryGetText(out string noteText)
+                    || string.IsNullOrWhiteSpace(noteText)) continue;
+                int noteIndex = notes.Count;
+                notes.Add(new LegacyPptWriterNote(slideIndex, noteText,
+                    unchecked((uint)(256 + slideIndex)),
+                    checked((uint)(14 + presentation.Slides.Count + noteIndex)),
+                    checked((uint)(13 + presentation.Slides.Count + noteIndex))));
+            }
+            if (presentation.Slides.Count + notes.Count > 4082) {
+                throw new NotSupportedException(
+                    "Native binary PowerPoint saving supports at most 4,082 combined slide and notes persist objects.");
+            }
+            IReadOnlyDictionary<int, LegacyPptWriterNote> notesBySlide = notes.ToDictionary(
+                note => note.SlideIndex);
             var slideRecords = new List<byte[]>(presentation.Slides.Count);
             var slideShapeCounts = new List<int>(presentation.Slides.Count);
             for (int index = 0; index < presentation.Slides.Count; index++) {
                 PowerPointSlide slide = presentation.Slides[index];
                 IReadOnlyList<PowerPointShape> supportedShapes = slide.Shapes.Where(IsSupportedShape).ToArray();
                 slideShapeCounts.Add(supportedShapes.Count);
+                uint? notesId = notesBySlide.TryGetValue(index, out LegacyPptWriterNote? note)
+                    ? note.NotesId
+                    : null;
                 slideRecords.Add(BuildSlideRecord(template.SlidePrototype, slide, supportedShapes,
-                    unchecked((uint)(13 + index)), masterIdRef: null));
+                    unchecked((uint)(13 + index)), masterIdRef: null, notesId));
             }
+            var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
+                note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId)).ToArray();
 
-            var persistObjects = new List<byte[]>(13 + slideRecords.Count) {
-                BuildDocumentRecord(template.Document, presentation, slideShapeCounts)
+            var persistObjects = new List<byte[]>(13 + slideRecords.Count + notesRecords.Length) {
+                BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes)
             };
             persistObjects.AddRange(template.SharedPersistObjects);
             persistObjects.AddRange(slideRecords);
+            persistObjects.AddRange(notesRecords);
 
             byte[] documentStream = BuildDocumentStream(persistObjects, presentation.Slides.Count);
             byte[] currentUserStream = BuildCurrentUserStream(FindUserEditOffset(documentStream));
@@ -88,11 +110,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (shapes.Count != slide.Shapes.Count) {
                 throw new InvalidOperationException("The incremental slide contains an unsupported shape.");
             }
-            return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId, masterIdRef);
+            return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
+                masterIdRef, notesIdRef: null);
         }
 
         private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,
-            IReadOnlyList<int> slideShapeCounts) {
+            IReadOnlyList<int> slideShapeCounts, IReadOnlyList<LegacyPptWriterNote> notes) {
             var children = new List<byte[]>();
             foreach (LegacyPptRecord child in document.Children) {
                 if (child.Type == RecordDocumentAtom) {
@@ -102,11 +125,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     PatchDocumentSettings(atom, presentation);
                     children.Add(atom);
                 } else if (child.Type == RecordDrawingGroup) {
-                    children.Add(BuildDrawingGroupRecord(child, slideShapeCounts));
+                    children.Add(BuildDrawingGroupRecord(child, slideShapeCounts, notes.Count));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 0) {
                     children.Add(BuildSlideList(presentation.Slides.Count));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 2) {
-                    // Notes persist objects are intentionally omitted by the supported native subset.
+                    if (notes.Count > 0) children.Add(BuildNotesList(notes));
                 } else {
                     children.Add(child.CopyRecordBytes());
                 }
@@ -164,7 +187,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildDrawingGroupRecord(LegacyPptRecord drawingGroup,
-            IReadOnlyList<int> slideShapeCounts) {
+            IReadOnlyList<int> slideShapeCounts, int notesCount) {
             var drawingGroupChildren = new List<byte[]>();
             foreach (LegacyPptRecord child in drawingGroup.Children) {
                 if (child.Type != OfficeArtDggContainer) {
@@ -175,7 +198,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 var dggChildren = new List<byte[]>();
                 foreach (LegacyPptRecord dggChild in child.Children) {
                     dggChildren.Add(dggChild.Type == OfficeArtDgg
-                        ? BuildDggAtom(dggChild, slideShapeCounts)
+                        ? BuildDggAtom(dggChild, slideShapeCounts, notesCount)
                         : dggChild.CopyRecordBytes());
                 }
                 drawingGroupChildren.Add(BuildContainer(OfficeArtDggContainer, child.Instance, dggChildren));
@@ -183,7 +206,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(RecordDrawingGroup, drawingGroup.Instance, drawingGroupChildren);
         }
 
-        private static byte[] BuildDggAtom(LegacyPptRecord baseAtom, IReadOnlyList<int> slideShapeCounts) {
+        private static byte[] BuildDggAtom(LegacyPptRecord baseAtom,
+            IReadOnlyList<int> slideShapeCounts, int notesCount) {
             var clusters = new List<KeyValuePair<uint, uint>>();
             int baseClusterCount = Math.Max(0, unchecked((int)baseAtom.ReadUInt32(4)) - 1);
             for (int index = 0; index < baseClusterCount && 16 + index * 8 + 8 <= baseAtom.PayloadLength; index++) {
@@ -194,6 +218,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             for (int index = 0; index < slideShapeCounts.Count; index++) {
                 clusters.Add(new KeyValuePair<uint, uint>(unchecked((uint)(13 + index)),
                     unchecked((uint)(slideShapeCounts[index] + 2))));
+            }
+            for (int index = 0; index < notesCount; index++) {
+                clusters.Add(new KeyValuePair<uint, uint>(
+                    unchecked((uint)(13 + slideShapeCounts.Count + index)), 4U));
             }
 
             uint maxDrawingId = clusters.Count == 0 ? 1U : clusters.Max(cluster => cluster.Key);
@@ -224,7 +252,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildSlideRecord(LegacyPptRecord prototype, PowerPointSlide slide,
-            IReadOnlyList<PowerPointShape> shapes, uint drawingId, uint? masterIdRef) {
+            IReadOnlyList<PowerPointShape> shapes, uint drawingId, uint? masterIdRef,
+            uint? notesIdRef) {
             var children = new List<byte[]>();
             bool hasSlideShowInfo = false;
             foreach (LegacyPptRecord child in prototype.Children) {
@@ -237,7 +266,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         atom[12 + index] = placeholderTypes[index];
                     }
                     if (masterIdRef.HasValue) WriteUInt32(atom, 20, masterIdRef.Value);
-                    WriteUInt32(atom, 24, 0);
+                    WriteUInt32(atom, 24, notesIdRef.GetValueOrDefault());
                     children.Add(atom);
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId));
@@ -381,10 +410,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(OfficeArtClientData, instance: 0, new[] { atom });
         }
 
-        private static byte[] BuildTextBox(string text) {
+        private static byte[] BuildTextBox(string text, uint textType = 0U) {
             string normalized = (text ?? string.Empty).Replace("\r\n", "\r").Replace("\n", "\r");
             if (!normalized.EndsWith("\r", StringComparison.Ordinal)) normalized += "\r";
-            byte[] header = BuildRecord(version: 0, instance: 0, RecordTextHeader, new byte[4]);
+            var headerPayload = new byte[4];
+            WriteUInt32(headerPayload, 0, textType);
+            byte[] header = BuildRecord(version: 0, instance: 0, RecordTextHeader,
+                headerPayload);
             byte[] chars = BuildRecord(version: 0, instance: 0, RecordTextChars, Encoding.Unicode.GetBytes(normalized));
             return BuildContainer(OfficeArtClientTextbox, instance: 0, new[] { header, chars });
         }
@@ -596,7 +628,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord document = ReadPersist(1);
             var shared = new List<byte[]>(12);
             for (uint id = 2; id <= 13; id++) shared.Add(ReadPersist(id).CopyRecordBytes());
-            return new LegacyPptWriterTemplate(document, shared, ReadPersist(14));
+            return new LegacyPptWriterTemplate(document, shared, ReadPersist(14),
+                ReadPersist(15));
         }
 
         private static byte[] BuildContainer(ushort type, ushort instance, IEnumerable<byte[]> children) =>
@@ -651,15 +684,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private sealed class LegacyPptWriterTemplate {
             internal LegacyPptWriterTemplate(LegacyPptRecord document, IReadOnlyList<byte[]> sharedPersistObjects,
-                LegacyPptRecord slidePrototype) {
+                LegacyPptRecord slidePrototype, LegacyPptRecord notesPrototype) {
                 Document = document;
                 SharedPersistObjects = sharedPersistObjects;
                 SlidePrototype = slidePrototype;
+                NotesPrototype = notesPrototype;
             }
 
             internal LegacyPptRecord Document { get; }
             internal IReadOnlyList<byte[]> SharedPersistObjects { get; }
             internal LegacyPptRecord SlidePrototype { get; }
+            internal LegacyPptRecord NotesPrototype { get; }
         }
+
     }
 }

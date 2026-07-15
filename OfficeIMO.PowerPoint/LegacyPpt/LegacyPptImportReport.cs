@@ -21,6 +21,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 slide.Shapes.Count(shape => shape.Placeholder != null))
                 + presentation.Masters.Sum(master =>
                     master.Shapes.Count(shape => shape.Placeholder != null))
+                + presentation.Slides.Sum(slide =>
+                    slide.NotesPage?.Shapes.Count(shape => shape.Placeholder != null) ?? 0)
                 + CountSpecialMasterPlaceholders(presentation.NotesMaster)
                 + CountSpecialMasterPlaceholders(presentation.HandoutMaster);
             DistinctSlideLayoutCount = presentation.Slides
@@ -37,18 +39,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             SpecialMasterShapeCount = CountSpecialMasterShapes(presentation.NotesMaster)
                 + CountSpecialMasterShapes(presentation.HandoutMaster);
             BackgroundCount = presentation.Slides.Count(slide => slide.Background != null)
+                + presentation.Slides.Count(slide => slide.NotesPage?.Background != null)
                 + presentation.Masters.Count(master => master.Background != null)
                 + CountSpecialMasterBackground(presentation.NotesMaster)
                 + CountSpecialMasterBackground(presentation.HandoutMaster);
             ProjectableBackgroundCount = presentation.Slides.Count(slide =>
                     slide.Background?.HasProjectableFill == true)
+                + presentation.Slides.Count(slide =>
+                    slide.NotesPage?.Background?.HasProjectableFill == true)
                 + presentation.Masters.Count(master =>
                     master.Background?.HasProjectableFill == true)
                 + CountProjectableSpecialMasterBackground(presentation.NotesMaster)
                 + CountProjectableSpecialMasterBackground(presentation.HandoutMaster);
             UnsupportedShapeCount = presentation.Slides.Sum(slide =>
-                slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.Unsupported));
-            NotesSlideCount = presentation.Slides.Count(slide => !string.IsNullOrWhiteSpace(slide.NotesText));
+                    slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.Unsupported)
+                    + (slide.NotesPage?.Shapes.Count(shape =>
+                        shape.Kind == LegacyPptShapeKind.Unsupported) ?? 0));
+            NotesSlideCount = presentation.Slides.Count(slide => slide.NotesPage != null);
+            NotesPageShapeCount = presentation.Slides.Sum(slide =>
+                slide.NotesPage?.Shapes.Count ?? 0);
             WarningCount = presentation.Diagnostics.Count(diagnostic =>
                 diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning);
             ErrorCount = presentation.Diagnostics.Count(diagnostic =>
@@ -114,6 +123,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of slides with imported speaker notes.</summary>
         public int NotesSlideCount { get; }
+
+        /// <summary>Gets the number of decoded notes-page drawing shapes.</summary>
+        public int NotesPageShapeCount { get; }
 
         /// <summary>Gets the warning count.</summary>
         public int WarningCount { get; }
