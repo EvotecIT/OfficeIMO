@@ -9,6 +9,9 @@ using System.Text;
 namespace OfficeIMO.Reader.Benchmarks.Comparison;
 
 internal static class ReaderComparisonCorpus {
+    private static readonly DateTime FixedPackageTimestamp =
+        new DateTime(2026, 7, 15, 12, 0, 0, DateTimeKind.Utc);
+
     private const string TinyPngBase64 =
         "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=";
 
@@ -38,10 +41,12 @@ internal static class ReaderComparisonCorpus {
             table.Rows[0].Cells[1].Paragraphs[0].Text = "Status";
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Retention marker";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "Ready";
+            document.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
+            document.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
             document.Save();
         }
 
-        return Case("docx", "evidence-policy.docx", stream.ToArray(),
+        return Case("docx", "evidence-policy.docx", NormalizeOfficePackage(stream.ToArray()),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "Evidence policy"),
             Probe("link", ReaderComparisonProbeKind.MarkdownLink, "Open policy portal"),
             Probe("footnote", ReaderComparisonProbeKind.ContainsText, "Footnote retention marker"),
@@ -62,10 +67,12 @@ internal static class ReaderComparisonCorpus {
                 sheet.Cell(2, 1, "Spreadsheet retention marker");
                 sheet.Cell(2, 2, "Reader team");
                 sheet.Cell(2, 3, "Ready");
+                document.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
+                document.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
                 document.Save();
             }
 
-            return Case("xlsx", "evidence-workbook.xlsx", File.ReadAllBytes(path),
+            return Case("xlsx", "evidence-workbook.xlsx", NormalizeOfficePackage(File.ReadAllBytes(path)),
                 Probe("table-text", ReaderComparisonProbeKind.ContainsText, "Spreadsheet retention marker"),
                 Probe("markdown-table", ReaderComparisonProbeKind.MarkdownTable, "Spreadsheet retention marker"),
                 Probe("rich-table", ReaderComparisonProbeKind.RichTable),
@@ -90,9 +97,11 @@ internal static class ReaderComparisonCorpus {
             slide.AddPicture(image, OfficeIMO.PowerPoint.ImagePartType.Png);
             slide.Notes.Text = "Presenter notes retention marker";
             presentation.Save();
+            presentation.BuiltinDocumentProperties.Created = FixedPackageTimestamp;
+            presentation.BuiltinDocumentProperties.Modified = FixedPackageTimestamp;
         }
 
-        return Case("pptx", "evidence-deck.pptx", stream.ToArray(),
+        return Case("pptx", "evidence-deck.pptx", NormalizeOfficePackage(stream.ToArray()),
             Probe("title", ReaderComparisonProbeKind.ContainsText, "Quarterly evidence"),
             Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "Presentation list marker"),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "Presentation table marker"),
@@ -230,6 +239,11 @@ internal static class ReaderComparisonCorpus {
         string id,
         ReaderComparisonProbeKind kind,
         string marker = "") => new ReaderComparisonProbe(id, kind, marker);
+
+    private static byte[] NormalizeOfficePackage(byte[] packageBytes) =>
+        ReaderComparisonPackageNormalizer.Normalize(
+            packageBytes,
+            new DateTimeOffset(FixedPackageTimestamp));
 
     private static void WriteEntry(
         ZipArchive archive,

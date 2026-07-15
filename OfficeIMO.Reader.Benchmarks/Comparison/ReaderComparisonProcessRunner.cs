@@ -1,3 +1,4 @@
+using OfficeIMO.Reader.Ocr.Process;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
@@ -21,18 +22,19 @@ internal static class ReaderComparisonProcessRunner {
         string outputPath,
         CancellationToken cancellationToken) {
         Validate(configuration);
+        IReadOnlyList<string> arguments = configuration.Arguments
+            .Select(argument => argument
+                .Replace("{input}", inputPath, StringComparison.Ordinal)
+                .Replace("{output}", outputPath, StringComparison.Ordinal))
+            .ToArray();
         var startInfo = new ProcessStartInfo {
             FileName = configuration.FileName,
+            Arguments = string.Join(" ", arguments.Select(OfficeOcrProcessRunner.QuoteArgument)),
             RedirectStandardOutput = true,
             RedirectStandardError = true,
             UseShellExecute = false,
             CreateNoWindow = true
         };
-        foreach (string argument in configuration.Arguments) {
-            startInfo.ArgumentList.Add(argument
-                .Replace("{input}", inputPath, StringComparison.Ordinal)
-                .Replace("{output}", outputPath, StringComparison.Ordinal));
-        }
 
         bool fileOutputMode = string.Equals(configuration.OutputMode, "file", StringComparison.OrdinalIgnoreCase);
         if (fileOutputMode) {
@@ -43,71 +45,95 @@ internal static class ReaderComparisonProcessRunner {
             }
         }
 
-        using var process = new Process { StartInfo = startInfo };
         var stopwatch = Stopwatch.StartNew();
+        OfficeOcrProcessLifetime processLifetime;
+        OfficeOcrStartedProcess startedProcess;
         try {
-            if (!process.Start()) return Failure("failed", "The process did not start.", stopwatch.Elapsed.TotalMilliseconds);
-        } catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException) {
+            processLifetime = OfficeOcrProcessLifetime.Configure(startInfo, configuration.FileName, arguments);
+            try {
+                startedProcess = processLifetime.Start(startInfo);
+            } catch {
+                processLifetime.Dispose();
+                throw;
+            }
+        } catch (Exception ex) when (ex is System.ComponentModel.Win32Exception or InvalidOperationException or PlatformNotSupportedException) {
             return Failure("unavailable", ex.Message, stopwatch.Elapsed.TotalMilliseconds);
         }
+        using (processLifetime)
+        using (startedProcess) {
+            Process process = startedProcess.Process;
 
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(configuration.TimeoutSeconds));
-        Task<BoundedText> stdoutTask = ReadBoundedAsync(
-            process.StandardOutput.BaseStream,
-            configuration.MaxOutputBytes,
-            timeout.Token);
-        Task<BoundedText> stderrTask = ReadBoundedAsync(
-            process.StandardError.BaseStream,
-            Math.Min(configuration.MaxOutputBytes, 1024 * 1024),
-            timeout.Token);
+            using var timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            timeout.CancelAfter(TimeSpan.FromSeconds(configuration.TimeoutSeconds));
+            Task<BoundedText> stdoutTask = ReadBoundedAsync(
+                GetBaseStream(startedProcess.StandardOutput),
+                configuration.MaxOutputBytes,
+                timeout.Token);
+            Task<BoundedText> stderrTask = ReadBoundedAsync(
+                GetBaseStream(startedProcess.StandardError),
+                Math.Min(configuration.MaxOutputBytes, 1024 * 1024),
+                timeout.Token);
 
-        try {
-            await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-        } catch (OperationCanceledException) {
-            TryKill(process);
-            await DrainAfterTerminationAsync(stdoutTask, stderrTask).ConfigureAwait(false);
+            BoundedText stdout;
+            BoundedText stderr;
+            try {
+                await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
+                BoundedText[] streams = await WaitWithCancellationAsync(
+                    Task.WhenAll(stdoutTask, stderrTask),
+                    timeout.Token).ConfigureAwait(false);
+                stdout = streams[0];
+                stderr = streams[1];
+            } catch (OperationCanceledException) {
+                processLifetime.Terminate(process);
+                startedProcess.CloseRedirectedStreams();
+                ObserveReadFailure(stdoutTask);
+                ObserveReadFailure(stderrTask);
+                stopwatch.Stop();
+                cancellationToken.ThrowIfCancellationRequested();
+                return Failure("timed-out", "The runner exceeded its configured timeout.", stopwatch.Elapsed.TotalMilliseconds);
+            } catch {
+                processLifetime.Terminate(process);
+                startedProcess.CloseRedirectedStreams();
+                ObserveReadFailure(stdoutTask);
+                ObserveReadFailure(stderrTask);
+                throw;
+            }
+
             stopwatch.Stop();
-            cancellationToken.ThrowIfCancellationRequested();
-            return Failure("timed-out", "The runner exceeded its configured timeout.", stopwatch.Elapsed.TotalMilliseconds);
-        }
+            string markdown;
+            bool missingFileOutput = false;
+            bool fileOutputTruncated = false;
+            if (fileOutputMode) {
+                missingFileOutput = !File.Exists(outputPath);
+                BoundedText fileOutput = missingFileOutput
+                    ? new BoundedText(string.Empty, truncated: false)
+                    : await ReadFileBoundedAsync(outputPath, configuration.MaxOutputBytes, cancellationToken).ConfigureAwait(false);
+                markdown = fileOutput.Text;
+                fileOutputTruncated = fileOutput.Truncated;
+            } else {
+                markdown = stdout.Text;
+            }
 
-        BoundedText stdout = await stdoutTask.ConfigureAwait(false);
-        BoundedText stderr = await stderrTask.ConfigureAwait(false);
-        stopwatch.Stop();
-        string markdown;
-        bool missingFileOutput = false;
-        bool fileOutputTruncated = false;
-        if (fileOutputMode) {
-            missingFileOutput = !File.Exists(outputPath);
-            BoundedText fileOutput = missingFileOutput
-                ? new BoundedText(string.Empty, truncated: false)
-                : await ReadFileBoundedAsync(outputPath, configuration.MaxOutputBytes, cancellationToken).ConfigureAwait(false);
-            markdown = fileOutput.Text;
-            fileOutputTruncated = fileOutput.Truncated;
-        } else {
-            markdown = stdout.Text;
-        }
+            string? error = process.ExitCode == 0 ? null : EmptyToNull(stderr.Text) ?? "Runner exited with code " + process.ExitCode + ".";
+            if (missingFileOutput) {
+                error = Append(error, "Runner did not create the expected output file.");
+            }
+            bool truncated = stdout.Truncated || stderr.Truncated || fileOutputTruncated;
+            if (truncated) {
+                error = Append(error, "Runner output was truncated at the configured byte limit.");
+            }
 
-        string? error = process.ExitCode == 0 ? null : EmptyToNull(stderr.Text) ?? "Runner exited with code " + process.ExitCode + ".";
-        if (missingFileOutput) {
-            error = Append(error, "Runner did not create the expected output file.");
-        }
-        bool truncated = stdout.Truncated || stderr.Truncated || fileOutputTruncated;
-        if (truncated) {
-            error = Append(error, "Runner output was truncated at the configured byte limit.");
-        }
+            bool succeeded = process.ExitCode == 0 && !missingFileOutput && !truncated;
 
-        bool succeeded = process.ExitCode == 0 && !missingFileOutput && !truncated;
-
-        return new ReaderComparisonProcessOutput {
-            Status = succeeded ? "success" : "failed",
-            Markdown = markdown,
-            Error = error,
-            DurationMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
-            PeakWorkingSetBytes = SafePeakWorkingSet(process),
-            Rejected = !succeeded
-        };
+            return new ReaderComparisonProcessOutput {
+                Status = succeeded ? "success" : "failed",
+                Markdown = markdown,
+                Error = error,
+                DurationMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
+                PeakWorkingSetBytes = SafePeakWorkingSet(process),
+                Rejected = process.ExitCode != 0
+            };
+        }
     }
 
     private static void Validate(ReaderComparisonRunnerConfiguration configuration) {
@@ -144,21 +170,31 @@ internal static class ReaderComparisonProcessRunner {
         return await ReadBoundedAsync(stream, maxBytes, cancellationToken).ConfigureAwait(false);
     }
 
-    private static async Task DrainAfterTerminationAsync(Task<BoundedText> stdout, Task<BoundedText> stderr) {
-        try {
-            await Task.WhenAll(stdout, stderr).ConfigureAwait(false);
-        } catch (OperationCanceledException) {
-            // The timeout is already represented by the returned status.
-        }
+    private static Stream GetBaseStream(TextReader reader) {
+        if (reader is StreamReader streamReader) return streamReader.BaseStream;
+        throw new InvalidOperationException("The process reader is not backed by a stream.");
     }
 
-    private static void TryKill(Process process) {
-        try {
-            if (!process.HasExited) process.Kill(entireProcessTree: true);
-        } catch (InvalidOperationException) {
-        } catch (System.ComponentModel.Win32Exception) {
-        } catch (NotSupportedException) {
+    private static async Task<T> WaitWithCancellationAsync<T>(Task<T> operation, CancellationToken cancellationToken) {
+        if (operation.IsCompleted) return await operation.ConfigureAwait(false);
+        var cancellation = new TaskCompletionSource<object?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancellationToken.Register(() => cancellation.TrySetResult(null))) {
+            Task completed = await Task.WhenAny(operation, cancellation.Task).ConfigureAwait(false);
+            if (completed != operation) throw new OperationCanceledException(cancellationToken);
         }
+        return await operation.ConfigureAwait(false);
+    }
+
+    private static void ObserveReadFailure(Task operation) {
+        if (operation.IsCompleted) {
+            _ = operation.Exception;
+            return;
+        }
+        _ = operation.ContinueWith(
+            static completed => { _ = completed.Exception; },
+            CancellationToken.None,
+            TaskContinuationOptions.ExecuteSynchronously | TaskContinuationOptions.OnlyOnFaulted,
+            TaskScheduler.Default);
     }
 
     private static long? SafePeakWorkingSet(Process process) {
@@ -170,7 +206,7 @@ internal static class ReaderComparisonProcessRunner {
     }
 
     private static ReaderComparisonProcessOutput Failure(string status, string error, double duration) =>
-        new ReaderComparisonProcessOutput { Status = status, Error = error, DurationMilliseconds = duration, Rejected = true };
+        new ReaderComparisonProcessOutput { Status = status, Error = error, DurationMilliseconds = duration, Rejected = false };
 
     private static string? EmptyToNull(string value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 

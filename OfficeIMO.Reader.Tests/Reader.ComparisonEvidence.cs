@@ -19,6 +19,15 @@ public sealed class ReaderComparisonEvidenceTests {
         Assert.Contains(cases.SelectMany(item => item.Probes), probe => probe.Kind == ReaderComparisonProbeKind.RichAsset);
         Assert.Contains(cases.SelectMany(item => item.Probes), probe => probe.Kind == ReaderComparisonProbeKind.LocationPage);
         Assert.Contains(cases.SelectMany(item => item.Probes), probe => probe.Kind == ReaderComparisonProbeKind.RejectsMalformedInput);
+        Assert.All(
+            cases.Where(item => item.Id is "docx" or "pptx" or "xlsx"),
+            item => Assert.Contains("2026-07-15T12:00:00.0000000Z", ReadPackageCoreProperties(item.Bytes), StringComparison.Ordinal));
+        IReadOnlyDictionary<string, byte[]> repeatedPackages = ReaderComparisonCorpus.Create()
+            .Where(item => item.Id is "docx" or "pptx" or "xlsx")
+            .ToDictionary(item => item.Id, item => item.Bytes, StringComparer.Ordinal);
+        Assert.All(
+            cases.Where(item => item.Id is "docx" or "pptx" or "xlsx"),
+            item => Assert.Equal(item.Bytes, repeatedPackages[item.Id]));
     }
 
     [Fact]
@@ -83,6 +92,7 @@ public sealed class ReaderComparisonEvidenceTests {
 
             Assert.Equal("failed", result.Status);
             Assert.Contains("did not create", result.Error, StringComparison.Ordinal);
+            Assert.False(result.Rejected);
             Assert.False(File.Exists(output));
         } finally {
             if (File.Exists(output)) File.Delete(output);
@@ -102,6 +112,41 @@ public sealed class ReaderComparisonEvidenceTests {
 
         Assert.Equal("failed", result.Status);
         Assert.Contains("truncated", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.False(result.Rejected);
+    }
+
+    [Fact]
+    public async Task Runner_UsesOnlyACompletedNonZeroExitAsConverterRejection() {
+        ReaderComparisonProcessOutput result = await ReaderComparisonProcessRunner.RunAsync(
+            DotNetRunner("stdout", "exec", "officeimo-reader-missing-assembly.dll"),
+            inputPath: "unused",
+            outputPath: "unused",
+            CancellationToken.None);
+
+        Assert.Equal("failed", result.Status);
+        Assert.True(result.Rejected);
+    }
+
+    [Fact]
+    public async Task Runner_TimesOutWhenACompletedWrapperLeavesPipeHoldingDescendants() {
+        if (OperatingSystem.IsWindows()) return;
+        var configuration = new ReaderComparisonRunnerConfiguration {
+            Name = "pipe-holding-descendant",
+            FileName = "/bin/sh",
+            Arguments = new List<string> { "-c", "sleep 30 &" },
+            OutputMode = "stdout",
+            TimeoutSeconds = 1,
+            MaxOutputBytes = 4096
+        };
+
+        ReaderComparisonProcessOutput result = await ReaderComparisonProcessRunner.RunAsync(
+            configuration,
+            inputPath: "unused",
+            outputPath: "unused",
+            CancellationToken.None);
+
+        Assert.Equal("timed-out", result.Status);
+        Assert.False(result.Rejected);
     }
 
     [Fact]
@@ -172,5 +217,15 @@ public sealed class ReaderComparisonEvidenceTests {
             TimeoutSeconds = 30,
             MaxOutputBytes = 4096
         };
+    }
+
+    private static string ReadPackageCoreProperties(byte[] packageBytes) {
+        using var stream = new MemoryStream(packageBytes);
+        using var archive = new System.IO.Compression.ZipArchive(stream, System.IO.Compression.ZipArchiveMode.Read);
+        System.IO.Compression.ZipArchiveEntry entry = Assert.Single(
+            archive.Entries,
+            item => string.Equals(item.FullName, "docProps/core.xml", StringComparison.Ordinal));
+        using StreamReader reader = new StreamReader(entry.Open());
+        return reader.ReadToEnd();
     }
 }
