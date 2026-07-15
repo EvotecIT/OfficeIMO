@@ -176,8 +176,14 @@ internal static class MimeWriter {
                 : IcsCalendarCodec.CreateRegeneratedAttachment(document, calendarAttachment));
         }
         if (document.OutlookItemKind == OutlookItemKind.Contact && document.Contact != null) {
-            regularAttachmentList.Add(VCardCodec.CreateAttachment(document,
-                semanticSourceUnchanged ? vcardAttachment : null));
+            EmailAttachment contactPart = VCardCodec.CreateAttachment(document,
+                semanticSourceUnchanged ? vcardAttachment : null);
+            if (!document.MimeHasMessageBody && document.Body.Html == null && document.Body.Rtf == null &&
+                calendarContent == null && regularAttachmentList.Count == 0) {
+                WriteAttachment(output, contactPart, state, depth + 1, 0);
+                return;
+            }
+            regularAttachmentList.Add(contactPart);
         } else if (vcardAttachment != null) {
             regularAttachmentList.Add(vcardAttachment);
         }

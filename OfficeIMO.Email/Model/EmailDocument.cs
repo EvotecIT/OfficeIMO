@@ -95,4 +95,6 @@ public sealed partial class EmailDocument {
     internal byte[]? MimeSemanticSourceModelFingerprint { get; set; }
 
     internal bool MimeSemanticProjectionIsIncomplete { get; set; }
+
+    internal bool MimeHasMessageBody { get; set; }
 }

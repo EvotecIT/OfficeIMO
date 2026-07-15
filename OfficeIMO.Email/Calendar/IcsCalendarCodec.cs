@@ -1,6 +1,6 @@
 namespace OfficeIMO.Email;
 
-internal static class IcsCalendarCodec {
+internal static partial class IcsCalendarCodec {
     private static readonly DateTimeOffset DeterministicEpoch =
         new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
@@ -16,7 +16,8 @@ internal static class IcsCalendarCodec {
 
         IReadOnlyList<IcsProperty> activeProperties = SelectActiveComponentProperties(
             properties, activeComponent.Value);
-        document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(properties, activeProperties);
+        document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(
+            properties, activeProperties, isEvent);
         if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location);
         else ProjectTask(activeProperties, document, diagnostics, location);
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
@@ -79,7 +80,7 @@ internal static class IcsCalendarCodec {
     }
 
     private static bool HasIncompleteStoreProjection(IEnumerable<IcsProperty> properties,
-        IEnumerable<IcsProperty> activeProperties) {
+        IEnumerable<IcsProperty> activeProperties, bool isEvent) {
         int calendarItems = properties.Count(property => property.Name == "BEGIN" &&
             (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
              property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
@@ -96,6 +97,7 @@ internal static class IcsCalendarCodec {
             property.Name == "RRULE" || property.Name == "RDATE" ||
             property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
             property.Name == "CLASS" && !ParseCalendarSensitivity(property.Value).HasValue ||
+            isEvent && property.Name == "STATUS" ||
             property.Name == "ATTACH" || property.Name == "TRIGGER" &&
             property.Parameters.TryGetValue("RELATED", out string? related) &&
             related.Equals("END", StringComparison.OrdinalIgnoreCase));
@@ -143,8 +145,6 @@ internal static class IcsCalendarCodec {
         }
         string? busy = GetValue(properties, "X-MICROSOFT-CDO-BUSYSTATUS");
         appointment.BusyStatus = ParseBusyStatus(busy) ?? ParseTransparency(GetValue(properties, "TRANSP"));
-        int? calendarSensitivity = ParseCalendarSensitivity(GetValue(properties, "CLASS"));
-        if (calendarSensitivity.HasValue) document.MessageMetadata.Sensitivity = calendarSensitivity;
         appointment.NotAllowPropose = ParseBoolean(GetValue(properties, "X-MICROSOFT-DISALLOW-COUNTER"));
         appointment.MeetingStatus = ParseInt(GetValue(properties, "X-OFFICEIMO-MEETING-STATUS"));
         appointment.ResponseStatus = ParseInt(GetValue(properties, "X-OFFICEIMO-RESPONSE-STATUS"));
@@ -180,14 +180,29 @@ internal static class IcsCalendarCodec {
         task.Status = ParseTaskStatus(status);
         task.Owner = UnescapeOrNull(GetValue(properties, "X-OFFICEIMO-TASK-OWNER")) ?? GetOrganizer(properties);
         task.IsRecurring = GetProperty(properties, "RRULE") != null;
-        task.EstimatedEffort = IcsDurationCodec.Parse(GetValue(properties, "X-OFFICEIMO-ESTIMATED-EFFORT")) ??
-            IcsDurationCodec.Parse(GetValue(properties, "DURATION"));
+        TimeSpan? standardDuration = IcsDurationCodec.Parse(GetValue(properties, "DURATION"));
+        task.EstimatedEffort = IcsDurationCodec.Parse(GetValue(properties, "X-OFFICEIMO-ESTIMATED-EFFORT"));
         task.ActualEffort = IcsDurationCodec.Parse(GetValue(properties, "X-OFFICEIMO-ACTUAL-EFFORT"));
         bool incompleteEffort = false;
         if (task.EstimatedEffort.HasValue) IcsDurationCodec.ToWholeMinutes(task.EstimatedEffort.Value,
             diagnostics, location, ref incompleteEffort);
         if (task.ActualEffort.HasValue) IcsDurationCodec.ToWholeMinutes(task.ActualEffort.Value,
             diagnostics, location, ref incompleteEffort);
+        if (!task.Due.HasValue && standardDuration.HasValue) {
+            if (task.Start.HasValue) {
+                try {
+                    task.Due = task.Start.Value.Add(standardDuration.Value);
+                } catch (ArgumentOutOfRangeException) {
+                    IcsDurationCodec.ReportOutOfRange(diagnostics, location);
+                    incompleteEffort = true;
+                }
+            } else {
+                diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_TASK_DURATION_START_REQUIRED",
+                    "A VTODO duration cannot be projected to a due date without DTSTART.",
+                    EmailDiagnosticSeverity.Warning, location));
+                incompleteEffort = true;
+            }
+        }
         task.SendUpdates = ParseBoolean(GetValue(properties, "X-OFFICEIMO-SEND-UPDATES"));
         task.SendStatusOnComplete = ParseBoolean(GetValue(properties, "X-OFFICEIMO-SEND-STATUS-ON-COMPLETE"));
         task.Ownership = ParseInt(GetValue(properties, "X-OFFICEIMO-OWNERSHIP"));
@@ -211,6 +226,7 @@ internal static class IcsCalendarCodec {
         foreach (IcsProperty property in properties.Where(property => property.Name == "X-OFFICEIMO-COMPANY")) {
             task.Companies.Add(Unescape(property.Value));
         }
+        AddAttendeeRecipients(properties, document);
         document.MimeSemanticProjectionIsIncomplete |= incompleteEffort |
             ApplyReminder(properties, task, diagnostics, location);
     }
@@ -222,6 +238,16 @@ internal static class IcsCalendarCodec {
         if (!string.IsNullOrWhiteSpace(summary)) document.Subject = summary;
         if (!string.IsNullOrWhiteSpace(description) && document.Body.Text == null) document.Body.Text = description;
         if (!string.IsNullOrWhiteSpace(uid) && document.MessageId == null) document.MessageId = uid;
+        int? calendarSensitivity = ParseCalendarSensitivity(GetValue(properties, "CLASS"));
+        if (calendarSensitivity.HasValue) document.MessageMetadata.Sensitivity = calendarSensitivity;
+        foreach (IcsProperty property in properties.Where(property => property.Name == "CATEGORIES")) {
+            foreach (string category in SplitEscapedValues(property.Value, ',')) {
+                if (!string.IsNullOrWhiteSpace(category) && !document.MessageMetadata.Categories.Any(existing =>
+                    string.Equals(existing, category, StringComparison.OrdinalIgnoreCase))) {
+                    document.MessageMetadata.Categories.Add(category);
+                }
+            }
+        }
         string? organizer = GetOrganizer(properties);
         if (document.From == null && !string.IsNullOrWhiteSpace(organizer)) document.From = new EmailAddress(organizer!);
     }
@@ -244,11 +270,6 @@ internal static class IcsCalendarCodec {
             }
         }
         AppendText(output, "LOCATION", appointment.Location);
-        if (document.MessageMetadata.Sensitivity == 0) AppendLine(output, "CLASS:PUBLIC");
-        else if (document.MessageMetadata.Sensitivity == 3) AppendLine(output, "CLASS:CONFIDENTIAL");
-        else if (document.MessageMetadata.Sensitivity == 1 || document.MessageMetadata.Sensitivity == 2) {
-            AppendLine(output, "CLASS:PRIVATE");
-        }
         if (appointment.Sequence.HasValue) AppendLine(output, string.Concat("SEQUENCE:",
             appointment.Sequence.Value.ToString(CultureInfo.InvariantCulture)));
         if (appointment.BusyStatus.HasValue) {
@@ -323,6 +344,16 @@ internal static class IcsCalendarCodec {
         AppendLine(output, string.Concat("DTSTAMP:", FormatUtc(document.Date ?? fallbackDate ?? DeterministicEpoch)));
         AppendText(output, "SUMMARY", document.Subject);
         AppendText(output, "DESCRIPTION", document.Body.Text);
+        WriteCalendarSensitivity(output, document.MessageMetadata.Sensitivity);
+        if (document.MessageMetadata.Categories.Count > 0) AppendLine(output, string.Concat("CATEGORIES:",
+            string.Join(",", document.MessageMetadata.Categories.Where(category =>
+                !string.IsNullOrWhiteSpace(category)).Select(EscapeText))));
+    }
+
+    private static void WriteCalendarSensitivity(StringBuilder output, int? sensitivity) {
+        if (sensitivity == 0) AppendLine(output, "CLASS:PUBLIC");
+        else if (sensitivity == 3) AppendLine(output, "CLASS:CONFIDENTIAL");
+        else if (sensitivity == 1 || sensitivity == 2) AppendLine(output, "CLASS:PRIVATE");
     }
 
     private static void WriteOrganizerAndAttendees(StringBuilder output, EmailDocument document) {
@@ -347,136 +378,6 @@ internal static class IcsCalendarCodec {
                 EscapeParameter(recipient.Address.DisplayName!), "\"");
             AppendLine(output, string.Concat(attendee, ":mailto:", EscapeUriValue(recipient.Address.Address!)));
         }
-    }
-
-    private static List<IcsProperty> ParseProperties(string text) {
-        string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
-        var unfolded = new List<string>();
-        foreach (string line in normalized.Split('\n')) {
-            if (line.Length > 0 && (line[0] == ' ' || line[0] == '\t') && unfolded.Count > 0) {
-                unfolded[unfolded.Count - 1] += line.Substring(1);
-            } else {
-                unfolded.Add(line);
-            }
-        }
-
-        var result = new List<IcsProperty>();
-        foreach (string line in unfolded) {
-            int colon = FindUnquotedSeparator(line, ':');
-            if (colon <= 0) continue;
-            IReadOnlyList<string> tokens = SplitUnquoted(line.Substring(0, colon), ';');
-            var property = new IcsProperty(tokens[0].Trim().ToUpperInvariant(), line.Substring(colon + 1));
-            for (int index = 1; index < tokens.Count; index++) {
-                int equals = FindUnquotedSeparator(tokens[index], '=');
-                if (equals > 0) property.Parameters[tokens[index].Substring(0, equals).Trim()] =
-                    tokens[index].Substring(equals + 1).Trim().Trim('"');
-            }
-            result.Add(property);
-        }
-        return result;
-    }
-
-    private static IReadOnlyList<IcsProperty> SelectActiveComponentProperties(
-        IReadOnlyList<IcsProperty> properties, string componentName) {
-        var selected = new List<IcsProperty>();
-        var components = new List<string>();
-        int activeDepth = -1;
-        bool selectedComponent = false;
-        foreach (IcsProperty property in properties) {
-            if (property.Name == "BEGIN") {
-                components.Add(property.Value.Trim().ToUpperInvariant());
-                if (!selectedComponent && property.Value.Equals(componentName, StringComparison.OrdinalIgnoreCase)) {
-                    activeDepth = components.Count;
-                    selectedComponent = true;
-                }
-                continue;
-            }
-            if (property.Name == "END") {
-                if (components.Count == activeDepth &&
-                    property.Value.Equals(componentName, StringComparison.OrdinalIgnoreCase)) activeDepth = -1;
-                if (components.Count > 0) components.RemoveAt(components.Count - 1);
-                continue;
-            }
-
-            bool calendarProperty = components.Count == 1 &&
-                components[0].Equals("VCALENDAR", StringComparison.OrdinalIgnoreCase);
-            bool componentProperty = activeDepth > 0 && components.Count == activeDepth;
-            bool alarmTrigger = activeDepth > 0 && components.Count == activeDepth + 1 &&
-                components[components.Count - 1].Equals("VALARM", StringComparison.OrdinalIgnoreCase) &&
-                property.Name == "TRIGGER";
-            if (calendarProperty || componentProperty || alarmTrigger) selected.Add(property);
-        }
-        return selected;
-    }
-
-    private static int FindUnquotedSeparator(string value, char separator) {
-        bool quoted = false;
-        bool escaped = false;
-        for (int index = 0; index < value.Length; index++) {
-            char character = value[index];
-            if (escaped) {
-                escaped = false;
-            } else if (character == '\\') {
-                escaped = true;
-            } else if (character == '"') {
-                quoted = !quoted;
-            } else if (!quoted && character == separator) {
-                return index;
-            }
-        }
-        return -1;
-    }
-
-    private static IReadOnlyList<string> SplitUnquoted(string value, char separator) {
-        var result = new List<string>();
-        int start = 0;
-        while (start <= value.Length) {
-            int relative = FindUnquotedSeparator(value.Substring(start), separator);
-            if (relative < 0) {
-                result.Add(value.Substring(start));
-                break;
-            }
-            result.Add(value.Substring(start, relative));
-            start += relative + 1;
-        }
-        return result;
-    }
-
-    private static DateTimeOffset? ParseDate(IcsProperty? property, IList<EmailDiagnostic> diagnostics,
-        string location, out bool isDateOnly) {
-        isDateOnly = property != null && property.Parameters.TryGetValue("VALUE", out string? valueType) &&
-            string.Equals(valueType, "DATE", StringComparison.OrdinalIgnoreCase);
-        if (property == null || string.IsNullOrWhiteSpace(property.Value)) return null;
-        string value = property.Value.Trim();
-        if (isDateOnly && DateTime.TryParseExact(value, "yyyyMMdd", CultureInfo.InvariantCulture,
-            DateTimeStyles.None, out DateTime date)) return new DateTimeOffset(date, TimeSpan.Zero);
-        if (DateTimeOffset.TryParseExact(value, new[] { "yyyyMMdd'T'HHmmss'Z'", "yyyyMMdd'T'HHmm'Z'" },
-            CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal,
-            out DateTimeOffset utc)) return utc;
-        if (DateTime.TryParseExact(value, new[] { "yyyyMMdd'T'HHmmss", "yyyyMMdd'T'HHmm" },
-            CultureInfo.InvariantCulture, DateTimeStyles.None, out DateTime local)) {
-            if (property.Parameters.TryGetValue("TZID", out string? timeZoneId)) {
-                try {
-                    TimeZoneInfo zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-                    return new DateTimeOffset(local, zone.GetUtcOffset(local));
-                } catch (TimeZoneNotFoundException) {
-                } catch (InvalidTimeZoneException) {
-                }
-                diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED",
-                    string.Concat("The iCalendar time zone '", timeZoneId,
-                        "' could not be resolved and the local clock value was interpreted as UTC."),
-                    EmailDiagnosticSeverity.Warning, location));
-                return new DateTimeOffset(local, TimeSpan.Zero);
-            }
-            diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_FLOATING_TIME",
-                "A floating iCalendar time could not be associated with a known time zone and was interpreted as UTC.",
-                EmailDiagnosticSeverity.Warning, location));
-            return new DateTimeOffset(local, TimeSpan.Zero);
-        }
-        diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_DATE_INVALID",
-            string.Concat("The iCalendar value '", value, "' could not be parsed."),
-            EmailDiagnosticSeverity.Warning, location));
-        return null;
     }
 
     private static IcsProperty? GetProperty(IEnumerable<IcsProperty> properties, string name) =>
@@ -725,6 +626,26 @@ internal static class IcsCalendarCodec {
 
     private static string EscapeText(string value) => value.Replace("\\", "\\\\").Replace(";", "\\;")
         .Replace(",", "\\,").Replace("\r\n", "\\n").Replace("\r", "\\n").Replace("\n", "\\n");
+
+    private static IEnumerable<string> SplitEscapedValues(string value, char separator) {
+        var current = new StringBuilder();
+        bool escaped = false;
+        foreach (char character in value) {
+            if (escaped) {
+                current.Append('\\').Append(character);
+                escaped = false;
+            } else if (character == '\\') {
+                escaped = true;
+            } else if (character == separator) {
+                yield return Unescape(current.ToString());
+                current.Clear();
+            } else {
+                current.Append(character);
+            }
+        }
+        if (escaped) current.Append('\\');
+        yield return Unescape(current.ToString());
+    }
 
     private static string Unescape(string? value) => (value ?? string.Empty).Replace("\\n", "\n")
         .Replace("\\N", "\n").Replace("\\,", ",").Replace("\\;", ";").Replace("\\\\", "\\");

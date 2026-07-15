@@ -601,14 +601,21 @@ public sealed class EmailCalendarConversionTests {
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         byte[] output = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
         using var stream = new MemoryStream(output);
         MimeMessage message = MimeMessage.Load(stream);
         MimePart attachment = Assert.IsAssignableFrom<MimePart>(Assert.Single(message.Attachments));
 
+        Assert.Equal(OutlookItemKind.Message, document.OutlookItemKind);
+        Assert.Null(document.Appointment);
         Assert.Equal("Please review the attachment.", message.TextBody!.Trim());
         Assert.Equal("text/calendar", attachment.ContentType.MimeType);
         Assert.Equal("invite.ics", attachment.FileName);
         Assert.True(attachment.IsAttachment);
+        Assert.Equal(OutlookItemKind.Message, storeRoundTrip.OutlookItemKind);
+        Assert.Null(storeRoundTrip.Appointment);
+        Assert.Equal("invite.ics", Assert.Single(storeRoundTrip.Attachments).FileName);
     }
 
     [Fact]

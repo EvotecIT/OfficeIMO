@@ -33,12 +33,15 @@ public sealed class EmailContactConversionTests {
             Subject = "Ada Lovelace",
             Contact = contact
         };
+        source.Body.Text = "Contact notes";
 
         byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
         EmailDocument result = new EmailDocumentReader().Read(eml).Document;
         using var oracleStream = new MemoryStream(eml);
         MimeMessage oracle = MimeMessage.Load(oracleStream);
 
+        Assert.Equal("text/vcard", Assert.IsAssignableFrom<MimeEntity>(oracle.Body).ContentType.MimeType);
+        Assert.Null(oracle.TextBody);
         Assert.Contains(oracle.BodyParts.OfType<MimePart>(), part => part.ContentType.MimeType == "text/vcard" &&
             !part.IsAttachment);
         Assert.Equal(OutlookItemKind.Contact, result.OutlookItemKind);
@@ -55,6 +58,7 @@ public sealed class EmailContactConversionTests {
         Assert.Equal("1 Engine Way, London", result.Contact.BusinessAddress.Formatted);
         Assert.Equal("GB", result.Contact.BusinessAddress.CountryCode);
         Assert.True(result.Contact.HasPicture);
+        Assert.Equal("Contact notes", result.Body.Text);
     }
 
     [Fact]
@@ -240,6 +244,29 @@ public sealed class EmailContactConversionTests {
         Assert.Equal(new[] { "Blue", "Project, X" }, document.MessageMetadata.Categories);
         Assert.Equal(new[] { "Blue", "Project, X" }, roundTrip.MessageMetadata.Categories);
         Assert.Equal(new[] { "Blue", "Project, X" }, regeneratedVcard.MessageMetadata.Categories);
+    }
+
+    [Fact]
+    public void PreservesConfidentialVcardClassThroughStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nCLASS:CONFIDENTIAL\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument storeRoundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        byte[] regenerated = new EmailDocumentWriter().ToBytes(storeRoundTrip, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(regenerated);
+        MimePart vcard = Assert.IsAssignableFrom<MimePart>(MimeMessage.Load(stream).Body);
+        using var content = new MemoryStream();
+        vcard.Content!.DecodeTo(content);
+
+        Assert.True(document.Contact!.IsPrivate);
+        Assert.Equal(3, document.MessageMetadata.Sensitivity);
+        Assert.True(storeRoundTrip.Contact!.IsPrivate);
+        Assert.Equal(3, storeRoundTrip.MessageMetadata.Sensitivity);
+        Assert.Contains("CLASS:CONFIDENTIAL", Encoding.UTF8.GetString(content.ToArray()),
+            StringComparison.Ordinal);
     }
 
     private static bool VCardContentType(string? contentType) =>

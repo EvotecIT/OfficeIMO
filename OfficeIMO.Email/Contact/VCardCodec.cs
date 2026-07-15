@@ -11,7 +11,8 @@ internal static class VCardCodec {
         document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 || properties.Any(property =>
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
-            property.Name == "RELATED" || property.Name == "MEMBER");
+            property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "CLASS" &&
+            !ParseVCardSensitivity(property.Value).HasValue);
 
         var contact = document.Contact ?? new OutlookContact();
         document.Contact = contact;
@@ -37,7 +38,9 @@ internal static class VCardCodec {
         contact.InstantMessagingAddress = Unescape(GetValue(properties, "IMPP"));
         contact.Birthday = ParseDate(GetValue(properties, "BDAY"));
         contact.WeddingAnniversary = ParseDate(GetValue(properties, "ANNIVERSARY"));
-        contact.IsPrivate = string.Equals(GetValue(properties, "CLASS"), "PRIVATE", StringComparison.OrdinalIgnoreCase);
+        int? sensitivity = ParseVCardSensitivity(GetValue(properties, "CLASS"));
+        contact.IsPrivate = sensitivity.HasValue ? sensitivity.Value != 0 : (bool?)null;
+        if (sensitivity.HasValue) document.MessageMetadata.Sensitivity = sensitivity;
 
         ApplyEmails(properties, contact);
         ApplyPhones(properties, contact.Phones);
@@ -113,7 +116,12 @@ internal static class VCardCodec {
         if (contact.Birthday.HasValue) AppendLine(output, string.Concat("BDAY:", FormatDate(contact.Birthday.Value)));
         if (contact.WeddingAnniversary.HasValue) AppendLine(output,
             string.Concat("ANNIVERSARY:", FormatDate(contact.WeddingAnniversary.Value)));
-        if (contact.IsPrivate.HasValue) AppendLine(output, contact.IsPrivate.Value ? "CLASS:PRIVATE" : "CLASS:PUBLIC");
+        if (document.MessageMetadata.Sensitivity == 3) AppendLine(output, "CLASS:CONFIDENTIAL");
+        else if (document.MessageMetadata.Sensitivity == 1 || document.MessageMetadata.Sensitivity == 2 ||
+            contact.IsPrivate == true) AppendLine(output, "CLASS:PRIVATE");
+        else if (document.MessageMetadata.Sensitivity == 0 || contact.IsPrivate == false) {
+            AppendLine(output, "CLASS:PUBLIC");
+        }
 
         WriteEmail(output, contact.Email1, "WORK", true);
         WriteEmail(output, contact.Email2, "HOME", false);
@@ -390,6 +398,11 @@ internal static class VCardCodec {
     private static bool? ParseBoolean(string? value) =>
         string.Equals(value, "TRUE", StringComparison.OrdinalIgnoreCase) ? true :
         string.Equals(value, "FALSE", StringComparison.OrdinalIgnoreCase) ? false : (bool?)null;
+
+    private static int? ParseVCardSensitivity(string? value) =>
+        string.Equals(value, "PUBLIC", StringComparison.OrdinalIgnoreCase) ? 0 :
+        string.Equals(value, "PRIVATE", StringComparison.OrdinalIgnoreCase) ? 2 :
+        string.Equals(value, "CONFIDENTIAL", StringComparison.OrdinalIgnoreCase) ? 3 : (int?)null;
 
     private static string FormatDate(DateTimeOffset value) => value.Date.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
 

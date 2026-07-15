@@ -133,6 +133,7 @@ internal static class MimeParser {
         byte[] decoded = MimeTextCodec.DecodeTransfer(source, transferEncoding, state.Diagnostics, location);
 
         if (isBody) {
+            document.MimeHasMessageBody = true;
             string? charset = contentType.GetParameter("charset");
             string text = MimeTextCodec.DecodeText(decoded, charset, state.Diagnostics, location);
             if (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) &&
@@ -177,7 +178,7 @@ internal static class MimeParser {
             inlineDisposition || additionalInlineBody, attachmentDisposition,
             state.Options.IncludeAttachmentContent || calendarContent || vcardContent ? decoded : null, decoded.LongLength);
         string? semanticCharset = contentType.GetParameter("charset");
-        if (calendarContent && IcsCalendarCodec.TryProject(
+        if (calendarContent && attachment.IsMimeBodyPart && IcsCalendarCodec.TryProject(
                 MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location),
                 document, state.Diagnostics, location)) {
             attachment.IsProjectedSemanticContent = true;
@@ -185,6 +186,8 @@ internal static class MimeParser {
                        MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location), document)) {
             attachment.IsProjectedSemanticContent = true;
         }
+        if (attachment.IsProjectedSemanticContent && document.Attachments.Any(existing =>
+            existing.IsProjectedSemanticContent)) document.MimeSemanticProjectionIsIncomplete = true;
         document.Attachments.Add(attachment);
     }
 
