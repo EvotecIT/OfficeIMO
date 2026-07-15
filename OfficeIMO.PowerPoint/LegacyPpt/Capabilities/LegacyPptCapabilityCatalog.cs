@@ -24,8 +24,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                 Planned(LegacyPptFeature.Placeholders, "Design", "Placeholder identity, type, size, and inheritance.",
                     "The bootstrap currently projects common text placeholders only."),
                 Planned(LegacyPptFeature.Backgrounds, "Design", "Master and slide backgrounds."),
-                Native(LegacyPptFeature.PlainText, "Text", "Unicode and byte text projected as editable plain text."),
-                Planned(LegacyPptFeature.RichText, "Text", "Character runs, fonts, sizes, colors, and emphasis."),
+                new LegacyPptCapability(LegacyPptFeature.PlainText, "Text",
+                    "Unicode and byte text projected as editable plain text.", LegacyPptRepresentability.Native,
+                    LegacyPptCapabilityState.Native, LegacyPptCapabilityState.Native,
+                    LegacyPptCapabilityState.Planned, LegacyPptCapabilityState.Native,
+                    "Arbitrary-length edits round-trip for structurally plain text; broader imported text structures remain planned."),
+                Planned(LegacyPptFeature.RichText, "Text", "Character runs, fonts, sizes, colors, and emphasis.",
+                    "Same-length replacements preserve existing binary formatting records opaquely; editable rich-text parity remains planned."),
                 Planned(LegacyPptFeature.ParagraphFormatting, "Text", "Alignment, indentation, spacing, tabs, and margins."),
                 Planned(LegacyPptFeature.BulletsAndNumbering, "Text", "Bullet glyphs, pictures, numbering, and levels."),
                 Planned(LegacyPptFeature.TextAutoFit, "Text", "Text fitting, wrapping, and text-box inset behavior."),
@@ -73,7 +78,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                     "Unknown live records and compound streams.", LegacyPptRepresentability.Opaque,
                     LegacyPptCapabilityState.Preserved, LegacyPptCapabilityState.Blocked,
                     LegacyPptCapabilityState.Planned, LegacyPptCapabilityState.Blocked,
-                    "No-op saves retain the exact package. Geometry-only edits append a UserEdit and preserve untouched records and streams; broader edited preservation remains planned.")
+                    "No-op saves retain the exact package. Supported mapped shape and text edits append a UserEdit and preserve untouched records and streams; broader edited preservation remains planned.")
             });
 
         private static readonly IReadOnlyDictionary<LegacyPptFeature, LegacyPptCapability> CapabilityByFeature =

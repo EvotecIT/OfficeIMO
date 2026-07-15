@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
@@ -35,6 +36,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cx = 0L;
                     transform.Extents.Cy = 0L;
                 }
+                if (shape.TextBody != null) shape.TextBody.RemoveAllChildren<A.Paragraph>();
             }
         }
     }

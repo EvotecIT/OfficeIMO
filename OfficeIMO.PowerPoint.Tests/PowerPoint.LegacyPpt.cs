@@ -88,6 +88,58 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedRichBinaryText_SameLengthEditPreservesFormattingRecords() {
+            const string originalText = "OfficeIMO PowerPoint Basics";
+            const string replacementText = "OfficeIMO BinaryDeck Basics";
+            Assert.Equal(originalText.Length, replacementText.Length);
+
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            PowerPointTextBox title = presentation.Slides[0].TextBoxes.Single(textBox =>
+                textBox.Text == originalText);
+            title.Text = replacementText;
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(bytes);
+            Assert.Contains(saved.Slides[0].Shapes, shape => shape.Text == replacementText);
+            Assert.Contains(saved.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-TEXT-FORMATTING-FLATTENED");
+        }
+
+        [Fact]
+        public void ImportedRichBinaryText_LengthChangingEditRemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            PowerPointTextBox title = presentation.Slides[0].TextBoxes.Single(textBox =>
+                textBox.Text == "OfficeIMO PowerPoint Basics");
+            title.Text += "!";
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Throws<NotSupportedException>(() => presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedPlainBinaryText_ArbitraryLengthEditUsesIncrementalSave() {
+            byte[] source;
+            using (PowerPointPresentation created = PowerPointPresentation.Create()) {
+                created.AddSlide().AddTextBox("Short text", 100000, 100000, 3000000, 600000);
+                source = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(source);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            presentation.Slides[0].TextBoxes.Single().Text = "A substantially longer binary text value";
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            byte[] savedBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            Assert.Contains(saved.Slides[0].Shapes,
+                shape => shape.Text == "A substantially longer binary text value");
+            Assert.Equal(2, saved.Package.UserEdits.Count);
+        }
+
+        [Fact]
         public void NormalLoad_RoutesPptAndProjectsEditablePptxModel() {
             using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
 

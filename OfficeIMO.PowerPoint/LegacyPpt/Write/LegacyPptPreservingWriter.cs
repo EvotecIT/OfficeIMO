@@ -1,7 +1,9 @@
 using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using System.Text;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     /// <summary>
@@ -10,8 +12,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     /// </summary>
     internal static class LegacyPptPreservingWriter {
         private const ushort RecordPersistDirectory = 0x1772;
+        private const ushort RecordTextHeader = 0x0F9F;
+        private const ushort RecordTextChars = 0x0FA0;
+        private const ushort RecordTextBytes = 0x0FA8;
         private const ushort OfficeArtSpContainer = 0xF004;
         private const ushort OfficeArtFsp = 0xF00A;
+        private const ushort OfficeArtClientTextbox = 0xF00D;
         private const ushort OfficeArtChildAnchor = 0xF00F;
         private const ushort OfficeArtClientAnchor = 0xF010;
 
@@ -49,7 +55,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             modifiedSlides = rewritten;
             LegacyPptPackage? package = presentation.LegacyPptPackage;
             LegacyPptProjectionMap? projectionMap = presentation.LegacyPptProjectionMap;
-            if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptGeometryChanges
+            if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptProjectedShapeChanges
                 || presentation.Slides.Count != projectionMap.Slides.Count) {
                 return false;
             }
@@ -65,7 +71,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
                     PowerPointShape[] shapes = slide.Shapes.ToArray();
                     if (shapes.Length != slideProjection.Shapes.Count) return false;
-                    var boundsByOfficeArtId = new Dictionary<uint, LegacyPptBounds>();
+                    var editsByOfficeArtId = new Dictionary<uint, ProjectedShapeEdit>();
                     foreach (PowerPointShape shape in shapes) {
                         uint? openXmlShapeId = shape.Id;
                         if (!openXmlShapeId.HasValue
@@ -76,16 +82,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             return false;
                         }
                         LegacyPptBounds bounds = GetBounds(shape);
-                        if (!BoundsEqual(bounds, shapeProjection.Bounds)) {
-                            boundsByOfficeArtId.Add(shapeProjection.OfficeArtShapeId, bounds);
+                        LegacyPptBounds? changedBounds = BoundsEqual(bounds, shapeProjection.Bounds)
+                            ? null
+                            : bounds;
+                        string? changedText = null;
+                        if (shape is PowerPointTextBox textBox) {
+                            if (!HasOnlyPlainProjectedText(textBox)) return false;
+                            string currentText = NormalizeLogicalText(textBox.Text);
+                            if (!string.Equals(currentText, NormalizeLogicalText(shapeProjection.Text),
+                                    StringComparison.Ordinal)) {
+                                changedText = currentText;
+                            }
+                        }
+                        if (changedBounds.HasValue || changedText != null) {
+                            editsByOfficeArtId.Add(shapeProjection.OfficeArtShapeId,
+                                new ProjectedShapeEdit(changedBounds, shapeProjection.Text, changedText));
                         }
                     }
-                    if (boundsByOfficeArtId.Count == 0) continue;
+                    if (editsByOfficeArtId.Count == 0) continue;
 
                     LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(persistObject.RecordBytes, 0,
                         new LegacyPptImportOptions());
-                    RecordRewrite result = RewriteRecord(slideRecord, boundsByOfficeArtId);
-                    if (!result.Changed || result.PatchedShapeCount != boundsByOfficeArtId.Count) return false;
+                    RecordRewrite result = RewriteRecord(slideRecord, editsByOfficeArtId);
+                    if (!result.Changed || result.PatchedShapeCount != editsByOfficeArtId.Count) return false;
                     rewritten.Add(slideProjection.PersistId, result.Bytes);
                 }
                 return true;
@@ -98,12 +117,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static RecordRewrite RewriteRecord(LegacyPptRecord record,
-            IReadOnlyDictionary<uint, LegacyPptBounds> boundsByOfficeArtId) {
+            IReadOnlyDictionary<uint, ProjectedShapeEdit> editsByOfficeArtId) {
             if (record.Type == OfficeArtSpContainer) {
                 LegacyPptRecord? fsp = record.Children.FirstOrDefault(child => child.Type == OfficeArtFsp);
                 if (fsp != null && fsp.PayloadLength >= 4
-                    && boundsByOfficeArtId.TryGetValue(fsp.ReadUInt32(0), out LegacyPptBounds bounds)) {
-                    return RewriteShapeContainer(record, bounds);
+                    && editsByOfficeArtId.TryGetValue(fsp.ReadUInt32(0), out ProjectedShapeEdit? edit)
+                    && edit != null) {
+                    return TryRewriteShapeContainer(record, edit, out byte[] rewrittenShape)
+                        ? new RecordRewrite(rewrittenShape, changed: true, patchedShapeCount: 1)
+                        : new RecordRewrite(record.CopyRecordBytes(), changed: false, patchedShapeCount: 0);
                 }
             }
             if (record.Version != 0x0F || record.Children.Count == 0) {
@@ -114,7 +136,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool changed = false;
             int patchedShapeCount = 0;
             foreach (LegacyPptRecord child in record.Children) {
-                RecordRewrite childResult = RewriteRecord(child, boundsByOfficeArtId);
+                RecordRewrite childResult = RewriteRecord(child, editsByOfficeArtId);
                 children.Add(childResult.Bytes);
                 changed |= childResult.Changed;
                 patchedShapeCount = checked(patchedShapeCount + childResult.PatchedShapeCount);
@@ -125,22 +147,107 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 : new RecordRewrite(record.CopyRecordBytes(), changed: false, patchedShapeCount: 0);
         }
 
-        private static RecordRewrite RewriteShapeContainer(LegacyPptRecord shapeContainer, LegacyPptBounds bounds) {
+        private static bool TryRewriteShapeContainer(LegacyPptRecord shapeContainer, ProjectedShapeEdit edit,
+            out byte[] bytes) {
             var children = new List<byte[]>(shapeContainer.Children.Count);
-            bool patchedAnchor = false;
+            bool patchedAnchor = !edit.Bounds.HasValue;
+            bool patchedText = edit.Text == null;
             foreach (LegacyPptRecord child in shapeContainer.Children) {
-                if (!patchedAnchor && (child.Type == OfficeArtClientAnchor || child.Type == OfficeArtChildAnchor)) {
-                    children.Add(BuildAnchor(child.Type, child.Instance, bounds));
+                if (!patchedAnchor && edit.Bounds.HasValue
+                    && (child.Type == OfficeArtClientAnchor || child.Type == OfficeArtChildAnchor)) {
+                    children.Add(BuildAnchor(child.Type, child.Instance, edit.Bounds.Value));
                     patchedAnchor = true;
+                } else if (!patchedText && child.Type == OfficeArtClientTextbox
+                           && TryRewriteTextBox(child, edit.OriginalText, edit.Text!, out byte[] textbox)) {
+                    children.Add(textbox);
+                    patchedText = true;
                 } else {
                     children.Add(child.CopyRecordBytes());
                 }
             }
-            if (!patchedAnchor) {
-                return new RecordRewrite(shapeContainer.CopyRecordBytes(), changed: false, patchedShapeCount: 0);
+            if (!patchedAnchor || !patchedText) {
+                bytes = shapeContainer.CopyRecordBytes();
+                return false;
             }
-            return new RecordRewrite(BuildRecord(shapeContainer.Version, shapeContainer.Instance,
-                shapeContainer.Type, Concat(children)), changed: true, patchedShapeCount: 1);
+            bytes = BuildRecord(shapeContainer.Version, shapeContainer.Instance,
+                shapeContainer.Type, Concat(children));
+            return true;
+        }
+
+        private static bool TryRewriteTextBox(LegacyPptRecord textbox, string originalText, string replacementText,
+            out byte[] bytes) {
+            LegacyPptRecord[] textRecords = textbox.DescendantsAndSelf().Where(record =>
+                record.Type == RecordTextChars || record.Type == RecordTextBytes).ToArray();
+            if (textRecords.Length != 1
+                || !TryBuildTextRecord(textbox, textRecords[0], originalText, replacementText,
+                    out byte[] replacementRecord)) {
+                bytes = textbox.CopyRecordBytes();
+                return false;
+            }
+            return TryReplaceDescendant(textbox, textRecords[0].Offset, replacementRecord, out bytes);
+        }
+
+        private static bool TryBuildTextRecord(LegacyPptRecord textbox, LegacyPptRecord textRecord,
+            string originalText, string replacementText, out byte[] bytes) {
+            string raw = textRecord.Type == RecordTextChars
+                ? textRecord.ReadUtf16Text()
+                : textRecord.ReadLowByteUnicodeText();
+            int contentLength = raw.Length;
+            while (contentLength > 0 && raw[contentLength - 1] == '\0') contentLength--;
+            while (contentLength > 0 && raw[contentLength - 1] == '\r') contentLength--;
+            string decodedOriginal = NormalizeLogicalText(raw.Substring(0, contentLength));
+            if (!string.Equals(decodedOriginal, NormalizeLogicalText(originalText), StringComparison.Ordinal)) {
+                bytes = textRecord.CopyRecordBytes();
+                return false;
+            }
+
+            string normalizedReplacement = NormalizeLogicalText(replacementText);
+            if (normalizedReplacement.Length != contentLength && !IsStructurallyPlainTextBox(textbox)) {
+                bytes = textRecord.CopyRecordBytes();
+                return false;
+            }
+            string binaryReplacement = normalizedReplacement.Replace("\n", "\r") + raw.Substring(contentLength);
+            byte[] payload;
+            if (textRecord.Type == RecordTextChars) {
+                payload = Encoding.Unicode.GetBytes(binaryReplacement);
+            } else {
+                if (binaryReplacement.Any(character => character > byte.MaxValue)) {
+                    bytes = textRecord.CopyRecordBytes();
+                    return false;
+                }
+                payload = binaryReplacement.Select(character => unchecked((byte)character)).ToArray();
+            }
+            bytes = BuildRecord(textRecord.Version, textRecord.Instance, textRecord.Type, payload);
+            return true;
+        }
+
+        private static bool IsStructurallyPlainTextBox(LegacyPptRecord textbox) => textbox.Children.All(child =>
+            child.Type == RecordTextHeader || child.Type == RecordTextChars || child.Type == RecordTextBytes);
+
+        private static bool TryReplaceDescendant(LegacyPptRecord record, int targetOffset, byte[] replacement,
+            out byte[] bytes) {
+            if (record.Offset == targetOffset) {
+                bytes = replacement;
+                return true;
+            }
+            if (record.Version != 0x0F || record.Children.Count == 0) {
+                bytes = record.CopyRecordBytes();
+                return false;
+            }
+            var children = new List<byte[]>(record.Children.Count);
+            bool changed = false;
+            foreach (LegacyPptRecord child in record.Children) {
+                if (!changed && TryReplaceDescendant(child, targetOffset, replacement, out byte[] rewrittenChild)) {
+                    children.Add(rewrittenChild);
+                    changed = true;
+                } else {
+                    children.Add(child.CopyRecordBytes());
+                }
+            }
+            bytes = changed
+                ? BuildRecord(record.Version, record.Instance, record.Type, Concat(children))
+                : record.CopyRecordBytes();
+            return changed;
         }
 
         private static byte[] AppendIncrementalEdit(LegacyPptPackage package,
@@ -232,8 +339,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return kind == LegacyPptShapeKind.Line && autoShape.ShapeType == A.ShapeTypeValues.Line;
         }
 
+        private static bool HasOnlyPlainProjectedText(PowerPointTextBox textBox) {
+            P.Shape? shape = textBox.Element as P.Shape;
+            if (shape?.TextBody == null) return true;
+            if (shape.TextBody.Descendants<A.Field>().Any() || shape.TextBody.Descendants<A.Break>().Any()) {
+                return false;
+            }
+            return !shape.TextBody.Descendants<A.RunProperties>().Any(properties =>
+                       properties.HasAttributes || properties.HasChildren)
+                && !shape.TextBody.Descendants<A.ParagraphProperties>().Any(properties =>
+                    properties.HasAttributes || properties.HasChildren)
+                && !shape.TextBody.Descendants<A.EndParagraphRunProperties>().Any(properties =>
+                    properties.HasAttributes || properties.HasChildren);
+        }
+
         private static bool BoundsEqual(LegacyPptBounds left, LegacyPptBounds right) =>
             left.Left == right.Left && left.Top == right.Top && left.Width == right.Width && left.Height == right.Height;
+
+        private static string NormalizeLogicalText(string value) => (value ?? string.Empty)
+            .Replace("\r\n", "\n").Replace("\r", "\n");
 
         private static int ToMasterUnits(long emus) => checked((int)Math.Round(
             emus / 1587.5d, MidpointRounding.AwayFromZero));
@@ -297,6 +421,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal bool Changed { get; }
 
             internal int PatchedShapeCount { get; }
+        }
+
+        private sealed class ProjectedShapeEdit {
+            internal ProjectedShapeEdit(LegacyPptBounds? bounds, string originalText, string? text) {
+                Bounds = bounds;
+                OriginalText = originalText ?? string.Empty;
+                Text = text;
+            }
+
+            internal LegacyPptBounds? Bounds { get; }
+
+            internal string OriginalText { get; }
+
+            internal string? Text { get; }
         }
     }
 }
