@@ -61,6 +61,7 @@ internal static class ReaderWebUriPolicy {
                 address.IsIPv6SiteLocal ||
                 address.IsIPv6Multicast ||
                 (bytes[0] & 0xFE) == 0xFC ||
+                IsLocalUseNat64(bytes) ||
                 (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0D && bytes[3] == 0xB8);
         }
         return true;
@@ -80,5 +81,12 @@ internal static class ReaderWebUriPolicy {
         if (first == 198 && (second == 18 || second == 19 || (second == 51 && third == 100))) return true;
         if (first == 203 && second == 0 && third == 113) return true;
         return false;
+    }
+
+    private static bool IsLocalUseNat64(byte[] bytes) {
+        return bytes.Length == 16 &&
+            bytes[0] == 0x00 && bytes[1] == 0x64 &&
+            bytes[2] == 0xFF && bytes[3] == 0x9B &&
+            bytes[4] == 0x00 && bytes[5] == 0x01;
     }
 }

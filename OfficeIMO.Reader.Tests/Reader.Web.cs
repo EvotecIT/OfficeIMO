@@ -71,6 +71,19 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
+    public async Task WebReader_RejectsLocalUseNat64TargetsBeforeSending() {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("not reached", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
+            webReader.ReadDocumentAsync(new Uri("http://[64:ff9b:1::a00:1]/private.txt")));
+
+        Assert.Equal(0, handler.CallCount);
+    }
+
+    [Fact]
     public async Task WebReader_RejectsAnInvalidSourceNameBeforeSending() {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
