@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Text;
 using System.Threading;
+using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
@@ -740,8 +741,18 @@ namespace OfficeIMO.Word.Markdown {
             var sequence = CreateInlineSequence();
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
+            List<OpenXmlElement> paragraphChildren = paragraph._paragraph.ChildElements.ToList();
+            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
 
             foreach (var run in paragraph.GetRuns()) {
+                OpenXmlElement? runContainer = run._hyperlink
+                    ?? (OpenXmlElement?)run._stdRun
+                    ?? run._run;
+                int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
+                if (equations.Any(equation => equation.ContainsChildIndex(runIndex))) {
+                    continue;
+                }
+
                 AppendRunInlines(sequence, run, options, preferredCodeFont, implicitCodeFont);
             }
 
@@ -881,20 +892,25 @@ namespace OfficeIMO.Word.Markdown {
 
         private IReadOnlyList<IMarkdownBlock> CreateUnsupportedParagraphContentBlocks(WordParagraph paragraph, WordToMarkdownOptions options) {
             List<IMarkdownBlock> equationBlocks = CreateEquationBlocks(paragraph);
-            if (equationBlocks.Count > 0) {
+            if (!TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
                 return equationBlocks;
             }
 
-            if (!TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
-                return Array.Empty<IMarkdownBlock>();
+            if (equationBlocks.Count > 0 && string.Equals(unsupportedParagraphKind, "equation", StringComparison.OrdinalIgnoreCase)) {
+                return equationBlocks;
             }
 
             if (TryCreateVisualFallbackBlock(paragraph, options, out var visualBlock)) {
-                return new[] { visualBlock };
+                equationBlocks.Add(visualBlock);
+                return equationBlocks;
             }
 
             IMarkdownBlock? unsupportedBlock = CreateUnsupportedContentBlock(options, unsupportedParagraphKind);
-            return unsupportedBlock == null ? Array.Empty<IMarkdownBlock>() : new[] { unsupportedBlock };
+            if (unsupportedBlock != null) {
+                equationBlocks.Add(unsupportedBlock);
+            }
+
+            return equationBlocks;
         }
 
         private static List<IMarkdownBlock> CreateEquationBlocks(WordParagraph paragraph) {

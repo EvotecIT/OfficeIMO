@@ -376,6 +376,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_ExportsComplexEqFieldOnceAsMathFence() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("before ");
+            paragraph._paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" EQ \\f(a,b) ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("(a)/(b)")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            paragraph.AddText(" after");
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("before", markdown, StringComparison.Ordinal);
+            Assert.Contains(" after", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "(a)/(b)" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_PreservesEquationAndShapeFallbackFromMixedParagraph() {
+            const string omml = "<m:oMath xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:r><m:t>x=1</m:t></m:r></m:oMath>";
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Mixed:");
+            paragraph.AddEquation(omml);
+            paragraph.AddShape(ShapeType.Rectangle, 60, 30);
+
+            string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
+                UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
+            });
+
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("x=1", markdown, StringComparison.Ordinal);
+            Assert.Contains("Unsupported Word content: shape", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordToMarkdown_CreateReaderOptions_Parses_Header_And_Footer_Semantic_Blocks() {
             using var doc = WordDocument.Create();
             doc.AddHeadersAndFooters();

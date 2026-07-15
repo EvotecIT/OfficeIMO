@@ -222,9 +222,24 @@ public static partial class WordRtfConverterExtensions {
         string? author) {
         bool hasContent = false;
         int? authorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, author, revisionAuthorIndexes);
+        var complexFields = new Stack<ComplexFieldCapture>();
         foreach (OpenXmlElement child in revision.ChildElements) {
             switch (child) {
                 case Run childRun:
+                    if (TryAppendComplexFieldRun(
+                        wordParagraph,
+                        childRun,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields,
+                        revisionKind,
+                        authorIndex)) {
+                        previousRun = null;
+                        hasContent = true;
+                        break;
+                    }
+
                     hasContent |= AppendWordRun(
                         new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
                         paragraph,
@@ -253,7 +268,15 @@ public static partial class WordRtfConverterExtensions {
     private static bool IsCommentReferenceOnlyRun(Run run) =>
         run.ChildElements.All(element => element is RunProperties || element is CommentReference);
 
-    private static bool TryAppendComplexFieldRun(WordParagraph wordParagraph, Run runElement, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, Stack<ComplexFieldCapture> captures) {
+    private static bool TryAppendComplexFieldRun(
+        WordParagraph wordParagraph,
+        Run runElement,
+        RtfParagraph paragraph,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> captures,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
         FieldChar? fieldChar = runElement.Elements<FieldChar>().FirstOrDefault();
         if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
             captures.Push(new ComplexFieldCapture());
@@ -289,7 +312,14 @@ public static partial class WordRtfConverterExtensions {
 
         if (capture.CapturingResult) {
             RtfRun? previousRun = capture.PreviousRun;
-            AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, runElement), capture.Result, ref previousRun, rtfDocument, revisionAuthorIndexes);
+            AppendWordRun(
+                new WordParagraph(wordParagraph._document, wordParagraph._paragraph, runElement),
+                capture.Result,
+                ref previousRun,
+                rtfDocument,
+                revisionAuthorIndexes,
+                revisionKind,
+                revisionAuthorIndex);
             capture.PreviousRun = previousRun;
             return true;
         }
