@@ -20,7 +20,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             PlaceholderShapeCount = presentation.Slides.Sum(slide =>
                 slide.Shapes.Count(shape => shape.Placeholder != null))
                 + presentation.Masters.Sum(master =>
-                    master.Shapes.Count(shape => shape.Placeholder != null));
+                    master.Shapes.Count(shape => shape.Placeholder != null))
+                + CountSpecialMasterPlaceholders(presentation.NotesMaster)
+                + CountSpecialMasterPlaceholders(presentation.HandoutMaster);
             DistinctSlideLayoutCount = presentation.Slides
                 .Select(slide => $"{slide.MasterId:X8}:{slide.LayoutType:X8}:"
                     + string.Join("-", slide.LayoutPlaceholderTypes
@@ -30,6 +32,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             MasterTextStyleCount = presentation.Masters.Sum(master => master.TextMasterStyles.Count);
             MasterTextStyleLevelCount = presentation.Masters.Sum(master =>
                 master.TextMasterStyles.Sum(style => style.Levels.Count));
+            SpecialMasterCount = (presentation.NotesMaster == null ? 0 : 1)
+                + (presentation.HandoutMaster == null ? 0 : 1);
+            SpecialMasterShapeCount = CountSpecialMasterShapes(presentation.NotesMaster)
+                + CountSpecialMasterShapes(presentation.HandoutMaster);
+            BackgroundCount = presentation.Slides.Count(slide => slide.Background != null)
+                + presentation.Masters.Count(master => master.Background != null)
+                + CountSpecialMasterBackground(presentation.NotesMaster)
+                + CountSpecialMasterBackground(presentation.HandoutMaster);
+            ProjectableBackgroundCount = presentation.Slides.Count(slide =>
+                    slide.Background?.HasProjectableFill == true)
+                + presentation.Masters.Count(master =>
+                    master.Background?.HasProjectableFill == true)
+                + CountProjectableSpecialMasterBackground(presentation.NotesMaster)
+                + CountProjectableSpecialMasterBackground(presentation.HandoutMaster);
             UnsupportedShapeCount = presentation.Slides.Sum(slide =>
                 slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.Unsupported));
             NotesSlideCount = presentation.Slides.Count(slide => !string.IsNullOrWhiteSpace(slide.NotesText));
@@ -81,6 +97,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets the number of decoded base master text-style levels.</summary>
         public int MasterTextStyleLevelCount { get; }
 
+        /// <summary>Gets the number of decoded notes and handout masters.</summary>
+        public int SpecialMasterCount { get; }
+
+        /// <summary>Gets the number of decoded notes- and handout-master shapes.</summary>
+        public int SpecialMasterShapeCount { get; }
+
+        /// <summary>Gets the number of decoded OfficeArt background shapes.</summary>
+        public int BackgroundCount { get; }
+
+        /// <summary>Gets the number of background shapes with a projectable primary fill.</summary>
+        public int ProjectableBackgroundCount { get; }
+
         /// <summary>Gets the preserve-only unsupported shape count.</summary>
         public int UnsupportedShapeCount { get; }
 
@@ -104,5 +132,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets whether projection to PPTX has known conversion loss.</summary>
         public bool HasConversionLoss => WarningCount > 0 || UnsupportedShapeCount > 0;
+
+        private static int CountSpecialMasterShapes(LegacyPptSpecialMaster? master) =>
+            master?.Shapes.Count ?? 0;
+
+        private static int CountSpecialMasterPlaceholders(LegacyPptSpecialMaster? master) =>
+            master?.Shapes.Count(shape => shape.Placeholder != null) ?? 0;
+
+        private static int CountSpecialMasterBackground(LegacyPptSpecialMaster? master) =>
+            master?.Background == null ? 0 : 1;
+
+        private static int CountProjectableSpecialMasterBackground(
+            LegacyPptSpecialMaster? master) =>
+            master?.Background?.HasProjectableFill == true ? 1 : 0;
     }
 }

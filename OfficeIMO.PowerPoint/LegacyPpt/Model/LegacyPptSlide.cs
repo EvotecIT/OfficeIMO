@@ -51,6 +51,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the color scheme stored on this slide.</summary>
         public LegacyPptColorScheme? ColorScheme { get; internal set; }
 
+        /// <summary>Gets the explicit OfficeArt background shape stored on this slide.</summary>
+        public LegacyPptBackground? Background { get; internal set; }
+
         /// <summary>Gets the projected shapes in drawing order.</summary>
         public IReadOnlyList<LegacyPptShape> Shapes => _shapes;
 

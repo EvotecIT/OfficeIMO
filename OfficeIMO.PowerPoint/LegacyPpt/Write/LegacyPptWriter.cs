@@ -99,6 +99,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     byte[] atom = child.CopyRecordBytes();
                     WriteInt32(atom, 8, ToMasterUnits(presentation.SlideSize.WidthEmus));
                     WriteInt32(atom, 12, ToMasterUnits(presentation.SlideSize.HeightEmus));
+                    PatchDocumentSettings(atom, presentation);
                     children.Add(atom);
                 } else if (child.Type == RecordDrawingGroup) {
                     children.Add(BuildDrawingGroupRecord(child, slideShapeCounts));
@@ -111,6 +112,55 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
             return BuildContainer(RecordDocument, instance: 0, children);
+        }
+
+        private static void PatchDocumentSettings(byte[] atom,
+            PowerPointPresentation presentation) {
+            if (atom.Length < 48) {
+                throw new InvalidDataException("The embedded PowerPoint DocumentAtom template is truncated.");
+            }
+            P.Presentation root = presentation.OpenXmlDocument.PresentationPart?.Presentation
+                ?? throw new InvalidDataException("The Open XML presentation root is missing.");
+            P.NotesSize? notesSize = root.NotesSize;
+            if (notesSize?.Cx?.Value > 0 && notesSize.Cy?.Value > 0) {
+                WriteInt32(atom, 16, ToMasterUnits(notesSize.Cx.Value));
+                WriteInt32(atom, 20, ToMasterUnits(notesSize.Cy.Value));
+            }
+            int serverZoom = root.ServerZoom?.Value ?? 50000;
+            if (serverZoom <= 0) serverZoom = 50000;
+            int divisor = GreatestCommonDivisor(serverZoom, 100000);
+            WriteInt32(atom, 24, serverZoom / divisor);
+            WriteInt32(atom, 28, 100000 / divisor);
+            int firstSlideNumber = root.FirstSlideNum?.Value ?? 1;
+            WriteUInt16(atom, 40, checked((ushort)Math.Min(
+                Math.Max(firstSlideNumber, 0), 9999)));
+            WriteUInt16(atom, 42, MapSlideSizeType(presentation.SlideSize.Type));
+            atom[44] = root.EmbedTrueTypeFonts?.Value == true ? (byte)1 : (byte)0;
+            atom[45] = root.ShowSpecialPlaceholderOnTitleSlide?.Value == false
+                ? (byte)1 : (byte)0;
+            atom[46] = root.RightToLeft?.Value == true ? (byte)1 : (byte)0;
+            atom[47] = presentation.OpenXmlDocument.PresentationPart?
+                .ViewPropertiesPart?.ViewProperties?.ShowComments?.Value == true
+                ? (byte)1 : (byte)0;
+        }
+
+        private static int GreatestCommonDivisor(int left, int right) {
+            while (right != 0) {
+                int remainder = left % right;
+                left = right;
+                right = remainder;
+            }
+            return left;
+        }
+
+        private static ushort MapSlideSizeType(P.SlideSizeValues? type) {
+            if (type == P.SlideSizeValues.Letter) return 1;
+            if (type == P.SlideSizeValues.A4) return 2;
+            if (type == P.SlideSizeValues.Film35mm) return 3;
+            if (type == P.SlideSizeValues.Overhead) return 4;
+            if (type == P.SlideSizeValues.Banner) return 5;
+            if (type == P.SlideSizeValues.Custom) return 6;
+            return 0;
         }
 
         private static byte[] BuildDrawingGroupRecord(LegacyPptRecord drawingGroup,

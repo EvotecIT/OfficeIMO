@@ -81,6 +81,11 @@ namespace OfficeIMO.PowerPoint {
             };
             if (master.ColorScheme != null) {
                 ApplyLegacyColorScheme(masterPart, master.ColorScheme);
+            }
+            if (master.Background != null) {
+                ApplyLegacyBackground(masterPart, slideMaster.CommonSlideData,
+                    master.Background);
+            } else if (master.ColorScheme != null) {
                 ApplyLegacyBackground(slideMaster.CommonSlideData, master.ColorScheme.Background);
             }
             ApplyLegacyMasterTextStyles(slideMaster, master.TextMasterStyles);
@@ -104,10 +109,15 @@ namespace OfficeIMO.PowerPoint {
             if (!titleMaster.FollowsMasterColorScheme && titleMaster.ColorScheme != null) {
                 ApplyLegacyColorScheme(layoutPart, titleMaster.ColorScheme);
             }
-            if (!titleMaster.FollowsMasterBackground && titleMaster.ColorScheme != null
+            if (!titleMaster.FollowsMasterBackground
                 && layoutPart.SlideLayout.CommonSlideData != null) {
-                ApplyLegacyBackground(layoutPart.SlideLayout.CommonSlideData,
-                    titleMaster.ColorScheme.Background);
+                if (titleMaster.Background != null) {
+                    ApplyLegacyBackground(layoutPart,
+                        layoutPart.SlideLayout.CommonSlideData, titleMaster.Background);
+                } else if (titleMaster.ColorScheme != null) {
+                    ApplyLegacyBackground(layoutPart.SlideLayout.CommonSlideData,
+                        titleMaster.ColorScheme.Background);
+                }
             }
 
             SlideMaster slideMaster = masterPart.SlideMaster
@@ -133,8 +143,13 @@ namespace OfficeIMO.PowerPoint {
             if (!source.FollowsMasterColorScheme && source.ColorScheme != null) {
                 ApplyLegacyColorScheme(slide.SlidePart, source.ColorScheme);
             }
-            if (!source.FollowsMasterBackground && source.ColorScheme != null) {
-                ApplyLegacyBackground(commonSlideData, source.ColorScheme.Background);
+            if (!source.FollowsMasterBackground) {
+                if (source.Background != null) {
+                    ApplyLegacyBackground(slide.SlidePart, commonSlideData,
+                        source.Background);
+                } else if (source.ColorScheme != null) {
+                    ApplyLegacyBackground(commonSlideData, source.ColorScheme.Background);
+                }
             }
         }
 
@@ -388,18 +403,7 @@ namespace OfficeIMO.PowerPoint {
         private static Picture? CreateLegacyPicture(OpenXmlPart ownerPart, LegacyPptShape source,
             uint shapeId) {
             if (source.Picture?.HasImportableImage != true || source.Picture.ContentType == null) return null;
-            ImagePartType type = GetLegacyPicturePartType(source.Picture.ContentType);
-            PartTypeInfo partType = type.ToPartTypeInfo();
-            ImagePart imagePart = ownerPart switch {
-                SlidePart slidePart => slidePart.AddImagePart(partType),
-                SlideMasterPart masterPart => masterPart.AddImagePart(partType),
-                SlideLayoutPart layoutPart => layoutPart.AddImagePart(partType),
-                _ => throw new NotSupportedException(
-                    $"Legacy master pictures cannot be attached to {ownerPart.GetType().Name}.")
-            };
-            using (var stream = new MemoryStream(source.Picture.ImageBytes, writable: false)) {
-                imagePart.FeedData(stream);
-            }
+            ImagePart imagePart = AddLegacyImagePart(ownerPart, source.Picture);
             string relationshipId = ownerPart.GetIdOfPart(imagePart);
             var properties = new ShapeProperties(
                 new A.Transform2D(
@@ -422,6 +426,27 @@ namespace OfficeIMO.PowerPoint {
                     new ApplicationNonVisualDrawingProperties()),
                 blipFill,
                 properties);
+        }
+
+        private static ImagePart AddLegacyImagePart(OpenXmlPart ownerPart,
+            OfficeIMO.Drawing.Binary.OfficeArtBlipStoreEntry picture) {
+            if (picture.ContentType == null || !picture.HasImportableImage) {
+                throw new ArgumentException("The OfficeArt BLIP has no importable image payload.",
+                    nameof(picture));
+            }
+            PartTypeInfo partType = GetLegacyPicturePartType(picture.ContentType).ToPartTypeInfo();
+            ImagePart imagePart = ownerPart switch {
+                SlidePart slidePart => slidePart.AddImagePart(partType),
+                SlideMasterPart masterPart => masterPart.AddImagePart(partType),
+                SlideLayoutPart layoutPart => layoutPart.AddImagePart(partType),
+                NotesMasterPart notesPart => notesPart.AddImagePart(partType),
+                HandoutMasterPart handoutPart => handoutPart.AddImagePart(partType),
+                _ => throw new NotSupportedException(
+                    $"Legacy pictures cannot be attached to {ownerPart.GetType().Name}.")
+            };
+            using var stream = new MemoryStream(picture.ImageBytes, writable: false);
+            imagePart.FeedData(stream);
+            return imagePart;
         }
 
         private static void ApplyLegacyPictureCrop(BlipFill? target, LegacyPptShape source) {

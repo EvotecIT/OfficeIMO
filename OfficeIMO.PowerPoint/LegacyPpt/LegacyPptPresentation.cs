@@ -59,6 +59,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         /// <summary>Gets the slide height in PowerPoint master units (576 units per inch).</summary>
         public int SlideHeight { get; private set; } = 5400;
 
+        /// <summary>Gets the complete binary document settings when the DocumentAtom is valid.</summary>
+        public LegacyPptDocumentSettings? DocumentSettings { get; private set; }
+
         /// <summary>Gets the decoded slides in display order.</summary>
         public IReadOnlyList<LegacyPptSlide> Slides => _slides;
 
@@ -116,18 +119,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             LegacyPptRecord? documentAtom = document.Children.FirstOrDefault(record => record.Type == RecordDocumentAtom);
-            if (documentAtom != null && documentAtom.PayloadLength >= 8) {
-                int width = documentAtom.ReadInt32(0);
-                int height = documentAtom.ReadInt32(4);
-                if (width > 0 && height > 0) {
-                    SlideWidth = width;
-                    SlideHeight = height;
-                }
-            }
+            ParseDocumentSettings(documentAtom);
 
             ParseBlipStore(document, package, options);
             ParseFontCollection(document, options);
 
+            ParseSpecialMasters(documentAtom, documentStream, persistOffsets, options);
             ParseMasters(document, documentStream, persistOffsets, options);
 
             LegacyPptRecord? slideList = document.Children.FirstOrDefault(record =>
@@ -179,6 +176,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptColorScheme? effectiveScheme = slide.FollowsMasterColorScheme
                 ? _masters.FirstOrDefault(master => master.MasterId == slide.MasterId)?.ColorScheme
                 : slide.ColorScheme;
+            slide.Background = ReadBackground(slideRecord,
+                effectiveScheme ?? slide.ColorScheme, options);
             ParseShapes(slideRecord, slide.AddShape, "slide", options,
                 effectiveScheme ?? slide.ColorScheme, slide.AddConnectorRule);
         }
@@ -225,6 +224,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 LegacyPptColorScheme? effectiveScheme = !isMainMaster && master.FollowsMasterColorScheme
                     ? _masters.FirstOrDefault(candidate => candidate.MasterId == master.ParentMasterId)?.ColorScheme
                     : master.ColorScheme;
+                master.Background = ReadBackground(masterRecord,
+                    effectiveScheme ?? master.ColorScheme, options);
                 ParseTextMasterStyles(masterRecord, master, effectiveScheme ?? master.ColorScheme, options);
                 ParseShapes(masterRecord, master.AddShape, isMainMaster ? "main master" : "title master",
                     options, effectiveScheme ?? master.ColorScheme, master.AddConnectorRule);
@@ -316,6 +317,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ushort shapeType = fsp.Instance;
             uint shapeId = fsp.ReadUInt32(0);
             uint shapeFlags = fsp.ReadUInt32(4);
+            if ((shapeFlags & OfficeArtBackgroundShapeFlag) != 0) return null;
             LegacyPptBounds bounds;
             try {
                 bounds = ReadBounds(anchor);

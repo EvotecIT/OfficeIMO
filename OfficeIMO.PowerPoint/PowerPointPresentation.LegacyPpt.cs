@@ -63,8 +63,9 @@ namespace OfficeIMO.PowerPoint {
             Stream? sourceStream = null) {
             if (legacy == null) throw new ArgumentNullException(nameof(legacy));
             using PowerPointPresentation projected = Create();
-            projected.SlideSize.SetSizeEmus(ToEmus(legacy.SlideWidth), ToEmus(legacy.SlideHeight));
+            ApplyLegacyDocumentSettings(projected, legacy);
             LegacyPptLayoutCatalog layoutTargets = ProjectLegacyMasters(projected, legacy);
+            ProjectLegacySpecialMasters(projected, legacy);
 
             foreach (LegacyPptSlide legacySlide in legacy.Slides) {
                 PowerPointSlide slide = layoutTargets.TryGet(legacySlide,

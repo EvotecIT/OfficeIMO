@@ -14,6 +14,13 @@ public sealed class OfficeArtShapeStyle {
         FillType = GetUInt32(0x0180);
         FillColor = GetColor(0x0181);
         FillOpacity = GetFixedPoint(0x0182);
+        FillBackColor = GetColor(0x0183);
+        FillBackOpacity = GetFixedPoint(0x0184);
+        FillBlipStoreIndex = GetBlipStoreIndex(0x0186);
+        FillAngleDegrees = GetSignedFixedPoint(0x018B);
+        FillFocusPercent = GetInt32(0x018C);
+        FillGradientStops = ReadGradientStops(out bool gradientStopsTruncated);
+        IsFillGradientStopTableTruncated = gradientStopsTruncated;
         FillEnabled = GetBoolean(0x01BF, 0x00100000U, 0x00000010U);
         LineColor = GetColor(0x01C0);
         LineOpacity = GetFixedPoint(0x01C1);
@@ -54,6 +61,27 @@ public sealed class OfficeArtShapeStyle {
 
     /// <summary>Gets fill opacity from 0 through 1.</summary>
     public double? FillOpacity { get; }
+
+    /// <summary>Gets the fill background color reference used by patterns and gradients.</summary>
+    public OfficeArtColorReference? FillBackColor { get; }
+
+    /// <summary>Gets fill-background opacity from 0 through 1.</summary>
+    public double? FillBackOpacity { get; }
+
+    /// <summary>Gets the one-based BLIP store index used by picture, texture, or pattern fills.</summary>
+    public int? FillBlipStoreIndex { get; }
+
+    /// <summary>Gets the signed 16.16 gradient angle in counterclockwise degrees.</summary>
+    public double? FillAngleDegrees { get; }
+
+    /// <summary>Gets the gradient focus position from -100 through 100.</summary>
+    public int? FillFocusPercent { get; }
+
+    /// <summary>Gets decoded MSOSHADECOLOR gradient stops in source order.</summary>
+    public IReadOnlyList<OfficeArtGradientStop> FillGradientStops { get; }
+
+    /// <summary>Gets whether a declared gradient-stop array is malformed or truncated.</summary>
+    public bool IsFillGradientStopTableTruncated { get; }
 
     /// <summary>Gets explicit fill visibility, or null when the property inherits its default.</summary>
     public bool? FillEnabled { get; }
@@ -126,6 +154,8 @@ public sealed class OfficeArtShapeStyle {
 
     /// <summary>Gets whether this style includes fill or line values that can be projected directly.</summary>
     public bool HasProjectableStyle => FillEnabled.HasValue || FillColor.HasValue || FillOpacity.HasValue
+        || FillBackColor.HasValue || FillBackOpacity.HasValue || FillBlipStoreIndex.HasValue
+        || FillAngleDegrees.HasValue || FillFocusPercent.HasValue
         || LineEnabled.HasValue || LineColor.HasValue || LineOpacity.HasValue || LineWidthEmus.HasValue
         || LineDashing.HasValue || LineStartArrowhead.HasValue || LineEndArrowhead.HasValue
         || LineJoinStyle.HasValue || LineEndCapStyle.HasValue || HasProjectableShadow;
@@ -160,6 +190,65 @@ public sealed class OfficeArtShapeStyle {
         if (!value.HasValue || value.Value > 0x00010000U) return null;
         return value.Value / 65536D;
     }
+
+    private double? GetSignedFixedPoint(ushort propertyId) {
+        uint? value = GetUInt32(propertyId);
+        return value.HasValue ? unchecked((int)value.Value) / 65536D : null;
+    }
+
+    private int? GetBlipStoreIndex(ushort propertyId) {
+        OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
+            candidate.PropertyId == propertyId && candidate.IsBlipId && !candidate.IsComplex);
+        return property == null || property.Value == 0 || property.Value > int.MaxValue
+            ? null
+            : unchecked((int)property.Value);
+    }
+
+    private IReadOnlyList<OfficeArtGradientStop> ReadGradientStops(out bool truncated) {
+        truncated = false;
+        OfficeArtProperty? property = Properties.LastOrDefault(candidate =>
+            candidate.PropertyId == 0x0197 && candidate.IsComplex);
+        if (property == null) return Array.Empty<OfficeArtGradientStop>();
+        byte[]? data = property.CopyComplexData();
+        if (data == null || data.Length < 6) {
+            truncated = true;
+            return Array.Empty<OfficeArtGradientStop>();
+        }
+        int count = ReadUInt16(data, 0);
+        int allocated = ReadUInt16(data, 2);
+        int elementSize = ReadUInt16(data, 4);
+        if (count > allocated || elementSize != 8 || count > (data.Length - 6) / 8) {
+            truncated = true;
+            return Array.Empty<OfficeArtGradientStop>();
+        }
+
+        var result = new List<OfficeArtGradientStop>(count);
+        double previous = -1D;
+        for (int index = 0; index < count; index++) {
+            int offset = 6 + index * 8;
+            uint rawPosition = ReadUInt32(data, offset + 4);
+            if (rawPosition > 0x00010000U) {
+                truncated = true;
+                return Array.Empty<OfficeArtGradientStop>();
+            }
+            double position = rawPosition / 65536D;
+            if (position < previous) {
+                truncated = true;
+                return Array.Empty<OfficeArtGradientStop>();
+            }
+            result.Add(new OfficeArtGradientStop(
+                new OfficeArtColorReference(ReadUInt32(data, offset)), position));
+            previous = position;
+        }
+        return result;
+    }
+
+    private static ushort ReadUInt16(byte[] data, int offset) => unchecked((ushort)(
+        data[offset] | data[offset + 1] << 8));
+
+    private static uint ReadUInt32(byte[] data, int offset) => unchecked((uint)(
+        data[offset] | data[offset + 1] << 8 | data[offset + 2] << 16
+        | data[offset + 3] << 24));
 
     private bool? GetBoolean(ushort propertyId, uint useMask, uint valueMask) {
         uint? value = GetUInt32(propertyId);
