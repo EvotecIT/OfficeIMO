@@ -283,8 +283,11 @@ namespace OfficeIMO.Word.Markdown {
                     ? OmdListItem.TaskInlines(paragraphBlock.Inlines, checkboxChecked)
                     : new OmdListItem(paragraphBlock.Inlines);
 
+                bool requiresOrderedChildBlocks = paragraphBlocks
+                    .Skip(1)
+                    .Any(block => block is not ParagraphBlock);
                 for (int i = 1; i < paragraphBlocks.Count; i++) {
-                    if (paragraphBlocks[i] is ParagraphBlock additionalParagraph) {
+                    if (!requiresOrderedChildBlocks && paragraphBlocks[i] is ParagraphBlock additionalParagraph) {
                         item.AdditionalParagraphs.Add(additionalParagraph.Inlines);
                     } else {
                         item.NestedBlocks.Add(paragraphBlocks[i]);

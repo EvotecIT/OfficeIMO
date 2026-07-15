@@ -320,6 +320,7 @@ namespace OfficeIMO.Tests {
             WordList list = doc.AddList(WordListStyle.Bulleted);
             WordParagraph item = list.AddItem("Formula:");
             item.AddEquation(omml);
+            item.AddText(" after");
 
             string markdown = doc.ToMarkdown(new WordToMarkdownOptions {
                 UnsupportedContentMode = MarkdownUnsupportedContentMode.Placeholder
@@ -328,6 +329,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains("- Formula:", markdown, StringComparison.Ordinal);
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
             Assert.Contains("x=1", markdown, StringComparison.Ordinal);
+            int prefix = markdown.IndexOf("Formula:", StringComparison.Ordinal);
+            int equation = markdown.IndexOf("x=1", StringComparison.Ordinal);
+            int suffix = markdown.IndexOf("after", StringComparison.Ordinal);
+            Assert.True(prefix >= 0 && prefix < equation && equation < suffix, markdown);
             Assert.DoesNotContain("Unsupported Word content: equation", markdown, StringComparison.Ordinal);
         }
 
