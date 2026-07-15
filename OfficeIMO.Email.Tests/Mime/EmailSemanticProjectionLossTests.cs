@@ -65,6 +65,87 @@ public sealed class EmailSemanticProjectionLossTests {
     }
 
     [Theory]
+    [InlineData("METHOD:PUBLISH\r\n", "ORGANIZER:mailto:alice@example.com?subject=Meeting")]
+    [InlineData("METHOD:REQUEST\r\n", "ATTENDEE:mailto:alice@example.com?subject=Meeting")]
+    public void BlocksCalendarMailtoUrisWithHeaderFieldsBeforeStoreConversion(
+        string method, string addressProperty) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            method + "BEGIN:VEVENT\r\nUID:mailto-header@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            addressProperty + "\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("VERSION:3.0\r\nVERSION:3.0\r\n")]
+    public void RequiresExactlyOneVcardVersionBeforeStoreConversion(string versions) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\n" + versions +
+            "FN:Ada Lovelace\r\nEND:VCARD\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("SUMMARY:Calendar subject\r\n")]
+    public void BlocksTransportSubjectPromotionOrReplacementBeforeStoreConversion(string summary) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Subject: Transport subject\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\n" +
+            "UID:subject-provenance@example.com\r\nDTSTART:20260801T100000Z\r\n" + summary +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
+    public void BlocksTransportFromPromotionIntoCalendarOrganizer() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "From: Owner <owner@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\n" +
+            "UID:organizer-provenance@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
+    public void BlocksUnknownCalendarExtensionsBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "METHOD:PUBLISH\r\nBEGIN:VEVENT\r\nUID:vendor-extension@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nX-APPLE-STRUCTURED-LOCATION:geo:52.2,21.0\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
+    public void BlocksDuplicateCalendarAttendeesBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "METHOD:REQUEST\r\nBEGIN:VEVENT\r\nUID:duplicate-attendee@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nATTENDEE;ROLE=REQ-PARTICIPANT:mailto:alice@example.com\r\n" +
+            "ATTENDEE;ROLE=OPT-PARTICIPANT:mailto:alice@example.com\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Theory]
+    [InlineData("X-SOCIALPROFILE:https://social.example/ada")]
+    [InlineData("item1.X-ABLABEL:Social")]
+    public void BlocksUnknownVcardExtensionsBeforeStoreConversion(string extension) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\n" + extension + "\r\nEND:VCARD\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Theory]
     [InlineData(false)]
     [InlineData(true)]
     public void BlocksNonSmtpCalendarRecipientsAndOmitsInvalidMailtoValues(bool task) {

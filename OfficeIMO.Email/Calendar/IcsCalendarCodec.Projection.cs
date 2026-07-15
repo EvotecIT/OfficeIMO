@@ -1,9 +1,24 @@
 namespace OfficeIMO.Email;
 
 internal static partial class IcsCalendarCodec {
+    private static readonly HashSet<string> ProjectedCalendarExtensions = new HashSet<string>(
+        StringComparer.OrdinalIgnoreCase) {
+            "X-MICROSOFT-CDO-BUSYSTATUS", "X-MICROSOFT-DISALLOW-COUNTER",
+            "X-OFFICEIMO-ACCEPTANCE-STATE", "X-OFFICEIMO-ACTUAL-EFFORT", "X-OFFICEIMO-ASSIGNER",
+            "X-OFFICEIMO-BILLING-INFORMATION", "X-OFFICEIMO-CLIENT-INTENT", "X-OFFICEIMO-COMMON-END",
+            "X-OFFICEIMO-COMMON-START", "X-OFFICEIMO-COMPANY", "X-OFFICEIMO-ESTIMATED-EFFORT",
+            "X-OFFICEIMO-MEETING-STATUS", "X-OFFICEIMO-MILEAGE", "X-OFFICEIMO-ORDINAL",
+            "X-OFFICEIMO-OWNERSHIP", "X-OFFICEIMO-REMINDER-SET", "X-OFFICEIMO-REMINDER-SIGNAL-TIME",
+            "X-OFFICEIMO-REMINDER-TIME", "X-OFFICEIMO-RESPONSE-STATUS",
+            "X-OFFICEIMO-SEND-STATUS-ON-COMPLETE", "X-OFFICEIMO-SEND-UPDATES", "X-OFFICEIMO-TASK-MODE",
+            "X-OFFICEIMO-TASK-OWNER", "X-OFFICEIMO-TASK-STATE", "X-OFFICEIMO-TASK-VERSION",
+            "X-OFFICEIMO-TEAM-TASK", "X-OFFICEIMO-TIMEZONE-DESCRIPTION",
+            "X-OFFICEIMO-TODO-ORDINAL-DATE", "X-OFFICEIMO-TODO-SUBORDINAL"
+        };
+
     private static bool HasIncompleteStoreProjection(IEnumerable<IcsProperty> properties,
         IEnumerable<IcsProperty> activeProperties, IReadOnlyList<IcsProperty> alarmProperties, bool isEvent,
-        string? envelopeSubject) {
+        string? envelopeSubject, EmailAddress? envelopeFrom) {
         int calendarItems = properties.Count(property => property.Name == "BEGIN" &&
             (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
              property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
@@ -22,9 +37,16 @@ internal static partial class IcsCalendarCodec {
         string? reminderDescription = string.IsNullOrWhiteSpace(calendarSummary)
             ? envelopeSubject
             : calendarSummary;
+        bool hasConflictingEnvelopeSubject = !string.IsNullOrWhiteSpace(envelopeSubject) &&
+            !string.Equals(envelopeSubject, calendarSummary, StringComparison.Ordinal);
+        bool wouldSynthesizeOrganizer = isEvent && !string.IsNullOrWhiteSpace(envelopeFrom?.Address) &&
+            !activeProperties.Any(property => property.Name == "ORGANIZER");
         return calendarRoots != 1 || calendarItems > 1 || alarms > 1 || hasTimeZone || hasUnsupportedComponent ||
-            hasUnsupportedVersion ||
+            hasUnsupportedVersion || hasConflictingEnvelopeSubject || wouldSynthesizeOrganizer ||
+            HasDuplicateAttendeeAddresses(activeProperties) ||
             activeProperties.Any(HasUnpreservedPropertyParameters) ||
+            activeProperties.Any(property => property.Name.StartsWith("X-", StringComparison.OrdinalIgnoreCase) &&
+                !ProjectedCalendarExtensions.Contains(property.Name)) ||
             HasIncompleteAlarmProjection(alarms, alarmProperties, reminderDescription) ||
             activeProperties.Any(property =>
                 property.Name == "RRULE" || property.Name == "RDATE" ||
@@ -42,7 +64,7 @@ internal static partial class IcsCalendarCodec {
                 property.Name == "ATTENDEE" && HasIncompleteAttendeeProjection(property) ||
                 property.Name == "ORGANIZER" && HasIncompleteOrganizerProjection(property) ||
                 (property.Name == "ORGANIZER" || property.Name == "ATTENDEE") &&
-                IsNonMailtoCalendarAddress(property.Value) ||
+                IsUnprojectableCalendarAddress(property.Value) ||
                 property.Name == "ATTACH" || property.Name == "TRIGGER" &&
                 property.Parameters.TryGetValue("RELATED", out string? related) &&
                 related.Equals("END", StringComparison.OrdinalIgnoreCase));
@@ -142,12 +164,21 @@ internal static partial class IcsCalendarCodec {
         organizer.Parameters.Keys.Any(parameter =>
             !parameter.Equals("CN", StringComparison.OrdinalIgnoreCase));
 
-    private static bool IsNonMailtoCalendarAddress(string? value) {
-        if (string.IsNullOrWhiteSpace(value)) return false;
+    private static bool HasDuplicateAttendeeAddresses(IEnumerable<IcsProperty> properties) {
+        var addresses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (IcsProperty attendee in properties.Where(property => property.Name == "ATTENDEE")) {
+            string? address = StripMailTo(attendee.Value);
+            if (!string.IsNullOrWhiteSpace(address) && !addresses.Add(address!)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsUnprojectableCalendarAddress(string? value) {
+        if (string.IsNullOrWhiteSpace(value)) return true;
         string address = value!.Trim();
-        if (address.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) return false;
-        return Uri.TryCreate(address, UriKind.Absolute, out Uri? uri) &&
-            !uri.Scheme.Equals("mailto", StringComparison.OrdinalIgnoreCase);
+        if (!address.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) return true;
+        string mailbox = address.Substring(7);
+        return mailbox.Length == 0 || mailbox.IndexOf('?') >= 0 || mailbox.IndexOf('#') >= 0;
     }
 
     private static bool IsStoreProjectableTaskMethod(string? method) => string.IsNullOrWhiteSpace(method) ||

@@ -13,7 +13,10 @@ internal static partial class VCardCodec {
 
         int cardCount = properties.Count(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase));
+        VCardProperty[] versions = properties.Where(property => property.Name == "VERSION").ToArray();
         document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 ||
+            versions.Length != 1 || !versions[0].Value.Trim().Equals("3.0", StringComparison.OrdinalIgnoreCase) ||
+            HasUnprojectedExtension(properties) ||
             HasUnpreservedPropertyParameters(properties) ||
             properties.Count(property => property.Name == "EMAIL") > 3 || properties.Any(property =>
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
@@ -22,8 +25,6 @@ internal static partial class VCardCodec {
             property.Name == "SORT-STRING" || property.Name == "MAILER" || property.Name == "UID" ||
             property.Name == "SOURCE" || property.Name == "FBURL" || property.Name == "CALURI" ||
             property.Name == "CALADRURI" || property.Name == "SOUND" ||
-            property.Name == "VERSION" &&
-            !property.Value.Trim().Equals("3.0", StringComparison.OrdinalIgnoreCase) ||
             property.Name == "REV" || property.Name == "KIND" &&
             !property.Value.Trim().Equals("individual", StringComparison.OrdinalIgnoreCase) ||
             property.Name == "CLASS" &&

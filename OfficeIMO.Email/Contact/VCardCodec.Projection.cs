@@ -1,6 +1,26 @@
 namespace OfficeIMO.Email;
 
 internal static partial class VCardCodec {
+    private static readonly HashSet<string> ProjectedVCardExtensions = new HashSet<string>(
+        StringComparer.OrdinalIgnoreCase) {
+            "X-MS-ASSISTANT", "X-MS-CHILD", "X-MS-FILE-AS", "X-MS-HTML", "X-MS-INITIALS",
+            "X-MS-LOCATION", "X-MS-MANAGER", "X-MS-OFFICE", "X-MS-SPOUSE",
+            "X-OFFICEIMO-HAS-PICTURE",
+            "X-OFFICEIMO-EMAIL1-DISPLAY-NAME", "X-OFFICEIMO-EMAIL1-ORIGINAL-DISPLAY-NAME",
+            "X-OFFICEIMO-EMAIL2-DISPLAY-NAME", "X-OFFICEIMO-EMAIL2-ORIGINAL-DISPLAY-NAME",
+            "X-OFFICEIMO-EMAIL3-DISPLAY-NAME", "X-OFFICEIMO-EMAIL3-ORIGINAL-DISPLAY-NAME",
+            "X-OFFICEIMO-BUSINESS-COUNTRY-CODE", "X-OFFICEIMO-HOME-COUNTRY-CODE",
+            "X-OFFICEIMO-OTHER-COUNTRY-CODE", "X-OFFICEIMO-WORK-COUNTRY-CODE"
+        };
+
+    private static bool HasUnprojectedExtension(IEnumerable<VCardProperty> properties) =>
+        properties.Any(property => IsExtensionPropertyName(property.Name) &&
+            !ProjectedVCardExtensions.Contains(property.Name));
+
+    private static bool IsExtensionPropertyName(string name) =>
+        name.StartsWith("X-", StringComparison.OrdinalIgnoreCase) ||
+        name.IndexOf(".X-", StringComparison.OrdinalIgnoreCase) >= 0;
+
     private static bool HasUnpreservedPropertyParameters(IEnumerable<VCardProperty> properties) =>
         properties.Any(property => {
             if (property.Parameters.Count == 0 || property.Name == "EMAIL" || property.Name == "TEL" ||

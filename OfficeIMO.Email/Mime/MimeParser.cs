@@ -317,7 +317,7 @@ internal static class MimeParser {
         if (partStart < 0) {
             state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_NOT_FOUND",
                 string.Concat("Multipart boundary '", boundary, "' was not found."),
-                EmailDiagnosticSeverity.Warning, location));
+                EmailDiagnosticSeverity.Error, location));
         }
         return parts;
     }

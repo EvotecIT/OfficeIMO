@@ -351,6 +351,18 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void ReportsMissingMultipartBoundaryAsAnError() {
+        const string eml = "Subject: missing boundary\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "This body never contains the declared delimiter.\r\n";
+
+        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+
+        Assert.True(result.HasErrors);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_FOUND" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
+    }
+
+    [Fact]
     public void DefaultsMultipartDigestChildrenToEmbeddedMessages() {
         const string eml = "Subject: digest\r\nContent-Type: multipart/digest; boundary=d\r\n\r\n" +
             "--d\r\n\r\nFrom: child@example.com\r\nSubject: Digest child\r\n\r\nchild body\r\n" +

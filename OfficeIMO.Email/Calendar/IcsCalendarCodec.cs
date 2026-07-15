@@ -19,7 +19,7 @@ internal static partial class IcsCalendarCodec {
         IReadOnlyList<IcsProperty> alarmProperties = SelectActiveAlarmProperties(
             properties, activeComponent.Value);
         document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(
-            properties, activeProperties, alarmProperties, isEvent, document.Subject);
+            properties, activeProperties, alarmProperties, isEvent, document.Subject, document.From);
         string? calendarMethod = GetValue(activeProperties, "METHOD");
         string? effectiveMethod = calendarMethod ?? mimeMethod;
         bool hasMethodConflict = !string.IsNullOrWhiteSpace(calendarMethod) &&
@@ -458,7 +458,7 @@ internal static partial class IcsCalendarCodec {
     private static string? StripMailTo(string? value) {
         if (string.IsNullOrWhiteSpace(value)) return null;
         string result = value!.Trim();
-        if (IsNonMailtoCalendarAddress(result)) return null;
+        if (IsUnprojectableCalendarAddress(result)) return null;
         if (!result.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)) return result;
         string address = result.Substring(7);
         try {
