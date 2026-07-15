@@ -457,4 +457,21 @@ public sealed class EmailMimeWriterTests {
         Assert.Contains("To: (undisclosed)\r\n", eml, StringComparison.Ordinal);
         Assert.Contains("Cc: Valid <valid@example.com>\r\n", eml, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void PreservesUnrepresentedRetainedRecipientAlongsideStructuredRecipients() {
+        var document = new EmailDocument { Subject = "retained" };
+        document.Body.Text = "body";
+        document.Headers.Add(new EmailHeader("To", "Header Only <header@example.com>"));
+        document.Recipients.Add(new EmailRecipient(EmailRecipientKind.Cc,
+            new EmailAddress("cc@example.com", "Structured")));
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.To &&
+            recipient.Address.Address == "header@example.com");
+        Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.Cc &&
+            recipient.Address.Address == "cc@example.com");
+    }
 }

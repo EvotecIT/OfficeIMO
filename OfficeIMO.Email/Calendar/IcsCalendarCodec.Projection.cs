@@ -15,11 +15,15 @@ internal static partial class IcsCalendarCodec {
             property.Value.Equals("VTIMEZONE", StringComparison.OrdinalIgnoreCase));
         bool hasUnsupportedComponent = properties.Any(property => property.Name == "BEGIN" &&
             !IsSupportedComponent(property.Value));
+        IcsProperty[] versions = properties.Where(property => property.Name == "VERSION").ToArray();
+        bool hasUnsupportedVersion = versions.Length != 1 ||
+            !versions[0].Value.Trim().Equals("2.0", StringComparison.OrdinalIgnoreCase);
         string? calendarSummary = Unescape(GetValue(activeProperties, "SUMMARY"));
         string? reminderDescription = string.IsNullOrWhiteSpace(calendarSummary)
             ? envelopeSubject
             : calendarSummary;
         return calendarRoots != 1 || calendarItems > 1 || alarms > 1 || hasTimeZone || hasUnsupportedComponent ||
+            hasUnsupportedVersion ||
             HasIncompleteAlarmProjection(alarms, alarmProperties, reminderDescription) ||
             activeProperties.Any(property =>
                 property.Name == "RRULE" || property.Name == "RDATE" ||
@@ -30,7 +34,7 @@ internal static partial class IcsCalendarCodec {
                 property.Name == "CLASS" && !ParseCalendarSensitivity(property.Value).HasValue ||
                 isEvent && property.Name == "STATUS" ||
                 property.Name == "PRIORITY" || property.Name == "URL" ||
-                property.Name == "LOCATION" && property.Parameters.Count > 0 ||
+                property.Name == "LOCATION" && (!isEvent || property.Parameters.Count > 0) ||
                 !isEvent && property.Name == "SEQUENCE" ||
                 !isEvent && IsDateOnlyTaskProperty(property) ||
                 property.Name == "ATTENDEE" && HasIncompleteAttendeeProjection(property) ||

@@ -184,6 +184,22 @@ public sealed class EmailCalendarProjectionEdgeTests {
     }
 
     [Fact]
+    public void BlocksUnsupportedCalendarVersionsBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:1.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:version@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
     public void BlocksVtodoSequenceBeforeStoreConversion() {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:task-sequence@example.com\r\nDTSTART:20260801T100000Z\r\n" +
@@ -241,6 +257,7 @@ public sealed class EmailCalendarProjectionEdgeTests {
     [InlineData("VTODO", "RESOURCES:Conference room")]
     [InlineData("VEVENT", "GEO:52.2297;21.0122")]
     [InlineData("VEVENT", "CONTACT:calendar@example.com")]
+    [InlineData("VTODO", "LOCATION:Warehouse")]
     public void BlocksUnprojectedCalendarAuditAndDetailFieldsBeforeStoreConversion(
         string component, string property) {
         byte[] eml = Calendar(

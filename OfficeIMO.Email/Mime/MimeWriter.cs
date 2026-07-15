@@ -106,20 +106,18 @@ internal static class MimeWriter {
         string[] addresses = document.Recipients.Where(item => item.Kind == kind)
             .Select(item => FormatAddress(item.Address)).ToArray();
         bool hasProjectedRecipients = document.Recipients.Any(item => item.Kind == kind);
-        bool hasAnyProjectedRecipients = document.Recipients.Any(item =>
-            item.Kind == EmailRecipientKind.To || item.Kind == EmailRecipientKind.Cc ||
-            item.Kind == EmailRecipientKind.Bcc || item.Kind == EmailRecipientKind.ReplyTo);
         bool retainedHeaderIsParseable = false;
         if (addresses.Length == 0 && !hasProjectedRecipients) {
-            var parsed = new List<string>();
+            var parsed = new List<EmailAddress>();
             var diagnostics = new List<EmailDiagnostic>();
             foreach (EmailHeader header in document.Headers.Where(header =>
                          string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))) {
                 parsed.AddRange(MimeAddressParser.ParseMany(header.RawValue ?? header.Value, diagnostics,
-                    string.Concat("transport/", name)).Select(FormatAddress));
+                    string.Concat("transport/", name)));
             }
             retainedHeaderIsParseable = parsed.Count > 0;
-            if (!hasAnyProjectedRecipients) addresses = parsed.ToArray();
+            addresses = parsed.Where(address => !HasProjectedRecipientAddress(document, address))
+                .Select(FormatAddress).ToArray();
         }
         if (addresses.Length > 0) {
             WriteLine(output, string.Concat(name, ": ", string.Join(",\r\n ", addresses)));
@@ -129,6 +127,12 @@ internal static class MimeWriter {
                 WriteRetainedHeader(output, header);
             }
         }
+    }
+
+    private static bool HasProjectedRecipientAddress(EmailDocument document, EmailAddress address) {
+        string? candidate = address.Address?.Trim();
+        return !string.IsNullOrWhiteSpace(candidate) && document.Recipients.Any(recipient =>
+            string.Equals(recipient.Address.Address?.Trim(), candidate, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void WriteAddressHeader(Stream output, EmailDocument document, EmailAddress? address, string name) {
