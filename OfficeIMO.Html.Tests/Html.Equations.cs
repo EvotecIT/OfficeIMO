@@ -82,9 +82,9 @@ namespace OfficeIMO.Tests {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph();
             paragraph._paragraph.Append(new Hyperlink(
-                new Run(new Text("link-prefix ")),
+                new Run(new RunProperties(new Bold()), new Text("link-prefix ")),
                 new M.OfficeMath(new M.Run(new M.Text("linked"))),
-                new Run(new Text(" link-suffix"))) {
+                new Run(new RunProperties(new Italic()), new Text(" link-suffix"))) {
                 Anchor = "target"
             });
 
@@ -95,6 +95,8 @@ namespace OfficeIMO.Tests {
             int suffix = html.IndexOf(" link-suffix", StringComparison.Ordinal);
             Assert.True(prefix >= 0 && prefix < math && math < suffix, html);
             Assert.Contains("aria-label=\"linked\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<strong>link-prefix </strong>", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<em> link-suffix</em>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(1, html.Split(new[] { "link-prefix " }, StringSplitOptions.None).Length - 1);
             Assert.Equal(1, html.Split(new[] { " link-suffix" }, StringSplitOptions.None).Length - 1);
         }

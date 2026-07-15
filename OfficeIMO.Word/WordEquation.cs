@@ -137,7 +137,7 @@ namespace OfficeIMO.Word {
 
             var segments = new List<WordEquationContentSegment>();
             var emittedEquations = new HashSet<WordEquation>();
-            AppendVisibleContentSegments(segments, container, occurrences, emittedEquations, includeElement);
+            AppendVisibleContentSegments(segments, container, occurrences, emittedEquations, includeElement, null);
             return segments;
         }
 
@@ -173,9 +173,11 @@ namespace OfficeIMO.Word {
             OpenXmlElement element,
             IReadOnlyList<WordEquationOccurrence> occurrences,
             HashSet<WordEquation> emittedEquations,
-            Func<OpenXmlElement, bool>? includeElement) {
+            Func<OpenXmlElement, bool>? includeElement,
+            Run? sourceRun) {
             if (element is DeletedRun || element is MoveFromRun) return;
             if (includeElement != null && !includeElement(element)) return;
+            if (element is Run run) sourceRun = run;
 
             WordEquation? backedEquation = occurrences
                 .Select(occurrence => occurrence.Equation)
@@ -188,40 +190,42 @@ namespace OfficeIMO.Word {
             }
 
             if (element is Text text) {
-                AppendVisibleTextSegment(segments, text.Text);
+                AppendVisibleTextSegment(segments, text.Text, sourceRun);
                 return;
             }
             if (element is TabChar) {
-                AppendVisibleTextSegment(segments, "\t");
+                AppendVisibleTextSegment(segments, "\t", sourceRun);
                 return;
             }
             if (element is Break || element is CarriageReturn) {
-                AppendVisibleTextSegment(segments, "\n");
+                AppendVisibleTextSegment(segments, "\n", sourceRun);
                 return;
             }
             if (element is NoBreakHyphen) {
-                AppendVisibleTextSegment(segments, "\u2011");
+                AppendVisibleTextSegment(segments, "\u2011", sourceRun);
                 return;
             }
             if (element is SoftHyphen) {
-                AppendVisibleTextSegment(segments, "\u00ad");
+                AppendVisibleTextSegment(segments, "\u00ad", sourceRun);
                 return;
             }
 
             foreach (OpenXmlElement child in element.ChildElements) {
-                AppendVisibleContentSegments(segments, child, occurrences, emittedEquations, includeElement);
+                AppendVisibleContentSegments(segments, child, occurrences, emittedEquations, includeElement, sourceRun);
             }
         }
 
-        private static void AppendVisibleTextSegment(List<WordEquationContentSegment> segments, string? text) {
+        private static void AppendVisibleTextSegment(List<WordEquationContentSegment> segments, string? text, Run? sourceRun) {
             if (string.IsNullOrEmpty(text)) return;
-            if (segments.Count > 0 && segments[segments.Count - 1].Equation == null) {
+            if (segments.Count > 0 &&
+                segments[segments.Count - 1].Equation == null &&
+                ReferenceEquals(segments[segments.Count - 1].SourceRun, sourceRun)) {
                 WordEquationContentSegment previous = segments[segments.Count - 1];
-                segments[segments.Count - 1] = WordEquationContentSegment.FromText((previous.Text ?? string.Empty) + text);
+                segments[segments.Count - 1] = WordEquationContentSegment.FromText((previous.Text ?? string.Empty) + text, sourceRun);
                 return;
             }
 
-            segments.Add(WordEquationContentSegment.FromText(text!));
+            segments.Add(WordEquationContentSegment.FromText(text!, sourceRun));
         }
 
         private bool IsBackingElement(OpenXmlElement element) =>
@@ -353,15 +357,31 @@ namespace OfficeIMO.Word {
     }
 
     internal sealed class WordEquationContentSegment {
-        private WordEquationContentSegment(string? text, WordEquation? equation) {
+        private WordEquationContentSegment(string? text, WordEquation? equation, Run? sourceRun) {
             Text = text;
             Equation = equation;
+            SourceRun = sourceRun;
         }
 
         internal string? Text { get; }
         internal WordEquation? Equation { get; }
+        internal Run? SourceRun { get; }
 
-        internal static WordEquationContentSegment FromText(string text) => new(text, null);
-        internal static WordEquationContentSegment FromEquation(WordEquation equation) => new(null, equation);
+        internal WordParagraph CreateSourceParagraph(WordDocument document, Paragraph paragraph, WordParagraph fallback) {
+            if (SourceRun == null) return fallback;
+
+            var source = new WordParagraph(document, paragraph, SourceRun);
+            for (OpenXmlElement? ancestor = SourceRun.Parent; ancestor != null; ancestor = ancestor.Parent) {
+                if (ancestor is Hyperlink hyperlink) {
+                    source._hyperlink = hyperlink;
+                    break;
+                }
+                if (ReferenceEquals(ancestor, paragraph)) break;
+            }
+            return source;
+        }
+
+        internal static WordEquationContentSegment FromText(string text, Run? sourceRun) => new(text, null, sourceRun);
+        internal static WordEquationContentSegment FromEquation(WordEquation equation) => new(null, equation, null);
     }
 }

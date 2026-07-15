@@ -326,9 +326,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal("linked", occurrence.Equation.Text);
             Assert.Collection(
                 segments,
-                segment => Assert.Equal("link-prefix ", segment.Text),
+                segment => {
+                    Assert.Equal("link-prefix ", segment.Text);
+                    Assert.Same(hyperlink.Elements<Run>().First(), segment.SourceRun);
+                },
                 segment => Assert.Same(occurrence.Equation, segment.Equation),
-                segment => Assert.Equal(" link-suffix", segment.Text));
+                segment => {
+                    Assert.Equal(" link-suffix", segment.Text);
+                    Assert.Same(hyperlink.Elements<Run>().Last(), segment.SourceRun);
+                });
             Assert.Equal("link-prefix linked link-suffix", WordEquation.GetVisibleTextWithEquations(hyperlink, occurrences));
             WordParagraph equationParagraph = Assert.Single(document.ParagraphsEquations);
             Assert.True(equationParagraph.IsHyperLink);

@@ -108,9 +108,13 @@ namespace OfficeIMO.Word.Html {
                                 IElement? mathNode = CreateEquationNode(segment.Equation);
                                 if (mathNode != null) nodes.Add(mathNode);
                             } else if (!string.IsNullOrEmpty(segment.Text)) {
+                                WordParagraph sourceRun = segment.CreateSourceParagraph(
+                                    para._document,
+                                    para._paragraph,
+                                    run);
                                 nodes.Add(CreateEquationAdjacentTextNode(
                                     htmlDoc,
-                                    run,
+                                    sourceRun,
                                     segment.Text!,
                                     options,
                                     document.Settings.Language,

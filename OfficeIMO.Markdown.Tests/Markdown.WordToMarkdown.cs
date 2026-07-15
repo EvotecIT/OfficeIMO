@@ -400,9 +400,9 @@ namespace OfficeIMO.Tests {
             using var doc = WordDocument.Create();
             WordParagraph paragraph = doc.AddParagraph("outer ");
             paragraph._paragraph.Append(new Hyperlink(
-                new Run(new Text("link-prefix ")),
+                new Run(new RunProperties(new Bold()), new Text("link-prefix ")),
                 new M.OfficeMath(new M.Run(new M.Text("linked"))),
-                new Run(new Text(" link-suffix"))) {
+                new Run(new RunProperties(new Italic()), new Text(" link-suffix"))) {
                 Anchor = "target"
             });
 
@@ -411,6 +411,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("link-prefix", markdown, StringComparison.Ordinal);
             Assert.Contains("link-suffix", markdown, StringComparison.Ordinal);
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("**link-prefix**", markdown, StringComparison.Ordinal);
+            Assert.Contains("*link-suffix*", markdown, StringComparison.Ordinal);
             Assert.Equal(1, markdown.Split(new[] { "linked" }, StringSplitOptions.None).Length - 1);
             Assert.Equal(1, markdown.Split(new[] { "link-prefix" }, StringSplitOptions.None).Length - 1);
             Assert.Equal(1, markdown.Split(new[] { "link-suffix" }, StringSplitOptions.None).Length - 1);

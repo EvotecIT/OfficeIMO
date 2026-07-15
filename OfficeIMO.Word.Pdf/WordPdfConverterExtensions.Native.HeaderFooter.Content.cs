@@ -773,21 +773,26 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string AppendNativeTextWithEquation(string text, WordParagraph paragraph) {
-            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
-            if (occurrences.Count == 0) {
+            IReadOnlyList<WordEquationContentSegment> segments = GetNativeVisibleEquationContentSegments(paragraph);
+            if (segments.Count == 0) {
                 return text;
             }
 
-            if (GetNativeParagraphStyleDefaults(paragraph).Hidden == true) {
-                return string.Empty;
+            string orderedText = string.Concat(segments.Select(segment => segment.Equation?.Text ?? segment.Text));
+            return string.IsNullOrEmpty(orderedText) ? text : orderedText;
+        }
+
+        private static IReadOnlyList<WordEquationContentSegment> GetNativeVisibleEquationContentSegments(WordParagraph paragraph) {
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            if (occurrences.Count == 0 || GetNativeParagraphStyleDefaults(paragraph).Hidden == true) {
+                return Array.Empty<WordEquationContentSegment>();
             }
 
-            string orderedText = WordEquation.GetVisibleTextWithEquations(
+            return WordEquation.GetVisibleContentSegments(
                 paragraph._paragraph,
                 occurrences,
                 element => element is not W.Run run ||
                     !IsNativeHiddenTextRun(new WordParagraph(paragraph._document, paragraph._paragraph, run), paragraph));
-            return string.IsNullOrEmpty(orderedText) ? text : orderedText;
         }
 
         private static string? GetNativeEquationText(WordParagraph paragraph) {

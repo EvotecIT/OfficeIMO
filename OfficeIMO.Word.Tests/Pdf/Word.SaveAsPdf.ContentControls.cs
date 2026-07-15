@@ -47,11 +47,13 @@ public partial class Word {
             interleavedEquation.AddText(" pdf-suffix");
 
             WordParagraph linkedEquation = document.AddParagraph();
+            HyperlinkRelationship linkedEquationRelationship = document._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/equations"), true);
             linkedEquation._paragraph.Append(new Hyperlink(
-                new Run(new Text("linked-prefix ")),
+                new Run(new RunProperties(new Bold()), new Text("Qlinked-prefix ")),
                 new M.OfficeMath(new M.Run(new M.Text("linked-equation"))),
-                new Run(new Text(" linked-suffix"))) {
-                Anchor = "target"
+                new Run(new RunProperties(new Italic()), new Text(" Xlinked-suffix"))) {
+                Id = linkedEquationRelationship.Id
             });
 
             WordParagraph hiddenAdjacentText = document.AddParagraph("visible-prefix ");
@@ -78,12 +80,22 @@ public partial class Word {
         string normalizedText = NormalizePdfText(text);
         Assert.Contains("Native controlled equation:", normalizedText);
         Assert.Contains("Native controlled equation: control-prefix controlled=5 control-suffix", normalizedText);
-            Assert.Contains("pdf-prefix pdf-equation pdf-suffix", normalizedText);
-            Assert.Contains("linked-prefix linked-equation linked-suffix", normalizedText);
-            Assert.Contains("visible-prefix visible-equation visible-suffix", normalizedText);
-            Assert.DoesNotContain("hidden-equation-adjacent", normalizedText, StringComparison.Ordinal);
-            Assert.Contains("Native table equation:", normalizedText);
+        Assert.Contains("pdf-prefix pdf-equation pdf-suffix", normalizedText);
+        Assert.Contains("Qlinked-prefix linked-equation Xlinked-suffix", normalizedText);
+        Assert.Contains("visible-prefix visible-equation visible-suffix", normalizedText);
+        Assert.DoesNotContain("hidden-equation-adjacent", normalizedText, StringComparison.Ordinal);
+        Assert.Contains("Native table equation:", normalizedText);
         Assert.Contains("c=4", normalizedText);
+        using (PdfPigDocument pdf = PdfPigDocument.Open(pdfPath)) {
+            var page = pdf.GetPage(1);
+            Assert.Contains("Bold", Assert.Single(page.Letters, letter => letter.Value == "Q").FontName, StringComparison.OrdinalIgnoreCase);
+            string suffixFont = Assert.Single(page.Letters, letter => letter.Value == "X").FontName;
+            Assert.True(
+                suffixFont.Contains("Italic", StringComparison.OrdinalIgnoreCase) ||
+                suffixFont.Contains("Oblique", StringComparison.OrdinalIgnoreCase),
+                suffixFont);
+        }
+        Assert.Contains("/URI (https://officeimo.net/equations", Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath)), StringComparison.Ordinal);
     }
 
     [Fact]

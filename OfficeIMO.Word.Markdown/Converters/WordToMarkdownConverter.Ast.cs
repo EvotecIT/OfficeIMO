@@ -758,8 +758,14 @@ namespace OfficeIMO.Word.Markdown {
                     if (runContainer != null &&
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
-                        string surroundingText = WordEquation.GetVisibleTextOutsideEquations(runContainer, coveringEquations);
-                        AppendRunInlines(sequence, run, options, preferredCodeFont, implicitCodeFont, surroundingText);
+                        foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
+                            if (segment.Equation != null || string.IsNullOrEmpty(segment.Text)) continue;
+                            WordParagraph sourceRun = segment.CreateSourceParagraph(
+                                paragraph._document,
+                                paragraph._paragraph,
+                                run);
+                            AppendRunInlines(sequence, sourceRun, options, preferredCodeFont, implicitCodeFont, segment.Text);
+                        }
                     }
                     continue;
                 }

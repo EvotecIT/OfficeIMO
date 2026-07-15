@@ -519,7 +519,7 @@ namespace OfficeIMO.Word.Pdf {
                     AddNativeCellText(result, supplementalText!, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
                 }
             } else if (hasEquationContent) {
-                AddNativeCellText(result, content, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                AddNativeCellEquationContent(result, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
             } else if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 AddNativeCellHyperLinkRun(result, paragraph.Hyperlink.Text, paragraph, paragraph.Hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
             } else if (shouldRenderDirectContent) {
@@ -550,16 +550,31 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static void AddNativeCellRun(List<PdfCore.TextRun> target, WordParagraph run, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
-            if (string.IsNullOrEmpty(run.Text)) {
+            AddNativeCellRun(target, run.Text, run, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+        }
+
+        private static void AddNativeCellRun(List<PdfCore.TextRun> target, string text, WordParagraph run, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
+            if (string.IsNullOrEmpty(text)) {
                 return;
             }
 
             if (run.IsHyperLink && run.Hyperlink != null) {
-                AddNativeCellHyperLinkRun(target, run.Text, run, run.Hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                AddNativeCellHyperLinkRun(target, text, run, run.Hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
                 return;
             }
 
-            AddNativeCellTextRuns(target, run.Text, text => CreateNativeCellTextRun(text, run, tableStyleDefaults, nativeDefaults, nativeFontMap), tabStops, ref tabIndex);
+            AddNativeCellTextRuns(target, text, value => CreateNativeCellTextRun(value, run, tableStyleDefaults, nativeDefaults, nativeFontMap), tabStops, ref tabIndex);
+        }
+
+        private static void AddNativeCellEquationContent(List<PdfCore.TextRun> target, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
+            foreach (WordEquationContentSegment segment in GetNativeVisibleEquationContentSegments(paragraph)) {
+                if (segment.Equation != null) {
+                    AddNativeCellText(target, segment.Equation.Text, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                } else if (!string.IsNullOrEmpty(segment.Text)) {
+                    WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
+                    AddNativeCellRun(target, segment.Text!, sourceRun, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
+                }
+            }
         }
 
         private static void AddNativeCellText(List<PdfCore.TextRun> target, string text, WordParagraph paragraph, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap, IReadOnlyList<WordTabStop> tabStops, ref int tabIndex) {
