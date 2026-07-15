@@ -371,9 +371,11 @@ internal static class MimeWriter {
         string? fileName = attachment.FileName;
         WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType),
             FormatContentTypeParameters(attachment.ContentTypeParameters), FormatFileNameParameter("name", fileName)));
-        WriteLine(output, string.Concat("Content-Disposition: ",
-            attachment.IsMimeAttachment ? "attachment" : attachment.IsInline ? "inline" : "attachment",
-            FormatFileNameParameter("filename", fileName)));
+        if (!attachment.IsMimeBodyPart) {
+            WriteLine(output, string.Concat("Content-Disposition: ",
+                attachment.IsMimeAttachment ? "attachment" : attachment.IsInline ? "inline" : "attachment",
+                FormatFileNameParameter("filename", fileName)));
+        }
         if (!string.IsNullOrWhiteSpace(attachment.ContentId)) {
             WriteLine(output, string.Concat("Content-ID: <", SanitizeMessageId(attachment.ContentId!), ">"));
         }

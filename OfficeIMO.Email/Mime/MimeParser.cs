@@ -181,7 +181,7 @@ internal static class MimeParser {
                 MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location),
                 document, state.Diagnostics, location)) {
             attachment.IsProjectedSemanticContent = true;
-        } else if (vcardContent && VCardCodec.TryProject(
+        } else if (vcardContent && attachment.IsMimeBodyPart && VCardCodec.TryProject(
                        MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location), document)) {
             attachment.IsProjectedSemanticContent = true;
         }

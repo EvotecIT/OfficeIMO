@@ -127,13 +127,15 @@ internal static class EmailConversionAnalyzer {
     private static bool HasAddresslessAttendeeDisplayState(EmailDocument document) {
         OutlookAppointment appointment = document.Appointment!;
         bool hasAddresslessRecipient = document.Recipients.Any(recipient =>
-            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc) &&
+            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
+             recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
             string.IsNullOrWhiteSpace(recipient.Address.Address));
         bool hasDisplayText = !string.IsNullOrWhiteSpace(appointment.AllAttendees) ||
             !string.IsNullOrWhiteSpace(appointment.RequiredAttendees) ||
             !string.IsNullOrWhiteSpace(appointment.OptionalAttendees);
         return hasAddresslessRecipient || hasDisplayText && !document.Recipients.Any(recipient =>
-            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc) &&
+            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
+             recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
             !string.IsNullOrWhiteSpace(recipient.Address.Address));
     }
 }

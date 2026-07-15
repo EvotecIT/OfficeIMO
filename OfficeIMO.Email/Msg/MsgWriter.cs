@@ -565,7 +565,8 @@ internal static class MsgWriter {
 
     private static int? GetDurationMinutes(DateTimeOffset? start, DateTimeOffset? end) {
         if (!start.HasValue || !end.HasValue) return null;
-        return checked((int)Math.Round((end.Value - start.Value).TotalMinutes));
+        double minutes = Math.Round((end.Value - start.Value).TotalMinutes);
+        return minutes >= int.MinValue && minutes <= int.MaxValue ? (int)minutes : (int?)null;
     }
 
     private static string? JoinAppointmentAttendees(EmailDocument document, EmailRecipientKind? kind) {
@@ -581,7 +582,8 @@ internal static class MsgWriter {
 
     private static int? ToMinutes(TimeSpan? value) {
         if (!value.HasValue) return null;
-        return checked((int)Math.Round(value.Value.TotalMinutes));
+        double minutes = Math.Round(value.Value.TotalMinutes);
+        return minutes >= int.MinValue && minutes <= int.MaxValue ? (int)minutes : (int?)null;
     }
 
     private static object[]? ToObjectArray(IList<string> values) =>

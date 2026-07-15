@@ -23,6 +23,7 @@ public sealed class EmailMimeMetadataTests {
         source.MessageMetadata.IsRead = true;
         source.MessageMetadata.Categories.Add("Blue");
         source.MessageMetadata.Categories.Add("Project X");
+        source.MessageMetadata.Categories.Add("Project, X");
 
         EmailDocument result = new EmailDocumentReader().Read(
             new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml)).Document;
@@ -36,7 +37,7 @@ public sealed class EmailMimeMetadataTests {
         Assert.Equal("delivery-receipts@example.com", result.MessageMetadata.DeliveryReceiptDestination);
         Assert.True(result.MessageMetadata.IsDraft);
         Assert.True(result.MessageMetadata.IsRead);
-        Assert.Equal(new[] { "Blue", "Project X" }, result.MessageMetadata.Categories);
+        Assert.Equal(new[] { "Blue", "Project X", "Project, X" }, result.MessageMetadata.Categories);
     }
 
     [Fact]

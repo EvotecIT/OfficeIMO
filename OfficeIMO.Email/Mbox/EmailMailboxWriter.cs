@@ -67,10 +67,6 @@ public sealed class EmailMailboxWriter {
                 return new EmailWriteResult(bytesWritten, diagnostics.AsReadOnly(), false);
             }
             long next = checked(bytesWritten + bytes.LongLength);
-            if (next > _options.MessageOptions.MaxOutputBytes) {
-                throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), next,
-                    _options.MessageOptions.MaxOutputBytes);
-            }
             stream.Write(bytes, 0, bytes.Length);
             bytesWritten = next;
             index++;

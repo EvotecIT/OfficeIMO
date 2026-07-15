@@ -84,14 +84,15 @@ internal static class IcsCalendarCodec {
             property.Value.Equals("VTIMEZONE", StringComparison.OrdinalIgnoreCase));
         return calendarItems > 1 || hasTimeZone || activeProperties.Any(property =>
             property.Name == "RRULE" || property.Name == "RDATE" ||
-            property.Name == "EXDATE" || property.Name == "RECURRENCE-ID");
+            property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
+            property.Name == "ATTACH");
     }
 
     private static void ProjectEvent(IReadOnlyList<IcsProperty> properties, EmailDocument document,
         IList<EmailDiagnostic> diagnostics, string location) {
         var appointment = document.Appointment ?? new OutlookAppointment();
         document.OutlookItemKind = OutlookItemKind.Appointment;
-        document.MessageClass = MessageClassForMethod(GetValue(properties, "METHOD"));
+        document.MessageClass = MessageClassForMethod(GetValue(properties, "METHOD"), properties);
         document.Appointment = appointment;
         ApplyCommon(properties, document);
 
@@ -103,11 +104,20 @@ internal static class IcsCalendarCodec {
         appointment.IsRecurring = GetProperty(properties, "RRULE") != null;
         appointment.RecurrencePattern = GetValue(properties, "RRULE");
         TimeSpan? duration = ParseDuration(GetValue(properties, "DURATION"));
-        appointment.DurationMinutes = appointment.Start.HasValue && appointment.End.HasValue
-            ? checked((int)(appointment.End.Value - appointment.Start.Value).TotalMinutes)
-            : duration.HasValue ? checked((int)duration.Value.TotalMinutes) : (int?)null;
+        bool incompleteDuration = false;
+        TimeSpan? effectiveDuration = appointment.Start.HasValue && appointment.End.HasValue
+            ? appointment.End.Value - appointment.Start.Value
+            : duration;
+        appointment.DurationMinutes = effectiveDuration.HasValue
+            ? ConvertDurationMinutes(effectiveDuration.Value, diagnostics, location, ref incompleteDuration)
+            : null;
         if (!appointment.End.HasValue && appointment.Start.HasValue && duration.HasValue) {
-            appointment.End = appointment.Start.Value.Add(duration.Value);
+            try {
+                appointment.End = appointment.Start.Value.Add(duration.Value);
+            } catch (ArgumentOutOfRangeException) {
+                ReportDurationOutOfRange(diagnostics, location);
+                incompleteDuration = true;
+            }
         }
         string? busy = GetValue(properties, "X-MICROSOFT-CDO-BUSYSTATUS");
         appointment.BusyStatus = ParseBusyStatus(busy);
@@ -116,7 +126,8 @@ internal static class IcsCalendarCodec {
         appointment.ResponseStatus = ParseInt(GetValue(properties, "X-OFFICEIMO-RESPONSE-STATUS"));
         appointment.ClientIntentFlags = ParseInt(GetValue(properties, "X-OFFICEIMO-CLIENT-INTENT"));
         appointment.TimeZoneDescription = UnescapeOrNull(GetValue(properties, "X-OFFICEIMO-TIMEZONE-DESCRIPTION"));
-        ApplyReminder(properties, appointment, diagnostics, location);
+        incompleteDuration |= ApplyReminder(properties, appointment, diagnostics, location);
+        document.MimeSemanticProjectionIsIncomplete |= incompleteDuration;
 
         string[] required = GetAttendees(properties, optional: false).ToArray();
         string[] optional = GetAttendees(properties, optional: true).ToArray();
@@ -171,7 +182,7 @@ internal static class IcsCalendarCodec {
         foreach (IcsProperty property in properties.Where(property => property.Name == "X-OFFICEIMO-COMPANY")) {
             task.Companies.Add(Unescape(property.Value));
         }
-        ApplyReminder(properties, task, diagnostics, location);
+        document.MimeSemanticProjectionIsIncomplete |= ApplyReminder(properties, task, diagnostics, location);
     }
 
     private static void ApplyCommon(IReadOnlyList<IcsProperty> properties, EmailDocument document) {
@@ -286,10 +297,16 @@ internal static class IcsCalendarCodec {
             AppendLine(output, string.Concat(organizer, ":mailto:", EscapeUriValue(document.From.Address!)));
         }
         foreach (EmailRecipient recipient in document.Recipients.Where(recipient =>
-            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc) &&
+            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
+             recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
             !string.IsNullOrWhiteSpace(recipient.Address.Address))) {
-            string role = recipient.Kind == EmailRecipientKind.Cc ? "OPT-PARTICIPANT" : "REQ-PARTICIPANT";
+            string role = recipient.Kind == EmailRecipientKind.Cc ? "OPT-PARTICIPANT" :
+                recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource
+                    ? "NON-PARTICIPANT"
+                    : "REQ-PARTICIPANT";
             string attendee = string.Concat("ATTENDEE;ROLE=", role);
+            if (recipient.Kind == EmailRecipientKind.Room) attendee += ";CUTYPE=ROOM";
+            else if (recipient.Kind == EmailRecipientKind.Resource) attendee += ";CUTYPE=RESOURCE";
             if (!string.IsNullOrWhiteSpace(recipient.Address.DisplayName)) attendee += string.Concat(";CN=\"",
                 EscapeParameter(recipient.Address.DisplayName!), "\"");
             AppendLine(output, string.Concat(attendee, ":mailto:", EscapeUriValue(recipient.Address.Address!)));
@@ -448,11 +465,20 @@ internal static class IcsCalendarCodec {
             if (string.IsNullOrWhiteSpace(address)) continue;
             bool optional = property.Parameters.TryGetValue("ROLE", out string? role) &&
                 string.Equals(role, "OPT-PARTICIPANT", StringComparison.OrdinalIgnoreCase);
+            EmailRecipientKind kind = optional ? EmailRecipientKind.Cc : EmailRecipientKind.To;
+            if (property.Parameters.TryGetValue("CUTYPE", out string? calendarUserType)) {
+                if (calendarUserType.Equals("ROOM", StringComparison.OrdinalIgnoreCase)) kind = EmailRecipientKind.Room;
+                else if (calendarUserType.Equals("RESOURCE", StringComparison.OrdinalIgnoreCase)) {
+                    kind = EmailRecipientKind.Resource;
+                }
+            }
             property.Parameters.TryGetValue("CN", out string? name);
-            if (!document.Recipients.Any(recipient => string.Equals(recipient.Address.Address, address,
-                StringComparison.OrdinalIgnoreCase))) {
-                document.Recipients.Add(new EmailRecipient(optional ? EmailRecipientKind.Cc : EmailRecipientKind.To,
-                    new EmailAddress(address!, name)));
+            EmailRecipient? existing = document.Recipients.FirstOrDefault(recipient =>
+                string.Equals(recipient.Address.Address, address, StringComparison.OrdinalIgnoreCase));
+            if (existing == null) {
+                document.Recipients.Add(new EmailRecipient(kind, new EmailAddress(address!, name)));
+            } else if (kind == EmailRecipientKind.Room || kind == EmailRecipientKind.Resource) {
+                existing.Kind = kind;
             }
         }
     }
@@ -482,7 +508,8 @@ internal static class IcsCalendarCodec {
             }
         }
         try {
-            return System.Xml.XmlConvert.ToTimeSpan(value);
+            string xmlValue = negative ? string.Concat("-", normalized) : normalized;
+            return System.Xml.XmlConvert.ToTimeSpan(xmlValue);
         } catch (FormatException) {
             return null;
         } catch (OverflowException) {
@@ -515,10 +542,25 @@ internal static class IcsCalendarCodec {
     private static string FormatBusyStatus(int value) => value == 0 ? "FREE" : value == 1 ? "TENTATIVE" :
         value == 3 ? "OOF" : value == 4 ? "WORKINGELSEWHERE" : "BUSY";
 
-    private static string MessageClassForMethod(string? method) =>
-        string.Equals(method, "REQUEST", StringComparison.OrdinalIgnoreCase) ? "IPM.Schedule.Meeting.Request" :
-        string.Equals(method, "CANCEL", StringComparison.OrdinalIgnoreCase) ? "IPM.Schedule.Meeting.Canceled" :
-        "IPM.Appointment";
+    private static string MessageClassForMethod(string? method, IEnumerable<IcsProperty> properties) {
+        if (string.Equals(method, "REQUEST", StringComparison.OrdinalIgnoreCase)) {
+            return "IPM.Schedule.Meeting.Request";
+        }
+        if (string.Equals(method, "CANCEL", StringComparison.OrdinalIgnoreCase)) {
+            return "IPM.Schedule.Meeting.Canceled";
+        }
+        if (!string.Equals(method, "REPLY", StringComparison.OrdinalIgnoreCase)) return "IPM.Appointment";
+        string? participationStatus = properties.Where(property => property.Name == "ATTENDEE")
+            .Select(property => property.Parameters.TryGetValue("PARTSTAT", out string? value) ? value : null)
+            .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+        if (string.Equals(participationStatus, "TENTATIVE", StringComparison.OrdinalIgnoreCase)) {
+            return "IPM.Schedule.Meeting.Resp.Tent";
+        }
+        if (string.Equals(participationStatus, "DECLINED", StringComparison.OrdinalIgnoreCase)) {
+            return "IPM.Schedule.Meeting.Resp.Neg";
+        }
+        return "IPM.Schedule.Meeting.Resp.Pos";
+    }
 
     internal static string GetMethod(EmailDocument document) {
         string messageClass = document.MessageClass ?? string.Empty;
@@ -526,7 +568,8 @@ internal static class IcsCalendarCodec {
         if (messageClass.IndexOf("Request", StringComparison.OrdinalIgnoreCase) >= 0) return "REQUEST";
         if (messageClass.IndexOf("Resp", StringComparison.OrdinalIgnoreCase) >= 0) return "REPLY";
         return document.Recipients.Any(recipient => recipient.Kind == EmailRecipientKind.To ||
-            recipient.Kind == EmailRecipientKind.Cc) ? "REQUEST" : "PUBLISH";
+            recipient.Kind == EmailRecipientKind.Cc || recipient.Kind == EmailRecipientKind.Room ||
+            recipient.Kind == EmailRecipientKind.Resource) ? "REQUEST" : "PUBLISH";
     }
 
     private static string FormatUtc(DateTimeOffset value) =>
@@ -551,11 +594,12 @@ internal static class IcsCalendarCodec {
         return result.ToString();
     }
 
-    private static void ApplyReminder(IReadOnlyList<IcsProperty> properties, OutlookAppointment appointment,
+    private static bool ApplyReminder(IReadOnlyList<IcsProperty> properties, OutlookAppointment appointment,
         IList<EmailDiagnostic> diagnostics, string location) {
         IcsProperty? trigger = GetProperty(properties, "TRIGGER");
         appointment.ReminderIsSet = trigger == null ? ParseBoolean(GetValue(properties, "X-OFFICEIMO-REMINDER-SET")) : true;
-        appointment.ReminderDeltaMinutes = ParseRelativeTriggerMinutes(trigger);
+        appointment.ReminderDeltaMinutes = ParseRelativeTriggerMinutes(trigger, diagnostics, location,
+            out bool incomplete);
         appointment.ReminderTime = ParseDate(GetProperty(properties, "X-OFFICEIMO-REMINDER-TIME"),
             diagnostics, location, out _);
         appointment.ReminderSignalTime = ParseDate(GetProperty(properties, "X-OFFICEIMO-REMINDER-SIGNAL-TIME"),
@@ -563,13 +607,14 @@ internal static class IcsCalendarCodec {
         if (!appointment.ReminderSignalTime.HasValue) {
             appointment.ReminderSignalTime = ParseAbsoluteTrigger(trigger, diagnostics, location);
         }
+        return incomplete;
     }
 
-    private static void ApplyReminder(IReadOnlyList<IcsProperty> properties, OutlookTask task,
+    private static bool ApplyReminder(IReadOnlyList<IcsProperty> properties, OutlookTask task,
         IList<EmailDiagnostic> diagnostics, string location) {
         IcsProperty? trigger = GetProperty(properties, "TRIGGER");
         task.ReminderIsSet = trigger == null ? ParseBoolean(GetValue(properties, "X-OFFICEIMO-REMINDER-SET")) : true;
-        task.ReminderDeltaMinutes = ParseRelativeTriggerMinutes(trigger);
+        task.ReminderDeltaMinutes = ParseRelativeTriggerMinutes(trigger, diagnostics, location, out bool incomplete);
         task.ReminderTime = ParseDate(GetProperty(properties, "X-OFFICEIMO-REMINDER-TIME"),
             diagnostics, location, out _);
         task.ReminderSignalTime = ParseDate(GetProperty(properties, "X-OFFICEIMO-REMINDER-SIGNAL-TIME"),
@@ -577,13 +622,36 @@ internal static class IcsCalendarCodec {
         if (!task.ReminderSignalTime.HasValue) {
             task.ReminderSignalTime = ParseAbsoluteTrigger(trigger, diagnostics, location);
         }
+        return incomplete;
     }
 
-    private static int? ParseRelativeTriggerMinutes(IcsProperty? trigger) {
+    private static int? ParseRelativeTriggerMinutes(IcsProperty? trigger, IList<EmailDiagnostic> diagnostics,
+        string location, out bool incomplete) {
+        incomplete = false;
         if (trigger == null || trigger.Parameters.TryGetValue("VALUE", out string? valueType) &&
             valueType.Equals("DATE-TIME", StringComparison.OrdinalIgnoreCase)) return null;
         TimeSpan? value = ParseDuration(trigger.Value);
-        return value.HasValue ? checked((int)-value.Value.TotalMinutes) : (int?)null;
+        return value.HasValue
+            ? ConvertDurationMinutes(value.Value, diagnostics, location, ref incomplete, invert: true)
+            : null;
+    }
+
+    private static int? ConvertDurationMinutes(TimeSpan value, IList<EmailDiagnostic> diagnostics,
+        string location, ref bool incomplete, bool invert = false) {
+        double minutes = value.TotalMinutes;
+        if (invert) minutes = -minutes;
+        if (minutes >= int.MinValue && minutes <= int.MaxValue) return (int)minutes;
+        ReportDurationOutOfRange(diagnostics, location);
+        incomplete = true;
+        return null;
+    }
+
+    private static void ReportDurationOutOfRange(IList<EmailDiagnostic> diagnostics, string location) {
+        if (diagnostics.Any(diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_DURATION_OUT_OF_RANGE" &&
+            string.Equals(diagnostic.Location, location, StringComparison.Ordinal))) return;
+        diagnostics.Add(new EmailDiagnostic("EMAIL_ICALENDAR_DURATION_OUT_OF_RANGE",
+            "An iCalendar duration exceeds the supported whole-minute range and was retained only in the semantic source.",
+            EmailDiagnosticSeverity.Warning, location));
     }
 
     private static DateTimeOffset? ParseAbsoluteTrigger(IcsProperty? trigger,

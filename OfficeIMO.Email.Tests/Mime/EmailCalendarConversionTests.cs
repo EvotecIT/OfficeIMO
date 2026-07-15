@@ -118,6 +118,136 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void ParsesExplicitlyPositiveEventAndReminderDurations() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:positive@example.com\r\nDTSTART:20260801T100000Z\r\nDURATION:+PT1H\r\n" +
+            "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:+PT15M\r\nEND:VALARM\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        OutlookAppointment appointment = new EmailDocumentReader().Read(eml).Document.Appointment!;
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 11, 0, 0, TimeSpan.Zero), appointment.End);
+        Assert.Equal(60, appointment.DurationMinutes);
+        Assert.Equal(-15, appointment.ReminderDeltaMinutes);
+    }
+
+    [Fact]
+    public void PreservesRoomAndResourceRecipientsThroughIcalendar() {
+        DateTimeOffset start = new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero);
+        var source = new EmailDocument {
+            OutlookItemKind = OutlookItemKind.Appointment,
+            Subject = "Resource meeting",
+            Appointment = new OutlookAppointment { Start = start, End = start.AddHours(1) }
+        };
+        source.Recipients.Add(new EmailRecipient(EmailRecipientKind.Room,
+            new EmailAddress("room@example.com", "Room 1")));
+        source.Recipients.Add(new EmailRecipient(EmailRecipientKind.Resource,
+            new EmailAddress("projector@example.com", "Projector")));
+
+        byte[] eml = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
+        EmailDocument result = new EmailDocumentReader().Read(eml).Document;
+        using var stream = new MemoryStream(eml);
+        MimePart calendar = Assert.Single(MimeMessage.Load(stream).BodyParts.OfType<MimePart>(),
+            part => part.ContentType.MimeType == "text/calendar");
+        using var content = new MemoryStream();
+        calendar.Content!.DecodeTo(content);
+        string calendarText = Encoding.UTF8.GetString(content.ToArray());
+
+        Assert.Contains("CUTYPE=ROOM", calendarText, StringComparison.Ordinal);
+        Assert.Contains("CUTYPE=RESOURCE", calendarText, StringComparison.Ordinal);
+        Assert.Contains(result.Recipients, recipient => recipient.Kind == EmailRecipientKind.Room &&
+            recipient.Address.Address == "room@example.com");
+        Assert.Contains(result.Recipients, recipient => recipient.Kind == EmailRecipientKind.Resource &&
+            recipient.Address.Address == "projector@example.com");
+    }
+
+    [Fact]
+    public void CalendarUserTypeOverridesTheEnvelopeRecipientKind() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "To: Room 1 <room@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:room@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\n" +
+            "ATTENDEE;CUTYPE=ROOM;ROLE=NON-PARTICIPANT:mailto:room@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailRecipient recipient = Assert.Single(new EmailDocumentReader().Read(eml).Document.Recipients);
+
+        Assert.Equal(EmailRecipientKind.Room, recipient.Kind);
+    }
+
+    [Theory]
+    [InlineData("ACCEPTED", "IPM.Schedule.Meeting.Resp.Pos")]
+    [InlineData("TENTATIVE", "IPM.Schedule.Meeting.Resp.Tent")]
+    [InlineData("DECLINED", "IPM.Schedule.Meeting.Resp.Neg")]
+    public void MapsIcalendarRepliesToOutlookResponseClasses(string participationStatus, string messageClass) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; method=REPLY; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:REPLY\r\nBEGIN:VEVENT\r\n" +
+            "UID:reply@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "ATTENDEE;PARTSTAT=" + participationStatus + ":mailto:person@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        Assert.Equal(messageClass, document.MessageClass);
+        Assert.Equal("REPLY", IcalendarMethodAfterRoundTrip(document));
+    }
+
+    [Fact]
+    public void MarksAttachedIcalendarPayloadsIncompleteForStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:attach@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "ATTACH:https://example.com/agenda.pdf\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void ReportsOversizedIcalendarDurationsWithoutThrowing() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:range@example.com\r\nDTSTART:00010101T000000Z\r\n" +
+            "DTEND:99991231T000000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            read.Document, EmailFileFormat.OutlookMsg);
+
+        Assert.Null(read.Document.Appointment!.DurationMinutes);
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_DURATION_OUT_OF_RANGE");
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void ReportsOversizedDurationAndReminderValuesWithoutThrowing() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:duration@example.com\r\nDTSTART:20260801T100000Z\r\nDURATION:P2000000D\r\n" +
+            "BEGIN:VALARM\r\nACTION:DISPLAY\r\nTRIGGER:-P2000000D\r\nEND:VALARM\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailReadResult read = new EmailDocumentReader().Read(eml);
+
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero).AddDays(2000000),
+            read.Document.Appointment!.End);
+        Assert.Null(read.Document.Appointment.DurationMinutes);
+        Assert.Null(read.Document.Appointment.ReminderDeltaMinutes);
+        Assert.Contains(read.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_DURATION_OUT_OF_RANGE");
+    }
+
+    [Fact]
     public void ConvertsTaskThroughVtodo() {
         DateTimeOffset start = new DateTimeOffset(2026, 9, 3, 8, 0, 0, TimeSpan.Zero);
         var source = new EmailDocument {
@@ -433,5 +563,13 @@ public sealed class EmailCalendarConversionTests {
         string calendarText = Encoding.UTF8.GetString(content.ToArray());
         Assert.Contains("BEGIN:VCALENDAR", calendarText, StringComparison.Ordinal);
         Assert.DoesNotContain("BEGIN:VCARD", calendarText, StringComparison.Ordinal);
+    }
+
+    private static string? IcalendarMethodAfterRoundTrip(EmailDocument document) {
+        byte[] eml = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(eml);
+        MimePart calendar = Assert.Single(MimeMessage.Load(stream).BodyParts.OfType<MimePart>(),
+            part => part.ContentType.MimeType == "text/calendar");
+        return calendar.ContentType.Parameters["method"];
     }
 }

@@ -19,7 +19,7 @@ internal static class MimeMessageMetadataProjection {
             document.MessageMetadata.IsRead = status!.IndexOf('R') >= 0;
         }
         foreach (string value in MimeHeaderParser.GetValues(headers, "Keywords")) {
-            foreach (string category in value.Split(',')) {
+            foreach (string category in SplitKeywords(value)) {
                 string trimmed = category.Trim();
                 if (trimmed.Length > 0 && !document.MessageMetadata.Categories.Contains(trimmed)) {
                     document.MessageMetadata.Categories.Add(trimmed);
@@ -58,8 +58,38 @@ internal static class MimeMessageMetadataProjection {
         if (metadata.IsDraft) yield return new EmailHeader("X-Unsent", "1");
         if (metadata.IsRead.HasValue) yield return new EmailHeader("Status", metadata.IsRead.Value ? "RO" : "O");
         if (metadata.Categories.Count > 0) {
-            yield return new EmailHeader("Keywords", string.Join(", ", metadata.Categories));
+            yield return new EmailHeader("Keywords", string.Join(", ", metadata.Categories.Select(FormatKeyword)));
         }
+    }
+
+    private static IEnumerable<string> SplitKeywords(string value) {
+        var current = new StringBuilder();
+        bool quoted = false;
+        bool escaped = false;
+        foreach (char character in value) {
+            if (escaped) {
+                current.Append(character);
+                escaped = false;
+            } else if (character == '\\' && quoted) {
+                escaped = true;
+            } else if (character == '"') {
+                quoted = !quoted;
+            } else if (character == ',' && !quoted) {
+                yield return current.ToString();
+                current.Clear();
+            } else {
+                current.Append(character);
+            }
+        }
+        if (escaped) current.Append('\\');
+        yield return current.ToString();
+    }
+
+    private static string FormatKeyword(string value) {
+        string sanitized = value.Replace("\r", string.Empty).Replace("\n", string.Empty).Trim();
+        return sanitized.IndexOfAny(new[] { ',', '"', '\\' }) < 0
+            ? sanitized
+            : string.Concat("\"", sanitized.Replace("\\", "\\\\").Replace("\"", "\\\""), "\"");
     }
 
     private static EmailMessageImportance? ParseImportance(string? value) {

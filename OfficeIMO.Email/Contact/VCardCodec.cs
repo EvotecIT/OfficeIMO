@@ -44,6 +44,14 @@ internal static class VCardCodec {
         ApplyAddresses(properties, contact);
         ApplyUrls(properties, contact);
         ApplyExtensions(properties, contact);
+        foreach (VCardProperty property in properties.Where(property => property.Name == "CATEGORIES")) {
+            foreach (string category in SplitEscaped(property.Value, ',')) {
+                if (!string.IsNullOrWhiteSpace(category) && !document.MessageMetadata.Categories.Any(existing =>
+                    string.Equals(existing, category, StringComparison.OrdinalIgnoreCase))) {
+                    document.MessageMetadata.Categories.Add(category);
+                }
+            }
+        }
         string? note = Unescape(GetValue(properties, "NOTE"));
         if (document.Body.Text == null && !string.IsNullOrWhiteSpace(note)) document.Body.Text = note;
         return true;
@@ -59,11 +67,11 @@ internal static class VCardCodec {
         if (source != null) return source;
         byte[] content = Create(document);
         var attachment = new EmailAttachment {
-            FileName = "contact.vcf",
             ContentType = "text/vcard",
             Content = content,
             Length = content.LongLength,
-            IsProjectedSemanticContent = true
+            IsProjectedSemanticContent = true,
+            IsMimeBodyPart = true
         };
         attachment.ContentTypeParameters["charset"] = "utf-8";
         return attachment;
@@ -137,6 +145,9 @@ internal static class VCardCodec {
         WriteAddressMetadata(output, contact.HomeAddress, "HOME");
         WriteAddressMetadata(output, contact.OtherAddress, "OTHER");
         WriteAddressMetadata(output, contact.WorkAddress, "WORK");
+        if (document.MessageMetadata.Categories.Count > 0) AppendLine(output, string.Concat("CATEGORIES:",
+            string.Join(",", document.MessageMetadata.Categories.Where(category => !string.IsNullOrWhiteSpace(category))
+                .Select(Escape))));
         AppendText(output, "NOTE", document.Body.Text);
         AppendLine(output, "END:VCARD");
         return Encoding.UTF8.GetBytes(output.ToString());

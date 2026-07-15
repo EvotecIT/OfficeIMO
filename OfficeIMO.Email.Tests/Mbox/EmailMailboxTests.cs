@@ -95,6 +95,23 @@ public sealed class EmailMailboxTests {
     }
 
     [Fact]
+    public void StreamsCumulativeMailboxOutputBeyondThePerMessageLimit() {
+        var messageOptions = new EmailWriterOptions(maxOutputBytes: 220);
+        var first = new EmailDocument { Subject = "first" };
+        first.Body.Text = new string('a', 40);
+        var second = new EmailDocument { Subject = "second" };
+        second.Body.Text = new string('b', 40);
+        var entries = new[] { new EmailMailboxEntry(first), new EmailMailboxEntry(second) };
+        using var output = new MemoryStream();
+
+        EmailWriteResult result = new EmailMailboxWriter(new EmailMailboxWriterOptions(messageOptions))
+            .WriteEntries(entries, output);
+
+        Assert.True(result.BytesWritten > messageOptions.MaxOutputBytes);
+        Assert.Equal(output.Length, result.BytesWritten);
+    }
+
+    [Fact]
     public void SingleDocumentReaderDirectsMboxToAggregateApi() {
         byte[] source = Encoding.ASCII.GetBytes("From a@example.com Fri Jul 10 12:00:00 2026\nSubject: A\n\nA\n");
 

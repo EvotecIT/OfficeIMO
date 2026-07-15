@@ -39,7 +39,8 @@ public sealed class EmailContactConversionTests {
         using var oracleStream = new MemoryStream(eml);
         MimeMessage oracle = MimeMessage.Load(oracleStream);
 
-        Assert.Contains(oracle.Attachments.OfType<MimePart>(), part => part.ContentType.MimeType == "text/vcard");
+        Assert.Contains(oracle.BodyParts.OfType<MimePart>(), part => part.ContentType.MimeType == "text/vcard" &&
+            !part.IsAttachment);
         Assert.Equal(OutlookItemKind.Contact, result.OutlookItemKind);
         Assert.Equal("Ada Lovelace", result.Contact!.DisplayName);
         Assert.Equal("Ada", result.Contact.GivenName);
@@ -160,12 +161,52 @@ public sealed class EmailContactConversionTests {
 
         byte[] output = new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml);
         using var stream = new MemoryStream(output);
-        MimePart[] vcards = MimeMessage.Load(stream).Attachments.OfType<MimePart>()
+        MimePart[] vcards = MimeMessage.Load(stream).BodyParts.OfType<MimePart>()
             .Where(part => VCardContentType(part.ContentType.MimeType)).ToArray();
 
         Assert.Equal(2, vcards.Length);
-        Assert.Contains(vcards, part => part.FileName == "ordinary.vcf");
-        Assert.Contains(vcards, part => part.FileName == "contact.vcf");
+        Assert.Contains(vcards, part => part.IsAttachment && part.FileName == "ordinary.vcf");
+        Assert.Contains(vcards, part => !part.IsAttachment && part.FileName == null);
+    }
+
+    [Fact]
+    public void KeepsAttachedVcardOnAnOrdinaryMessage() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Subject: Attached contact\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nPlease import this contact.\r\n" +
+            "--x\r\nContent-Type: text/vcard; charset=utf-8\r\n" +
+            "Content-Disposition: attachment; filename=ada.vcf\r\n\r\n" +
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n--x--\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml)).Document;
+
+        Assert.Equal(OutlookItemKind.Message, document.OutlookItemKind);
+        Assert.Null(document.Contact);
+        EmailAttachment attachment = Assert.Single(document.Attachments);
+        Assert.Equal("ada.vcf", attachment.FileName);
+        Assert.Equal(OutlookItemKind.Message, roundTrip.OutlookItemKind);
+        Assert.Null(roundTrip.Contact);
+        Assert.Equal("ada.vcf", Assert.Single(roundTrip.Attachments).FileName);
+    }
+
+    [Fact]
+    public void PreservesVcardCategoriesThroughMsgConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nCATEGORIES:Blue,Project\\, X\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        byte[] msg = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(msg).Document;
+        EmailDocument regeneratedVcard = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(roundTrip, EmailFileFormat.Eml)).Document;
+
+        Assert.Equal(new[] { "Blue", "Project, X" }, document.MessageMetadata.Categories);
+        Assert.Equal(new[] { "Blue", "Project, X" }, roundTrip.MessageMetadata.Categories);
+        Assert.Equal(new[] { "Blue", "Project, X" }, regeneratedVcard.MessageMetadata.Categories);
     }
 
     private static bool VCardContentType(string? contentType) =>
