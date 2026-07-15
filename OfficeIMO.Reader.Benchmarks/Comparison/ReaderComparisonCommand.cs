@@ -155,6 +155,7 @@ internal static class ReaderComparisonCommand {
                 ? await ReaderComparisonProcessRunner.RunAsync(runner, inputPath, outputPath + ".repeat", cancellationToken)
                     .ConfigureAwait(false)
                 : first;
+            (string caseStatus, string? error) = ResolveRepeatOutcome(first, second);
             await File.WriteAllTextAsync(outputPath, first.Markdown, cancellationToken).ConfigureAwait(false);
             IReadOnlyList<ReaderComparisonProbeResult> probes = ReaderComparisonScorer.ScoreMarkdown(
                 first.Markdown,
@@ -162,18 +163,29 @@ internal static class ReaderComparisonCommand {
                 first.Rejected);
             results.Add(BuildCaseResult(
                 item,
-                first.Status,
-                first.Error,
+                caseStatus,
+                error,
                 first.Markdown,
                 first.Status == "success" && second.Status == "success" &&
                     string.Equals(first.Markdown, second.Markdown, StringComparison.Ordinal),
                 (first.DurationMilliseconds + second.DurationMilliseconds) / (ReferenceEquals(first, second) ? 1d : 2d),
                 null,
-                first.PeakWorkingSetBytes,
+                MaxNullable(first.PeakWorkingSetBytes, second.PeakWorkingSetBytes),
                 probes));
         }
         string status = results.All(item => item.Status == "unavailable") ? "unavailable" : "completed";
         return new ReaderComparisonToolResult { Tool = runner.Name, Status = status, Cases = results };
+    }
+
+    internal static (string Status, string? Error) ResolveRepeatOutcome(
+        ReaderComparisonProcessOutput first,
+        ReaderComparisonProcessOutput second) {
+        string status = first.Status == "success" && second.Status != "success" ? second.Status : first.Status;
+        string? error = first.Error;
+        if (!ReferenceEquals(first, second) && second.Status != "success") {
+            error = AppendError(error, "Repeat run " + second.Status + ": " + (second.Error ?? "No error detail was provided."));
+        }
+        return (status, error);
     }
 
     private static OfficeDocumentReader CreateReader() => new OfficeDocumentReaderBuilder()
@@ -279,6 +291,15 @@ internal static class ReaderComparisonCommand {
     }
 
     private static string Escape(string value) => value.Replace("|", "\\|", StringComparison.Ordinal);
+
+    private static string AppendError(string? current, string addition) =>
+        string.IsNullOrWhiteSpace(current) ? addition : current + " " + addition;
+
+    private static long? MaxNullable(long? first, long? second) {
+        if (!first.HasValue) return second;
+        if (!second.HasValue) return first;
+        return Math.Max(first.Value, second.Value);
+    }
 
     private static void WriteUsage() {
         Console.WriteLine("Usage:");

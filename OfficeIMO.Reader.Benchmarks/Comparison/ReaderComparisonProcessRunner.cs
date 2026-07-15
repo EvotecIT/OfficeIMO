@@ -34,6 +34,15 @@ internal static class ReaderComparisonProcessRunner {
                 .Replace("{output}", outputPath, StringComparison.Ordinal));
         }
 
+        bool fileOutputMode = string.Equals(configuration.OutputMode, "file", StringComparison.OrdinalIgnoreCase);
+        if (fileOutputMode) {
+            try {
+                File.Delete(outputPath);
+            } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) {
+                return Failure("failed", "Could not remove the previous runner output: " + ex.Message, 0);
+            }
+        }
+
         using var process = new Process { StartInfo = startInfo };
         var stopwatch = Stopwatch.StartNew();
         try {
@@ -55,10 +64,11 @@ internal static class ReaderComparisonProcessRunner {
 
         try {
             await process.WaitForExitAsync(timeout.Token).ConfigureAwait(false);
-        } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
+        } catch (OperationCanceledException) {
             TryKill(process);
             await DrainAfterTerminationAsync(stdoutTask, stderrTask).ConfigureAwait(false);
             stopwatch.Stop();
+            cancellationToken.ThrowIfCancellationRequested();
             return Failure("timed-out", "The runner exceeded its configured timeout.", stopwatch.Elapsed.TotalMilliseconds);
         }
 
@@ -66,26 +76,37 @@ internal static class ReaderComparisonProcessRunner {
         BoundedText stderr = await stderrTask.ConfigureAwait(false);
         stopwatch.Stop();
         string markdown;
-        if (string.Equals(configuration.OutputMode, "file", StringComparison.OrdinalIgnoreCase)) {
-            markdown = File.Exists(outputPath)
-                ? await ReadFileBoundedAsync(outputPath, configuration.MaxOutputBytes, cancellationToken).ConfigureAwait(false)
-                : string.Empty;
+        bool missingFileOutput = false;
+        bool fileOutputTruncated = false;
+        if (fileOutputMode) {
+            missingFileOutput = !File.Exists(outputPath);
+            BoundedText fileOutput = missingFileOutput
+                ? new BoundedText(string.Empty, truncated: false)
+                : await ReadFileBoundedAsync(outputPath, configuration.MaxOutputBytes, cancellationToken).ConfigureAwait(false);
+            markdown = fileOutput.Text;
+            fileOutputTruncated = fileOutput.Truncated;
         } else {
             markdown = stdout.Text;
         }
 
         string? error = process.ExitCode == 0 ? null : EmptyToNull(stderr.Text) ?? "Runner exited with code " + process.ExitCode + ".";
-        if (stdout.Truncated || stderr.Truncated) {
+        if (missingFileOutput) {
+            error = Append(error, "Runner did not create the expected output file.");
+        }
+        bool truncated = stdout.Truncated || stderr.Truncated || fileOutputTruncated;
+        if (truncated) {
             error = Append(error, "Runner output was truncated at the configured byte limit.");
         }
 
+        bool succeeded = process.ExitCode == 0 && !missingFileOutput && !truncated;
+
         return new ReaderComparisonProcessOutput {
-            Status = process.ExitCode == 0 ? "success" : "failed",
+            Status = succeeded ? "success" : "failed",
             Markdown = markdown,
             Error = error,
             DurationMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
             PeakWorkingSetBytes = SafePeakWorkingSet(process),
-            Rejected = process.ExitCode != 0
+            Rejected = !succeeded
         };
     }
 
@@ -118,10 +139,9 @@ internal static class ReaderComparisonProcessRunner {
         return new BoundedText(Encoding.UTF8.GetString(captured.ToArray()), truncated);
     }
 
-    private static async Task<string> ReadFileBoundedAsync(string path, int maxBytes, CancellationToken cancellationToken) {
+    private static async Task<BoundedText> ReadFileBoundedAsync(string path, int maxBytes, CancellationToken cancellationToken) {
         using FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        BoundedText text = await ReadBoundedAsync(stream, maxBytes, cancellationToken).ConfigureAwait(false);
-        return text.Text;
+        return await ReadBoundedAsync(stream, maxBytes, cancellationToken).ConfigureAwait(false);
     }
 
     private static async Task DrainAfterTerminationAsync(Task<BoundedText> stdout, Task<BoundedText> stderr) {

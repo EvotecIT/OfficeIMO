@@ -34,7 +34,8 @@ internal static class ReaderComparisonScorer {
             ReaderComparisonProbeKind.RichTable => document.Tables.Count > 0 || document.Chunks.Any(HasTable),
             ReaderComparisonProbeKind.RichLink => document.Links.Count > 0,
             ReaderComparisonProbeKind.RichAsset => document.Assets.Count > 0,
-            ReaderComparisonProbeKind.LocationPath => document.Chunks.Any(chunk => !string.IsNullOrWhiteSpace(chunk.Location.Path)),
+            ReaderComparisonProbeKind.LocationPath => document.Chunks.Any(chunk =>
+                HasExpectedLocation(chunk.Location.Path, probe.Marker)),
             ReaderComparisonProbeKind.LocationHeading => document.Chunks.Any(chunk => !string.IsNullOrWhiteSpace(chunk.Location.HeadingPath)),
             ReaderComparisonProbeKind.LocationSheet => document.Chunks.Any(chunk => !string.IsNullOrWhiteSpace(chunk.Location.Sheet)),
             ReaderComparisonProbeKind.LocationSlide => document.Chunks.Any(chunk => chunk.Location.Slide.HasValue),
@@ -86,6 +87,10 @@ internal static class ReaderComparisonScorer {
 
     private static bool Contains(string value, string marker) =>
         value.IndexOf(marker, StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static bool HasExpectedLocation(string? value, string marker) =>
+        !string.IsNullOrWhiteSpace(value) &&
+        (string.IsNullOrWhiteSpace(marker) || Contains(value!, marker));
 
     private static ReaderComparisonProbeResult Result(
         ReaderComparisonProbe probe,

@@ -141,7 +141,7 @@ internal static class ReaderComparisonCorpus {
         return Case("csv", "evidence-records.csv", Encoding.UTF8.GetBytes(csv),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "CSV retention marker"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
-            Probe("path-location", ReaderComparisonProbeKind.LocationPath));
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, "evidence-records.csv"));
     }
 
     private static ReaderComparisonCase CreateMsg() {
@@ -168,7 +168,7 @@ internal static class ReaderComparisonCorpus {
             Probe("body", ReaderComparisonProbeKind.ContainsText, "MSG body retention marker"),
             Probe("attachment", ReaderComparisonProbeKind.ContainsText, "evidence.txt"),
             Probe("rich-asset", ReaderComparisonProbeKind.RichAsset),
-            Probe("path-location", ReaderComparisonProbeKind.LocationPath));
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, "evidence-message.msg"));
     }
 
     private static ReaderComparisonCase CreateEpub() {
@@ -194,7 +194,7 @@ internal static class ReaderComparisonCorpus {
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "EPUB evidence heading"),
             Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "EPUB list retention marker"),
             Probe("link", ReaderComparisonProbeKind.MarkdownLink, "EPUB link marker"),
-            Probe("path-location", ReaderComparisonProbeKind.LocationPath));
+            Probe("path-location", ReaderComparisonProbeKind.LocationPath, "OEBPS/chapter.xhtml"));
     }
 
     private static ReaderComparisonCase CreateZip() {
@@ -210,7 +210,7 @@ internal static class ReaderComparisonCorpus {
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "ZIP evidence heading"),
             Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "ZIP list retention marker"),
             Probe("link", ReaderComparisonProbeKind.MarkdownLink, "ZIP link marker"),
-            Probe("nested-path", ReaderComparisonProbeKind.LocationPath));
+            Probe("nested-path", ReaderComparisonProbeKind.LocationPath, "docs/evidence.md"));
     }
 
     private static ReaderComparisonCase CreateMalformedPdf() => Case(
