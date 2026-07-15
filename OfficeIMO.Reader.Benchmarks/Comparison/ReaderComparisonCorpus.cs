@@ -48,7 +48,11 @@ internal static class ReaderComparisonCorpus {
 
         return Case("docx", "evidence-policy.docx", NormalizeOfficePackage(stream.ToArray()),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "Evidence policy"),
-            Probe("link", ReaderComparisonProbeKind.MarkdownLink, "Open policy portal"),
+            Probe(
+                "link",
+                ReaderComparisonProbeKind.MarkdownLink,
+                "Open policy portal",
+                "https://example.com/policy"),
             Probe("footnote", ReaderComparisonProbeKind.ContainsText, "Footnote retention marker"),
             Probe("table-text", ReaderComparisonProbeKind.MarkdownTable, "Retention marker"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
@@ -139,8 +143,16 @@ internal static class ReaderComparisonCorpus {
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "HTML evidence heading"),
             Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "HTML list retention marker"),
             Probe("table", ReaderComparisonProbeKind.MarkdownTable, "HTML table retention marker"),
-            Probe("link", ReaderComparisonProbeKind.MarkdownLink, "HTML link marker"),
-            Probe("image", ReaderComparisonProbeKind.MarkdownImage, "HTML image marker"),
+            Probe(
+                "link",
+                ReaderComparisonProbeKind.MarkdownLink,
+                "HTML link marker",
+                "https://example.com/html"),
+            Probe(
+                "image",
+                ReaderComparisonProbeKind.MarkdownImage,
+                "HTML image marker",
+                "data:image/png;base64,"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
             Probe("rich-link", ReaderComparisonProbeKind.RichLink));
     }
@@ -190,10 +202,17 @@ internal static class ReaderComparisonCorpus {
                 "<rootfile full-path=\"OEBPS/content.opf\" media-type=\"application/oebps-package+xml\"/>" +
                 "</rootfiles></container>");
             WriteEntry(archive, "OEBPS/content.opf",
-                "<?xml version=\"1.0\"?><package version=\"3.0\" xmlns=\"http://www.idpf.org/2007/opf\">" +
-                "<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\"><dc:title>Evidence book</dc:title></metadata>" +
-                "<manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/></manifest>" +
+                "<?xml version=\"1.0\"?><package version=\"3.0\" unique-identifier=\"book-id\" xmlns=\"http://www.idpf.org/2007/opf\">" +
+                "<metadata xmlns:dc=\"http://purl.org/dc/elements/1.1/\">" +
+                "<dc:identifier id=\"book-id\">urn:uuid:3f454ae1-3bd5-4ea3-b9b4-8e9c43db295e</dc:identifier>" +
+                "<dc:title>Evidence book</dc:title><dc:language>en</dc:language></metadata>" +
+                "<manifest><item id=\"chapter\" href=\"chapter.xhtml\" media-type=\"application/xhtml+xml\"/>" +
+                "<item id=\"nav\" href=\"nav.xhtml\" media-type=\"application/xhtml+xml\" properties=\"nav\"/></manifest>" +
                 "<spine><itemref idref=\"chapter\"/></spine></package>");
+            WriteEntry(archive, "OEBPS/nav.xhtml",
+                "<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\" " +
+                "xmlns:epub=\"http://www.idpf.org/2007/ops\"><head><title>Contents</title></head>" +
+                "<body><nav epub:type=\"toc\"><ol><li><a href=\"chapter.xhtml\">Evidence</a></li></ol></nav></body></html>");
             WriteEntry(archive, "OEBPS/chapter.xhtml",
                 "<?xml version=\"1.0\"?><html xmlns=\"http://www.w3.org/1999/xhtml\"><body>" +
                 "<h1>EPUB evidence heading</h1><ul><li>EPUB list retention marker</li></ul>" +
@@ -203,7 +222,11 @@ internal static class ReaderComparisonCorpus {
         return Case("epub", "evidence-book.epub", stream.ToArray(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "EPUB evidence heading"),
             Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "EPUB list retention marker"),
-            Probe("link", ReaderComparisonProbeKind.MarkdownLink, "EPUB link marker"),
+            Probe(
+                "link",
+                ReaderComparisonProbeKind.MarkdownLink,
+                "EPUB link marker",
+                "https://example.com/epub"),
             Probe("path-location", ReaderComparisonProbeKind.LocationPath, "OEBPS/chapter.xhtml"));
     }
 
@@ -219,8 +242,14 @@ internal static class ReaderComparisonCorpus {
         return Case("zip", "evidence-archive.zip", stream.ToArray(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "ZIP evidence heading"),
             Probe("list", ReaderComparisonProbeKind.MarkdownListItem, "ZIP list retention marker"),
-            Probe("link", ReaderComparisonProbeKind.MarkdownLink, "ZIP link marker"),
-            Probe("nested-path", ReaderComparisonProbeKind.LocationPath, "docs/evidence.md"));
+            Probe(
+                "link",
+                ReaderComparisonProbeKind.MarkdownLink,
+                "ZIP link marker",
+                "https://example.com/zip"),
+            Probe("nested-table", ReaderComparisonProbeKind.ContainsText, "ZIP nested table marker"),
+            Probe("nested-path", ReaderComparisonProbeKind.LocationPath, "docs/evidence.md"),
+            Probe("nested-table-path", ReaderComparisonProbeKind.LocationPath, "docs/data.csv"));
     }
 
     private static ReaderComparisonCase CreateMalformedPdf() => Case(
@@ -238,7 +267,8 @@ internal static class ReaderComparisonCorpus {
     private static ReaderComparisonProbe Probe(
         string id,
         ReaderComparisonProbeKind kind,
-        string marker = "") => new ReaderComparisonProbe(id, kind, marker);
+        string marker = "",
+        string expectedTarget = "") => new ReaderComparisonProbe(id, kind, marker, expectedTarget);
 
     private static byte[] NormalizeOfficePackage(byte[] packageBytes) =>
         ReaderComparisonPackageNormalizer.Normalize(
@@ -251,6 +281,7 @@ internal static class ReaderComparisonCorpus {
         string content,
         CompressionLevel compressionLevel = CompressionLevel.Optimal) {
         ZipArchiveEntry entry = archive.CreateEntry(path, compressionLevel);
+        entry.LastWriteTime = new DateTimeOffset(FixedPackageTimestamp);
         using Stream entryStream = entry.Open();
         using var writer = new StreamWriter(entryStream, new UTF8Encoding(false));
         writer.Write(content);

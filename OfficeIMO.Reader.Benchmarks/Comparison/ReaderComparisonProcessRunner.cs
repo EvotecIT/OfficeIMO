@@ -36,6 +36,13 @@ internal static class ReaderComparisonProcessRunner {
             CreateNoWindow = true
         };
 
+        if (IsMissingUnixExecutable(configuration.FileName)) {
+            return Failure(
+                "unavailable",
+                "Runner executable '" + configuration.FileName + "' could not be found on PATH.",
+                0);
+        }
+
         bool fileOutputMode = string.Equals(configuration.OutputMode, "file", StringComparison.OrdinalIgnoreCase);
         if (fileOutputMode) {
             try {
@@ -167,7 +174,32 @@ internal static class ReaderComparisonProcessRunner {
 
     private static async Task<BoundedText> ReadFileBoundedAsync(string path, int maxBytes, CancellationToken cancellationToken) {
         using FileStream stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
-        return await ReadBoundedAsync(stream, maxBytes, cancellationToken).ConfigureAwait(false);
+        byte[] buffer = new byte[8192];
+        using var captured = new MemoryStream(Math.Min(maxBytes, 64 * 1024));
+        while (captured.Length < maxBytes) {
+            int remaining = maxBytes - (int)captured.Length;
+            int read = await stream.ReadAsync(
+                buffer.AsMemory(0, Math.Min(buffer.Length, remaining)),
+                cancellationToken).ConfigureAwait(false);
+            if (read == 0) break;
+            captured.Write(buffer, 0, read);
+        }
+
+        bool truncated = stream.Position < stream.Length;
+        return new BoundedText(Encoding.UTF8.GetString(captured.ToArray()), truncated);
+    }
+
+    private static bool IsMissingUnixExecutable(string fileName) {
+        if (OperatingSystem.IsWindows()) return false;
+        if (fileName.IndexOf(Path.DirectorySeparatorChar) >= 0 ||
+            fileName.IndexOf(Path.AltDirectorySeparatorChar) >= 0) {
+            return !File.Exists(fileName);
+        }
+
+        string? path = Environment.GetEnvironmentVariable("PATH");
+        if (string.IsNullOrWhiteSpace(path)) return true;
+        return !path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Any(directory => File.Exists(Path.Combine(directory, fileName)));
     }
 
     private static Stream GetBaseStream(TextReader reader) {

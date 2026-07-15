@@ -57,8 +57,8 @@ internal static class ReaderComparisonScorer {
                 IsListItem(line.TrimStart()) && Contains(line, probe.Marker)),
             ReaderComparisonProbeKind.MarkdownTable => Lines(markdown).Any(line =>
                 line.Contains('|') && Contains(line, probe.Marker)),
-            ReaderComparisonProbeKind.MarkdownLink => Contains(markdown, "[" + probe.Marker + "]("),
-            ReaderComparisonProbeKind.MarkdownImage => Contains(markdown, "![" + probe.Marker + "]("),
+            ReaderComparisonProbeKind.MarkdownLink => HasMarkdownTarget(markdown, probe, isImage: false),
+            ReaderComparisonProbeKind.MarkdownImage => HasMarkdownTarget(markdown, probe, isImage: true),
             _ => false
         };
     }
@@ -91,6 +91,32 @@ internal static class ReaderComparisonScorer {
     private static bool HasExpectedLocation(string? value, string marker) =>
         !string.IsNullOrWhiteSpace(value) &&
         (string.IsNullOrWhiteSpace(marker) || Contains(value!, marker));
+
+    private static bool HasMarkdownTarget(
+        string markdown,
+        ReaderComparisonProbe probe,
+        bool isImage) {
+        string prefix = (isImage ? "![" : "[") + probe.Marker + "](";
+        int searchFrom = 0;
+        while (searchFrom < markdown.Length) {
+            int start = markdown.IndexOf(prefix, searchFrom, StringComparison.OrdinalIgnoreCase);
+            if (start < 0) return false;
+            int targetStart = start + prefix.Length;
+            int targetEnd = markdown.IndexOf(')', targetStart);
+            if (targetEnd < 0) return false;
+
+            string target = markdown.Substring(targetStart, targetEnd - targetStart).Trim();
+            if (target.Length >= 2 && target[0] == '<' && target[target.Length - 1] == '>') {
+                target = target.Substring(1, target.Length - 2).Trim();
+            }
+            if (!string.IsNullOrWhiteSpace(target) &&
+                (string.IsNullOrWhiteSpace(probe.ExpectedTarget) || Contains(target, probe.ExpectedTarget))) {
+                return true;
+            }
+            searchFrom = targetEnd + 1;
+        }
+        return false;
+    }
 
     private static ReaderComparisonProbeResult Result(
         ReaderComparisonProbe probe,

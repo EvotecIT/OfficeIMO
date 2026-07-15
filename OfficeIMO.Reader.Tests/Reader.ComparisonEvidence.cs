@@ -23,11 +23,36 @@ public sealed class ReaderComparisonEvidenceTests {
             cases.Where(item => item.Id is "docx" or "pptx" or "xlsx"),
             item => Assert.Contains("2026-07-15T12:00:00.0000000Z", ReadPackageCoreProperties(item.Bytes), StringComparison.Ordinal));
         IReadOnlyDictionary<string, byte[]> repeatedPackages = ReaderComparisonCorpus.Create()
-            .Where(item => item.Id is "docx" or "pptx" or "xlsx")
+            .Where(item => item.Id is "docx" or "pptx" or "xlsx" or "epub" or "zip")
             .ToDictionary(item => item.Id, item => item.Bytes, StringComparer.Ordinal);
         Assert.All(
-            cases.Where(item => item.Id is "docx" or "pptx" or "xlsx"),
+            cases.Where(item => item.Id is "docx" or "pptx" or "xlsx" or "epub" or "zip"),
             item => Assert.Equal(item.Bytes, repeatedPackages[item.Id]));
+
+        foreach (ReaderComparisonCase item in cases.Where(item => item.Id is "epub" or "zip")) {
+            using var stream = new MemoryStream(item.Bytes);
+            using var archive = new System.IO.Compression.ZipArchive(
+                stream,
+                System.IO.Compression.ZipArchiveMode.Read);
+            Assert.All(
+                archive.Entries,
+                entry => Assert.Equal(
+                    new DateTime(2026, 7, 15, 12, 0, 0),
+                    entry.LastWriteTime.DateTime));
+        }
+
+        ReaderComparisonCase epub = Assert.Single(cases, item => item.Id == "epub");
+        using (var stream = new MemoryStream(epub.Bytes))
+        using (var archive = new System.IO.Compression.ZipArchive(
+            stream,
+            System.IO.Compression.ZipArchiveMode.Read)) {
+            string package = ReadPackageEntry(archive, "OEBPS/content.opf");
+            Assert.Contains("unique-identifier=\"book-id\"", package, StringComparison.Ordinal);
+            Assert.Contains("<dc:identifier id=\"book-id\">", package, StringComparison.Ordinal);
+            Assert.Contains("<dc:language>en</dc:language>", package, StringComparison.Ordinal);
+            Assert.Contains("properties=\"nav\"", package, StringComparison.Ordinal);
+            Assert.Contains("epub:type=\"toc\"", ReadPackageEntry(archive, "OEBPS/nav.xhtml"), StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -80,6 +105,39 @@ public sealed class ReaderComparisonEvidenceTests {
     }
 
     [Fact]
+    public void Scorer_RequiresNonEmptyExpectedLinkAndImageTargets() {
+        var probes = new[] {
+            new ReaderComparisonProbe(
+                "link",
+                ReaderComparisonProbeKind.MarkdownLink,
+                "Policy",
+                "https://example.com/policy"),
+            new ReaderComparisonProbe(
+                "image",
+                ReaderComparisonProbeKind.MarkdownImage,
+                "Diagram",
+                "data:image/png;base64,")
+        };
+
+        IReadOnlyList<ReaderComparisonProbeResult> empty = ReaderComparisonScorer.ScoreMarkdown(
+            "[Policy]()\n![Diagram]()",
+            probes,
+            rejected: false);
+        IReadOnlyList<ReaderComparisonProbeResult> wrong = ReaderComparisonScorer.ScoreMarkdown(
+            "[Policy](https://example.com/wrong)\n![Diagram](image.png)",
+            probes,
+            rejected: false);
+        IReadOnlyList<ReaderComparisonProbeResult> retained = ReaderComparisonScorer.ScoreMarkdown(
+            "[Policy](https://example.com/policy)\n![Diagram](data:image/png;base64,AAAA)",
+            probes,
+            rejected: false);
+
+        Assert.All(empty, result => Assert.False(result.Passed));
+        Assert.All(wrong, result => Assert.False(result.Passed));
+        Assert.All(retained, result => Assert.True(result.Passed));
+    }
+
+    [Fact]
     public async Task FileRunner_RemovesStaleOutputAndRequiresFreshOutput() {
         string output = Path.Combine(Path.GetTempPath(), "officeimo-reader-runner-" + Guid.NewGuid().ToString("N") + ".md");
         await File.WriteAllTextAsync(output, "stale output");
@@ -125,6 +183,26 @@ public sealed class ReaderComparisonEvidenceTests {
 
         Assert.Equal("failed", result.Status);
         Assert.True(result.Rejected);
+    }
+
+    [Fact]
+    public async Task Runner_ClassifiesAMissingExecutableAsUnavailable() {
+        var configuration = new ReaderComparisonRunnerConfiguration {
+            Name = "missing-runner",
+            FileName = "officeimo-reader-missing-runner-" + Guid.NewGuid().ToString("N"),
+            OutputMode = "stdout",
+            TimeoutSeconds = 30,
+            MaxOutputBytes = 4096
+        };
+
+        ReaderComparisonProcessOutput result = await ReaderComparisonProcessRunner.RunAsync(
+            configuration,
+            inputPath: "unused",
+            outputPath: "unused",
+            CancellationToken.None);
+
+        Assert.Equal("unavailable", result.Status);
+        Assert.False(result.Rejected);
     }
 
     [Fact]
@@ -225,6 +303,16 @@ public sealed class ReaderComparisonEvidenceTests {
         System.IO.Compression.ZipArchiveEntry entry = Assert.Single(
             archive.Entries,
             item => string.Equals(item.FullName, "docProps/core.xml", StringComparison.Ordinal));
+        using StreamReader reader = new StreamReader(entry.Open());
+        return reader.ReadToEnd();
+    }
+
+    private static string ReadPackageEntry(
+        System.IO.Compression.ZipArchive archive,
+        string path) {
+        System.IO.Compression.ZipArchiveEntry entry = Assert.Single(
+            archive.Entries,
+            item => string.Equals(item.FullName, path, StringComparison.Ordinal));
         using StreamReader reader = new StreamReader(entry.Open());
         return reader.ReadToEnd();
     }

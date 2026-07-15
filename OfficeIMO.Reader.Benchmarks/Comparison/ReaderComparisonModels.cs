@@ -19,15 +19,21 @@ internal enum ReaderComparisonProbeKind {
 }
 
 internal sealed class ReaderComparisonProbe {
-    public ReaderComparisonProbe(string id, ReaderComparisonProbeKind kind, string marker = "") {
+    public ReaderComparisonProbe(
+        string id,
+        ReaderComparisonProbeKind kind,
+        string marker = "",
+        string expectedTarget = "") {
         Id = id;
         Kind = kind;
         Marker = marker;
+        ExpectedTarget = expectedTarget;
     }
 
     public string Id { get; }
     public ReaderComparisonProbeKind Kind { get; }
     public string Marker { get; }
+    public string ExpectedTarget { get; }
 }
 
 internal sealed class ReaderComparisonCase {
