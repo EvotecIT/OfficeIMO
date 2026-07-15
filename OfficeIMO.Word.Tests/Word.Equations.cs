@@ -1,6 +1,8 @@
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using M = DocumentFormat.OpenXml.Math;
 using Xunit;
@@ -151,6 +153,7 @@ namespace OfficeIMO.Tests {
             const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath>" +
                 "<m:f><m:num><m:r><m:t>a)</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f>" +
                 "<m:bar><m:barPr><m:pos m:val=\"bot\"/></m:barPr><m:e><m:r><m:t>x</m:t></m:r></m:e></m:bar>" +
+                "<m:groupChr><m:groupChrPr><m:chr m:val=\"⏟\"/></m:groupChrPr><m:e><m:r><m:t>y</m:t></m:r></m:e></m:groupChr>" +
                 "</m:oMath></m:oMathPara>";
             using WordDocument document = WordDocument.Create();
             document.AddEquation(omml);
@@ -159,6 +162,48 @@ namespace OfficeIMO.Tests {
 
             Assert.Contains("\\f(a\\),b)", equation.ToEquationFieldInstruction(), StringComparison.Ordinal);
             Assert.Contains("\\underline{x}", equation.ToLatex(), StringComparison.Ordinal);
+            string mathMl = equation.ToMathMl();
+            Assert.Contains("<munder accentunder=\"true\"><mtext>x</mtext><mo>¯</mo></munder>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<munder accentunder=\"true\"><mtext>y</mtext><mo>⏟</mo></munder>", mathMl, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Equation_EscapesFunctionParenthesesInsideEqArguments() {
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath>" +
+                "<m:f><m:num><m:func><m:fName><m:r><m:t>sin</m:t></m:r></m:fName><m:e><m:r><m:t>x</m:t></m:r></m:e></m:func></m:num>" +
+                "<m:den><m:r><m:t>b</m:t></m:r></m:den></m:f>" +
+                "</m:oMath></m:oMathPara>";
+            using WordDocument document = WordDocument.Create();
+            document.AddEquation(omml);
+
+            string instruction = Assert.Single(document.Equations).ToEquationFieldInstruction();
+
+            Assert.Contains("\\f(sin\\(x\\),b)", instruction, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void EquationOccurrences_DiscoverMathInsideVisibleRevisionWrappers() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            var insertedRun = new InsertedRun(new M.OfficeMath(new M.Run(new M.Text("inserted")))) {
+                Id = "1",
+                Author = "Reviewer"
+            };
+            var moveToRun = new MoveToRun(new M.OfficeMath(new M.Run(new M.Text("moved")))) {
+                Id = "2",
+                Author = "Reviewer"
+            };
+            paragraph._paragraph.Append(insertedRun, moveToRun);
+            paragraph.AddText(" after");
+
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(document, paragraph._paragraph);
+            List<OpenXmlElement> paragraphChildren = paragraph._paragraph.ChildElements.ToList();
+
+            Assert.Equal(new[] { "inserted", "moved" }, occurrences.Select(occurrence => occurrence.Equation.Text));
+            Assert.Equal(
+                new[] { paragraphChildren.IndexOf(insertedRun), paragraphChildren.IndexOf(moveToRun) },
+                occurrences.Select(occurrence => occurrence.StartChildIndex));
+            Assert.Empty(document.ValidateDocument());
         }
 
         [Fact]

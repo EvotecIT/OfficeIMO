@@ -137,9 +137,19 @@ namespace OfficeIMO.Word {
                 ?? _simpleField
                 ?? (OpenXmlElement?)_runs?.FirstOrDefault();
             OpenXmlElement? end = (OpenXmlElement?)_runs?.LastOrDefault() ?? start;
+            start = GetDirectParagraphChild(start);
+            end = GetDirectParagraphChild(end);
             startIndex = start == null ? -1 : IndexOfReference(children, start);
             endIndex = end == null ? -1 : IndexOfReference(children, end);
             return startIndex >= 0 && endIndex >= startIndex;
+        }
+
+        private OpenXmlElement? GetDirectParagraphChild(OpenXmlElement? element) {
+            while (element != null && !ReferenceEquals(element.Parent, _paragraph)) {
+                element = element.Parent;
+            }
+
+            return element;
         }
 
         private static int IndexOfReference(IReadOnlyList<OpenXmlElement> elements, OpenXmlElement target) {

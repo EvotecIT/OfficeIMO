@@ -4,6 +4,7 @@ using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 using DocumentFormat.OpenXml.Wordprocessing;
+using M = DocumentFormat.OpenXml.Math;
 using OfficeIMO.Markdown;
 using OfficeIMO.Drawing;
 using OfficeIMO.Word;
@@ -357,6 +358,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, markdown.Split(new[] { "```math" }, StringSplitOptions.None).Length - 1);
             Assert.Contains("x=1", markdown, StringComparison.Ordinal);
             Assert.Contains("y=2", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ProjectsEquationInsideVisibleRevisionWrapper() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Formula:");
+            paragraph._paragraph.Append(new MoveToRun(new M.OfficeMath(new M.Run(new M.Text("tracked")))) {
+                Id = "1",
+                Author = "Reviewer"
+            });
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("tracked", markdown, StringComparison.Ordinal);
         }
 
         [Fact]

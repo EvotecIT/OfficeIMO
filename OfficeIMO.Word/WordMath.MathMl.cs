@@ -71,19 +71,22 @@ namespace OfficeIMO.Word {
                     builder.Append("</mover>");
                     return;
                 case "bar":
-                    builder.Append("<mover accent=\"true\">");
+                    bool bottomBar = string.Equals(ReadCharacter(element, "pos").Value, "bot", StringComparison.OrdinalIgnoreCase);
+                    builder.Append(bottomBar ? "<munder accentunder=\"true\">" : "<mover accent=\"true\">");
                     AppendMathMlChild(builder, element, "e");
                     AppendMathMlOperator(builder, "¯");
-                    builder.Append("</mover>");
+                    builder.Append(bottomBar ? "</munder>" : "</mover>");
                     return;
                 case "d":
                     AppendDelimiterMathMl(builder, element);
                     return;
                 case "groupChr":
-                    builder.Append("<mover>");
+                    string groupCharacter = ReadCharacter(element, "chr").Value;
+                    bool underGroupCharacter = groupCharacter == "\u23df" || groupCharacter == "\u23b5";
+                    builder.Append(underGroupCharacter ? "<munder accentunder=\"true\">" : "<mover accent=\"true\">");
                     AppendMathMlChild(builder, element, "e");
-                    AppendMathMlOperator(builder, ReadCharacter(element, "chr").Value);
-                    builder.Append("</mover>");
+                    AppendMathMlOperator(builder, groupCharacter);
+                    builder.Append(underGroupCharacter ? "</munder>" : "</mover>");
                     return;
                 case "m":
                     AppendMatrixMathMl(builder, element);

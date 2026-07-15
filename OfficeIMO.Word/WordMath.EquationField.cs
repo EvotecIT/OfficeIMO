@@ -57,7 +57,7 @@ namespace OfficeIMO.Word {
                     AppendEquationFieldChild(builder, element, "fName");
                     builder.Append("\\(");
                     AppendEquationFieldChild(builder, element, "e");
-                    builder.Append(')');
+                    builder.Append("\\)");
                     return;
                 case "acc":
                     builder.Append("\\o(");

@@ -1,6 +1,8 @@
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Rtf;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Rtf;
+using M = DocumentFormat.OpenXml.Math;
 using Xunit;
 
 namespace OfficeIMO.Rtf.Tests;
@@ -49,5 +51,27 @@ public sealed class RtfEquationTests {
         Assert.True(field.IsEquation);
         Assert.StartsWith("EQ ", field.Instruction, StringComparison.Ordinal);
         Assert.Equal("sqrt(x)", field.ToPlainText());
+    }
+
+    [Fact]
+    public void WordToRtf_MapsEquationsInsideVisibleRevisionWrappers() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph("Formula: ");
+        paragraph._paragraph.Append(
+            new InsertedRun(new M.OfficeMath(new M.Run(new M.Text("inserted")))) {
+                Id = "1",
+                Author = "Reviewer"
+            },
+            new MoveToRun(new M.OfficeMath(new M.Run(new M.Text("moved")))) {
+                Id = "2",
+                Author = "Reviewer"
+            });
+
+        RtfDocument rtf = word.ToRtfDocument();
+        RtfField[] fields = Assert.Single(rtf.Paragraphs).Inlines.OfType<RtfField>().ToArray();
+
+        Assert.Equal(new[] { "inserted", "moved" }, fields.Select(field => field.ToPlainText()));
+        Assert.All(fields, field => Assert.All(field.Result.Inlines.OfType<RtfRun>(), run =>
+            Assert.Equal(RtfRevisionKind.Inserted, run.RevisionKind)));
     }
 }

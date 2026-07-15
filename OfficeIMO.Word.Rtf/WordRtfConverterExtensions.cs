@@ -167,18 +167,16 @@ public static partial class WordRtfConverterExtensions {
                     hasRuns |= AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, runElement), paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes);
                     break;
                 case InsertedRun insertedRun:
-                    int? insertedAuthorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, insertedRun.Author?.Value, revisionAuthorIndexes);
-                    foreach (Run childRun in insertedRun.Elements<Run>()) {
-                        hasRuns |= AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun), paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Inserted, insertedAuthorIndex);
-                    }
-
+                    hasRuns |= AppendRevisionContent(wordParagraph, insertedRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Inserted, insertedRun.Author?.Value);
+                    break;
+                case MoveToRun moveToRun:
+                    hasRuns |= AppendRevisionContent(wordParagraph, moveToRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Inserted, moveToRun.Author?.Value);
                     break;
                 case DeletedRun deletedRun:
-                    int? deletedAuthorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, deletedRun.Author?.Value, revisionAuthorIndexes);
-                    foreach (Run childRun in deletedRun.Elements<Run>()) {
-                        hasRuns |= AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun), paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Deleted, deletedAuthorIndex);
-                    }
-
+                    hasRuns |= AppendRevisionContent(wordParagraph, deletedRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Deleted, deletedRun.Author?.Value);
+                    break;
+                case MoveFromRun moveFromRun:
+                    hasRuns |= AppendRevisionContent(wordParagraph, moveFromRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Deleted, moveFromRun.Author?.Value);
                     break;
                 case Hyperlink hyperlink:
                     foreach (Run childRun in hyperlink.Elements<Run>()) {
@@ -211,6 +209,45 @@ public static partial class WordRtfConverterExtensions {
         }
 
         AppendWordComments(wordParagraph, paragraph, rtfDocument, revisionAuthorIndexes);
+    }
+
+    private static bool AppendRevisionContent(
+        WordParagraph wordParagraph,
+        OpenXmlElement revision,
+        RtfParagraph paragraph,
+        ref RtfRun? previousRun,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes,
+        RtfRevisionKind revisionKind,
+        string? author) {
+        bool hasContent = false;
+        int? authorIndex = GetOrAddRevisionAuthorIndex(rtfDocument, author, revisionAuthorIndexes);
+        foreach (OpenXmlElement child in revision.ChildElements) {
+            switch (child) {
+                case Run childRun:
+                    hasContent |= AppendWordRun(
+                        new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        revisionKind,
+                        authorIndex);
+                    break;
+                case M.OfficeMath officeMath:
+                    AppendEquationField(paragraph, officeMath, revisionKind, authorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case M.Paragraph mathParagraph:
+                    AppendEquationField(paragraph, mathParagraph, revisionKind, authorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+            }
+        }
+
+        return hasContent;
     }
 
     private static bool IsCommentReferenceOnlyRun(Run run) =>
@@ -348,10 +385,18 @@ public static partial class WordRtfConverterExtensions {
         }
     }
 
-    private static void AppendEquationField(RtfParagraph paragraph, OpenXmlElement mathElement) {
-        paragraph.AddEquationField(
+    private static void AppendEquationField(
+        RtfParagraph paragraph,
+        OpenXmlElement mathElement,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
+        RtfField field = paragraph.AddEquationField(
             WordMath.ToEquationFieldInstruction(mathElement),
             WordMath.GetText(mathElement));
+        foreach (RtfRun resultRun in field.Result.Inlines.OfType<RtfRun>()) {
+            resultRun.RevisionKind = revisionKind;
+            resultRun.RevisionAuthorIndex = revisionAuthorIndex;
+        }
     }
 
     private static bool AppendWordRun(WordParagraph wordRun, RtfParagraph paragraph, ref RtfRun? previousRun, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, RtfRevisionKind revisionKind = RtfRevisionKind.None, int? revisionAuthorIndex = null) {

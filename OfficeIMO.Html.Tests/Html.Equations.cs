@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
+using M = DocumentFormat.OpenXml.Math;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -32,6 +33,25 @@ namespace OfficeIMO.Tests {
             int math = html.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
             int after = html.IndexOf(" after", StringComparison.Ordinal);
             Assert.True(before >= 0 && before < math && math < after, html);
+        }
+
+        [Fact]
+        public void WordToHtml_ExportsEquationInsideVisibleRevisionWrapper() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            paragraph._paragraph.Append(new InsertedRun(new M.OfficeMath(new M.Run(new M.Text("tracked")))) {
+                Id = "1",
+                Author = "Reviewer"
+            });
+            paragraph.AddText(" after");
+
+            string html = document.ToHtml();
+
+            int before = html.IndexOf("before ", StringComparison.Ordinal);
+            int math = html.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
+            int after = html.IndexOf(" after", StringComparison.Ordinal);
+            Assert.True(before >= 0 && before < math && math < after, html);
+            Assert.Contains("aria-label=\"tracked\"", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
