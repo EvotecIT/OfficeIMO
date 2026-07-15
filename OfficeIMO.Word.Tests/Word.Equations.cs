@@ -84,6 +84,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal("{x+y}", equationParagraph.Text);
             Assert.Equal("{x+y}", Assert.Single(document.Equations).Text);
             Assert.Single(document.Find("{x+y}"));
+            Assert.Equal(1, document.FindAndReplace("{x+y}", "z"));
+            Assert.Equal("z", equationParagraph.Text);
+            Assert.Equal("z", Assert.Single(document.Equations).Text);
         }
 
         [Fact]
