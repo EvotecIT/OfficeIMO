@@ -109,6 +109,8 @@ namespace OfficeIMO.PowerPoint {
                         : slide.AddTextBox(shape.Text, left, top, width, height);
                     PlaceholderValues? placeholder = MapPlaceholder(shape.PlaceholderKind);
                     if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value;
+                    LegacyPptTextProjection.Apply(
+                        (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element, shape.TextBody);
                     if (shape.OfficeArtShapeType != 202
                         && LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out A.ShapeTypeValues textGeometry)

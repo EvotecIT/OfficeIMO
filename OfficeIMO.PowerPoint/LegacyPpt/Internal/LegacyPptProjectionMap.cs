@@ -63,8 +63,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                             $"Projected slide {slideIndex + 1}, shape {shapeIndex + 1} has no Open XML shape id.");
                     }
                     LegacyPptShape sourceShape = sourceShapes[shapeIndex];
+                    string? textFormattingFingerprint = sourceShape.TextBody.HasStyleRecord
+                        && projectedShapes[shapeIndex].Element is DocumentFormat.OpenXml.Presentation.Shape projectedTextShape
+                        ? LegacyPptTextProjection.CreateFormattingFingerprint(projectedTextShape.TextBody)
+                        : null;
                     shapes.Add(new LegacyPptShapeProjection(openXmlShapeId.Value, sourceShape.ShapeId,
-                        sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text));
+                        sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text,
+                        textFormattingFingerprint));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
@@ -129,13 +134,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Maps one projected Open XML shape to its OfficeArt shape container.</summary>
     internal sealed class LegacyPptShapeProjection {
         internal LegacyPptShapeProjection(uint openXmlShapeId, uint officeArtShapeId, long recordOffset,
-            LegacyPptShapeKind kind, LegacyPptBounds bounds, string text) {
+            LegacyPptShapeKind kind, LegacyPptBounds bounds, string text,
+            string? textFormattingFingerprint) {
             OpenXmlShapeId = openXmlShapeId;
             OfficeArtShapeId = officeArtShapeId;
             RecordOffset = recordOffset;
             Kind = kind;
             Bounds = bounds;
             Text = text ?? string.Empty;
+            TextFormattingFingerprint = textFormattingFingerprint;
         }
 
         internal uint OpenXmlShapeId { get; }
@@ -149,5 +156,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal LegacyPptBounds Bounds { get; }
 
         internal string Text { get; }
+
+        internal string? TextFormattingFingerprint { get; }
     }
 }

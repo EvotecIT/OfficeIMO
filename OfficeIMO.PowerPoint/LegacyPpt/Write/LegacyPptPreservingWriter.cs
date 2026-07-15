@@ -111,7 +111,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             : bounds;
                         string? changedText = null;
                         if (shape is PowerPointTextBox textBox) {
-                            if (!HasOnlyPlainProjectedText(textBox)) return false;
+                            if (!MatchesProjectedTextFormatting(textBox, shapeProjection)) return false;
                             string currentText = NormalizeLogicalText(textBox.Text);
                             if (!string.Equals(currentText, NormalizeLogicalText(shapeProjection.Text),
                                     StringComparison.Ordinal)) {
@@ -455,6 +455,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     properties.HasAttributes || properties.HasChildren)
                 && !shape.TextBody.Descendants<A.EndParagraphRunProperties>().Any(properties =>
                     properties.HasAttributes || properties.HasChildren);
+        }
+
+        private static bool MatchesProjectedTextFormatting(PowerPointTextBox textBox,
+            LegacyPptShapeProjection projection) {
+            if (projection.TextFormattingFingerprint == null) return HasOnlyPlainProjectedText(textBox);
+            P.Shape? shape = textBox.Element as P.Shape;
+            return string.Equals(projection.TextFormattingFingerprint,
+                LegacyPptTextProjection.CreateFormattingFingerprint(shape?.TextBody),
+                StringComparison.Ordinal);
         }
 
         private static bool BoundsEqual(LegacyPptBounds left, LegacyPptBounds right) =>

@@ -297,7 +297,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             LegacyPptRecord? textbox = shapeContainer.Children.FirstOrDefault(record =>
                 record.Type == OfficeArtClientTextbox);
-            string text = textbox == null ? string.Empty : ReadText(textbox);
+            LegacyPptTextData textData = textbox == null
+                ? new LegacyPptTextData(string.Empty, 0)
+                : ReadText(textbox);
+            string text = textData.Text;
+            LegacyPptRecord? textStyle = textbox?.DescendantsAndSelf().FirstOrDefault(record =>
+                record.Type == RecordStyleTextPropAtom);
+            LegacyPptTextBody textBody = LegacyPptTextStyleReader.Read(text, textData.RawCharacterCount,
+                textStyle, colorScheme);
             LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
             LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,
                 (shapeFlags & (1U << 8)) != 0);
@@ -318,12 +325,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 bounds, text, placeholder, style,
                 ResolveShapeColor(style.FillColor, colorScheme),
                 ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture,
-                transform, shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme));
+                transform, shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme),
+                textBody: textBody);
 
-            if (textbox != null && textbox.DescendantsAndSelf()
-                    .Any(record => record.Type == RecordStyleTextPropAtom)) {
-                AddDiagnostic("PPT-TEXT-FORMATTING-FLATTENED", LegacyPptDiagnosticSeverity.Warning,
-                    "Rich text and paragraph formatting was flattened to plain text.", textbox.Offset);
+            if (textBody.IsStyleTruncated) {
+                AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    "A StyleTextPropAtom is malformed or truncated; its text remains available as plain text.",
+                    textStyle?.Offset ?? textbox?.Offset);
+            } else {
+                if (textBody.HasParagraphFormatting) {
+                    AddDiagnostic("PPT-TEXT-PARAGRAPH-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
+                        "Paragraph formatting and master-level inheritance are preserved but not projected yet.",
+                        textStyle?.Offset ?? textbox?.Offset);
+                }
+                if (textBody.HasUnprojectedCharacterFormatting) {
+                    AddDiagnostic("PPT-TEXT-CHARACTER-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
+                        "Typeface references and legacy-only character effects are preserved but not projected yet.",
+                        textStyle?.Offset ?? textbox?.Offset);
+                }
             }
             if (fopt != null && fopt.Instance > 0 && style.Properties.Count == 0) {
                 AddDiagnostic("PPT-SHAPE-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
@@ -465,7 +484,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     ToBoundedOffset(notesOffset, documentStream.Length, "notes persist object"), options);
                 string notesText = string.Join("\n", notes.DescendantsAndSelf()
                     .Where(record => record.Type == OfficeArtClientTextbox)
-                    .Select(ReadText)
+                    .Select(record => ReadText(record).Text)
                     .Where(text => !string.IsNullOrWhiteSpace(text)));
                 slide.NotesText = notesText;
             } catch (InvalidDataException exception) {
@@ -531,14 +550,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private static LegacyPptBounds CreateBounds(int left, int top, int right, int bottom) =>
             new LegacyPptBounds(left, top, Math.Max(0, right - left), Math.Max(0, bottom - top));
 
-        private static string ReadText(LegacyPptRecord textbox) {
+        private static LegacyPptTextData ReadText(LegacyPptRecord textbox) {
             LegacyPptRecord? textRecord = textbox.DescendantsAndSelf().FirstOrDefault(record =>
                 record.Type == RecordTextChars || record.Type == RecordTextBytes);
-            if (textRecord == null) return string.Empty;
+            if (textRecord == null) return new LegacyPptTextData(string.Empty, 0);
             string text = textRecord.Type == RecordTextChars
                 ? textRecord.ReadUtf16Text()
                 : textRecord.ReadLowByteUnicodeText();
-            return text.TrimEnd('\0').Replace("\r", "\n").TrimEnd('\n');
+            return new LegacyPptTextData(
+                text.TrimEnd('\0').Replace("\r", "\n").TrimEnd('\n'), text.Length);
+        }
+
+        private readonly struct LegacyPptTextData {
+            internal LegacyPptTextData(string text, int rawCharacterCount) {
+                Text = text;
+                RawCharacterCount = rawCharacterCount;
+            }
+
+            internal string Text { get; }
+
+            internal int RawCharacterCount { get; }
         }
 
         private static LegacyPptPlaceholderKind ReadPlaceholder(LegacyPptRecord shapeContainer) {

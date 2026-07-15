@@ -99,13 +99,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             OfficeArtShapeTransform? transform = null,
             LegacyPptBounds? groupCoordinateBounds = null,
             IReadOnlyList<LegacyPptShape>? children = null,
-            string? shadowColor = null) {
+            string? shadowColor = null,
+            LegacyPptTextBody? textBody = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
             RecordOffset = recordOffset;
             Bounds = bounds;
             Text = text ?? string.Empty;
+            TextBody = textBody ?? LegacyPptTextBody.Plain(Text);
             PlaceholderKind = placeholderKind;
             Style = style ?? throw new ArgumentNullException(nameof(style));
             FillColor = fillColor;
@@ -139,6 +141,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the flattened text content.</summary>
         public string Text { get; }
+
+        /// <summary>Gets decoded character-run and paragraph-style information for the shape text.</summary>
+        public LegacyPptTextBody TextBody { get; }
 
         /// <summary>Gets the placeholder kind.</summary>
         public LegacyPptPlaceholderKind PlaceholderKind { get; }

@@ -312,10 +312,12 @@ namespace OfficeIMO.PowerPoint {
                     applicationProperties),
                 shapeProperties);
             if (source.Kind == LegacyPptShapeKind.TextBox) {
-                shape.Append(new TextBody(
-                    new A.BodyProperties(),
-                    new A.ListStyle(),
-                    new A.Paragraph(new A.Run(new A.Text(source.Text)))));
+                shape.Append(source.TextBody.HasExplicitCharacterFormatting
+                    ? LegacyPptTextProjection.CreateTextBody(source.TextBody)
+                    : new TextBody(
+                        new A.BodyProperties(),
+                        new A.ListStyle(),
+                        new A.Paragraph(new A.Run(new A.Text(source.Text)))));
             }
             return shape;
         }

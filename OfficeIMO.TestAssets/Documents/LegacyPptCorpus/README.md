@@ -64,6 +64,14 @@ non-visual metadata projection, Microsoft's four-byte CurrentUserAtom length ove
 no-op saves, and loss blocking for unsupported metadata edits. Its SHA-256 digest is
 `ce8b78712e423238d9082503842152c07ebfc6770ebfc3654c0865b725f4e175`.
 
+`RichTextPowerPoint.ppt` was authored as a one-slide PPTX and saved to PowerPoint 97-2003 by
+Microsoft PowerPoint for Mac. Its text box contains separate bold red, italic green, underlined
+blue, separator, and second-paragraph runs with sizes from 20 to 32 points. It exercises bounded
+`StyleTextPropAtom` paragraph and character arrays, native emphasis, size, and direct RGB color
+projection, exact no-op saves, formatting-preserving geometry edits, and loss blocking for
+unsupported formatting edits. Its SHA-256 digest is
+`91d0c2a9ee4380357befeee9803d45b4bcdfb2774d84ea5360e3f8b3964dab88`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

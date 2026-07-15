@@ -51,7 +51,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains(title.Style.Properties, property => property.PropertyName == "lineColor");
             Assert.Contains(slide.Shapes, shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.Title);
             Assert.True(legacy.CreateImportReport().HasConversionLoss);
-            Assert.Contains(legacy.Diagnostics, diagnostic => diagnostic.Code == "PPT-TEXT-FORMATTING-FLATTENED");
+            Assert.Contains(legacy.Diagnostics, diagnostic => diagnostic.Code == "PPT-TEXT-PARAGRAPH-PARTIAL");
             Assert.NotEmpty(legacy.Package.UserEdits);
             Assert.NotEmpty(legacy.Package.PersistObjects);
             Assert.True(legacy.CreateImportReport().CompoundStreamCount >= 2);
@@ -352,7 +352,7 @@ namespace OfficeIMO.Tests {
             LegacyPptPresentation saved = LegacyPptPresentation.Load(bytes);
             Assert.Contains(saved.Slides[0].Shapes, shape => shape.Text == replacementText);
             Assert.Contains(saved.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-TEXT-FORMATTING-FLATTENED");
+                diagnostic.Code == "PPT-TEXT-PARAGRAPH-PARTIAL");
         }
 
         [Fact]
