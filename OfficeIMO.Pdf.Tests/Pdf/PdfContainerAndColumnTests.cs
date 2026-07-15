@@ -130,6 +130,43 @@ public class PdfContainerAndColumnTests {
         Assert.Contains("1 0 0 1 220 ", raw, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Columns_BalancedRichLinesPreserveSpaceBeforeInlineElements() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 300,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 40,
+                MarginBottom = 40,
+                DefaultFontSize = 10,
+                CompressContentStreams = false
+            })
+            .Columns(columns => columns.Paragraph(paragraph => paragraph
+                .Text("ColumnLine01 ").InlineBox(8, 8).Text("after").LineBreak()
+                .Text("ColumnLine02 ").InlineBox(8, 8).Text("after").LineBreak()
+                .Text("ColumnLine03 ").InlineBox(8, 8).Text("after").LineBreak()
+                .Text("ColumnLine04 ").InlineBox(8, 8).Text("after").LineBreak()
+                .Text("ColumnLine05 ").InlineBox(8, 8).Text("after").LineBreak()
+                .Text("ColumnLine06 ").InlineBox(8, 8).Text("after").LineBreak()
+                .Text("ColumnLine07 ").InlineBox(8, 8).Text("after").LineBreak()
+                .Text("ColumnLine08 ").InlineBox(8, 8).Text("after")), new PdfMultiColumnOptions {
+                    ColumnCount = 2,
+                    Gap = 20,
+                    BalanceLastPage = true,
+                    BalanceParagraphLines = true
+                })
+            .ToBytes();
+
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        for (int index = 1; index <= 8; index++) {
+            string marker = "ColumnLine" + index.ToString("D2") + " after";
+            Assert.Contains(marker, text, StringComparison.Ordinal);
+            Assert.DoesNotContain(marker.Replace(" ", string.Empty), text, StringComparison.Ordinal);
+        }
+    }
+
     private static int CountOccurrences(string value, string token) {
         int count = 0;
         int offset = 0;

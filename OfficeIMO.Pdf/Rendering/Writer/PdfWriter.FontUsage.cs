@@ -86,7 +86,7 @@ internal static partial class PdfWriter {
             }
 
             foreach (PageImage image in page.Images) {
-                images.Add(new PdfGeneratedImageAccessibilityEvidence(!string.IsNullOrWhiteSpace(image.AlternativeText), image.IsBackgroundDecoration));
+                images.Add(new PdfGeneratedImageAccessibilityEvidence(!string.IsNullOrWhiteSpace(image.AlternativeText), image.IsDecorativeArtifact));
             }
 
             drawings.AddRange(page.Drawings);

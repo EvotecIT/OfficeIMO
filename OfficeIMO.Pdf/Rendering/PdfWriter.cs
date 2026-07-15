@@ -1155,7 +1155,7 @@ internal static partial class PdfWriter {
             }
 
             sb.Append(" >> BDC\n");
-        } else if (!img.SuppressAccessibilityWrapper && img.IsBackgroundDecoration) {
+        } else if (!img.SuppressAccessibilityWrapper && img.IsDecorativeArtifact) {
             sb.Append("/Artifact BMC\n");
         }
 
@@ -1185,7 +1185,7 @@ internal static partial class PdfWriter {
         content.XObject(img.Name)
             .RestoreState();
 
-        if (hasAlternativeText || !img.SuppressAccessibilityWrapper && img.IsBackgroundDecoration) {
+        if (hasAlternativeText || !img.SuppressAccessibilityWrapper && img.IsDecorativeArtifact) {
             sb.Append("EMC\n");
         }
 

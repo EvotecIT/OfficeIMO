@@ -424,7 +424,7 @@ internal static partial class PdfWriter {
                     : MeasureRichText(" ", segment.Font, segment.FontSize, segment.Baseline, options);
             }
 
-            width += MeasureRichText(segment.Text, segment.Font, segment.FontSize, segment.Baseline, options);
+            width += MeasureRichSegment(segment, options);
         }
 
         return width;
@@ -656,12 +656,19 @@ internal static partial class PdfWriter {
                 }
 
                 List<RichSeg> currentLine = lines[lines.Count - 1];
-                double leadingAdvance = currentLine.Count == 0 ? 0D : pendingLeadingAdvance;
+                double leadingAdvance = currentLine.Count > 0 || pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
                 if (currentLine.Count > 0 && lineWidth + leadingAdvance + inlineElement.Width > currentMaxWidth + 0.001D) {
+                    if (pendingLeadingAdvance > 0D) {
+                        MarkRichLineTextSeparator(currentLine);
+                    }
+
                     StartNewLine();
-                    ResetPendingLeading();
                     currentLine = lines[lines.Count - 1];
-                    leadingAdvance = 0D;
+                    if (pendingLeadingIsTab) {
+                        ResolvePendingLeadingTabForCurrentLine(inlineElement.Width, spaceW, string.Empty, fontForRun, runFontSize, baseline);
+                    }
+
+                    leadingAdvance = pendingLeadingIsTab ? pendingLeadingAdvance : 0D;
                 }
 
                 currentLine.Add(new RichSeg(
@@ -1518,7 +1525,7 @@ internal static partial class PdfWriter {
                 bottom,
                 inlineElement.Width,
                 inlineElement.Height);
-            pageImage.IsBackgroundDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
+            pageImage.IsInlineDecoration = string.IsNullOrWhiteSpace(inlineElement.AlternativeText);
             page.Images.Add(pageImage);
             pageImage.InlineDrawToken = "\n%OIMO_INLINE_IMAGE_" + page.Images.Count.ToString("D6", CultureInfo.InvariantCulture) + "\n";
             if (!string.IsNullOrWhiteSpace(inlineElement.AlternativeText)) {

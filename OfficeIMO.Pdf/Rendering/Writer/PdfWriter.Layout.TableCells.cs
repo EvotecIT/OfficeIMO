@@ -684,6 +684,11 @@ internal static partial class PdfWriter {
         double minimumExplicitFontSize = minimumShrinkFontSize > 0D ? minimumShrinkFontSize : 0.001D;
         var scaledRuns = new System.Collections.Generic.List<TextRun>(runs.Count);
         foreach (TextRun run in runs) {
+            if (run.InlineElement != null) {
+                scaledRuns.Add(run);
+                continue;
+            }
+
             double? scaledFontSize = null;
             if (run.FontSize.HasValue) {
                 scaledFontSize = run.FontSize.Value <= minimumExplicitFontSize

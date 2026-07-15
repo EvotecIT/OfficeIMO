@@ -151,6 +151,23 @@ internal static partial class PdfWriter {
                 for (int segmentIndex = 0; segmentIndex < line.Count; segmentIndex++) {
                     RichSeg segment = line[segmentIndex];
                     if (segment.InlineElement != null) {
+                        if (segment.LeadingSpace) {
+                            runs.Add(new TextRun(
+                                " ",
+                                segment.Bold,
+                                segment.Underline,
+                                segment.Color,
+                                segment.Italic,
+                                segment.Strike,
+                                segment.FontSize,
+                                segment.Font,
+                                segment.Uri,
+                                segment.Contents,
+                                segment.Baseline,
+                                segment.DestinationName,
+                                backgroundColor: segment.BackgroundColor));
+                        }
+
                         runs.Add(TextRun.Inline(segment.InlineElement));
                         continue;
                     }
