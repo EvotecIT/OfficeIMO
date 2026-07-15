@@ -4,6 +4,18 @@ using System.Net.Http.Headers;
 using System.Security.Cryptography;
 
 namespace OfficeIMO.GoogleWorkspace {
+    /// <summary>
+    /// Describes whether a request can be repeated after an ambiguous transport outcome.
+    /// </summary>
+    public enum GoogleWorkspaceRequestSafety {
+        /// <summary>Reading or otherwise side-effect-free operation.</summary>
+        Safe = 0,
+        /// <summary>Mutation whose repeated application has the same intended outcome.</summary>
+        Idempotent = 1,
+        /// <summary>Mutation that can create duplicates or apply an action more than once.</summary>
+        NonIdempotent = 2,
+    }
+
     public sealed class GoogleWorkspaceRetryOptions {
         public GoogleWorkspaceRetryOptions(int maxRetryCount, TimeSpan baseDelay, TimeSpan maxDelay, GoogleWorkspaceSessionOptions? sessionOptions = null) {
             MaxRetryCount = Math.Max(0, maxRetryCount);
@@ -58,6 +70,7 @@ namespace OfficeIMO.GoogleWorkspace {
             HttpClient client,
             Func<HttpRequestMessage> requestFactory,
             GoogleWorkspaceRetryOptions retryOptions,
+            GoogleWorkspaceRequestSafety requestSafety,
             CancellationToken cancellationToken,
             Action<GoogleWorkspaceRetryEvent>? onRetry = null) {
             if (retryOptions == null) throw new ArgumentNullException(nameof(retryOptions));
@@ -70,7 +83,7 @@ namespace OfficeIMO.GoogleWorkspace {
 
                     try {
                         var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
-                        if (!ShouldRetry(response.StatusCode) || attempt >= retryBudget) {
+                        if (!CanRetry(requestSafety) || !ShouldRetry(response.StatusCode) || attempt >= retryBudget) {
                             return response;
                         }
 
@@ -85,7 +98,7 @@ namespace OfficeIMO.GoogleWorkspace {
                             delayStrategy));
                         response.Dispose();
                         await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                    } catch (HttpRequestException) when (attempt < retryBudget) {
+                    } catch (HttpRequestException) when (CanRetry(requestSafety) && attempt < retryBudget) {
                         var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
                         onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
                             method,
@@ -96,7 +109,7 @@ namespace OfficeIMO.GoogleWorkspace {
                             delay,
                             delayStrategy));
                         await Task.Delay(delay, cancellationToken).ConfigureAwait(false);
-                    } catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested && attempt < retryBudget) {
+                    } catch (TaskCanceledException) when (!cancellationToken.IsCancellationRequested && CanRetry(requestSafety) && attempt < retryBudget) {
                         var (delay, delayStrategy) = GetRetryDelay(null, attempt, retryOptions);
                         onRetry?.Invoke(new GoogleWorkspaceRetryEvent(
                             method,
@@ -110,6 +123,11 @@ namespace OfficeIMO.GoogleWorkspace {
                     }
                 }
             }
+        }
+
+        private static bool CanRetry(GoogleWorkspaceRequestSafety requestSafety) {
+            return requestSafety == GoogleWorkspaceRequestSafety.Safe
+                || requestSafety == GoogleWorkspaceRequestSafety.Idempotent;
         }
 
         // Retry only the status codes Google APIs commonly use for throttling or transient infrastructure failures.

@@ -1454,7 +1454,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_RetriesTransientCreateFailures() {
+        public async Task Test_GoogleSheetsExporter_DoesNotRetryAmbiguousCreateFailures() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsExporterRetryCreate.xlsx");
 
             try {
@@ -1492,13 +1492,14 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
-                    Title = "Retry Export",
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
+                        Title = "Retry Export",
+                    }));
 
-                Assert.Equal("spreadRetry", result.SpreadsheetId);
-                Assert.Equal(2, createAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://sheets.googleapis.com/v4/spreadsheets", StringComparison.Ordinal) && n.Message.Contains("exponential backoff", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, createAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1507,7 +1508,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_ReportsServerRetryAfterDelays() {
+        public async Task Test_GoogleSheetsExporter_DoesNotUseRetryAfterForAmbiguousCreates() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsExporterRetryAfter.xlsx");
 
             try {
@@ -1547,13 +1548,14 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
-                    Title = "Retry-After Export",
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
+                        Title = "Retry-After Export",
+                    }));
 
-                Assert.Equal("spreadRetryAfter", result.SpreadsheetId);
-                Assert.Equal(2, createAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("server Retry-After", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, createAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1584,7 +1586,11 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/spreadMove?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/folder123?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"folder123\",\"name\":\"Requested Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/spreadMove?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"spreadMove\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/spreadsheets/d/spreadMove/edit\"}");
                     }
 
@@ -1612,7 +1618,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("spreadMove", result.SpreadsheetId);
-                Assert.Equal(4, recordedRequests.Count);
+                Assert.Equal(5, recordedRequests.Count);
                 Assert.Contains(recordedRequests, r => r.Method == "GET" && r.Uri.AbsoluteUri.Contains("/drive/v3/files/spreadMove?", StringComparison.Ordinal));
                 var patchRequest = Assert.Single(recordedRequests, r => r.Method == "PATCH");
                 Assert.Contains("addParents=folder123", patchRequest.Uri.Query);
@@ -1645,7 +1651,11 @@ namespace OfficeIMO.Tests {
                         return Task.FromResult(CreateJsonResponse("{}"));
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/spreadRetryDrive?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/folder123?", StringComparison.Ordinal)) {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"folder123\",\"name\":\"Requested Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}"));
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/spreadRetryDrive?", StringComparison.Ordinal)) {
                         driveMetadataAttempts++;
                         if (driveMetadataAttempts == 1) {
                             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable) {
@@ -1714,7 +1724,11 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/spreadDefaultFolder?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/sessionFolder123?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"sessionFolder123\",\"name\":\"Session Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/spreadDefaultFolder?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"spreadDefaultFolder\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/spreadsheets/d/spreadDefaultFolder/edit\"}");
                     }
 
@@ -1739,7 +1753,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("spreadDefaultFolder", result.SpreadsheetId);
-                Assert.Equal(4, recordedRequests.Count);
+                Assert.Equal(5, recordedRequests.Count);
                 var patchRequest = Assert.Single(recordedRequests, r => r.Method == "PATCH");
                 Assert.Contains("addParents=sessionFolder123", patchRequest.Uri.Query);
                 Assert.Equal("sessionFolder123", result.Location?.FolderId);
@@ -1819,7 +1833,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_RetriesTransientExistingSpreadsheetReplaceFailures() {
+        public async Task Test_GoogleSheetsExporter_DoesNotRetryAmbiguousExistingSpreadsheetReplaceFailures() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsExporterRetryUpdate.xlsx");
 
             try {
@@ -1861,17 +1875,17 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
-                    Title = "Retry Replacement Export",
-                    Location = new GoogleDriveFileLocation {
-                        ExistingFileId = "existingRetry123",
-                    }
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
+                        Title = "Retry Replacement Export",
+                        Location = new GoogleDriveFileLocation {
+                            ExistingFileId = "existingRetry123",
+                        }
+                    }));
 
-                Assert.Equal("existingRetry123", result.SpreadsheetId);
-                Assert.Equal(2, replaceAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingSpreadsheet");
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://sheets.googleapis.com/v4/spreadsheets/existingRetry123:batchUpdate", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, replaceAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

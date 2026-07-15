@@ -1215,11 +1215,15 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-table-image\",\"title\":\"Table Image Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"img-table-123\"}");
                     }
 
-                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img-table-123/permissions?supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/img-table-123/permissions?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"public-reader\",\"type\":\"anyone\",\"role\":\"reader\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Delete && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img-table-123?supportsAllDrives=true") {
                         return CreateJsonResponse("{}");
                     }
 
@@ -1245,15 +1249,17 @@ namespace OfficeIMO.Tests {
 
                 var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Title = "Table Image Export",
+                    InlineImageMode = GoogleDocsInlineImageMode.TemporaryPublicDriveLease,
                 });
 
                 Assert.Equal("doc-table-image", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(8, recordedRequests.Count);
                 Assert.Equal(3, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
-                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri == "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id");
-                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img-table-123/permissions?supportsAllDrives=true");
+                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri.StartsWith("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", StringComparison.Ordinal));
+                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/img-table-123/permissions?", StringComparison.Ordinal));
+                Assert.Contains(recordedRequests, request => request.Method == "DELETE" && request.Uri.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img-table-123?supportsAllDrives=true");
 
                 var tableBatchRequest = recordedRequests.Single(request =>
                     request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image:batchUpdate"
@@ -2297,11 +2303,15 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc123\",\"title\":\"Create Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"img123\"}");
                     }
 
-                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img123/permissions?supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/img123/permissions?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"public-reader\",\"type\":\"anyone\",\"role\":\"reader\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Delete && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img123?supportsAllDrives=true") {
                         return CreateJsonResponse("{}");
                     }
 
@@ -2327,11 +2337,12 @@ namespace OfficeIMO.Tests {
 
                 var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Title = "Create Export",
+                    InlineImageMode = GoogleDocsInlineImageMode.TemporaryPublicDriveLease,
                 });
 
                 Assert.Equal("doc123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/doc123/edit", result.WebViewLink);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(8, recordedRequests.Count);
                 Assert.Equal(3, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -2340,8 +2351,9 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Create Export", json.RootElement.GetProperty("title").GetString());
                 }
 
-                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri == "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id");
-                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img123/permissions?supportsAllDrives=true");
+                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri.StartsWith("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", StringComparison.Ordinal));
+                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/img123/permissions?", StringComparison.Ordinal));
+                Assert.Contains(recordedRequests, request => request.Method == "DELETE" && request.Uri.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img123?supportsAllDrives=true");
 
                 var initialBatchRequest = recordedRequests.First(request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc123:batchUpdate" && request.Body!.Contains("insertTable", StringComparison.Ordinal));
                 Assert.Contains("Intro Bold Portal", initialBatchRequest.Body!);
@@ -2437,7 +2449,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_RetriesTransientCreateFailures() {
+        public async Task Test_GoogleDocsExporter_DoesNotRetryAmbiguousCreateFailures() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterRetryCreate.docx");
 
             try {
@@ -2472,13 +2484,14 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
-                    Title = "Retry Export",
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                        Title = "Retry Export",
+                    }));
 
-                Assert.Equal("doc-retry", result.DocumentId);
-                Assert.Equal(2, createAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://docs.googleapis.com/v1/documents", StringComparison.Ordinal) && n.Message.Contains("exponential backoff", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, createAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2487,7 +2500,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_RetriesTransientExistingDocumentResetFailures() {
+        public async Task Test_GoogleDocsExporter_DoesNotRetryAmbiguousExistingDocumentResetFailures() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterRetryReplace.docx");
 
             try {
@@ -2526,17 +2539,17 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
-                    Title = "Retry Replacement Export",
-                    Location = new GoogleDriveFileLocation {
-                        ExistingFileId = "existing-doc-retry-123",
-                    }
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                        Title = "Retry Replacement Export",
+                        Location = new GoogleDriveFileLocation {
+                            ExistingFileId = "existing-doc-retry-123",
+                        }
+                    }));
 
-                Assert.Equal("existing-doc-retry-123", result.DocumentId);
-                Assert.Equal(2, resetAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingDocument");
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://docs.googleapis.com/v1/documents/existing-doc-retry-123:batchUpdate", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, resetAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2564,7 +2577,11 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/doc-default-folder?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/sessionFolder123?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"sessionFolder123\",\"name\":\"Session Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/doc-default-folder?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"doc-default-folder\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/document/d/doc-default-folder/edit\"}");
                     }
 
@@ -2589,7 +2606,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-default-folder", result.DocumentId);
-                Assert.Equal(4, recordedRequests.Count);
+                Assert.Equal(5, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
                 var patchRequest = Assert.Single(recordedRequests, request => request.Method == "PATCH");
                 Assert.Contains("addParents=sessionFolder123", patchRequest.Uri.Query);
@@ -2618,7 +2635,11 @@ namespace OfficeIMO.Tests {
                         return Task.FromResult(CreateJsonResponse("{}"));
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/doc-retry-drive?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/folder123?", StringComparison.Ordinal)) {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"folder123\",\"name\":\"Requested Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}"));
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/doc-retry-drive?", StringComparison.Ordinal)) {
                         return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-retry-drive\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/document/d/doc-retry-drive/edit\"}"));
                     }
 
@@ -4354,7 +4375,8 @@ namespace OfficeIMO.Tests {
                     }));
 
                 Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
-                Assert.IsType<HttpRequestException>(exception.InnerException);
+                var apiException = Assert.IsType<GoogleWorkspaceApiException>(exception.InnerException);
+                Assert.Equal(HttpStatusCode.Forbidden, apiException.ResponseStatusCode);
                 Assert.Contains(exception.Report.Notices, n =>
                     n.Severity == TranslationSeverity.Error
                     && n.Feature == "ApiFailures"

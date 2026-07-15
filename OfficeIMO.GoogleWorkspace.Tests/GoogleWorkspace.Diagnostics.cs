@@ -62,8 +62,8 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_DiagnosticSink_ReceivesRetryEntries() {
-            string filePath = Path.Combine(Path.GetTempPath(), "GoogleSheetsExporterDiagnosticSinkRetry-" + Guid.NewGuid().ToString("N") + ".xlsx");
+        public async Task Test_GoogleSheetsExporter_DoesNotRetryAmbiguousCreate() {
+            string filePath = Path.Combine(Path.GetTempPath(), "GoogleSheetsExporterNoAmbiguousCreateRetry-" + Guid.NewGuid().ToString("N") + ".xlsx");
 
             try {
                 using var document = ExcelDocument.Create(filePath);
@@ -102,20 +102,96 @@ namespace OfficeIMO.Tests {
                         DiagnosticSink = entries.Add,
                     });
 
-                var result = await document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
-                    Title = "Diagnostic Retry Export",
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
+                        Title = "Diagnostic Retry Export",
+                    }));
 
-                Assert.Equal("diagRetry", result.SpreadsheetId);
-                Assert.Contains(entries, entry =>
-                    entry.Feature == "ApiRetries"
-                    && entry.Severity == TranslationSeverity.Info
-                    && entry.Message.Contains("https://sheets.googleapis.com/v4/spreadsheets", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, createAttempts);
+                Assert.DoesNotContain(entries, entry => entry.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
                 }
             }
+        }
+
+        [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_RetriesSafeReads_AndSendsContext() {
+            int attempts = 0;
+            var requests = new List<(string Uri, string? UserAgent, string? QuotaProject, string? RequestId)>();
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                attempts++;
+                requests.Add((
+                    request.RequestUri!.AbsoluteUri,
+                    request.Headers.UserAgent.ToString(),
+                    request.Headers.TryGetValues("X-Goog-User-Project", out var quotaProjects) ? quotaProjects.Single() : null,
+                    request.Headers.TryGetValues("X-Request-Id", out var requestIds) ? requestIds.Single() : null));
+
+                if (attempts == 1) {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable) {
+                        Content = new StringContent("retry later", Encoding.UTF8, "text/plain")
+                    });
+                }
+
+                return Task.FromResult(CreateJsonResponse("{\"id\":\"safe-read\"}"));
+            }));
+
+            var entries = new List<GoogleWorkspaceDiagnosticEntry>();
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = httpClient,
+                ApplicationName = "OfficeIMO Integration Tests",
+                QuotaUser = "tenant-user",
+                QuotaProject = "billing-project",
+                RequestIdFactory = () => "request-123",
+                MaxRetryCount = 1,
+                DiagnosticSink = entries.Add,
+            };
+            var report = new TranslationReport();
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            var result = await transport.SendJsonAsync<TransportReadResponse>(
+                "token",
+                HttpMethod.Get,
+                "https://www.googleapis.com/drive/v3/files/file-1?fields=id",
+                null,
+                GoogleWorkspaceRequestSafety.Safe,
+                "Google Drive API",
+                report);
+
+            Assert.Equal("safe-read", result.Id);
+            Assert.Equal(2, attempts);
+            Assert.All(requests, request => {
+                Assert.Contains("quotaUser=tenant-user", request.Uri, StringComparison.Ordinal);
+                Assert.Equal("OfficeIMO-Integration-Tests/2.0", request.UserAgent);
+                Assert.Equal("billing-project", request.QuotaProject);
+                Assert.Equal("request-123", request.RequestId);
+            });
+            Assert.Contains(entries, entry =>
+                entry.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry
+                && entry.Feature == "ApiRetries"
+                && entry.Severity == TranslationSeverity.Info);
+        }
+
+        [Fact]
+        public void Test_GoogleWorkspacePreflight_BlocksUnacceptedErrorsBeforeMutation() {
+            var report = new TranslationReport();
+            report.Add(
+                TranslationSeverity.Error,
+                "Charts",
+                "Chart rasterization is unavailable.",
+                path: "Slides[0].Charts[0]",
+                code: "SLIDES.CHART.RASTERIZER_UNAVAILABLE",
+                action: TranslationAction.Fail);
+
+            var exception = Assert.Throws<GoogleWorkspacePreflightException>(() =>
+                GoogleWorkspacePreflight.Validate(report, new GoogleWorkspaceFidelityPolicy()));
+
+            var notice = Assert.Single(exception.BlockingNotices);
+            Assert.Equal("SLIDES.CHART.RASTERIZER_UNAVAILABLE", notice.Code);
+            Assert.Equal(TranslationAction.Fail, notice.Action);
+            Assert.Equal("Slides[0].Charts[0]", notice.Path);
         }
 
         [Fact]
@@ -345,6 +421,11 @@ namespace OfficeIMO.Tests {
                     DateTimeOffset.UtcNow.AddHours(1),
                     scopes.ToArray()));
             }
+        }
+
+        private sealed class TransportReadResponse {
+            [System.Text.Json.Serialization.JsonPropertyName("id")]
+            public string? Id { get; set; }
         }
 
         private sealed class FakeHttpMessageHandler : HttpMessageHandler {

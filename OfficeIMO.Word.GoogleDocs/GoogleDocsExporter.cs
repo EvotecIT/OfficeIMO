@@ -1,7 +1,5 @@
 using OfficeIMO.GoogleWorkspace;
-using System.Net.Http.Headers;
-using System.IO;
-using System.Text;
+using OfficeIMO.GoogleWorkspace.Drive;
 using System.Text.Json;
 
 namespace OfficeIMO.Word.GoogleDocs {
@@ -35,6 +33,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             var effectiveOptions = options ?? new GoogleDocsSaveOptions();
             var batch = BuildBatch(document, effectiveOptions);
+            GoogleWorkspacePreflight.Validate(batch.Report, effectiveOptions.FidelityPolicy);
             var effectiveLocation = session.ResolveLocationDefaults(effectiveOptions.Location);
             if (string.IsNullOrWhiteSpace(effectiveLocation.FolderId) && !string.IsNullOrWhiteSpace(effectiveLocation.DriveId)) {
                 GoogleWorkspaceDiagnosticsDispatcher.Add(
@@ -69,51 +68,46 @@ namespace OfficeIMO.Word.GoogleDocs {
                     ex);
             }
 
-            var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(session.Options);
-
-            bool disposeClient = session.Options.HttpClient == null;
-            var client = session.Options.HttpClient ?? new HttpClient();
+            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var driveClient = new GoogleDriveClient(session)) {
             try {
-                client.Timeout = session.Options.RequestTimeout;
-
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
-                    var existingDocument = await SendAsync<GoogleDocsApiDocumentResponse>(
-                        client,
+                    var existingDocument = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(
                         accessToken.AccessToken,
                         HttpMethod.Get,
                         $"https://docs.googleapis.com/v1/documents/{effectiveLocation.ExistingFileId}",
                         null,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.Safe,
+                        "Google Docs API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
                     var resetPayload = GoogleDocsApiPayloadBuilder.BuildResetDocumentPayload(existingDocument);
                     if (resetPayload.Requests.Count > 0) {
-                        await SendAsync<object>(
-                            client,
+                        await transport.SendJsonAsync<object>(
                             accessToken.AccessToken,
                             HttpMethod.Post,
                             $"https://docs.googleapis.com/v1/documents/{effectiveLocation.ExistingFileId}:batchUpdate",
                             resetPayload,
-                            retryOptions,
+                            GoogleWorkspaceRequestSafety.NonIdempotent,
+                            "Google Docs API",
                             batch.Report,
                             cancellationToken).ConfigureAwait(false);
                     }
 
                     await ApplyDocumentContentAsync(
-                        client,
+                        transport,
                         accessToken.AccessToken,
                         effectiveLocation.ExistingFileId!,
                         batch,
-                        retryOptions,
+                        effectiveOptions,
+                        driveClient,
                         cancellationToken).ConfigureAwait(false);
 
                     var updatedDriveMetadata = await ApplyDrivePlacementAsync(
-                        client,
-                        accessToken.AccessToken,
+                        driveClient,
                         effectiveLocation.ExistingFileId!,
                         effectiveLocation,
-                        retryOptions,
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
@@ -133,13 +127,13 @@ namespace OfficeIMO.Word.GoogleDocs {
                     };
                 }
 
-                var createResponse = await SendAsync<GoogleDocsApiCreateDocumentResponse>(
-                    client,
+                var createResponse = await transport.SendJsonAsync<GoogleDocsApiCreateDocumentResponse>(
                     accessToken.AccessToken,
                     HttpMethod.Post,
                     "https://docs.googleapis.com/v1/documents",
                     GoogleDocsApiPayloadBuilder.BuildCreateDocumentPayload(batch),
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Docs API",
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -150,19 +144,18 @@ namespace OfficeIMO.Word.GoogleDocs {
                 var documentId = createResponse.DocumentId!;
 
                 await ApplyDocumentContentAsync(
-                    client,
+                    transport,
                     accessToken.AccessToken,
                     documentId,
                     batch,
-                    retryOptions,
+                    effectiveOptions,
+                    driveClient,
                     cancellationToken).ConfigureAwait(false);
 
                 var createdDriveMetadata = await ApplyDrivePlacementAsync(
-                    client,
-                    accessToken.AccessToken,
+                    driveClient,
                     documentId,
                     effectiveLocation,
-                    retryOptions,
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -197,10 +190,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     session.Options,
                     batch.Report,
                     ex);
-            } finally {
-                if (disposeClient) {
-                    client.Dispose();
-                }
+            }
+            }
             }
         }
 

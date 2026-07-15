@@ -8,19 +8,31 @@ namespace OfficeIMO.GoogleWorkspace {
             string feature,
             string message,
             string path = "",
-            GoogleWorkspaceFailureKind? failureKind = null) {
+            GoogleWorkspaceFailureKind? failureKind = null,
+            string? code = null,
+            TranslationAction action = TranslationAction.None,
+            int count = 1,
+            string? targetId = null) {
             Severity = severity;
             Feature = feature ?? string.Empty;
             Message = message ?? string.Empty;
             Path = path ?? string.Empty;
             FailureKind = failureKind;
+            Code = GoogleWorkspaceDiagnosticCodes.Resolve(code, feature);
+            Action = action;
+            Count = Math.Max(1, count);
+            TargetId = targetId;
         }
 
+        public string Code { get; }
         public TranslationSeverity Severity { get; }
         public string Feature { get; }
         public string Message { get; }
         public string Path { get; }
         public GoogleWorkspaceFailureKind? FailureKind { get; }
+        public TranslationAction Action { get; }
+        public int Count { get; }
+        public string? TargetId { get; }
     }
 
     /// <summary>
@@ -35,7 +47,11 @@ namespace OfficeIMO.GoogleWorkspace {
                     notice.Severity,
                     notice.Feature,
                     notice.Message,
-                    notice.Path))
+                    notice.Path,
+                    code: notice.Code,
+                    action: notice.Action,
+                    count: notice.Count,
+                    targetId: notice.TargetId))
                 .ToArray();
         }
 
@@ -47,7 +63,9 @@ namespace OfficeIMO.GoogleWorkspace {
                     TranslationSeverity.Error,
                     "ExportFailure",
                     exception.Message,
-                    failureKind: exception.FailureKind)
+                    failureKind: exception.FailureKind,
+                    code: "WORKSPACE.EXPORT.FAILED",
+                    action: TranslationAction.Fail)
             };
 
             entries.AddRange(exception.Report.Notices.Select(notice => new GoogleWorkspaceDiagnosticEntry(
@@ -55,7 +73,11 @@ namespace OfficeIMO.GoogleWorkspace {
                 notice.Feature,
                 notice.Message,
                 notice.Path,
-                exception.FailureKind)));
+                exception.FailureKind,
+                notice.Code,
+                notice.Action,
+                notice.Count,
+                notice.TargetId)));
 
             return entries;
         }
@@ -76,11 +98,15 @@ namespace OfficeIMO.GoogleWorkspace {
             string feature,
             string message,
             string path = "",
-            GoogleWorkspaceFailureKind? failureKind = null) {
+            GoogleWorkspaceFailureKind? failureKind = null,
+            string? code = null,
+            TranslationAction action = TranslationAction.None,
+            int count = 1,
+            string? targetId = null) {
             if (report == null) throw new ArgumentNullException(nameof(report));
 
-            report.Add(severity, feature, message, path);
-            Emit(sessionOptions, new GoogleWorkspaceDiagnosticEntry(severity, feature, message, path, failureKind));
+            report.Add(severity, feature, message, path, code, action, count, targetId);
+            Emit(sessionOptions, new GoogleWorkspaceDiagnosticEntry(severity, feature, message, path, failureKind, code, action, count, targetId));
         }
 
         public static void AddUnique(
@@ -90,7 +116,11 @@ namespace OfficeIMO.GoogleWorkspace {
             string feature,
             string message,
             string path = "",
-            GoogleWorkspaceFailureKind? failureKind = null) {
+            GoogleWorkspaceFailureKind? failureKind = null,
+            string? code = null,
+            TranslationAction action = TranslationAction.None,
+            int count = 1,
+            string? targetId = null) {
             if (report == null) throw new ArgumentNullException(nameof(report));
 
             if (report.Notices.Any(n =>
@@ -101,8 +131,8 @@ namespace OfficeIMO.GoogleWorkspace {
                 return;
             }
 
-            report.AddUnique(severity, feature, message, path);
-            Emit(sessionOptions, new GoogleWorkspaceDiagnosticEntry(severity, feature, message, path, failureKind));
+            report.AddUnique(severity, feature, message, path, code, action, count, targetId);
+            Emit(sessionOptions, new GoogleWorkspaceDiagnosticEntry(severity, feature, message, path, failureKind, code, action, count, targetId));
         }
     }
 }

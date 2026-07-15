@@ -1,19 +1,14 @@
 using OfficeIMO.GoogleWorkspace;
-using System.Net.Http.Headers;
-using System.IO;
-using System.Text;
-using System.Text.Json;
 
 namespace OfficeIMO.Word.GoogleDocs {
     public sealed partial class GoogleDocsExporter : IGoogleDocsExporter {
         private static async Task ApplyHeaderFooterSegmentsAsync(
-            HttpClient client,
+            GoogleWorkspaceHttpTransport transport,
             string accessToken,
             string documentId,
             GoogleDocsBatch batch,
             IReadOnlyDictionary<GoogleDocsInlineImage, string> imageUris,
             GoogleDocsApiDocumentResponse documentState,
-            GoogleWorkspaceRetryOptions retryOptions,
             CancellationToken cancellationToken) {
             var executableSegments = batch.Segments
                 .Where(segment =>
@@ -42,9 +37,9 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                 string? segmentId;
                 if (string.Equals(segment.Kind, "header", StringComparison.OrdinalIgnoreCase)) {
-                    segmentId = await CreateHeaderAsync(client, accessToken, documentId, sectionBreakLocation, segment.Variant, retryOptions, batch.Report, cancellationToken).ConfigureAwait(false);
+                    segmentId = await CreateHeaderAsync(transport, accessToken, documentId, sectionBreakLocation, segment.Variant, batch.Report, cancellationToken).ConfigureAwait(false);
                 } else {
-                    segmentId = await CreateFooterAsync(client, accessToken, documentId, sectionBreakLocation, segment.Variant, retryOptions, batch.Report, cancellationToken).ConfigureAwait(false);
+                    segmentId = await CreateFooterAsync(transport, accessToken, documentId, sectionBreakLocation, segment.Variant, batch.Report, cancellationToken).ConfigureAwait(false);
                 }
 
                 if (string.IsNullOrWhiteSpace(segmentId)) {
@@ -57,13 +52,13 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                 var segmentPayload = GoogleDocsApiPayloadBuilder.BuildSegmentBatchUpdatePayload(segment, batch.Report, segmentId!, imageUris);
                 if (segmentPayload.Requests.Count > 0) {
-                    await SendAsync<object>(
-                        client,
+                    await transport.SendJsonAsync<object>(
                         accessToken,
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         segmentPayload,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Docs API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -72,13 +67,13 @@ namespace OfficeIMO.Word.GoogleDocs {
                     continue;
                 }
 
-                var segmentDocumentState = await SendAsync<GoogleDocsApiDocumentResponse>(
-                    client,
+                var segmentDocumentState = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(
                     accessToken,
                     HttpMethod.Get,
                     $"https://docs.googleapis.com/v1/documents/{documentId}",
                     null,
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.Safe,
+                    "Google Docs API",
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -92,13 +87,13 @@ namespace OfficeIMO.Word.GoogleDocs {
                     continue;
                 }
 
-                await SendAsync<object>(
-                    client,
+                await transport.SendJsonAsync<object>(
                     accessToken,
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     segmentTablePayload,
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Docs API",
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -108,13 +103,13 @@ namespace OfficeIMO.Word.GoogleDocs {
                     batch.Report,
                     segmentId!);
                 if (segmentMergePayload.Requests.Count > 0) {
-                    await SendAsync<object>(
-                        client,
+                    await transport.SendJsonAsync<object>(
                         accessToken,
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         segmentMergePayload,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Docs API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -128,13 +123,13 @@ namespace OfficeIMO.Word.GoogleDocs {
                     continue;
                 }
 
-                await SendAsync<object>(
-                    client,
+                await transport.SendJsonAsync<object>(
                     accessToken,
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     segmentTableStylePayload,
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Docs API",
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
             }
@@ -154,12 +149,11 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static async Task<string?> CreateHeaderAsync(
-            HttpClient client,
+            GoogleWorkspaceHttpTransport transport,
             string accessToken,
             string documentId,
             string? sectionBreakLocation,
             string variant,
-            GoogleWorkspaceRetryOptions retryOptions,
             TranslationReport report,
             CancellationToken cancellationToken) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
@@ -172,13 +166,13 @@ namespace OfficeIMO.Word.GoogleDocs {
                 }
             });
 
-            var response = await SendAsync<GoogleDocsApiBatchUpdateResponse>(
-                client,
+            var response = await transport.SendJsonAsync<GoogleDocsApiBatchUpdateResponse>(
                 accessToken,
                 HttpMethod.Post,
                 $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                 payload,
-                retryOptions,
+                GoogleWorkspaceRequestSafety.NonIdempotent,
+                "Google Docs API",
                 report,
                 cancellationToken).ConfigureAwait(false);
 
@@ -186,12 +180,11 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         private static async Task<string?> CreateFooterAsync(
-            HttpClient client,
+            GoogleWorkspaceHttpTransport transport,
             string accessToken,
             string documentId,
             string? sectionBreakLocation,
             string variant,
-            GoogleWorkspaceRetryOptions retryOptions,
             TranslationReport report,
             CancellationToken cancellationToken) {
             var payload = new GoogleDocsApiBatchUpdatePayload();
@@ -204,13 +197,13 @@ namespace OfficeIMO.Word.GoogleDocs {
                 }
             });
 
-            var response = await SendAsync<GoogleDocsApiBatchUpdateResponse>(
-                client,
+            var response = await transport.SendJsonAsync<GoogleDocsApiBatchUpdateResponse>(
                 accessToken,
                 HttpMethod.Post,
                 $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                 payload,
-                retryOptions,
+                GoogleWorkspaceRequestSafety.NonIdempotent,
+                "Google Docs API",
                 report,
                 cancellationToken).ConfigureAwait(false);
 

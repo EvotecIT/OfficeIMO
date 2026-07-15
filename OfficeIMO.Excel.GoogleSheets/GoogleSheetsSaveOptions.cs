@@ -7,10 +7,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
     public sealed class GoogleSheetsSaveOptions {
         public GoogleDriveFileLocation Location { get; set; } = new GoogleDriveFileLocation();
         public string? Title { get; set; }
-        public bool IncludeCharts { get; set; } = true;
-        public bool IncludePivotTables { get; set; } = true;
-        public bool IncludeHeaderFooterMetadata { get; set; } = true;
-        public bool PreserveUnsupportedFormulasAsText { get; set; }
-        public bool TreatPrintLayoutAsDiagnosticOnly { get; set; } = true;
+        public GoogleWorkspaceFidelityPolicy FidelityPolicy { get; set; } = new GoogleWorkspaceFidelityPolicy();
+        public GoogleSheetsUnsupportedFeatureOptions UnsupportedFeatures { get; set; } = new GoogleSheetsUnsupportedFeatureOptions();
+    }
+
+    public sealed class GoogleSheetsUnsupportedFeatureOptions {
+        public UnsupportedFeatureMode Charts { get; set; } = UnsupportedFeatureMode.WarnAndSkip;
+        public UnsupportedFeatureMode PivotTables { get; set; } = UnsupportedFeatureMode.WarnAndSkip;
+        public UnsupportedFeatureMode PrintLayout { get; set; } = UnsupportedFeatureMode.WarnAndSkip;
     }
 }

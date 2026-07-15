@@ -140,7 +140,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         styleNoticeAdded = true;
                     }
 
-                    var cellValue = BuildCellValue(cell, options, report, ref formulaNoticeAdded);
+                    var cellValue = BuildCellValue(cell, report, ref formulaNoticeAdded);
                     emittedCellKeys.Add(CreateCellKey(cell.Row, cell.Column));
                     updateCells.AddCell(new GoogleSheetsCellData {
                         RowIndex = cell.Row - 1,

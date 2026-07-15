@@ -1,50 +1,68 @@
 using OfficeIMO.GoogleWorkspace;
-using System.Net.Http.Headers;
-using System.IO;
-using System.Text;
-using System.Text.Json;
+using OfficeIMO.GoogleWorkspace.Drive;
 
 namespace OfficeIMO.Word.GoogleDocs {
     public sealed partial class GoogleDocsExporter : IGoogleDocsExporter {
         private static async Task ApplyDocumentContentAsync(
-            HttpClient client,
+            GoogleWorkspaceHttpTransport transport,
             string accessToken,
             string documentId,
             GoogleDocsBatch batch,
-            GoogleWorkspaceRetryOptions retryOptions,
+            GoogleDocsSaveOptions options,
+            GoogleDriveClient driveClient,
             CancellationToken cancellationToken) {
-            var imageUris = await UploadInlineImagesAsync(
-                client,
-                accessToken,
-                batch,
-                retryOptions,
-                cancellationToken).ConfigureAwait(false);
+            var leases = new List<GoogleDriveTemporaryContentLease>();
+            try {
+                IReadOnlyDictionary<GoogleDocsInlineImage, string> imageUris = options.InlineImageMode == GoogleDocsInlineImageMode.TemporaryPublicDriveLease
+                    ? await UploadInlineImagesAsync(driveClient, batch, leases, cancellationToken).ConfigureAwait(false)
+                    : new Dictionary<GoogleDocsInlineImage, string>();
 
+                await ApplyDocumentContentCoreAsync(
+                    transport,
+                    accessToken,
+                    documentId,
+                    batch,
+                    imageUris,
+                    cancellationToken).ConfigureAwait(false);
+            } finally {
+                await CleanupTemporaryInlineImagesAsync(
+                    leases,
+                    batch.Report,
+                    CancellationToken.None).ConfigureAwait(false);
+            }
+        }
+
+        private static async Task ApplyDocumentContentCoreAsync(
+            GoogleWorkspaceHttpTransport transport,
+            string accessToken,
+            string documentId,
+            GoogleDocsBatch batch,
+            IReadOnlyDictionary<GoogleDocsInlineImage, string> imageUris,
+            CancellationToken cancellationToken) {
             var preparedInitialBatch = GoogleDocsApiPayloadBuilder.BuildPreparedInitialBatchUpdate(batch, imageUris);
             GoogleDocsApiBatchUpdateResponse? initialResponse = null;
             var initialPayload = preparedInitialBatch.Payload;
             if (initialPayload.Requests.Count > 0) {
-                initialResponse = await SendAsync<GoogleDocsApiBatchUpdateResponse>(
-                    client,
+                initialResponse = await transport.SendJsonAsync<GoogleDocsApiBatchUpdateResponse>(
                     accessToken,
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     initialPayload,
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Docs API",
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
             }
 
             if (preparedInitialBatch.Footnotes.Count > 0 && initialResponse != null) {
                 await ApplyFootnotesAsync(
-                    client,
+                    transport,
                     accessToken,
                     documentId,
                     batch,
                     preparedInitialBatch.Footnotes,
                     initialResponse,
                     imageUris,
-                    retryOptions,
                     cancellationToken).ConfigureAwait(false);
             }
 
@@ -58,24 +76,23 @@ namespace OfficeIMO.Word.GoogleDocs {
                 return;
             }
 
-            var documentState = await SendAsync<GoogleDocsApiDocumentResponse>(
-                client,
+            var documentState = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(
                 accessToken,
                 HttpMethod.Get,
                 $"https://docs.googleapis.com/v1/documents/{documentId}",
                 null,
-                retryOptions,
+                GoogleWorkspaceRequestSafety.Safe,
+                "Google Docs API",
                 batch.Report,
                 cancellationToken).ConfigureAwait(false);
 
             await ApplyHeaderFooterSegmentsAsync(
-                client,
+                transport,
                 accessToken,
                 documentId,
                 batch,
                 imageUris,
                 documentState,
-                retryOptions,
                 cancellationToken).ConfigureAwait(false);
 
             if (batch.Requests.OfType<GoogleDocsInsertTableRequest>().Any()) {
@@ -83,52 +100,51 @@ namespace OfficeIMO.Word.GoogleDocs {
                 GoogleDocsApiBatchUpdateResponse? tableContentResponse = null;
                 var tablePayload = preparedTableBatch.Payload;
                 if (tablePayload.Requests.Count > 0) {
-                    tableContentResponse = await SendAsync<GoogleDocsApiBatchUpdateResponse>(
-                        client,
+                    tableContentResponse = await transport.SendJsonAsync<GoogleDocsApiBatchUpdateResponse>(
                         accessToken,
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         tablePayload,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Docs API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
                 if (preparedTableBatch.Footnotes.Count > 0 && tableContentResponse != null) {
                     await ApplyFootnotesAsync(
-                        client,
+                        transport,
                         accessToken,
                         documentId,
                         batch,
                         preparedTableBatch.Footnotes,
                         tableContentResponse,
                         imageUris,
-                        retryOptions,
                         cancellationToken).ConfigureAwait(false);
                 }
 
                 var mergePayload = GoogleDocsApiPayloadBuilder.BuildTableMergeBatchUpdatePayload(batch, documentState);
                 if (mergePayload.Requests.Count > 0) {
-                    await SendAsync<object>(
-                        client,
+                    await transport.SendJsonAsync<object>(
                         accessToken,
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         mergePayload,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Docs API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
                 var tableStylePayload = GoogleDocsApiPayloadBuilder.BuildTableStyleBatchUpdatePayload(batch, documentState);
                 if (tableStylePayload.Requests.Count > 0) {
-                    await SendAsync<object>(
-                        client,
+                    await transport.SendJsonAsync<object>(
                         accessToken,
                         HttpMethod.Post,
                         $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                         tableStylePayload,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Docs API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
@@ -137,14 +153,13 @@ namespace OfficeIMO.Word.GoogleDocs {
 
 
         private static async Task ApplyFootnotesAsync(
-            HttpClient client,
+            GoogleWorkspaceHttpTransport transport,
             string accessToken,
             string documentId,
             GoogleDocsBatch batch,
             IReadOnlyList<GoogleDocsFootnote> footnotes,
             GoogleDocsApiBatchUpdateResponse initialResponse,
             IReadOnlyDictionary<GoogleDocsInlineImage, string> imageUris,
-            GoogleWorkspaceRetryOptions retryOptions,
             CancellationToken cancellationToken) {
             var footnoteReplies = initialResponse.Replies
                 .Where(reply => reply.CreateFootnote?.FootnoteId != null)
@@ -168,13 +183,13 @@ namespace OfficeIMO.Word.GoogleDocs {
                     continue;
                 }
 
-                await SendAsync<object>(
-                    client,
+                await transport.SendJsonAsync<object>(
                     accessToken,
                     HttpMethod.Post,
                     $"https://docs.googleapis.com/v1/documents/{documentId}:batchUpdate",
                     footnotePayload,
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Docs API",
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
             }

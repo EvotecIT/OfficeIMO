@@ -6,15 +6,16 @@ namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private static GoogleSheetsCellValue BuildCellValue(
             ExcelCellSnapshot cell,
-            GoogleSheetsSaveOptions options,
             TranslationReport report,
             ref bool formulaNoticeAdded) {
             if (!string.IsNullOrWhiteSpace(cell.Formula)) {
                 if (!formulaNoticeAdded) {
-                    var message = options.PreserveUnsupportedFormulasAsText
-                        ? "Formula cells are compiled as formulas first; unsupported-formula fallback-to-text still needs an execution-stage compatibility map."
-                        : "Formula cells are compiled as formulas, but function-by-function compatibility validation still needs to be implemented.";
-                    report.Add(TranslationSeverity.Info, "FormulaExecution", message);
+                    report.Add(
+                        TranslationSeverity.Warning,
+                        "FormulaExecution",
+                        "Formula cells are sent using their Excel formula text, but function-by-function Google Sheets compatibility is not yet verified.",
+                        code: "SHEETS.FORMULA.COMPATIBILITY_UNVERIFIED",
+                        action: TranslationAction.Preserve);
                     formulaNoticeAdded = true;
                 }
 

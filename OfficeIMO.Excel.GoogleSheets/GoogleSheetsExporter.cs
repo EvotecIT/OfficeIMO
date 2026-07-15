@@ -1,19 +1,11 @@
 using OfficeIMO.GoogleWorkspace;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
+using OfficeIMO.GoogleWorkspace.Drive;
 
 namespace OfficeIMO.Excel.GoogleSheets {
     /// <summary>
     /// Default Excel to Google Sheets exporter implementation.
     /// </summary>
     public sealed class GoogleSheetsExporter : IGoogleSheetsExporter {
-        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions {
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-            PropertyNamingPolicy = null,
-            WriteIndented = false,
-        };
-
         public GoogleSheetsTranslationPlan BuildPlan(ExcelDocument document, GoogleSheetsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return GoogleSheetsPlanBuilder.Build(document, options ?? new GoogleSheetsSaveOptions());
@@ -34,6 +26,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             var effectiveOptions = options ?? new GoogleSheetsSaveOptions();
             var batch = BuildBatch(document, effectiveOptions);
+            GoogleWorkspacePreflight.Validate(batch.Report, effectiveOptions.FidelityPolicy);
             var effectiveLocation = session.ResolveLocationDefaults(effectiveOptions.Location);
             if (string.IsNullOrWhiteSpace(effectiveLocation.FolderId) && !string.IsNullOrWhiteSpace(effectiveLocation.DriveId)) {
                 GoogleWorkspaceDiagnosticsDispatcher.Add(
@@ -68,21 +61,18 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     ex);
             }
 
-            var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(session.Options);
-
-            bool disposeClient = session.Options.HttpClient == null;
-            var client = session.Options.HttpClient ?? new HttpClient();
+            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var driveClient = new GoogleDriveClient(session)) {
             try {
-                client.Timeout = session.Options.RequestTimeout;
 
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
-                    var existingResponse = await SendAsync<GoogleSheetsApiSpreadsheetMetadataResponse>(
-                        client,
+                    var existingResponse = await transport.SendJsonAsync<GoogleSheetsApiSpreadsheetMetadataResponse>(
                         accessToken.AccessToken,
                         HttpMethod.Get,
                         $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}?fields=spreadsheetId,spreadsheetUrl,properties.title,sheets.properties.sheetId",
                         null,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.Safe,
+                        "Google Sheets API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
@@ -93,13 +83,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     var sheetIdMap = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch, existingSheetIds);
                     var replacePayload = GoogleSheetsApiPayloadBuilder.BuildReplaceSpreadsheetPayload(batch, existingSheetIds, sheetIdMap);
 
-                    await SendAsync<object>(
-                        client,
+                    await transport.SendJsonAsync<object>(
                         accessToken.AccessToken,
                         HttpMethod.Post,
                         $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}:batchUpdate",
                         replacePayload,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Sheets API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
@@ -108,23 +98,21 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         sheetIdMap,
                         existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId);
                     if (contentPayload.Requests.Count > 0) {
-                        await SendAsync<object>(
-                            client,
+                        await transport.SendJsonAsync<object>(
                             accessToken.AccessToken,
                             HttpMethod.Post,
                             $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}:batchUpdate",
                             contentPayload,
-                            retryOptions,
+                            GoogleWorkspaceRequestSafety.NonIdempotent,
+                            "Google Sheets API",
                             batch.Report,
                             cancellationToken).ConfigureAwait(false);
                     }
 
                     var updatedDriveMetadata = await ApplyDrivePlacementAsync(
-                        client,
-                        accessToken.AccessToken,
+                        driveClient,
                         existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId!,
                         effectiveLocation,
-                        retryOptions,
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
@@ -149,13 +137,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
                 var sheetIdMapForCreate = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch);
                 var createPayload = GoogleSheetsApiPayloadBuilder.BuildCreateSpreadsheetPayload(batch, sheetIdMapForCreate);
-                var createResponse = await SendAsync<GoogleSheetsApiCreateSpreadsheetResponse>(
-                    client,
+                var createResponse = await transport.SendJsonAsync<GoogleSheetsApiCreateSpreadsheetResponse>(
                     accessToken.AccessToken,
                     HttpMethod.Post,
                     "https://sheets.googleapis.com/v4/spreadsheets",
                     createPayload,
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Sheets API",
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -165,23 +153,21 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     createResponse.SpreadsheetId);
 
                 if (!string.IsNullOrWhiteSpace(createResponse.SpreadsheetId) && updatePayload.Requests.Count > 0) {
-                    await SendAsync<object>(
-                        client,
+                    await transport.SendJsonAsync<object>(
                         accessToken.AccessToken,
                         HttpMethod.Post,
                         $"https://sheets.googleapis.com/v4/spreadsheets/{createResponse.SpreadsheetId}:batchUpdate",
                         updatePayload,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Sheets API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
                 var createdDriveMetadata = await ApplyDrivePlacementAsync(
-                    client,
-                    accessToken.AccessToken,
+                    driveClient,
                     createResponse.SpreadsheetId,
                     effectiveLocation,
-                    retryOptions,
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -219,114 +205,23 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     session.Options,
                     batch.Report,
                     ex);
-            } finally {
-                if (disposeClient) {
-                    client.Dispose();
-                }
+            }
+            }
             }
         }
 
-        private static async Task<GoogleDriveFileMetadataResponse?> ApplyDrivePlacementAsync(
-            HttpClient client,
-            string accessToken,
+        private static async Task<GoogleDriveFile?> ApplyDrivePlacementAsync(
+            GoogleDriveClient driveClient,
             string? fileId,
             GoogleDriveFileLocation location,
-            GoogleWorkspaceRetryOptions retryOptions,
             TranslationReport report,
             CancellationToken cancellationToken) {
             if (string.IsNullOrWhiteSpace(fileId) || string.IsNullOrWhiteSpace(location.FolderId)) {
                 return null;
             }
 
-            var supportsAllDrives = location.SharedDriveAware || !string.IsNullOrWhiteSpace(location.DriveId);
-            var supportsAllDrivesQuery = supportsAllDrives ? "&supportsAllDrives=true" : string.Empty;
-            var currentMetadata = await SendAsync<GoogleDriveFileMetadataResponse>(
-                client,
-                accessToken,
-                HttpMethod.Get,
-                $"https://www.googleapis.com/drive/v3/files/{fileId}?fields=id,parents,webViewLink{supportsAllDrivesQuery}",
-                null,
-                retryOptions,
-                report,
-                cancellationToken).ConfigureAwait(false);
-
-            var desiredFolderId = location.FolderId!;
-            if (currentMetadata.Parents.Count == 1 && string.Equals(currentMetadata.Parents[0], desiredFolderId, StringComparison.OrdinalIgnoreCase)) {
-                return currentMetadata;
-            }
-
-            var query = new List<string> {
-                "supportsAllDrives=" + (supportsAllDrives ? "true" : "false"),
-                "addParents=" + Uri.EscapeDataString(desiredFolderId),
-                "fields=id,parents,webViewLink"
-            };
-
-            if (currentMetadata.Parents.Count > 0) {
-                query.Add("removeParents=" + Uri.EscapeDataString(string.Join(",", currentMetadata.Parents)));
-            }
-
-            return await SendAsync<GoogleDriveFileMetadataResponse>(
-                client,
-                accessToken,
-                new HttpMethod("PATCH"),
-                $"https://www.googleapis.com/drive/v3/files/{fileId}?{string.Join("&", query)}",
-                new { },
-                retryOptions,
-                report,
-                cancellationToken).ConfigureAwait(false);
-        }
-
-        private static async Task<TResponse> SendAsync<TResponse>(
-            HttpClient client,
-            string accessToken,
-            HttpMethod method,
-            string uri,
-            object? payload,
-            GoogleWorkspaceRetryOptions retryOptions,
-            TranslationReport report,
-            CancellationToken cancellationToken) {
-            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
-                client,
-                () => {
-                    var request = new HttpRequestMessage(method, uri);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                    if (payload != null) {
-                        var json = JsonSerializer.Serialize(payload, JsonOptions);
-                        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                    }
-
-                    return request;
-                },
-                retryOptions,
-                cancellationToken,
-                retryEvent => ReportRetry(report, retryOptions.SessionOptions, "Google Sheets API", retryEvent)).ConfigureAwait(false)) {
-                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode) {
-                    string formattedError = GoogleWorkspaceApiErrorFormatter.Format(body) ?? body;
-                    throw new HttpRequestException($"Google Sheets API request to '{uri}' failed with {(int)response.StatusCode}: {formattedError}");
-                }
-
-                if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
-                    return default!;
-                }
-
-                var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
-                if (result == null) {
-                    throw new InvalidOperationException($"Google Sheets API response from '{uri}' could not be deserialized.");
-                }
-
-                return result;
-            }
-        }
-
-        private static void ReportRetry(TranslationReport report, GoogleWorkspaceSessionOptions? sessionOptions, string serviceName, GoogleWorkspaceRetryEvent retryEvent) {
-            GoogleWorkspaceDiagnosticsDispatcher.AddUnique(
-                report,
-                sessionOptions,
-                TranslationSeverity.Info,
-                "ApiRetries",
-                $"{serviceName} retried {retryEvent.Method} {retryEvent.Uri} after transient {retryEvent.Trigger} using {retryEvent.DelayStrategy} ({retryEvent.Delay.TotalMilliseconds:0} ms, retry {retryEvent.RetryAttempt} of {retryEvent.MaxRetryCount}).",
-                $"{retryEvent.Method} {retryEvent.Uri}");
+            await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
+            return await driveClient.MoveFileAsync(fileId!, location.FolderId!, report, cancellationToken).ConfigureAwait(false);
         }
 
         private static string? BuildSpreadsheetWebViewLink(string? spreadsheetId) {
@@ -371,14 +266,4 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public int SheetId { get; set; }
     }
 
-    internal sealed class GoogleDriveFileMetadataResponse {
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public string? Id { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("parents")]
-        public List<string> Parents { get; set; } = new List<string>();
-
-        [System.Text.Json.Serialization.JsonPropertyName("webViewLink")]
-        public string? WebViewLink { get; set; }
-    }
 }
