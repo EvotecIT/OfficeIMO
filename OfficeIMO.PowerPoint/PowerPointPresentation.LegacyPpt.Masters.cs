@@ -230,12 +230,28 @@ namespace OfficeIMO.PowerPoint {
             if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
             if (source == null) throw new ArgumentNullException(nameof(source));
             uint shapeId = nextShapeId++;
-            return source.Kind switch {
+            OpenXmlElement? projected = source.Kind switch {
                 LegacyPptShapeKind.Picture => CreateLegacyPicture(ownerPart, source, shapeId),
                 LegacyPptShapeKind.Group => CreateLegacyGroupShape(ownerPart, source, shapeId,
                     ref nextShapeId),
                 _ => CreateLegacyShape(source, shapeId)
             };
+            if (projected != null) ApplyLegacyShapeMetadata(projected, source);
+            return projected;
+        }
+
+        private static void ApplyLegacyShapeMetadata(OpenXmlElement target, LegacyPptShape source) {
+            NonVisualDrawingProperties? properties = target switch {
+                Shape shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties,
+                ConnectionShape connector => connector.NonVisualConnectionShapeProperties?
+                    .NonVisualDrawingProperties,
+                Picture picture => picture.NonVisualPictureProperties?.NonVisualDrawingProperties,
+                GroupShape group => group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties,
+                _ => null
+            };
+            if (properties == null) return;
+            if (source.Metadata.Name != null) properties.Name = source.Metadata.Name;
+            if (source.Metadata.Description != null) properties.Description = source.Metadata.Description;
         }
 
         private static OpenXmlElement? CreateLegacyShape(LegacyPptShape source, uint shapeId) {

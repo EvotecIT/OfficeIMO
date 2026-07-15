@@ -132,6 +132,23 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtShapeMetadata_UsesLastNonEmptyNameAndDescription() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x8380, 18U, complexText: "Old Name"),
+            new OfficeArtProperty(1, 0x8381, 46U, complexText: "Accessible description"),
+            new OfficeArtProperty(2, 0x8380, 18U, complexText: "New Name")
+        };
+
+        OfficeArtShapeMetadata metadata = OfficeArtShapeMetadata.Decode(properties);
+
+        Assert.True(metadata.HasMetadata);
+        Assert.Equal("New Name", metadata.Name);
+        Assert.Equal("Accessible description", metadata.Description);
+        Assert.Equal("wzDescription", properties[1].PropertyName);
+        Assert.Equal("GroupShape", properties[1].PropertyGroupName);
+    }
+
+    [Fact]
     public void OfficeArtPictureProperties_DecodesSignedCropFractionsAndUsesLastValue() {
         var properties = new[] {
             new OfficeArtProperty(0, 0x0102, 8192U),

@@ -57,6 +57,13 @@ color, opacity, positive and negative signed EMU offsets, polar DrawingML projec
 shadow visibility, and exact no-op saves. Its SHA-256 digest is
 `33eff835786f06fd721f9f3b2b15300ea2d8aa96ec1dd79160c6e0811d207897`.
 
+`AccessibilityPowerPoint.ppt` was authored as a one-slide PPTX and saved to PowerPoint 97-2003 by
+Microsoft PowerPoint for Mac. Its rounded rectangle, picture, and connector have distinct object
+names and descriptions. It exercises OfficeArt `wzName` and `wzDescription` decoding, native
+non-visual metadata projection, Microsoft's four-byte CurrentUserAtom length overstatement, exact
+no-op saves, and loss blocking for unsupported metadata edits. Its SHA-256 digest is
+`ce8b78712e423238d9082503842152c07ebfc6770ebfc3654c0865b725f4e175`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

@@ -70,7 +70,7 @@ public static class OfficeArtPropertyTableReader {
     }
 
     private static string? TryReadComplexText(byte[] data, ushort propertyId) {
-        if (propertyId != 0x0380 || data.Length < 2) return null;
+        if (propertyId is not 0x0380 and not 0x0381 || data.Length < 2) return null;
         int evenLength = data.Length - data.Length % 2;
         string value = Encoding.Unicode.GetString(data, 0, evenLength).TrimEnd('\0');
         return string.IsNullOrWhiteSpace(value) ? null : value;

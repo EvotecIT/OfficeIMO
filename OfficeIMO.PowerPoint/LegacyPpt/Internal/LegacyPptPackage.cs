@@ -7,7 +7,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// and exact live persist-object bytes needed by preservation-aware saves.
     /// </summary>
     internal sealed class LegacyPptPackage {
-        private const ushort RecordCurrentUser = 0x0FF6;
         private const ushort RecordUserEdit = 0x0FF5;
         private const ushort RecordPersistDirectory = 0x1772;
         private const uint UnencryptedCurrentUserToken = 0xE391C05F;
@@ -76,7 +75,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 throw new InvalidDataException($"The PowerPoint Document stream exceeds {options.MaxInputBytes} bytes.");
             }
 
-            uint currentEditOffset = ReadCurrentEditOffset(currentUserStream, options);
+            uint currentEditOffset = ReadCurrentEditOffset(currentUserStream);
             var liveOffsets = new Dictionary<uint, uint>();
             var edits = new List<LegacyPptUserEdit>();
             var visitedEdits = new HashSet<uint>();
@@ -118,16 +117,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 currentEditOffset, documentPersistId, edits, liveOffsets, persistObjects);
         }
 
-        private static uint ReadCurrentEditOffset(byte[] currentUserStream, LegacyPptImportOptions options) {
-            LegacyPptRecord currentUser = LegacyPptRecordReader.ReadSingle(currentUserStream, 0, options);
-            if (currentUser.Type != RecordCurrentUser || currentUser.PayloadLength < 12) {
-                throw new InvalidDataException("The Current User stream does not contain a valid CurrentUserAtom.");
-            }
-            uint token = currentUser.ReadUInt32(4);
-            if (token != UnencryptedCurrentUserToken) {
+        private static uint ReadCurrentEditOffset(byte[] currentUserStream) {
+            LegacyPptCurrentUserAtom currentUser = LegacyPptCurrentUserAtom.Read(currentUserStream);
+            if (currentUser.HeaderToken != UnencryptedCurrentUserToken) {
                 throw new NotSupportedException("Encrypted PowerPoint 97-2003 binary presentations are not supported.");
             }
-            return currentUser.ReadUInt32(8);
+            return currentUser.CurrentEditOffset;
         }
 
         private static IReadOnlyDictionary<uint, uint> ReadPersistDirectory(byte[] documentStream, uint offset,

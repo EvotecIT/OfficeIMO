@@ -180,6 +180,9 @@ namespace OfficeIMO.PowerPoint {
                 ApplyLegacyPictureCrop(projectedPicture.BlipFill, shape);
                 ApplyLegacyPictureEffects(projectedPicture.BlipFill?.Blip, shape);
             }
+            if (projectedShape?.Element is OpenXmlElement projectedElement) {
+                ApplyLegacyShapeMetadata(projectedElement, shape);
+            }
             return projectedShape?.Element;
         }
 

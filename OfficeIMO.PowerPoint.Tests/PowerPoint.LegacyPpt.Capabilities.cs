@@ -56,5 +56,16 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Planned, raster.NewBinaryWrite);
             Assert.Equal(LegacyPptCapabilityState.Planned, raster.PptxToBinary);
         }
+
+        [Fact]
+        public void CapabilityContract_ReportsAccessibilityImportAndPreservingRoundTrip() {
+            LegacyPptCapability accessibility = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.AccessibilityMetadata);
+
+            Assert.Equal(LegacyPptCapabilityState.Native, accessibility.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Preserved, accessibility.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Planned, accessibility.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Planned, accessibility.PptxToBinary);
+        }
     }
 }

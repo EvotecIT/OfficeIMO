@@ -381,10 +381,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static byte[] PatchCurrentEditOffset(byte[] currentUserStream, uint editOffset) {
             byte[] patched = (byte[])currentUserStream.Clone();
-            LegacyPptRecord currentUser = LegacyPptRecordReader.ReadSingle(patched, 0, new LegacyPptImportOptions());
-            if (currentUser.PayloadLength < 12) {
-                throw new InvalidDataException("The CurrentUserAtom is too short for its current-edit pointer.");
-            }
+            _ = LegacyPptCurrentUserAtom.Read(patched);
             WriteUInt32(patched, 16, editOffset);
             return patched;
         }
