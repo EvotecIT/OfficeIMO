@@ -166,7 +166,8 @@ internal static class ReaderComparisonCorpus {
         return Case("msg", "evidence-message.msg", bytes,
             Probe("subject", ReaderComparisonProbeKind.ContainsText, "MSG evidence subject"),
             Probe("body", ReaderComparisonProbeKind.ContainsText, "MSG body retention marker"),
-            Probe("attachment", ReaderComparisonProbeKind.ContainsText, "evidence.txt"),
+            Probe("attachment-name", ReaderComparisonProbeKind.ContainsText, "evidence.txt"),
+            Probe("attachment-content", ReaderComparisonProbeKind.ContainsText, "MSG attachment retention marker"),
             Probe("rich-asset", ReaderComparisonProbeKind.RichAsset),
             Probe("path-location", ReaderComparisonProbeKind.LocationPath, "evidence-message.msg"));
     }

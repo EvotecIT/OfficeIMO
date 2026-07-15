@@ -116,6 +116,35 @@ public sealed class ReaderComparisonEvidenceTests {
     }
 
     [Fact]
+    public void ExpectedExternalRejection_IsReportedAsSuccess() {
+        var rejected = new ReaderComparisonProcessOutput {
+            Status = "failed",
+            Error = "invalid input",
+            Rejected = true
+        };
+
+        (string status, string? error) = ReaderComparisonCommand.ResolveRepeatOutcome(
+            rejected,
+            rejected,
+            expectsRejection: true);
+
+        Assert.Equal("success", status);
+        Assert.Null(error);
+    }
+
+    [Fact]
+    public void UnavailableExternalRunner_IsNotAValidRejection() {
+        var unavailable = new ReaderComparisonProcessOutput {
+            Status = "unavailable",
+            Rejected = true
+        };
+
+        Assert.Equal(
+            "unavailable",
+            ReaderComparisonCommand.ResolveExternalStatus(unavailable, expectsRejection: true));
+    }
+
+    [Fact]
     public void OfficeIMOComparison_ProducesScoredDeterministicResultsForEveryCase() {
         string output = Path.Combine(Path.GetTempPath(), "officeimo-reader-comparison-tests-" + Guid.NewGuid().ToString("N"));
         try {
@@ -127,6 +156,8 @@ public sealed class ReaderComparisonEvidenceTests {
             Assert.All(result.Cases, item => Assert.Equal("success", item.Status));
             Assert.All(result.Cases, item => Assert.True(item.Deterministic));
             Assert.All(result.Cases, item => Assert.True(item.AppliedProbes > 0));
+            ReaderComparisonCaseResult msg = Assert.Single(result.Cases, item => item.CaseId == "msg");
+            Assert.True(Assert.Single(msg.Probes, probe => probe.Id == "attachment-content").Passed);
         } finally {
             if (Directory.Exists(output)) Directory.Delete(output, recursive: true);
         }

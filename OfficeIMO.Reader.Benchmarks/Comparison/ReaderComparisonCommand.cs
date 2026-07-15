@@ -96,41 +96,65 @@ internal static class ReaderComparisonCommand {
         OfficeDocumentReader reader,
         ReaderComparisonCase item,
         string outputPath) {
-        OfficeDocumentReadResult? first = null;
-        string firstMarkdown = string.Empty;
-        string secondMarkdown = string.Empty;
+        OfficeComparisonAttempt first = RunOfficeAttempt(reader, item);
+        OfficeComparisonAttempt second = RunOfficeAttempt(reader, item);
+        string firstStatus = ResolveOfficeStatus(item, first);
+        string secondStatus = ResolveOfficeStatus(item, second);
+        string status = firstStatus == "success" && secondStatus != "success" ? secondStatus : firstStatus;
+        string? error = firstStatus == "success" ? null : first.Error;
+        if (secondStatus != "success") {
+            error = AppendError(error, "Repeat run " + secondStatus + ": " + (second.Error ?? "No error detail was provided."));
+        }
+        File.WriteAllText(outputPath, first.Markdown, new UTF8Encoding(false));
+        IReadOnlyList<ReaderComparisonProbeResult> probes = ReaderComparisonScorer.ScoreOfficeDocument(
+            first.Markdown,
+            first.Document,
+            item.Probes,
+            first.Rejected);
+        return BuildCaseResult(
+            item,
+            status,
+            error,
+            first.Markdown,
+            firstStatus == secondStatus &&
+                first.Rejected == second.Rejected &&
+                string.Equals(first.Markdown, second.Markdown, StringComparison.Ordinal),
+            (first.DurationMilliseconds + second.DurationMilliseconds) / 2d,
+            first.AllocatedBytes,
+            null,
+            probes);
+    }
+
+    private static OfficeComparisonAttempt RunOfficeAttempt(
+        OfficeDocumentReader reader,
+        ReaderComparisonCase item) {
+        OfficeDocumentReadResult? document = null;
+        string markdown = string.Empty;
         string? error = null;
         bool rejected = false;
         long before = GC.GetAllocatedBytesForCurrentThread();
         var stopwatch = Stopwatch.StartNew();
         try {
-            first = reader.ReadDocument(item.Bytes, item.SourceName, ComparisonReaderOptions());
-            firstMarkdown = ToMarkdown(first);
-            OfficeDocumentReadResult second = reader.ReadDocument(item.Bytes, item.SourceName, ComparisonReaderOptions());
-            secondMarkdown = ToMarkdown(second);
-            rejected = HasErrorDiagnostic(first);
+            document = reader.ReadDocument(item.Bytes, item.SourceName, ComparisonReaderOptions());
+            markdown = ToMarkdown(document);
+            rejected = HasErrorDiagnostic(document);
         } catch (Exception ex) when (ex is InvalidDataException or NotSupportedException or FormatException) {
             error = ex.Message;
             rejected = true;
         }
         stopwatch.Stop();
-        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
-        File.WriteAllText(outputPath, firstMarkdown, new UTF8Encoding(false));
-        IReadOnlyList<ReaderComparisonProbeResult> probes = ReaderComparisonScorer.ScoreOfficeDocument(
-            firstMarkdown,
-            first,
-            item.Probes,
-            rejected);
-        return BuildCaseResult(
-            item,
-            rejected && item.Probes.All(probe => probe.Kind != ReaderComparisonProbeKind.RejectsMalformedInput) ? "failed" : "success",
+        return new OfficeComparisonAttempt(
+            document,
+            markdown,
             error,
-            firstMarkdown,
-            string.Equals(firstMarkdown, secondMarkdown, StringComparison.Ordinal),
-            stopwatch.Elapsed.TotalMilliseconds / 2d,
-            allocated,
-            null,
-            probes);
+            rejected,
+            stopwatch.Elapsed.TotalMilliseconds,
+            GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    private static string ResolveOfficeStatus(ReaderComparisonCase item, OfficeComparisonAttempt attempt) {
+        bool expectsRejection = ExpectsMalformedInputRejection(item);
+        return attempt.Rejected && !expectsRejection ? "failed" : "success";
     }
 
     private static async Task<ReaderComparisonToolResult> RunExternalAsync(
@@ -151,11 +175,14 @@ internal static class ReaderComparisonCommand {
                 inputPath,
                 outputPath,
                 cancellationToken).ConfigureAwait(false);
-            ReaderComparisonProcessOutput second = first.Status == "success"
+            bool expectsRejection = ExpectsMalformedInputRejection(item);
+            ReaderComparisonProcessOutput second = ResolveExternalStatus(first, expectsRejection) == "success"
                 ? await ReaderComparisonProcessRunner.RunAsync(runner, inputPath, outputPath + ".repeat", cancellationToken)
                     .ConfigureAwait(false)
                 : first;
-            (string caseStatus, string? error) = ResolveRepeatOutcome(first, second);
+            (string caseStatus, string? error) = ResolveRepeatOutcome(first, second, expectsRejection);
+            string firstStatus = ResolveExternalStatus(first, expectsRejection);
+            string secondStatus = ResolveExternalStatus(second, expectsRejection);
             await File.WriteAllTextAsync(outputPath, first.Markdown, cancellationToken).ConfigureAwait(false);
             IReadOnlyList<ReaderComparisonProbeResult> probes = ReaderComparisonScorer.ScoreMarkdown(
                 first.Markdown,
@@ -166,9 +193,13 @@ internal static class ReaderComparisonCommand {
                 caseStatus,
                 error,
                 first.Markdown,
-                first.Status == "success" && second.Status == "success" &&
+                !ReferenceEquals(first, second) &&
+                    firstStatus == "success" && secondStatus == "success" &&
+                    first.Rejected == second.Rejected &&
                     string.Equals(first.Markdown, second.Markdown, StringComparison.Ordinal),
-                (first.DurationMilliseconds + second.DurationMilliseconds) / (ReferenceEquals(first, second) ? 1d : 2d),
+                ReferenceEquals(first, second)
+                    ? first.DurationMilliseconds
+                    : (first.DurationMilliseconds + second.DurationMilliseconds) / 2d,
                 null,
                 MaxNullable(first.PeakWorkingSetBytes, second.PeakWorkingSetBytes),
                 probes));
@@ -179,14 +210,23 @@ internal static class ReaderComparisonCommand {
 
     internal static (string Status, string? Error) ResolveRepeatOutcome(
         ReaderComparisonProcessOutput first,
-        ReaderComparisonProcessOutput second) {
-        string status = first.Status == "success" && second.Status != "success" ? second.Status : first.Status;
-        string? error = first.Error;
-        if (!ReferenceEquals(first, second) && second.Status != "success") {
-            error = AppendError(error, "Repeat run " + second.Status + ": " + (second.Error ?? "No error detail was provided."));
+        ReaderComparisonProcessOutput second,
+        bool expectsRejection = false) {
+        string firstStatus = ResolveExternalStatus(first, expectsRejection);
+        string secondStatus = ResolveExternalStatus(second, expectsRejection);
+        string status = firstStatus == "success" && secondStatus != "success" ? secondStatus : firstStatus;
+        string? error = firstStatus == "success" ? null : first.Error;
+        if (!ReferenceEquals(first, second) && secondStatus != "success") {
+            error = AppendError(error, "Repeat run " + secondStatus + ": " + (second.Error ?? "No error detail was provided."));
         }
         return (status, error);
     }
+
+    internal static string ResolveExternalStatus(ReaderComparisonProcessOutput output, bool expectsRejection) =>
+        expectsRejection && output.Rejected && output.Status == "failed" ? "success" : output.Status;
+
+    private static bool ExpectsMalformedInputRejection(ReaderComparisonCase item) =>
+        item.Probes.Any(probe => probe.Kind == ReaderComparisonProbeKind.RejectsMalformedInput);
 
     private static OfficeDocumentReader CreateReader() => new OfficeDocumentReaderBuilder()
         .AddCsvHandler()
@@ -309,6 +349,30 @@ internal static class ReaderComparisonCommand {
         Console.WriteLine("  --output <path>         Report and corpus output directory.");
         Console.WriteLine("  --runners <json-path>   Optional direct-process runner configuration.");
         Console.WriteLine("  --help                  Show this help.");
+    }
+
+    private sealed class OfficeComparisonAttempt {
+        internal OfficeComparisonAttempt(
+            OfficeDocumentReadResult? document,
+            string markdown,
+            string? error,
+            bool rejected,
+            double durationMilliseconds,
+            long allocatedBytes) {
+            Document = document;
+            Markdown = markdown;
+            Error = error;
+            Rejected = rejected;
+            DurationMilliseconds = durationMilliseconds;
+            AllocatedBytes = allocatedBytes;
+        }
+
+        internal OfficeDocumentReadResult? Document { get; }
+        internal string Markdown { get; }
+        internal string? Error { get; }
+        internal bool Rejected { get; }
+        internal double DurationMilliseconds { get; }
+        internal long AllocatedBytes { get; }
     }
 
     private sealed class ComparisonCommandOptions {
