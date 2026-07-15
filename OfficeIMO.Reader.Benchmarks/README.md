@@ -28,7 +28,7 @@ dotnet run --project OfficeIMO.Reader.Benchmarks/OfficeIMO.Reader.Benchmarks.csp
   --runners OfficeIMO.Reader.Benchmarks/Comparison/runners.example.json
 ```
 
-The example commands assume the selected tools are already available on `PATH`. Unavailable runners are reported as evidence gaps. Generated corpus files, extracted Markdown, and machine-specific reports belong under `artifacts/` and should not be committed. Runtime values from this command include tool startup and are diagnostic; use the BenchmarkDotNet lanes below for release performance claims.
+Before running the example, replace each `fileName` placeholder with that tool's executable path or distinct command name. The two entries must identify separate installations; the harness never substitutes one implementation for the other. Missing or non-executable runners are reported as evidence gaps. Generated corpus files, extracted Markdown, and machine-specific reports belong under `artifacts/` and should not be committed. Runtime values from this command include tool startup and are diagnostic; use the BenchmarkDotNet lanes below for release performance claims.
 
 ## Run
 

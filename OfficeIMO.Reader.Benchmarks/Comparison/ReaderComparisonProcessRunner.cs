@@ -39,7 +39,7 @@ internal static class ReaderComparisonProcessRunner {
         if (IsMissingUnixExecutable(configuration.FileName)) {
             return Failure(
                 "unavailable",
-                "Runner executable '" + configuration.FileName + "' could not be found on PATH.",
+                "Runner executable '" + configuration.FileName + "' is missing or is not executable.",
                 0);
         }
 
@@ -193,13 +193,27 @@ internal static class ReaderComparisonProcessRunner {
         if (OperatingSystem.IsWindows()) return false;
         if (fileName.IndexOf(Path.DirectorySeparatorChar) >= 0 ||
             fileName.IndexOf(Path.AltDirectorySeparatorChar) >= 0) {
-            return !File.Exists(fileName);
+            return !IsExecutableUnixFile(fileName);
         }
 
         string? path = Environment.GetEnvironmentVariable("PATH");
         if (string.IsNullOrWhiteSpace(path)) return true;
         return !path.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
-            .Any(directory => File.Exists(Path.Combine(directory, fileName)));
+            .Any(directory => IsExecutableUnixFile(Path.Combine(directory, fileName)));
+    }
+
+    private static bool IsExecutableUnixFile(string path) {
+        if (OperatingSystem.IsWindows()) return false;
+        if (!File.Exists(path)) return false;
+        try {
+            const UnixFileMode executeBits =
+                UnixFileMode.UserExecute |
+                UnixFileMode.GroupExecute |
+                UnixFileMode.OtherExecute;
+            return (File.GetUnixFileMode(path) & executeBits) != 0;
+        } catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or PlatformNotSupportedException) {
+            return false;
+        }
     }
 
     private static Stream GetBaseStream(TextReader reader) {

@@ -206,6 +206,36 @@ public sealed class ReaderComparisonEvidenceTests {
     }
 
     [Fact]
+    public async Task Runner_ClassifiesANonExecutableUnixFileAsUnavailable() {
+        if (OperatingSystem.IsWindows()) return;
+        string executable = Path.Combine(
+            Path.GetTempPath(),
+            "officeimo-reader-non-executable-" + Guid.NewGuid().ToString("N"));
+        await File.WriteAllTextAsync(executable, "#!/bin/sh\nexit 0\n");
+        File.SetUnixFileMode(executable, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        try {
+            var configuration = new ReaderComparisonRunnerConfiguration {
+                Name = "non-executable-runner",
+                FileName = executable,
+                OutputMode = "stdout",
+                TimeoutSeconds = 30,
+                MaxOutputBytes = 4096
+            };
+
+            ReaderComparisonProcessOutput result = await ReaderComparisonProcessRunner.RunAsync(
+                configuration,
+                inputPath: "unused",
+                outputPath: "unused",
+                CancellationToken.None);
+
+            Assert.Equal("unavailable", result.Status);
+            Assert.False(result.Rejected);
+        } finally {
+            if (File.Exists(executable)) File.Delete(executable);
+        }
+    }
+
+    [Fact]
     public async Task Runner_TimesOutWhenACompletedWrapperLeavesPipeHoldingDescendants() {
         if (OperatingSystem.IsWindows()) return;
         var configuration = new ReaderComparisonRunnerConfiguration {
@@ -236,6 +266,13 @@ public sealed class ReaderComparisonEvidenceTests {
 
         Assert.Equal("timed-out", status);
         Assert.Contains("Repeat run timed-out", error, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("case.md", "case.repeat.md")]
+    [InlineData("case", "case.repeat")]
+    public void RepeatOutputPath_PreservesTheOutputExtension(string outputPath, string expected) {
+        Assert.Equal(expected, ReaderComparisonCommand.GetRepeatOutputPath(outputPath));
     }
 
     [Fact]

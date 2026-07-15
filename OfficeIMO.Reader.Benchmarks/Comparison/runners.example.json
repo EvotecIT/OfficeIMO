@@ -2,7 +2,7 @@
   "runners": [
     {
       "name": "Microsoft MarkItDown",
-      "fileName": "markitdown",
+      "fileName": "REPLACE_WITH_MICROSOFT_MARKITDOWN_EXECUTABLE",
       "arguments": [ "{input}" ],
       "outputMode": "stdout",
       "timeoutSeconds": 120,
@@ -10,7 +10,7 @@
     },
     {
       "name": "ElBruno.MarkItDotNet",
-      "fileName": "markitdown",
+      "fileName": "REPLACE_WITH_ELBRUNO_MARKITDOTNET_EXECUTABLE",
       "arguments": [ "{input}", "-o", "{output}" ],
       "outputMode": "file",
       "timeoutSeconds": 120,

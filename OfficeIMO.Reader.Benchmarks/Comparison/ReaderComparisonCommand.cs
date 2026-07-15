@@ -177,7 +177,11 @@ internal static class ReaderComparisonCommand {
                 cancellationToken).ConfigureAwait(false);
             bool expectsRejection = ExpectsMalformedInputRejection(item);
             ReaderComparisonProcessOutput second = ResolveExternalStatus(first, expectsRejection) == "success"
-                ? await ReaderComparisonProcessRunner.RunAsync(runner, inputPath, outputPath + ".repeat", cancellationToken)
+                ? await ReaderComparisonProcessRunner.RunAsync(
+                    runner,
+                    inputPath,
+                    GetRepeatOutputPath(outputPath),
+                    cancellationToken)
                     .ConfigureAwait(false)
                 : first;
             (string caseStatus, string? error) = ResolveRepeatOutcome(first, second, expectsRejection);
@@ -224,6 +228,14 @@ internal static class ReaderComparisonCommand {
 
     internal static string ResolveExternalStatus(ReaderComparisonProcessOutput output, bool expectsRejection) =>
         expectsRejection && output.Rejected && output.Status == "failed" ? "success" : output.Status;
+
+    internal static string GetRepeatOutputPath(string outputPath) {
+        string extension = Path.GetExtension(outputPath);
+        if (extension.Length == 0) return outputPath + ".repeat";
+        return Path.Combine(
+            Path.GetDirectoryName(outputPath) ?? string.Empty,
+            Path.GetFileNameWithoutExtension(outputPath) + ".repeat" + extension);
+    }
 
     private static bool ExpectsMalformedInputRejection(ReaderComparisonCase item) =>
         item.Probes.Any(probe => probe.Kind == ReaderComparisonProbeKind.RejectsMalformedInput);
