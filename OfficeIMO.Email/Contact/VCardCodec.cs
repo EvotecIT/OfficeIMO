@@ -39,6 +39,8 @@ internal static class VCardCodec {
         string[] organization = SplitEscaped(GetValue(properties, "ORG"), ';');
         contact.CompanyName = ValueAt(organization, 0);
         contact.Department = ValueAt(organization, 1);
+        document.MimeSemanticProjectionIsIncomplete |= organization.Skip(2)
+            .Any(value => !string.IsNullOrWhiteSpace(value));
         contact.JobTitle = Unescape(GetValue(properties, "TITLE"));
         contact.Profession = Unescape(GetValue(properties, "ROLE"));
         contact.Language = Unescape(GetValue(properties, "LANG"));
@@ -56,7 +58,8 @@ internal static class VCardCodec {
 
         ApplyEmails(properties, contact);
         document.MimeSemanticProjectionIsIncomplete |= ApplyPhones(properties, contact.Phones) ||
-            HasAddressSlotOverflow(properties) || HasUrlSlotOverflow(properties);
+            HasAddressSlotOverflow(properties) || HasUnprojectedAddressComponents(properties) ||
+            HasUrlSlotOverflow(properties) || HasUnsupportedEmailPreference(properties);
         ApplyAddresses(properties, contact);
         ApplyUrls(properties, contact);
         ApplyExtensions(properties, contact);
@@ -270,6 +273,19 @@ internal static class VCardCodec {
 
     private static bool HasAddressSlotOverflow(IEnumerable<VCardProperty> properties) =>
         HasAddressSlotOverflow(properties, "ADR") || HasAddressSlotOverflow(properties, "LABEL");
+
+    private static bool HasUnprojectedAddressComponents(IEnumerable<VCardProperty> properties) =>
+        properties.Where(property => property.Name == "ADR").Any(property => {
+            string[] values = SplitEscaped(property.Value, ';');
+            return !string.IsNullOrWhiteSpace(ValueAt(values, 1));
+        });
+
+    private static bool HasUnsupportedEmailPreference(IEnumerable<VCardProperty> properties) =>
+        properties.Where(property => property.Name == "EMAIL").Any(property => {
+            string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
+            bool preferred = ContainsType(types, "PREF") || property.Parameters.ContainsKey("PREF");
+            return preferred && !ContainsType(types, "WORK");
+        });
 
     private static bool HasAddressSlotOverflow(IEnumerable<VCardProperty> properties, string propertyName) {
         int homeCount = 0;

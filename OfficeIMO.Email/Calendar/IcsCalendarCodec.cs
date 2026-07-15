@@ -21,13 +21,17 @@ internal static partial class IcsCalendarCodec {
         document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(
             properties, activeProperties, alarmProperties, isEvent, document.Subject);
         string? calendarMethod = GetValue(activeProperties, "METHOD");
-        if (!string.IsNullOrWhiteSpace(calendarMethod) && !string.IsNullOrWhiteSpace(mimeMethod) &&
-            !string.Equals(calendarMethod, mimeMethod, StringComparison.OrdinalIgnoreCase) ||
-            isEvent && !IsStoreProjectableMethod(calendarMethod ?? mimeMethod)) {
+        string? effectiveMethod = calendarMethod ?? mimeMethod;
+        bool hasMethodConflict = !string.IsNullOrWhiteSpace(calendarMethod) &&
+            !string.IsNullOrWhiteSpace(mimeMethod) &&
+            !string.Equals(calendarMethod, mimeMethod, StringComparison.OrdinalIgnoreCase);
+        bool publishWouldBecomeRequest = isEvent &&
+            string.Equals(effectiveMethod, "PUBLISH", StringComparison.OrdinalIgnoreCase) &&
+            (HasCalendarRecipients(document) || activeProperties.Any(property => property.Name == "ATTENDEE"));
+        if (hasMethodConflict || isEvent && !IsStoreProjectableMethod(effectiveMethod) || publishWouldBecomeRequest) {
             document.MimeSemanticProjectionIsIncomplete = true;
         }
-        if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location,
-            calendarMethod ?? mimeMethod);
+        if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location, effectiveMethod);
         else ProjectTask(activeProperties, document, diagnostics, location);
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
             diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED" ||
@@ -89,99 +93,6 @@ internal static partial class IcsCalendarCodec {
             appointment.RecurrenceTimeZoneDefinition != null || appointment.IsRecurring == true ||
             appointment.RecurrenceType.HasValue || !string.IsNullOrWhiteSpace(appointment.RecurrencePattern);
     }
-
-    private static bool HasIncompleteStoreProjection(IEnumerable<IcsProperty> properties,
-        IEnumerable<IcsProperty> activeProperties, IReadOnlyList<IcsProperty> alarmProperties, bool isEvent,
-        string? envelopeSubject) {
-        int calendarItems = properties.Count(property => property.Name == "BEGIN" &&
-            (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
-             property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
-        int calendarRoots = properties.Count(property => property.Name == "BEGIN" &&
-            property.Value.Equals("VCALENDAR", StringComparison.OrdinalIgnoreCase));
-        int alarms = properties.Count(property => property.Name == "BEGIN" &&
-            property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase));
-        bool hasTimeZone = properties.Any(property => property.Name == "BEGIN" &&
-            property.Value.Equals("VTIMEZONE", StringComparison.OrdinalIgnoreCase));
-        bool hasUnsupportedComponent = properties.Any(property => property.Name == "BEGIN" &&
-            !IsSupportedComponent(property.Value));
-        string? calendarSummary = Unescape(GetValue(activeProperties, "SUMMARY"));
-        string? reminderDescription = string.IsNullOrWhiteSpace(calendarSummary)
-            ? envelopeSubject
-            : calendarSummary;
-        return calendarRoots != 1 || calendarItems > 1 || alarms > 1 || hasTimeZone || hasUnsupportedComponent ||
-            HasIncompleteAlarmProjection(alarms, alarmProperties, reminderDescription) ||
-            activeProperties.Any(property =>
-            property.Name == "RRULE" || property.Name == "RDATE" ||
-            property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
-            property.Name == "CLASS" && !ParseCalendarSensitivity(property.Value).HasValue ||
-            isEvent && property.Name == "STATUS" ||
-            property.Name == "PRIORITY" ||
-            property.Name == "ATTENDEE" && HasIncompleteAttendeeProjection(property) ||
-            property.Name == "ATTACH" || property.Name == "TRIGGER" &&
-            property.Parameters.TryGetValue("RELATED", out string? related) &&
-            related.Equals("END", StringComparison.OrdinalIgnoreCase));
-    }
-
-    private static bool HasIncompleteAlarmProjection(int alarmCount,
-        IReadOnlyList<IcsProperty> alarmProperties, string? reminderDescription) {
-        if (alarmCount == 0) return false;
-        if (alarmCount != 1) return true;
-        IcsProperty[] actions = alarmProperties.Where(property => property.Name == "ACTION").ToArray();
-        IcsProperty[] triggers = alarmProperties.Where(property => property.Name == "TRIGGER").ToArray();
-        if (actions.Length != 1 || !actions[0].Value.Trim().Equals("DISPLAY", StringComparison.OrdinalIgnoreCase) ||
-            triggers.Length != 1) return true;
-        bool absolute = triggers[0].Parameters.TryGetValue("VALUE", out string? valueType) &&
-            valueType.Equals("DATE-TIME", StringComparison.OrdinalIgnoreCase);
-        if (absolute) {
-            if (string.IsNullOrWhiteSpace(triggers[0].Value) || triggers[0].Parameters.Any(parameter =>
-                    !parameter.Key.Equals("VALUE", StringComparison.OrdinalIgnoreCase))) return true;
-        } else {
-            if (!IcsDurationCodec.Parse(triggers[0].Value).HasValue || triggers[0].Parameters.Any(parameter =>
-                    parameter.Key.Equals("RELATED", StringComparison.OrdinalIgnoreCase)
-                        ? !parameter.Value.Equals("START", StringComparison.OrdinalIgnoreCase)
-                        : !parameter.Key.Equals("VALUE", StringComparison.OrdinalIgnoreCase) ||
-                          !parameter.Value.Equals("DURATION", StringComparison.OrdinalIgnoreCase))) return true;
-        }
-        IcsProperty[] descriptions = alarmProperties.Where(property => property.Name == "DESCRIPTION").ToArray();
-        string expectedDescription = string.IsNullOrWhiteSpace(reminderDescription)
-            ? "Reminder"
-            : reminderDescription!;
-        return descriptions.Length > 1 || descriptions.Length == 1 &&
-                !string.Equals(Unescape(descriptions[0].Value), expectedDescription, StringComparison.Ordinal) ||
-            alarmProperties.Any(property => property.Name != "ACTION" && property.Name != "TRIGGER" &&
-                property.Name != "DESCRIPTION");
-    }
-
-    private static bool HasIncompleteAttendeeProjection(IcsProperty attendee) {
-        foreach (KeyValuePair<string, string> parameter in attendee.Parameters) {
-            if (parameter.Key.Equals("CN", StringComparison.OrdinalIgnoreCase)) continue;
-            if (parameter.Key.Equals("CUTYPE", StringComparison.OrdinalIgnoreCase)) {
-                if (parameter.Value.Equals("INDIVIDUAL", StringComparison.OrdinalIgnoreCase) ||
-                    parameter.Value.Equals("ROOM", StringComparison.OrdinalIgnoreCase) ||
-                    parameter.Value.Equals("RESOURCE", StringComparison.OrdinalIgnoreCase)) continue;
-                return true;
-            }
-            if (!parameter.Key.Equals("ROLE", StringComparison.OrdinalIgnoreCase)) return true;
-            bool roomOrResource = attendee.Parameters.TryGetValue("CUTYPE", out string? calendarUserType) &&
-                (calendarUserType.Equals("ROOM", StringComparison.OrdinalIgnoreCase) ||
-                 calendarUserType.Equals("RESOURCE", StringComparison.OrdinalIgnoreCase));
-            if (roomOrResource
-                    ? parameter.Value.Equals("NON-PARTICIPANT", StringComparison.OrdinalIgnoreCase)
-                    : parameter.Value.Equals("REQ-PARTICIPANT", StringComparison.OrdinalIgnoreCase) ||
-                      parameter.Value.Equals("OPT-PARTICIPANT", StringComparison.OrdinalIgnoreCase)) continue;
-            return true;
-        }
-        return false;
-    }
-
-    private static bool IsSupportedComponent(string value) =>
-        value.Equals("VCALENDAR", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("VTODO", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("VTIMEZONE", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("VALARM", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("STANDARD", StringComparison.OrdinalIgnoreCase) ||
-        value.Equals("DAYLIGHT", StringComparison.OrdinalIgnoreCase);
 
     private static void ProjectEvent(IReadOnlyList<IcsProperty> properties, EmailDocument document,
         IList<EmailDiagnostic> diagnostics, string location, string? method) {
@@ -604,14 +515,16 @@ internal static partial class IcsCalendarCodec {
         string.Equals(method, "REPLY", StringComparison.OrdinalIgnoreCase) ||
         string.Equals(method, "CANCEL", StringComparison.OrdinalIgnoreCase);
 
+    private static bool HasCalendarRecipients(EmailDocument document) => document.Recipients.Any(recipient =>
+        recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
+        recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource);
+
     internal static string GetMethod(EmailDocument document) {
         string messageClass = document.MessageClass ?? string.Empty;
         if (messageClass.IndexOf("Canceled", StringComparison.OrdinalIgnoreCase) >= 0) return "CANCEL";
         if (messageClass.IndexOf("Request", StringComparison.OrdinalIgnoreCase) >= 0) return "REQUEST";
         if (messageClass.IndexOf("Resp", StringComparison.OrdinalIgnoreCase) >= 0) return "REPLY";
-        return document.Recipients.Any(recipient => recipient.Kind == EmailRecipientKind.To ||
-            recipient.Kind == EmailRecipientKind.Cc || recipient.Kind == EmailRecipientKind.Room ||
-            recipient.Kind == EmailRecipientKind.Resource) ? "REQUEST" : "PUBLISH";
+        return HasCalendarRecipients(document) ? "REQUEST" : "PUBLISH";
     }
 
     private static string FormatUtc(DateTimeOffset value) =>

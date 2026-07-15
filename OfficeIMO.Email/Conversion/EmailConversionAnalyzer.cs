@@ -43,13 +43,21 @@ internal static class EmailConversionAnalyzer {
                         "The appointment has attendee display text but no recipient addresses from which valid iCalendar ATTENDEE values can be created.",
                         "appointment/attendees"));
                 }
-            } else if (document.OutlookItemKind == OutlookItemKind.Task && document.Task?.IsRecurring == true &&
-                !HasUnchangedMimeSemanticSource(document)) {
-                hasPotentialDataLoss = true;
-                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
-                    "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE",
-                    "The task is recurring, but its recurrence rule is not available for a safe iCalendar VTODO representation.",
-                    "task/recurrence"));
+            } else if (document.OutlookItemKind == OutlookItemKind.Task) {
+                if (document.Task?.IsRecurring == true && !HasUnchangedMimeSemanticSource(document)) {
+                    hasPotentialDataLoss = true;
+                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                        "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE",
+                        "The task is recurring, but its recurrence rule is not available for a safe iCalendar VTODO representation.",
+                        "task/recurrence"));
+                }
+                if (HasAddresslessCalendarRecipient(document) && !HasUnchangedMimeSemanticSource(document)) {
+                    hasPotentialDataLoss = true;
+                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                        "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
+                        "The task has an assignee recipient without an address from which a valid iCalendar ATTENDEE value can be created.",
+                        "task/attendees"));
+                }
             } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
                 (document.Contact == null || VCardCodec.HasOpaqueContactState(document.Contact))) {
                 hasPotentialDataLoss = true;
@@ -126,16 +134,17 @@ internal static class EmailConversionAnalyzer {
 
     private static bool HasAddresslessAttendeeDisplayState(EmailDocument document) {
         OutlookAppointment appointment = document.Appointment!;
-        bool hasAddresslessRecipient = document.Recipients.Any(recipient =>
-            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
-             recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
-            string.IsNullOrWhiteSpace(recipient.Address.Address));
         bool hasDisplayText = !string.IsNullOrWhiteSpace(appointment.AllAttendees) ||
             !string.IsNullOrWhiteSpace(appointment.RequiredAttendees) ||
             !string.IsNullOrWhiteSpace(appointment.OptionalAttendees);
-        return hasAddresslessRecipient || hasDisplayText && !document.Recipients.Any(recipient =>
+        return HasAddresslessCalendarRecipient(document) || hasDisplayText && !document.Recipients.Any(recipient =>
             (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
              recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
             !string.IsNullOrWhiteSpace(recipient.Address.Address));
     }
+
+    private static bool HasAddresslessCalendarRecipient(EmailDocument document) => document.Recipients.Any(recipient =>
+        (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
+         recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
+        string.IsNullOrWhiteSpace(recipient.Address.Address));
 }

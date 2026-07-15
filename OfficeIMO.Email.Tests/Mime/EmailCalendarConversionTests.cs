@@ -436,6 +436,24 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void BlocksAddresslessTaskAssigneesBeforeEmlConversion() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            OutlookItemKind = OutlookItemKind.Task,
+            Task = new OutlookTask(),
+            Subject = "Assigned task"
+        };
+        source.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+            new EmailAddress(null, "Assignee without an address")));
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(source, EmailFileFormat.Eml);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED");
+    }
+
+    [Fact]
     public void BlocksOpaqueOutlookRecurrenceInsteadOfDroppingIt() {
         var source = new EmailDocument {
             Format = EmailFileFormat.OutlookMsg,
