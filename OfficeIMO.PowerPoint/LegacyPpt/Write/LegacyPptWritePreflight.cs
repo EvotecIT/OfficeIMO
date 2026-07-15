@@ -8,7 +8,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static LegacyPptWritePreflightReport Analyze(PowerPointPresentation presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             var findings = new List<LegacyPptWriteFinding>();
-            if (presentation.CanPreserveOriginalLegacyPackage) {
+            if (presentation.CanPreserveOriginalLegacyPackage
+                || LegacyPptPreservingWriter.CanWritePresentation(presentation)) {
                 return new LegacyPptWritePreflightReport(findings);
             }
             if (presentation.GetSections().Count > 0) {

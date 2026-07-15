@@ -35,7 +35,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                     "The bootstrap writer currently supports rectangle, ellipse, and line only."),
                 Planned(LegacyPptFeature.Connectors, "Drawing", "Connector shapes and connection sites."),
                 Planned(LegacyPptFeature.Groups, "Drawing", "Nested drawing groups and child coordinate systems."),
-                Planned(LegacyPptFeature.ShapeTransforms, "Drawing", "Position, size, rotation, flip, and z-order."),
+                Planned(LegacyPptFeature.ShapeTransforms, "Drawing", "Position, size, rotation, flip, and z-order.",
+                    "Imported mapped shapes preserve position and size edits through incremental binary records; rotation, flip, and z-order remain planned."),
                 Planned(LegacyPptFeature.ShapeStyles, "Drawing", "Fill, outline, transparency, and shape properties."),
                 Planned(LegacyPptFeature.ShapeEffects, "Drawing", "Shadows and legacy OfficeArt effects."),
                 Planned(LegacyPptFeature.RasterPictures, "Images", "PNG, JPEG, DIB, and bitmap BLIP records."),
@@ -72,7 +73,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                     "Unknown live records and compound streams.", LegacyPptRepresentability.Opaque,
                     LegacyPptCapabilityState.Preserved, LegacyPptCapabilityState.Blocked,
                     LegacyPptCapabilityState.Planned, LegacyPptCapabilityState.Blocked,
-                    "The original package is retained exactly for no-op binary saves; edited preservation remains planned.")
+                    "No-op saves retain the exact package. Geometry-only edits append a UserEdit and preserve untouched records and streams; broader edited preservation remains planned.")
             });
 
         private static readonly IReadOnlyDictionary<LegacyPptFeature, LegacyPptCapability> CapabilityByFeature =

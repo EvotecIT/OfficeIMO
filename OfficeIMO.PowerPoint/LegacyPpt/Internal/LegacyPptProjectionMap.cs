@@ -50,7 +50,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     }
                     LegacyPptShape sourceShape = sourceShapes[shapeIndex];
                     shapes.Add(new LegacyPptShapeProjection(openXmlShapeId.Value, sourceShape.ShapeId,
-                        sourceShape.RecordOffset, sourceShape.Kind));
+                        sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, shapes));
@@ -88,11 +88,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Maps one projected Open XML shape to its OfficeArt shape container.</summary>
     internal sealed class LegacyPptShapeProjection {
         internal LegacyPptShapeProjection(uint openXmlShapeId, uint officeArtShapeId, long recordOffset,
-            LegacyPptShapeKind kind) {
+            LegacyPptShapeKind kind, LegacyPptBounds bounds, string text) {
             OpenXmlShapeId = openXmlShapeId;
             OfficeArtShapeId = officeArtShapeId;
             RecordOffset = recordOffset;
             Kind = kind;
+            Bounds = bounds;
+            Text = text ?? string.Empty;
         }
 
         internal uint OpenXmlShapeId { get; }
@@ -102,5 +104,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal long RecordOffset { get; }
 
         internal LegacyPptShapeKind Kind { get; }
+
+        internal LegacyPptBounds Bounds { get; }
+
+        internal string Text { get; }
     }
 }

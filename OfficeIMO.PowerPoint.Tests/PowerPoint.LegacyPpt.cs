@@ -53,6 +53,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedBinaryGeometryEdit_AppendsIncrementalEditAndPreservesOpaqueStreams() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(FixturePath);
+            LegacyPptShape originalTitle = original.Slides[0].Shapes.Single(shape =>
+                shape.Text == "OfficeIMO PowerPoint Basics");
+            IReadOnlyDictionary<string, byte[]> originalStreams = original.Package.CopyCompoundStreams();
+
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            PowerPointTextBox title = presentation.Slides[0].TextBoxes.Single(textBox =>
+                textBox.Text == "OfficeIMO PowerPoint Basics");
+            title.Left += 15875;
+            title.Width += 3175;
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite);
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(bytes);
+            LegacyPptShape savedTitle = saved.Slides[0].Shapes.Single(shape =>
+                shape.Text == "OfficeIMO PowerPoint Basics");
+            Assert.Equal(originalTitle.Bounds.Left + 10, savedTitle.Bounds.Left);
+            Assert.Equal(originalTitle.Bounds.Width + 2, savedTitle.Bounds.Width);
+            Assert.Equal(original.Package.UserEdits.Count + 1, saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0, original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            IReadOnlyDictionary<string, byte[]> savedStreams = saved.Package.CopyCompoundStreams();
+            Assert.Equal(originalStreams.Keys.OrderBy(value => value), savedStreams.Keys.OrderBy(value => value));
+            foreach (KeyValuePair<string, byte[]> stream in originalStreams) {
+                if (stream.Key.Equals("PowerPoint Document", StringComparison.OrdinalIgnoreCase)
+                    || stream.Key.Equals("Current User", StringComparison.OrdinalIgnoreCase)) continue;
+                Assert.Equal(stream.Value, savedStreams[stream.Key]);
+            }
+        }
+
+        [Fact]
         public void NormalLoad_RoutesPptAndProjectsEditablePptxModel() {
             using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
 

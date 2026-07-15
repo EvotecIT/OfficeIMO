@@ -4,8 +4,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime.ExceptionServices;
-using System.Security.Cryptography;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml;
@@ -366,53 +364,7 @@ namespace OfficeIMO.PowerPoint {
             }
         }
 
-        private static string CreatePackageFingerprint(PresentationDocument document) {
-            var parts = new HashSet<OpenXmlPart>();
-            foreach (IdPartPair pair in document.Parts) CollectPackageParts(pair.OpenXmlPart, parts);
-
-            var content = new StringBuilder();
-            foreach (OpenXmlPart part in parts.OrderBy(item => item.Uri.ToString(), StringComparer.Ordinal)) {
-                content.Append(part.Uri).Append('|').Append(part.ContentType).Append('|');
-                try {
-                    OpenXmlPartRootElement? root = part.RootElement;
-                    if (root != null) {
-                        content.Append(root.OuterXml);
-                    } else {
-                        using Stream stream = part.GetStream(FileMode.Open, FileAccess.Read);
-                        using var memory = new MemoryStream();
-                        stream.CopyTo(memory);
-                        content.Append(Convert.ToBase64String(memory.ToArray()));
-                    }
-                } catch (InvalidDataException) {
-                    content.Append("unreadable");
-                }
-                foreach (IdPartPair relationship in part.Parts.OrderBy(item => item.RelationshipId, StringComparer.Ordinal)) {
-                    content.Append('|').Append(relationship.RelationshipId).Append('=').Append(relationship.OpenXmlPart.Uri);
-                }
-            }
-
-            var properties = document.PackageProperties;
-            content.Append("|core|")
-                .Append(properties.Creator).Append('|')
-                .Append(properties.Title).Append('|')
-                .Append(properties.Description).Append('|')
-                .Append(properties.Category).Append('|')
-                .Append(properties.Keywords).Append('|')
-                .Append(properties.Subject).Append('|')
-                .Append(properties.Revision).Append('|')
-                .Append(properties.LastModifiedBy).Append('|')
-                .Append(properties.Version).Append('|')
-                .Append(properties.Created?.ToUniversalTime().Ticks).Append('|')
-                .Append(properties.Modified?.ToUniversalTime().Ticks).Append('|')
-                .Append(properties.LastPrinted?.ToUniversalTime().Ticks);
-
-            using SHA256 sha = SHA256.Create();
-            return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(content.ToString())));
-        }
-
-        private static void CollectPackageParts(OpenXmlPart part, ISet<OpenXmlPart> parts) {
-            if (!parts.Add(part)) return;
-            foreach (IdPartPair child in part.Parts) CollectPackageParts(child.OpenXmlPart, parts);
-        }
+        private static string CreatePackageFingerprint(PresentationDocument document) =>
+            PowerPointPackageFingerprint.Create(document);
     }
 }

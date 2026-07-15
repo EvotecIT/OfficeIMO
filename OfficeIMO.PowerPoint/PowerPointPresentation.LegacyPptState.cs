@@ -9,6 +9,7 @@ namespace OfficeIMO.PowerPoint {
         private LegacyPptPackage? _legacyPptPackage;
         private LegacyPptProjectionMap? _legacyPptProjectionMap;
         private string? _legacyPptProjectionFingerprint;
+        private string? _legacyPptPreservationFingerprint;
 
         /// <summary>Gets the detected physical format of the presentation source.</summary>
         public PowerPointFileFormat SourceFormat { get; private set; } = PowerPointFileFormat.Pptx;
@@ -28,6 +29,7 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptPackage = legacy.Package;
             _legacyPptProjectionMap = projectionMap;
             _legacyPptProjectionFingerprint = CreatePackageFingerprint(_document!);
+            _legacyPptPreservationFingerprint = LegacyPptProjectionFingerprint.Create(_document!, projectionMap);
             SourceFormat = sourceFormat;
         }
 
@@ -35,6 +37,7 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptPackage = null;
             _legacyPptProjectionMap = null;
             _legacyPptProjectionFingerprint = null;
+            _legacyPptPreservationFingerprint = null;
             SourceFormat = PowerPointFileFormat.Pptx;
         }
 
@@ -46,6 +49,12 @@ namespace OfficeIMO.PowerPoint {
         internal LegacyPptPackage? LegacyPptPackage => _legacyPptPackage;
 
         internal LegacyPptProjectionMap? LegacyPptProjectionMap => _legacyPptProjectionMap;
+
+        internal bool HasOnlyLegacyPptGeometryChanges => _legacyPptProjectionMap != null
+            && _legacyPptPreservationFingerprint != null
+            && string.Equals(_legacyPptPreservationFingerprint,
+                LegacyPptProjectionFingerprint.Create(_document!, _legacyPptProjectionMap),
+                StringComparison.Ordinal);
 
         internal bool TryCopyOriginalLegacyPackage(out byte[] bytes) {
             if (CanPreserveOriginalLegacyPackage) {
@@ -60,6 +69,7 @@ namespace OfficeIMO.PowerPoint {
             _legacyPptPackage = null;
             _legacyPptProjectionMap = null;
             _legacyPptProjectionFingerprint = null;
+            _legacyPptPreservationFingerprint = null;
         }
 
         internal static bool IsLegacyBinaryFormat(PowerPointFileFormat format) =>

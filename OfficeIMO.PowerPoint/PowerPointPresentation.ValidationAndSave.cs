@@ -260,6 +260,9 @@ namespace OfficeIMO.PowerPoint {
             foreach (PowerPointSlide slide in _slides) slide.Save();
             PresentationRoot.Save();
             _document!.Save();
+            if (LegacyPptPreservingWriter.TryWritePresentation(this, out byte[] preservedBytes)) {
+                return preservedBytes;
+            }
             return LegacyPptWriter.WritePresentation(this, options);
         }
 
