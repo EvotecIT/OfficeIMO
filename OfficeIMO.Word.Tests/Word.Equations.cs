@@ -343,6 +343,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void EquationContentSegments_PreserveHyperlinkContextAndOrderedRunArtifacts() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            var breakRun = new Run(new Text("before-break"), new Break(), new Text("after-break"));
+            var hyperlink = new Hyperlink(
+                new Run(new Text("prefix")),
+                new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                breakRun,
+                new Run(new Text("suffix"))) {
+                Anchor = "equation-target"
+            };
+            paragraph._paragraph.Append(hyperlink);
+
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(document, paragraph._paragraph);
+            IReadOnlyList<WordEquationContentSegment> segments = WordEquation.GetVisibleContentSegments(hyperlink, occurrences);
+
+            Assert.Collection(
+                segments,
+                segment => Assert.Equal("prefix", segment.Text),
+                segment => {
+                    Assert.Equal("linked", segment.Equation?.Text);
+                    Assert.Same(hyperlink, segment.SourceElement);
+                    Assert.True(segment.CreateSourceParagraph(document, paragraph._paragraph, paragraph).IsHyperLink);
+                },
+                segment => Assert.Equal("before-break", segment.Text),
+                segment => {
+                    Assert.True(segment.IsRunArtifact);
+                    Assert.Same(breakRun, segment.SourceRun);
+                    Assert.IsType<Break>(segment.ArtifactElement);
+                },
+                segment => Assert.Equal("after-break", segment.Text),
+                segment => Assert.Equal("suffix", segment.Text));
+            Assert.Equal("prefixlinkedbefore-break\nafter-breaksuffix", WordEquation.GetVisibleTextWithEquations(hyperlink, occurrences));
+        }
+
+        [Fact]
         public void WordFieldType_ExistingNumericValuesRemainStableWhenEqIsAdded() {
             Assert.Equal(19, (int)WordFieldType.FileName);
             Assert.Equal(71, (int)WordFieldType.Formula);

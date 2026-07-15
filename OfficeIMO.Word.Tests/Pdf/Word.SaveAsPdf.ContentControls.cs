@@ -96,6 +96,8 @@ public partial class Word {
                 suffixFont);
         }
         Assert.Contains("/URI (https://officeimo.net/equations", Encoding.ASCII.GetString(File.ReadAllBytes(pdfPath)), StringComparison.Ordinal);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(File.ReadAllBytes(pdfPath));
+        Assert.Equal(3, info.LinkAnnotations.Count(link => link.Uri == "https://officeimo.net/equations"));
     }
 
     [Fact]

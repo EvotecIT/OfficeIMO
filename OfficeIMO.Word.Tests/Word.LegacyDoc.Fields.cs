@@ -498,6 +498,21 @@ namespace OfficeIMO.Tests {
                         Anchor = "equation-target"
                     });
 
+                    document.AddHeadersAndFooters();
+                    WordParagraph header = document.Sections[0].Header.Default!.AddParagraph();
+                    header._paragraph.Append(new Hyperlink(
+                        new M.OfficeMath(new M.Run(new M.Text("header-linked")))) {
+                        Anchor = "header-equation-target"
+                    });
+
+                    WordParagraph noteReference = document.AddParagraph("note ").AddFootNote("placeholder");
+                    WordParagraph noteBody = noteReference.FootNote!.Paragraphs![1];
+                    noteBody.Text = string.Empty;
+                    noteBody._paragraph.Append(new Hyperlink(
+                        new M.OfficeMath(new M.Run(new M.Text("note-linked")))) {
+                        Anchor = "note-equation-target"
+                    });
+
                     document.Save(docPath);
                 }
 
@@ -509,8 +524,21 @@ namespace OfficeIMO.Tests {
                 using WordDocument reloaded = WordDocument.Load(docPath);
                 Assert.Equal(WordFileFormat.Doc, reloaded.SourceFormat);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
-                Assert.Contains(reloaded.Equations, equation => equation.Text == "linked");
-                Assert.Contains(reloaded.Equations, equation => equation.Text == "nested");
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                Hyperlink hyperlink = Assert.Single(mainPart.Document.Descendants<Hyperlink>());
+                Assert.Equal("equation-target", hyperlink.Anchor?.Value);
+                SimpleField[] linkedEquations = hyperlink.Elements<SimpleField>()
+                    .Where(field => field.Instruction?.Value.TrimStart().StartsWith("EQ", StringComparison.OrdinalIgnoreCase) == true)
+                    .ToArray();
+                Assert.Equal(new[] { "linked", "nested" }, linkedEquations.Select(field => field.InnerText));
+                Hyperlink headerHyperlink = Assert.Single(mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<Hyperlink>()));
+                Assert.Equal("header-equation-target", headerHyperlink.Anchor?.Value);
+                Assert.Equal("header-linked", Assert.Single(headerHyperlink.Elements<SimpleField>()).InnerText);
+                Hyperlink noteHyperlink = Assert.Single(mainPart.FootnotesPart!.Footnotes!.Descendants<Hyperlink>());
+                Assert.Equal("note-equation-target", noteHyperlink.Anchor?.Value);
+                Assert.Equal("note-linked", Assert.Single(noteHyperlink.Elements<SimpleField>()).InnerText);
+                Assert.Equal(new[] { "linked", "nested" }, reloaded.Equations.Select(equation => equation.Text));
+                Assert.Empty(reloaded.ValidateDocument());
             } finally {
                 DeleteIfExists(docPath);
             }

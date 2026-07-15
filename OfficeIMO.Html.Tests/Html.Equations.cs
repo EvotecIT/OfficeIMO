@@ -4,6 +4,7 @@ using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using M = DocumentFormat.OpenXml.Math;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -123,6 +124,55 @@ namespace OfficeIMO.Tests {
                 HtmlDocumentParser.ParseDocument(html).QuerySelector("a[href='#target']"));
             IElement math = Assert.IsAssignableFrom<IElement>(anchor.QuerySelector("math"));
             Assert.Equal("linked-only", math.GetAttribute("aria-label"));
+        }
+
+        [Fact]
+        public void WordToHtml_PreservesBreakSharingAHyperlinkWithEquation() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph._paragraph.Append(new Hyperlink(
+                new Run(new Text("prefix")),
+                new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                new Run(new Break()),
+                new Run(new Text("suffix"))) {
+                Anchor = "target"
+            });
+
+            string html = document.ToHtml();
+
+            IElement anchor = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(html).QuerySelector("a[href='#target']"));
+            Assert.NotNull(anchor.QuerySelector("math"));
+            Assert.NotNull(anchor.QuerySelector("br"));
+            int math = anchor.InnerHtml.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
+            int lineBreak = anchor.InnerHtml.IndexOf("<br", StringComparison.OrdinalIgnoreCase);
+            int suffix = anchor.InnerHtml.IndexOf("suffix", StringComparison.Ordinal);
+            Assert.True(math >= 0 && math < lineBreak && lineBreak < suffix, anchor.InnerHtml);
+        }
+
+        [Fact]
+        public void WordToHtml_PreservesFormControlSharingInlineContainerWithEquation() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            paragraph._paragraph.Append(new SdtRun(
+                new SdtProperties(
+                    new SdtAlias { Val = "Equation approval" },
+                    new Tag { Val = "EquationApproval" },
+                    new W14.SdtContentCheckBox(new W14.Checked { Val = W14.OnOffValues.One })),
+                new SdtContentRun(
+                    new Run(new Text("☑")),
+                    new M.OfficeMath(new M.Run(new M.Text("approved"))))));
+
+            string html = document.ToHtml();
+            IDocument parsed = HtmlDocumentParser.ParseDocument(html);
+
+            IElement input = Assert.IsAssignableFrom<IElement>(parsed.QuerySelector("input[type='checkbox'][data-tag='EquationApproval']"));
+            IElement math = Assert.IsAssignableFrom<IElement>(parsed.QuerySelector("math[aria-label='approved']"));
+            Assert.True(input.HasAttribute("checked"), html);
+            Assert.Same(input.ParentElement, math.ParentElement);
+            Assert.True(
+                Array.IndexOf(input.ParentElement!.Children.ToArray(), input) < Array.IndexOf(math.ParentElement!.Children.ToArray(), math),
+                input.ParentElement.InnerHtml);
         }
 
         [Fact]

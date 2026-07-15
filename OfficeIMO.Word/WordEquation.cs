@@ -137,7 +137,7 @@ namespace OfficeIMO.Word {
 
             var segments = new List<WordEquationContentSegment>();
             var emittedEquations = new HashSet<WordEquation>();
-            AppendVisibleContentSegments(segments, container, occurrences, emittedEquations, includeElement, null);
+            AppendVisibleContentSegments(segments, container, occurrences, emittedEquations, includeElement, null, false);
             return segments;
         }
 
@@ -146,14 +146,14 @@ namespace OfficeIMO.Word {
             IReadOnlyList<WordEquationOccurrence> occurrences) =>
             string.Concat(GetVisibleContentSegments(container, occurrences)
                 .Where(segment => segment.Equation == null)
-                .Select(segment => segment.Text));
+                .Select(segment => segment.VisibleText));
 
         internal static string GetVisibleTextWithEquations(
             OpenXmlElement container,
             IReadOnlyList<WordEquationOccurrence> occurrences,
             Func<OpenXmlElement, bool>? includeElement = null) =>
             string.Concat(GetVisibleContentSegments(container, occurrences, includeElement)
-                .Select(segment => segment.Equation?.Text ?? segment.Text));
+                .Select(segment => segment.Equation?.Text ?? segment.VisibleText));
 
         internal static WordEquation? GetFirstOccurrenceForContainer(
             WordDocument document,
@@ -174,58 +174,83 @@ namespace OfficeIMO.Word {
             IReadOnlyList<WordEquationOccurrence> occurrences,
             HashSet<WordEquation> emittedEquations,
             Func<OpenXmlElement, bool>? includeElement,
-            Run? sourceRun) {
+            OpenXmlElement? sourceElement,
+            bool suppressText) {
             if (element is DeletedRun || element is MoveFromRun) return;
             if (includeElement != null && !includeElement(element)) return;
-            if (element is Run run) sourceRun = run;
+            if (element is Hyperlink || element is SdtRun) sourceElement = element;
+            if (element is Run run) {
+                sourceElement = run;
+            } else if (element is SdtRun sdtRun && HasSupportedSdtArtifact(sdtRun)) {
+                segments.Add(WordEquationContentSegment.FromRunArtifact(sdtRun, sdtRun));
+                suppressText = true;
+            }
 
             WordEquation? backedEquation = occurrences
                 .Select(occurrence => occurrence.Equation)
                 .FirstOrDefault(equation => equation.IsBackingElement(element));
             if (backedEquation != null) {
                 if (emittedEquations.Add(backedEquation)) {
-                    segments.Add(WordEquationContentSegment.FromEquation(backedEquation));
+                    segments.Add(WordEquationContentSegment.FromEquation(backedEquation, sourceElement));
                 }
                 return;
             }
 
+            if (IsSupportedRunArtifactElement(element) && sourceElement is Run artifactRun) {
+                segments.Add(WordEquationContentSegment.FromRunArtifact(artifactRun, element));
+                return;
+            }
+
             if (element is Text text) {
-                AppendVisibleTextSegment(segments, text.Text, sourceRun);
+                if (!suppressText) AppendVisibleTextSegment(segments, text.Text, sourceElement);
                 return;
             }
             if (element is TabChar) {
-                AppendVisibleTextSegment(segments, "\t", sourceRun);
-                return;
-            }
-            if (element is Break || element is CarriageReturn) {
-                AppendVisibleTextSegment(segments, "\n", sourceRun);
+                if (!suppressText) AppendVisibleTextSegment(segments, "\t", sourceElement);
                 return;
             }
             if (element is NoBreakHyphen) {
-                AppendVisibleTextSegment(segments, "\u2011", sourceRun);
+                if (!suppressText) AppendVisibleTextSegment(segments, "\u2011", sourceElement);
                 return;
             }
             if (element is SoftHyphen) {
-                AppendVisibleTextSegment(segments, "\u00ad", sourceRun);
+                if (!suppressText) AppendVisibleTextSegment(segments, "\u00ad", sourceElement);
                 return;
             }
 
             foreach (OpenXmlElement child in element.ChildElements) {
-                AppendVisibleContentSegments(segments, child, occurrences, emittedEquations, includeElement, sourceRun);
+                AppendVisibleContentSegments(segments, child, occurrences, emittedEquations, includeElement, sourceElement, suppressText);
             }
         }
 
-        private static void AppendVisibleTextSegment(List<WordEquationContentSegment> segments, string? text, Run? sourceRun) {
+        private static bool IsSupportedRunArtifactElement(OpenXmlElement element) =>
+            element is Break ||
+            element is CarriageReturn ||
+            element is FootnoteReference ||
+            element is EndnoteReference ||
+            element is CommentReference ||
+            element is DocumentFormat.OpenXml.Wordprocessing.Drawing ||
+            element is DocumentFormat.OpenXml.Vml.ImageData;
+
+        private static bool HasSupportedSdtArtifact(SdtRun sdtRun) =>
+            sdtRun.SdtProperties?.Elements<DocumentFormat.OpenXml.Office2010.Word.SdtContentCheckBox>().Any() == true ||
+            sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().Any() == true ||
+            sdtRun.SdtProperties?.Elements<SdtContentComboBox>().Any() == true ||
+            sdtRun.SdtProperties?.Elements<SdtContentDate>().Any() == true ||
+            sdtRun.SdtProperties?.Elements<SdtContentPicture>().Any() == true;
+
+        private static void AppendVisibleTextSegment(List<WordEquationContentSegment> segments, string? text, OpenXmlElement? sourceElement) {
             if (string.IsNullOrEmpty(text)) return;
             if (segments.Count > 0 &&
                 segments[segments.Count - 1].Equation == null &&
-                ReferenceEquals(segments[segments.Count - 1].SourceRun, sourceRun)) {
+                !segments[segments.Count - 1].IsRunArtifact &&
+                ReferenceEquals(segments[segments.Count - 1].SourceElement, sourceElement)) {
                 WordEquationContentSegment previous = segments[segments.Count - 1];
-                segments[segments.Count - 1] = WordEquationContentSegment.FromText((previous.Text ?? string.Empty) + text, sourceRun);
+                segments[segments.Count - 1] = WordEquationContentSegment.FromText((previous.Text ?? string.Empty) + text, sourceElement);
                 return;
             }
 
-            segments.Add(WordEquationContentSegment.FromText(text!, sourceRun));
+            segments.Add(WordEquationContentSegment.FromText(text!, sourceElement));
         }
 
         private bool IsBackingElement(OpenXmlElement element) =>
@@ -357,21 +382,43 @@ namespace OfficeIMO.Word {
     }
 
     internal sealed class WordEquationContentSegment {
-        private WordEquationContentSegment(string? text, WordEquation? equation, Run? sourceRun) {
+        private WordEquationContentSegment(string? text, WordEquation? equation, OpenXmlElement? sourceElement, OpenXmlElement? artifactElement) {
             Text = text;
             Equation = equation;
-            SourceRun = sourceRun;
+            SourceElement = sourceElement;
+            ArtifactElement = artifactElement;
         }
 
         internal string? Text { get; }
         internal WordEquation? Equation { get; }
-        internal Run? SourceRun { get; }
+        internal OpenXmlElement? SourceElement { get; }
+        internal Run? SourceRun => SourceElement as Run;
+        internal OpenXmlElement? ArtifactElement { get; }
+        internal bool IsRunArtifact => ArtifactElement != null;
+        internal string VisibleText {
+            get {
+                if (Text != null) return Text;
+                if (!IsRunArtifact || SourceElement == null) return string.Empty;
+                if (ArtifactElement is Break || ArtifactElement is CarriageReturn) {
+                    return "\n";
+                }
+                return SourceElement is SdtRun ? SourceElement.InnerText : string.Empty;
+            }
+        }
 
         internal WordParagraph CreateSourceParagraph(WordDocument document, Paragraph paragraph, WordParagraph fallback) {
-            if (SourceRun == null) return fallback;
+            if (SourceElement == null) return fallback;
 
-            var source = new WordParagraph(document, paragraph, SourceRun);
-            for (OpenXmlElement? ancestor = SourceRun.Parent; ancestor != null; ancestor = ancestor.Parent) {
+            if (SourceElement is Hyperlink sourceHyperlink) {
+                return new WordParagraph(document, paragraph, sourceHyperlink);
+            }
+            if (SourceElement is SdtRun sourceSdtRun) {
+                return new WordParagraph(document, paragraph, sourceSdtRun);
+            }
+            if (SourceElement is not Run sourceRun) return fallback;
+
+            var source = new WordParagraph(document, paragraph, sourceRun);
+            for (OpenXmlElement? ancestor = sourceRun.Parent; ancestor != null; ancestor = ancestor.Parent) {
                 if (ancestor is Hyperlink hyperlink) {
                     source._hyperlink = hyperlink;
                     break;
@@ -381,7 +428,8 @@ namespace OfficeIMO.Word {
             return source;
         }
 
-        internal static WordEquationContentSegment FromText(string text, Run? sourceRun) => new(text, null, sourceRun);
-        internal static WordEquationContentSegment FromEquation(WordEquation equation) => new(null, equation, null);
+        internal static WordEquationContentSegment FromText(string text, OpenXmlElement? sourceElement) => new(text, null, sourceElement, null);
+        internal static WordEquationContentSegment FromEquation(WordEquation equation, OpenXmlElement? sourceElement) => new(null, equation, sourceElement, null);
+        internal static WordEquationContentSegment FromRunArtifact(OpenXmlElement sourceElement, OpenXmlElement artifactElement) => new(null, null, sourceElement, artifactElement);
     }
 }

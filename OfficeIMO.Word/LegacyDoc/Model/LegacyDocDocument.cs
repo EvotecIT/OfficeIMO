@@ -793,6 +793,40 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             void AppendHyperlinkResult(LegacyDocHyperlinkTarget hyperlinkTarget, int resultStartIndex, int resultEndIndex) {
                 for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                    if (LegacyDocField.TryReadEquationField(
+                        characters,
+                        resultIndex,
+                        out string equationInstruction,
+                        out int equationResultStartIndex,
+                        out int equationResultEndIndex,
+                        out int equationFieldEndIndex) &&
+                        equationFieldEndIndex < resultEndIndex) {
+                        FlushRun();
+                        LegacyDocCharacterFormat equationFormat = LegacyDocCharacterFormat.Default;
+                        var equationPositions = new List<int>();
+                        var equationText = new System.Text.StringBuilder();
+                        foreach (int equationResultIndex in LegacyDocField.EnumerateVisibleResultIndexes(characters, equationResultStartIndex, equationResultEndIndex)) {
+                            LegacyDocTextCharacter equationCharacter = characters[equationResultIndex];
+                            char? normalizedEquationCharacter = NormalizeBodyCharacter(equationCharacter.Character);
+                            if (normalizedEquationCharacter == null) continue;
+                            if (equationPositions.Count == 0) {
+                                equationFormat = GetFormatForFileOffset(formattingRanges, equationCharacter.FileOffset);
+                            }
+                            equationText.Append(normalizedEquationCharacter.Value);
+                            equationPositions.Add(equationCharacter.CharacterPosition);
+                            bodyText.Append(normalizedEquationCharacter.Value);
+                        }
+                        currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
+                            equationText.ToString(),
+                            LegacyDocFieldKind.Equation,
+                            equationInstruction,
+                            equationFormat,
+                            equationPositions,
+                            hyperlinkTarget));
+                        resultIndex = equationFieldEndIndex;
+                        continue;
+                    }
+
                     LegacyDocTextCharacter resultCharacter = characters[resultIndex];
                     char? normalized = NormalizeBodyCharacter(resultCharacter.Character);
                     if (normalized == null) {

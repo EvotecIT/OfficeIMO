@@ -576,11 +576,16 @@ namespace OfficeIMO.Word.Markdown {
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
                         foreach (WordEquationContentSegment equationSegment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
-                            if (equationSegment.Equation != null || string.IsNullOrEmpty(equationSegment.Text)) continue;
+                            if (equationSegment.Equation != null) continue;
                             WordParagraph sourceRun = equationSegment.CreateSourceParagraph(
                                 paragraph._document,
                                 paragraph._paragraph,
                                 run);
+                            if (equationSegment.IsRunArtifact) {
+                                AppendEquationArtifact(segment, sourceRun, equationSegment, options);
+                                continue;
+                            }
+                            if (string.IsNullOrEmpty(equationSegment.Text)) continue;
                             AppendRunInlines(
                                 segment,
                                 sourceRun,
@@ -792,11 +797,16 @@ namespace OfficeIMO.Word.Markdown {
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
                         foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
-                            if (segment.Equation != null || string.IsNullOrEmpty(segment.Text)) continue;
+                            if (segment.Equation != null) continue;
                             WordParagraph sourceRun = segment.CreateSourceParagraph(
                                 paragraph._document,
                                 paragraph._paragraph,
                                 run);
+                            if (segment.IsRunArtifact) {
+                                AppendEquationArtifact(sequence, sourceRun, segment, options);
+                                continue;
+                            }
+                            if (string.IsNullOrEmpty(segment.Text)) continue;
                             AppendRunInlines(sequence, sourceRun, options, preferredCodeFont, implicitCodeFont, segment.Text);
                         }
                     }
@@ -848,6 +858,29 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             AppendFormattedTextRun(sequence, run, text, options, preferredCodeFont, implicitCodeFont);
+        }
+
+        private void AppendEquationArtifact(
+            InlineSequence sequence,
+            WordParagraph sourceRun,
+            WordEquationContentSegment segment,
+            WordToMarkdownOptions options) {
+            if (segment.ArtifactElement is Break || segment.ArtifactElement is CarriageReturn) {
+                if (sourceRun.PageBreak == null) sequence.HardBreak();
+                return;
+            }
+
+            if (segment.ArtifactElement is FootnoteReference &&
+                sourceRun.FootNote?.ReferenceId is long footnoteId) {
+                sequence.FootnoteRef(footnoteId.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                return;
+            }
+
+            if ((segment.ArtifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing ||
+                 segment.ArtifactElement is V.ImageData) &&
+                sourceRun.Image != null) {
+                sequence.AddRaw(CreateImageInline(sourceRun.Image, options));
+            }
         }
 
         private static IMarkdownBlock? CreatePageBreakBlock(WordToMarkdownOptions options) {

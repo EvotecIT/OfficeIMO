@@ -896,7 +896,8 @@ namespace OfficeIMO.Word.Pdf {
             NativeFontMap nativeFontMap) {
             foreach (WordEquationContentSegment segment in GetNativeVisibleEquationContentSegments(paragraph)) {
                 if (segment.Equation != null) {
-                    AddNativeText(builder, segment.Equation.Text, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
+                    WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
+                    AddNativeRun(builder, segment.Equation.Text, sourceRun, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);
                 } else if (!string.IsNullOrEmpty(segment.Text)) {
                     WordParagraph sourceRun = segment.CreateSourceParagraph(paragraph._document, paragraph._paragraph, paragraph);
                     AddNativeRun(builder, segment.Text!, sourceRun, paragraph, tabStops, ref tabIndex, options, nativeDefaults, nativeFontMap);

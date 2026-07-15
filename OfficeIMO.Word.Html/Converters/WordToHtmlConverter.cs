@@ -72,6 +72,123 @@ namespace OfficeIMO.Word.Html {
                 bool inQuote = false;
                 IElement? quote = null;
 
+                void AppendNode(INode node) {
+                    if (inQuote && quote != null) {
+                        quote.AppendChild(node);
+                    } else {
+                        nodes.Add(node);
+                    }
+                }
+
+                bool AppendRunArtifacts(WordParagraph run, List<INode> target, DocumentFormat.OpenXml.OpenXmlElement? artifactElement = null) {
+                    bool includeAll = artifactElement == null;
+                    if ((includeAll || artifactElement is FootnoteReference || artifactElement is EndnoteReference) &&
+                        TryAppendNoteReference(htmlDoc, run, options, processNotes, target, footnotes, footnoteMap, endnotes, endnoteMap)) {
+                        return true;
+                    }
+
+                    if ((includeAll || artifactElement is CommentReference) &&
+                        TryAppendCommentReference(htmlDoc, run, options, commentsById, comments, commentMap, target)) {
+                        return true;
+                    }
+
+                    if ((includeAll || artifactElement is SdtRun) && run.IsCheckBox && run.CheckBox != null) {
+                        target.Add(CreateCheckBoxInput(htmlDoc, run.CheckBox));
+                        return true;
+                    }
+
+                    if ((includeAll || artifactElement is SdtRun) && run.IsDropDownList && run.DropDownList != null) {
+                        target.Add(CreateDropDownListSelect(htmlDoc, run.DropDownList));
+                        return true;
+                    }
+
+                    if ((includeAll || artifactElement is SdtRun) && run.IsComboBox && run.ComboBox != null) {
+                        formListIndex++;
+                        target.AddRange(CreateComboBoxNodes(htmlDoc, run.ComboBox, formListIndex));
+                        return true;
+                    }
+
+                    if ((includeAll || artifactElement is SdtRun) && run.IsDatePicker && run.DatePicker != null) {
+                        target.Add(CreateDatePickerInput(htmlDoc, run.DatePicker));
+                        return true;
+                    }
+
+                    if ((includeAll || artifactElement is SdtRun) && run.IsStructuredDocumentTag && run.StructuredDocumentTag != null && !run.IsPictureControl && !run.IsRepeatingSection) {
+                        target.Add(CreateStructuredDocumentTagInput(htmlDoc, run.StructuredDocumentTag));
+                        return true;
+                    }
+
+                    if ((includeAll || artifactElement is DocumentFormat.OpenXml.Wordprocessing.Drawing || artifactElement is DocumentFormat.OpenXml.Vml.ImageData) &&
+                        run.IsImage && run.Image != null) {
+                        var imgObj = run.Image;
+                        var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
+                        if (ext == ".svg") {
+                            if (options.EmbedImagesAsBase64) {
+                                var svgXml = Encoding.UTF8.GetString(imgObj.ToBytes());
+                                var parser = new HtmlParser();
+                                var fragment = parser.ParseFragment(svgXml, body);
+                                var svgElement = fragment.OfType<IElement>().FirstOrDefault();
+                                if (svgElement != null) {
+                                    target.Add(svgElement);
+                                }
+                            } else {
+                                var imgSvg = htmlDoc.CreateElement("img") as IHtmlImageElement;
+                                string srcSvg;
+                                if (imgObj.IsExternal && imgObj.ExternalUri != null) {
+                                    srcSvg = imgObj.ExternalUri.ToString();
+                                } else {
+                                    srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
+                                }
+                                imgSvg!.Source = srcSvg;
+                                if (imgObj.Width.HasValue) imgSvg.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
+                                if (imgObj.Height.HasValue) imgSvg.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
+                                if (!string.IsNullOrEmpty(imgObj.Description)) {
+                                    imgSvg.AlternativeText = imgObj.Description;
+                                }
+                                if (!string.IsNullOrEmpty(imgObj.Title)) {
+                                    imgSvg.SetAttribute("title", imgObj.Title!);
+                                }
+                                target.Add(imgSvg);
+                            }
+                        } else {
+                            var img = htmlDoc.CreateElement("img") as IHtmlImageElement;
+                            string src;
+                            if (imgObj.IsExternal && imgObj.ExternalUri != null) {
+                                src = imgObj.ExternalUri.ToString();
+                            } else if (!options.EmbedImagesAsBase64) {
+                                src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
+                            } else {
+                                var bytes = imgObj.ToBytes();
+                                var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
+                                src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
+                            }
+                            img!.Source = src;
+                            if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
+                            if (imgObj.Height.HasValue) img.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
+                            if (!string.IsNullOrEmpty(imgObj.Description)) {
+                                img.AlternativeText = imgObj.Description;
+                            }
+                            if (!string.IsNullOrEmpty(imgObj.Title)) {
+                                img.SetAttribute("title", imgObj.Title!);
+                            }
+                            target.Add(img);
+                        }
+                        return true;
+                    }
+
+                    bool appendedBreak = false;
+                    if ((includeAll || artifactElement is Break || artifactElement is CarriageReturn) && run.Break != null && run.PageBreak == null) {
+                        target.Add(htmlDoc.CreateElement("br"));
+                        appendedBreak = true;
+                    }
+                    if (TryCreateRubyNode(htmlDoc, run, out var rubyNode)) {
+                        target.Add(rubyNode);
+                        return true;
+                    }
+
+                    return appendedBreak && string.IsNullOrEmpty(run.Text);
+                }
+
                 IElement? CreateEquationNode(WordEquation equation) {
                     IElement? mathNode = new HtmlParser()
                         .ParseFragment(equation.ToMathMl(), parent)
@@ -103,7 +220,7 @@ namespace OfficeIMO.Word.Html {
                 void AppendEquationNodesBefore(int childIndex) {
                     while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex < childIndex) {
                         INode? mathNode = CreatePositionedEquationNode(equations[nextEquation++]);
-                        if (mathNode != null) nodes.Add(mathNode);
+                        if (mathNode != null) AppendNode(mathNode);
                     }
                 }
 
@@ -132,11 +249,16 @@ namespace OfficeIMO.Word.Html {
                             if (segment.Equation != null) {
                                 IElement? mathNode = CreateEquationNode(segment.Equation);
                                 if (mathNode != null) expandedNodes.Add(mathNode);
-                            } else if (!string.IsNullOrEmpty(segment.Text)) {
+                            } else {
                                 WordParagraph sourceRun = segment.CreateSourceParagraph(
                                     para._document,
                                     para._paragraph,
                                     run);
+                                if (segment.IsRunArtifact) {
+                                    AppendRunArtifacts(sourceRun, expandedNodes, segment.ArtifactElement);
+                                    continue;
+                                }
+                                if (string.IsNullOrEmpty(segment.Text)) continue;
                                 expandedNodes.Add(CreateEquationAdjacentTextNode(
                                     htmlDoc,
                                     sourceRun,
@@ -151,9 +273,9 @@ namespace OfficeIMO.Word.Html {
                             foreach (INode expandedNode in expandedNodes) {
                                 hyperlinkNode.AppendChild(expandedNode);
                             }
-                            nodes.Add(hyperlinkNode);
+                            AppendNode(hyperlinkNode);
                         } else {
-                            nodes.AddRange(expandedNodes);
+                            foreach (INode expandedNode in expandedNodes) AppendNode(expandedNode);
                         }
                         while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex == runIndex) {
                             nextEquation++;
@@ -167,106 +289,7 @@ namespace OfficeIMO.Word.Html {
                         continue;
                     }
 
-                    if (TryAppendNoteReference(htmlDoc, run, options, processNotes, nodes, footnotes, footnoteMap, endnotes, endnoteMap)) {
-                        continue;
-                    }
-
-                    if (TryAppendCommentReference(htmlDoc, run, options, commentsById, comments, commentMap, nodes)) {
-                        continue;
-                    }
-
-                    if (run.IsCheckBox && run.CheckBox != null) {
-                        nodes.Add(CreateCheckBoxInput(htmlDoc, run.CheckBox));
-                        continue;
-                    }
-
-                    if (run.IsDropDownList && run.DropDownList != null) {
-                        nodes.Add(CreateDropDownListSelect(htmlDoc, run.DropDownList));
-                        continue;
-                    }
-
-                    if (run.IsComboBox && run.ComboBox != null) {
-                        formListIndex++;
-                        nodes.AddRange(CreateComboBoxNodes(htmlDoc, run.ComboBox, formListIndex));
-                        continue;
-                    }
-
-                    if (run.IsDatePicker && run.DatePicker != null) {
-                        nodes.Add(CreateDatePickerInput(htmlDoc, run.DatePicker));
-                        continue;
-                    }
-
-                    if (run.IsStructuredDocumentTag && run.StructuredDocumentTag != null && !run.IsPictureControl && !run.IsRepeatingSection) {
-                        nodes.Add(CreateStructuredDocumentTagInput(htmlDoc, run.StructuredDocumentTag));
-                        continue;
-                    }
-
-                    if (run.IsImage && run.Image != null) {
-                        var imgObj = run.Image;
-                        var ext = Path.GetExtension(imgObj.FileName)?.ToLowerInvariant();
-                        if (ext == ".svg") {
-                            if (options.EmbedImagesAsBase64) {
-                                var svgXml = Encoding.UTF8.GetString(imgObj.ToBytes());
-                                var parser = new HtmlParser();
-                                var fragment = parser.ParseFragment(svgXml, body);
-                                var svgElement = fragment.OfType<IElement>().FirstOrDefault();
-                                if (svgElement != null) {
-                                    nodes.Add(svgElement);
-                                }
-                            } else {
-                                var imgSvg = htmlDoc.CreateElement("img") as IHtmlImageElement;
-                                string srcSvg;
-                                if (imgObj.IsExternal && imgObj.ExternalUri != null) {
-                                    srcSvg = imgObj.ExternalUri.ToString();
-                                } else {
-                                    srcSvg = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
-                                }
-                                imgSvg!.Source = srcSvg;
-                                if (imgObj.Width.HasValue) imgSvg.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
-                                if (imgObj.Height.HasValue) imgSvg.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
-                                if (!string.IsNullOrEmpty(imgObj.Description)) {
-                                    imgSvg.AlternativeText = imgObj.Description;
-                                }
-                                if (!string.IsNullOrEmpty(imgObj.Title)) {
-                                    imgSvg.SetAttribute("title", imgObj.Title!);
-                                }
-                                nodes.Add(imgSvg);
-                            }
-                            continue;
-                        }
-
-                        var img = htmlDoc.CreateElement("img") as IHtmlImageElement;
-                        string src;
-                        if (imgObj.IsExternal && imgObj.ExternalUri != null) {
-                            src = imgObj.ExternalUri.ToString();
-                        } else if (!options.EmbedImagesAsBase64) {
-                            src = string.IsNullOrEmpty(imgObj.FilePath) ? (imgObj.FileName ?? string.Empty) : imgObj.FilePath!;
-                        } else {
-                            var bytes = imgObj.ToBytes();
-                            var mime = MimeFromFileName(imgObj.FileName ?? string.Empty);
-                            src = $"data:{mime};base64,{System.Convert.ToBase64String(bytes)}";
-                        }
-                        img!.Source = src;
-                        if (imgObj.Width.HasValue) img.DisplayWidth = (int)Math.Round(imgObj.Width.Value);
-                        if (imgObj.Height.HasValue) img.DisplayHeight = (int)Math.Round(imgObj.Height.Value);
-                        if (!string.IsNullOrEmpty(imgObj.Description)) {
-                            img.AlternativeText = imgObj.Description;
-                        }
-                        if (!string.IsNullOrEmpty(imgObj.Title)) {
-                            img.SetAttribute("title", imgObj.Title!);
-                        }
-                        nodes.Add(img);
-                        continue;
-                    }
-
-                    // Still honor explicit line breaks even when the run carries no text
-                    if (run.Break != null && run.PageBreak == null) {
-                        nodes.Add(htmlDoc.CreateElement("br"));
-                    }
-                    if (TryCreateRubyNode(htmlDoc, run, out var rubyNode)) {
-                        nodes.Add(rubyNode);
-                        continue;
-                    }
+                    if (AppendRunArtifacts(run, nodes)) continue;
                     if (string.IsNullOrEmpty(run.Text)) {
                         continue;
                     }

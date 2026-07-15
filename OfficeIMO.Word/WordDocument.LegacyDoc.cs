@@ -973,6 +973,18 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, int startIndex, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
             for (int index = startIndex; index < paragraphRuns.Count; index++) {
                 LegacyDocTextRun legacyRun = paragraphRuns[index];
+                if (legacyRun.HyperlinkTarget.HasValue) {
+                    int hyperlinkStartIndex = index;
+                    LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
+                    while (index + 1 < paragraphRuns.Count
+                        && paragraphRuns[index + 1].HyperlinkTarget == hyperlinkTarget) {
+                        index++;
+                    }
+
+                    AddLegacyDocHyperlinkRunsContent(paragraph, paragraphRuns, hyperlinkStartIndex, index - hyperlinkStartIndex + 1, notes, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.IsPageNumber) {
                     AddLegacyDocPageNumber(paragraph, legacyRun, bookmarks);
                     continue;
@@ -985,18 +997,6 @@ namespace OfficeIMO.Word {
 
                 if (legacyRun.IsStaticDisplayField) {
                     AddLegacyDocStaticDisplayField(paragraph, legacyRun, bookmarks);
-                    continue;
-                }
-
-                if (legacyRun.HyperlinkTarget.HasValue) {
-                    int hyperlinkStartIndex = index;
-                    LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
-                    while (index + 1 < paragraphRuns.Count
-                        && paragraphRuns[index + 1].HyperlinkTarget == hyperlinkTarget) {
-                        index++;
-                    }
-
-                    AddLegacyDocHyperlinkRunsContent(paragraph, paragraphRuns, hyperlinkStartIndex, index - hyperlinkStartIndex + 1, notes, bookmarks);
                     continue;
                 }
 
@@ -1510,6 +1510,19 @@ namespace OfficeIMO.Word {
         }
 
         private static void AppendLegacyDocHyperlinkRunContent(Hyperlink hyperlink, WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
+            if (legacyRun.IsStaticDisplayField) {
+                bookmarks.EmitAt(hyperlink, GetLegacyDocRunCharacterPosition(legacyRun, 0));
+                var simpleField = new SimpleField {
+                    Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction)
+                        ? GetLegacyDocStaticFieldInstruction(legacyRun.FieldKind)
+                        : legacyRun.FieldInstruction
+                };
+                AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text);
+                hyperlink.Append(simpleField);
+                bookmarks.EmitAt(hyperlink, GetLegacyDocRunEndCharacterPosition(legacyRun));
+                return;
+            }
+
             string text = legacyRun.Text;
             int segmentStart = 0;
             for (int index = 0; index < text.Length; index++) {

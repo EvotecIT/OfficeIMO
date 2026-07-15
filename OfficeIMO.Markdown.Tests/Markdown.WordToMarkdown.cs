@@ -419,6 +419,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_PreservesBreakSharingAHyperlinkWithEquation() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("outer ");
+            paragraph._paragraph.Append(new Hyperlink(
+                new Run(new Text("prefix")),
+                new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                new Run(new Break()),
+                new Run(new Text("suffix"))) {
+                Anchor = "target"
+            });
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("prefix", markdown, StringComparison.Ordinal);
+            Assert.Contains("suffix", markdown, StringComparison.Ordinal);
+            Assert.Contains("  \n", markdown.Replace("\r\n", "\n"), StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "linked" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
         public void WordToMarkdown_ExportsComplexEqFieldOnceAsMathFence() {
             using var doc = WordDocument.Create();
             WordParagraph paragraph = doc.AddParagraph("before ");
