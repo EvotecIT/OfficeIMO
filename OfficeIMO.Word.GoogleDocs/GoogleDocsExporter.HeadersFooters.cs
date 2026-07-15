@@ -22,9 +22,9 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             var sectionBreakIndexes = EnumerateSectionBreakIndexes(documentState).ToList();
             foreach (var segment in executableSegments) {
-                string? sectionBreakLocation = null;
-                if (segment.SectionIndex > 0) {
-                    if (sectionBreakIndexes.Count < segment.SectionIndex) {
+                GoogleDocsApiLocationPayload? sectionBreakLocation = null;
+                if (segment.SectionIndex > 0 || !string.IsNullOrWhiteSpace(batch.TargetTabId)) {
+                    if (sectionBreakIndexes.Count <= segment.SectionIndex) {
                         batch.Report.Add(
                             TranslationSeverity.Warning,
                             "HeadersAndFooters",
@@ -32,7 +32,9 @@ namespace OfficeIMO.Word.GoogleDocs {
                         continue;
                     }
 
-                    sectionBreakLocation = sectionBreakIndexes[segment.SectionIndex - 1].ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    sectionBreakLocation = new GoogleDocsApiLocationPayload {
+                        Index = sectionBreakIndexes[segment.SectionIndex]
+                    };
                 }
 
                 string? segmentId;
@@ -112,7 +114,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleWorkspaceHttpTransport transport,
             string accessToken,
             string documentId,
-            string? sectionBreakLocation,
+            GoogleDocsApiLocationPayload? sectionBreakLocation,
             string variant,
             GoogleDocsBatch batch,
             CancellationToken cancellationToken) {
@@ -120,9 +122,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
                 CreateHeader = new GoogleDocsApiCreateHeaderRequestPayload {
                     Type = ResolveHeaderFooterType(variant),
-                    SectionBreakLocation = string.IsNullOrWhiteSpace(sectionBreakLocation)
-                        ? null
-                        : new GoogleDocsApiLocationPayload { Index = int.Parse(sectionBreakLocation, System.Globalization.CultureInfo.InvariantCulture) }
+                    SectionBreakLocation = sectionBreakLocation
                 }
             });
 
@@ -135,7 +135,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleWorkspaceHttpTransport transport,
             string accessToken,
             string documentId,
-            string? sectionBreakLocation,
+            GoogleDocsApiLocationPayload? sectionBreakLocation,
             string variant,
             GoogleDocsBatch batch,
             CancellationToken cancellationToken) {
@@ -143,9 +143,7 @@ namespace OfficeIMO.Word.GoogleDocs {
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
                 CreateFooter = new GoogleDocsApiCreateFooterRequestPayload {
                     Type = ResolveHeaderFooterType(variant),
-                    SectionBreakLocation = string.IsNullOrWhiteSpace(sectionBreakLocation)
-                        ? null
-                        : new GoogleDocsApiLocationPayload { Index = int.Parse(sectionBreakLocation, System.Globalization.CultureInfo.InvariantCulture) }
+                    SectionBreakLocation = sectionBreakLocation
                 }
             });
 

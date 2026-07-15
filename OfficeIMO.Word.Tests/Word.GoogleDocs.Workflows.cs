@@ -4,6 +4,7 @@ using OfficeIMO.Word.GoogleDocs;
 using System.Net;
 using System.Net.Http;
 using System.Text;
+using System.Text.Json;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -173,6 +174,53 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("\"requiredRevisionId\":\"revision-2\"", bodies[1]);
                 Assert.All(bodies, body => Assert.Contains("\"tabId\":\"tab-a\"", body));
                 Assert.Equal("revision-3", result.RevisionId);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_ScopesFirstSectionHeaderToSelectedTab() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsSelectedTabHeader.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Replacement");
+                document.AddHeadersAndFooters();
+                document.Sections[0].Header.Default!.AddParagraph("Selected tab header");
+                var bodies = new List<string>();
+                const string state = "{\"documentId\":\"doc-tab-header\",\"title\":\"Tabbed\",\"revisionId\":\"revision-1\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"tab-a\",\"title\":\"One\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":0,\"endIndex\":1,\"sectionBreak\":{}},{\"startIndex\":1,\"endIndex\":5,\"paragraph\":{}}]}}},{\"tabProperties\":{\"tabId\":\"tab-b\",\"title\":\"Two\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":0,\"endIndex\":1,\"sectionBreak\":{}},{\"startIndex\":1,\"endIndex\":5,\"paragraph\":{}}]}}}]}";
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return CreateJsonResponse(state);
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
+                        string body = await request.Content!.ReadAsStringAsync().ConfigureAwait(false);
+                        bodies.Add(body);
+                        return body.Contains("\"createHeader\"", StringComparison.Ordinal)
+                            ? CreateJsonResponse("{\"replies\":[{\"createHeader\":{\"headerId\":\"header-selected\"}}],\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}")
+                            : CreateJsonResponse("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}");
+                    }
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return CreateJsonResponse("{\"id\":\"doc-tab-header\",\"name\":\"Tabbed\",\"mimeType\":\"application/vnd.google-apps.document\"}");
+                    }
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Location = new GoogleDriveFileLocation { ExistingFileId = "doc-tab-header" },
+                    Tabs = new GoogleDocsTabOptions { Strategy = GoogleDocsTabStrategy.SelectedTab, TabId = "tab-b" },
+                    Replace = new GoogleDocsReplaceOptions { ExpectedRevisionId = "revision-1" },
+                });
+
+                string createHeaderBody = Assert.Single(bodies, body => body.Contains("\"createHeader\"", StringComparison.Ordinal));
+                using JsonDocument payload = JsonDocument.Parse(createHeaderBody);
+                JsonElement createHeader = payload.RootElement.GetProperty("requests").EnumerateArray()
+                    .Single(request => request.TryGetProperty("createHeader", out _))
+                    .GetProperty("createHeader");
+                JsonElement location = createHeader.GetProperty("sectionBreakLocation");
+                Assert.Equal(0, location.GetProperty("index").GetInt32());
+                Assert.Equal("tab-b", location.GetProperty("tabId").GetString());
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

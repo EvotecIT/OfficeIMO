@@ -70,6 +70,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 foreach (TranslationNotice notice in imported.Report.Notices.Where(notice => notice.Severity >= TranslationSeverity.Warning)) {
                     items.Add(new GoogleSheetsDiffItem(GoogleSheetsDiffKind.LossyAction, notice.TargetId ?? notice.Feature, notice.Message));
                 }
+                if (checkpoint?.DriveVersion != null && imported.Source.DriveVersion != null
+                    && checkpoint.DriveVersion != imported.Source.DriveVersion) {
+                    items.Add(new GoogleSheetsDiffItem(
+                        GoogleSheetsDiffKind.RemoteChange,
+                        "spreadsheet/driveVersion",
+                        "The Google spreadsheet Drive version changed after the checkpoint."));
+                }
                 return new GoogleSheetsDiffPlan(imported.Source, items, imported.Report);
             }
         }

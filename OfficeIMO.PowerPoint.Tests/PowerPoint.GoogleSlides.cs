@@ -60,6 +60,7 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide authoredSlide = presentation.AddSlide();
             authoredSlide.Hidden = true;
+            authoredSlide.BackgroundColor = "112233";
             authoredSlide.AddTextBoxPoints("Hello Slides", 20, 30, 300, 80);
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
@@ -81,6 +82,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains("\"deleteObject\":{\"objectId\":\"initial-slide\"}", body);
             Assert.Contains("\"createSlide\"", body);
             Assert.Contains("\"slideProperties\":{\"isSkipped\":true},\"fields\":\"isSkipped\"", body);
+            using (JsonDocument payload = JsonDocument.Parse(body)) {
+                JsonElement[] requests = payload.RootElement.GetProperty("requests").EnumerateArray().ToArray();
+                JsonElement update = Assert.Single(requests, request => request.TryGetProperty("updatePageProperties", out _))
+                    .GetProperty("updatePageProperties");
+                Assert.Equal("officeimo_slide_0001_0001", update.GetProperty("objectId").GetString());
+                Assert.Equal("pageBackgroundFill.solidFill.color", update.GetProperty("fields").GetString());
+                JsonElement rgb = update.GetProperty("pageProperties").GetProperty("pageBackgroundFill")
+                    .GetProperty("solidFill").GetProperty("color").GetProperty("rgbColor");
+                Assert.Equal(0x11 / 255d, rgb.GetProperty("red").GetDouble(), 6);
+                Assert.DoesNotContain(requests, request => request.TryGetProperty("updateSlideProperties", out JsonElement slideProperties)
+                    && slideProperties.GetProperty("fields").GetString() == "background");
+            }
             Assert.Contains("\"createShape\"", body);
             Assert.Contains("Hello Slides", body);
             Assert.Contains("\"requiredRevisionId\":\"revision-1\"", body);

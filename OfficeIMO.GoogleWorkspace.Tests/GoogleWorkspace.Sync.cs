@@ -83,6 +83,28 @@ namespace OfficeIMO.Tests {
             Assert.True(result.NeedsApproval);
         }
 
+        [Theory]
+        [InlineData(GoogleWorkspaceSyncItemKind.Conflict, GoogleWorkspaceSyncApplyStatus.Conflict)]
+        [InlineData(GoogleWorkspaceSyncItemKind.LossyAction, GoogleWorkspaceSyncApplyStatus.ApprovalRequired)]
+        public async Task Executor_MarksAppliedResultPartialWhenAnotherItemNeedsIntervention(
+            GoogleWorkspaceSyncItemKind blockedKind,
+            GoogleWorkspaceSyncApplyStatus expectedStatus) {
+            GoogleWorkspaceSyncPlan plan = GoogleWorkspaceSyncPlan.Create(new[] {
+                new GoogleWorkspaceSyncItem("source", GoogleWorkspaceSyncItemKind.SourceChange, "source", "local changed"),
+                new GoogleWorkspaceSyncItem("blocked", blockedKind, "blocked", "review required"),
+            });
+            var options = new GoogleWorkspaceSyncApplyOptions { DryRun = false };
+
+            GoogleWorkspaceSyncApplyResult result = await GoogleWorkspaceSyncExecutor.ApplyAsync(
+                plan,
+                (item, token) => Task.CompletedTask,
+                options);
+
+            Assert.Equal(GoogleWorkspaceSyncApplyStatus.Applied, result.Items[0].Status);
+            Assert.Equal(expectedStatus, result.Items[1].Status);
+            Assert.True(result.IsPartial);
+        }
+
         [Fact]
         public async Task Executor_ReturnsAppliedAndFailedOutcomesWithoutLosingProgress() {
             GoogleWorkspaceSyncPlan plan = Plan();

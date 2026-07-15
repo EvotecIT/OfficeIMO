@@ -24,7 +24,8 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
         public bool HasFailures => Items.Any(item => item.Status == GoogleWorkspaceSyncApplyStatus.Failed);
         public bool HasConflicts => Items.Any(item => item.Status == GoogleWorkspaceSyncApplyStatus.Conflict);
         public bool NeedsApproval => Items.Any(item => item.Status == GoogleWorkspaceSyncApplyStatus.ApprovalRequired);
-        public bool IsPartial => Items.Any(item => item.Status == GoogleWorkspaceSyncApplyStatus.Applied) && (WasCanceled || HasFailures || Items.Any(item => item.Status == GoogleWorkspaceSyncApplyStatus.Skipped));
+        public bool IsPartial => Items.Any(item => item.Status == GoogleWorkspaceSyncApplyStatus.Applied)
+            && (WasCanceled || HasFailures || HasConflicts || NeedsApproval || Items.Any(item => item.Status == GoogleWorkspaceSyncApplyStatus.Skipped));
     }
 
     /// <summary>Applies only reviewed plan items and returns an outcome for every item, including cancellation and partial failure.</summary>

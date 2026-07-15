@@ -108,6 +108,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleSheetsDiffPlanner_ReportsRemoteDriveVersionChange() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsDriveVersionDiff.xlsx");
+            try {
+                using var source = ExcelDocument.Create(filePath);
+                source.AddWorksheet("Data").CellValue(1, 1, "value");
+                GoogleSheetsSyncCheckpoint checkpoint = GoogleSheetsDiffPlanner.CreateCheckpoint(source, driveVersion: 5);
+                const string nativeJson = "{\"spreadsheetId\":\"diff-sheet\",\"properties\":{\"title\":\"Diff\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Data\",\"index\":0},\"data\":[{\"startRow\":0,\"startColumn\":0,\"rowData\":[{\"values\":[{\"userEnteredValue\":{\"stringValue\":\"value\"}}]}]}]}]}";
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.RequestUri!.Host == "www.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"diff-sheet\",\"name\":\"Diff\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":6,\"capabilities\":{\"canDownload\":false}}"));
+                    }
+                    if (request.RequestUri.Host == "sheets.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse(nativeJson));
+                    }
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleSheetsDiffPlan plan = await GoogleSheetsDiffPlanner.BuildAsync(source, "diff-sheet", session, checkpoint);
+
+                GoogleSheetsDiffItem versionChange = Assert.Single(plan.Items, item => item.Path == "spreadsheet/driveVersion");
+                Assert.Equal(GoogleSheetsDiffKind.RemoteChange, versionChange.Kind);
+                Assert.Equal(6, plan.Remote.DriveVersion);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public async Task Test_GoogleSheetsExporter_ReplaceRequiresObservedDriveVersion() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsReplacePreflight.xlsx");
             try {

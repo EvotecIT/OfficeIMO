@@ -105,7 +105,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             foreach (GoogleSlidesSlide slide in batch.Slides) {
                 requests.Add(new { createSlide = new { objectId = slide.ObjectId, insertionIndex = slide.Index, slideLayoutReference = new { predefinedLayout = "BLANK" } } });
                 if (slide.IsSkipped) requests.Add(new { updateSlideProperties = new { objectId = slide.ObjectId, slideProperties = new { isSkipped = true }, fields = "isSkipped" } });
-                if (!string.IsNullOrWhiteSpace(slide.BackgroundColorHex)) requests.Add(new { updateSlideProperties = new { objectId = slide.ObjectId, slideProperties = new { background = new { solidFill = new { color = new { rgbColor = Rgb(slide.BackgroundColorHex!) } } } }, fields = "background" } });
+                if (!string.IsNullOrWhiteSpace(slide.BackgroundColorHex)) requests.Add(new { updatePageProperties = new { objectId = slide.ObjectId, pageProperties = new { pageBackgroundFill = new { solidFill = new { color = new { rgbColor = Rgb(slide.BackgroundColorHex!) } } } }, fields = "pageBackgroundFill.solidFill.color" } });
                 foreach (GoogleSlidesElement element in slide.Elements) AddElementRequests(requests, slide.ObjectId, element, imageUrls, scale, offsetX, offsetY);
             }
             return requests;
