@@ -108,6 +108,76 @@ public sealed class EmailCalendarProjectionEdgeTests {
     }
 
     [Fact]
+    public void UsesCalendarAttendeeNameWhenEnvelopeRecipientHasNoDisplayName() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "To: alice@example.com\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:name@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nATTENDEE;CN=Alice:mailto:alice@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Equal("Alice", Assert.Single(document.Recipients).Address.DisplayName);
+        Assert.Equal("Alice", Assert.Single(roundTrip.Recipients).Address.DisplayName);
+    }
+
+    [Fact]
+    public void BlocksConflictingEnvelopeAndCalendarAttendeeNamesBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "To: Relay <alice@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:name-conflict@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nATTENDEE;CN=Alice:mailto:alice@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Equal("Relay", Assert.Single(document.Recipients).Address.DisplayName);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("REQUEST", "IPM.Schedule.Meeting.Request")]
+    [InlineData("CANCEL", "IPM.Schedule.Meeting.Canceled")]
+    [InlineData("REPLY", "IPM.Schedule.Meeting.Resp.Pos")]
+    public void UsesMimeCalendarMethodWhenPayloadMethodIsMissing(string method, string expectedMessageClass) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; method=" + method + "; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:method@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Equal(expectedMessageClass, document.MessageClass);
+        Assert.Equal(expectedMessageClass, roundTrip.MessageClass);
+    }
+
+    [Fact]
+    public void BlocksConflictingMimeAndPayloadCalendarMethodsBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; method=REQUEST; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:CANCEL\r\nBEGIN:VEVENT\r\n" +
+            "UID:method-conflict@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Equal("IPM.Schedule.Meeting.Canceled", document.MessageClass);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
     public void PreservesVtodoPrivacyThroughStoreConversion() {
         byte[] eml = Calendar(
             "BEGIN:VTODO\r\nUID:private-task@example.com\r\nDTSTART:20260801T100000Z\r\n" +

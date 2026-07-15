@@ -184,10 +184,11 @@ internal static class MimeParser {
         string? semanticCharset = contentType.GetParameter("charset");
         if (calendarContent && attachment.IsMimeBodyPart && IcsCalendarCodec.TryProject(
                 MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location),
-                document, state.Diagnostics, location)) {
+                document, state.Diagnostics, location, contentType.GetParameter("method"))) {
             attachment.IsProjectedSemanticContent = true;
         } else if (vcardContent && attachment.IsMimeBodyPart && VCardCodec.TryProject(
-                       MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location), document)) {
+                       MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location),
+                       document, state.Diagnostics, location)) {
             attachment.IsProjectedSemanticContent = true;
         }
         if (attachment.IsProjectedSemanticContent && document.Attachments.Any(existing =>

@@ -1,10 +1,15 @@
 namespace OfficeIMO.Email;
 
 internal static class VCardCodec {
-    internal static bool TryProject(string text, EmailDocument document) {
-        List<VCardProperty> properties = Parse(text.TrimStart('\uFEFF'));
+    internal static bool TryProject(string text, EmailDocument document, IList<EmailDiagnostic> diagnostics,
+        string location) {
+        int projectionDiagnosticStart = diagnostics.Count;
+        List<VCardProperty> properties = Parse(text.TrimStart('\uFEFF'), diagnostics, location);
         if (!properties.Any(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase))) return false;
+        document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
+            diagnostic.Code == "EMAIL_MIME_QUOTED_PRINTABLE_INVALID" ||
+            diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
 
         int cardCount = properties.Count(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase));
@@ -50,7 +55,7 @@ internal static class VCardCodec {
         if (sensitivity.HasValue) document.MessageMetadata.Sensitivity = sensitivity;
 
         ApplyEmails(properties, contact);
-        ApplyPhones(properties, contact.Phones);
+        document.MimeSemanticProjectionIsIncomplete |= ApplyPhones(properties, contact.Phones);
         ApplyAddresses(properties, contact);
         ApplyUrls(properties, contact);
         ApplyExtensions(properties, contact);
@@ -200,30 +205,66 @@ internal static class VCardCodec {
         }
     }
 
-    private static void ApplyPhones(IEnumerable<VCardProperty> properties, OutlookContactPhones phones) {
+    private static bool ApplyPhones(IEnumerable<VCardProperty> properties, OutlookContactPhones phones) {
+        var counts = new Dictionary<VCardPhoneSlot, int>();
+        bool overflow = false;
         foreach (VCardProperty property in properties.Where(property => property.Name == "TEL")) {
             string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
             string value = Unescape(property.Value);
-            if (ContainsType(types, "CELL")) phones.Mobile = value;
-            else if (ContainsType(types, "X-ASSISTANT")) phones.Assistant = value;
-            else if (ContainsType(types, "X-COMPANY")) phones.CompanyMain = value;
-            else if (ContainsType(types, "CAR")) phones.Car = value;
-            else if (ContainsType(types, "X-RADIO")) phones.Radio = value;
-            else if (ContainsType(types, "X-CALLBACK")) phones.Callback = value;
-            else if (ContainsType(types, "X-TELEX")) phones.Telex = value;
-            else if (ContainsType(types, "TEXT")) phones.TextTelephone = value;
-            else if (ContainsType(types, "ISDN")) phones.Isdn = value;
-            else if (ContainsType(types, "FAX") && ContainsType(types, "PREF")) phones.PrimaryFax = value;
-            else if (ContainsType(types, "FAX") && ContainsType(types, "HOME")) phones.HomeFax = value;
-            else if (ContainsType(types, "FAX")) phones.BusinessFax = value;
-            else if (ContainsType(types, "HOME") && phones.Home == null) phones.Home = value;
-            else if (ContainsType(types, "HOME")) phones.Home2 = value;
-            else if (ContainsType(types, "PAGER")) phones.Pager = value;
-            else if (ContainsType(types, "WORK") && phones.Business == null) phones.Business = value;
-            else if (ContainsType(types, "WORK")) phones.Business2 = value;
-            else if (phones.Primary == null) phones.Primary = value;
-            else phones.Other = value;
+            VCardPhoneSlot slot = GetPhoneSlot(types);
+            int count = counts.TryGetValue(slot, out int current) ? current + 1 : 1;
+            counts[slot] = count;
+            int capacity = slot == VCardPhoneSlot.Home || slot == VCardPhoneSlot.Work ||
+                slot == VCardPhoneSlot.General ? 2 : 1;
+            overflow |= count > capacity;
+            switch (slot) {
+                case VCardPhoneSlot.Mobile: phones.Mobile = value; break;
+                case VCardPhoneSlot.Assistant: phones.Assistant = value; break;
+                case VCardPhoneSlot.Company: phones.CompanyMain = value; break;
+                case VCardPhoneSlot.Car: phones.Car = value; break;
+                case VCardPhoneSlot.Radio: phones.Radio = value; break;
+                case VCardPhoneSlot.Callback: phones.Callback = value; break;
+                case VCardPhoneSlot.Telex: phones.Telex = value; break;
+                case VCardPhoneSlot.Text: phones.TextTelephone = value; break;
+                case VCardPhoneSlot.Isdn: phones.Isdn = value; break;
+                case VCardPhoneSlot.PrimaryFax: phones.PrimaryFax = value; break;
+                case VCardPhoneSlot.HomeFax: phones.HomeFax = value; break;
+                case VCardPhoneSlot.BusinessFax: phones.BusinessFax = value; break;
+                case VCardPhoneSlot.Home:
+                    if (count == 1) phones.Home = value;
+                    else phones.Home2 = value;
+                    break;
+                case VCardPhoneSlot.Pager: phones.Pager = value; break;
+                case VCardPhoneSlot.Work:
+                    if (count == 1) phones.Business = value;
+                    else phones.Business2 = value;
+                    break;
+                default:
+                    if (count == 1) phones.Primary = value;
+                    else phones.Other = value;
+                    break;
+            }
         }
+        return overflow;
+    }
+
+    private static VCardPhoneSlot GetPhoneSlot(string types) {
+        if (ContainsType(types, "CELL")) return VCardPhoneSlot.Mobile;
+        if (ContainsType(types, "X-ASSISTANT")) return VCardPhoneSlot.Assistant;
+        if (ContainsType(types, "X-COMPANY")) return VCardPhoneSlot.Company;
+        if (ContainsType(types, "CAR")) return VCardPhoneSlot.Car;
+        if (ContainsType(types, "X-RADIO")) return VCardPhoneSlot.Radio;
+        if (ContainsType(types, "X-CALLBACK")) return VCardPhoneSlot.Callback;
+        if (ContainsType(types, "X-TELEX")) return VCardPhoneSlot.Telex;
+        if (ContainsType(types, "TEXT")) return VCardPhoneSlot.Text;
+        if (ContainsType(types, "ISDN")) return VCardPhoneSlot.Isdn;
+        if (ContainsType(types, "FAX") && ContainsType(types, "PREF")) return VCardPhoneSlot.PrimaryFax;
+        if (ContainsType(types, "FAX") && ContainsType(types, "HOME")) return VCardPhoneSlot.HomeFax;
+        if (ContainsType(types, "FAX")) return VCardPhoneSlot.BusinessFax;
+        if (ContainsType(types, "HOME")) return VCardPhoneSlot.Home;
+        if (ContainsType(types, "PAGER")) return VCardPhoneSlot.Pager;
+        if (ContainsType(types, "WORK")) return VCardPhoneSlot.Work;
+        return VCardPhoneSlot.General;
     }
 
     private static void ApplyAddresses(IEnumerable<VCardProperty> properties, OutlookContact contact) {
@@ -333,11 +374,17 @@ internal static class VCardCodec {
         address.CountryCode }
         .All(string.IsNullOrWhiteSpace);
 
-    private static List<VCardProperty> Parse(string text) {
+    private static List<VCardProperty> Parse(string text, IList<EmailDiagnostic> diagnostics, string location) {
         string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
         var unfolded = new List<string>();
         foreach (string line in normalized.Split('\n')) {
-            if (line.Length > 0 && (line[0] == ' ' || line[0] == '\t') && unfolded.Count > 0) {
+            if (unfolded.Count > 0 && unfolded[unfolded.Count - 1].EndsWith("=", StringComparison.Ordinal) &&
+                IsQuotedPrintableProperty(unfolded[unfolded.Count - 1])) {
+                string continuation = line.Length > 0 && (line[0] == ' ' || line[0] == '\t')
+                    ? line.Substring(1)
+                    : line;
+                unfolded[unfolded.Count - 1] += string.Concat("\r\n", continuation);
+            } else if (line.Length > 0 && (line[0] == ' ' || line[0] == '\t') && unfolded.Count > 0) {
                 unfolded[unfolded.Count - 1] += line.Substring(1);
             } else unfolded.Add(line);
         }
@@ -354,7 +401,7 @@ internal static class VCardCodec {
                 int equals = FindUnquotedSeparator(tokens[index], '=');
                 if (equals > 0) {
                     string parameterName = tokens[index].Substring(0, equals).Trim();
-                    string parameterValue = tokens[index].Substring(equals + 1).Trim().Trim('"');
+                    string parameterValue = DecodeParameterValue(tokens[index].Substring(equals + 1));
                     if (parameterName.Equals("TYPE", StringComparison.OrdinalIgnoreCase) &&
                         property.Parameters.TryGetValue(parameterName, out string? priorType)) {
                         property.Parameters[parameterName] = string.Concat(priorType, ",", parameterValue);
@@ -365,9 +412,38 @@ internal static class VCardCodec {
                 else property.Parameters["TYPE"] = property.Parameters.TryGetValue("TYPE", out string? prior)
                     ? string.Concat(prior, ",", tokens[index]) : tokens[index];
             }
+            DecodePropertyValue(property, diagnostics, location);
             result.Add(property);
         }
         return result;
+    }
+
+    private static bool IsQuotedPrintableProperty(string line) =>
+        line.IndexOf("ENCODING=QUOTED-PRINTABLE", StringComparison.OrdinalIgnoreCase) >= 0 ||
+        line.IndexOf("ENCODING=QP", StringComparison.OrdinalIgnoreCase) >= 0;
+
+    private static string DecodeParameterValue(string value) {
+        string trimmed = value.Trim();
+        if (trimmed.Length < 2 || trimmed[0] != '"' || trimmed[trimmed.Length - 1] != '"') return trimmed;
+        var result = new StringBuilder(trimmed.Length - 2);
+        for (int index = 1; index < trimmed.Length - 1; index++) {
+            char character = trimmed[index];
+            if (character == '\\' && index + 1 < trimmed.Length - 1) result.Append(trimmed[++index]);
+            else result.Append(character);
+        }
+        return result.ToString();
+    }
+
+    private static void DecodePropertyValue(VCardProperty property, IList<EmailDiagnostic> diagnostics,
+        string location) {
+        if (!property.Parameters.TryGetValue("ENCODING", out string? encoding) ||
+            !(encoding.Equals("QUOTED-PRINTABLE", StringComparison.OrdinalIgnoreCase) ||
+              encoding.Equals("QP", StringComparison.OrdinalIgnoreCase))) return;
+        byte[] decoded = MimeTextCodec.DecodeQuotedPrintable(Encoding.ASCII.GetBytes(property.Value), false,
+            diagnostics, string.Concat(location, "/", property.Name));
+        property.Parameters.TryGetValue("CHARSET", out string? charset);
+        property.Value = MimeTextCodec.DecodeText(decoded, charset, diagnostics,
+            string.Concat(location, "/", property.Name));
     }
 
     private static int FindUnquotedSeparator(string value, char separator) {
@@ -494,8 +570,27 @@ internal static class VCardCodec {
     private sealed class VCardProperty {
         internal VCardProperty(string name, string value) { Name = name; Value = value; }
         internal string Name { get; }
-        internal string Value { get; }
+        internal string Value { get; set; }
         internal IDictionary<string, string> Parameters { get; } =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+    }
+
+    private enum VCardPhoneSlot {
+        General,
+        Work,
+        Home,
+        Mobile,
+        PrimaryFax,
+        HomeFax,
+        BusinessFax,
+        Assistant,
+        Company,
+        Car,
+        Radio,
+        Pager,
+        Callback,
+        Telex,
+        Text,
+        Isdn
     }
 }

@@ -110,6 +110,38 @@ public sealed class EmailContactConversionTests {
     }
 
     [Fact]
+    public void DecodesQuotedPrintableVcardValuesThroughStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Jos=C3=\r\n =A9\r\n" +
+            "N;CHARSET=UTF-8;ENCODING=QUOTED-PRINTABLE:Example;Jos=C3=A9;;;\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Equal("José", document.Contact!.DisplayName);
+        Assert.Equal("José", document.Contact.GivenName);
+        Assert.Equal("José", roundTrip.Contact!.DisplayName);
+        Assert.Equal("José", roundTrip.Contact.GivenName);
+    }
+
+    [Fact]
+    public void DecodesQuotedVcardParameterEscapesThroughStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nADR;TYPE=HOME;LABEL=\"12 \\\"Main\\\" \\\\ St\":;;Main Street;;;;\r\n" +
+            "END:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Equal("12 \"Main\" \\ St", document.Contact!.HomeAddress.Formatted);
+        Assert.Equal("12 \"Main\" \\ St", roundTrip.Contact!.HomeAddress.Formatted);
+    }
+
+    [Fact]
     public void ProjectsTextDirectoryVcards() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/directory; profile=vCard; charset=utf-8\r\n\r\n" +
@@ -191,6 +223,24 @@ public sealed class EmailContactConversionTests {
             document, EmailFileFormat.OutlookMsg);
 
         Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void BlocksVcardPhoneSlotOverflowBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nTEL;TYPE=HOME:first\r\nTEL;TYPE=HOME:second\r\n" +
+            "TEL;TYPE=HOME:third\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Equal("first", document.Contact!.Phones.Home);
+        Assert.Equal("third", document.Contact.Phones.Home2);
         Assert.Contains(report.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
     }

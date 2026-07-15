@@ -5,7 +5,7 @@ internal static partial class IcsCalendarCodec {
         new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     internal static bool TryProject(string text, EmailDocument document, IList<EmailDiagnostic> diagnostics,
-        string location) {
+        string location, string? mimeMethod = null) {
         int projectionDiagnosticStart = diagnostics.Count;
         List<IcsProperty> properties = ParseProperties(text.TrimStart('\uFEFF'));
         IcsProperty? activeComponent = properties.FirstOrDefault(property => property.Name == "BEGIN" &&
@@ -20,7 +20,14 @@ internal static partial class IcsCalendarCodec {
             properties, activeComponent.Value);
         document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(
             properties, activeProperties, alarmProperties, isEvent);
-        if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location);
+        string? calendarMethod = GetValue(activeProperties, "METHOD");
+        if (!string.IsNullOrWhiteSpace(calendarMethod) && !string.IsNullOrWhiteSpace(mimeMethod) &&
+            !string.Equals(calendarMethod, mimeMethod, StringComparison.OrdinalIgnoreCase) ||
+            isEvent && !IsStoreProjectableMethod(calendarMethod ?? mimeMethod)) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+        }
+        if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location,
+            calendarMethod ?? mimeMethod);
         else ProjectTask(activeProperties, document, diagnostics, location);
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
             diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED" ||
@@ -143,10 +150,10 @@ internal static partial class IcsCalendarCodec {
         value.Equals("DAYLIGHT", StringComparison.OrdinalIgnoreCase);
 
     private static void ProjectEvent(IReadOnlyList<IcsProperty> properties, EmailDocument document,
-        IList<EmailDiagnostic> diagnostics, string location) {
+        IList<EmailDiagnostic> diagnostics, string location, string? method) {
         var appointment = document.Appointment ?? new OutlookAppointment();
         document.OutlookItemKind = OutlookItemKind.Appointment;
-        document.MessageClass = MessageClassForMethod(GetValue(properties, "METHOD"), properties);
+        document.MessageClass = MessageClassForMethod(method, properties);
         document.Appointment = appointment;
         ApplyCommon(properties, document);
 
@@ -478,6 +485,12 @@ internal static partial class IcsCalendarCodec {
                 document.Recipients.Add(new EmailRecipient(kind, new EmailAddress(address!, name)));
             } else {
                 existing.Kind = kind;
+                if (string.IsNullOrWhiteSpace(existing.Address.DisplayName)) {
+                    existing.Address.DisplayName = name;
+                } else if (!string.IsNullOrWhiteSpace(name) &&
+                           !string.Equals(existing.Address.DisplayName, name, StringComparison.Ordinal)) {
+                    document.MimeSemanticProjectionIsIncomplete = true;
+                }
             }
         }
     }
@@ -550,6 +563,12 @@ internal static partial class IcsCalendarCodec {
         }
         return "IPM.Schedule.Meeting.Resp.Pos";
     }
+
+    private static bool IsStoreProjectableMethod(string? method) => string.IsNullOrWhiteSpace(method) ||
+        string.Equals(method, "PUBLISH", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(method, "REQUEST", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(method, "REPLY", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(method, "CANCEL", StringComparison.OrdinalIgnoreCase);
 
     internal static string GetMethod(EmailDocument document) {
         string messageClass = document.MessageClass ?? string.Empty;
