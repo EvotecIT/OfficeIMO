@@ -10,7 +10,8 @@ namespace OfficeIMO.Word.Html {
             string text,
             WordToHtmlOptions options,
             string? documentLanguage,
-            ISet<string> runStyles) {
+            ISet<string> runStyles,
+            bool includeHyperlink = true) {
             INode node = htmlDocument.CreateTextNode(text);
             if (run.Bold) {
                 var strong = htmlDocument.CreateElement("strong");
@@ -41,14 +42,9 @@ namespace OfficeIMO.Word.Html {
                 subscript.AppendChild(node);
                 node = subscript;
             }
-            if (run.IsHyperLink && run.Hyperlink != null) {
-                string? href = run.Hyperlink.Uri?.ToString();
-                if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(run.Hyperlink.Anchor)) {
-                    href = "#" + run.Hyperlink.Anchor;
-                }
-                if (!string.IsNullOrEmpty(href)) {
-                    var anchor = htmlDocument.CreateElement("a");
-                    anchor.SetAttribute("href", href);
+            if (includeHyperlink && run.IsHyperLink && run.Hyperlink != null) {
+                IElement? anchor = CreateEquationHyperlinkNode(htmlDocument, run.Hyperlink);
+                if (anchor != null) {
                     anchor.AppendChild(node);
                     node = anchor;
                 }
@@ -110,6 +106,27 @@ namespace OfficeIMO.Word.Html {
                 node = span;
             }
             return node;
+        }
+
+        private static IElement? CreateEquationHyperlinkNode(IHtmlDocument htmlDocument, WordHyperLink hyperlink) {
+            string? href = hyperlink.Uri?.ToString();
+            if (string.IsNullOrEmpty(href) && !string.IsNullOrEmpty(hyperlink.Anchor)) {
+                href = "#" + hyperlink.Anchor;
+            }
+            if (string.IsNullOrEmpty(href)) {
+                return null;
+            }
+
+            IElement anchor = htmlDocument.CreateElement("a");
+            anchor.SetAttribute("href", href);
+            if (!string.IsNullOrEmpty(hyperlink.Tooltip)) {
+                anchor.SetAttribute("title", hyperlink.Tooltip);
+            }
+            string? targetFrame = hyperlink._hyperlink.TargetFrame?.Value;
+            if (!string.IsNullOrEmpty(targetFrame)) {
+                anchor.SetAttribute("target", targetFrame);
+            }
+            return anchor;
         }
     }
 }

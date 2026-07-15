@@ -129,10 +129,90 @@ public sealed class RtfEquationTests {
         });
 
         RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
-        RtfField[] fields = rtfParagraph.Inlines.OfType<RtfField>().ToArray();
+        RtfField hyperlinkField = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
+        RtfField[] fields = hyperlinkField.Result.Inlines.OfType<RtfField>().ToArray();
 
+        Assert.NotNull(hyperlinkField.HyperlinkField);
+        Assert.Equal("target", hyperlinkField.HyperlinkField!.SubAddress);
         Assert.Equal(new[] { "linked", "nested" }, fields.Select(field => field.ToPlainText()));
         Assert.Equal("link-prefix linked nested-prefix nested nested-suffix link-suffix", rtfParagraph.ToPlainText());
         Assert.All(fields, field => Assert.True(field.IsEquation));
+
+        string serialized = word.ToRtfDocument().ToRtf();
+        RtfField parsedHyperlink = Assert.Single(Assert.Single(RtfDocument.Read(serialized).Document.Paragraphs).Inlines.OfType<RtfField>());
+        Assert.Equal(2, parsedHyperlink.Result.Inlines.OfType<RtfField>().Count(field => field.IsEquation));
+
+        using WordDocument roundTrip = RtfDocument.Read(serialized).Document.ToWordDocument();
+        Hyperlink roundTripHyperlink = Assert.Single(Assert.Single(roundTrip.Paragraphs)._paragraph.Elements<Hyperlink>());
+        Assert.Equal(2, roundTripHyperlink.Descendants<FieldCode>().Count());
+        Assert.Equal(2, roundTrip.Equations.Count);
+        Assert.DoesNotContain(roundTrip.ValidateDocument(), error =>
+            error.Node is Hyperlink || error.Node?.Ancestors<Hyperlink>().Any() == true);
+    }
+
+    [Fact]
+    public void WordToRtf_KeepsEquationOnlyHyperlinkAsNestedEqField() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(new Hyperlink(
+            new M.OfficeMath(new M.Run(new M.Text("linked-only")))) {
+            Anchor = "target"
+        });
+
+        RtfField hyperlinkField = Assert.Single(Assert.Single(word.ToRtfDocument().Paragraphs).Inlines.OfType<RtfField>());
+
+        Assert.Equal("target", hyperlinkField.HyperlinkField?.SubAddress);
+        RtfField equationField = Assert.Single(hyperlinkField.Result.Inlines.OfType<RtfField>());
+        Assert.True(equationField.IsEquation);
+        Assert.Equal("linked-only", equationField.ToPlainText());
+    }
+
+    [Fact]
+    public void WordRtfRoundTrip_KeepsComplexEqFieldInsideHyperlink() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(new Hyperlink(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" EQ \\f(a,b) ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("(a)/(b)")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End })) {
+            Anchor = "target"
+        });
+
+        RtfDocument rtf = word.ToRtfDocument();
+        RtfField hyperlinkField = Assert.Single(Assert.Single(rtf.Paragraphs).Inlines.OfType<RtfField>());
+        RtfField equationField = Assert.Single(hyperlinkField.Result.Inlines.OfType<RtfField>());
+        Assert.True(equationField.IsEquation);
+        Assert.Contains("\\f(a,b)", equationField.Instruction, StringComparison.Ordinal);
+
+        using WordDocument roundTrip = RtfDocument.Read(rtf.ToRtf()).Document.ToWordDocument();
+        Hyperlink roundTripHyperlink = Assert.Single(Assert.Single(roundTrip.Paragraphs)._paragraph.Elements<Hyperlink>());
+        Assert.Equal(1, roundTripHyperlink.Descendants<FieldCode>().Count());
+        WordEquation equation = Assert.Single(roundTrip.Equations);
+        Assert.Equal(WordEquationRepresentation.EquationField, equation.Representation);
+        Assert.Contains("\\f(a,b)", equation.FieldInstruction!, StringComparison.Ordinal);
+        Assert.DoesNotContain(roundTrip.ValidateDocument(), error =>
+            error.Node is Hyperlink || error.Node?.Ancestors<Hyperlink>().Any() == true);
+    }
+
+    [Fact]
+    public void WordToRtf_MapsTopLevelInlineContentControlWithoutDroppingNestedEquation() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph("before ");
+        paragraph._paragraph.Append(new SdtRun(
+            new SdtProperties(new SdtId { Val = 2076 }),
+            new SdtContentRun(
+                new Run(new Text("control-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("controlled"))),
+                new Run(new Text(" control-suffix")))));
+        paragraph.AddText(" after");
+
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+
+        Assert.Equal("before control-prefix controlled control-suffix after", rtfParagraph.ToPlainText());
+        RtfField equationField = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
+        Assert.True(equationField.IsEquation);
+        Assert.Equal("controlled", equationField.ToPlainText());
     }
 }

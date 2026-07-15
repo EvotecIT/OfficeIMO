@@ -1,4 +1,6 @@
+using AngleSharp.Dom;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Html;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Html;
 using M = DocumentFormat.OpenXml.Math;
@@ -99,6 +101,28 @@ namespace OfficeIMO.Tests {
             Assert.Contains("<em> link-suffix</em>", html, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(1, html.Split(new[] { "link-prefix " }, StringSplitOptions.None).Length - 1);
             Assert.Equal(1, html.Split(new[] { " link-suffix" }, StringSplitOptions.None).Length - 1);
+            IElement anchor = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(html).QuerySelector("a[href='#target']"));
+            Assert.NotNull(anchor.QuerySelector("math"));
+            Assert.Contains("link-prefix", anchor.TextContent, StringComparison.Ordinal);
+            Assert.Contains("link-suffix", anchor.TextContent, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordToHtml_ExportsEquationOnlyHyperlinkAsLinkedMathMl() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph._paragraph.Append(new Hyperlink(
+                new M.OfficeMath(new M.Run(new M.Text("linked-only")))) {
+                Anchor = "target"
+            });
+
+            string html = document.ToHtml();
+
+            IElement anchor = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(html).QuerySelector("a[href='#target']"));
+            IElement math = Assert.IsAssignableFrom<IElement>(anchor.QuerySelector("math"));
+            Assert.Equal("linked-only", math.GetAttribute("aria-label"));
         }
 
         [Fact]
@@ -132,6 +156,40 @@ namespace OfficeIMO.Tests {
             WordEquation equation = Assert.Single(document.Equations);
             Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
             Assert.Equal("sqrt(x)", equation.Text);
+        }
+
+        [Fact]
+        public void HtmlToWord_PreservesMathMlAndRunFormattingInsideHyperlink() {
+            const string html = "<p><a href=\"#target\"><strong>prefix </strong><math aria-label=\"linked\"><mi>x</mi></math><em> suffix</em></a></p>";
+
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+
+            WordParagraph paragraph = Assert.Single(document.Paragraphs);
+            Hyperlink hyperlink = Assert.Single(paragraph._paragraph.Elements<Hyperlink>());
+            Assert.Equal("target", hyperlink.Anchor?.Value);
+            Assert.Collection(
+                hyperlink.ChildElements,
+                child => Assert.NotNull(Assert.IsType<Run>(child).RunProperties?.Bold),
+                child => Assert.IsType<M.OfficeMath>(child),
+                child => Assert.NotNull(Assert.IsType<Run>(child).RunProperties?.Italic));
+            Assert.Equal("prefix linked suffix", hyperlink.InnerText);
+            Assert.Single(document.Equations);
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Fact]
+        public void HtmlToWord_PreservesEquationOnlyMathMlInsideHyperlink() {
+            const string html = "<p><a href=\"https://example.test/math\"><math aria-label=\"linked-only\"><mi>x</mi></math></a></p>";
+
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+
+            WordParagraph paragraph = Assert.Single(document.Paragraphs);
+            Hyperlink hyperlink = Assert.Single(paragraph._paragraph.Elements<Hyperlink>());
+            Assert.Single(hyperlink.Elements<M.OfficeMath>());
+            Assert.Empty(hyperlink.Elements<Run>());
+            Assert.Equal("https://example.test/math", new WordHyperLink(document, paragraph._paragraph, hyperlink).Uri?.ToString());
+            Assert.Single(document.Equations);
+            Assert.Empty(document.ValidateDocument());
         }
     }
 }

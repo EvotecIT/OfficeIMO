@@ -693,9 +693,11 @@ namespace OfficeIMO.Word.Html {
                                         _suppressAutoLinksDepth--;
                                     }
 
-                                    var runs = tempParagraph.GetRuns().ToList();
-                                    linkParaAnchor = runs.Count > 0
-                                        ? WordHyperLink.AddHyperLink(currentParagraph!, runs, anchor, tooltip: title ?? string.Empty)
+                                    var inlineContent = tempParagraph._paragraph.ChildElements
+                                        .Where(child => child is not ParagraphProperties)
+                                        .ToList();
+                                    linkParaAnchor = inlineContent.Count > 0
+                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, anchor, tooltip: title ?? string.Empty)
                                         : currentParagraph!.AddHyperLink(element.TextContent, anchor);
                                 } else {
                                     linkParaAnchor = currentParagraph!.AddHyperLink(element.TextContent, anchor);
@@ -751,9 +753,11 @@ namespace OfficeIMO.Word.Html {
                                         _suppressAutoLinksDepth--;
                                     }
 
-                                    var runs = tempParagraph.GetRuns().ToList();
-                                    linkPara = runs.Count > 0
-                                        ? WordHyperLink.AddHyperLink(currentParagraph!, runs, resolvedUri, tooltip: title ?? string.Empty)
+                                    var inlineContent = tempParagraph._paragraph.ChildElements
+                                        .Where(child => child is not ParagraphProperties)
+                                        .ToList();
+                                    linkPara = inlineContent.Count > 0
+                                        ? WordHyperLink.AddHyperLinkContent(currentParagraph!, inlineContent, resolvedUri, tooltip: title ?? string.Empty)
                                         : currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);
                                 } else {
                                     linkPara = currentParagraph!.AddHyperLink(element.TextContent, resolvedUri);

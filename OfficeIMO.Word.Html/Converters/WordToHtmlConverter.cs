@@ -81,9 +81,28 @@ namespace OfficeIMO.Word.Html {
                     return mathNode;
                 }
 
+                INode? CreatePositionedEquationNode(WordEquationOccurrence occurrence) {
+                    IElement? mathNode = CreateEquationNode(occurrence.Equation);
+                    if (mathNode == null) return null;
+
+                    if (occurrence.StartChildIndex >= 0 &&
+                        occurrence.StartChildIndex < paragraphChildren.Count &&
+                        paragraphChildren[occurrence.StartChildIndex] is Hyperlink hyperlink) {
+                        IElement? anchor = CreateEquationHyperlinkNode(
+                            htmlDoc,
+                            new WordHyperLink(para._document, para._paragraph, hyperlink));
+                        if (anchor != null) {
+                            anchor.AppendChild(mathNode);
+                            return anchor;
+                        }
+                    }
+
+                    return mathNode;
+                }
+
                 void AppendEquationNodesBefore(int childIndex) {
                     while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex < childIndex) {
-                        IElement? mathNode = CreateEquationNode(equations[nextEquation++].Equation);
+                        INode? mathNode = CreatePositionedEquationNode(equations[nextEquation++]);
                         if (mathNode != null) nodes.Add(mathNode);
                     }
                 }
@@ -103,23 +122,38 @@ namespace OfficeIMO.Word.Html {
                     if (runContainer != null &&
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
+                        var expandedNodes = new List<INode>();
+                        IElement? hyperlinkNode = runContainer is Hyperlink hyperlink
+                            ? CreateEquationHyperlinkNode(
+                                htmlDoc,
+                                new WordHyperLink(para._document, para._paragraph, hyperlink))
+                            : null;
                         foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
                             if (segment.Equation != null) {
                                 IElement? mathNode = CreateEquationNode(segment.Equation);
-                                if (mathNode != null) nodes.Add(mathNode);
+                                if (mathNode != null) expandedNodes.Add(mathNode);
                             } else if (!string.IsNullOrEmpty(segment.Text)) {
                                 WordParagraph sourceRun = segment.CreateSourceParagraph(
                                     para._document,
                                     para._paragraph,
                                     run);
-                                nodes.Add(CreateEquationAdjacentTextNode(
+                                expandedNodes.Add(CreateEquationAdjacentTextNode(
                                     htmlDoc,
                                     sourceRun,
                                     segment.Text!,
                                     options,
                                     document.Settings.Language,
-                                    runStyles));
+                                    runStyles,
+                                    includeHyperlink: hyperlinkNode == null));
                             }
+                        }
+                        if (hyperlinkNode != null) {
+                            foreach (INode expandedNode in expandedNodes) {
+                                hyperlinkNode.AppendChild(expandedNode);
+                            }
+                            nodes.Add(hyperlinkNode);
+                        } else {
+                            nodes.AddRange(expandedNodes);
                         }
                         while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex == runIndex) {
                             nextEquation++;

@@ -547,6 +547,9 @@ namespace OfficeIMO.Word.Markdown {
             string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
             string? implicitCodeFont = ResolveImplicitCodeFont();
             bool checkboxPending = hasCheckbox;
+            List<OpenXmlElement> paragraphChildren = paragraph._paragraph.ChildElements.ToList();
+            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            var expandedEquationContainers = new HashSet<OpenXmlElement>();
 
             if (paragraph.PageBreakBefore) {
                 var pageBreakBlock = CreatePageBreakBlock(options);
@@ -557,6 +560,36 @@ namespace OfficeIMO.Word.Markdown {
 
             foreach (var run in paragraph.GetRuns()) {
                 if (run.IsCheckBox) {
+                    continue;
+                }
+
+                OpenXmlElement? runContentContainer = run._hyperlink
+                    ?? (OpenXmlElement?)run._stdRun
+                    ?? run._run;
+                OpenXmlElement? runContainer = WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
+                int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
+                List<WordEquationOccurrence> coveringEquations = equations
+                    .Where(equation => equation.ContainsChildIndex(runIndex))
+                    .ToList();
+                if (coveringEquations.Count > 0) {
+                    if (runContainer != null &&
+                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
+                        expandedEquationContainers.Add(runContainer)) {
+                        foreach (WordEquationContentSegment equationSegment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
+                            if (equationSegment.Equation != null || string.IsNullOrEmpty(equationSegment.Text)) continue;
+                            WordParagraph sourceRun = equationSegment.CreateSourceParagraph(
+                                paragraph._document,
+                                paragraph._paragraph,
+                                run);
+                            AppendRunInlines(
+                                segment,
+                                sourceRun,
+                                options,
+                                preferredCodeFont,
+                                implicitCodeFont,
+                                equationSegment.Text);
+                        }
+                    }
                     continue;
                 }
 
