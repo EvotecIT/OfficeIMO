@@ -15,9 +15,7 @@ internal static class ReaderToolPathSafety {
 
     private static string ResolveExistingLinks(string path) {
         string current = Path.GetFullPath(path);
-        StringComparison comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
+        StringComparison comparison = PathComparison;
         for (int pass = 0; pass < 40; pass++) {
             string resolved = ResolveLinkPass(current);
             if (string.Equals(current, resolved, comparison)) return resolved;
@@ -72,13 +70,16 @@ internal static class ReaderToolPathSafety {
     }
 
     private static bool IsSameOrChildPath(string parentPath, string candidatePath) {
-        StringComparison comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
+        StringComparison comparison = PathComparison;
         if (string.Equals(parentPath, candidatePath, comparison)) return true;
         string parentPrefix = Path.EndsInDirectorySeparator(parentPath)
             ? parentPath
             : parentPath + Path.DirectorySeparatorChar;
         return candidatePath.StartsWith(parentPrefix, comparison);
     }
+
+    private static StringComparison PathComparison =>
+        OperatingSystem.IsWindows() || OperatingSystem.IsMacOS()
+            ? StringComparison.OrdinalIgnoreCase
+            : StringComparison.Ordinal;
 }

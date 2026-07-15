@@ -11,8 +11,7 @@ internal static class ReaderToolFileDiscovery {
         var extensions = new HashSet<string>(
             reader.GetCapabilities().SelectMany(capability => capability.Extensions),
             StringComparer.OrdinalIgnoreCase);
-        var results = new List<string>(Math.Min(maxFiles, 256));
-        long totalBytes = 0;
+        var selected = new SortedSet<string>(StringComparer.Ordinal);
         var enumerationOptions = new EnumerationOptions {
             RecurseSubdirectories = recurse,
             AttributesToSkip = FileAttributes.ReparsePoint,
@@ -29,17 +28,20 @@ internal static class ReaderToolFileDiscovery {
                 continue;
             }
 
-            long length = new FileInfo(file).Length;
-            if (maxTotalBytes.HasValue && length > maxTotalBytes.Value - totalBytes) {
-                break;
+            selected.Add(file);
+            if (selected.Count > maxFiles) {
+                selected.Remove(selected.Max!);
             }
-
-            totalBytes += length;
-            results.Add(file);
-            if (results.Count >= maxFiles) break;
         }
 
-        results.Sort(StringComparer.Ordinal);
+        var results = new List<string>(selected.Count);
+        long totalBytes = 0;
+        foreach (string file in selected) {
+            long length = new FileInfo(file).Length;
+            if (maxTotalBytes.HasValue && length > maxTotalBytes.Value - totalBytes) break;
+            totalBytes += length;
+            results.Add(file);
+        }
         return results;
     }
 }

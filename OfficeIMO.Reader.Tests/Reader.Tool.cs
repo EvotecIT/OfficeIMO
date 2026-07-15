@@ -214,9 +214,9 @@ public sealed class ReaderToolTests {
     }
 
     [Fact]
-    public void FolderDiscoveryStopsAtMaxFilesAndSortsBoundedResults() {
+    public void FolderDiscoverySelectsTheSameBoundedLexicographicSubset() {
         using var temporary = new ReaderToolTemporaryDirectory();
-        for (int index = 0; index < 100; index++) {
+        for (int index = 99; index >= 0; index--) {
             File.WriteAllText(Path.Combine(temporary.Path, index.ToString("D3") + ".md"), "# Document");
         }
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().Build();
@@ -230,7 +230,21 @@ public sealed class ReaderToolTests {
             CancellationToken.None);
 
         Assert.Equal(3, paths.Count);
-        Assert.Equal(paths.OrderBy(path => path, StringComparer.Ordinal), paths);
+        Assert.Equal(new[] { "000.md", "001.md", "002.md" }, paths.Select(Path.GetFileName));
+    }
+
+    [Fact]
+    public void MacPathSafetyTreatsCasingAliasesAsTheSameInputTree() {
+        if (!OperatingSystem.IsMacOS()) return;
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string input = Path.Combine(temporary.Path, "Input");
+        Directory.CreateDirectory(input);
+        string casingAlias = Path.Combine(temporary.Path, "input", "converted");
+
+        ReaderToolOutputException exception = Assert.Throws<ReaderToolOutputException>(() =>
+            ReaderToolPathSafety.EnsureOutsideInput(input, casingAlias));
+
+        Assert.Contains("outside the input folder", exception.Message, StringComparison.Ordinal);
     }
 }
 
