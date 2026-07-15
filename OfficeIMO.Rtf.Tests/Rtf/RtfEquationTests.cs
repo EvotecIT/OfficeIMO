@@ -144,10 +144,31 @@ public sealed class RtfEquationTests {
 
         using WordDocument roundTrip = RtfDocument.Read(serialized).Document.ToWordDocument();
         Hyperlink roundTripHyperlink = Assert.Single(Assert.Single(roundTrip.Paragraphs)._paragraph.Elements<Hyperlink>());
-        Assert.Equal(2, roundTripHyperlink.Descendants<FieldCode>().Count());
+        Assert.Equal(2, roundTripHyperlink.Elements<SimpleField>().Count());
         Assert.Equal(2, roundTrip.Equations.Count);
-        Assert.DoesNotContain(roundTrip.ValidateDocument(), error =>
-            error.Node is Hyperlink || error.Node?.Ancestors<Hyperlink>().Any() == true);
+        var hyperlinkErrors = roundTrip.ValidateDocument()
+            .Where(error => error.Node is Hyperlink || error.Node?.Ancestors<Hyperlink>().Any() == true)
+            .ToArray();
+        Assert.True(
+            hyperlinkErrors.Length == 0,
+            string.Join(Environment.NewLine, hyperlinkErrors.Select(error =>
+                $"{error.Description}{Environment.NewLine}{error.Node?.OuterXml}")));
+
+        string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+        try {
+            roundTrip.Save(docPath);
+            using WordDocument docReload = WordDocument.Load(docPath);
+            Hyperlink docHyperlink = Assert.Single(Assert.Single(docReload.Paragraphs)._paragraph.Elements<Hyperlink>());
+            Assert.Equal(2, docHyperlink.Elements<SimpleField>().Count());
+            Assert.Equal(new[] { "linked", "nested" }, docReload.Equations.Select(equation => equation.Text));
+            var docErrors = docReload.ValidateDocument().ToArray();
+            Assert.True(
+                docErrors.Length == 0,
+                string.Join(Environment.NewLine, docErrors.Select(error =>
+                    $"{error.Description}{Environment.NewLine}{error.Node?.OuterXml}")));
+        } finally {
+            if (File.Exists(docPath)) File.Delete(docPath);
+        }
     }
 
     [Fact]
@@ -188,7 +209,7 @@ public sealed class RtfEquationTests {
 
         using WordDocument roundTrip = RtfDocument.Read(rtf.ToRtf()).Document.ToWordDocument();
         Hyperlink roundTripHyperlink = Assert.Single(Assert.Single(roundTrip.Paragraphs)._paragraph.Elements<Hyperlink>());
-        Assert.Equal(1, roundTripHyperlink.Descendants<FieldCode>().Count());
+        Assert.Single(roundTripHyperlink.Elements<SimpleField>());
         WordEquation equation = Assert.Single(roundTrip.Equations);
         Assert.Equal(WordEquationRepresentation.EquationField, equation.Representation);
         Assert.Contains("\\f(a,b)", equation.FieldInstruction!, StringComparison.Ordinal);
@@ -206,6 +227,9 @@ public sealed class RtfEquationTests {
             new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
             new Run(new Text("prefix ")),
             new M.OfficeMath(new M.Run(new M.Text("captured-equation"))),
+            new SimpleField(new Run(new Text("simple-equation"))) {
+                Instruction = " EQ \\f(s,t) "
+            },
             new SdtRun(
                 new SdtProperties(new SdtId { Val = 2080 }),
                 new SdtContentRun(
@@ -228,12 +252,12 @@ public sealed class RtfEquationTests {
         Assert.Equal("target", hyperlinkField.HyperlinkField!.SubAddress);
         Assert.All(equationFields, field => Assert.True(field.IsEquation));
         Assert.Equal(
-            new[] { "captured-equation", "controlled-equation", "revised-equation" },
+            new[] { "captured-equation", "simple-equation", "controlled-equation", "revised-equation" },
             equationFields.Select(field => field.ToPlainText()));
         Assert.Equal(
-            "prefix captured-equation controlled-prefix controlled-equation revised-prefix revised-equation suffix",
+            "prefix captured-equationsimple-equation controlled-prefix controlled-equation revised-prefix revised-equation suffix",
             hyperlinkField.ToPlainText());
-        Assert.All(equationFields[2].Result.Inlines.OfType<RtfRun>(), run =>
+        Assert.All(equationFields[3].Result.Inlines.OfType<RtfRun>(), run =>
             Assert.Equal(RtfRevisionKind.Inserted, run.RevisionKind));
         Assert.Empty(rtfParagraph.Inlines.Skip(1));
     }

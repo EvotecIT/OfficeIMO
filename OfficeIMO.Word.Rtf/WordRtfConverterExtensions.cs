@@ -210,7 +210,13 @@ public static partial class WordRtfConverterExtensions {
                         complexFields);
                     break;
                 case SimpleField simpleField:
-                    AppendSimpleField(wordParagraph, simpleField, paragraph, rtfDocument, revisionAuthorIndexes);
+                    AppendSimpleField(
+                        wordParagraph,
+                        simpleField,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        complexFields);
                     hasRuns = true;
                     break;
                 case M.OfficeMath officeMath:
@@ -323,6 +329,7 @@ public static partial class WordRtfConverterExtensions {
                         paragraph,
                         rtfDocument,
                         revisionAuthorIndexes,
+                        complexFields,
                         revisionKind,
                         revisionAuthorIndex);
                     previousRun = null;
@@ -464,6 +471,7 @@ public static partial class WordRtfConverterExtensions {
                         paragraph,
                         rtfDocument,
                         revisionAuthorIndexes,
+                        complexFields,
                         revisionKind,
                         authorIndex);
                     previousRun = null;
@@ -648,10 +656,17 @@ public static partial class WordRtfConverterExtensions {
         RtfParagraph paragraph,
         RtfDocument rtfDocument,
         Dictionary<string, int> revisionAuthorIndexes,
+        Stack<ComplexFieldCapture> complexFields,
         RtfRevisionKind revisionKind = RtfRevisionKind.None,
         int? revisionAuthorIndex = null) {
+        ComplexFieldCapture? activeCapture = complexFields.Count > 0 ? complexFields.Peek() : null;
+        if (activeCapture != null && !activeCapture.CapturingResult) {
+            return;
+        }
+
         string instruction = simpleField.Instruction?.Value ?? string.Empty;
-        RtfField field = paragraph.AddField(instruction.Trim());
+        RtfParagraph destination = activeCapture?.Result ?? paragraph;
+        RtfField field = destination.AddField(instruction.Trim());
         RtfRun? previousRun = null;
         foreach (Run childRun in simpleField.Elements<Run>()) {
             AppendWordRun(
@@ -662,6 +677,9 @@ public static partial class WordRtfConverterExtensions {
                 revisionAuthorIndexes,
                 revisionKind,
                 revisionAuthorIndex);
+        }
+        if (activeCapture != null) {
+            activeCapture.PreviousRun = null;
         }
     }
 
@@ -986,6 +1004,9 @@ public static partial class WordRtfConverterExtensions {
         var resultParagraph = new WordParagraph(wordParagraph._document, newParagraph: true, newRun: false);
         AppendRuns(resultParagraph, field.Result, rtfDocument);
         foreach (OpenXmlElement child in resultParagraph._paragraph.ChildElements) {
+            if (child is ParagraphProperties) {
+                continue;
+            }
             simpleField.Append(child.CloneNode(true));
         }
 
@@ -1038,30 +1059,9 @@ public static partial class WordRtfConverterExtensions {
             if (child is ParagraphProperties) {
                 continue;
             }
-            if (child is SimpleField simpleField) {
-                AppendComplexFieldInlineContent(inlineContent, simpleField);
-                continue;
-            }
-
             inlineContent.Add(child);
         }
         return inlineContent;
-    }
-
-    private static void AppendComplexFieldInlineContent(List<OpenXmlElement> inlineContent, SimpleField simpleField) {
-        inlineContent.Add(new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }));
-        inlineContent.Add(new Run(new FieldCode(simpleField.Instruction?.Value ?? string.Empty) {
-            Space = SpaceProcessingModeValues.Preserve
-        }));
-        inlineContent.Add(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
-        foreach (OpenXmlElement resultChild in simpleField.ChildElements) {
-            if (resultChild is SimpleField nestedField) {
-                AppendComplexFieldInlineContent(inlineContent, nestedField);
-            } else {
-                inlineContent.Add(resultChild);
-            }
-        }
-        inlineContent.Add(new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
     }
 
     private static void AppendBookmarkMarker(WordParagraph wordParagraph, RtfBookmarkMarker marker, Dictionary<string, string> openBookmarks) {

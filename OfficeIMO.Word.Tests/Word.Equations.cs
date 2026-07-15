@@ -412,8 +412,9 @@ namespace OfficeIMO.Tests {
                 new SdtProperties(
                     new W14.SdtContentCheckBox(new W14.Checked { Val = W14.OnOffValues.One })),
                 new SdtContentRun(
+                    new M.OfficeMath(new M.Run(new M.Text("approved"))),
                     new Run(new Text("☑")),
-                    new M.OfficeMath(new M.Run(new M.Text("approved")))));
+                    new Run(new Text(" confirmed"))));
             paragraph._paragraph.Append(contentControl);
 
             IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(document, paragraph._paragraph);
@@ -421,12 +422,12 @@ namespace OfficeIMO.Tests {
 
             Assert.Collection(
                 segments,
+                segment => Assert.Equal("approved", segment.Equation?.Text),
                 segment => {
                     Assert.True(segment.IsRunArtifact);
-                    Assert.Equal("☑", segment.ArtifactVisibleText);
-                },
-                segment => Assert.Equal("approved", segment.Equation?.Text));
-            Assert.Equal("☑approved", WordEquation.GetVisibleTextWithEquations(contentControl, occurrences));
+                    Assert.Equal("☑ confirmed", segment.ArtifactVisibleText);
+                });
+            Assert.Equal("approved☑ confirmed", WordEquation.GetVisibleTextWithEquations(contentControl, occurrences));
         }
 
         [Fact]

@@ -100,12 +100,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendSupportedPageNumberFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, LegacyDocWritableFormatting inheritedFormatting) {
+        private static void AppendSupportedPageNumberFieldFromSimpleField(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            SimpleField field,
+            LegacyDocWritableFormatting inheritedFormatting,
+            bool allowHyperlinkRunStyle = false) {
             if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
                 throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields. Other field types are not supported yet.");
             }
 
-            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
+            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field, allowHyperlinkRunStyle);
             LegacyDocWritableFormatting formatting = result.Formatting
                 .WithInheritedFormatting(inheritedFormatting);
             AppendSupportedField(
@@ -315,7 +321,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : resultText;
         }
 
-        private static LegacyDocSimpleFieldResult ReadSimpleFieldResult(SimpleField field) {
+        private static LegacyDocSimpleFieldResult ReadSimpleFieldResult(
+            SimpleField field,
+            bool allowHyperlinkRunStyle = false) {
             LegacyDocWritableFormatting? formatting = null;
             var bookmarkMarkers = new List<LegacyDocSimpleFieldBookmarkMarker>();
             var resultText = new StringBuilder();
@@ -324,7 +332,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Run run:
                         string runText = ReadSimpleFieldResultRunText(run);
-                        LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
+                        LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(
+                            run.RunProperties,
+                            allowHyperlinkRunStyle);
                         formatting ??= runFormatting;
                         if (!formatting.Value.Equals(runFormatting)) {
                             throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} simple fields only when their display runs use one formatting set.");

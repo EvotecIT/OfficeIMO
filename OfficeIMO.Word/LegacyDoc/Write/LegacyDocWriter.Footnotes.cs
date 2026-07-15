@@ -302,12 +302,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping, page, and column breaks.");
         }
 
-        private static void AppendSupportedNoteFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, int storyStart) {
+        private static void AppendSupportedNoteFieldFromSimpleField(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            SimpleField field,
+            int storyStart,
+            bool allowHyperlinkRunStyle = false) {
             if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
                 throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields in note paragraphs. Other field types are not supported yet.");
             }
 
-            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
+            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field, allowHyperlinkRunStyle);
             AppendSupportedNoteField(
                 text,
                 runs,
@@ -519,7 +525,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationNoteField(text, runs, bookmarks, mathParagraph, storyStart);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedNoteFieldFromSimpleField(text, runs, bookmarks, simpleField, storyStart);
+                        AppendSupportedNoteFieldFromSimpleField(
+                            text,
+                            runs,
+                            bookmarks,
+                            simpleField,
+                            storyStart,
+                            allowHyperlinkRunStyle: true);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + text.Length);
@@ -601,7 +613,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationNoteField(text, runs, bookmarks, mathParagraph, storyStart);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedNoteFieldFromSimpleField(text, runs, bookmarks, simpleField, storyStart);
+                        AppendSupportedNoteFieldFromSimpleField(
+                            text,
+                            runs,
+                            bookmarks,
+                            simpleField,
+                            storyStart,
+                            allowHyperlinkRunStyle: true);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + text.Length);

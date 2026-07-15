@@ -160,8 +160,8 @@ namespace OfficeIMO.Tests {
                     new Tag { Val = "EquationApproval" },
                     new W14.SdtContentCheckBox(new W14.Checked { Val = W14.OnOffValues.One })),
                 new SdtContentRun(
-                    new Run(new Text("☑")),
-                    new M.OfficeMath(new M.Run(new M.Text("approved"))))));
+                    new M.OfficeMath(new M.Run(new M.Text("approved"))),
+                    new Run(new Text("☑")))));
 
             string html = document.ToHtml();
             IDocument parsed = HtmlDocumentParser.ParseDocument(html);
@@ -171,7 +171,7 @@ namespace OfficeIMO.Tests {
             Assert.True(input.HasAttribute("checked"), html);
             Assert.Same(input.ParentElement, math.ParentElement);
             Assert.True(
-                Array.IndexOf(input.ParentElement!.Children.ToArray(), input) < Array.IndexOf(math.ParentElement!.Children.ToArray(), math),
+                Array.IndexOf(math.ParentElement!.Children.ToArray(), math) < Array.IndexOf(input.ParentElement!.Children.ToArray(), input),
                 input.ParentElement.InnerHtml);
         }
 
@@ -327,6 +327,19 @@ namespace OfficeIMO.Tests {
             WordEquation equation = Assert.Single(document.Equations);
             Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
             Assert.Equal("sqrt(x)", equation.Text);
+        }
+
+        [Fact]
+        public void HtmlToWord_ImportsUnlabeledStructuredMathMlAsEditableOmml() {
+            const string html = "<p>Formula: <math><mfrac><mi>a</mi><mi>b</mi></mfrac></math></p>";
+
+            using WordDocument document = OfficeIMO.Html.HtmlConversionDocument.Parse(html).ToWordDocument();
+
+            WordEquation equation = Assert.Single(document.Equations);
+            Assert.Equal(WordEquationRepresentation.Omml, equation.Representation);
+            Assert.Equal("\\frac{a}{b}", equation.ToLatex());
+            Assert.Contains("<mfrac>", equation.ToMathMl(), StringComparison.Ordinal);
+            Assert.Empty(document.ValidateDocument());
         }
 
         [Fact]

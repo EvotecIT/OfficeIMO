@@ -89,9 +89,15 @@ namespace OfficeIMO.Word.Html {
                 switch (element.TagName.ToLowerInvariant()) {
                     case "math": {
                             WordParagraph paragraph = currentParagraph ?? AddParagraphInScope(section, cell, headerFooter);
-                            string equationText = element.GetAttribute("aria-label") ?? element.TextContent ?? string.Empty;
-                            var officeMath = new M.OfficeMath(new M.Run(new M.Text(equationText)));
-                            paragraph.AddEquation(officeMath.OuterXml);
+                            string? equationLabel = element.GetAttribute("aria-label");
+                            if (string.IsNullOrWhiteSpace(equationLabel) &&
+                                HtmlMathMlToOmmlConverter.TryConvert(element, out string structuredOmml)) {
+                                paragraph.AddEquation(structuredOmml);
+                            } else {
+                                string equationText = equationLabel ?? element.TextContent ?? string.Empty;
+                                var officeMath = new M.OfficeMath(new M.Run(new M.Text(equationText)));
+                                paragraph.AddEquation(officeMath.OuterXml);
+                            }
                             break;
                         }
                     case "body": {

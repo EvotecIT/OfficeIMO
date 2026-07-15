@@ -195,10 +195,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!string.IsNullOrEmpty(characterFormat.Language) || !string.IsNullOrEmpty(characterFormat.EastAsiaLanguage)) {
-                ReplaceStyleProperty(properties, new Languages {
-                    Val = characterFormat.Language,
-                    EastAsia = characterFormat.EastAsiaLanguage
-                });
+                ReplaceStyleProperty(properties, CreateLegacyDocLanguages(characterFormat.Language, characterFormat.EastAsiaLanguage));
             }
 
             ReplaceStyleOnOffProperty<Bold>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));

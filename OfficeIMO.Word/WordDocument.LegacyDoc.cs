@@ -2327,10 +2327,7 @@ namespace OfficeIMO.Word {
             }
 
             if (!string.IsNullOrEmpty(characterFormat.Language) || !string.IsNullOrEmpty(characterFormat.EastAsiaLanguage)) {
-                properties.Append(new Languages {
-                    Val = characterFormat.Language,
-                    EastAsia = characterFormat.EastAsiaLanguage
-                });
+                properties.Append(CreateLegacyDocLanguages(characterFormat.Language, characterFormat.EastAsiaLanguage));
                 hasProperties = true;
             }
 
@@ -2523,11 +2520,21 @@ namespace OfficeIMO.Word {
             if (!string.IsNullOrEmpty(legacyRun.Language) || !string.IsNullOrEmpty(legacyRun.EastAsiaLanguage)) {
                 RunProperties runProperties = run._runProperties ?? new RunProperties();
                 run._runProperties = runProperties;
-                runProperties.Languages = new Languages {
-                    Val = legacyRun.Language,
-                    EastAsia = legacyRun.EastAsiaLanguage
-                };
+                runProperties.Languages = CreateLegacyDocLanguages(legacyRun.Language, legacyRun.EastAsiaLanguage);
             }
+        }
+
+        private static Languages CreateLegacyDocLanguages(string? language, string? eastAsiaLanguage) {
+            var languages = new Languages();
+            if (!string.IsNullOrEmpty(language)) {
+                languages.Val = language;
+            }
+
+            if (!string.IsNullOrEmpty(eastAsiaLanguage)) {
+                languages.EastAsia = eastAsiaLanguage;
+            }
+
+            return languages;
         }
 
         private static bool TryMapHighlight(LegacyDocHighlightColorKind highlightKind, out HighlightColorValues value) {

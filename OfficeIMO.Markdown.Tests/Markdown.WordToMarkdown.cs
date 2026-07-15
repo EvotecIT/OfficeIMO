@@ -359,6 +359,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, markdown.Split(new[] { "```math" }, StringSplitOptions.None).Length - 1);
             Assert.Contains("x=1", markdown, StringComparison.Ordinal);
             Assert.Contains("y=2", markdown, StringComparison.Ordinal);
+            int before = markdown.IndexOf("before", StringComparison.Ordinal);
+            int firstEquation = markdown.IndexOf("x=1", StringComparison.Ordinal);
+            int between = markdown.IndexOf("between", StringComparison.Ordinal);
+            int secondEquation = markdown.IndexOf("y=2", StringComparison.Ordinal);
+            int after = markdown.IndexOf("after", StringComparison.Ordinal);
+            Assert.True(
+                before >= 0 && before < firstEquation && firstEquation < between && between < secondEquation && secondEquation < after,
+                markdown);
         }
 
         [Fact]
@@ -473,15 +481,22 @@ namespace OfficeIMO.Tests {
             WordParagraph paragraph = doc.AddParagraph("Choice: ");
             WordDropDownList dropDown = paragraph.AddDropDownList(new[] { "First", "Selected" }, "Equation choice", "EquationChoice");
             dropDown.SelectedValue = "Selected";
-            dropDown._sdtRun.SdtContentRun!.Append(
-                new M.OfficeMath(new M.Run(new M.Text("selected-equation"))));
+            SdtContentRun content = dropDown._sdtRun.SdtContentRun!;
+            Run displayRun = Assert.Single(content.Elements<Run>());
+            displayRun.Remove();
+            content.Append(
+                new M.OfficeMath(new M.Run(new M.Text("selected-equation"))),
+                displayRun);
 
             string markdown = doc.ToMarkdown();
 
-            Assert.Contains("Choice: Selected", markdown, StringComparison.Ordinal);
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
             Assert.Equal(1, markdown.Split(new[] { "Selected" }, StringSplitOptions.None).Length - 1);
             Assert.Equal(1, markdown.Split(new[] { "selected-equation" }, StringSplitOptions.None).Length - 1);
+            int prefix = markdown.IndexOf("Choice:", StringComparison.Ordinal);
+            int equation = markdown.IndexOf("selected-equation", StringComparison.Ordinal);
+            int selected = markdown.IndexOf("Selected", StringComparison.Ordinal);
+            Assert.True(prefix >= 0 && prefix < equation && equation < selected, markdown);
         }
 
         [Fact]
@@ -542,6 +557,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
             Assert.Contains("```officeimo-word-page-break", markdown, StringComparison.Ordinal);
             Assert.Equal(1, markdown.Split(new[] { "(a)/(b)" }, StringSplitOptions.None).Length - 1);
+            int before = markdown.IndexOf("before", StringComparison.Ordinal);
+            int equation = markdown.IndexOf("(a)/(b)", StringComparison.Ordinal);
+            int pageBreak = markdown.IndexOf("```officeimo-word-page-break", StringComparison.Ordinal);
+            int after = markdown.IndexOf("after", StringComparison.Ordinal);
+            Assert.True(before >= 0 && before < equation && equation < pageBreak && pageBreak < after, markdown);
         }
 
         [Fact]

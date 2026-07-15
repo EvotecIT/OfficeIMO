@@ -419,6 +419,19 @@ namespace OfficeIMO.Word.Markdown {
             const string codeLangPrefix = "CodeLang_";
             var blocks = new List<IMarkdownBlock>();
 
+            IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(
+                paragraph._document,
+                paragraph._paragraph);
+            if (equations.Count > 0) {
+                return BuildParagraphBlocksWithOrderedEquations(
+                    paragraph,
+                    equations,
+                    options,
+                    hasCheckbox,
+                    allowQuoteHeuristic,
+                    trimBoundaryWhitespace);
+            }
+
             string? styleId = paragraph.StyleId;
             if (styleId is { Length: > 0 } sid && sid.StartsWith(codeLangPrefix, StringComparison.Ordinal)) {
                 var runs = paragraph.GetRuns()
@@ -454,6 +467,103 @@ namespace OfficeIMO.Word.Markdown {
                 hasCheckbox,
                 allowQuoteHeuristic,
                 trimBoundaryWhitespace);
+        }
+
+        private IReadOnlyList<IMarkdownBlock> BuildParagraphBlocksWithOrderedEquations(
+            WordParagraph paragraph,
+            IReadOnlyList<WordEquationOccurrence> equations,
+            WordToMarkdownOptions options,
+            bool hasCheckbox,
+            bool allowQuoteHeuristic,
+            bool trimBoundaryWhitespace) {
+            var blocks = new List<IMarkdownBlock>();
+            InlineSequence inlines = CreateInlineSequence();
+            string? preferredCodeFont = ResolveConfiguredCodeFont(options.FontFamily);
+            string? implicitCodeFont = ResolveImplicitCodeFont();
+            bool checkboxPending = hasCheckbox;
+
+            void FlushInlines() {
+                IReadOnlyList<IMarkdownBlock> inlineBlocks = BuildParagraphBlocksFromInlines(
+                    paragraph,
+                    inlines,
+                    checkboxPending,
+                    allowQuoteHeuristic,
+                    trimBoundaryWhitespace);
+                foreach (IMarkdownBlock block in inlineBlocks) {
+                    blocks.Add(block);
+                }
+                if (inlineBlocks.Count > 0) {
+                    checkboxPending = false;
+                }
+                inlines = CreateInlineSequence();
+            }
+
+            void AppendStandaloneBlock(IMarkdownBlock block) {
+                if (allowQuoteHeuristic &&
+                    paragraph.IndentationBefore.HasValue &&
+                    paragraph.IndentationBefore.Value > 0) {
+                    int depth = (int)Math.Round(paragraph.IndentationBefore.Value / 720d);
+                    if (depth > 0) {
+                        block = WrapQuotedBlock(block, depth);
+                    }
+                }
+                blocks.Add(block);
+            }
+
+            if (paragraph.PageBreakBefore) {
+                IMarkdownBlock? pageBreakBefore = CreatePageBreakBlock(options);
+                if (pageBreakBefore != null) {
+                    AppendStandaloneBlock(pageBreakBefore);
+                }
+            }
+
+            foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(paragraph._paragraph, equations)) {
+                if (segment.Equation != null) {
+                    FlushInlines();
+                    string latex = segment.Equation.ToLatex();
+                    if (!string.IsNullOrWhiteSpace(latex)) {
+                        AppendStandaloneBlock(new CodeBlock("math", latex));
+                    }
+                    continue;
+                }
+
+                WordParagraph sourceRun = segment.CreateSourceParagraph(
+                    paragraph._document,
+                    paragraph._paragraph,
+                    paragraph);
+                if (segment.IsRunArtifact) {
+                    if ((segment.ArtifactElement is Break || segment.ArtifactElement is CarriageReturn) &&
+                        sourceRun.PageBreak != null) {
+                        FlushInlines();
+                        IMarkdownBlock? pageBreak = CreatePageBreakBlock(options);
+                        if (pageBreak != null) {
+                            AppendStandaloneBlock(pageBreak);
+                        }
+                    } else {
+                        AppendEquationArtifact(
+                            inlines,
+                            sourceRun,
+                            segment,
+                            options,
+                            preferredCodeFont,
+                            implicitCodeFont);
+                    }
+                    continue;
+                }
+
+                if (!string.IsNullOrEmpty(segment.Text)) {
+                    AppendRunInlines(
+                        inlines,
+                        sourceRun,
+                        options,
+                        preferredCodeFont,
+                        implicitCodeFont,
+                        segment.Text);
+                }
+            }
+
+            FlushInlines();
+            return blocks;
         }
 
         private static IReadOnlyList<IMarkdownBlock> BuildCodeParagraphBlocksWithPageBreaks(
@@ -1064,35 +1174,24 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private IReadOnlyList<IMarkdownBlock> CreateUnsupportedParagraphContentBlocks(WordParagraph paragraph, WordToMarkdownOptions options) {
-            List<IMarkdownBlock> equationBlocks = CreateEquationBlocks(paragraph);
+            var blocks = new List<IMarkdownBlock>();
             if (!TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
-                return equationBlocks;
+                return blocks;
             }
 
-            if (equationBlocks.Count > 0 && string.Equals(unsupportedParagraphKind, "equation", StringComparison.OrdinalIgnoreCase)) {
-                return equationBlocks;
+            if (string.Equals(unsupportedParagraphKind, "equation", StringComparison.OrdinalIgnoreCase) &&
+                WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
+                return blocks;
             }
 
             if (TryCreateVisualFallbackBlock(paragraph, options, out var visualBlock)) {
-                equationBlocks.Add(visualBlock);
-                return equationBlocks;
+                blocks.Add(visualBlock);
+                return blocks;
             }
 
             IMarkdownBlock? unsupportedBlock = CreateUnsupportedContentBlock(options, unsupportedParagraphKind);
             if (unsupportedBlock != null) {
-                equationBlocks.Add(unsupportedBlock);
-            }
-
-            return equationBlocks;
-        }
-
-        private static List<IMarkdownBlock> CreateEquationBlocks(WordParagraph paragraph) {
-            var blocks = new List<IMarkdownBlock>();
-            foreach (WordEquationOccurrence occurrence in WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph)) {
-                string latex = occurrence.Equation.ToLatex();
-                if (!string.IsNullOrWhiteSpace(latex)) {
-                    blocks.Add(new CodeBlock("math", latex));
-                }
+                blocks.Add(unsupportedBlock);
             }
 
             return blocks;

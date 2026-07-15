@@ -48,7 +48,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, inheritedFormatting);
+                        AppendSupportedPageNumberFieldFromSimpleField(
+                            text,
+                            runs,
+                            bookmarks,
+                            simpleField,
+                            inheritedFormatting,
+                            allowHyperlinkRunStyle: true);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);
@@ -139,7 +145,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, inheritedFormatting);
+                        AppendSupportedPageNumberFieldFromSimpleField(
+                            text,
+                            runs,
+                            bookmarks,
+                            simpleField,
+                            inheritedFormatting,
+                            allowHyperlinkRunStyle: true);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);

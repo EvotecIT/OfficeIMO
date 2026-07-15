@@ -137,7 +137,16 @@ namespace OfficeIMO.Word {
 
             var segments = new List<WordEquationContentSegment>();
             var emittedEquations = new HashSet<WordEquation>();
-            AppendVisibleContentSegments(segments, container, occurrences, emittedEquations, includeElement, null, false);
+            var emittedControlArtifacts = new HashSet<SdtRun>();
+            AppendVisibleContentSegments(
+                segments,
+                container,
+                occurrences,
+                emittedEquations,
+                emittedControlArtifacts,
+                includeElement,
+                null,
+                null);
             return segments;
         }
 
@@ -173,21 +182,17 @@ namespace OfficeIMO.Word {
             OpenXmlElement element,
             IReadOnlyList<WordEquationOccurrence> occurrences,
             HashSet<WordEquation> emittedEquations,
+            HashSet<SdtRun> emittedControlArtifacts,
             Func<OpenXmlElement, bool>? includeElement,
             OpenXmlElement? sourceElement,
-            bool suppressText) {
+            SdtRun? artifactControl) {
             if (element is DeletedRun || element is MoveFromRun) return;
             if (includeElement != null && !includeElement(element)) return;
             if (element is Hyperlink || element is SdtRun) sourceElement = element;
             if (element is Run run) {
                 sourceElement = run;
             } else if (element is SdtRun sdtRun && HasSupportedSdtArtifact(sdtRun)) {
-                string visibleArtifactText = string.Concat(sdtRun
-                    .Descendants<Text>()
-                    .Where(text => !IsInsideEquationBackingElement(text, occurrences))
-                    .Select(text => text.Text));
-                segments.Add(WordEquationContentSegment.FromRunArtifact(sdtRun, sdtRun, visibleArtifactText));
-                suppressText = true;
+                artifactControl = sdtRun;
             }
 
             WordEquation? backedEquation = occurrences
@@ -206,25 +211,81 @@ namespace OfficeIMO.Word {
             }
 
             if (element is Text text) {
-                if (!suppressText) AppendVisibleTextSegment(segments, text.Text, sourceElement);
+                AppendVisibleTextOrControlArtifact(
+                    segments,
+                text.Text,
+                sourceElement,
+                artifactControl,
+                emittedControlArtifacts,
+                occurrences);
                 return;
             }
             if (element is TabChar) {
-                if (!suppressText) AppendVisibleTextSegment(segments, "\t", sourceElement);
+                AppendVisibleTextOrControlArtifact(
+                    segments,
+                    "\t",
+                    sourceElement,
+                    artifactControl,
+                    emittedControlArtifacts,
+                    occurrences);
                 return;
             }
             if (element is NoBreakHyphen) {
-                if (!suppressText) AppendVisibleTextSegment(segments, "\u2011", sourceElement);
+                AppendVisibleTextOrControlArtifact(
+                    segments,
+                    "\u2011",
+                    sourceElement,
+                    artifactControl,
+                    emittedControlArtifacts,
+                    occurrences);
                 return;
             }
             if (element is SoftHyphen) {
-                if (!suppressText) AppendVisibleTextSegment(segments, "\u00ad", sourceElement);
+                AppendVisibleTextOrControlArtifact(
+                    segments,
+                    "\u00ad",
+                    sourceElement,
+                    artifactControl,
+                    emittedControlArtifacts,
+                    occurrences);
                 return;
             }
 
             foreach (OpenXmlElement child in element.ChildElements) {
-                AppendVisibleContentSegments(segments, child, occurrences, emittedEquations, includeElement, sourceElement, suppressText);
+                AppendVisibleContentSegments(
+                    segments,
+                    child,
+                    occurrences,
+                    emittedEquations,
+                    emittedControlArtifacts,
+                    includeElement,
+                    sourceElement,
+                    artifactControl);
             }
+        }
+
+        private static void AppendVisibleTextOrControlArtifact(
+            List<WordEquationContentSegment> segments,
+            string? text,
+            OpenXmlElement? sourceElement,
+            SdtRun? artifactControl,
+            HashSet<SdtRun> emittedControlArtifacts,
+            IReadOnlyList<WordEquationOccurrence> occurrences) {
+            if (string.IsNullOrEmpty(text)) return;
+            if (artifactControl != null) {
+                if (!emittedControlArtifacts.Add(artifactControl)) return;
+                string visibleArtifactText = string.Concat(artifactControl
+                    .Descendants<Text>()
+                    .Where(value => !IsInsideEquationBackingElement(value, occurrences))
+                    .Select(value => value.Text));
+                segments.Add(WordEquationContentSegment.FromRunArtifact(
+                    artifactControl,
+                    artifactControl,
+                    string.IsNullOrEmpty(visibleArtifactText) ? text : visibleArtifactText));
+                return;
+            }
+
+            AppendVisibleTextSegment(segments, text, sourceElement);
         }
 
         private static bool IsSupportedRunArtifactElement(OpenXmlElement element) =>
