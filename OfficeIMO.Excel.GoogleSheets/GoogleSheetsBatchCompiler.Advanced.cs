@@ -319,12 +319,22 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return chartType.Length > 0;
         }
 
-        private static void AppendPivotTables(
-            GoogleSheetsBatch batch,
+        private sealed class NativePivotCompilation {
+            internal NativePivotCompilation(string outputRange, GoogleSheetsAddPivotTableRequest request) {
+                OutputRange = outputRange;
+                Request = request;
+            }
+
+            internal string OutputRange { get; }
+            internal GoogleSheetsAddPivotTableRequest Request { get; }
+        }
+
+        private static IReadOnlyList<NativePivotCompilation> CompilePivotTables(
             ExcelSheet sourceSheet,
             ExcelWorkbookSnapshot workbook,
             TranslationReport report,
             UnsupportedFeatureMode policy) {
+            var compilations = new List<NativePivotCompilation>();
             foreach (ExcelPivotTableInfo pivot in sourceSheet.GetPivotTables()) {
                 if (pivot.CalculatedFields.Count > 0 || pivot.Groupings.Count > 0 || pivot.Filters.Count > 0
                     || string.IsNullOrWhiteSpace(pivot.SourceSheet) || string.IsNullOrWhiteSpace(pivot.SourceRange)
@@ -333,7 +343,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     HandleAdvancedUnsupported(report, "PivotTables", "SHEETS.PIVOT_TABLE.UNSUPPORTED", pivot.Name, policy);
                     continue;
                 }
-                batch.Add(new GoogleSheetsAddPivotTableRequest {
+                var request = new GoogleSheetsAddPivotTableRequest {
                     SheetName = pivot.SheetName,
                     DestinationRowIndex = destinationRow,
                     DestinationColumnIndex = destinationColumn,
@@ -342,8 +352,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     Rows = rows,
                     Columns = columns,
                     Values = values,
-                });
+                };
+                compilations.Add(new NativePivotCompilation(pivot.Location!, request));
             }
+
+            return compilations;
         }
 
         private static bool TryBuildPivotFields(

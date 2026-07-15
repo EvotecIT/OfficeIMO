@@ -2820,7 +2820,11 @@ namespace OfficeIMO.Tests {
                             return CreateJsonResponse("{\"documentId\":\"doc-header-table\",\"title\":\"Header Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                         }
 
-                        return CreateJsonResponse(CreateHeaderTableDocumentStateJson("headerTable123", "doc-header-table", "Header Table Export"));
+                        return CreateJsonResponse(CreateHeaderTableDocumentStateJson(
+                            "headerTable123",
+                            "doc-header-table",
+                            "Header Table Export",
+                            getCount == 2 ? 1 : 15));
                     }
 
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table:batchUpdate") {
@@ -2847,7 +2851,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-header-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
@@ -2874,6 +2878,18 @@ namespace OfficeIMO.Tests {
                     && request.Body.Contains("\"updateTableCellStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"backgroundColor\"", headerTableStyle.Body!);
                 Assert.Contains("\"borderRight\"", headerTableStyle.Body!);
+                using (var styleJson = JsonDocument.Parse(headerTableStyle.Body!)) {
+                    JsonElement style = styleJson.RootElement.GetProperty("requests").EnumerateArray()
+                        .Single(request => request.TryGetProperty("updateTableCellStyle", out _))
+                        .GetProperty("updateTableCellStyle");
+                    Assert.Equal(
+                        15,
+                        style.GetProperty("tableRange")
+                            .GetProperty("tableCellLocation")
+                            .GetProperty("tableStartLocation")
+                            .GetProperty("index")
+                            .GetInt32());
+                }
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2930,7 +2946,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-footer-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
@@ -3013,7 +3029,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-header-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -3099,7 +3115,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-first-footer-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
@@ -3179,7 +3195,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-footer-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -3469,7 +3485,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-header-table-bookmark", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -3550,7 +3566,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-footer-table-bookmark", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -4112,7 +4128,8 @@ namespace OfficeIMO.Tests {
         private static string CreateHeaderTableDocumentStateJson(
             string headerId,
             string documentId = "doc-header-table",
-            string title = "Header Table Export") {
+            string title = "Header Table Export",
+            int tableStartIndex = 1) {
             return JsonSerializer.Serialize(new {
                 documentId,
                 title,
@@ -4129,8 +4146,8 @@ namespace OfficeIMO.Tests {
                     [headerId] = new {
                         content = new object[] {
                             new {
-                                startIndex = 1,
-                                endIndex = 40,
+                                startIndex = tableStartIndex,
+                                endIndex = tableStartIndex + 39,
                                 table = new {
                                     tableRows = new object[] {
                                         new {
@@ -4138,8 +4155,8 @@ namespace OfficeIMO.Tests {
                                                 new {
                                                     content = new object[] {
                                                         new {
-                                                            startIndex = 5,
-                                                            endIndex = 6,
+                                                            startIndex = tableStartIndex + 4,
+                                                            endIndex = tableStartIndex + 5,
                                                             paragraph = new { }
                                                         }
                                                     }
@@ -4147,8 +4164,8 @@ namespace OfficeIMO.Tests {
                                                 new {
                                                     content = new object[] {
                                                         new {
-                                                            startIndex = 10,
-                                                            endIndex = 11,
+                                                            startIndex = tableStartIndex + 9,
+                                                            endIndex = tableStartIndex + 10,
                                                             paragraph = new { }
                                                         }
                                                     }
@@ -4160,8 +4177,8 @@ namespace OfficeIMO.Tests {
                                                 new {
                                                     content = new object[] {
                                                         new {
-                                                            startIndex = 15,
-                                                            endIndex = 16,
+                                                            startIndex = tableStartIndex + 14,
+                                                            endIndex = tableStartIndex + 15,
                                                             paragraph = new { }
                                                         }
                                                     }
@@ -4169,8 +4186,8 @@ namespace OfficeIMO.Tests {
                                                 new {
                                                     content = new object[] {
                                                         new {
-                                                            startIndex = 20,
-                                                            endIndex = 21,
+                                                            startIndex = tableStartIndex + 19,
+                                                            endIndex = tableStartIndex + 20,
                                                             paragraph = new { }
                                                         }
                                                     }

@@ -79,6 +79,13 @@ namespace OfficeIMO.Word.GoogleDocs {
 
                 await SendBatchUpdateAsync(transport, accessToken, documentId, batch, segmentTablePayload, cancellationToken).ConfigureAwait(false);
 
+                segmentDocumentState = await GetDocumentAsync(
+                    transport,
+                    accessToken,
+                    documentId,
+                    batch,
+                    cancellationToken).ConfigureAwait(false);
+
                 var segmentMergePayload = GoogleDocsApiPayloadBuilder.BuildSegmentTableMergeBatchUpdatePayload(
                     segment,
                     segmentDocumentState,

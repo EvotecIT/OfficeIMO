@@ -63,6 +63,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_DriveClient_TemporaryPublicLease_RetriesCleanupAfterCancellation() {
+            int deleteAttempts = 0;
+            using var httpClient = new HttpClient(new FakeHandler((request, cancellationToken) => {
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("uploadType=multipart", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"id\":\"temporary-retry\",\"name\":\"image.png\",\"mimeType\":\"image/png\"}"));
+                }
+
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("/temporary-retry/permissions?", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"id\":\"permission-retry\",\"type\":\"anyone\",\"role\":\"reader\"}"));
+                }
+
+                if (request.Method == HttpMethod.Delete && request.RequestUri!.AbsoluteUri.Contains("/files/temporary-retry?", StringComparison.Ordinal)) {
+                    deleteAttempts++;
+                    if (cancellationToken.IsCancellationRequested) {
+                        return Task.FromCanceled<HttpResponseMessage>(cancellationToken);
+                    }
+
+                    return Task.FromResult(Json("{}"));
+                }
+
+                return Task.FromResult(NotFound());
+            }));
+            using var client = CreateClient(httpClient);
+            GoogleDriveTemporaryContentLease lease = await GoogleDriveTemporaryContentLease.CreatePublicReadLeaseAsync(
+                client,
+                Encoding.UTF8.GetBytes("image"),
+                new GoogleDriveUploadOptions { Name = "image.png", ContentType = "image/png" });
+
+            using (var cancellation = new CancellationTokenSource()) {
+                cancellation.Cancel();
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => lease.CleanupAsync(cancellation.Token));
+            }
+            int attemptsAfterCancellation = deleteAttempts;
+
+            GoogleDriveCleanupReport cleanup = await lease.CleanupAsync();
+
+            Assert.Equal(attemptsAfterCancellation + 1, deleteAttempts);
+            Assert.Equal(GoogleDriveCleanupStatus.Deleted, Assert.Single(cleanup.Entries).Status);
+        }
+
+        [Fact]
         public async Task Test_DriveClient_TemporaryPublicLease_UsesResumableUploadAboveMultipartLimit() {
             var requests = new List<string>();
             using var httpClient = new HttpClient(new FakeHandler(request => {
@@ -152,6 +193,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_DriveClient_ResumableUpload_RepeatsChunkWhenRangeIsMissing() {
+            var ranges = new List<string>();
+            using var httpClient = new HttpClient(new FakeHandler(async request => {
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
+                    var response = Json("{}");
+                    response.Headers.Location = new Uri("https://upload.example.test/session-missing-range");
+                    return response;
+                }
+
+                if (request.Method == HttpMethod.Put && request.RequestUri!.AbsoluteUri == "https://upload.example.test/session-missing-range") {
+                    string range = request.Content!.Headers.GetValues("Content-Range").Single();
+                    ranges.Add(range);
+                    _ = await request.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                    if (ranges.Count == 1) {
+                        return new HttpResponseMessage((HttpStatusCode)308) { Content = new StringContent(string.Empty) };
+                    }
+
+                    if (ranges.Count == 2) {
+                        var acknowledged = new HttpResponseMessage((HttpStatusCode)308) { Content = new StringContent(string.Empty) };
+                        acknowledged.Headers.TryAddWithoutValidation("Range", "bytes=0-262143");
+                        return acknowledged;
+                    }
+
+                    return new HttpResponseMessage(HttpStatusCode.Created) {
+                        Content = new StringContent("{\"id\":\"resumable-missing-range\",\"name\":\"large.bin\"}", Encoding.UTF8, "application/json")
+                    };
+                }
+
+                return NotFound();
+            }));
+            using var client = CreateClient(httpClient);
+
+            GoogleDriveFile file = await client.UploadResumableAsync(
+                new byte[300 * 1024],
+                new GoogleDriveUploadOptions {
+                    Name = "large.bin",
+                    ContentType = "application/octet-stream",
+                    ResumableChunkSize = 256 * 1024,
+                });
+
+            Assert.Equal("resumable-missing-range", file.Id);
+            Assert.Equal(new[] {
+                "bytes 0-262143/307200",
+                "bytes 0-262143/307200",
+                "bytes 262144-307199/307200",
+            }, ranges);
+        }
+
+        [Fact]
         public async Task Test_DriveClient_RejectsFolderFromUnexpectedSharedDrive() {
             using var httpClient = new HttpClient(new FakeHandler(request => Task.FromResult(Json(
                 "{\"id\":\"folder-1\",\"name\":\"Folder\",\"mimeType\":\"application/vnd.google-apps.folder\",\"driveId\":\"drive-a\"}"))));
@@ -224,14 +314,18 @@ namespace OfficeIMO.Tests {
         }
 
         private sealed class FakeHandler : HttpMessageHandler {
-            private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
+            private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
 
             public FakeHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) {
+                _handler = (request, _) => handler(request);
+            }
+
+            public FakeHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler) {
                 _handler = handler;
             }
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
-                return _handler(request);
+                return _handler(request, cancellationToken);
             }
         }
 

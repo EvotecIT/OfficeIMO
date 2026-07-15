@@ -151,11 +151,19 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Add(filterRequest);
                 }
 
+                ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, worksheet.Name, StringComparison.OrdinalIgnoreCase));
+                IReadOnlyList<NativePivotCompilation> nativePivots = sourceSheet == null
+                    ? Array.Empty<NativePivotCompilation>()
+                    : CompilePivotTables(sourceSheet, workbookSnapshot, report, options.UnsupportedFeatures.PivotTables);
                 var updateCells = new GoogleSheetsUpdateCellsRequest {
                     SheetName = worksheet.Name
                 };
 
                 foreach (var cell in worksheet.Cells) {
+                    if (nativePivots.Any(pivot => TryRangeContainsCell(pivot.OutputRange, cell.Row, cell.Column))) {
+                        continue;
+                    }
+
                     if (!styleNoticeAdded && cell.Style != null) {
                         report.Add(
                             TranslationSeverity.Info,
@@ -195,11 +203,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     });
                 }
 
-                ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, worksheet.Name, StringComparison.OrdinalIgnoreCase));
                 if (sourceSheet != null) {
                     AppendConditionalFormatting(batch, sourceSheet, report);
                     AppendCharts(batch, sourceSheet, worksheet, report, options.UnsupportedFeatures.Charts);
-                    AppendPivotTables(batch, sourceSheet, workbookSnapshot, report, options.UnsupportedFeatures.PivotTables);
+                    foreach (NativePivotCompilation pivot in nativePivots) {
+                        batch.Add(pivot.Request);
+                    }
                 }
             }
 

@@ -114,7 +114,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                         return response.DeserializeJson<GoogleDriveFile>();
                     }
 
-                    offset = ResolveNextOffset(response, end + 1);
+                    offset = ResolveNextOffset(response, offset);
                     options.Progress?.Report(new GoogleDriveTransferProgress(offset, content.LongLength));
                 } catch (GoogleWorkspaceApiException exception) when ((int)exception.ResponseStatusCode >= 500) {
                     var status = await QueryResumableStatusAsync(token, sessionUri, content.LongLength, report, cancellationToken).ConfigureAwait(false);

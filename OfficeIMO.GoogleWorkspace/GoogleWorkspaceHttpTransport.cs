@@ -23,6 +23,9 @@ namespace OfficeIMO.GoogleWorkspace {
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _ownsClient = options.HttpClient == null;
             _client = options.HttpClient ?? new HttpClient();
+            if (_ownsClient) {
+                _client.Timeout = System.Threading.Timeout.InfiniteTimeSpan;
+            }
         }
 
         public Task<TResponse> SendJsonAsync<TResponse>(

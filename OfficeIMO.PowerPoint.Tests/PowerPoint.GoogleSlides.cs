@@ -84,6 +84,23 @@ namespace OfficeIMO.Tests {
             Assert.Contains("\"slideProperties\":{\"isSkipped\":true},\"fields\":\"isSkipped\"", body);
             using (JsonDocument payload = JsonDocument.Parse(body)) {
                 JsonElement[] requests = payload.RootElement.GetProperty("requests").EnumerateArray().ToArray();
+                int keeperCreateIndex = Array.FindIndex(requests, request =>
+                    request.TryGetProperty("createSlide", out JsonElement createSlide)
+                    && createSlide.GetProperty("objectId").GetString()!.StartsWith("officeimo_replacement_keeper", StringComparison.Ordinal));
+                Assert.True(keeperCreateIndex >= 0);
+                string keeperSlideId = requests[keeperCreateIndex].GetProperty("createSlide").GetProperty("objectId").GetString()!;
+                int oldSlideDeleteIndex = Array.FindIndex(requests, request =>
+                    request.TryGetProperty("deleteObject", out JsonElement deleteObject)
+                    && deleteObject.GetProperty("objectId").GetString() == "initial-slide");
+                int authoredSlideCreateIndex = Array.FindIndex(requests, request =>
+                    request.TryGetProperty("createSlide", out JsonElement createSlide)
+                    && createSlide.GetProperty("objectId").GetString() == "officeimo_slide_0001_0001");
+                int keeperDeleteIndex = Array.FindIndex(requests, request =>
+                    request.TryGetProperty("deleteObject", out JsonElement deleteObject)
+                    && deleteObject.GetProperty("objectId").GetString() == keeperSlideId);
+                Assert.True(keeperCreateIndex < oldSlideDeleteIndex);
+                Assert.True(oldSlideDeleteIndex < authoredSlideCreateIndex);
+                Assert.True(authoredSlideCreateIndex < keeperDeleteIndex);
                 JsonElement update = Assert.Single(requests, request => request.TryGetProperty("updatePageProperties", out _))
                     .GetProperty("updatePageProperties");
                 Assert.Equal("officeimo_slide_0001_0001", update.GetProperty("objectId").GetString());

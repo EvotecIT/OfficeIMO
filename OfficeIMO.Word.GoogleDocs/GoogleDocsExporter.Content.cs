@@ -17,13 +17,31 @@ namespace OfficeIMO.Word.GoogleDocs {
                     ? await UploadInlineImagesAsync(driveClient, batch, leases, cancellationToken).ConfigureAwait(false)
                     : new Dictionary<GoogleDocsInlineImage, string>();
 
-                await ApplyDocumentContentCoreAsync(
-                    transport,
-                    accessToken,
-                    documentId,
-                    batch,
-                    imageUris,
-                    cancellationToken).ConfigureAwait(false);
+                string? originalTargetTabId = batch.TargetTabId;
+                try {
+                    if (batch.TargetTabIds.Count == 0) {
+                        await ApplyDocumentContentCoreAsync(
+                            transport,
+                            accessToken,
+                            documentId,
+                            batch,
+                            imageUris,
+                            cancellationToken).ConfigureAwait(false);
+                    } else {
+                        foreach (string targetTabId in batch.TargetTabIds) {
+                            batch.TargetTabId = targetTabId;
+                            await ApplyDocumentContentCoreAsync(
+                                transport,
+                                accessToken,
+                                documentId,
+                                batch,
+                                imageUris,
+                                cancellationToken).ConfigureAwait(false);
+                        }
+                    }
+                } finally {
+                    batch.TargetTabId = originalTargetTabId;
+                }
             } finally {
                 await CleanupTemporaryInlineImagesAsync(
                     leases,

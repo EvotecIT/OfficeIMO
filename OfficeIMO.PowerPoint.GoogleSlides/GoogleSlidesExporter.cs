@@ -137,12 +137,40 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
         private static List<object> BuildRequests(GoogleSlidesBatch batch, GoogleSlidesApiPresentationResponse current, IReadOnlyDictionary<string, string> imageUrls) {
             ResolvePagePlacement(batch, current, out double scale, out double offsetX, out double offsetY);
-            var requests = current.Slides.Where(slide => !string.IsNullOrWhiteSpace(slide.ObjectId)).Select(slide => (object)new { deleteObject = new { objectId = slide.ObjectId } }).ToList();
+            var existingSlideIds = current.Slides
+                .Where(slide => !string.IsNullOrWhiteSpace(slide.ObjectId))
+                .Select(slide => slide.ObjectId!)
+                .ToList();
+            var requests = new List<object>();
+            string? keeperSlideId = null;
+            if (existingSlideIds.Count > 0) {
+                var occupiedIds = new HashSet<string>(existingSlideIds.Concat(batch.Slides.Select(slide => slide.ObjectId)), StringComparer.Ordinal);
+                keeperSlideId = "officeimo_replacement_keeper";
+                for (int suffix = 2; occupiedIds.Contains(keeperSlideId); suffix++) {
+                    keeperSlideId = "officeimo_replacement_keeper_" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                }
+
+                requests.Add(new {
+                    createSlide = new {
+                        objectId = keeperSlideId,
+                        insertionIndex = existingSlideIds.Count,
+                        slideLayoutReference = new { predefinedLayout = "BLANK" }
+                    }
+                });
+            }
+
+            foreach (string existingSlideId in existingSlideIds) {
+                requests.Add(new { deleteObject = new { objectId = existingSlideId } });
+            }
+
             foreach (GoogleSlidesSlide slide in batch.Slides) {
                 requests.Add(new { createSlide = new { objectId = slide.ObjectId, insertionIndex = slide.Index, slideLayoutReference = new { predefinedLayout = "BLANK" } } });
                 if (slide.IsSkipped) requests.Add(new { updateSlideProperties = new { objectId = slide.ObjectId, slideProperties = new { isSkipped = true }, fields = "isSkipped" } });
                 if (!string.IsNullOrWhiteSpace(slide.BackgroundColorHex)) requests.Add(new { updatePageProperties = new { objectId = slide.ObjectId, pageProperties = new { pageBackgroundFill = new { solidFill = new { color = new { rgbColor = Rgb(slide.BackgroundColorHex!) } } } }, fields = "pageBackgroundFill.solidFill.color" } });
                 foreach (GoogleSlidesElement element in slide.Elements) AddElementRequests(requests, slide.ObjectId, element, imageUrls, scale, offsetX, offsetY);
+            }
+            if (keeperSlideId != null && batch.Slides.Count > 0) {
+                requests.Add(new { deleteObject = new { objectId = keeperSlideId } });
             }
             return requests;
         }

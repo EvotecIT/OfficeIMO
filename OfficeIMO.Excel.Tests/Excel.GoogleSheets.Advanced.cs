@@ -417,5 +417,43 @@ namespace OfficeIMO.Tests {
                 if (File.Exists(path)) File.Delete(path);
             }
         }
+
+        [Fact]
+        public void Test_GoogleSheetsPivot_SuppressesCachedOutputWhenNativePivotIsEmitted() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsCachedPivot.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "North");
+                sheet.CellValue(2, 2, 10d);
+                sheet.CellValue(3, 1, "South");
+                sheet.CellValue(3, 2, 20d);
+                sheet.CellValue(1, 4, "Cached Region");
+                sheet.CellValue(1, 5, "Cached Total");
+                sheet.CellValue(2, 4, "North");
+                sheet.CellValue(2, 5, 10d);
+                sheet.AddPivotTable(
+                    "A1:B3",
+                    "D1",
+                    name: "CachedPivot",
+                    rowFields: new[] { "Region" },
+                    dataFields: new[] { new ExcelPivotDataField("Value", DataConsolidateFunctionValues.Sum, "Total") });
+
+                GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
+
+                GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
+                Assert.Equal(0, pivot.DestinationRowIndex);
+                Assert.Equal(3, pivot.DestinationColumnIndex);
+                GoogleSheetsUpdateCellsRequest cells = Assert.Single(
+                    batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>(),
+                    request => request.SheetName == "Data");
+                Assert.Contains(cells.Cells, cell => cell.RowIndex == 0 && cell.ColumnIndex == 0 && Equals(cell.Value.Value, "Region"));
+                Assert.DoesNotContain(cells.Cells, cell => cell.RowIndex <= 1 && cell.ColumnIndex >= 3 && cell.ColumnIndex <= 4);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
     }
 }

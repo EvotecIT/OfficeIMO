@@ -30,6 +30,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         private readonly GoogleDriveClient _client;
         private readonly TranslationReport _report;
         private readonly GoogleDriveCleanupEntry _cleanupEntry;
+        private readonly SemaphoreSlim _cleanupGate = new SemaphoreSlim(1, 1);
         private bool _cleaned;
 
         private GoogleDriveTemporaryContentLease(
@@ -102,13 +103,22 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         }
 
         public async Task<GoogleDriveCleanupReport> CleanupAsync(CancellationToken cancellationToken = default) {
-            if (_cleaned) return CleanupReport;
-            _cleaned = true;
-            await TryDeleteAsync(_client, File.Id ?? string.Empty, _report, _cleanupEntry, cancellationToken).ConfigureAwait(false);
-            return CleanupReport;
+            await _cleanupGate.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try {
+                if (_cleaned) return CleanupReport;
+                _cleaned = await TryDeleteAsync(
+                    _client,
+                    File.Id ?? string.Empty,
+                    _report,
+                    _cleanupEntry,
+                    cancellationToken).ConfigureAwait(false);
+                return CleanupReport;
+            } finally {
+                _cleanupGate.Release();
+            }
         }
 
-        private static async Task TryDeleteAsync(
+        private static async Task<bool> TryDeleteAsync(
             GoogleDriveClient client,
             string fileId,
             TranslationReport report,
@@ -117,6 +127,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             try {
                 await client.DeleteFileAsync(fileId, report, cancellationToken).ConfigureAwait(false);
                 entry.Status = GoogleDriveCleanupStatus.Deleted;
+                entry.Error = null;
                 report.Add(
                     TranslationSeverity.Info,
                     "TemporaryContent",
@@ -124,6 +135,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     code: "DRIVE.TEMPORARY_CONTENT.CLEANED",
                     action: TranslationAction.Preserve,
                     targetId: fileId);
+                return true;
             } catch (Exception exception) when (!(exception is OperationCanceledException)) {
                 entry.Status = GoogleDriveCleanupStatus.Failed;
                 entry.Error = exception.Message;
@@ -134,6 +146,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                     code: "DRIVE.TEMPORARY_CONTENT.CLEANUP_FAILED",
                     action: TranslationAction.Fail,
                     targetId: fileId);
+                return false;
             }
         }
     }

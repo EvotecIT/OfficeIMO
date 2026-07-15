@@ -207,7 +207,16 @@ namespace OfficeIMO.Word.GoogleDocs {
             if (options.Tabs.Strategy == GoogleDocsTabStrategy.SelectedTab && string.IsNullOrWhiteSpace(options.Tabs.TabId)) {
                 throw new ArgumentException("Tabs.TabId is required when SelectedTab is used.", nameof(options));
             }
-            GoogleDocsApiTabResponse? target = GoogleDocsApiPayloadBuilder.SelectTabs(document, options.Tabs).FirstOrDefault();
+            IReadOnlyList<GoogleDocsApiTabResponse> targets = GoogleDocsApiPayloadBuilder.SelectTabs(document, options.Tabs);
+            GoogleDocsApiTabResponse? target = targets.FirstOrDefault();
+            batch.TargetTabIds = options.Tabs.Strategy == GoogleDocsTabStrategy.ReplaceEveryTab
+                ? targets
+                    .Select(tab => tab.Properties.TabId)
+                    .Where(tabId => !string.IsNullOrWhiteSpace(tabId))
+                    .Select(tabId => tabId!)
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray()
+                : Array.Empty<string>();
             batch.TargetTabId = options.Tabs.Strategy == GoogleDocsTabStrategy.ReplaceEveryTab
                 ? null
                 : target?.Properties.TabId;

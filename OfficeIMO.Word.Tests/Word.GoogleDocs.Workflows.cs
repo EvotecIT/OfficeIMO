@@ -67,6 +67,11 @@ namespace OfficeIMO.Tests {
                 string resetBody = Assert.IsType<string>(bodies.First());
                 Assert.Contains("\"tabId\":\"tab-one\"", resetBody, StringComparison.Ordinal);
                 Assert.Contains("\"tabId\":\"tab-two\"", resetBody, StringComparison.Ordinal);
+                string[] contentBodies = bodies.Skip(1).ToArray();
+                Assert.Equal(2, contentBodies.Length);
+                Assert.Single(contentBodies, body => body.Contains("\"tabId\":\"tab-one\"", StringComparison.Ordinal));
+                Assert.Single(contentBodies, body => body.Contains("\"tabId\":\"tab-two\"", StringComparison.Ordinal));
+                Assert.All(contentBodies, body => Assert.Contains("Replacement", body, StringComparison.Ordinal));
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

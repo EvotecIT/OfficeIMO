@@ -212,6 +212,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleWorkspaceHttpTransport_OwnedClientDoesNotOverridePerAttemptTimeout() {
+            var ownedOptions = new GoogleWorkspaceSessionOptions {
+                RequestTimeout = TimeSpan.FromMinutes(5),
+            };
+            using var ownedTransport = new GoogleWorkspaceHttpTransport(ownedOptions);
+            var clientField = typeof(GoogleWorkspaceHttpTransport).GetField(
+                "_client",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            HttpClient ownedClient = Assert.IsType<HttpClient>(clientField!.GetValue(ownedTransport));
+            Assert.Equal(Timeout.InfiniteTimeSpan, ownedClient.Timeout);
+
+            using var injectedClient = new HttpClient {
+                Timeout = TimeSpan.FromSeconds(17),
+            };
+            using var injectedTransport = new GoogleWorkspaceHttpTransport(new GoogleWorkspaceSessionOptions {
+                HttpClient = injectedClient,
+                RequestTimeout = TimeSpan.FromMinutes(5),
+            });
+            HttpClient preservedClient = Assert.IsType<HttpClient>(clientField.GetValue(injectedTransport));
+            Assert.Same(injectedClient, preservedClient);
+            Assert.Equal(TimeSpan.FromSeconds(17), preservedClient.Timeout);
+        }
+
+        [Fact]
         public void Test_GoogleWorkspacePreflight_BlocksUnacceptedErrorsBeforeMutation() {
             var report = new TranslationReport();
             report.Add(
