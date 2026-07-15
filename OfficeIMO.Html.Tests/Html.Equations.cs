@@ -95,6 +95,8 @@ namespace OfficeIMO.Tests {
             int suffix = html.IndexOf(" link-suffix", StringComparison.Ordinal);
             Assert.True(prefix >= 0 && prefix < math && math < suffix, html);
             Assert.Contains("aria-label=\"linked\"", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Equal(1, html.Split(new[] { "link-prefix " }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, html.Split(new[] { " link-suffix" }, StringSplitOptions.None).Length - 1);
         }
 
         [Fact]

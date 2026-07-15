@@ -529,6 +529,9 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string GetNativeParagraphDisplayText(WordParagraph paragraph) {
+            if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
+                return AppendNativeTextWithEquation(paragraph.Text, paragraph);
+            }
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null) {
                 return paragraph.Hyperlink.Text;
             }

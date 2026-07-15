@@ -179,13 +179,14 @@ public static partial class WordRtfConverterExtensions {
                     hasRuns |= AppendRevisionContent(wordParagraph, moveFromRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes, RtfRevisionKind.Deleted, moveFromRun.Author?.Value);
                     break;
                 case Hyperlink hyperlink:
-                    foreach (Run childRun in hyperlink.Elements<Run>()) {
-                        var wordRun = new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun) {
-                            _hyperlink = hyperlink
-                        };
-                        hasRuns |= AppendWordRun(wordRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes);
-                    }
-
+                    hasRuns |= AppendHyperlinkContent(
+                        wordParagraph,
+                        hyperlink,
+                        hyperlink,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes);
                     break;
                 case SimpleField simpleField:
                     AppendSimpleField(wordParagraph, simpleField, paragraph, rtfDocument, revisionAuthorIndexes);
@@ -209,6 +210,60 @@ public static partial class WordRtfConverterExtensions {
         }
 
         AppendWordComments(wordParagraph, paragraph, rtfDocument, revisionAuthorIndexes);
+    }
+
+    private static bool AppendHyperlinkContent(
+        WordParagraph wordParagraph,
+        OpenXmlElement container,
+        Hyperlink hyperlink,
+        RtfParagraph paragraph,
+        ref RtfRun? previousRun,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes) {
+        bool hasContent = false;
+        foreach (OpenXmlElement child in container.ChildElements) {
+            switch (child) {
+                case Run childRun:
+                    var wordRun = new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun) {
+                        _hyperlink = hyperlink
+                    };
+                    hasContent |= AppendWordRun(wordRun, paragraph, ref previousRun, rtfDocument, revisionAuthorIndexes);
+                    break;
+                case M.OfficeMath officeMath:
+                    AppendEquationField(paragraph, officeMath);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case M.Paragraph mathParagraph:
+                    AppendEquationField(paragraph, mathParagraph);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case SimpleField simpleField:
+                    AppendSimpleField(wordParagraph, simpleField, paragraph, rtfDocument, revisionAuthorIndexes);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
+                case DeletedRun:
+                case MoveFromRun:
+                    break;
+                case SdtRun:
+                case SdtContentRun:
+                case InsertedRun:
+                case MoveToRun:
+                    hasContent |= AppendHyperlinkContent(
+                        wordParagraph,
+                        child,
+                        hyperlink,
+                        paragraph,
+                        ref previousRun,
+                        rtfDocument,
+                        revisionAuthorIndexes);
+                    break;
+            }
+        }
+
+        return hasContent;
     }
 
     private static bool AppendRevisionContent(

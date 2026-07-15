@@ -68,6 +68,7 @@ namespace OfficeIMO.Word.Html {
                 IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(para._document, para._paragraph);
                 List<INode> nodes = new();
                 int nextEquation = 0;
+                var expandedEquationContainers = new HashSet<DocumentFormat.OpenXml.OpenXmlElement>();
                 bool inQuote = false;
                 IElement? quote = null;
 
@@ -89,16 +90,19 @@ namespace OfficeIMO.Word.Html {
 
                 for (int i = 0; i < runs.Count; i++) {
                     var run = runs[i];
-                    DocumentFormat.OpenXml.OpenXmlElement? runContainer = run._hyperlink
+                    DocumentFormat.OpenXml.OpenXmlElement? runContentContainer = run._hyperlink
                         ?? (DocumentFormat.OpenXml.OpenXmlElement?)run._stdRun
                         ?? run._run;
+                    DocumentFormat.OpenXml.OpenXmlElement? runContainer =
+                        WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
                     int runIndex = runContainer == null ? int.MaxValue : paragraphChildren.IndexOf(runContainer);
                     AppendEquationNodesBefore(runIndex < 0 ? int.MaxValue : runIndex);
                     List<WordEquationOccurrence> coveringEquations = equations
                         .Where(equation => equation.ContainsChildIndex(runIndex))
                         .ToList();
                     if (runContainer != null &&
-                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex)) {
+                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
+                        expandedEquationContainers.Add(runContainer)) {
                         foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
                             if (segment.Equation != null) {
                                 IElement? mathNode = CreateEquationNode(segment.Equation);

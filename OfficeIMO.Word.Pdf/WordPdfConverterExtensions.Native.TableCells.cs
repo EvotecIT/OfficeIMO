@@ -485,10 +485,12 @@ namespace OfficeIMO.Word.Pdf {
         private static List<PdfCore.TextRun> CreateNativeCellParagraphRuns(WordParagraph paragraph, Dictionary<long, int>? footnoteNumbersById, NativeTableStyleDefaults tableStyleDefaults, NativeDocumentDefaults nativeDefaults, NativeFontMap? nativeFontMap = null) {
             var result = new List<PdfCore.TextRun>();
             List<WordParagraph> runs = GetNativeRuns(paragraph);
-            string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : AppendNativeTextWithEquation(paragraph.Text, paragraph);
+            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            string content = hasEquationContent
+                ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
+                : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
-            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
@@ -708,6 +710,9 @@ namespace OfficeIMO.Word.Pdf {
 
         private static string GetNativeCellParagraphText(WordParagraph paragraph) {
             List<WordParagraph> runs = GetNativeRuns(paragraph);
+            if (WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0) {
+                return ApplyNativeTextTransform(AppendNativeTextWithEquation(paragraph.Text, paragraph), paragraph);
+            }
             if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 return ApplyNativeTextTransform(paragraph.Hyperlink.Text, paragraph);
             }

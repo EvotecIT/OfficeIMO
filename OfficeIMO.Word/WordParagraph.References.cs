@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Wordprocessing;
 using WordDrawing = DocumentFormat.OpenXml.Wordprocessing.Drawing;
@@ -40,6 +41,10 @@ namespace OfficeIMO.Word {
                 }
                 if (_runs is not null && new WordField(_document, _paragraph, null, _runs).FieldType == WordFieldType.EQ) {
                     return new WordEquation(_document, _paragraph, _runs);
+                }
+                OpenXmlElement? wrapper = (OpenXmlElement?)_hyperlink ?? _stdRun;
+                if (wrapper != null) {
+                    return WordEquation.GetFirstOccurrenceForContainer(_document, _paragraph, wrapper);
                 }
                 return null;
             }

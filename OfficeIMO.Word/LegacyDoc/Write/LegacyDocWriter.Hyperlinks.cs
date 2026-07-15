@@ -41,6 +41,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SdtRun sdtRun:
                         AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, sdtRun, footnotes, endnotes, inheritedFormatting);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationField(text, runs, officeMath, inheritedFormatting);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);
                         break;
@@ -52,7 +58,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when they contain text runs and inline content controls. Unsupported hyperlink element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when they contain text runs, equations, and inline content controls. Unsupported hyperlink element: {child.LocalName}.");
                 }
             }
 
@@ -123,6 +129,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SdtRun nestedSdtRun:
                         AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, nestedSdtRun, footnotes, endnotes, inheritedFormatting);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendMathEquationField(text, runs, officeMath, inheritedFormatting);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);
                         break;
@@ -134,7 +146,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports hyperlink inline content controls only when they contain supported text runs and nested inline content controls. Unsupported hyperlink inline content-control element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports hyperlink inline content controls only when they contain supported text runs, equations, and nested inline content controls. Unsupported hyperlink inline content-control element: {child.LocalName}.");
                 }
             }
         }

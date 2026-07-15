@@ -743,18 +743,21 @@ namespace OfficeIMO.Word.Markdown {
             string? implicitCodeFont = ResolveImplicitCodeFont();
             List<OpenXmlElement> paragraphChildren = paragraph._paragraph.ChildElements.ToList();
             IReadOnlyList<WordEquationOccurrence> equations = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            var expandedEquationContainers = new HashSet<OpenXmlElement>();
 
             foreach (var run in paragraph.GetRuns()) {
-                OpenXmlElement? runContainer = run._hyperlink
+                OpenXmlElement? runContentContainer = run._hyperlink
                     ?? (OpenXmlElement?)run._stdRun
                     ?? run._run;
+                OpenXmlElement? runContainer = WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
                 int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
                 List<WordEquationOccurrence> coveringEquations = equations
                     .Where(equation => equation.ContainsChildIndex(runIndex))
                     .ToList();
                 if (coveringEquations.Count > 0) {
                     if (runContainer != null &&
-                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex)) {
+                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
+                        expandedEquationContainers.Add(runContainer)) {
                         string surroundingText = WordEquation.GetVisibleTextOutsideEquations(runContainer, coveringEquations);
                         AppendRunInlines(sequence, run, options, preferredCodeFont, implicitCodeFont, surroundingText);
                     }

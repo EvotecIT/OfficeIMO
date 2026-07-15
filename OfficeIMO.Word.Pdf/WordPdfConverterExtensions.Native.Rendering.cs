@@ -136,7 +136,10 @@ namespace OfficeIMO.Word.Pdf {
 
             RenderNativeRunCharts(pdf, runs, objectAlign, options, paragraph._run);
 
-            string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : AppendNativeTextWithEquation(paragraph.Text, paragraph);
+            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            string content = hasEquationContent
+                ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
+                : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
             string renderContent = hasRenderableRuns || shouldRenderDirectContent ? content : string.Empty;
@@ -611,7 +614,10 @@ namespace OfficeIMO.Word.Pdf {
                     }
 
                     List<WordParagraph> runs = GetNativeRuns(paragraph);
-                    string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
+                    bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+                    string content = hasEquationContent
+                        ? AppendNativeTextWithEquation(paragraph.Text, paragraph)
+                        : paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : paragraph.Text;
                     bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
                     string renderContent = hasRenderableRuns || ShouldRenderNativeDirectText(paragraph, runs, content) ? content : string.Empty;
                     List<int> paragraphFootnoteNumbers = GetNativeParagraphFootnoteNumbers(paragraph, runs, Array.Empty<int>(), footnoteNumbersById);

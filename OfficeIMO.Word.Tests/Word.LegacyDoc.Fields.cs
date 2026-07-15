@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using M = DocumentFormat.OpenXml.Math;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -472,6 +473,44 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(equationFields, field => field.InnerText == "{f");
                 Assert.Contains(equationFields, field => field.InnerText == "{n");
                 Assert.Contains(equationFields, field => field.InnerText == "{e");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesHyperlinkedOmmlAsNestedEqFieldsAndReloads() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph._paragraph.Append(new Hyperlink(
+                        new Run(new Text("link-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                        new SdtRun(
+                            new SdtProperties(new SdtId { Val = 2076 }),
+                            new SdtContentRun(
+                                new Run(new Text(" nested-prefix ")),
+                                new M.OfficeMath(new M.Run(new M.Text("nested"))),
+                                new Run(new Text(" nested-suffix ")))),
+                        new Run(new Text("link-suffix"))) {
+                        Anchor = "equation-target"
+                    });
+
+                    document.Save(docPath);
+                }
+
+                string wordDocumentAscii = Encoding.ASCII.GetString(ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument"));
+                Assert.Contains("HYPERLINK", wordDocumentAscii, StringComparison.Ordinal);
+                Assert.Contains(" EQ linked", wordDocumentAscii, StringComparison.Ordinal);
+                Assert.Contains(" EQ nested", wordDocumentAscii, StringComparison.Ordinal);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.Equal(WordFileFormat.Doc, reloaded.SourceFormat);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Equations, equation => equation.Text == "linked");
+                Assert.Contains(reloaded.Equations, equation => equation.Text == "nested");
             } finally {
                 DeleteIfExists(docPath);
             }

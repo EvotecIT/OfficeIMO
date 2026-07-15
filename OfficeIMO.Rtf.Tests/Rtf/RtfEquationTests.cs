@@ -110,4 +110,29 @@ public sealed class RtfEquationTests {
         Assert.All(fields, field => Assert.All(field.Result.Inlines.OfType<RtfRun>(), run =>
             Assert.Equal(RtfRevisionKind.Inserted, run.RevisionKind)));
     }
+
+    [Fact]
+    public void WordToRtf_MapsEquationsInsideHyperlinksAndNestedInlineContentControls() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(new Hyperlink(
+            new Run(new Text("link-prefix ")),
+            new M.OfficeMath(new M.Run(new M.Text("linked"))),
+            new SdtRun(
+                new SdtProperties(new SdtId { Val = 2076 }),
+                new SdtContentRun(
+                    new Run(new Text(" nested-prefix ")),
+                    new M.OfficeMath(new M.Run(new M.Text("nested"))),
+                    new Run(new Text(" nested-suffix ")))),
+            new Run(new Text("link-suffix"))) {
+            Anchor = "target"
+        });
+
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfField[] fields = rtfParagraph.Inlines.OfType<RtfField>().ToArray();
+
+        Assert.Equal(new[] { "linked", "nested" }, fields.Select(field => field.ToPlainText()));
+        Assert.Equal("link-prefix linked nested-prefix nested nested-suffix link-suffix", rtfParagraph.ToPlainText());
+        Assert.All(fields, field => Assert.True(field.IsEquation));
+    }
 }

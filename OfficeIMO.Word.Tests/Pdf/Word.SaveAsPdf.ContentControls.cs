@@ -46,6 +46,20 @@ public partial class Word {
             interleavedEquation._paragraph.Append(new M.OfficeMath(new M.Run(new M.Text("pdf-equation"))));
             interleavedEquation.AddText(" pdf-suffix");
 
+            WordParagraph linkedEquation = document.AddParagraph();
+            linkedEquation._paragraph.Append(new Hyperlink(
+                new Run(new Text("linked-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("linked-equation"))),
+                new Run(new Text(" linked-suffix"))) {
+                Anchor = "target"
+            });
+
+            WordParagraph hiddenAdjacentText = document.AddParagraph("visible-prefix ");
+            hiddenAdjacentText._paragraph.Append(
+                new Run(new RunProperties(new Vanish()), new Text("hidden-equation-adjacent ")),
+                new M.OfficeMath(new M.Run(new M.Text("visible-equation"))),
+                new Run(new Text(" visible-suffix")));
+
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Native table equation:";
             table.Rows[0].Cells[0].Paragraphs[0].AddEquation(tableOmml);
@@ -64,8 +78,11 @@ public partial class Word {
         string normalizedText = NormalizePdfText(text);
         Assert.Contains("Native controlled equation:", normalizedText);
         Assert.Contains("Native controlled equation: control-prefix controlled=5 control-suffix", normalizedText);
-        Assert.Contains("pdf-prefix pdf-equation pdf-suffix", normalizedText);
-        Assert.Contains("Native table equation:", normalizedText);
+            Assert.Contains("pdf-prefix pdf-equation pdf-suffix", normalizedText);
+            Assert.Contains("linked-prefix linked-equation linked-suffix", normalizedText);
+            Assert.Contains("visible-prefix visible-equation visible-suffix", normalizedText);
+            Assert.DoesNotContain("hidden-equation-adjacent", normalizedText, StringComparison.Ordinal);
+            Assert.Contains("Native table equation:", normalizedText);
         Assert.Contains("c=4", normalizedText);
     }
 

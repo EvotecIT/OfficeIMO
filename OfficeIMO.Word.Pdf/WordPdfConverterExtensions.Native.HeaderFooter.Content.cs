@@ -659,7 +659,7 @@ namespace OfficeIMO.Word.Pdf {
         private static string? AppendNativeHeaderFooterEquationText(string? text, WordParagraph paragraph) {
             IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
             if (occurrences.Count > 0) {
-                string orderedText = WordEquation.GetVisibleTextWithEquations(paragraph._paragraph, occurrences);
+                string orderedText = AppendNativeTextWithEquation(text ?? string.Empty, paragraph);
                 if (!string.IsNullOrWhiteSpace(orderedText)) {
                     return orderedText;
                 }
@@ -778,7 +778,15 @@ namespace OfficeIMO.Word.Pdf {
                 return text;
             }
 
-            string orderedText = WordEquation.GetVisibleTextWithEquations(paragraph._paragraph, occurrences);
+            if (GetNativeParagraphStyleDefaults(paragraph).Hidden == true) {
+                return string.Empty;
+            }
+
+            string orderedText = WordEquation.GetVisibleTextWithEquations(
+                paragraph._paragraph,
+                occurrences,
+                element => element is not W.Run run ||
+                    !IsNativeHiddenTextRun(new WordParagraph(paragraph._document, paragraph._paragraph, run), paragraph));
             return string.IsNullOrEmpty(orderedText) ? text : orderedText;
         }
 

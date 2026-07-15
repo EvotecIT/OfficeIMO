@@ -130,13 +130,14 @@ namespace OfficeIMO.Word {
 
         internal static IReadOnlyList<WordEquationContentSegment> GetVisibleContentSegments(
             OpenXmlElement container,
-            IReadOnlyList<WordEquationOccurrence> occurrences) {
+            IReadOnlyList<WordEquationOccurrence> occurrences,
+            Func<OpenXmlElement, bool>? includeElement = null) {
             if (container == null) throw new ArgumentNullException(nameof(container));
             if (occurrences == null) throw new ArgumentNullException(nameof(occurrences));
 
             var segments = new List<WordEquationContentSegment>();
             var emittedEquations = new HashSet<WordEquation>();
-            AppendVisibleContentSegments(segments, container, occurrences, emittedEquations);
+            AppendVisibleContentSegments(segments, container, occurrences, emittedEquations, includeElement);
             return segments;
         }
 
@@ -149,16 +150,32 @@ namespace OfficeIMO.Word {
 
         internal static string GetVisibleTextWithEquations(
             OpenXmlElement container,
-            IReadOnlyList<WordEquationOccurrence> occurrences) =>
-            string.Concat(GetVisibleContentSegments(container, occurrences)
+            IReadOnlyList<WordEquationOccurrence> occurrences,
+            Func<OpenXmlElement, bool>? includeElement = null) =>
+            string.Concat(GetVisibleContentSegments(container, occurrences, includeElement)
                 .Select(segment => segment.Equation?.Text ?? segment.Text));
+
+        internal static WordEquation? GetFirstOccurrenceForContainer(
+            WordDocument document,
+            Paragraph paragraph,
+            OpenXmlElement container) {
+            OpenXmlElement? directChild = GetDirectParagraphChild(paragraph, container);
+            if (directChild == null) return null;
+
+            int childIndex = IndexOfReference(paragraph.ChildElements.ToList(), directChild);
+            return GetOccurrences(document, paragraph)
+                .FirstOrDefault(occurrence => occurrence.ContainsChildIndex(childIndex))?
+                .Equation;
+        }
 
         private static void AppendVisibleContentSegments(
             List<WordEquationContentSegment> segments,
             OpenXmlElement element,
             IReadOnlyList<WordEquationOccurrence> occurrences,
-            HashSet<WordEquation> emittedEquations) {
+            HashSet<WordEquation> emittedEquations,
+            Func<OpenXmlElement, bool>? includeElement) {
             if (element is DeletedRun || element is MoveFromRun) return;
+            if (includeElement != null && !includeElement(element)) return;
 
             WordEquation? backedEquation = occurrences
                 .Select(occurrence => occurrence.Equation)
@@ -192,7 +209,7 @@ namespace OfficeIMO.Word {
             }
 
             foreach (OpenXmlElement child in element.ChildElements) {
-                AppendVisibleContentSegments(segments, child, occurrences, emittedEquations);
+                AppendVisibleContentSegments(segments, child, occurrences, emittedEquations, includeElement);
             }
         }
 
@@ -285,15 +302,15 @@ namespace OfficeIMO.Word {
                 ?? _simpleField
                 ?? (OpenXmlElement?)_runs?.FirstOrDefault();
             OpenXmlElement? end = (OpenXmlElement?)_runs?.LastOrDefault() ?? start;
-            start = GetDirectParagraphChild(start);
-            end = GetDirectParagraphChild(end);
+            start = GetDirectParagraphChild(_paragraph, start);
+            end = GetDirectParagraphChild(_paragraph, end);
             startIndex = start == null ? -1 : IndexOfReference(children, start);
             endIndex = end == null ? -1 : IndexOfReference(children, end);
             return startIndex >= 0 && endIndex >= startIndex;
         }
 
-        private OpenXmlElement? GetDirectParagraphChild(OpenXmlElement? element) {
-            while (element != null && !ReferenceEquals(element.Parent, _paragraph)) {
+        internal static OpenXmlElement? GetDirectParagraphChild(Paragraph paragraph, OpenXmlElement? element) {
+            while (element != null && !ReferenceEquals(element.Parent, paragraph)) {
                 element = element.Parent;
             }
 

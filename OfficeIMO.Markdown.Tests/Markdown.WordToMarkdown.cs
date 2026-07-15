@@ -412,6 +412,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("link-suffix", markdown, StringComparison.Ordinal);
             Assert.Contains("```math", markdown, StringComparison.Ordinal);
             Assert.Equal(1, markdown.Split(new[] { "linked" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "link-prefix" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "link-suffix" }, StringSplitOptions.None).Length - 1);
         }
 
         [Fact]
