@@ -20,13 +20,64 @@ namespace OfficeIMO.Drawing.Internal {
 
         internal IReadOnlyList<OfficeCompoundWriterEntry> Streams => _entries.Where(entry => entry.ObjectType == 2).ToArray();
 
-        internal static OfficeCompoundWriterLayout Create(IReadOnlyList<OfficeCompoundStream> streams) {
+        internal static OfficeCompoundWriterLayout Create(IReadOnlyList<OfficeCompoundStream> streams,
+            OfficeCompoundFile? source = null) {
             var root = new OfficeCompoundWriterEntry("Root Entry", string.Empty, 5, null);
             var layout = new OfficeCompoundWriterLayout(root);
+            if (source != null) {
+                root.ApplyMetadata(source.RootEntry);
+                foreach (OfficeCompoundFileEntry storage in source.Entries.Where(entry =>
+                             entry.ObjectType == 1 && !entry.IsFallback)
+                         .OrderBy(entry => entry.Path.Count(character => character == '/'))
+                         .ThenBy(entry => entry.Path, StringComparer.OrdinalIgnoreCase)) {
+                    layout.AddStorage(storage.Path);
+                }
+            }
             foreach (OfficeCompoundStream stream in streams) layout.AddStream(stream);
+            if (source != null) layout.ApplyMetadata(source);
             layout.AssignDirectoryEntries();
             layout.AssignTreeLinks(root);
             return layout;
+        }
+
+        private void AddStorage(string storagePath) {
+            string normalized = storagePath.Replace('\\', '/').Trim('/');
+            if (normalized.Length == 0) return;
+            string[] segments = normalized.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+            OfficeCompoundWriterEntry parent = Root;
+            string path = string.Empty;
+            foreach (string name in segments) {
+                ValidateName(name);
+                path = path.Length == 0 ? name : string.Concat(path, "/", name);
+                OfficeCompoundWriterEntry? existing = parent.Children.FirstOrDefault(child =>
+                    string.Equals(child.Name, name, StringComparison.OrdinalIgnoreCase));
+                if (existing != null) {
+                    if (existing.ObjectType != 1) {
+                        throw new ArgumentException(string.Concat("Conflicting compound storage path '", path, "'."),
+                            nameof(storagePath));
+                    }
+                    parent = existing;
+                    continue;
+                }
+                var created = new OfficeCompoundWriterEntry(name, path, 1, null);
+                parent.Children.Add(created);
+                parent = created;
+            }
+        }
+
+        private void ApplyMetadata(OfficeCompoundFile source) {
+            var metadata = source.Entries.Where(entry => !entry.IsFallback)
+                .GroupBy(entry => entry.Path, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First(), StringComparer.OrdinalIgnoreCase);
+            ApplyMetadata(Root, metadata);
+        }
+
+        private static void ApplyMetadata(OfficeCompoundWriterEntry entry,
+            IReadOnlyDictionary<string, OfficeCompoundFileEntry> metadata) {
+            if (entry.Path.Length > 0 && metadata.TryGetValue(entry.Path, out OfficeCompoundFileEntry? sourceEntry)) {
+                entry.ApplyMetadata(sourceEntry);
+            }
+            foreach (OfficeCompoundWriterEntry child in entry.Children) ApplyMetadata(child, metadata);
         }
 
         private void AddStream(OfficeCompoundStream stream) {
@@ -113,6 +164,21 @@ namespace OfficeIMO.Drawing.Internal {
         internal byte[]? Bytes { get; }
 
         internal List<OfficeCompoundWriterEntry> Children { get; } = new List<OfficeCompoundWriterEntry>();
+
+        internal Guid ClassId { get; private set; }
+
+        internal uint StateBits { get; private set; }
+
+        internal ulong CreationTime { get; private set; }
+
+        internal ulong ModifiedTime { get; private set; }
+
+        internal void ApplyMetadata(OfficeCompoundFileEntry entry) {
+            ClassId = entry.ClassId;
+            StateBits = entry.StateBits;
+            CreationTime = entry.CreationTime;
+            ModifiedTime = entry.ModifiedTime;
+        }
 
         internal int DirectoryIndex { get; set; }
 

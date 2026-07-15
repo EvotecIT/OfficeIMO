@@ -21,6 +21,44 @@ public sealed class DrawingCompoundFileTests {
         Assert.Contains(file.Entries, entry => entry.IsStorage && entry.Name == "Root Entry");
     }
 
+    [Fact]
+    public void RewritePreservesStreamsEmptyStoragesAndDirectoryMetadata() {
+        Guid rootClassId = new Guid("64818D10-4F9B-11CF-86EA-00AA00B929E8");
+        Guid storageClassId = new Guid("00020820-0000-0000-C000-000000000046");
+        const ulong created = 132537600000000000;
+        const ulong modified = 132537636000000000;
+        var streams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
+            ["PowerPoint Document"] = new byte[] { 1, 2, 3 },
+            ["ObjectPool/Item/Contents"] = new byte[] { 4, 5, 6 }
+        };
+        var source = new OfficeCompoundFile(streams, new[] {
+            new OfficeCompoundFileEntry("PowerPoint Document", "PowerPoint Document", 2, 3),
+            new OfficeCompoundFileEntry("ObjectPool", "ObjectPool", 1, 0),
+            new OfficeCompoundFileEntry("Item", "ObjectPool/Item", 1, 0, classId: storageClassId,
+                stateBits: 7, creationTime: created, modifiedTime: modified),
+            new OfficeCompoundFileEntry("Contents", "ObjectPool/Item/Contents", 2, 3),
+            new OfficeCompoundFileEntry("EmptyStorage", "EmptyStorage", 1, 0, stateBits: 9)
+        }, new OfficeCompoundFileEntry("Root Entry", "Root Entry", 5, 0, classId: rootClassId));
+
+        byte[] rewritten = OfficeCompoundFileWriter.Rewrite(source,
+            new Dictionary<string, byte[]> { ["PowerPoint Document"] = new byte[] { 9, 8, 7, 6 } });
+        bool success = OfficeCompoundFileReader.TryRead(rewritten, out OfficeCompoundFile? roundTrip,
+            out string? error);
+
+        Assert.True(success, error);
+        Assert.NotNull(roundTrip);
+        Assert.Equal(new byte[] { 9, 8, 7, 6 }, roundTrip!.Streams["PowerPoint Document"]);
+        Assert.Equal(new byte[] { 4, 5, 6 }, roundTrip.Streams["ObjectPool/Item/Contents"]);
+        Assert.Equal(rootClassId, roundTrip.RootEntry.ClassId);
+        OfficeCompoundFileEntry storage = Assert.Single(roundTrip.Entries,
+            entry => entry.Path == "ObjectPool/Item");
+        Assert.Equal(storageClassId, storage.ClassId);
+        Assert.Equal(7U, storage.StateBits);
+        Assert.Equal(created, storage.CreationTime);
+        Assert.Equal(modified, storage.ModifiedTime);
+        Assert.Contains(roundTrip.Entries, entry => entry.Path == "EmptyStorage" && entry.StateBits == 9);
+    }
+
     private static byte[] CreateVersion4RootOnlyCompoundFile() {
         byte[] compound = new byte[SectorSize * 3];
         byte[] signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };

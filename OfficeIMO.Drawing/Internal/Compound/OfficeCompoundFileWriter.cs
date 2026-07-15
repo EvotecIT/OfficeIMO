@@ -21,7 +21,43 @@ namespace OfficeIMO.Drawing.Internal {
             if (streams == null) throw new ArgumentNullException(nameof(streams));
             if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
-            OfficeCompoundWriterLayout directoryLayout = OfficeCompoundWriterLayout.Create(streams);
+            return Write(OfficeCompoundWriterLayout.Create(streams), rootClassId);
+        }
+
+        /// <summary>Rewrites selected streams while retaining the source directory hierarchy and metadata.</summary>
+        internal static byte[] Rewrite(OfficeCompoundFile source,
+            IReadOnlyDictionary<string, byte[]> replacementStreams) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (replacementStreams == null) throw new ArgumentNullException(nameof(replacementStreams));
+            var replacements = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, byte[]> replacement in replacementStreams) {
+                replacements[replacement.Key.Replace('\\', '/').Trim('/')] = replacement.Value
+                    ?? throw new ArgumentException("Replacement stream bytes cannot be null.", nameof(replacementStreams));
+            }
+
+            var streams = new List<OfficeCompoundStream>();
+            var retainedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (OfficeCompoundFileEntry entry in source.Entries.Where(entry => entry.IsStream && !entry.IsFallback)) {
+                byte[] bytes = replacements.TryGetValue(entry.Path, out byte[]? replacement)
+                    ? replacement
+                    : source.Streams[entry.Path];
+                streams.Add(new OfficeCompoundStream(entry.Path, bytes));
+                retainedPaths.Add(entry.Path);
+            }
+            foreach (KeyValuePair<string, byte[]> replacement in replacements) {
+                if (retainedPaths.Add(replacement.Key)) {
+                    streams.Add(new OfficeCompoundStream(replacement.Key, replacement.Value));
+                }
+            }
+            if (streams.Count == 0) {
+                throw new ArgumentException("At least one compound stream is required.", nameof(source));
+            }
+            return Write(OfficeCompoundWriterLayout.Create(streams, source),
+                source.RootEntry.ClassId == Guid.Empty ? null : source.RootEntry.ClassId);
+        }
+
+        private static byte[] Write(OfficeCompoundWriterLayout directoryLayout, Guid? rootClassId) {
+
             PaddedStream[] paddedStreams = directoryLayout.Streams
                 .Select(PadStream)
                 .OrderBy(stream => stream.Entry.Path, StringComparer.OrdinalIgnoreCase)
@@ -195,7 +231,10 @@ namespace OfficeIMO.Drawing.Internal {
                     entry.ChildId,
                     startSector,
                     size,
-                    entry.ObjectType == 5 ? rootClassId : null);
+                    entry.ObjectType == 5 ? rootClassId ?? entry.ClassId : entry.ClassId,
+                    entry.StateBits,
+                    entry.CreationTime,
+                    entry.ModifiedTime);
             }
 
             return directory;
@@ -275,7 +314,8 @@ namespace OfficeIMO.Drawing.Internal {
         }
 
         private static void WriteDirectoryEntry(byte[] buffer, int offset, string name, byte type, uint left, uint right,
-            uint child, uint startSector, ulong size, Guid? classId) {
+            uint child, uint startSector, ulong size, Guid? classId, uint stateBits, ulong creationTime,
+            ulong modifiedTime) {
             byte[] nameBytes = Encoding.Unicode.GetBytes(name + '\0');
             Buffer.BlockCopy(nameBytes, 0, buffer, offset, nameBytes.Length);
             WriteUInt16(buffer, offset + 64, checked((ushort)nameBytes.Length));
@@ -288,6 +328,9 @@ namespace OfficeIMO.Drawing.Internal {
                 byte[] classIdBytes = classId.Value.ToByteArray();
                 Buffer.BlockCopy(classIdBytes, 0, buffer, offset + 80, classIdBytes.Length);
             }
+            WriteUInt32(buffer, offset + 96, stateBits);
+            WriteUInt64(buffer, offset + 100, creationTime);
+            WriteUInt64(buffer, offset + 108, modifiedTime);
             WriteUInt32(buffer, offset + 116, startSector);
             WriteUInt64(buffer, offset + 120, size);
         }
