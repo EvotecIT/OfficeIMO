@@ -431,6 +431,20 @@ public sealed class ReaderComparisonEvidenceTests {
     }
 
     [Theory]
+    [InlineData(false, false, "success")]
+    [InlineData(false, true, "failed")]
+    [InlineData(true, false, "failed")]
+    [InlineData(true, true, "success")]
+    public void OfficeStatus_RequiresTheExpectedRejectionOutcome(
+        bool expectsRejection,
+        bool rejected,
+        string expectedStatus) {
+        Assert.Equal(
+            expectedStatus,
+            ReaderComparisonCommand.ResolveOfficeStatus(expectsRejection, rejected));
+    }
+
+    [Theory]
     [InlineData(true, false)]
     [InlineData(false, true)]
     public void ExpectedExternalRejection_MustBeStableAcrossRepeats(

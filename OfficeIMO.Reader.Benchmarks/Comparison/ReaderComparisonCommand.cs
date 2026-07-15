@@ -98,8 +98,9 @@ internal static class ReaderComparisonCommand {
         string outputPath) {
         OfficeComparisonAttempt first = RunOfficeAttempt(reader, item);
         OfficeComparisonAttempt second = RunOfficeAttempt(reader, item);
-        string firstStatus = ResolveOfficeStatus(item, first);
-        string secondStatus = ResolveOfficeStatus(item, second);
+        bool expectsRejection = ExpectsMalformedInputRejection(item);
+        string firstStatus = ResolveOfficeStatus(expectsRejection, first.Rejected);
+        string secondStatus = ResolveOfficeStatus(expectsRejection, second.Rejected);
         string status = firstStatus == "success" && secondStatus != "success" ? secondStatus : firstStatus;
         string? error = firstStatus == "success" ? null : first.Error;
         if (secondStatus != "success") {
@@ -152,10 +153,8 @@ internal static class ReaderComparisonCommand {
             GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
-    private static string ResolveOfficeStatus(ReaderComparisonCase item, OfficeComparisonAttempt attempt) {
-        bool expectsRejection = ExpectsMalformedInputRejection(item);
-        return attempt.Rejected && !expectsRejection ? "failed" : "success";
-    }
+    internal static string ResolveOfficeStatus(bool expectsRejection, bool rejected) =>
+        expectsRejection == rejected ? "success" : "failed";
 
     private static async Task<ReaderComparisonToolResult> RunExternalAsync(
         ReaderComparisonRunnerConfiguration runner,
