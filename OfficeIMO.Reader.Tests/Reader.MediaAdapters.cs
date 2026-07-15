@@ -95,6 +95,19 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_IdentifiesSvgFromTheRootHeaderWithoutReadingTheTrailingTree() {
+        const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"5\" height=\"4\"><unclosed";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(svg), "header.svg");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal("image/svg+xml", asset.MediaType);
+        Assert.Equal(5, asset.Width);
+        Assert.Equal(4, asset.Height);
+    }
+
+    [Fact]
     public void NotebookAdapter_ProjectsMarkdownCodeAndTextOutputsInCellOrder() {
         const string notebook = """
             {

@@ -3,7 +3,6 @@ using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Xml;
-using System.Xml.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -511,15 +510,14 @@ public static class OfficeImageReader {
                 XmlResolver = null
             };
             using var reader = XmlReader.Create(ms, settings);
-            var document = XDocument.Load(reader, LoadOptions.None);
-            var root = document.Root;
-            if (root == null || !root.Name.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase)) {
+            if (reader.MoveToContent() != XmlNodeType.Element ||
+                !reader.LocalName.Equals("svg", StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
 
-            bool hasWidth = TryParseSvgLength(root.Attribute("width")?.Value, out double width);
-            bool hasHeight = TryParseSvgLength(root.Attribute("height")?.Value, out double height);
-            bool hasViewBox = TryParseSvgViewBox(root.Attribute("viewBox")?.Value, out double viewBoxWidth, out double viewBoxHeight);
+            bool hasWidth = TryParseSvgLength(reader.GetAttribute("width"), out double width);
+            bool hasHeight = TryParseSvgLength(reader.GetAttribute("height"), out double height);
+            bool hasViewBox = TryParseSvgViewBox(reader.GetAttribute("viewBox"), out double viewBoxWidth, out double viewBoxHeight);
             double? aspectRatio = hasViewBox ? viewBoxWidth / viewBoxHeight : (double?)null;
             if (!aspectRatio.HasValue && hasWidth && hasHeight) aspectRatio = width / height;
 
