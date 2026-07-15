@@ -103,9 +103,12 @@ namespace OfficeIMO.GoogleWorkspace {
             GoogleWorkspaceRequestSafety requestSafety,
             string serviceName,
             TranslationReport report,
-            CancellationToken cancellationToken = default) {
+            CancellationToken cancellationToken = default,
+            bool preserveRequestUri = false) {
             ThrowIfDisposed();
-            string effectiveUri = AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
+            string effectiveUri = preserveRequestUri
+                ? uri
+                : AppendQueryParameter(uri, "quotaUser", _options.QuotaUser);
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
 

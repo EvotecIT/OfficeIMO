@@ -98,7 +98,24 @@ namespace OfficeIMO.Word.GoogleDocs {
                         driveClient,
                         cancellationToken).ConfigureAwait(false);
 
-                    await ApplyCommentsAsync(document, driveClient, effectiveLocation.ExistingFileId!, effectiveOptions, batch.Report, cancellationToken).ConfigureAwait(false);
+                    GoogleDocsApiDocumentResponse? refreshedDocument = null;
+                    if (batch.WriteControlState?.RequiresRevisionRefresh == true) {
+                        refreshedDocument = await GetDocumentAsync(
+                            transport,
+                            accessToken.AccessToken,
+                            effectiveLocation.ExistingFileId!,
+                            batch,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+
+                    await ApplyCommentsAsync(
+                        document,
+                        driveClient,
+                        effectiveLocation.ExistingFileId!,
+                        effectiveOptions,
+                        reconcileExistingComments: true,
+                        report: batch.Report,
+                        cancellationToken: cancellationToken).ConfigureAwait(false);
 
                     var updatedDriveMetadata = await ApplyDrivePlacementAsync(
                         driveClient,
@@ -119,7 +136,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                         MimeType = "application/vnd.google-apps.document",
                         WebViewLink = updatedDriveMetadata?.WebViewLink ?? BuildDocumentWebViewLink(effectiveLocation.ExistingFileId),
                         Location = effectiveLocation,
-                        RevisionId = batch.WriteControlState?.RevisionId ?? existingDocument.RevisionId,
+                        RevisionId = refreshedDocument?.RevisionId ?? batch.WriteControlState?.RevisionId ?? existingDocument.RevisionId,
                         Report = batch.Report,
                     };
                 }
@@ -150,7 +167,14 @@ namespace OfficeIMO.Word.GoogleDocs {
                     driveClient,
                     cancellationToken).ConfigureAwait(false);
 
-                await ApplyCommentsAsync(document, driveClient, documentId, effectiveOptions, batch.Report, cancellationToken).ConfigureAwait(false);
+                await ApplyCommentsAsync(
+                    document,
+                    driveClient,
+                    documentId,
+                    effectiveOptions,
+                    reconcileExistingComments: false,
+                    report: batch.Report,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
 
                 var createdDriveMetadata = await ApplyDrivePlacementAsync(
                     driveClient,

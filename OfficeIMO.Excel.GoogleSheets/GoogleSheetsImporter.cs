@@ -354,17 +354,34 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static bool TryBuildA1Range(GoogleSheetsNativeGridRange range, out string? a1Range) {
             a1Range = null;
-            if (!range.StartRowIndex.HasValue || !range.EndRowIndex.HasValue
-                || !range.StartColumnIndex.HasValue || !range.EndColumnIndex.HasValue
-                || range.EndRowIndex <= range.StartRowIndex || range.EndColumnIndex <= range.StartColumnIndex) {
+            bool hasRows = range.StartRowIndex.HasValue && range.EndRowIndex.HasValue;
+            bool hasColumns = range.StartColumnIndex.HasValue && range.EndColumnIndex.HasValue;
+            if ((!hasRows && (range.StartRowIndex.HasValue || range.EndRowIndex.HasValue))
+                || (!hasColumns && (range.StartColumnIndex.HasValue || range.EndColumnIndex.HasValue))
+                || (!hasRows && !hasColumns)
+                || (hasRows && range.EndRowIndex <= range.StartRowIndex)
+                || (hasColumns && range.EndColumnIndex <= range.StartColumnIndex)) {
                 return false;
             }
 
-            a1Range = ToColumnName(range.StartColumnIndex.Value + 1)
-                + (range.StartRowIndex.Value + 1).ToString(CultureInfo.InvariantCulture)
-                + ":"
-                + ToColumnName(range.EndColumnIndex.Value)
-                + range.EndRowIndex.Value.ToString(CultureInfo.InvariantCulture);
+            if (!hasRows) {
+                a1Range = ToColumnName(range.StartColumnIndex!.Value + 1)
+                    + "1:"
+                    + ToColumnName(range.EndColumnIndex!.Value)
+                    + "1048576";
+            } else if (!hasColumns) {
+                a1Range = "A"
+                    + (range.StartRowIndex!.Value + 1).ToString(CultureInfo.InvariantCulture)
+                    + ":"
+                    + "XFD"
+                    + range.EndRowIndex!.Value.ToString(CultureInfo.InvariantCulture);
+            } else {
+                a1Range = ToColumnName(range.StartColumnIndex!.Value + 1)
+                    + (range.StartRowIndex!.Value + 1).ToString(CultureInfo.InvariantCulture)
+                    + ":"
+                    + ToColumnName(range.EndColumnIndex!.Value)
+                    + range.EndRowIndex!.Value.ToString(CultureInfo.InvariantCulture);
+            }
             return true;
         }
 

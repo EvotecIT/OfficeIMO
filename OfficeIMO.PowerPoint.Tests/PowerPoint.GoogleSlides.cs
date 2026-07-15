@@ -86,6 +86,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PlanBuilder_ReportsRasterFallbackWithoutMaterializingPngBytes() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddShapePoints(A.ShapeTypeValues.Cloud, 20, 20, 160, 90);
+
+            GoogleSlidesBatch planningBatch = GoogleSlidesBatchCompiler.Build(
+                presentation,
+                new GoogleSlidesSaveOptions(),
+                materializeRasterImages: false);
+            GoogleSlidesTranslationPlan publicPlan = new GoogleSlidesExporter().BuildPlan(presentation);
+
+            Assert.True(Assert.Single(planningBatch.Slides).IsRasterized);
+            Assert.Empty(planningBatch.Slides[0].Elements.OfType<GoogleSlidesImage>());
+            Assert.Equal(1, planningBatch.Plan.RasterizedSlideCount);
+            Assert.Equal(1, publicPlan.RasterizedSlideCount);
+        }
+
+        [Fact]
         public async Task Exporter_CreatesAndReplacesInitialSlideWithRevisionGuard() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide authoredSlide = presentation.AddSlide();
@@ -222,8 +239,13 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             presentation.AddSlide().AddTextBox("Replacement");
             string? batchBody = null;
+            int presentationReads = 0;
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
-                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") return Json("{\"presentationId\":\"existing\",\"revisionId\":\"remote\",\"slides\":[]}");
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") {
+                    presentationReads++;
+                    string revision = presentationReads == 1 ? "remote" : "fresh";
+                    return Json("{\"presentationId\":\"existing\",\"revisionId\":\"" + revision + "\",\"slides\":[]}");
+                }
                 if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
                     batchBody = await request.Content!.ReadAsStringAsync().ConfigureAwait(false);
                     return Json("{\"presentationId\":\"existing\"}");
@@ -232,13 +254,15 @@ namespace OfficeIMO.Tests {
                 return new HttpResponseMessage(HttpStatusCode.NotFound);
             }));
 
-            await presentation.ExportToGoogleSlidesAsync(Session(httpClient), new GoogleSlidesSaveOptions {
+            GooglePresentationReference result = await presentation.ExportToGoogleSlidesAsync(Session(httpClient), new GoogleSlidesSaveOptions {
                 Location = new GoogleDriveFileLocation { ExistingFileId = "existing" },
                 Replace = new GoogleSlidesReplaceOptions { ConflictMode = GoogleSlidesRevisionConflictMode.OverwriteLatest },
             });
 
             Assert.NotNull(batchBody);
             Assert.DoesNotContain("writeControl", batchBody);
+            Assert.Equal(2, presentationReads);
+            Assert.Equal("fresh", result.RevisionId);
         }
 
         [Fact]
@@ -322,7 +346,7 @@ namespace OfficeIMO.Tests {
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));
-                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\",\"style\":{\"bold\":true}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\"}}]}}}]}}}]}";
+                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageProperties\":{\"pageBackgroundFill\":{\"solidFill\":{\"color\":{\"rgbColor\":{\"red\":0.2,\"green\":0.4,\"blue\":0.6}}}}},\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\",\"style\":{\"bold\":true}}}]}}},{\"objectId\":\"shape-1\",\"size\":{\"width\":{\"magnitude\":120,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":400,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
 
@@ -330,6 +354,7 @@ namespace OfficeIMO.Tests {
             using (imported.Presentation) {
                 PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
                 Assert.True(slide.Hidden);
+                Assert.Equal("336699", slide.BackgroundColor);
                 Assert.Contains(slide.TextBoxes, text => text.Text == "Imported text");
                 Assert.Equal(A.ShapeTypeValues.Rectangle, Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>()).ShapeType);
                 Assert.Equal("Cell", Assert.Single(slide.Tables).RowItems[0].Cells[0].Text);
@@ -344,13 +369,14 @@ namespace OfficeIMO.Tests {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-gif\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":true}}"));
                 if (request.RequestUri.Host == "images.example.test") {
+                    Assert.Equal("https://images.example.test/image.gif", request.RequestUri.AbsoluteUri);
                     return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(gif) });
                 }
                 const string slides = "{\"presentationId\":\"deck-gif\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"image-1\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://images.example.test/image.gif\"}}]}]}";
                 return Task.FromResult(Json(slides));
             }));
 
-            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-gif", Session(httpClient, quotaUser: "tenant-user"), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
             using (imported.Presentation) {
                 PowerPointPicture picture = Assert.Single(Assert.Single(imported.Presentation.Slides).Pictures);
                 Assert.Equal("image/gif", picture.ContentType);
@@ -371,7 +397,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains(GoogleSlidesFeatureSupportCatalog.Features, row => row.Import == GoogleSlidesFeatureSupportLevel.DriveFallback);
         }
 
-        private static GoogleWorkspaceSession Session(HttpClient client) => new GoogleWorkspaceSession(new StaticAccessTokenCredentialSource("token"), new GoogleWorkspaceSessionOptions { HttpClient = client });
+        private static GoogleWorkspaceSession Session(HttpClient client, string? quotaUser = null) => new GoogleWorkspaceSession(
+            new StaticAccessTokenCredentialSource("token"),
+            new GoogleWorkspaceSessionOptions { HttpClient = client, QuotaUser = quotaUser });
         private static HttpResponseMessage Json(string value) => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(value, Encoding.UTF8, "application/json") };
         private sealed class DelegateHandler : HttpMessageHandler {
             private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;

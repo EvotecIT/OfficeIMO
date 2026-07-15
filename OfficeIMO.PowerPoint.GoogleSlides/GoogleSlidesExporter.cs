@@ -6,7 +6,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     public sealed class GoogleSlidesExporter : IGoogleSlidesExporter {
         private const int RequestsPerBatch = 250;
 
-        public GoogleSlidesTranslationPlan BuildPlan(PowerPointPresentation presentation, GoogleSlidesSaveOptions? options = null) => BuildBatch(presentation, options).Plan;
+        public GoogleSlidesTranslationPlan BuildPlan(PowerPointPresentation presentation, GoogleSlidesSaveOptions? options = null) {
+            if (presentation == null) throw new ArgumentNullException(nameof(presentation));
+            return GoogleSlidesBatchCompiler.BuildPlan(presentation, options ?? new GoogleSlidesSaveOptions());
+        }
 
         public GoogleSlidesBatch BuildBatch(PowerPointPresentation presentation, GoogleSlidesSaveOptions? options = null) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -40,7 +43,9 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 }
 
                 GoogleSlidesApiPresentationResponse current = await GetPresentationAsync(transport, token.AccessToken, presentationId, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
-                string? revision = ResolveRevision(effective, current, copiedTemplate || string.IsNullOrWhiteSpace(location.ExistingFileId), batch.Plan.Report);
+                bool ownsNewCopy = copiedTemplate || string.IsNullOrWhiteSpace(location.ExistingFileId);
+                bool overwritingExisting = !ownsNewCopy && effective.Replace.ConflictMode == GoogleSlidesRevisionConflictMode.OverwriteLatest;
+                string? revision = ResolveRevision(effective, current, ownsNewCopy, batch.Plan.Report);
                 IReadOnlyDictionary<string, string> imageUrls = await CreateImageLeasesAsync(drive, batch, leases, cancellationToken).ConfigureAwait(false);
                 List<object> requests = BuildRequests(batch, current, imageUrls);
                 revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, requests, revision, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
@@ -50,6 +55,16 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                     revision = withNotes.RevisionId ?? revision;
                     List<object> noteRequests = BuildSpeakerNotesRequests(batch, withNotes);
                     revision = await SendRequestsAsync(transport, token.AccessToken, presentationId, noteRequests, revision, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
+                }
+
+                if (overwritingExisting || string.IsNullOrWhiteSpace(revision)) {
+                    GoogleSlidesApiPresentationResponse refreshed = await GetPresentationAsync(
+                        transport,
+                        token.AccessToken,
+                        presentationId,
+                        batch.Plan.Report,
+                        cancellationToken).ConfigureAwait(false);
+                    revision = refreshed.RevisionId;
                 }
 
                 if (!copiedTemplate && !string.IsNullOrWhiteSpace(location.FolderId)) {

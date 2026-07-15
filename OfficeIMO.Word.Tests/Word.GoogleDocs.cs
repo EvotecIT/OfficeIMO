@@ -2477,10 +2477,11 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("existing-doc-123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/existing-doc-123/edit", result.WebViewLink);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
                 Assert.Equal("POST", recordedRequests[1].Method);
                 Assert.Equal("POST", recordedRequests[2].Method);
+                Assert.Equal("GET", recordedRequests[3].Method);
                 Assert.DoesNotContain(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents");
                 Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingDocument");
 

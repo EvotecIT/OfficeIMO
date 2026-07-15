@@ -54,7 +54,11 @@ namespace OfficeIMO.Tests {
                   "spreadsheetId":"native123",
                   "spreadsheetUrl":"https://docs.google.com/spreadsheets/d/native123/edit",
                   "properties":{"title":"Native","locale":"en_US","timeZone":"Europe/Warsaw"},
-                  "namedRanges":[{"name":"InputData","range":{"sheetId":42,"startRowIndex":0,"endRowIndex":2,"startColumnIndex":0,"endColumnIndex":2}}],
+                  "namedRanges":[
+                    {"name":"InputData","range":{"sheetId":42,"startRowIndex":0,"endRowIndex":2,"startColumnIndex":0,"endColumnIndex":2}},
+                    {"name":"InputColumns","range":{"sheetId":42,"startColumnIndex":0,"endColumnIndex":2}},
+                    {"name":"InputRows","range":{"sheetId":42,"startRowIndex":0,"endRowIndex":2}}
+                  ],
                   "sheets":[{
                     "properties":{"sheetId":42,"title":"Summary","index":0,"rightToLeft":true,"tabColor":{"red":0.2,"green":0.4,"blue":0.6},"gridProperties":{"frozenRowCount":1,"hideGridlines":true}},
                     "data":[{"startRow":0,"startColumn":0,"rowData":[
@@ -91,6 +95,29 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, sheet.FrozenRowCount);
                 Assert.Contains(sheet.MergedRanges, merge => merge.A1Range == "A1:B1");
                 Assert.Contains(snapshot.NamedRanges, range => range.Name == "InputData");
+                Assert.Contains(snapshot.NamedRanges, range => range.Name == "InputColumns" && range.ReferenceA1.Contains("$A$1:$B$1048576", StringComparison.Ordinal));
+                Assert.Contains(snapshot.NamedRanges, range => range.Name == "InputRows" && range.ReferenceA1.Contains("$A$1:$XFD$2", StringComparison.Ordinal));
+                GoogleSheetsBatch roundTripBatch = new GoogleSheetsExporter().BuildBatch(result.Document);
+                GoogleSheetsAddSheetRequest roundTripSheet = Assert.Single(roundTripBatch.Requests.OfType<GoogleSheetsAddSheetRequest>());
+                Assert.Equal(1000, roundTripSheet.RowCount);
+                Assert.Equal(26, roundTripSheet.ColumnCount);
+                GoogleSheetsApiBatchUpdatePayload roundTripPayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(roundTripBatch);
+                GoogleSheetsApiGridRangePayload columnsRange = Assert.Single(
+                    roundTripPayload.Requests,
+                    request => request.AddNamedRange?.NamedRange.Name == "InputColumns")
+                    .AddNamedRange!.NamedRange.Range;
+                Assert.Null(columnsRange.StartRowIndex);
+                Assert.Null(columnsRange.EndRowIndex);
+                Assert.Equal(0, columnsRange.StartColumnIndex);
+                Assert.Equal(2, columnsRange.EndColumnIndex);
+                GoogleSheetsApiGridRangePayload rowsRange = Assert.Single(
+                    roundTripPayload.Requests,
+                    request => request.AddNamedRange?.NamedRange.Name == "InputRows")
+                    .AddNamedRange!.NamedRange.Range;
+                Assert.Equal(0, rowsRange.StartRowIndex);
+                Assert.Equal(2, rowsRange.EndRowIndex);
+                Assert.Null(rowsRange.StartColumnIndex);
+                Assert.Null(rowsRange.EndColumnIndex);
                 Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2 && cell.Formula == "SUM(1,2)");
                 ExcelCellSnapshot header = Assert.Single(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1);
                 Assert.True(header.Style!.Bold);

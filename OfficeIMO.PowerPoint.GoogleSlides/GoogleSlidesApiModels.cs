@@ -23,7 +23,30 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         [JsonPropertyName("revisionId")] public string? RevisionId { get; set; }
         [JsonPropertyName("pageElements")] public List<GoogleSlidesApiPageElement> PageElements { get; set; } = new List<GoogleSlidesApiPageElement>();
         [JsonPropertyName("slideProperties")] public GoogleSlidesApiSlideProperties? SlideProperties { get; set; }
+        [JsonPropertyName("pageProperties")] public GoogleSlidesApiPageProperties? PageProperties { get; set; }
         [JsonPropertyName("notesProperties")] public GoogleSlidesApiNotesProperties? NotesProperties { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiPageProperties {
+        [JsonPropertyName("pageBackgroundFill")] public GoogleSlidesApiPageBackgroundFill? PageBackgroundFill { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiPageBackgroundFill {
+        [JsonPropertyName("solidFill")] public GoogleSlidesApiSolidFill? SolidFill { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiSolidFill {
+        [JsonPropertyName("color")] public GoogleSlidesApiOpaqueColor? Color { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiOpaqueColor {
+        [JsonPropertyName("rgbColor")] public GoogleSlidesApiRgbColor? RgbColor { get; set; }
+    }
+
+    internal sealed class GoogleSlidesApiRgbColor {
+        [JsonPropertyName("red")] public double Red { get; set; }
+        [JsonPropertyName("green")] public double Green { get; set; }
+        [JsonPropertyName("blue")] public double Blue { get; set; }
     }
 
     internal sealed class GoogleSlidesApiSlideProperties {

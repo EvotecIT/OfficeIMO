@@ -50,6 +50,10 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 foreach (GoogleSlidesApiPage sourceSlide in source.Slides) {
                     PowerPointSlide slide = presentation.AddSlide();
                     slide.Hidden = sourceSlide.SlideProperties?.IsSkipped == true;
+                    GoogleSlidesApiRgbColor? backgroundColor = sourceSlide.PageProperties?.PageBackgroundFill?.SolidFill?.Color?.RgbColor;
+                    if (backgroundColor != null) {
+                        slide.BackgroundColor = ToHex(backgroundColor);
+                    }
                     foreach (GoogleSlidesApiPageElement element in sourceSlide.PageElements) {
                         double left = ToPoints(element.Transform?.TranslateX ?? 0, element.Transform?.Unit);
                         double top = ToPoints(element.Transform?.TranslateY ?? 0, element.Transform?.Unit);
@@ -85,7 +89,15 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             }
                         } else if (element.Image?.ContentUrl is string url && !string.IsNullOrWhiteSpace(url)) {
                             try {
-                                byte[] bytes = await transport.SendBytesAsync(token, HttpMethod.Get, url, GoogleWorkspaceRequestSafety.Safe, "Google Slides image", report, cancellationToken).ConfigureAwait(false);
+                                byte[] bytes = await transport.SendBytesAsync(
+                                    token,
+                                    HttpMethod.Get,
+                                    url,
+                                    GoogleWorkspaceRequestSafety.Safe,
+                                    "Google Slides image",
+                                    report,
+                                    cancellationToken,
+                                    preserveRequestUri: true).ConfigureAwait(false);
                                 using var image = new MemoryStream(bytes, writable: false);
                                 slide.AddPicturePoints(image, DetectImageType(bytes), left, top, Math.Max(1, width), Math.Max(1, height));
                             } catch (Exception ex) when (!(ex is OperationCanceledException)) {
@@ -106,6 +118,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static string ExtractText(GoogleSlidesApiTextContent? text) => text == null ? string.Empty : string.Concat(text.TextElements.Select(element => element.TextRun?.Content));
         private static double ToPoints(GoogleSlidesApiDimension? dimension) => dimension == null ? 0 : ToPoints(dimension.Magnitude, dimension.Unit);
         private static double ToPoints(double value, string? unit) => string.Equals(unit, "EMU", StringComparison.OrdinalIgnoreCase) ? value / 12700d : value;
+        private static string ToHex(GoogleSlidesApiRgbColor color) => $"{ToByte(color.Red):X2}{ToByte(color.Green):X2}{ToByte(color.Blue):X2}";
+        private static int ToByte(double component) => Math.Max(0, Math.Min(255, (int)Math.Round(component * 255d)));
         private static bool TryMapShapeType(string? shapeType, out A.ShapeTypeValues mapped) {
             switch (shapeType) {
                 case "RECTANGLE": mapped = A.ShapeTypeValues.Rectangle; return true;

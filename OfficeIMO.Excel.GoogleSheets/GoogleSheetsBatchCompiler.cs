@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             bool cellValidationNoticeAdded = false;
 
             foreach (var worksheet in workbookSnapshot.Worksheets) {
-                ResolveGridSize(worksheet, out int rowCount, out int columnCount);
+                ResolveGridSize(worksheet, workbookSnapshot.NamedRanges, out int rowCount, out int columnCount);
                 batch.Add(new GoogleSheetsAddSheetRequest {
                     SheetName = worksheet.Name,
                     SheetIndex = worksheet.Index,
@@ -243,7 +243,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return batch;
         }
 
-        private static void ResolveGridSize(ExcelWorksheetSnapshot worksheet, out int rowCount, out int columnCount) {
+        private static void ResolveGridSize(
+            ExcelWorksheetSnapshot worksheet,
+            IReadOnlyList<ExcelNamedRangeSnapshot> namedRanges,
+            out int rowCount,
+            out int columnCount) {
             rowCount = DefaultGoogleSheetsRowCount;
             columnCount = DefaultGoogleSheetsColumnCount;
             string usedRange = worksheet.UsedRangeA1.Replace("$", string.Empty);
@@ -266,6 +270,19 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 ExpandGridToInclude(table.A1Range, ref rowCount, ref columnCount);
             }
 
+            foreach (ExcelNamedRangeSnapshot namedRange in namedRanges.Where(range => !range.IsBuiltIn)) {
+                string? targetSheetName = namedRange.SheetName;
+                string rangeText = namedRange.ReferenceA1.TrimStart('=').Replace("$", string.Empty);
+                if (TrySplitSheetQualifiedRange(rangeText, out string? explicitSheetName, out string unqualifiedRange)) {
+                    targetSheetName = explicitSheetName;
+                    rangeText = unqualifiedRange;
+                }
+
+                if (string.Equals(targetSheetName, worksheet.Name, StringComparison.OrdinalIgnoreCase)) {
+                    ExpandGridToIncludeNamedRange(rangeText, ref rowCount, ref columnCount);
+                }
+            }
+
             rowCount = Math.Max(rowCount, worksheet.FrozenRowCount);
             columnCount = Math.Max(columnCount, worksheet.FrozenColumnCount);
         }
@@ -278,6 +295,20 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             rowCount = Math.Max(rowCount, lastRow);
             columnCount = Math.Max(columnCount, lastColumn);
+        }
+
+        private static void ExpandGridToIncludeNamedRange(string a1Range, ref int rowCount, ref int columnCount) {
+            string normalizedRange = a1Range.Replace("$", string.Empty);
+            if (!A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return;
+            }
+
+            if (firstRow != 1 || lastRow != A1.MaxRows) {
+                rowCount = Math.Max(rowCount, lastRow);
+            }
+            if (firstColumn != 1 || lastColumn != A1.MaxColumns) {
+                columnCount = Math.Max(columnCount, lastColumn);
+            }
         }
 
         private static string ResolveTitle(ExcelDocument document, ExcelWorkbookSnapshot workbookSnapshot, GoogleSheetsSaveOptions options) {

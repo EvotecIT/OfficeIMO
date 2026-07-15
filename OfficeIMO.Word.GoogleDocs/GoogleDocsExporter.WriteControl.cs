@@ -4,6 +4,7 @@ namespace OfficeIMO.Word.GoogleDocs {
     internal sealed class GoogleDocsWriteControlState {
         private readonly GoogleDocsRevisionConflictMode _mode;
         private string? _revisionId;
+        private bool _writeAttempted;
 
         internal GoogleDocsWriteControlState(GoogleDocsRevisionConflictMode mode, string? revisionId) {
             _mode = mode;
@@ -11,9 +12,14 @@ namespace OfficeIMO.Word.GoogleDocs {
         }
 
         internal string? RevisionId => _revisionId;
+        internal bool RequiresRevisionRefresh => _mode == GoogleDocsRevisionConflictMode.OverwriteLatest && _writeAttempted;
 
         internal void Apply(GoogleDocsApiBatchUpdatePayload payload) {
-            if (_mode == GoogleDocsRevisionConflictMode.OverwriteLatest || string.IsNullOrWhiteSpace(_revisionId)) return;
+            if (_mode == GoogleDocsRevisionConflictMode.OverwriteLatest) {
+                _writeAttempted = true;
+                return;
+            }
+            if (string.IsNullOrWhiteSpace(_revisionId)) return;
             payload.WriteControl = _mode == GoogleDocsRevisionConflictMode.RequireRevision
                 ? new GoogleDocsApiWriteControlPayload { RequiredRevisionId = _revisionId }
                 : new GoogleDocsApiWriteControlPayload { TargetRevisionId = _revisionId };
@@ -21,7 +27,9 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         internal void Observe(GoogleDocsApiBatchUpdateResponse response) {
             string? updated = response.WriteControl?.RequiredRevisionId ?? response.WriteControl?.TargetRevisionId;
-            if (!string.IsNullOrWhiteSpace(updated)) _revisionId = updated;
+            if (!string.IsNullOrWhiteSpace(updated)) {
+                _revisionId = updated;
+            }
         }
     }
 

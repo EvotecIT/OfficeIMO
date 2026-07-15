@@ -4,7 +4,13 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.GoogleSlides {
     internal static class GoogleSlidesBatchCompiler {
-        internal static GoogleSlidesBatch Build(PowerPointPresentation presentation, GoogleSlidesSaveOptions options) {
+        internal static GoogleSlidesTranslationPlan BuildPlan(PowerPointPresentation presentation, GoogleSlidesSaveOptions options) =>
+            Build(presentation, options, materializeRasterImages: false).Plan;
+
+        internal static GoogleSlidesBatch Build(
+            PowerPointPresentation presentation,
+            GoogleSlidesSaveOptions options,
+            bool materializeRasterImages = true) {
             var report = new TranslationReport();
             var plan = new GoogleSlidesTranslationPlan(report) { SlideCount = presentation.Slides.Count };
             string? title = !string.IsNullOrWhiteSpace(options.Title) ? options.Title! : presentation.BuiltinDocumentProperties.Title;
@@ -23,12 +29,17 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 PowerPointShape[] visibleShapes = source.Shapes.Where(shape => !shape.Hidden).ToArray();
                 PowerPointShape[] unsupported = visibleShapes.Where(IsUnsupported).ToArray();
                 if (unsupported.Length > 0 && options.ComplexSlides == GoogleSlidesComplexSlideMode.RasterizeComplexSlides) {
-                    byte[] bytes = source.ToPng(new PowerPointImageExportOptions { IncludeSlideBackground = true, IncludeHiddenShapes = false });
                     target.IsRasterized = true;
-                    target.Add(new GoogleSlidesImage(ObjectId("render", slideIndex, 0), 0, 0, batch.WidthPoints, batch.HeightPoints, bytes, "image/png", $"slide-{slideIndex + 1}.png"));
+                    if (materializeRasterImages) {
+                        byte[] bytes = source.ToPng(new PowerPointImageExportOptions { IncludeSlideBackground = true, IncludeHiddenShapes = false });
+                        target.Add(new GoogleSlidesImage(ObjectId("render", slideIndex, 0), 0, 0, batch.WidthPoints, batch.HeightPoints, bytes, "image/png", $"slide-{slideIndex + 1}.png"));
+                    }
                     plan.RasterizedSlideCount++;
                     plan.UnsupportedElementCount += unsupported.Length;
-                    report.Add(TranslationSeverity.Warning, "ComplexSlides", $"Slide {slideIndex + 1} contains {unsupported.Length} element(s) without a dependable native Slides equivalent and was rendered to PNG.",
+                    string rasterMessage = materializeRasterImages
+                        ? $"Slide {slideIndex + 1} contains {unsupported.Length} element(s) without a dependable native Slides equivalent and was rendered to PNG."
+                        : $"Slide {slideIndex + 1} contains {unsupported.Length} element(s) without a dependable native Slides equivalent and will be rendered to PNG during export.";
+                    report.Add(TranslationSeverity.Warning, "ComplexSlides", rasterMessage,
                         path: $"slide/{slideIndex + 1}", code: "SLIDES.COMPLEX_SLIDE.RASTERIZED", action: TranslationAction.Rasterize, count: unsupported.Length);
                     batch.Add(target);
                     continue;

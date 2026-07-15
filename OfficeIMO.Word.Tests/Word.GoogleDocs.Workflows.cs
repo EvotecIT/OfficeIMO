@@ -116,13 +116,18 @@ namespace OfficeIMO.Tests {
                 using var document = WordDocument.Create(filePath);
                 document.AddParagraph("Local edit");
                 var bodies = new List<string>();
+                int documentReads = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
                     if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "docs.googleapis.com") {
-                        return CreateJsonResponse(CreateTabbedDocumentStateJson("doc-nonstrict", "remote-revision", "tab-a", "Remote edit"));
+                        documentReads++;
+                        string revision = documentReads == 1 ? "remote-revision" : "revision-readback";
+                        return CreateJsonResponse(CreateTabbedDocumentStateJson("doc-nonstrict", revision, "tab-a", "Remote edit"));
                     }
                     if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
                         bodies.Add(await request.Content!.ReadAsStringAsync().ConfigureAwait(false));
-                        return CreateJsonResponse("{\"writeControl\":{\"requiredRevisionId\":\"revision-new\"}}");
+                        return mode == GoogleDocsRevisionConflictMode.OverwriteLatest
+                            ? CreateJsonResponse("{}")
+                            : CreateJsonResponse("{\"writeControl\":{\"requiredRevisionId\":\"revision-new\"}}");
                     }
                     return new HttpResponseMessage(HttpStatusCode.NotFound);
                 }));
@@ -142,7 +147,10 @@ namespace OfficeIMO.Tests {
                 } else {
                     Assert.All(bodies, body => Assert.DoesNotContain("writeControl", body, StringComparison.Ordinal));
                 }
-                Assert.Equal("revision-new", result.RevisionId);
+                Assert.Equal(
+                    mode == GoogleDocsRevisionConflictMode.OverwriteLatest ? "revision-readback" : "revision-new",
+                    result.RevisionId);
+                Assert.Equal(mode == GoogleDocsRevisionConflictMode.OverwriteLatest ? 2 : 1, documentReads);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }
@@ -406,6 +414,54 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(driveBodies, body => body.Contains("Alice: Please review", StringComparison.Ordinal));
                 Assert.Contains(driveBodies, body => body.Contains("Bob: Reviewed", StringComparison.Ordinal));
                 Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_CREATED");
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
+        public async Task Test_GoogleDocsExporter_ReusesMatchingDriveCommentsOnReplacement() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsCommentReplacement.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Review target").AddComment("Alice", "A", "Please review");
+                WordComment comment = WordComment.GetAllComments(document).Single();
+                comment.AddReply("Bob", "B", "Reviewed");
+                int createdCommentItems = 0;
+                int commentListReads = 0;
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse(CreateTabbedDocumentStateJson("doc-comments", "revision-1", "tab-a", "Remote")));
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}"));
+                    }
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal)) {
+                        commentListReads++;
+                        return Task.FromResult(request.RequestUri.Query.Contains("pageToken=next", StringComparison.Ordinal)
+                            ? CreateJsonResponse("{\"comments\":[{\"id\":\"comment-1\",\"content\":\"Alice: Please review\",\"replies\":[{\"id\":\"reply-1\",\"content\":\"Bob: Reviewed\"}]}]}")
+                            : CreateJsonResponse("{\"nextPageToken\":\"next\",\"comments\":[]}"));
+                    }
+                    if (request.Method == HttpMethod.Post
+                        && (request.RequestUri!.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal)
+                            || request.RequestUri.AbsolutePath.EndsWith("/replies", StringComparison.Ordinal))) {
+                        createdCommentItems++;
+                        return Task.FromResult(CreateJsonResponse("{}"));
+                    }
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Location = new GoogleDriveFileLocation { ExistingFileId = "doc-comments" },
+                    Replace = new GoogleDocsReplaceOptions {
+                        ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest,
+                    },
+                });
+
+                Assert.Equal(2, commentListReads);
+                Assert.Equal(0, createdCommentItems);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.COMMENT.UNANCHORED_REUSED" && notice.Count == 2);
             } finally {
                 if (File.Exists(filePath)) File.Delete(filePath);
             }

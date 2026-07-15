@@ -159,6 +159,27 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsBatch_SizesSheetGridFromNamedRanges() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNamedRangeGrid.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                document.SetNamedRange("GlobalExtent", "'Data'!A1:AA2001", save: false);
+                sheet.SetNamedRange("LocalExtent", "AB1:AB2002", save: false);
+
+                GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
+                GoogleSheetsAddSheetRequest dataSheet = Assert.Single(
+                    batch.Requests.OfType<GoogleSheetsAddSheetRequest>(),
+                    request => request.SheetName == "Data");
+
+                Assert.Equal(2002, dataSheet.RowCount);
+                Assert.Equal(28, dataSheet.ColumnCount);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleSheetsBatch_UsesExplicitScatterXValues() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScatter.xlsx");
             try {
