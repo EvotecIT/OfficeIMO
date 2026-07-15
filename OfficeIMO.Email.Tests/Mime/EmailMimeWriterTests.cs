@@ -431,4 +431,17 @@ public sealed class EmailMimeWriterTests {
 
         Assert.Equal(displayName, roundTrip.From!.DisplayName);
     }
+
+    [Theory]
+    [InlineData("From", "(undisclosed)")]
+    [InlineData("Sender", "Broken <")]
+    public void RetainsUnparsedScalarAddressHeaders(string name, string value) {
+        byte[] source = Encoding.ASCII.GetBytes(name + ": " + value + "\r\nSubject: retained\r\n\r\nbody\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(source).Document;
+
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        string eml = Encoding.ASCII.GetString(rewritten);
+
+        Assert.Contains(name + ": " + value + "\r\n", eml, StringComparison.Ordinal);
+    }
 }

@@ -318,8 +318,11 @@ internal static partial class IcsCalendarCodec {
         if (task.EstimatedEffort.HasValue) AppendLine(output,
             string.Concat("X-OFFICEIMO-ESTIMATED-EFFORT:", IcsDurationCodec.Format(task.EstimatedEffort.Value)));
         if (!string.IsNullOrWhiteSpace(task.Owner)) {
-            if (task.Owner!.IndexOf('@') >= 0) AppendLine(output,
-                string.Concat("ORGANIZER:mailto:", EscapeUriValue(task.Owner)));
+            if (task.Owner!.IndexOf('@') >= 0) {
+                EmailAddress organizer = document.From != null && string.Equals(document.From.Address, task.Owner,
+                    StringComparison.OrdinalIgnoreCase) ? document.From : new EmailAddress(task.Owner);
+                WriteOrganizer(output, organizer);
+            }
             else AppendText(output, "X-OFFICEIMO-TASK-OWNER", task.Owner);
         }
         if (task.ActualEffort.HasValue) AppendLine(output,
@@ -370,13 +373,16 @@ internal static partial class IcsCalendarCodec {
     }
 
     private static void WriteOrganizerAndAttendees(StringBuilder output, EmailDocument document) {
-        if (!string.IsNullOrWhiteSpace(document.From?.Address)) {
-            string organizer = string.Concat("ORGANIZER");
-            if (!string.IsNullOrWhiteSpace(document.From!.DisplayName)) organizer += string.Concat(";CN=\"",
-                EscapeParameter(document.From.DisplayName!), "\"");
-            AppendLine(output, string.Concat(organizer, ":mailto:", EscapeUriValue(document.From.Address!)));
-        }
+        WriteOrganizer(output, document.From);
         WriteAttendees(output, document);
+    }
+
+    private static void WriteOrganizer(StringBuilder output, EmailAddress? address) {
+        if (string.IsNullOrWhiteSpace(address?.Address)) return;
+        string organizer = string.Concat("ORGANIZER");
+        if (!string.IsNullOrWhiteSpace(address!.DisplayName)) organizer += string.Concat(";CN=\"",
+            EscapeParameter(address.DisplayName!), "\"");
+        AppendLine(output, string.Concat(organizer, ":mailto:", EscapeUriValue(address.Address!)));
     }
 
     private static void WriteAttendees(StringBuilder output, EmailDocument document) {

@@ -39,7 +39,10 @@ internal static class VCardCodec {
         contact.Prefix = ValueAt(name, 3);
         contact.Generation = ValueAt(name, 4);
         contact.DisplayName = Unescape(GetValue(properties, "FN"));
-        contact.NickName = Unescape(GetValue(properties, "NICKNAME"));
+        string[] nickNames = SplitEscaped(GetValue(properties, "NICKNAME"), ',');
+        contact.NickName = ValueAt(nickNames, 0);
+        document.MimeSemanticProjectionIsIncomplete |= nickNames.Skip(1)
+            .Any(value => !string.IsNullOrWhiteSpace(value));
         if (string.IsNullOrWhiteSpace(document.Subject)) document.Subject = contact.DisplayName;
 
         string[] organization = SplitEscaped(GetValue(properties, "ORG"), ';');
@@ -50,7 +53,11 @@ internal static class VCardCodec {
         contact.JobTitle = Unescape(GetValue(properties, "TITLE"));
         contact.Profession = Unescape(GetValue(properties, "ROLE"));
         contact.Language = Unescape(GetValue(properties, "LANG"));
-        contact.InstantMessagingAddress = Unescape(GetValue(properties, "IMPP"));
+        VCardProperty[] instantMessagingAddresses = properties.Where(property => property.Name == "IMPP").ToArray();
+        contact.InstantMessagingAddress = instantMessagingAddresses.Length == 0
+            ? null
+            : Unescape(instantMessagingAddresses[0].Value);
+        document.MimeSemanticProjectionIsIncomplete |= instantMessagingAddresses.Length > 1;
         string? birthday = GetValue(properties, "BDAY");
         string? anniversary = GetValue(properties, "ANNIVERSARY");
         contact.Birthday = ParseDate(birthday);
@@ -62,8 +69,8 @@ internal static class VCardCodec {
         contact.IsPrivate = sensitivity.HasValue ? sensitivity.Value != 0 : (bool?)null;
         if (sensitivity.HasValue) document.MessageMetadata.Sensitivity = sensitivity;
 
-        ApplyEmails(properties, contact);
-        document.MimeSemanticProjectionIsIncomplete |= ApplyPhones(properties, contact.Phones) ||
+        document.MimeSemanticProjectionIsIncomplete |= ApplyEmails(properties, contact) ||
+            ApplyPhones(properties, contact.Phones) ||
             HasUnsupportedPhonePreference(properties) ||
             HasAddressSlotOverflow(properties) || HasUnprojectedAddressComponents(properties) ||
             HasUrlSlotOverflow(properties) || HasUnsupportedEmailPreference(properties);
@@ -192,10 +199,11 @@ internal static class VCardCodec {
         return Encoding.UTF8.GetBytes(output.ToString());
     }
 
-    private static void ApplyEmails(IEnumerable<VCardProperty> properties, OutlookContact contact) {
+    private static bool ApplyEmails(IEnumerable<VCardProperty> properties, OutlookContact contact) {
         VCardProperty[] emails = properties.Where(property => property.Name == "EMAIL").ToArray();
         OutlookContactEmailAddress[] targets = { contact.Email1, contact.Email2, contact.Email3 };
         var used = new bool[targets.Length];
+        bool typeSlotFallback = false;
         foreach (VCardProperty email in emails) {
             string types = email.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
             int preferredIndex = ContainsType(types, "HOME") ? 1 : ContainsType(types, "OTHER") ? 2 :
@@ -204,6 +212,7 @@ internal static class VCardCodec {
                 ? preferredIndex
                 : Array.FindIndex(used, value => !value);
             if (index < 0) break;
+            typeSlotFallback |= preferredIndex >= 0 && index != preferredIndex;
             used[index] = true;
             targets[index].Address = Unescape(email.Value);
             targets[index].AddressType = "SMTP";
@@ -214,6 +223,7 @@ internal static class VCardCodec {
             targets[index].OriginalDisplayName = UnescapeOrNull(GetValue(properties,
                 string.Concat(prefix, "-ORIGINAL-DISPLAY-NAME")));
         }
+        return typeSlotFallback;
     }
 
     private static bool ApplyPhones(IEnumerable<VCardProperty> properties, OutlookContactPhones phones) {

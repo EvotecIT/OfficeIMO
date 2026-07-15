@@ -30,6 +30,7 @@ internal static partial class IcsCalendarCodec {
                 property.Name == "CLASS" && !ParseCalendarSensitivity(property.Value).HasValue ||
                 isEvent && property.Name == "STATUS" ||
                 property.Name == "PRIORITY" || property.Name == "URL" ||
+                property.Name == "LOCATION" && property.Parameters.Count > 0 ||
                 !isEvent && property.Name == "SEQUENCE" ||
                 !isEvent && IsDateOnlyTaskProperty(property) ||
                 property.Name == "ATTENDEE" && HasIncompleteAttendeeProjection(property) ||
@@ -92,6 +93,9 @@ internal static partial class IcsCalendarCodec {
     }
 
     private static bool HasIncompleteAttendeeProjection(IcsProperty attendee) {
+        bool roomOrResource = attendee.Parameters.TryGetValue("CUTYPE", out string? calendarUserType) &&
+            (calendarUserType.Equals("ROOM", StringComparison.OrdinalIgnoreCase) ||
+             calendarUserType.Equals("RESOURCE", StringComparison.OrdinalIgnoreCase));
         foreach (KeyValuePair<string, string> parameter in attendee.Parameters) {
             if (parameter.Key.Equals("CN", StringComparison.OrdinalIgnoreCase)) continue;
             if (parameter.Key.Equals("CUTYPE", StringComparison.OrdinalIgnoreCase)) {
@@ -101,16 +105,14 @@ internal static partial class IcsCalendarCodec {
                 return true;
             }
             if (!parameter.Key.Equals("ROLE", StringComparison.OrdinalIgnoreCase)) return true;
-            bool roomOrResource = attendee.Parameters.TryGetValue("CUTYPE", out string? calendarUserType) &&
-                (calendarUserType.Equals("ROOM", StringComparison.OrdinalIgnoreCase) ||
-                 calendarUserType.Equals("RESOURCE", StringComparison.OrdinalIgnoreCase));
             if (roomOrResource
                     ? parameter.Value.Equals("NON-PARTICIPANT", StringComparison.OrdinalIgnoreCase)
                     : parameter.Value.Equals("REQ-PARTICIPANT", StringComparison.OrdinalIgnoreCase) ||
                       parameter.Value.Equals("OPT-PARTICIPANT", StringComparison.OrdinalIgnoreCase)) continue;
             return true;
         }
-        return false;
+        return roomOrResource && (!attendee.Parameters.TryGetValue("ROLE", out string? role) ||
+            !role.Equals("NON-PARTICIPANT", StringComparison.OrdinalIgnoreCase));
     }
 
     private static bool HasIncompleteOrganizerProjection(IcsProperty organizer) =>

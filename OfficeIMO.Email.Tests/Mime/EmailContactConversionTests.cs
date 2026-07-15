@@ -431,6 +431,41 @@ public sealed class EmailContactConversionTests {
     }
 
     [Fact]
+    public void BlocksVcardEmailTypeSlotFallbackBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nEMAIL;TYPE=WORK:first@example.com\r\n" +
+            "EMAIL;TYPE=WORK:second@example.com\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.Equal("first@example.com", document.Contact!.Email1.Address);
+        Assert.Equal("second@example.com", document.Contact.Email2.Address);
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("NICKNAME:Bob,Rob")]
+    [InlineData("IMPP:xmpp:first@example.com\r\nIMPP:xmpp:second@example.com")]
+    public void BlocksUnrepresentableMultiValueVcardPropertiesBeforeStoreConversion(string properties) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Robert Example\r\n" + properties + "\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
     public void BlocksDistinctMimeBodyAndVcardNoteBeforeStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=x\r\n\r\n" +

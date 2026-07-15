@@ -134,13 +134,50 @@ internal static class EmailConversionAnalyzer {
 
     private static bool HasAddresslessAttendeeDisplayState(EmailDocument document) {
         OutlookAppointment appointment = document.Appointment!;
-        bool hasDisplayText = !string.IsNullOrWhiteSpace(appointment.AllAttendees) ||
-            !string.IsNullOrWhiteSpace(appointment.RequiredAttendees) ||
+        if (HasAddresslessCalendarRecipient(document)) return true;
+
+        EmailRecipient[] requiredRecipients = document.Recipients.Where(recipient =>
+            recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Room ||
+            recipient.Kind == EmailRecipientKind.Resource).ToArray();
+        EmailRecipient[] optionalRecipients = document.Recipients.Where(recipient =>
+            recipient.Kind == EmailRecipientKind.Cc).ToArray();
+        bool hasRoleSpecificDisplays = !string.IsNullOrWhiteSpace(appointment.RequiredAttendees) ||
             !string.IsNullOrWhiteSpace(appointment.OptionalAttendees);
-        return HasAddresslessCalendarRecipient(document) || hasDisplayText && !document.Recipients.Any(recipient =>
-            (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
-             recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
-            !string.IsNullOrWhiteSpace(recipient.Address.Address));
+        if (hasRoleSpecificDisplays) {
+            return HasUnmatchedAttendeeDisplay(appointment.RequiredAttendees, requiredRecipients) ||
+                HasUnmatchedAttendeeDisplay(appointment.OptionalAttendees, optionalRecipients);
+        }
+
+        return HasUnmatchedAttendeeDisplay(appointment.AllAttendees,
+            requiredRecipients.Concat(optionalRecipients).ToArray());
+    }
+
+    private static bool HasUnmatchedAttendeeDisplay(string? displayState,
+        IReadOnlyList<EmailRecipient> recipients) {
+        string[] displayValues = (displayState ?? string.Empty).Split(';')
+            .Select(value => value.Trim()).Where(value => value.Length > 0).ToArray();
+        if (displayValues.Length == 0) return false;
+        if (displayValues.Length > recipients.Count) return true;
+
+        var used = new bool[recipients.Count];
+        foreach (string displayValue in displayValues) {
+            int match = -1;
+            for (int index = 0; index < recipients.Count; index++) {
+                if (used[index] || !AttendeeDisplayMatches(displayValue, recipients[index].Address)) continue;
+                match = index;
+                break;
+            }
+            if (match < 0) return true;
+            used[match] = true;
+        }
+        return false;
+    }
+
+    private static bool AttendeeDisplayMatches(string displayValue, EmailAddress address) {
+        if (string.Equals(displayValue, address.DisplayName, StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(displayValue, address.Address, StringComparison.OrdinalIgnoreCase)) return true;
+        return !string.IsNullOrWhiteSpace(address.Address) &&
+            displayValue.EndsWith(string.Concat("<", address.Address, ">"), StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool HasAddresslessCalendarRecipient(EmailDocument document) => document.Recipients.Any(recipient =>

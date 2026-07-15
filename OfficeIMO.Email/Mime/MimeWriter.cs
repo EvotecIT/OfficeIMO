@@ -139,6 +139,7 @@ internal static class MimeWriter {
         EmailAddress? parsed = MimeAddressParser.ParseOne(retained?.RawValue ?? retained?.Value,
             diagnostics, string.Concat("transport/", name));
         if (parsed != null) WriteLine(output, string.Concat(name, ": ", FormatAddress(parsed)));
+        else if (retained != null) WriteRetainedHeader(output, retained);
     }
 
     private static void WriteThreadingHeader(Stream output, EmailDocument document, string name, string? fallbackValue) {
@@ -200,7 +201,10 @@ internal static class MimeWriter {
             regularAttachmentList.Add(vcardAttachment);
         }
         EmailAttachment[] regularAttachments = regularAttachmentList.ToArray();
-        bool hasAlternative = CountBodyAlternatives(document.Body) + (calendarContent == null ? 0 : 1) > 1;
+        bool includeTextBody = document.Body.Text != null &&
+            (document.MimeHasMessageBody || calendarAttachment == null);
+        bool hasAlternative = CountBodyAlternatives(document.Body, includeTextBody) +
+            (calendarContent == null ? 0 : 1) > 1;
         bool hasRelatedResources = regularAttachments.Any(attachment => IsRelatedResource(document, attachment));
         bool hasUnrelatedAttachments = regularAttachments.Any(attachment => !IsRelatedResource(document, attachment));
         if (hasUnrelatedAttachments) {
@@ -209,10 +213,10 @@ internal static class MimeWriter {
             WriteLine(output, string.Empty);
             WriteLine(output, string.Concat("--", boundary));
             if (hasRelatedResources) {
-                WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
+                WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
                     calendarSourceReused ? calendarAttachment : null, regularAttachments);
             } else {
-                WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
+                WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
                     calendarSourceReused ? calendarAttachment : null);
             }
             for (int i = 0; i < regularAttachments.Length; i++) {
@@ -225,22 +229,24 @@ internal static class MimeWriter {
         }
 
         if (hasRelatedResources) {
-            WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
+            WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
                 calendarSourceReused ? calendarAttachment : null, regularAttachments);
         } else {
-            WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
+            WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
                 calendarSourceReused ? calendarAttachment : null);
         }
     }
 
     private static void WriteRelatedBodyEntity(Stream output, EmailDocument document, MimeWriterState state,
-        int depth, bool hasAlternative, byte[]? calendarContent, EmailAttachment? calendarAttachment,
+        int depth, bool hasAlternative, bool includeTextBody, byte[]? calendarContent,
+        EmailAttachment? calendarAttachment,
         IReadOnlyList<EmailAttachment> attachments) {
         string boundary = CreateBoundary(document, depth, "related");
         WriteLine(output, string.Concat("Content-Type: multipart/related; boundary=\"", boundary, "\""));
         WriteLine(output, string.Empty);
         WriteLine(output, string.Concat("--", boundary));
-        WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent, calendarAttachment);
+        WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
+            calendarAttachment);
         for (int i = 0; i < attachments.Count; i++) {
             if (!IsRelatedResource(document, attachments[i])) continue;
             WriteLine(output, string.Concat("--", boundary));
@@ -260,14 +266,14 @@ internal static class MimeWriter {
     }
 
     private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth,
-        bool hasAlternative, byte[]? calendarContent, EmailAttachment? calendarAttachment) {
+        bool hasAlternative, bool includeTextBody, byte[]? calendarContent, EmailAttachment? calendarAttachment) {
         if (hasAlternative) {
             string boundary = CreateBoundary(document, depth, "alternative");
             WriteLine(output, string.Concat("Content-Type: multipart/alternative; boundary=\"", boundary, "\""));
             WriteLine(output, string.Empty);
-            if (document.Body.Text != null) {
+            if (includeTextBody) {
                 WriteLine(output, string.Concat("--", boundary));
-                WriteTextPart(output, "text/plain", document.Body.Text, state.Options.Base64LineLength);
+                WriteTextPart(output, "text/plain", document.Body.Text!, state.Options.Base64LineLength);
             }
             if (document.Body.Html != null) {
                 WriteLine(output, string.Concat("--", boundary));
@@ -360,8 +366,8 @@ internal static class MimeWriter {
         WriteBase64(output, content, base64LineLength);
     }
 
-    private static int CountBodyAlternatives(EmailBody body) {
-        return (body.Text == null ? 0 : 1) + (body.Html == null ? 0 : 1) + (body.Rtf == null ? 0 : 1);
+    private static int CountBodyAlternatives(EmailBody body, bool includeTextBody) {
+        return (includeTextBody ? 1 : 0) + (body.Html == null ? 0 : 1) + (body.Rtf == null ? 0 : 1);
     }
 
     private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength) {
