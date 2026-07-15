@@ -66,23 +66,46 @@ namespace OfficeIMO.GoogleWorkspace {
     }
 
     public static class GoogleWorkspaceRetryPolicy {
-        public static async Task<HttpResponseMessage> SendAsync(
+        public static Task<HttpResponseMessage> SendAsync(
             HttpClient client,
             Func<HttpRequestMessage> requestFactory,
             GoogleWorkspaceRetryOptions retryOptions,
             GoogleWorkspaceRequestSafety requestSafety,
             CancellationToken cancellationToken,
             Action<GoogleWorkspaceRetryEvent>? onRetry = null) {
+            return SendAsync(
+                client,
+                requestFactory,
+                retryOptions,
+                requestSafety,
+                Timeout.InfiniteTimeSpan,
+                cancellationToken,
+                onRetry);
+        }
+
+        public static async Task<HttpResponseMessage> SendAsync(
+            HttpClient client,
+            Func<HttpRequestMessage> requestFactory,
+            GoogleWorkspaceRetryOptions retryOptions,
+            GoogleWorkspaceRequestSafety requestSafety,
+            TimeSpan requestTimeout,
+            CancellationToken cancellationToken,
+            Action<GoogleWorkspaceRetryEvent>? onRetry = null) {
             if (retryOptions == null) throw new ArgumentNullException(nameof(retryOptions));
             int retryBudget = retryOptions.MaxRetryCount;
 
             for (int attempt = 0; ; attempt++) {
+                using (var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken))
                 using (var request = requestFactory()) {
+                    if (requestTimeout > TimeSpan.Zero && requestTimeout != Timeout.InfiniteTimeSpan) {
+                        timeoutSource.CancelAfter(requestTimeout);
+                    }
+
                     string method = request.Method.Method;
                     string uri = request.RequestUri?.AbsoluteUri ?? string.Empty;
 
                     try {
-                        var response = await client.SendAsync(request, cancellationToken).ConfigureAwait(false);
+                        var response = await client.SendAsync(request, timeoutSource.Token).ConfigureAwait(false);
                         if (!CanRetry(requestSafety) || !ShouldRetry(response.StatusCode) || attempt >= retryBudget) {
                             return response;
                         }

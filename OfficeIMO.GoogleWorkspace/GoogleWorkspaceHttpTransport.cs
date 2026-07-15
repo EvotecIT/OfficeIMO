@@ -67,34 +67,29 @@ namespace OfficeIMO.GoogleWorkspace {
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
 
-            using (var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)) {
-                if (_options.RequestTimeout > TimeSpan.Zero && _options.RequestTimeout != Timeout.InfiniteTimeSpan) {
-                    timeoutSource.CancelAfter(_options.RequestTimeout);
+            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
+                _client,
+                () => CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId),
+                retryOptions,
+                requestSafety,
+                _options.RequestTimeout,
+                cancellationToken,
+                retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
+                string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                if (!response.IsSuccessStatusCode) {
+                    throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, body);
                 }
 
-                using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
-                    _client,
-                    () => CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId),
-                    retryOptions,
-                    requestSafety,
-                    timeoutSource.Token,
-                    retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
-                    string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    if (!response.IsSuccessStatusCode) {
-                        throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, body);
-                    }
-
-                    if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
-                        return default!;
-                    }
-
-                    var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
-                    if (result == null) {
-                        throw new InvalidOperationException($"{serviceName} response from '{effectiveUri}' could not be deserialized.");
-                    }
-
-                    return result;
+                if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
+                    return default!;
                 }
+
+                var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
+                if (result == null) {
+                    throw new InvalidOperationException($"{serviceName} response from '{effectiveUri}' could not be deserialized.");
+                }
+
+                return result;
             }
         }
 
@@ -111,25 +106,20 @@ namespace OfficeIMO.GoogleWorkspace {
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
 
-            using (var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)) {
-                if (_options.RequestTimeout > TimeSpan.Zero && _options.RequestTimeout != Timeout.InfiniteTimeSpan) {
-                    timeoutSource.CancelAfter(_options.RequestTimeout);
+            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
+                _client,
+                () => CreateRequest(accessToken, method, effectiveUri, null, requestId),
+                retryOptions,
+                requestSafety,
+                _options.RequestTimeout,
+                cancellationToken,
+                retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
+                if (!response.IsSuccessStatusCode) {
+                    string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+                    throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, body);
                 }
 
-                using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
-                    _client,
-                    () => CreateRequest(accessToken, method, effectiveUri, null, requestId),
-                    retryOptions,
-                    requestSafety,
-                    timeoutSource.Token,
-                    retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
-                    if (!response.IsSuccessStatusCode) {
-                        string body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                        throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, body);
-                    }
-
-                    return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                }
+                return await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
             }
         }
 
@@ -155,43 +145,38 @@ namespace OfficeIMO.GoogleWorkspace {
             string? requestId = _options.RequestIdFactory?.Invoke();
             var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(_options);
 
-            using (var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken)) {
-                if (_options.RequestTimeout > TimeSpan.Zero && _options.RequestTimeout != Timeout.InfiniteTimeSpan) {
-                    timeoutSource.CancelAfter(_options.RequestTimeout);
+            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
+                _client,
+                () => {
+                    var request = CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId);
+                    configureRequest?.Invoke(request);
+                    return request;
+                },
+                retryOptions,
+                requestSafety,
+                _options.RequestTimeout,
+                cancellationToken,
+                retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
+                byte[] body = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
+                bool accepted = response.IsSuccessStatusCode
+                    || (additionalSuccessStatusCodes != null && additionalSuccessStatusCodes.Contains(response.StatusCode));
+                if (!accepted) {
+                    string responseText = Encoding.UTF8.GetString(body);
+                    throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, responseText);
                 }
 
-                using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
-                    _client,
-                    () => {
-                        var request = CreateRequest(accessToken, method, effectiveUri, contentFactory, requestId);
-                        configureRequest?.Invoke(request);
-                        return request;
-                    },
-                    retryOptions,
-                    requestSafety,
-                    timeoutSource.Token,
-                    retryEvent => ReportRetry(report, serviceName, retryEvent)).ConfigureAwait(false)) {
-                    byte[] body = await response.Content.ReadAsByteArrayAsync().ConfigureAwait(false);
-                    bool accepted = response.IsSuccessStatusCode
-                        || (additionalSuccessStatusCodes != null && additionalSuccessStatusCodes.Contains(response.StatusCode));
-                    if (!accepted) {
-                        string responseText = Encoding.UTF8.GetString(body);
-                        throw GoogleWorkspaceApiException.Create(serviceName, method, effectiveUri, response.StatusCode, responseText);
-                    }
-
-                    var headers = response.Headers
-                        .Concat(response.Content.Headers)
-                        .GroupBy(header => header.Key, StringComparer.OrdinalIgnoreCase)
-                        .ToDictionary(
-                            group => group.Key,
-                            group => (IReadOnlyList<string>)group.SelectMany(header => header.Value).ToArray(),
-                            StringComparer.OrdinalIgnoreCase);
-                    return new GoogleWorkspaceHttpResponse(
-                        response.StatusCode,
-                        body,
-                        response.Content.Headers.ContentType?.MediaType,
-                        headers);
-                }
+                var headers = response.Headers
+                    .Concat(response.Content.Headers)
+                    .GroupBy(header => header.Key, StringComparer.OrdinalIgnoreCase)
+                    .ToDictionary(
+                        group => group.Key,
+                        group => (IReadOnlyList<string>)group.SelectMany(header => header.Value).ToArray(),
+                        StringComparer.OrdinalIgnoreCase);
+                return new GoogleWorkspaceHttpResponse(
+                    response.StatusCode,
+                    body,
+                    response.Content.Headers.ContentType?.MediaType,
+                    headers);
             }
         }
 

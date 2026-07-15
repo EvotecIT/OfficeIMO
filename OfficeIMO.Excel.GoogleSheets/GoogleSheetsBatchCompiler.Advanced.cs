@@ -353,16 +353,16 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static string MapAggregate(DataConsolidateFunctionValues function) {
-            return function.ToString().ToUpperInvariant() switch {
-                "AVERAGE" => "AVERAGE",
-                "COUNT" or "COUNTNUMS" => "COUNTA",
-                "MAXIMUM" => "MAX",
-                "MINIMUM" => "MIN",
-                "PRODUCT" => "PRODUCT",
-                "STANDARDDEVIATION" or "STANDARDDEVIATIONP" => "STDEV",
-                "VARIANCE" or "VARIANCEP" => "VAR",
-                _ => "SUM",
-            };
+            if (function == DataConsolidateFunctionValues.Average) return "AVERAGE";
+            if (function == DataConsolidateFunctionValues.Count || function == DataConsolidateFunctionValues.CountNumbers) return "COUNTA";
+            if (function == DataConsolidateFunctionValues.Maximum) return "MAX";
+            if (function == DataConsolidateFunctionValues.Minimum) return "MIN";
+            if (function == DataConsolidateFunctionValues.Product) return "PRODUCT";
+            if (function == DataConsolidateFunctionValues.StandardDeviation) return "STDEV";
+            if (function == DataConsolidateFunctionValues.StandardDeviationP) return "STDEVP";
+            if (function == DataConsolidateFunctionValues.Variance) return "VAR";
+            if (function == DataConsolidateFunctionValues.VarianceP) return "VARP";
+            return "SUM";
         }
 
         private static void HandleAdvancedUnsupported(TranslationReport report, string feature, string code, string target, UnsupportedFeatureMode mode) {

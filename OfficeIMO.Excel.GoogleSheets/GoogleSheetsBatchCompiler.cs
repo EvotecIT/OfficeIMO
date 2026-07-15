@@ -5,6 +5,8 @@ using System.IO;
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private const string DefaultTableFooterColorArgb = "FFE8EAED";
+        private const int DefaultGoogleSheetsRowCount = 1000;
+        private const int DefaultGoogleSheetsColumnCount = 26;
 
         internal static GoogleSheetsBatch Build(ExcelDocument document, GoogleSheetsSaveOptions options) {
             var plan = GoogleSheetsPlanBuilder.Build(document, options);
@@ -39,12 +41,15 @@ namespace OfficeIMO.Excel.GoogleSheets {
             bool cellValidationNoticeAdded = false;
 
             foreach (var worksheet in workbookSnapshot.Worksheets) {
+                ResolveGridSize(worksheet, out int rowCount, out int columnCount);
                 batch.Add(new GoogleSheetsAddSheetRequest {
                     SheetName = worksheet.Name,
                     SheetIndex = worksheet.Index,
                     Hidden = worksheet.Hidden,
                     RightToLeft = worksheet.RightToLeft,
                     TabColorArgb = worksheet.TabColorArgb,
+                    RowCount = rowCount,
+                    ColumnCount = columnCount,
                     FrozenRowCount = worksheet.FrozenRowCount,
                     FrozenColumnCount = worksheet.FrozenColumnCount,
                     HideGridlines = !worksheet.ShowGridlines,
@@ -227,6 +232,19 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             return batch;
+        }
+
+        private static void ResolveGridSize(ExcelWorksheetSnapshot worksheet, out int rowCount, out int columnCount) {
+            rowCount = DefaultGoogleSheetsRowCount;
+            columnCount = DefaultGoogleSheetsColumnCount;
+            string usedRange = worksheet.UsedRangeA1.Replace("$", string.Empty);
+            if (A1.TryParseRange(usedRange, out _, out _, out int lastRow, out int lastColumn)) {
+                rowCount = Math.Max(rowCount, lastRow);
+                columnCount = Math.Max(columnCount, lastColumn);
+            }
+
+            rowCount = Math.Max(rowCount, worksheet.FrozenRowCount);
+            columnCount = Math.Max(columnCount, worksheet.FrozenColumnCount);
         }
 
         private static string ResolveTitle(ExcelDocument document, ExcelWorkbookSnapshot workbookSnapshot, GoogleSheetsSaveOptions options) {

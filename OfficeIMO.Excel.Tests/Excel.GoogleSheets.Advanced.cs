@@ -334,5 +334,37 @@ namespace OfficeIMO.Tests {
             Assert.Contains(GoogleSheetsFeatureSupportCatalog.Features, feature => feature.Feature == "Charts" && feature.Export == GoogleSheetsFeatureSupportLevel.Partial);
             Assert.Contains(GoogleSheetsFeatureSupportCatalog.Features, feature => feature.Feature == "Embedded drawings and images" && feature.Export == GoogleSheetsFeatureSupportLevel.Unsupported);
         }
+
+        [Fact]
+        public void Test_GoogleSheetsPivot_MapsPopulationAggregatesExactly() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsPopulationPivot.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.CellValue(1, 1, "Region");
+                sheet.CellValue(1, 2, "Value");
+                sheet.CellValue(2, 1, "North");
+                sheet.CellValue(2, 2, 10d);
+                sheet.CellValue(3, 1, "South");
+                sheet.CellValue(3, 2, 20d);
+                sheet.CellValue(4, 1, "North");
+                sheet.CellValue(4, 2, 30d);
+                sheet.AddPivotTable(
+                    "A1:B4",
+                    "D1",
+                    name: "PopulationPivot",
+                    rowFields: new[] { "Region" },
+                    dataFields: new[] {
+                        new ExcelPivotDataField("Value", DataConsolidateFunctionValues.StandardDeviationP, "Population SD"),
+                        new ExcelPivotDataField("Value", DataConsolidateFunctionValues.VarianceP, "Population Variance"),
+                    });
+
+                GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
+                GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
+                Assert.Equal(new[] { "STDEVP", "VARP" }, pivot.Values.Select(value => value.SummarizeFunction).ToArray());
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
     }
 }

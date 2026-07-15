@@ -216,6 +216,62 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Exporter_PreservesInvalidRequestDiagnosticsWhenRevisionStillMatches() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("Local");
+            int presentationReads = 0;
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") {
+                    presentationReads++;
+                    return Task.FromResult(Json("{\"presentationId\":\"existing\",\"revisionId\":\"observed\",\"slides\":[]}"));
+                }
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest) {
+                        Content = new StringContent("{\"error\":{\"status\":\"INVALID_ARGUMENT\",\"message\":\"Invalid requests[0].createShape\"}}", Encoding.UTF8, "application/json")
+                    });
+                }
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+
+            GoogleWorkspaceApiException exception = await Assert.ThrowsAsync<GoogleWorkspaceApiException>(() => presentation.ExportToGoogleSlidesAsync(Session(httpClient), new GoogleSlidesSaveOptions {
+                Location = new GoogleDriveFileLocation { ExistingFileId = "existing" },
+                Replace = new GoogleSlidesReplaceOptions { ExpectedRevisionId = "observed" },
+            }));
+
+            Assert.Contains("Invalid requests[0].createShape", exception.ResponseBody);
+            Assert.Equal(2, presentationReads);
+        }
+
+        [Fact]
+        public async Task Exporter_ClassifiesBatchFailureAsConflictAfterRevisionChanges() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("Local");
+            int presentationReads = 0;
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "slides.googleapis.com") {
+                    presentationReads++;
+                    string revision = presentationReads == 1 ? "observed" : "remote";
+                    return Task.FromResult(Json("{\"presentationId\":\"existing\",\"revisionId\":\"" + revision + "\",\"slides\":[]}"));
+                }
+                if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.BadRequest) {
+                        Content = new StringContent("{\"error\":{\"status\":\"INVALID_ARGUMENT\"}}", Encoding.UTF8, "application/json")
+                    });
+                }
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+            }));
+
+            GoogleWorkspaceConflictException exception = await Assert.ThrowsAsync<GoogleWorkspaceConflictException>(() => presentation.ExportToGoogleSlidesAsync(Session(httpClient), new GoogleSlidesSaveOptions {
+                Location = new GoogleDriveFileLocation { ExistingFileId = "existing" },
+                Replace = new GoogleSlidesReplaceOptions { ExpectedRevisionId = "observed" },
+            }));
+
+            Assert.Equal("observed", exception.ExpectedVersion);
+            Assert.Equal("remote", exception.ActualVersion);
+            Assert.Equal(2, presentationReads);
+        }
+
+        [Fact]
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));

@@ -175,6 +175,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleWorkspaceHttpTransport_RetriesSafePerAttemptTimeouts() {
+            int attempts = 0;
+            using var httpClient = new HttpClient(new FakeHttpMessageHandler(async (_, cancellationToken) => {
+                attempts++;
+                if (attempts == 1) {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken).ConfigureAwait(false);
+                }
+
+                return CreateJsonResponse("{\"id\":\"safe-timeout-retry\"}");
+            }));
+
+            var entries = new List<GoogleWorkspaceDiagnosticEntry>();
+            var options = new GoogleWorkspaceSessionOptions {
+                HttpClient = httpClient,
+                RequestTimeout = TimeSpan.FromMilliseconds(50),
+                MaxRetryCount = 1,
+                RetryBaseDelay = TimeSpan.FromMilliseconds(1),
+                RetryMaxDelay = TimeSpan.FromMilliseconds(1),
+                DiagnosticSink = entries.Add,
+            };
+            using var transport = new GoogleWorkspaceHttpTransport(options);
+
+            TransportReadResponse result = await transport.SendJsonAsync<TransportReadResponse>(
+                "token",
+                HttpMethod.Get,
+                "https://www.googleapis.com/drive/v3/files/file-1?fields=id",
+                null,
+                GoogleWorkspaceRequestSafety.Safe,
+                "Google Drive API",
+                new TranslationReport());
+
+            Assert.Equal("safe-timeout-retry", result.Id);
+            Assert.Equal(2, attempts);
+            Assert.Contains(entries, entry => entry.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
+        }
+
+        [Fact]
         public void Test_GoogleWorkspacePreflight_BlocksUnacceptedErrorsBeforeMutation() {
             var report = new TranslationReport();
             report.Add(
@@ -429,14 +466,19 @@ namespace OfficeIMO.Tests {
         }
 
         private sealed class FakeHttpMessageHandler : HttpMessageHandler {
-            private readonly Func<HttpRequestMessage, Task<HttpResponseMessage>> _handler;
+            private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handler;
 
             public FakeHttpMessageHandler(Func<HttpRequestMessage, Task<HttpResponseMessage>> handler) {
+                if (handler == null) throw new ArgumentNullException(nameof(handler));
+                _handler = (request, _) => handler(request);
+            }
+
+            public FakeHttpMessageHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handler) {
                 _handler = handler ?? throw new ArgumentNullException(nameof(handler));
             }
 
             protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
-                return _handler(request);
+                return _handler(request, cancellationToken);
             }
         }
     }

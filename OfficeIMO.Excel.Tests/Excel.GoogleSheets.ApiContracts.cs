@@ -46,4 +46,60 @@ public partial class Excel {
             if (File.Exists(path)) File.Delete(path);
         }
     }
+
+    [Fact]
+    public void GoogleSheetsCreationSizesGridFromWorkbookUsedRange() {
+        string path = Path.Combine(_directoryWithFiles, "GoogleSheetsGridSizing.xlsx");
+        try {
+            using var document = ExcelDocument.Create(path);
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 27, "AA");
+            sheet.CellValue(1001, 1, "Row");
+
+            GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
+            GoogleSheetsAddSheetRequest addSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Data");
+            Assert.Equal(1001, addSheet.RowCount);
+            Assert.Equal(27, addSheet.ColumnCount);
+
+            GoogleSheetsApiCreateSpreadsheetPayload createPayload = GoogleSheetsApiPayloadBuilder.BuildCreateSpreadsheetPayload(batch);
+            GoogleSheetsApiSheetPropertiesPayload createProperties = Assert.Single(createPayload.Sheets).Properties;
+            Assert.Equal(1001, createProperties.GridProperties.RowCount);
+            Assert.Equal(27, createProperties.GridProperties.ColumnCount);
+
+            var existingSheets = new Dictionary<int, string> { [10] = "Data" };
+            IReadOnlyDictionary<string, int> desiredIds = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch, existingSheets.Keys);
+            GoogleSheetsApiBatchUpdatePayload replacementPayload = GoogleSheetsApiPayloadBuilder.BuildReplaceSpreadsheetPayload(batch, existingSheets, desiredIds);
+            GoogleSheetsApiSheetPropertiesPayload replacementProperties = Assert.Single(
+                replacementPayload.Requests,
+                request => request.AddSheet?.Properties.Title == "Data").AddSheet!.Properties;
+            Assert.Equal(1001, replacementProperties.GridProperties.RowCount);
+            Assert.Equal(27, replacementProperties.GridProperties.ColumnCount);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void GoogleSheetsNativeTablesUseDoubleForOrdinaryNumbers() {
+        string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNumericTable.xlsx");
+        try {
+            using var document = ExcelDocument.Create(path);
+            ExcelSheet sheet = document.AddWorksheet("Data");
+            sheet.CellValue(1, 1, "Amount");
+            sheet.CellValue(2, 1, 10.5d);
+            sheet.CellValue(3, 1, 20.25d);
+            sheet.AddTable("A1:A3", hasHeader: true, name: "Amounts", style: TableStyle.TableStyleMedium2);
+
+            GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
+            GoogleSheetsAddTableRequest table = Assert.Single(batch.Requests.OfType<GoogleSheetsAddTableRequest>());
+            Assert.Equal("DOUBLE", Assert.Single(table.Columns).ColumnType);
+
+            GoogleSheetsApiBatchUpdatePayload payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
+            GoogleSheetsApiTableColumnPropertiesPayload column = Assert.Single(
+                Assert.Single(payload.Requests, request => request.AddTable != null).AddTable!.Table.ColumnProperties!);
+            Assert.Equal("DOUBLE", column.ColumnType);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
 }

@@ -24,8 +24,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             using var transport = new GoogleWorkspaceHttpTransport(session.Options);
             using var drive = new GoogleDriveClient(session);
             var leases = new List<GoogleDriveTemporaryContentLease>();
+            string? presentationId = null;
             try {
-                string presentationId;
                 bool copiedTemplate = !string.IsNullOrWhiteSpace(effective.TemplatePresentationId);
                 if (copiedTemplate) {
                     GoogleDriveFile copy = await drive.CopyFileAsync(effective.TemplatePresentationId!, batch.Title, location.FolderId, batch.Plan.Report, cancellationToken).ConfigureAwait(false);
@@ -66,7 +66,23 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 effective.Replace.ConflictMode == GoogleSlidesRevisionConflictMode.RequireRevision
                 && !string.IsNullOrWhiteSpace(effective.Replace.ExpectedRevisionId)
                 && ex.ResponseStatusCode == System.Net.HttpStatusCode.BadRequest) {
-                throw new GoogleWorkspaceConflictException("Google presentation changed before the batch could be applied.", effective.Location.ExistingFileId ?? effective.TemplatePresentationId ?? "presentation", effective.Replace.ExpectedRevisionId, null, batch.Plan.Report);
+                string? latestRevision = await TryGetPresentationRevisionAsync(
+                    transport,
+                    token.AccessToken,
+                    presentationId,
+                    batch.Plan.Report,
+                    cancellationToken).ConfigureAwait(false);
+                if (!string.IsNullOrWhiteSpace(latestRevision)
+                    && !string.Equals(effective.Replace.ExpectedRevisionId, latestRevision, StringComparison.Ordinal)) {
+                    throw new GoogleWorkspaceConflictException(
+                        "Google presentation changed before the batch could be applied.",
+                        presentationId ?? "presentation",
+                        effective.Replace.ExpectedRevisionId,
+                        latestRevision,
+                        batch.Plan.Report);
+                }
+
+                throw;
             } finally {
                 foreach (GoogleDriveTemporaryContentLease lease in leases.AsEnumerable().Reverse()) await lease.CleanupAsync(CancellationToken.None).ConfigureAwait(false);
             }
@@ -88,6 +104,26 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         private static async Task<GoogleSlidesApiPresentationResponse> GetPresentationAsync(GoogleWorkspaceHttpTransport transport, string token, string id, TranslationReport report, CancellationToken cancellationToken) =>
             await transport.SendJsonAsync<GoogleSlidesApiPresentationResponse>(token, HttpMethod.Get, $"https://slides.googleapis.com/v1/presentations/{Uri.EscapeDataString(id)}", null,
                 GoogleWorkspaceRequestSafety.Safe, "Google Slides API", report, cancellationToken).ConfigureAwait(false);
+
+        private static async Task<string?> TryGetPresentationRevisionAsync(
+            GoogleWorkspaceHttpTransport transport,
+            string token,
+            string? presentationId,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            if (string.IsNullOrWhiteSpace(presentationId)) return null;
+            try {
+                GoogleSlidesApiPresentationResponse presentation = await GetPresentationAsync(
+                    transport,
+                    token,
+                    presentationId!,
+                    report,
+                    cancellationToken).ConfigureAwait(false);
+                return presentation.RevisionId;
+            } catch (GoogleWorkspaceApiException) {
+                return null;
+            }
+        }
 
         private static async Task<IReadOnlyDictionary<string, string>> CreateImageLeasesAsync(GoogleDriveClient drive, GoogleSlidesBatch batch, IList<GoogleDriveTemporaryContentLease> leases, CancellationToken cancellationToken) {
             var result = new Dictionary<string, string>(StringComparer.Ordinal);

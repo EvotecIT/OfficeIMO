@@ -33,6 +33,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         RightToLeft = sheet.RightToLeft ? true : (bool?)null,
                         TabColor = BuildColor(sheet.TabColorArgb),
                         GridProperties = new GoogleSheetsApiGridPropertiesPayload {
+                            RowCount = sheet.RowCount > 0 ? sheet.RowCount : (int?)null,
+                            ColumnCount = sheet.ColumnCount > 0 ? sheet.ColumnCount : (int?)null,
                             FrozenRowCount = sheet.FrozenRowCount > 0 ? sheet.FrozenRowCount : (int?)null,
                             FrozenColumnCount = sheet.FrozenColumnCount > 0 ? sheet.FrozenColumnCount : (int?)null,
                             HideGridlines = sheet.HideGridlines,
@@ -409,9 +411,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                             RightToLeft = sheet.RightToLeft ? true : (bool?)null,
                             TabColor = BuildColor(sheet.TabColorArgb),
                             GridProperties = new GoogleSheetsApiGridPropertiesPayload {
+                                RowCount = sheet.RowCount > 0 ? sheet.RowCount : (int?)null,
+                                ColumnCount = sheet.ColumnCount > 0 ? sheet.ColumnCount : (int?)null,
                                 FrozenRowCount = sheet.FrozenRowCount > 0 ? sheet.FrozenRowCount : (int?)null,
-                                    FrozenColumnCount = sheet.FrozenColumnCount > 0 ? sheet.FrozenColumnCount : (int?)null,
-                                    HideGridlines = sheet.HideGridlines,
+                                FrozenColumnCount = sheet.FrozenColumnCount > 0 ? sheet.FrozenColumnCount : (int?)null,
+                                HideGridlines = sheet.HideGridlines,
                             }
                         }
                     }

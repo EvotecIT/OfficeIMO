@@ -30,6 +30,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public bool Hidden { get; set; }
         public bool RightToLeft { get; set; }
         public string? TabColorArgb { get; set; }
+        public int RowCount { get; set; }
+        public int ColumnCount { get; set; }
         public int FrozenRowCount { get; set; }
         public int FrozenColumnCount { get; set; }
         public bool HideGridlines { get; set; }

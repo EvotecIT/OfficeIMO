@@ -58,6 +58,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     internal sealed class GoogleSheetsApiGridPropertiesPayload {
+        [JsonPropertyName("rowCount")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? RowCount { get; set; }
+
+        [JsonPropertyName("columnCount")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? ColumnCount { get; set; }
+
         [JsonPropertyName("frozenRowCount")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? FrozenRowCount { get; set; }
