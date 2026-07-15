@@ -126,6 +126,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     children.Add(atom);
                 } else if (child.Type == RecordDrawingGroup) {
                     children.Add(BuildDrawingGroupRecord(child, slideShapeCounts, notes.Count));
+                } else if (child.Type == RecordHeadersFooters
+                           && (child.Instance == 3 || child.Instance == 4)) {
+                    children.Add(BuildDocumentHeaderFooterRecord(presentation,
+                        child.Instance));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 0) {
                     children.Add(BuildSlideList(presentation.Slides.Count));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 2) {
@@ -256,6 +260,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint? notesIdRef) {
             var children = new List<byte[]>();
             bool hasSlideShowInfo = false;
+            bool hasHeaderFooter = prototype.Children.Any(child =>
+                child.Type == RecordHeadersFooters && child.Instance == 0);
+            LegacyPptWriterHeaderFooter? headerFooter = ReadSlideHeaderFooter(slide);
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordSlideAtom) {
                     byte[] atom = child.CopyRecordBytes();
@@ -268,11 +275,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (masterIdRef.HasValue) WriteUInt32(atom, 20, masterIdRef.Value);
                     WriteUInt32(atom, 24, notesIdRef.GetValueOrDefault());
                     children.Add(atom);
+                    if (headerFooter != null && !hasHeaderFooter
+                        && !prototype.Children.Any(candidate =>
+                            candidate.Type == RecordSlideShowSlideInfoAtom)) {
+                        children.Add(BuildHeaderFooterRecord(headerFooter,
+                            instance: 0, allowHeader: false));
+                    }
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     children.Add(PatchHiddenState(child.CopyRecordBytes(), slide.Hidden));
                     hasSlideShowInfo = true;
+                    if (headerFooter != null && !hasHeaderFooter) {
+                        children.Add(BuildHeaderFooterRecord(headerFooter,
+                            instance: 0, allowHeader: false));
+                    }
+                } else if (child.Type == RecordHeadersFooters
+                           && child.Instance == 0) {
+                    children.Add(BuildHeaderFooterRecord(
+                        headerFooter ?? LegacyPptWriterHeaderFooter.Empty,
+                        instance: 0, allowHeader: false));
                 } else if (child.Type != 0x1388) {
                     children.Add(child.CopyRecordBytes());
                 }

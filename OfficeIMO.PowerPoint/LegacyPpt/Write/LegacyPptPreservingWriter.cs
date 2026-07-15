@@ -21,6 +21,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordTextChars = 0x0FA0;
         private const ushort RecordTextBytes = 0x0FA8;
         private const ushort RecordPlaceholder = 0x0BC3;
+        private const ushort RecordHeadersFooters = 0x0FD9;
         private const ushort OfficeArtSpContainer = 0xF004;
         private const ushort OfficeArtDgg = 0xF006;
         private const ushort OfficeArtFsp = 0xF00A;
@@ -149,11 +150,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                     }
                     bool? hidden = slide.Hidden == slideProjection.Hidden ? null : slide.Hidden;
-                    if (editsByOfficeArtId.Count == 0 && !hidden.HasValue) continue;
+                    LegacyPptWriter.LegacyPptWriterHeaderFooter? currentHeaderFooter =
+                        LegacyPptWriter.ReadSlideHeaderFooter(slide);
+                    LegacyPptWriter.LegacyPptWriterHeaderFooter? originalHeaderFooter =
+                        LegacyPptWriter.LegacyPptWriterHeaderFooter.FromLegacy(
+                            slideProjection.HeaderFooter);
+                    bool headerFooterChanged = originalHeaderFooter == null
+                        ? currentHeaderFooter != null
+                        : !originalHeaderFooter.IsEquivalentTo(currentHeaderFooter);
+                    if (editsByOfficeArtId.Count == 0 && !hidden.HasValue
+                        && !headerFooterChanged) continue;
 
                     LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(persistObject.RecordBytes, 0,
                         new LegacyPptImportOptions());
-                    if (!TryRewriteSlide(slideRecord, editsByOfficeArtId, hidden, out RecordRewrite result)
+                    if (!TryRewriteSlide(slideRecord, editsByOfficeArtId, hidden,
+                            headerFooterChanged, currentHeaderFooter,
+                            out RecordRewrite result)
                         || !result.Changed || result.PatchedShapeCount != editsByOfficeArtId.Count) return false;
                     rewritten.Add(slideProjection.PersistId, result.Bytes);
                 }
@@ -184,14 +196,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool TryRewriteSlide(LegacyPptRecord slideRecord,
             IReadOnlyDictionary<uint, ProjectedShapeEdit> editsByOfficeArtId, bool? hidden,
+            bool rewriteHeaderFooter,
+            LegacyPptWriter.LegacyPptWriterHeaderFooter? headerFooter,
             out RecordRewrite result) {
             bool hasSlideShowInfo = slideRecord.Children.Any(child => child.Type == RecordSlideShowSlideInfoAtom);
+            bool hasHeaderFooter = slideRecord.Children.Any(child =>
+                child.Type == RecordHeadersFooters && child.Instance == 0);
             bool patchedHidden = !hidden.HasValue;
+            bool patchedHeaderFooter = !rewriteHeaderFooter;
             bool changed = false;
             int patchedShapeCount = 0;
             var children = new List<byte[]>(slideRecord.Children.Count + 1);
             foreach (LegacyPptRecord child in slideRecord.Children) {
-                if (hidden.HasValue && child.Type == RecordSlideShowSlideInfoAtom) {
+                if (rewriteHeaderFooter && child.Type == RecordHeadersFooters
+                    && child.Instance == 0) {
+                    if (headerFooter != null) {
+                        children.Add(LegacyPptWriter.BuildHeaderFooterRecord(
+                            headerFooter, instance: 0, allowHeader: false));
+                    }
+                    patchedHeaderFooter = true;
+                    changed = true;
+                } else if (hidden.HasValue && child.Type == RecordSlideShowSlideInfoAtom) {
                     children.Add(PatchHiddenState(child.CopyRecordBytes(), hidden.Value));
                     patchedHidden = true;
                     changed = true;
@@ -206,8 +231,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     patchedHidden = true;
                     changed = true;
                 }
+                if (rewriteHeaderFooter && headerFooter != null && !hasHeaderFooter
+                    && (child.Type == RecordSlideShowSlideInfoAtom
+                        || !hasSlideShowInfo && child.Type == RecordSlideAtom)) {
+                    children.Add(LegacyPptWriter.BuildHeaderFooterRecord(headerFooter,
+                        instance: 0, allowHeader: false));
+                    patchedHeaderFooter = true;
+                    changed = true;
+                }
             }
-            if (!patchedHidden) {
+            if (!patchedHidden || !patchedHeaderFooter) {
                 result = new RecordRewrite(slideRecord.CopyRecordBytes(), changed: false, patchedShapeCount: 0);
                 return false;
             }

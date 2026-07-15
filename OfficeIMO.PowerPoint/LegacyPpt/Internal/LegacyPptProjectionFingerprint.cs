@@ -34,11 +34,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (slides.Count != projectionMap.Slides.Count) {
                 throw new InvalidDataException("The projected slide fingerprint set is incomplete.");
             }
-            return new LegacyPptProjectionFingerprint(CreateGlobal(document), slides);
+            return new LegacyPptProjectionFingerprint(CreateGlobal(document,
+                projectionMap), slides);
         }
 
         internal bool Matches(PresentationDocument document, LegacyPptProjectionMap projectionMap) {
-            if (!string.Equals(Global, CreateGlobal(document), StringComparison.Ordinal)) return false;
+            if (!string.Equals(Global, CreateGlobal(document, projectionMap),
+                    StringComparison.Ordinal)) return false;
             SlidePart[] currentSlides = document.PresentationPart?.SlideParts.ToArray() ?? Array.Empty<SlidePart>();
             foreach (SlidePart slidePart in currentSlides) {
                 string uri = slidePart.Uri.ToString();
@@ -51,10 +53,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return true;
         }
 
-        private static string CreateGlobal(PresentationDocument document) =>
+        private static string CreateGlobal(PresentationDocument document,
+            LegacyPptProjectionMap projectionMap) =>
             PowerPointPackageFingerprint.Create(document,
                 (part, root) => {
                     if (part is PresentationPart) NormalizePresentationTopology(root);
+                    if (part is SlideLayoutPart
+                        && projectionMap.IsProjectedLayoutPart(part.Uri.ToString())) {
+                        NormalizeProjectedHeaderFooter(root);
+                    }
                 },
                 part => !(part is SlidePart or NotesSlidePart),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart));
@@ -70,6 +77,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private static void NormalizePresentationTopology(OpenXmlElement root) {
             if (root is not P.Presentation presentation || presentation.SlideIdList == null) return;
             presentation.SlideIdList.RemoveAllChildren<P.SlideId>();
+        }
+
+        private static void NormalizeProjectedHeaderFooter(OpenXmlElement root) {
+            if (root is not P.SlideLayout layout) return;
+            layout.RemoveAllChildren<P.HeaderFooter>();
+            foreach (P.Shape shape in layout.CommonSlideData?.ShapeTree?
+                         .Elements<P.Shape>() ?? Enumerable.Empty<P.Shape>()) {
+                P.PlaceholderValues? type = shape.NonVisualShapeProperties?
+                    .ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value;
+                if (type != P.PlaceholderValues.DateAndTime
+                    && type != P.PlaceholderValues.Footer
+                    && type != P.PlaceholderValues.SlideNumber) continue;
+                shape.TextBody?.RemoveAllChildren<A.Paragraph>();
+            }
         }
 
         private static void NormalizeProjectedSlide(OpenXmlElement root, Uri partUri,

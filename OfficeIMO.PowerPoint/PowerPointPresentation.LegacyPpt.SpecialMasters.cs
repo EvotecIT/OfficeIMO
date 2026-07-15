@@ -9,15 +9,18 @@ namespace OfficeIMO.PowerPoint {
         private static void ProjectLegacySpecialMasters(PowerPointPresentation presentation,
             LegacyPptPresentation legacy) {
             if (legacy.NotesMaster != null) {
-                ProjectLegacyNotesMaster(presentation, legacy.NotesMaster);
+                ProjectLegacyNotesMaster(presentation, legacy.NotesMaster,
+                    legacy.NotesHeaderFooterDefaults);
             }
             if (legacy.HandoutMaster != null) {
-                ProjectLegacyHandoutMaster(presentation, legacy.HandoutMaster);
+                ProjectLegacyHandoutMaster(presentation, legacy.HandoutMaster,
+                    legacy.NotesHeaderFooterDefaults);
             }
         }
 
         private static void ProjectLegacyNotesMaster(PowerPointPresentation presentation,
-            LegacyPptSpecialMaster source) {
+            LegacyPptSpecialMaster source,
+            LegacyPptHeaderFooterSettings? headerFooter) {
             NotesMasterPart part = PowerPointUtils.EnsureNotesMasterPart(
                 presentation._presentationPart);
             NotesMaster target = part.NotesMaster
@@ -25,11 +28,14 @@ namespace OfficeIMO.PowerPoint {
             target.CommonSlideData = CreateLegacySpecialMasterCommonSlideData(part, source,
                 "Binary Notes Master");
             ApplyLegacySpecialMasterTheme(part.ThemePart, source.ColorScheme);
+            ApplyLegacyHeaderFooter(target, target.CommonSlideData,
+                headerFooter, allowHeader: true);
             target.Save();
         }
 
         private static void ProjectLegacyHandoutMaster(PowerPointPresentation presentation,
-            LegacyPptSpecialMaster source) {
+            LegacyPptSpecialMaster source,
+            LegacyPptHeaderFooterSettings? headerFooter) {
             PresentationPart presentationPart = presentation._presentationPart;
             HandoutMasterPart part = presentationPart.HandoutMasterPart
                 ?? presentationPart.AddNewPart<HandoutMasterPart>();
@@ -40,6 +46,8 @@ namespace OfficeIMO.PowerPoint {
             ColorMap colorMap = CloneLegacyColorMap(presentationPart);
             part.HandoutMaster = new HandoutMaster(commonSlideData, colorMap);
             ApplyLegacySpecialMasterTheme(part.ThemePart, source.ColorScheme);
+            ApplyLegacyHeaderFooter(part.HandoutMaster, commonSlideData,
+                headerFooter, allowHeader: true);
             part.HandoutMaster.Save();
 
             Presentation root = presentationPart.Presentation ??= new Presentation();

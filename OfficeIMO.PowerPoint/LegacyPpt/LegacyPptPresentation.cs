@@ -120,6 +120,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             LegacyPptRecord? documentAtom = document.Children.FirstOrDefault(record => record.Type == RecordDocumentAtom);
             ParseDocumentSettings(documentAtom);
+            ParseDocumentHeaderFooterSettings(document, options);
 
             ParseBlipStore(document, package, options);
             ParseFontCollection(document, options);
@@ -169,6 +170,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private void ParseSlide(LegacyPptRecord slideRecord, LegacyPptSlide slide, LegacyPptImportOptions options) {
             ParseSlideAtom(slideRecord, slide, options);
+            slide.HeaderFooter = ReadHeaderFooterSettings(slideRecord, instance: 0,
+                $"slide {slide.SlideId}", allowHeader: false, options);
             slide.ColorScheme = ReadColorScheme(slideRecord);
             LegacyPptRecord? slideShowInfo = slideRecord.Children.FirstOrDefault(record =>
                 record.Type == RecordSlideShowSlideInfoAtom);
@@ -222,6 +225,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     : 0U;
                 var master = new LegacyPptMaster(masterId, persistId, isMainMaster, parentMasterId);
                 ParseMasterSlideAtom(masterRecord, master, slideAtom, options);
+                master.HeaderFooter = ReadHeaderFooterSettings(masterRecord, instance: 0,
+                    $"master 0x{masterId:X8}", allowHeader: false, options);
                 master.ColorScheme = ReadColorScheme(masterRecord);
                 LegacyPptColorScheme? effectiveScheme = !isMainMaster && master.FollowsMasterColorScheme
                     ? _masters.FirstOrDefault(candidate => candidate.MasterId == master.ParentMasterId)?.ColorScheme

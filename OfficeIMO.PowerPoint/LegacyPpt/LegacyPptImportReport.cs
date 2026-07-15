@@ -58,6 +58,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             NotesSlideCount = presentation.Slides.Count(slide => slide.NotesPage != null);
             NotesPageShapeCount = presentation.Slides.Sum(slide =>
                 slide.NotesPage?.Shapes.Count ?? 0);
+            HeaderFooterScopeCount = (presentation.SlideHeaderFooterDefaults == null ? 0 : 1)
+                + (presentation.NotesHeaderFooterDefaults == null ? 0 : 1)
+                + presentation.Masters.Count(master => master.HeaderFooter != null)
+                + presentation.Slides.Count(slide => slide.HeaderFooter != null);
             WarningCount = presentation.Diagnostics.Count(diagnostic =>
                 diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning);
             ErrorCount = presentation.Diagnostics.Count(diagnostic =>
@@ -126,6 +130,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of decoded notes-page drawing shapes.</summary>
         public int NotesPageShapeCount { get; }
+
+        /// <summary>Gets the number of decoded document, master, and per-slide header/footer scopes.</summary>
+        public int HeaderFooterScopeCount { get; }
 
         /// <summary>Gets the warning count.</summary>
         public int WarningCount { get; }

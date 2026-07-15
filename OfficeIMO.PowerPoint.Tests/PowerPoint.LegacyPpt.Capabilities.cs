@@ -86,5 +86,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Preserved, placeholders.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Native, placeholders.PptxToBinary);
         }
+
+        [Fact]
+        public void CapabilityContract_ReportsHeaderFooterConversionAndPreservingEdits() {
+            LegacyPptCapability capability = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.HeadersAndFooters);
+
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                capability.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                capability.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                capability.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                capability.PptxToBinary);
+        }
     }
 }

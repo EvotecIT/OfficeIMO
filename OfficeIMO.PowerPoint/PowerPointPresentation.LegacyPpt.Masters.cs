@@ -27,7 +27,8 @@ namespace OfficeIMO.PowerPoint {
             for (int index = 0; index < mainMasters.Length; index++) {
                 LegacyPptMaster mainMaster = mainMasters[index];
                 SlideMasterPart masterPart = masterParts[index];
-                ApplyLegacyMaster(masterPart, mainMaster);
+                ApplyLegacyMaster(masterPart, mainMaster,
+                    GetEffectiveLegacySlideHeaderFooter(legacy, mainMaster));
                 var target = new LegacyPptLayoutTarget(index, 0);
                 masterTargets.Add(mainMaster.MasterId, target);
                 ProjectLegacyMainMasterLayouts(catalog, legacy, mainMaster, masterPart, index);
@@ -72,7 +73,8 @@ namespace OfficeIMO.PowerPoint {
             slideMaster.Save();
         }
 
-        private static void ApplyLegacyMaster(SlideMasterPart masterPart, LegacyPptMaster master) {
+        private static void ApplyLegacyMaster(SlideMasterPart masterPart, LegacyPptMaster master,
+            LegacyPptHeaderFooterSettings? headerFooter) {
             SlideMaster slideMaster = masterPart.SlideMaster
                 ?? throw new InvalidDataException("The projected PowerPoint package has no slide master.");
             slideMaster.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(masterPart, master.Shapes,
@@ -89,6 +91,8 @@ namespace OfficeIMO.PowerPoint {
                 ApplyLegacyBackground(slideMaster.CommonSlideData, master.ColorScheme.Background);
             }
             ApplyLegacyMasterTextStyles(slideMaster, master.TextMasterStyles);
+            ApplyLegacyHeaderFooter(slideMaster, slideMaster.CommonSlideData,
+                headerFooter, allowHeader: false);
             SlideLayoutPart blankLayout = masterPart.SlideLayoutParts.First();
             if (blankLayout.SlideLayout?.CommonSlideData != null) {
                 blankLayout.SlideLayout.CommonSlideData.Name = GetLegacyMasterName(master);
@@ -119,6 +123,9 @@ namespace OfficeIMO.PowerPoint {
                         titleMaster.ColorScheme.Background);
                 }
             }
+            ApplyLegacyHeaderFooter(layoutPart.SlideLayout,
+                layoutPart.SlideLayout.CommonSlideData, titleMaster.HeaderFooter,
+                allowHeader: false);
 
             SlideMaster slideMaster = masterPart.SlideMaster
                 ?? throw new InvalidDataException("The projected PowerPoint package has no slide master.");

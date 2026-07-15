@@ -33,6 +33,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 && _masterIdsByLayoutPartUri.TryGetValue(layoutPart.Uri.ToString(), out masterId);
         }
 
+        internal bool IsProjectedLayoutPart(string partUri) =>
+            partUri != null && _masterIdsByLayoutPartUri.ContainsKey(partUri);
+
         internal static LegacyPptProjectionMap Create(PowerPointPresentation presentation,
             LegacyPptPresentation legacy) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -73,7 +76,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
-                    sourceSlide.Hidden, shapes, sourceSlide.NotesPage == null
+                    sourceSlide.Hidden, sourceSlide.HeaderFooter, shapes,
+                    sourceSlide.NotesPage == null
                         ? null
                         : new LegacyPptNotesProjection(sourceSlide.NotesPage.PersistId,
                             sourceSlide.NotesPage.NotesId, sourceSlide.NotesPage.Text)));
@@ -111,13 +115,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private readonly IReadOnlyDictionary<uint, LegacyPptShapeProjection> _shapesByOpenXmlId;
 
         internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, uint masterId,
-            bool hidden,
+            bool hidden, LegacyPptHeaderFooterSettings? headerFooter,
             IReadOnlyList<LegacyPptShapeProjection> shapes, LegacyPptNotesProjection? notes) {
             SlidePartUri = slidePartUri ?? throw new ArgumentNullException(nameof(slidePartUri));
             PersistId = persistId;
             SlideId = slideId;
             MasterId = masterId;
             Hidden = hidden;
+            HeaderFooter = headerFooter;
             Notes = notes;
             Shapes = new ReadOnlyCollection<LegacyPptShapeProjection>(shapes.ToArray());
             _shapesByOpenXmlId = new ReadOnlyDictionary<uint, LegacyPptShapeProjection>(shapes.ToDictionary(
@@ -133,6 +138,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal uint MasterId { get; }
 
         internal bool Hidden { get; }
+
+        internal LegacyPptHeaderFooterSettings? HeaderFooter { get; }
 
         internal LegacyPptNotesProjection? Notes { get; }
 

@@ -35,7 +35,8 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 string name = GetLegacySlideLayoutName(master, representative);
-                layoutPart.SlideLayout = CreateLegacySlideLayout(name, representative);
+                layoutPart.SlideLayout = CreateLegacySlideLayout(name, representative,
+                    legacy.SlideWidth, legacy.SlideHeight);
                 layoutPart.SlideLayout.Save();
                 catalog.Add(representative, new LegacyPptLayoutTarget(masterIndex, layoutIndex));
             }
@@ -59,16 +60,24 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static SlideLayout CreateLegacySlideLayout(string name,
-            LegacyPptSlide source) => new(
-                new CommonSlideData(CreateLegacyLayoutPlaceholderTree(source.Shapes)) {
+            LegacyPptSlide source, int slideWidth, int slideHeight) {
+            var layout = new SlideLayout(
+                new CommonSlideData(CreateLegacyLayoutPlaceholderTree(source.Shapes,
+                    source.HeaderFooter, slideWidth, slideHeight)) {
                     Name = name
                 },
                 new ColorMapOverride(new A.MasterColorMapping())) {
                     Type = MapLegacyLayoutType(source.Layout, source.LayoutPlaceholderTypes)
                 };
+            ApplyLegacyHeaderFooter(layout, layout.CommonSlideData,
+                source.HeaderFooter, allowHeader: false);
+            return layout;
+        }
 
         private static ShapeTree CreateLegacyLayoutPlaceholderTree(
-            IReadOnlyList<LegacyPptShape> shapes) {
+            IReadOnlyList<LegacyPptShape> shapes,
+            LegacyPptHeaderFooterSettings? headerFooter,
+            int slideWidth, int slideHeight) {
             var tree = new ShapeTree(
                 new NonVisualGroupShapeProperties(
                     new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
@@ -79,7 +88,67 @@ namespace OfficeIMO.PowerPoint {
             foreach (LegacyPptShape source in shapes.Where(shape => shape.Placeholder != null)) {
                 tree.Append(CreateLegacyLayoutPlaceholderShape(source, shapeId++));
             }
+            AppendLegacyHeaderFooterPlaceholders(tree, headerFooter, slideWidth,
+                slideHeight, ref shapeId);
             return tree;
+        }
+
+        private static void AppendLegacyHeaderFooterPlaceholders(ShapeTree tree,
+            LegacyPptHeaderFooterSettings? settings, int slideWidth,
+            int slideHeight, ref uint shapeId) {
+            if (settings == null) return;
+            long width = ToEmus(slideWidth);
+            long height = ToEmus(slideHeight);
+            long margin = Math.Max(1L, width / 24L);
+            long placeholderHeight = Math.Max(1L, height / 16L);
+            long top = Math.Max(0L, height - margin - placeholderHeight);
+            long sideWidth = Math.Max(1L, width / 5L);
+            long centerWidth = Math.Max(1L, width / 3L);
+            if (settings.ShowDate || settings.UserDateText.Length > 0) {
+                AppendLegacyHeaderFooterPlaceholder(tree, PlaceholderValues.DateAndTime,
+                    settings.UserDateText, margin, top, sideWidth, placeholderHeight,
+                    ref shapeId);
+            }
+            if (settings.ShowFooter || settings.FooterText.Length > 0) {
+                AppendLegacyHeaderFooterPlaceholder(tree, PlaceholderValues.Footer,
+                    settings.FooterText, (width - centerWidth) / 2L, top,
+                    centerWidth, placeholderHeight, ref shapeId);
+            }
+            if (settings.ShowSlideNumber) {
+                AppendLegacyHeaderFooterPlaceholder(tree, PlaceholderValues.SlideNumber,
+                    string.Empty, width - margin - sideWidth, top, sideWidth,
+                    placeholderHeight, ref shapeId);
+            }
+        }
+
+        private static void AppendLegacyHeaderFooterPlaceholder(ShapeTree tree,
+            PlaceholderValues type, string text, long left, long top, long width,
+            long height, ref uint shapeId) {
+            bool exists = tree.Elements<Shape>().Any(shape => shape.NonVisualShapeProperties?
+                .ApplicationNonVisualDrawingProperties?.PlaceholderShape?.Type?.Value == type);
+            if (exists) return;
+            string name = type == PlaceholderValues.DateAndTime
+                ? "Binary Date Placeholder"
+                : type == PlaceholderValues.Footer
+                    ? "Binary Footer Placeholder"
+                    : type == PlaceholderValues.SlideNumber
+                        ? "Binary Slide Number Placeholder"
+                        : "Binary Header/Footer Placeholder";
+            tree.Append(new Shape(
+                new NonVisualShapeProperties(
+                    new NonVisualDrawingProperties { Id = shapeId++, Name = name },
+                    new NonVisualShapeDrawingProperties(new A.ShapeLocks { NoGrouping = true }),
+                    new ApplicationNonVisualDrawingProperties(
+                        new PlaceholderShape { Type = type })),
+                new ShapeProperties(new A.Transform2D(
+                    new A.Offset { X = left, Y = top },
+                    new A.Extents { Cx = width, Cy = height })),
+                new TextBody(
+                    new A.BodyProperties(),
+                    new A.ListStyle(),
+                    new A.Paragraph(
+                        new A.Run(new A.Text(text ?? string.Empty)),
+                        new A.EndParagraphRunProperties()))));
         }
 
         private static Shape CreateLegacyLayoutPlaceholderShape(LegacyPptShape source,
@@ -215,7 +284,8 @@ namespace OfficeIMO.PowerPoint {
             internal static string CreateKey(LegacyPptSlide slide) =>
                 $"{slide.MasterId:X8}:{slide.LayoutType:X8}:"
                 + string.Join("-", slide.LayoutPlaceholderTypes
-                    .Select(value => ((byte)value).ToString("X2")));
+                    .Select(value => ((byte)value).ToString("X2")))
+                + ":" + (slide.HeaderFooter?.CreateLayoutKey() ?? string.Empty);
         }
 
         private readonly struct LegacyPptLayoutTarget {

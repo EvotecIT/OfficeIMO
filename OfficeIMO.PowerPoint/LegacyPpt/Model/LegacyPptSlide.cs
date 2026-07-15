@@ -54,6 +54,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the explicit OfficeArt background shape stored on this slide.</summary>
         public LegacyPptBackground? Background { get; internal set; }
 
+        /// <summary>Gets this slide's explicit header/footer override, when present.</summary>
+        public LegacyPptHeaderFooterSettings? HeaderFooter { get; internal set; }
+
         /// <summary>Gets the projected shapes in drawing order.</summary>
         public IReadOnlyList<LegacyPptShape> Shapes => _shapes;
 
