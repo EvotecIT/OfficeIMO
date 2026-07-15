@@ -1,0 +1,22 @@
+{
+  "id": "google-workspace",
+  "title": "OfficeIMO Google Workspace",
+  "nuget": "OfficeIMO.GoogleWorkspace",
+  "install": "dotnet add package OfficeIMO.GoogleWorkspace",
+  "color": "#4285f4",
+  "docsUrl": "/docs/google-workspace/",
+  "targets": [".NET 8.0", ".NET 10.0", ".NET Standard 2.0", ".NET Framework 4.7.2"],
+  "dependencies": ["OfficeIMO format packages as selected", "System.Text.Json on compatibility targets", "Google.Apis.Auth only in the optional adapter"],
+  "features": [
+    { "title": "Bidirectional format translation", "description": "Create and import Google Docs, Sheets, and Slides through format-owned libraries.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M4 4h16v16H4zM8 8h8M8 12h8M8 16h5'/></svg>" },
+    { "title": "Safe replacement", "description": "Require observed revision or Drive version evidence before destructive replacement.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/></svg>" },
+    { "title": "Drive and shared drives", "description": "Reuse typed file, conversion, media, collaboration, and change-token APIs.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 15l6-10h6l6 10-3 5H6z'/></svg>" },
+    { "title": "Explicit fidelity", "description": "Review code-owned support matrices and stable preflight diagnostics before mutation.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11'/></svg>" }
+  ],
+  "relatedPackages": [
+    { "name": "OfficeIMO.Word.GoogleDocs", "description": "Word and Google Docs translation", "install": "dotnet add package OfficeIMO.Word.GoogleDocs" },
+    { "name": "OfficeIMO.Excel.GoogleSheets", "description": "Excel and Google Sheets translation", "install": "dotnet add package OfficeIMO.Excel.GoogleSheets" },
+    { "name": "OfficeIMO.PowerPoint.GoogleSlides", "description": "PowerPoint and Google Slides translation", "install": "dotnet add package OfficeIMO.PowerPoint.GoogleSlides" },
+    { "name": "OfficeIMO.GoogleWorkspace.Sync", "description": "Change tracking and plan/apply workflows", "install": "dotnet add package OfficeIMO.GoogleWorkspace.Sync" }
+  ]
+}

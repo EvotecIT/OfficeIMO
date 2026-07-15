@@ -103,3 +103,4 @@ OfficeIMO.Word runs on Windows, Linux, and macOS. It produces standard `.docx` f
 | [OfficeIMO.Word.Html](/docs/converters/word-html/) | Convert Word documents to and from HTML |
 | [OfficeIMO.Word.Markdown](/docs/converters/word-markdown/) | Convert Word documents to and from Markdown |
 | [OfficeIMO.Word.Pdf](https://www.nuget.org/packages/OfficeIMO.Word.Pdf) | Export Word documents to PDF |
+| [OfficeIMO.Word.GoogleDocs](https://www.nuget.org/packages/OfficeIMO.Word.GoogleDocs) | Translate Word documents to and from Google Docs |

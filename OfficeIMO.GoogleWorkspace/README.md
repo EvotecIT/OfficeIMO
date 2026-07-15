@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.GoogleWorkspace)](https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.GoogleWorkspace?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace)
 
-`OfficeIMO.GoogleWorkspace` contains shared credential, session, retry, Drive-location, and translation-report primitives for OfficeIMO Google Docs and Google Sheets exporters.
+`OfficeIMO.GoogleWorkspace` contains the dependency-light credential, session, transport, retry, scope, diagnostics, Drive-location, and translation-report contracts shared by the OfficeIMO Google Docs, Sheets, Slides, Drive, and synchronization packages.
 
 ## Install
 
@@ -35,8 +35,9 @@ var session = new GoogleWorkspaceSession(
 - `StaticAccessTokenCredentialSource`, `DelegateGoogleWorkspaceCredentialSource`, and `GoogleServiceAccountCredentialSource`.
 - `GoogleWorkspaceSession` and `GoogleWorkspaceSessionOptions`.
 - `GoogleDriveFileLocation` for folder, shared-drive, and existing-file targeting.
-- `TranslationReport`, `TranslationNotice`, export exceptions, cancellation exceptions, and log-ready diagnostic entries.
-- Retry and API failure diagnostics through `GoogleWorkspaceSessionOptions.DiagnosticSink`.
+- `TranslationReport`, `TranslationNotice`, preflight, conflict/export exceptions, cancellation exceptions, and log-ready diagnostic entries.
+- Safety-aware retries, normalized Google API failures, request timeouts, and diagnostic correlation through `GoogleWorkspaceSessionOptions.DiagnosticSink`.
+- Minimum-scope catalogs for Docs, Sheets, Slides, and Drive operations.
 
 ## Service account shortcut
 
@@ -57,18 +58,24 @@ var session = new GoogleWorkspaceSession(credentialSource, sessionOptions);
 ## Boundaries
 
 - This package owns shared Google Workspace plumbing.
-- Word to Google Docs export belongs in `OfficeIMO.Word.GoogleDocs`.
-- Excel to Google Sheets export belongs in `OfficeIMO.Excel.GoogleSheets`.
-- Applications still own interactive browser OAuth flows unless they supply tokens through the shared credential interface.
+- Word/Google Docs translation belongs in `OfficeIMO.Word.GoogleDocs`.
+- Excel/Google Sheets translation belongs in `OfficeIMO.Excel.GoogleSheets`.
+- PowerPoint/Google Slides translation belongs in `OfficeIMO.PowerPoint.GoogleSlides`.
+- Drive resources belong in `OfficeIMO.GoogleWorkspace.Drive`; change-feed consumption and plan/apply belong in `OfficeIMO.GoogleWorkspace.Sync`.
+- Applications own consent and credential policy. `OfficeIMO.GoogleWorkspace.Auth.GoogleApis` is an optional adapter when an application already uses the Google client SDK.
 
 ## Related packages
 
+- [OfficeIMO.GoogleWorkspace.Drive](../OfficeIMO.GoogleWorkspace.Drive/README.md)
+- [OfficeIMO.GoogleWorkspace.Auth.GoogleApis](../OfficeIMO.GoogleWorkspace.Auth.GoogleApis/README.md)
+- [OfficeIMO.GoogleWorkspace.Sync](../OfficeIMO.GoogleWorkspace.Sync/README.md)
 - [OfficeIMO.Word.GoogleDocs](../OfficeIMO.Word.GoogleDocs/README.md)
 - [OfficeIMO.Excel.GoogleSheets](../OfficeIMO.Excel.GoogleSheets/README.md)
+- [OfficeIMO.PowerPoint.GoogleSlides](../OfficeIMO.PowerPoint.GoogleSlides/README.md)
 
 ## Targets and license
 
-- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`, plus `net472` on Windows.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 

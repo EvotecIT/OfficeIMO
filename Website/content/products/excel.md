@@ -91,4 +91,4 @@ OfficeIMO.Excel runs on Windows, Linux, and macOS. It generates standard `.xlsx`
 | Package | Description |
 |---------|-------------|
 | [OfficeIMO.Excel.Pdf](https://www.nuget.org/packages/OfficeIMO.Excel.Pdf) | Export Excel workbooks and selected worksheets to PDF |
-| [OfficeIMO.Excel.GoogleSheets](https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets) | Plan and export Excel workbooks to Google Sheets |
+| [OfficeIMO.Excel.GoogleSheets](https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets) | Translate Excel workbooks to and from Google Sheets |
