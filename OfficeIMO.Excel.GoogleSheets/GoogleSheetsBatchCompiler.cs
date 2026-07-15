@@ -42,7 +42,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             foreach (var worksheet in workbookSnapshot.Worksheets) {
                 ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, worksheet.Name, StringComparison.OrdinalIgnoreCase));
-                ResolveGridSize(worksheet, sourceSheet, workbookSnapshot.NamedRanges, options, out int rowCount, out int columnCount);
+                IReadOnlyList<NativePivotCompilation> nativePivots = sourceSheet == null
+                    ? Array.Empty<NativePivotCompilation>()
+                    : CompilePivotTables(sourceSheet, workbookSnapshot, report, options.UnsupportedFeatures.PivotTables);
+                ResolveGridSize(worksheet, sourceSheet, workbookSnapshot.NamedRanges, nativePivots, options, out int rowCount, out int columnCount);
                 batch.Add(new GoogleSheetsAddSheetRequest {
                     SheetName = worksheet.Name,
                     SheetIndex = worksheet.Index,
@@ -152,9 +155,6 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Add(filterRequest);
                 }
 
-                IReadOnlyList<NativePivotCompilation> nativePivots = sourceSheet == null
-                    ? Array.Empty<NativePivotCompilation>()
-                    : CompilePivotTables(sourceSheet, workbookSnapshot, report, options.UnsupportedFeatures.PivotTables);
                 var updateCells = new GoogleSheetsUpdateCellsRequest {
                     SheetName = worksheet.Name
                 };
@@ -247,6 +247,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             ExcelWorksheetSnapshot worksheet,
             ExcelSheet? sourceSheet,
             IReadOnlyList<ExcelNamedRangeSnapshot> namedRanges,
+            IReadOnlyList<NativePivotCompilation> nativePivots,
             GoogleSheetsSaveOptions options,
             out int rowCount,
             out int columnCount) {
@@ -270,6 +271,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             foreach (ExcelTableSnapshot table in worksheet.Tables) {
                 ExpandGridToInclude(table.A1Range, ref rowCount, ref columnCount);
+            }
+
+            foreach (NativePivotCompilation pivot in nativePivots) {
+                ExpandGridToInclude(pivot.OutputRange, ref rowCount, ref columnCount);
             }
 
             if (worksheet.AutoFilter != null) {

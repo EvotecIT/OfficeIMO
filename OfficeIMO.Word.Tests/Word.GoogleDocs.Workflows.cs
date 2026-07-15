@@ -407,6 +407,55 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_GoogleDocsCheckpoint_HashesExportedLayoutImagesCommentsAndTableRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsSemanticCheckpoint.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                WordParagraph body = document.AddParagraph("Body");
+                WordParagraph imageParagraph = document.AddParagraph("Image ");
+                byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=");
+                using (var imageStream = new MemoryStream(png)) {
+                    imageParagraph.AddImage(imageStream, "pixel.png", 10, 10);
+                }
+                WordImage image = Assert.Single(document.Images);
+
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableGrid);
+                WordParagraph tableParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+                tableParagraph.Text = "Cell";
+
+                body.AddComment("Alice", "A", "Please review");
+                WordComment comment = Assert.Single(document.Comments, candidate => candidate.ParentComment == null);
+                WordComment reply = comment.AddReply("Bob", "B", "Reviewed");
+
+                GoogleDocsSyncCheckpoint baseline = GoogleDocsDiffPlanner.CreateCheckpoint(document);
+                const string bodyPath = "section/0/paragraph/0";
+                const string imagePath = "section/0/paragraph/1";
+                const string tableCellPath = "section/0/table/2/cell/0:0";
+                const string replyPath = "comment/0/reply/0";
+
+                body.PageBreakBefore = true;
+                body.IndentationBeforePoints = 18;
+                GoogleDocsSyncCheckpoint layoutChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(baseline.ContentHashes[bodyPath], layoutChanged.ContentHashes[bodyPath]);
+
+                image.Width = 20;
+                GoogleDocsSyncCheckpoint imageChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(layoutChanged.ContentHashes[imagePath], imageChanged.ContentHashes[imagePath]);
+
+                reply.Text = "Reviewed with changes";
+                GoogleDocsSyncCheckpoint commentChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(imageChanged.ContentHashes[replyPath], commentChanged.ContentHashes[replyPath]);
+
+                tableParagraph.AddFormattedText(" Bold", bold: true);
+                tableParagraph.AddHyperLink(" Link", new Uri("https://example.test/"));
+                GoogleDocsSyncCheckpoint tableChanged = GoogleDocsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(commentChanged.ContentHashes[tableCellPath], tableChanged.ContentHashes[tableCellPath]);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
         [Theory]
         [InlineData(GoogleDocsSuggestionsMode.Default, "DEFAULT_FOR_CURRENT_ACCESS")]
         [InlineData(GoogleDocsSuggestionsMode.Accepted, "PREVIEW_SUGGESTIONS_ACCEPTED")]

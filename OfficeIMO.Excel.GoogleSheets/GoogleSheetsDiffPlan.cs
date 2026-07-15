@@ -113,6 +113,17 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 foreach (ExcelCellSnapshot cell in sheet.Cells) {
                     result[$"sheet/{sheet.Name}/cell/{cell.Row}:{cell.Column}"] = Hash($"{cell.Value}|{cell.Formula}|{StyleFingerprint(cell.Style)}|{HyperlinkFingerprint(cell.Hyperlink)}|{RichTextFingerprint(cell.RichTextRuns)}|{cell.Comment?.Author}|{cell.Comment?.Text}");
                 }
+                foreach (ExcelRowSnapshot row in sheet.Rows) {
+                    result[$"sheet/{sheet.Name}/row/{row.Index}"] = Hash($"{row.Height}|{row.Hidden}|{row.OutlineLevel}");
+                }
+                foreach (ExcelColumnSnapshot column in sheet.Columns) {
+                    result[$"sheet/{sheet.Name}/column/{column.StartIndex}:{column.EndIndex}"] = Hash($"{column.Width}|{column.Hidden}|{column.OutlineLevel}");
+                }
+                for (int validationIndex = 0; validationIndex < sheet.Validations.Count; validationIndex++) {
+                    ExcelDataValidationSnapshot validation = sheet.Validations[validationIndex];
+                    result[$"sheet/{sheet.Name}/validation/{validationIndex}"] = Hash(
+                        $"{validation.Type}|{validation.Operator}|{validation.AllowBlank}|{validation.Formula1}|{validation.Formula2}|{string.Join("~", validation.A1Ranges)}");
+                }
                 foreach (ExcelMergedRangeSnapshot merge in sheet.MergedRanges) result[$"sheet/{sheet.Name}/merge/{merge.A1Range}"] = Hash(merge.A1Range);
                 foreach (ExcelTableSnapshot table in sheet.Tables) result[$"sheet/{sheet.Name}/table/{table.Name}"] = Hash($"{table.A1Range}|{table.StyleName}|{table.TotalsRowShown}");
             }

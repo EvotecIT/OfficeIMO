@@ -62,11 +62,19 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 PowerPointSlideBackground background = slide.GetBackground(); result[root] = Hash($"{slide.Hidden}|{background.Kind}|{background.Color}");
                 foreach (PowerPointShape shape in slide.Shapes.OrderBy(shape => shape.DrawingOrder)) {
                     string text = shape is PowerPointTextBox box ? box.Text : shape is PowerPointTable table ? string.Join("|", table.RowItems.SelectMany(row => row.Cells).Select(cell => cell.Text)) : string.Empty;
-                    string geometry = shape is PowerPointTextBox textBox ? textBox.ShapeType?.ToString() ?? string.Empty : string.Empty;
+                    string geometry = shape switch {
+                        PowerPointTextBox textBox when textBox.ShapeType.HasValue => ((DocumentFormat.OpenXml.IEnumValue)textBox.ShapeType.Value).Value,
+                        PowerPointAutoShape autoShape when autoShape.ShapeType.HasValue => ((DocumentFormat.OpenXml.IEnumValue)autoShape.ShapeType.Value).Value,
+                        _ => string.Empty,
+                    };
+                    PowerPointTextRun? firstRun = (shape as PowerPointTextBox)?.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
+                    string textStyle = firstRun == null
+                        ? string.Empty
+                        : $"{firstRun.Bold}|{firstRun.Italic}|{firstRun.Underline}|{firstRun.FontSize}|{firstRun.FontName}|{firstRun.Color}|{firstRun.Hyperlink?.AbsoluteUri}";
                     string picture = shape is PowerPointPicture image
                         ? $"{image.ContentType}|{Hash(image.GetImageBytes())}|{image.CropLeftRatio}|{image.CropTopRatio}|{image.CropRightRatio}|{image.CropBottomRatio}"
                         : string.Empty;
-                    result[$"{root}/element/{shape.DrawingOrder}"] = Hash($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{geometry}|{text}|{picture}");
+                    result[$"{root}/element/{shape.DrawingOrder}"] = Hash($"{shape.ShapeContentType}|{shape.Name}|{shape.LeftPoints}|{shape.TopPoints}|{shape.WidthPoints}|{shape.HeightPoints}|{geometry}|{text}|{textStyle}|{picture}");
                 }
                 if (slide.Notes.TryGetExistingText(out string notes)) result[root + "/notes"] = Hash(notes);
             }

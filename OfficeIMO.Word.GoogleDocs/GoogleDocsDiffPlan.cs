@@ -124,6 +124,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 AddBlocks(result, sectionPath + "/header/even", section.EvenHeader?.Elements);
                 AddBlocks(result, sectionPath + "/footer/even", section.EvenFooter?.Elements);
             }
+            AddComments(result, document.Comments);
             return result;
         }
 
@@ -133,24 +134,65 @@ namespace OfficeIMO.Word.GoogleDocs {
                 WordBlockSnapshot block = blocks[blockIndex];
                 string path = $"{parent}/{block.Kind}/{blockIndex}";
                 if (block is WordParagraphSnapshot paragraph) {
-                    var runs = string.Join("~", paragraph.Runs.Select(run => $"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{run.FontSize}|{run.ColorHex}|{run.HyperlinkUri}|{run.HyperlinkAnchor}"));
-                    result[path] = Hash($"{paragraph.Text}|{paragraph.StyleId}|{paragraph.Alignment}|{paragraph.IsListItem}|{paragraph.ListLevel}|{paragraph.BookmarkName}|{runs}");
+                    result[path] = Hash(ParagraphFingerprint(paragraph));
                 } else if (block is WordTableSnapshot table) {
                     result[path] = Hash($"{table.RowCount}|{table.ColumnCount}|{table.StyleName}|{table.Title}|{table.Description}");
                     foreach (WordTableRowSnapshot row in table.Rows) {
                         foreach (WordTableCellSnapshot cell in row.Cells) {
                             string cellPath = $"{path}/cell/{row.RowIndex}:{cell.ColumnIndex}";
-                            string text = string.Join("\n", cell.Paragraphs.Select(paragraph => paragraph.Text));
-                            result[cellPath] = Hash($"{cell.ColumnSpan}|{cell.RowSpan}|{cell.ShadingFillColorHex}|{text}");
+                            string paragraphs = string.Join("\n", cell.Paragraphs.Select(ParagraphFingerprint));
+                            result[cellPath] = Hash($"{cell.ColumnSpan}|{cell.RowSpan}|{cell.ShadingFillColorHex}|{TableCellBorderFingerprint(cell.LeftBorder)}|{TableCellBorderFingerprint(cell.RightBorder)}|{TableCellBorderFingerprint(cell.TopBorder)}|{TableCellBorderFingerprint(cell.BottomBorder)}|{paragraphs}");
                         }
                     }
                 }
             }
         }
 
+        private static void AddComments(IDictionary<string, string> result, IReadOnlyList<WordComment> comments) {
+            WordComment[] roots = comments.Where(comment => string.IsNullOrWhiteSpace(comment.ParentParaId)).ToArray();
+            for (int commentIndex = 0; commentIndex < roots.Length; commentIndex++) {
+                WordComment comment = roots[commentIndex];
+                string commentPath = $"comment/{commentIndex}";
+                result[commentPath] = Hash(CommentFingerprint(comment));
+                IReadOnlyList<WordComment> replies = comment.Replies;
+                for (int replyIndex = 0; replyIndex < replies.Count; replyIndex++) {
+                    result[$"{commentPath}/reply/{replyIndex}"] = Hash(CommentFingerprint(replies[replyIndex]));
+                }
+            }
+        }
+
+        private static string ParagraphFingerprint(WordParagraphSnapshot paragraph) {
+            string runs = string.Join("~", paragraph.Runs.Select(RunFingerprint));
+            string tabs = string.Join("~", paragraph.TabStops.Select(tab => $"{tab.Alignment}|{tab.Leader}|{tab.PositionPoints}"));
+            return $"{paragraph.Text}|{paragraph.StyleId}|{paragraph.StyleName}|{paragraph.Alignment}|{paragraph.IsListItem}|{paragraph.IsOrderedList}|{paragraph.ListLevel}|{paragraph.ListStyleName}|{paragraph.IndentStartPoints}|{paragraph.IndentEndPoints}|{paragraph.IndentFirstLinePoints}|{paragraph.SpaceAbovePoints}|{paragraph.SpaceBelowPoints}|{paragraph.LineSpacingValue}|{paragraph.LineSpacingRule}|{paragraph.ShadingFillColorHex}|{ParagraphBorderFingerprint(paragraph.LeftBorder)}|{ParagraphBorderFingerprint(paragraph.RightBorder)}|{ParagraphBorderFingerprint(paragraph.TopBorder)}|{ParagraphBorderFingerprint(paragraph.BottomBorder)}|{paragraph.IsRightToLeft}|{paragraph.KeepWithNext}|{paragraph.KeepLinesTogether}|{paragraph.AvoidWidowAndOrphan}|{paragraph.PageBreakBefore}|{paragraph.BookmarkName}|{paragraph.BookmarkId}|{tabs}|{runs}";
+        }
+
+        private static string RunFingerprint(WordRunSnapshot run) =>
+            $"{run.Text}|{run.Bold}|{run.Italic}|{run.Underline}|{run.Strike}|{run.FontFamily}|{run.FontSize}|{run.ColorHex}|{run.HighlightColor}|{run.VerticalTextAlignment}|{run.CapsStyle}|{run.HyperlinkUri}|{run.HyperlinkAnchor}|{InlineImageFingerprint(run.InlineImage)}";
+
+        private static string InlineImageFingerprint(WordInlineImageSnapshot? image) => image == null
+            ? string.Empty
+            : $"{image.FileName}|{image.ContentType}|{Hash(image.Bytes ?? Array.Empty<byte>())}|{image.Description}|{image.Title}|{image.Width}|{image.Height}|{image.IsInline}|{image.WrapText}";
+
+        private static string CommentFingerprint(WordComment comment) =>
+            $"{comment.Author}|{comment.Initials}|{comment.Text}|{comment.IsResolved}";
+
+        private static string ParagraphBorderFingerprint(WordParagraphBorderSnapshot? border) => border == null
+            ? string.Empty
+            : $"{border.Style}|{border.ColorHex}|{border.Size}|{border.Space}";
+
+        private static string TableCellBorderFingerprint(WordTableCellBorderSnapshot? border) => border == null
+            ? string.Empty
+            : $"{border.Style}|{border.ColorHex}|{border.Size}";
+
         private static string Hash(string value) {
             using SHA256 sha = SHA256.Create();
             return BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(value ?? string.Empty))).Replace("-", string.Empty);
+        }
+
+        private static string Hash(byte[] value) {
+            using SHA256 sha = SHA256.Create();
+            return BitConverter.ToString(sha.ComputeHash(value ?? Array.Empty<byte>())).Replace("-", string.Empty);
         }
     }
 }

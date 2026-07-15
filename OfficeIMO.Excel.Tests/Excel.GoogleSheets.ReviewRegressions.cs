@@ -156,6 +156,70 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsCheckpoint_HashesSupportedDimensionsAndValidationRules() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsMetadataHashes.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Data");
+                sheet.SetRowHeight(2, 20);
+                sheet.SetColumnWidth(3, 12);
+                sheet.ValidationDate(
+                    "A1:A2",
+                    DataValidationOperatorValues.Between,
+                    new DateTime(2024, 1, 1),
+                    new DateTime(2024, 12, 31));
+
+                GoogleSheetsSyncCheckpoint baseline = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                string rowPath = "sheet/Data/row/2";
+                string columnPath = "sheet/Data/column/3:3";
+                string validationPath = "sheet/Data/validation/0";
+
+                sheet.SetRowHeight(2, 24);
+                GoogleSheetsSyncCheckpoint resizedRow = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(baseline.ContentHashes[rowPath], resizedRow.ContentHashes[rowPath]);
+
+                sheet.SetRowHidden(2, true);
+                GoogleSheetsSyncCheckpoint hiddenRow = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(resizedRow.ContentHashes[rowPath], hiddenRow.ContentHashes[rowPath]);
+
+                sheet.SetRowOutline(2, 1);
+                GoogleSheetsSyncCheckpoint outlinedRow = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(hiddenRow.ContentHashes[rowPath], outlinedRow.ContentHashes[rowPath]);
+
+                sheet.SetColumnWidth(3, 18);
+                GoogleSheetsSyncCheckpoint resizedColumn = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(baseline.ContentHashes[columnPath], resizedColumn.ContentHashes[columnPath]);
+
+                sheet.SetColumnHidden(3, true);
+                GoogleSheetsSyncCheckpoint hiddenColumn = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(resizedColumn.ContentHashes[columnPath], hiddenColumn.ContentHashes[columnPath]);
+
+                sheet.SetColumnOutline(3, 1);
+                GoogleSheetsSyncCheckpoint outlinedColumn = GoogleSheetsDiffPlanner.CreateCheckpoint(document);
+                Assert.NotEqual(hiddenColumn.ContentHashes[columnPath], outlinedColumn.ContentHashes[columnPath]);
+
+                string alternatePath = Path.Combine(_directoryWithFiles, "GoogleSheetsAlternateValidationHash.xlsx");
+                try {
+                    using var alternate = ExcelDocument.Create(alternatePath);
+                    ExcelSheet alternateSheet = alternate.AddWorksheet("Data");
+                    alternateSheet.SetRowHeight(2, 20);
+                    alternateSheet.SetColumnWidth(3, 12);
+                    alternateSheet.ValidationDate(
+                        "A1:A2",
+                        DataValidationOperatorValues.Between,
+                        new DateTime(2024, 1, 1),
+                        new DateTime(2025, 12, 31));
+                    GoogleSheetsSyncCheckpoint alternateValidation = GoogleSheetsDiffPlanner.CreateCheckpoint(alternate);
+                    Assert.NotEqual(baseline.ContentHashes[validationPath], alternateValidation.ContentHashes[validationPath]);
+                } finally {
+                    if (File.Exists(alternatePath)) File.Delete(alternatePath);
+                }
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleSheetsPivot_UsesOnlyHeadersInsideSourceRange() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsPivotSourceHeaders.xlsx");
             try {
@@ -170,7 +234,7 @@ namespace OfficeIMO.Tests {
                 sheet.CellValue(3, 4, 20d);
                 sheet.AddPivotTable(
                     "C1:D3",
-                    "F1",
+                    "AA2000",
                     name: "ScopedHeaders",
                     rowFields: new[] { "Region" },
                     dataFields: new[] { new ExcelPivotDataField("Value", DataConsolidateFunctionValues.Sum, "Total") });
@@ -181,6 +245,11 @@ namespace OfficeIMO.Tests {
                     batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
                 Assert.Equal(0, Assert.Single(pivot.Rows).SourceColumnOffset);
                 Assert.Equal(1, Assert.Single(pivot.Values).SourceColumnOffset);
+                GoogleSheetsAddSheetRequest addSheet = Assert.Single(
+                    batch.Requests.OfType<GoogleSheetsAddSheetRequest>(),
+                    request => request.SheetName == "Data");
+                Assert.True(addSheet.RowCount >= 2000);
+                Assert.True(addSheet.ColumnCount >= 27);
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }

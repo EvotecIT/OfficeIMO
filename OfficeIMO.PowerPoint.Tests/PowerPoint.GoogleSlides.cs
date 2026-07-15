@@ -515,6 +515,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DiffPlanner_HashesNativeGeometryAndEffectiveTextStyle() {
+            string ShapeHash(A.ShapeTypeValues shapeType) {
+                using PowerPointPresentation presentation = PowerPointPresentation.Create();
+                PowerPointAutoShape shape = presentation.AddSlide().AddShapePoints(shapeType, 20, 20, 160, 90);
+                Assert.Equal(shapeType, shape.ShapeType);
+                return ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(presentation));
+            }
+
+            Assert.NotEqual(ShapeHash(A.ShapeTypeValues.Rectangle), ShapeHash(A.ShapeTypeValues.RightArrow));
+
+            using PowerPointPresentation styledPresentation = PowerPointPresentation.Create();
+            PowerPointTextBox textBox = styledPresentation.AddSlide().AddTextBoxPoints("Styled text", 20, 20, 180, 60);
+            PowerPointTextRun run = Assert.Single(Assert.Single(textBox.Paragraphs).Runs);
+            string baseline = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(styledPresentation));
+
+            run.Bold = true;
+            run.FontSize = 18;
+            run.FontName = "Aptos";
+            run.Color = "336699";
+            run.Underline = true;
+            run.Hyperlink = new Uri("https://example.test/");
+            string styled = ElementHash(GoogleSlidesDiffPlanner.CreateCheckpoint(styledPresentation));
+
+            Assert.NotEqual(baseline, styled);
+        }
+
+        [Fact]
         public async Task DiffPlanner_ReportsDriveVersionChanges() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             presentation.AddSlide().AddTextBox("Same");
