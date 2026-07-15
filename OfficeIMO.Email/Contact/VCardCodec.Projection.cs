@@ -1,6 +1,18 @@
 namespace OfficeIMO.Email;
 
 internal static partial class VCardCodec {
+    private static bool HasUnpreservedPropertyParameters(IEnumerable<VCardProperty> properties) =>
+        properties.Any(property => {
+            if (property.Parameters.Count == 0 || property.Name == "EMAIL" || property.Name == "TEL" ||
+                property.Name == "ADR" || property.Name == "LABEL" || property.Name == "URL") return false;
+            bool decodedQuotedPrintable = property.Parameters.TryGetValue("ENCODING", out string? encoding) &&
+                (encoding.Equals("QUOTED-PRINTABLE", StringComparison.OrdinalIgnoreCase) ||
+                 encoding.Equals("QP", StringComparison.OrdinalIgnoreCase));
+            return !decodedQuotedPrintable || property.Parameters.Keys.Any(parameter =>
+                !parameter.Equals("ENCODING", StringComparison.OrdinalIgnoreCase) &&
+                !parameter.Equals("CHARSET", StringComparison.OrdinalIgnoreCase));
+        });
+
     private static bool HasUnsupportedEmailSlot(VCardProperty property, int index, string types) {
         bool preferred = ContainsType(types, "PREF") || property.Parameters.ContainsKey("PREF");
         bool expectedSlot = index == 0

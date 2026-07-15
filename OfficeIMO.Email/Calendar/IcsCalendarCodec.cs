@@ -225,6 +225,7 @@ internal static partial class IcsCalendarCodec {
         string? summary = Unescape(GetValue(properties, "SUMMARY"));
         string? description = Unescape(GetValue(properties, "DESCRIPTION"));
         string? uid = Unescape(GetValue(properties, "UID"));
+        document.MimeSemanticSourceHasTextBody |= !string.IsNullOrWhiteSpace(description);
         if (!string.IsNullOrWhiteSpace(summary)) document.Subject = summary;
         if (!string.IsNullOrWhiteSpace(description)) {
             if (document.Body.Text == null) document.Body.Text = description;

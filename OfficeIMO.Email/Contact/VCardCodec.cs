@@ -14,6 +14,7 @@ internal static partial class VCardCodec {
         int cardCount = properties.Count(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase));
         document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 ||
+            HasUnpreservedPropertyParameters(properties) ||
             properties.Count(property => property.Name == "EMAIL") > 3 || properties.Any(property =>
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
@@ -86,6 +87,7 @@ internal static partial class VCardCodec {
             }
         }
         string? note = Unescape(GetValue(properties, "NOTE"));
+        document.MimeSemanticSourceHasTextBody |= !string.IsNullOrWhiteSpace(note);
         if (!string.IsNullOrWhiteSpace(note)) {
             if (document.Body.Text == null) document.Body.Text = note;
             else if (!string.Equals(document.Body.Text, note, StringComparison.Ordinal)) {

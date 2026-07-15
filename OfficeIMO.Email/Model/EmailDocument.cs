@@ -97,4 +97,6 @@ public sealed partial class EmailDocument {
     internal bool MimeSemanticProjectionIsIncomplete { get; set; }
 
     internal bool MimeHasMessageBody { get; set; }
+
+    internal bool MimeSemanticSourceHasTextBody { get; set; }
 }

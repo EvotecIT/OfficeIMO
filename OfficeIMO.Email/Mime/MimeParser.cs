@@ -21,7 +21,12 @@ internal static class MimeParser {
         int bodyCount = Math.Max(0, end - bodyOffset);
         ParseEntity(headers, data, bodyOffset, bodyCount, document, state, 0, nestedMessageDepth, location);
         MimeProtectionProjection.Apply(document, headers, state.Diagnostics, location);
-        if (document.Attachments.Any(attachment => attachment.IsProjectedSemanticContent)) {
+        bool hasSemanticContent = document.Attachments.Any(attachment => attachment.IsProjectedSemanticContent);
+        if (hasSemanticContent && document.MimeHasMessageBody && !document.MimeSemanticSourceHasTextBody &&
+            !string.IsNullOrWhiteSpace(document.Body.Text)) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+        }
+        if (hasSemanticContent) {
             document.MimeSemanticSourceModelFingerprint = EmailDocumentStateFingerprint.TryCompute(document);
         }
         return document;

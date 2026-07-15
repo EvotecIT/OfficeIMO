@@ -24,6 +24,7 @@ internal static partial class IcsCalendarCodec {
             : calendarSummary;
         return calendarRoots != 1 || calendarItems > 1 || alarms > 1 || hasTimeZone || hasUnsupportedComponent ||
             hasUnsupportedVersion ||
+            activeProperties.Any(HasUnpreservedPropertyParameters) ||
             HasIncompleteAlarmProjection(alarms, alarmProperties, reminderDescription) ||
             activeProperties.Any(property =>
                 property.Name == "RRULE" || property.Name == "RDATE" ||
@@ -45,6 +46,23 @@ internal static partial class IcsCalendarCodec {
                 property.Parameters.TryGetValue("RELATED", out string? related) &&
                 related.Equals("END", StringComparison.OrdinalIgnoreCase));
     }
+
+    private static bool HasUnpreservedPropertyParameters(IcsProperty property) {
+        if (property.Parameters.Count == 0) return false;
+        if (property.Name == "ATTENDEE") return HasIncompleteAttendeeProjection(property);
+        if (property.Name == "ORGANIZER") return HasIncompleteOrganizerProjection(property);
+        if (property.Name == "TRIGGER") return false;
+        if (!IsCalendarDateProperty(property.Name)) return true;
+        return property.Parameters.Keys.Any(parameter =>
+            !parameter.Equals("VALUE", StringComparison.OrdinalIgnoreCase) &&
+            !parameter.Equals("TZID", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsCalendarDateProperty(string name) => name == "DTSTART" || name == "DTEND" ||
+        name == "DUE" || name == "COMPLETED" || name == "DTSTAMP" ||
+        name == "X-OFFICEIMO-COMMON-START" || name == "X-OFFICEIMO-COMMON-END" ||
+        name == "X-OFFICEIMO-TODO-ORDINAL-DATE" || name == "X-OFFICEIMO-REMINDER-TIME" ||
+        name == "X-OFFICEIMO-REMINDER-SIGNAL-TIME";
 
     private static bool HasIncompleteTimestampProjection(IEnumerable<IcsProperty> activeProperties,
         EmailDocument document, bool isEvent, IList<EmailDiagnostic> diagnostics, string location) {

@@ -59,6 +59,14 @@ internal static class EmailConversionAnalyzer {
                         "task/attendees"));
                 }
             } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
+                document.MessageClass != null &&
+                document.MessageClass.StartsWith("IPM.DistList", StringComparison.OrdinalIgnoreCase)) {
+                hasPotentialDataLoss = true;
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_VCARD_DISTRIBUTION_LIST_UNSUPPORTED",
+                    "An Outlook distribution list cannot be represented as an individual vCard without losing its membership.",
+                    "contact/distribution-list"));
+            } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
                 (document.Contact == null || VCardCodec.HasOpaqueContactState(document.Contact))) {
                 hasPotentialDataLoss = true;
                 diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
