@@ -31,6 +31,7 @@
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Auth.GoogleApis\OfficeIMO.GoogleWorkspace.Auth.GoogleApis.csproj" />
     <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Drive\OfficeIMO.GoogleWorkspace.Drive.csproj" />
+    <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Sync\OfficeIMO.GoogleWorkspace.Sync.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word\OfficeIMO.Word.csproj" />
     <ProjectReference Include="..\OfficeIMO.Word.GoogleDocs\OfficeIMO.Word.GoogleDocs.csproj" />
   </ItemGroup>

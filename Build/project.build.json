@@ -18,6 +18,7 @@
     "OfficeIMO.GoogleWorkspace": "2.0.X",
     "OfficeIMO.GoogleWorkspace.Auth.GoogleApis": "2.0.X",
     "OfficeIMO.GoogleWorkspace.Drive": "2.0.X",
+    "OfficeIMO.GoogleWorkspace.Sync": "2.0.X",
     "OfficeIMO.Html": "2.0.X",
     "OfficeIMO.Html.Pdf": "2.0.X",
     "OfficeIMO.Latex": "2.0.X",
