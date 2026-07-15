@@ -18,7 +18,7 @@ internal static class PdfPageContentVisualParser {
         string content,
         double pageHeight,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
-        IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces,
+        IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null) {
         return Parse(content, 0D, pageHeight, graphicsStates, colorSpaces, null, null, null, optionalContentVisibility);
     }
@@ -28,7 +28,7 @@ internal static class PdfPageContentVisualParser {
         double pageWidth,
         double pageHeight,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
-        IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces,
+        IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces,
         IReadOnlyDictionary<string, PdfPageShadingResource>? shadings,
         IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
         IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns,
@@ -38,17 +38,17 @@ internal static class PdfPageContentVisualParser {
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
         OfficeColor? initialFillColor = null,
-        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialFillColorSpace = default,
         double? initialFillOpacity = null,
         OfficeColor? initialStrokeColor = null,
-        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialStrokeColorSpace = default,
         double? initialStrokeOpacity = null,
         double? initialStrokeWidth = null,
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
         int maxOperations = PdfReadLimits.DefaultMaxContentOperations,
-        IReadOnlyDictionary<string, PdfPageColorSpaceKind>? patternBaseColorSpaces = null) {
+        IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
@@ -70,8 +70,8 @@ internal static class PdfPageContentVisualParser {
         private readonly double _pageWidth;
         private readonly double _pageHeight;
         private readonly IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? _graphicsStates;
-        private readonly IReadOnlyDictionary<string, PdfPageColorSpaceKind>? _colorSpaces;
-        private readonly IReadOnlyDictionary<string, PdfPageColorSpaceKind>? _patternBaseColorSpaces;
+        private readonly IReadOnlyDictionary<string, PdfPageColorSpace>? _colorSpaces;
+        private readonly IReadOnlyDictionary<string, PdfPageColorSpace>? _patternBaseColorSpaces;
         private readonly IReadOnlyDictionary<string, PdfPageShadingResource>? _shadings;
         private readonly IReadOnlyDictionary<string, PdfPageShadingPatternResource>? _shadingPatterns;
         private readonly IReadOnlyDictionary<string, PdfPageTilingPatternResource>? _tilingPatterns;
@@ -82,7 +82,7 @@ internal static class PdfPageContentVisualParser {
         private readonly List<PdfPageVisualPrimitive> _primitives = new List<PdfPageVisualPrimitive>();
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
-        private readonly Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpaceKind? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpaceKind? StrokeBase)> _tilingStack = new Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpaceKind? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpaceKind? StrokeBase)>();
+        private readonly Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)> _tilingStack = new Stack<(PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase)>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
@@ -90,10 +90,10 @@ internal static class PdfPageContentVisualParser {
         private GraphicsState _state;
         private PdfPageTilingPatternResource? _fillTilingPattern;
         private OfficeColor? _fillTilingTint;
-        private PdfPageColorSpaceKind? _fillPatternBaseColorSpace;
+        private PdfPageColorSpace? _fillPatternBaseColorSpace;
         private PdfPageTilingPatternResource? _strokeTilingPattern;
         private OfficeColor? _strokeTilingTint;
-        private PdfPageColorSpaceKind? _strokePatternBaseColorSpace;
+        private PdfPageColorSpace? _strokePatternBaseColorSpace;
         private int _currentSubpathStartIndex = -1;
         private bool _currentSubpathHasDraw;
         private int _index;
@@ -105,7 +105,7 @@ internal static class PdfPageContentVisualParser {
             double pageWidth,
             double pageHeight,
             IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates,
-            IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces,
+            IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces,
             IReadOnlyDictionary<string, PdfPageShadingResource>? shadings,
             IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
             IReadOnlyDictionary<string, PdfPageTilingPatternResource>? tilingPatterns,
@@ -115,17 +115,17 @@ internal static class PdfPageContentVisualParser {
             double paintOrderOffset,
             PdfPageClipPath? initialClipPath,
             OfficeColor? initialFillColor,
-            PdfPageColorSpaceKind initialFillColorSpace,
+            PdfPageColorSpace initialFillColorSpace,
             double? initialFillOpacity,
             OfficeColor? initialStrokeColor,
-            PdfPageColorSpaceKind initialStrokeColorSpace,
+            PdfPageColorSpace initialStrokeColorSpace,
             double? initialStrokeOpacity,
             double? initialStrokeWidth,
             OfficeStrokeDashStyle? initialStrokeDashStyle,
             OfficeStrokeLineCap? initialStrokeLineCap,
             OfficeStrokeLineJoin? initialStrokeLineJoin,
             int maxOperations,
-            IReadOnlyDictionary<string, PdfPageColorSpaceKind>? patternBaseColorSpaces) {
+            IReadOnlyDictionary<string, PdfPageColorSpace>? patternBaseColorSpaces) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -229,7 +229,7 @@ internal static class PdfPageContentVisualParser {
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
                     if (_tilingStack.Count > 0) {
-                        (PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpaceKind? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpaceKind? StrokeBase) restored = _tilingStack.Pop();
+                        (PdfPageTilingPatternResource? Fill, OfficeColor? FillTint, PdfPageColorSpace? FillBase, PdfPageTilingPatternResource? Stroke, OfficeColor? StrokeTint, PdfPageColorSpace? StrokeBase) restored = _tilingStack.Pop();
                         _fillTilingPattern = restored.Fill;
                         _fillTilingTint = restored.FillTint;
                         _fillPatternBaseColorSpace = restored.FillBase;
@@ -291,7 +291,7 @@ internal static class PdfPageContentVisualParser {
                 case "cs":
                     if (_args.Count >= 1 &&
                         _args[_args.Count - 1] is string fillColorSpaceName &&
-                        TryReadColorSpace(fillColorSpaceName, out PdfPageColorSpaceKind fillColorSpace)) {
+                        TryReadColorSpace(fillColorSpaceName, out PdfPageColorSpace fillColorSpace)) {
                         _state = _state.WithFillColorSpace(fillColorSpace);
                         _fillPatternBaseColorSpace = ReadPatternBaseColorSpace(fillColorSpaceName, fillColorSpace);
                         _fillTilingPattern = null;
@@ -302,7 +302,7 @@ internal static class PdfPageContentVisualParser {
                 case "CS":
                     if (_args.Count >= 1 &&
                         _args[_args.Count - 1] is string strokeColorSpaceName &&
-                        TryReadColorSpace(strokeColorSpaceName, out PdfPageColorSpaceKind strokeColorSpace)) {
+                        TryReadColorSpace(strokeColorSpaceName, out PdfPageColorSpace strokeColorSpace)) {
                         _state = _state.WithStrokeColorSpace(strokeColorSpace);
                         _strokePatternBaseColorSpace = ReadPatternBaseColorSpace(strokeColorSpaceName, strokeColorSpace);
                         _strokeTilingPattern = null;
@@ -563,7 +563,10 @@ internal static class PdfPageContentVisualParser {
             }
 
             if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
-                PdfPageTilingPatternPaint? fillTilingPaint = fill ? CreateTilingPatternPaint(_fillTilingPattern) : null;
+                PdfPageTilingPatternPaint? fillTilingPaint = fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _state.FillOpacity) : null;
+                PdfPageTilingPatternPaint? strokeTilingPaint = stroke && _state.StrokeWidth > 0D
+                    ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _state.StrokeOpacity)
+                    : null;
                 OfficeLinearGradient? fillGradient = null;
                 OfficeRadialGradient? fillRadialGradient = null;
                 OfficeLinearGradient? strokeGradient = null;
@@ -595,7 +598,8 @@ internal static class PdfPageContentVisualParser {
                     stroke && _state.StrokeWidth > 0D ? _state.StrokeOpacity : null,
                     _state.ClipPath,
                     paintOrder,
-                    fillTilingPaint));
+                    fillTilingPaint,
+                    strokeTilingPaint));
             } else if (stroke && IsSingleLinePath()) {
                 AddLine(_path[0], _path[1], paintOrder);
             } else {
@@ -635,7 +639,8 @@ internal static class PdfPageContentVisualParser {
                     fillRule,
                     _state.ClipPath,
                     paintOrder,
-                    fill ? CreateTilingPatternPaint(_fillTilingPattern) : null,
+                    fill ? CreateTilingPatternPaint(_fillTilingPattern, _fillTilingTint, _state.FillOpacity) : null,
+                    stroke && _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _state.StrokeOpacity) : null,
                     out PdfPageVisualPrimitive pathPrimitive)) {
                     _primitives.Add(pathPrimitive);
                 } else if (stroke && _state.StrokeWidth > 0D) {
@@ -656,7 +661,7 @@ internal static class PdfPageContentVisualParser {
             return _tilingPatterns != null && _tilingPatterns.TryGetValue(patternName, out pattern!);
         }
 
-        private PdfPageTilingPatternPaint? CreateTilingPatternPaint(PdfPageTilingPatternResource? resource) {
+        private PdfPageTilingPatternPaint? CreateTilingPatternPaint(PdfPageTilingPatternResource? resource, OfficeColor? tint, double? opacity) {
             if (resource == null) return null;
             var localToPattern = new Matrix2D(1D, 0D, 0D, -1D, resource.BoundingBoxX, resource.BoundingBoxTop);
             Matrix2D combined = Matrix2D.Multiply(
@@ -665,11 +670,11 @@ internal static class PdfPageContentVisualParser {
             return new PdfPageTilingPatternPaint(
                 resource,
                 new OfficeTransform(combined.A, combined.B, combined.C, combined.D, combined.E, combined.F),
-                resource.Uncolored ? _fillTilingTint : null,
-                _state.FillOpacity ?? 1D);
+                resource.Uncolored ? tint : null,
+                opacity ?? 1D);
         }
 
-        private OfficeColor ReadPatternTint(OfficeColor fallback, PdfPageColorSpaceKind? baseColorSpace) {
+        private OfficeColor ReadPatternTint(OfficeColor fallback, PdfPageColorSpace? baseColorSpace) {
             if (baseColorSpace.HasValue && TryReadColor(baseColorSpace.Value, out OfficeColor color)) return color;
             int componentCount = _args.Count > 0 && _args[_args.Count - 1] is string ? _args.Count - 1 : _args.Count;
             if (componentCount >= 3) return ReadRgb(componentCount - 3);
@@ -677,9 +682,9 @@ internal static class PdfPageContentVisualParser {
             return fallback;
         }
 
-        private PdfPageColorSpaceKind? ReadPatternBaseColorSpace(string name, PdfPageColorSpaceKind colorSpace) {
+        private PdfPageColorSpace? ReadPatternBaseColorSpace(string name, PdfPageColorSpace colorSpace) {
             if (colorSpace != PdfPageColorSpaceKind.Pattern || _patternBaseColorSpaces == null) return null;
-            return _patternBaseColorSpaces.TryGetValue(name, out PdfPageColorSpaceKind baseColorSpace) ? baseColorSpace : null;
+            return _patternBaseColorSpaces.TryGetValue(name, out PdfPageColorSpace baseColorSpace) ? baseColorSpace : null;
         }
 
         private void PaintShading(string shadingName, double paintOrder) {
@@ -1022,7 +1027,6 @@ internal static class PdfPageContentVisualParser {
             _pathCommands[1].Kind == OfficePathCommandKind.LineTo;
 
         private void AddLine((double X, double Y) start, (double X, double Y) end, double paintOrder) {
-            if (_strokeTilingPattern != null) return;
             double x1 = start.X;
             double y1 = ToTop(start.Y);
             double x2 = end.X;
@@ -1055,7 +1059,8 @@ internal static class PdfPageContentVisualParser {
                 _state.StrokeLineJoin,
                 _state.StrokeOpacity,
                 _state.ClipPath,
-                paintOrder));
+                paintOrder,
+                _state.StrokeWidth > 0D ? CreateTilingPatternPaint(_strokeTilingPattern, _strokeTilingTint, _state.StrokeOpacity) : null));
         }
 
         private void AddStrokedPathSegments(IReadOnlyList<OfficePathCommand> pathCommands, double paintOrder) {
@@ -1278,7 +1283,7 @@ internal static class PdfPageContentVisualParser {
                 NumberAt(startIndex + 3));
         }
 
-        private bool TryReadColor(PdfPageColorSpaceKind colorSpace, out OfficeColor color) {
+        private bool TryReadColor(PdfPageColorSpace colorSpace, out OfficeColor color) {
             color = OfficeColor.Black;
             if (colorSpace == PdfPageColorSpaceKind.Pattern) {
                 return false;
@@ -1295,7 +1300,7 @@ internal static class PdfPageContentVisualParser {
             }
 
             int startIndex = endIndex - componentCount;
-            switch (colorSpace) {
+            switch (colorSpace.Kind) {
                 case PdfPageColorSpaceKind.DeviceRgb:
                     color = ReadRgb(startIndex);
                     return true;
@@ -1306,7 +1311,7 @@ internal static class PdfPageContentVisualParser {
                     color = PdfPageColorConverter.FromCalGray(NumberAt(startIndex));
                     return true;
                 case PdfPageColorSpaceKind.CalRgb:
-                    color = PdfPageColorConverter.FromCalRgb(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
+                    color = PdfPageColorConverter.FromCalRgb(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2), colorSpace);
                     return true;
                 case PdfPageColorSpaceKind.Lab:
                     color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
@@ -1317,8 +1322,8 @@ internal static class PdfPageContentVisualParser {
             }
         }
 
-        private static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
-            switch (colorSpace) {
+        private static int GetColorComponentCount(PdfPageColorSpace colorSpace) {
+            switch (colorSpace.Kind) {
                 case PdfPageColorSpaceKind.DeviceRgb:
                 case PdfPageColorSpaceKind.CalRgb:
                 case PdfPageColorSpaceKind.Lab:
@@ -1330,7 +1335,7 @@ internal static class PdfPageContentVisualParser {
             }
         }
 
-        private bool TryReadColorSpace(string name, out PdfPageColorSpaceKind colorSpace) {
+        private bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {
             switch (name) {
                 case "DeviceRGB":
                 case "RGB":
@@ -1598,7 +1603,7 @@ internal static class PdfPageContentVisualParser {
     }
 
     private readonly struct GraphicsState {
-        private GraphicsState(Matrix2D transform, OfficeColor fillColor, PdfPageShadingPatternResource? fillPattern, OfficeColor strokeColor, PdfPageShadingPatternResource? strokePattern, PdfPageColorSpaceKind fillColorSpace, PdfPageColorSpaceKind strokeColorSpace, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, PdfPageClipPath? clipPath) {
+        private GraphicsState(Matrix2D transform, OfficeColor fillColor, PdfPageShadingPatternResource? fillPattern, OfficeColor strokeColor, PdfPageShadingPatternResource? strokePattern, PdfPageColorSpace fillColorSpace, PdfPageColorSpace strokeColorSpace, double strokeWidth, OfficeStrokeDashStyle strokeDashStyle, OfficeStrokeLineCap? strokeLineCap, OfficeStrokeLineJoin? strokeLineJoin, double? fillOpacity, double? strokeOpacity, PdfPageClipPath? clipPath) {
             Transform = transform;
             FillColor = fillColor;
             FillPattern = fillPattern;
@@ -1625,9 +1630,9 @@ internal static class PdfPageContentVisualParser {
 
         public PdfPageShadingPatternResource? StrokePattern { get; }
 
-        public PdfPageColorSpaceKind FillColorSpace { get; }
+        public PdfPageColorSpace FillColorSpace { get; }
 
-        public PdfPageColorSpaceKind StrokeColorSpace { get; }
+        public PdfPageColorSpace StrokeColorSpace { get; }
 
         public double StrokeWidth { get; }
 
@@ -1649,7 +1654,7 @@ internal static class PdfPageContentVisualParser {
 
         public GraphicsState WithFillColor(OfficeColor color) => new GraphicsState(Transform, color, null, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithFillColor(OfficeColor color, PdfPageColorSpaceKind colorSpace) => new GraphicsState(Transform, color, null, StrokeColor, StrokePattern, colorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithFillColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, color, null, StrokeColor, StrokePattern, colorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
         public GraphicsState WithFillPattern(PdfPageShadingPatternResource pattern) => new GraphicsState(Transform, FillColor, pattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
@@ -1657,15 +1662,15 @@ internal static class PdfPageContentVisualParser {
 
         public GraphicsState WithStrokeColor(OfficeColor color) => new GraphicsState(Transform, FillColor, FillPattern, color, null, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeColor(OfficeColor color, PdfPageColorSpaceKind colorSpace) => new GraphicsState(Transform, FillColor, FillPattern, color, null, FillColorSpace, colorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeColor(OfficeColor color, PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, FillPattern, color, null, FillColorSpace, colorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
         public GraphicsState WithStrokePattern(PdfPageShadingPatternResource pattern) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, pattern, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
         public GraphicsState WithoutStrokePattern() => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, null, FillColorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithFillColorSpace(PdfPageColorSpaceKind colorSpace) => new GraphicsState(Transform, FillColor, colorSpace == PdfPageColorSpaceKind.Pattern ? FillPattern : null, StrokeColor, StrokePattern, colorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithFillColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, colorSpace == PdfPageColorSpaceKind.Pattern ? FillPattern : null, StrokeColor, StrokePattern, colorSpace, StrokeColorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
-        public GraphicsState WithStrokeColorSpace(PdfPageColorSpaceKind colorSpace) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, colorSpace == PdfPageColorSpaceKind.Pattern ? StrokePattern : null, FillColorSpace, colorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
+        public GraphicsState WithStrokeColorSpace(PdfPageColorSpace colorSpace) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, colorSpace == PdfPageColorSpaceKind.Pattern ? StrokePattern : null, FillColorSpace, colorSpace, StrokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 
         public GraphicsState WithStrokeWidth(double strokeWidth) => new GraphicsState(Transform, FillColor, FillPattern, StrokeColor, StrokePattern, FillColorSpace, StrokeColorSpace, strokeWidth, StrokeDashStyle, StrokeLineCap, StrokeLineJoin, FillOpacity, StrokeOpacity, ClipPath);
 

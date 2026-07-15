@@ -75,55 +75,50 @@ internal static partial class PdfWriter {
 
     private static LayoutResult LayoutBlocks(IEnumerable<IPdfBlock> blocks, PdfOptions opts) {
         var blockList = blocks as IReadOnlyList<IPdfBlock> ?? blocks.ToList();
-        var sections = new List<SectionBlock>();
-        bool hasTableOfContents = CollectSectionLayoutBlocks(blockList, sections);
-        if (!hasTableOfContents) {
-            using var context = new LayoutContext(opts, sections);
-            LayoutResult direct = context.Layout(blockList);
-            ApplySectionReferences(direct);
-            return direct;
-        }
-
+        IReadOnlyList<SectionBlock> sections = Array.Empty<SectionBlock>();
         IReadOnlyDictionary<string, int>? pageNumbers = null;
+        var deferredMaterializations = new Dictionary<FlowMaterializationKey, IReadOnlyList<IPdfBlock>>();
         LayoutResult result = null!;
-        for (int pass = 0; pass < 4; pass++) {
+        for (int pass = 0; pass < 5; pass++) {
             result?.Dispose();
-            using var context = new LayoutContext(opts, sections, pageNumbers);
+            using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations);
             result = context.Layout(blockList);
+            if (!result.HasTableOfContents) {
+                ApplySectionReferences(result);
+                return result;
+            }
+
             IReadOnlyDictionary<string, int> resolved = BuildSectionPageNumbers(result);
-            if (pageNumbers != null && SectionPageNumbersEqual(pageNumbers, resolved)) {
+            IReadOnlyList<SectionBlock> resolvedSections = result.SectionDefinitions;
+            if (pageNumbers != null &&
+                SectionPageNumbersEqual(pageNumbers, resolved) &&
+                SectionDefinitionsEqual(sections, resolvedSections)) {
                 ApplySectionReferences(result);
                 return result;
             }
 
             pageNumbers = resolved;
+            sections = resolvedSections;
         }
 
         result?.Dispose();
-        throw new InvalidOperationException("Generated table of contents did not stabilize within four layout passes.");
+        throw new InvalidOperationException("Generated table of contents did not stabilize within five layout passes.");
     }
 
-    private static bool CollectSectionLayoutBlocks(IReadOnlyList<IPdfBlock> blocks, List<SectionBlock> sections) {
-        bool hasTableOfContents = false;
-        for (int i = 0; i < blocks.Count; i++) {
-            switch (blocks[i]) {
-                case SectionBlock section:
-                    sections.Add(section);
-                    hasTableOfContents |= CollectSectionLayoutBlocks(section.Blocks, sections);
-                    break;
-                case TableOfContentsBlock:
-                    hasTableOfContents = true;
-                    break;
-                case PageBlock page:
-                    hasTableOfContents |= CollectSectionLayoutBlocks(page.Blocks, sections);
-                    break;
-                case FlowBlock flow when flow.StaticBlocks != null:
-                    hasTableOfContents |= CollectSectionLayoutBlocks(flow.StaticBlocks, sections);
-                    break;
+    private static bool SectionDefinitionsEqual(IReadOnlyList<SectionBlock> left, IReadOnlyList<SectionBlock> right) {
+        if (left.Count != right.Count) return false;
+        for (int i = 0; i < left.Count; i++) {
+            SectionBlock first = left[i];
+            SectionBlock second = right[i];
+            if (!string.Equals(first.DestinationName, second.DestinationName, StringComparison.Ordinal) ||
+                !string.Equals(first.Title, second.Title, StringComparison.Ordinal) ||
+                first.Options.Level != second.Options.Level ||
+                first.Options.IncludeInTableOfContents != second.Options.IncludeInTableOfContents) {
+                return false;
             }
         }
 
-        return hasTableOfContents;
+        return true;
     }
 
     private static Dictionary<string, int> BuildSectionPageNumbers(LayoutResult result) {

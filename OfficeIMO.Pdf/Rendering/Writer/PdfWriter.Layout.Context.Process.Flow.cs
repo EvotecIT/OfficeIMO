@@ -14,13 +14,13 @@ internal static partial class PdfWriter {
                 return;
             }
 
-            IReadOnlyList<IPdfBlock> blocks = flow.Materialize(context);
+            IReadOnlyList<IPdfBlock> blocks = MaterializeFlow(flow, context);
             double available = y - currentOpts.MarginBottom;
             if (flow.Options.MinimumRemainingHeight > 0D && available + 0.001D < flow.Options.MinimumRemainingHeight && y < yStart - 0.001D) {
                 NewPage();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
-                    blocks = flow.Materialize(context);
+                    blocks = MaterializeFlow(flow, context);
                 }
 
                 available = y - currentOpts.MarginBottom;
@@ -35,7 +35,7 @@ internal static partial class PdfWriter {
                 NewPage();
                 context = CreateFlowContext();
                 if (flow.IsReplayable) {
-                    blocks = flow.Materialize(context);
+                    blocks = MaterializeFlow(flow, context);
                     measuredHeight = MeasureFlowBlocks(blocks);
                 }
 
@@ -63,6 +63,17 @@ internal static partial class PdfWriter {
             PdfOptions startOptions = currentOpts;
             ProcessBlocks(blocks);
             CaptureFlowRegions(capture, startPageNumber, startY, startOptions);
+        }
+
+        private IReadOnlyList<IPdfBlock> MaterializeFlow(FlowBlock flow, PdfFlowContext context) {
+            if (!flow.IsReplayable) return flow.Materialize(context);
+            var key = new FlowMaterializationKey(flow, context);
+            if (!deferredMaterializations.TryGetValue(key, out IReadOnlyList<IPdfBlock>? blocks)) {
+                blocks = flow.Materialize(context);
+                deferredMaterializations.Add(key, blocks);
+            }
+
+            return blocks;
         }
 
         private PdfFlowContext CreateFlowContext() {

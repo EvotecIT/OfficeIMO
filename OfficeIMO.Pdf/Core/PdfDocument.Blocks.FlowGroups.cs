@@ -11,7 +11,7 @@ public sealed partial class PdfDocument {
         return this;
     }
 
-    /// <summary>Adds replayable content materialized from the live page context during each layout pass.</summary>
+    /// <summary>Adds replayable content materialized from the live page context. Identical contexts are reused across layout stabilization passes.</summary>
     public PdfDocument Deferred(
         Func<PdfFlowContext, Action<PdfItemCompose>> composeFactory,
         PdfFlowOptions? options = null,

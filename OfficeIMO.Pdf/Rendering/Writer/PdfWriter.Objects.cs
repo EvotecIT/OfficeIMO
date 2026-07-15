@@ -97,6 +97,8 @@ internal static partial class PdfWriter {
         public bool UsedBold { get; set; }
         public bool UsedItalic { get; set; }
         public bool UsedBoldItalic { get; set; }
+        public bool HasTableOfContents { get; set; }
+        public System.Collections.Generic.List<SectionBlock> SectionDefinitions { get; } = new();
         public sealed class Page {
             public PdfOptions Options { get; set; } = null!;
             public int PageGroupId { get; set; }

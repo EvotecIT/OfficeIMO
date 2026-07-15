@@ -5,6 +5,7 @@ namespace OfficeIMO.Pdf;
 internal static partial class PdfWriter {
     private sealed partial class LayoutContext {
         private void RenderSectionBlock(SectionBlock section) {
+            encounteredSectionDefinitions.Add(section);
             if (section.Options.StartOnNewPage && (pageDirty || HasCurrentPageNonContentObjects())) {
                 NewPage();
             }
@@ -34,6 +35,7 @@ internal static partial class PdfWriter {
         }
 
         private void RenderTableOfContentsBlock(TableOfContentsBlock tableOfContents) {
+            encounteredTableOfContents = true;
             PdfTableOfContentsOptions options = tableOfContents.Options;
             if (!string.IsNullOrWhiteSpace(options.Title)) {
                 ProcessBlocks(new IPdfBlock[] { new HeadingBlock(1, options.Title!, PdfAlign.Left, color: null) });

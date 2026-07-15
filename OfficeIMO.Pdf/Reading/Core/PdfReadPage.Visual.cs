@@ -122,16 +122,23 @@ public sealed partial class PdfReadPage {
     private static void AddVisualPrimitive(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
         if (primitive.FillTilingPattern != null) {
             AddTilingPatternFill(drawing, primitive);
-            bool hasOtherFill = primitive.FillColor.HasValue || primitive.FillGradient != null || primitive.FillRadialGradient != null;
-            bool hasStroke = primitive.StrokeWidth > 0D && (primitive.StrokeColor.HasValue || primitive.StrokeGradient != null || primitive.StrokeRadialGradient != null);
-            if (!hasOtherFill && !hasStroke) return;
         }
-        if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
-            AddRectangle(drawing, primitive);
-        } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-            AddLine(drawing, primitive);
-        } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Path) {
-            AddPath(drawing, primitive);
+
+        bool hasOrdinaryFill = primitive.FillColor.HasValue || primitive.FillGradient != null || primitive.FillRadialGradient != null;
+        bool hasOrdinaryStroke = primitive.StrokeWidth > 0D &&
+            (primitive.StrokeColor.HasValue || primitive.StrokeGradient != null || primitive.StrokeRadialGradient != null);
+        if (hasOrdinaryFill || hasOrdinaryStroke) {
+            if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+                AddRectangle(drawing, primitive);
+            } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
+                AddLine(drawing, primitive);
+            } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Path) {
+                AddPath(drawing, primitive);
+            }
+        }
+
+        if (primitive.StrokeTilingPattern != null && primitive.StrokeWidth > 0D) {
+            AddTilingPatternStroke(drawing, primitive);
         }
     }
 
@@ -343,10 +350,10 @@ public sealed partial class PdfReadPage {
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
         OfficeColor? initialFillColor = null,
-        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialFillColorSpace = default,
         double? initialFillOpacity = null,
         OfficeColor? initialStrokeColor = null,
-        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialStrokeColorSpace = default,
         double? initialStrokeOpacity = null,
         double? initialStrokeWidth = null,
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
@@ -536,7 +543,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        PdfPageColorSpaceKind colorSpace = PdfPageColorSpaceKind.DeviceGray;
+        PdfPageColorSpace colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
             TryReadColorSpaceResource(colorSpaceObject, out colorSpace);
         }
@@ -559,7 +566,7 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private bool TryReadShadingStops(PdfObject? functionObject, PdfPageColorSpaceKind colorSpace, out IReadOnlyList<OfficeGradientStop> stops) {
+    private bool TryReadShadingStops(PdfObject? functionObject, PdfPageColorSpace colorSpace, out IReadOnlyList<OfficeGradientStop> stops) {
         stops = Array.Empty<OfficeGradientStop>();
         PdfObject? resolved = ResolveObject(functionObject);
         if (resolved is PdfArray functionArray && functionArray.Items.Count > 0) {
@@ -614,7 +621,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private bool TryReadType2FunctionColors(PdfDictionary? function, PdfPageColorSpaceKind colorSpace, bool reversed, out OfficeColor start, out OfficeColor end) {
+    private bool TryReadType2FunctionColors(PdfDictionary? function, PdfPageColorSpace colorSpace, bool reversed, out OfficeColor start, out OfficeColor end) {
         start = OfficeColor.Black;
         end = OfficeColor.Black;
         if (function == null || TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? type) ? type : null) != 2) return false;
@@ -639,15 +646,15 @@ public sealed partial class PdfReadPage {
         return resolved is PdfDictionary dictionary ? dictionary : null;
     }
 
-    private OfficeColor ReadFunctionColor(PdfDictionary function, string key, PdfPageColorSpaceKind colorSpace, bool endColor) {
+    private OfficeColor ReadFunctionColor(PdfDictionary function, string key, PdfPageColorSpace colorSpace, bool endColor) {
         IReadOnlyList<double> components = function.Items.TryGetValue(key, out PdfObject? value)
             ? ReadNumberArray(value)
             : Array.Empty<double>();
         return ReadColorComponents(components, colorSpace, endColor);
     }
 
-    private static OfficeColor ReadColorComponents(IReadOnlyList<double> components, PdfPageColorSpaceKind colorSpace, bool endColor) {
-        switch (colorSpace) {
+    private static OfficeColor ReadColorComponents(IReadOnlyList<double> components, PdfPageColorSpace colorSpace, bool endColor) {
+        switch (colorSpace.Kind) {
             case PdfPageColorSpaceKind.DeviceRgb:
                 return OfficeColor.FromRgb(
                     ToColorByte(ComponentAt(components, 0, endColor ? 1D : 0D)),
@@ -666,7 +673,8 @@ public sealed partial class PdfReadPage {
                 return PdfPageColorConverter.FromCalRgb(
                     ComponentAt(components, 0, endColor ? 1D : 0D),
                     ComponentAt(components, 1, endColor ? 1D : 0D),
-                    ComponentAt(components, 2, endColor ? 1D : 0D));
+                    ComponentAt(components, 2, endColor ? 1D : 0D),
+                    colorSpace);
             case PdfPageColorSpaceKind.Lab:
                 return PdfPageColorConverter.FromLab(
                     ComponentAtRaw(components, 0, endColor ? 100D : 0D),
@@ -732,8 +740,8 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private Dictionary<string, PdfPageColorSpaceKind> GetColorSpaceResources(PdfDictionary? resources) {
-        var result = new Dictionary<string, PdfPageColorSpaceKind>(StringComparer.Ordinal);
+    private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(PdfDictionary? resources) {
+        var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject)) {
             return result;
@@ -745,7 +753,7 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpaceKind colorSpace)) {
+            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace)) {
                 result[entry.Key] = colorSpace;
             }
         }
@@ -753,8 +761,8 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private Dictionary<string, PdfPageColorSpaceKind> GetPatternBaseColorSpaceResources(PdfDictionary? resources) {
-        var result = new Dictionary<string, PdfPageColorSpaceKind>(StringComparer.Ordinal);
+    private Dictionary<string, PdfPageColorSpace> GetPatternBaseColorSpaceResources(PdfDictionary? resources) {
+        var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
             ResolveDictionary(colorSpacesObject) is not PdfDictionary colorSpaces) {
@@ -765,7 +773,7 @@ public sealed partial class PdfReadPage {
             if (ResolveObject(entry.Value) is not PdfArray array ||
                 array.Items.Count < 2 ||
                 ResolveObject(array.Items[0]) is not PdfName { Name: "Pattern" } ||
-                !TryReadColorSpaceResource(array.Items[1], out PdfPageColorSpaceKind baseColorSpace) ||
+                !TryReadColorSpaceResource(array.Items[1], out PdfPageColorSpace baseColorSpace) ||
                 baseColorSpace == PdfPageColorSpaceKind.Pattern) {
                 continue;
             }
@@ -774,7 +782,7 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpaceKind colorSpace) {
+    private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) {
         PdfObject? resolved = ResolveObject(value);
         if (resolved is PdfName directName) {
             return TryReadStandardColorSpaceName(directName.Name, out colorSpace);
@@ -799,6 +807,11 @@ public sealed partial class PdfReadPage {
                 };
                 return components is 1 or 3 or 4;
             }
+            if (arrayName.Name == "CalRGB" && array.Items.Count > 1 &&
+                ResolveDictionary(array.Items[1]) is PdfDictionary calibration &&
+                TryReadCalRgbColorSpace(calibration, out colorSpace)) {
+                return true;
+            }
             return TryReadStandardColorSpaceName(arrayName.Name, out colorSpace);
         }
 
@@ -806,7 +819,29 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private static bool TryReadStandardColorSpaceName(string name, out PdfPageColorSpaceKind colorSpace) {
+    private bool TryReadCalRgbColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
+        colorSpace = PdfPageColorSpaceKind.DeviceGray;
+        if (!calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
+        IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
+        if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
+
+        IReadOnlyList<double>? gamma = null;
+        if (calibration.Items.TryGetValue("Gamma", out PdfObject? gammaObject)) {
+            gamma = ReadNumberArray(gammaObject);
+            if (gamma.Count != 3 || gamma.Any(static value => !IsFinite(value) || value <= 0D)) return false;
+        }
+
+        IReadOnlyList<double>? matrix = null;
+        if (calibration.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
+            matrix = ReadNumberArray(matrixObject);
+            if (matrix.Count != 9 || matrix.Any(static value => !IsFinite(value))) return false;
+        }
+
+        colorSpace = PdfPageColorSpace.CalRgb(whitePoint[0], whitePoint[1], whitePoint[2], gamma, matrix);
+        return true;
+    }
+
+    private static bool TryReadStandardColorSpaceName(string name, out PdfPageColorSpace colorSpace) {
         switch (name) {
             case "DeviceRGB":
             case "RGB":

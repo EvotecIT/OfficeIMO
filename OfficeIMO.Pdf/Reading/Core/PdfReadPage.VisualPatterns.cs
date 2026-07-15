@@ -21,7 +21,7 @@ public sealed partial class PdfReadPage {
         if (clip == null) return;
 
         OfficeDrawing tile = paint.Resource.Tile.Clone();
-        if (paint.Tint.HasValue) TintPatternTile(tile, paint.Tint.Value);
+        if (paint.Tint.HasValue) tile.ApplyColorTint(paint.Tint.Value);
         var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
         OfficeTransform localTransform = paint.Transform.Then(OfficeTransform.Translate(-fitted.X, -fitted.Y));
         patternDrawing.AddTilingPattern(
@@ -35,12 +35,82 @@ public sealed partial class PdfReadPage {
         drawing.AddClippedDrawing(patternDrawing, fitted.X, fitted.Y, clip);
     }
 
-    private static void TintPatternTile(OfficeDrawing tile, OfficeColor tint) {
-        for (int i = 0; i < tile.Shapes.Count; i++) {
-            OfficeShape shape = tile.Shapes[i].Shape;
-            if (shape.FillColor.HasValue && shape.FillColor.Value.A > 0) shape.FillColor = OfficeColor.FromRgba(tint.R, tint.G, tint.B, shape.FillColor.Value.A);
-            if (shape.StrokeColor.HasValue && shape.StrokeColor.Value.A > 0) shape.StrokeColor = OfficeColor.FromRgba(tint.R, tint.G, tint.B, shape.StrokeColor.Value.A);
+    private static void AddTilingPatternStroke(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
+        PdfPageTilingPatternPaint paint = primitive.StrokeTilingPattern!;
+        double strokeHalf = primitive.StrokeWidth / 2D;
+        double left = primitive.X - strokeHalf;
+        double top = primitive.Y - strokeHalf;
+        double width = primitive.Width + primitive.StrokeWidth;
+        double height = primitive.Height + primitive.StrokeWidth;
+        if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
+            left = Math.Min(primitive.X1, primitive.X2) - strokeHalf;
+            top = Math.Min(primitive.Y1, primitive.Y2) - strokeHalf;
+            width = Math.Abs(primitive.X2 - primitive.X1) + primitive.StrokeWidth;
+            height = Math.Abs(primitive.Y2 - primitive.Y1) + primitive.StrokeWidth;
         }
+        if (width <= 0D || height <= 0D) return;
+
+        PdfPageClipPath strokeBounds = PdfPageClipPath.Rectangle(left, top, width, height);
+        if (primitive.ClipPath.HasValue) {
+            strokeBounds = PdfPageClipPath.ResolveActiveClip(strokeBounds, primitive.ClipPath.Value);
+        }
+        if (!TryFitClipToDrawing(strokeBounds, drawing.Width, drawing.Height, out PdfPageClipPath fitted)) return;
+
+        OfficeDrawing tile = paint.Resource.Tile.Clone();
+        if (paint.Tint.HasValue) tile.ApplyColorTint(paint.Tint.Value);
+        var patternDrawing = new OfficeDrawing(fitted.Width, fitted.Height);
+        OfficeTransform localTransform = paint.Transform.Then(OfficeTransform.Translate(-fitted.X, -fitted.Y));
+        patternDrawing.AddTilingPattern(
+            tile,
+            new OfficeImagePlacement(0D, 0D, fitted.Width, fitted.Height),
+            paint.Resource.HorizontalStep,
+            paint.Resource.VerticalStep,
+            localTransform,
+            maximumTileCount: 16384,
+            opacity: paint.Opacity);
+
+        OfficeDrawing strokeMask = CreatePatternStrokeMask(primitive, fitted);
+        if (strokeMask.Elements.Count == 0) return;
+        drawing.AddEffectDrawing(
+            patternDrawing,
+            OfficeTransform.Translate(fitted.X, fitted.Y),
+            OfficeBlendMode.Normal,
+            new OfficeDrawingSoftMask(strokeMask));
+    }
+
+    private static OfficeDrawing CreatePatternStrokeMask(PdfPageVisualPrimitive primitive, PdfPageClipPath fitted) {
+        var rawMask = new OfficeDrawing(fitted.Width, fitted.Height);
+        double sourceWidth = Math.Max(1D, primitive.Width);
+        double sourceHeight = Math.Max(1D, primitive.Height);
+        OfficeShape shape;
+        if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+            shape = OfficeShape.Rectangle(primitive.Width, primitive.Height);
+        } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
+            shape = OfficeShape.Line(
+                primitive.X1 - primitive.X,
+                primitive.Y1 - primitive.Y,
+                primitive.X2 - primitive.X,
+                primitive.Y2 - primitive.Y);
+        } else {
+            shape = OfficeShape.Path(primitive.PathCommands);
+        }
+
+        shape.FillColor = null;
+        shape.StrokeColor = OfficeColor.White;
+        shape.StrokeWidth = primitive.StrokeWidth;
+        shape.StrokeDashStyle = primitive.StrokeDashStyle;
+        shape.StrokeLineCap = primitive.StrokeLineCap;
+        shape.StrokeLineJoin = primitive.StrokeLineJoin;
+        var source = new OfficeDrawing(sourceWidth, sourceHeight);
+        source.AddShape(shape, 0D, 0D);
+        rawMask.AddDrawingForClippedRendering(source, primitive.X - fitted.X, primitive.Y - fitted.Y, null);
+
+        if (fitted.IsRectangle) return rawMask;
+        OfficeClipPath? activeClip = fitted.ToOfficeClipPath(fitted.X, fitted.Y);
+        if (activeClip == null) return new OfficeDrawing(fitted.Width, fitted.Height);
+        var clippedMask = new OfficeDrawing(fitted.Width, fitted.Height);
+        clippedMask.AddClippedDrawing(rawMask, 0D, 0D, activeClip);
+        return clippedMask;
     }
 
     private Dictionary<string, PdfPageTilingPatternResource> GetTilingPatternResources(PdfDictionary? resources) {

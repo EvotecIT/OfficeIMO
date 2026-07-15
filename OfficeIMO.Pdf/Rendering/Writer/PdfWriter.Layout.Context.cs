@@ -15,6 +15,9 @@ internal static partial class PdfWriter {
         private readonly bool emitGeneratedStructure;
         private readonly System.Collections.Generic.IReadOnlyList<SectionBlock> sectionDefinitions;
         private readonly System.Collections.Generic.IReadOnlyDictionary<string, int> sectionPageNumbers;
+        private readonly System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>> deferredMaterializations;
+        private readonly System.Collections.Generic.List<SectionBlock> encounteredSectionDefinitions = new System.Collections.Generic.List<SectionBlock>();
+        private bool encounteredTableOfContents;
         private PdfOptions currentOpts;
         private int currentPageGroupId;
         private int nextPageGroupId = 1;
@@ -33,12 +36,17 @@ internal static partial class PdfWriter {
         private readonly System.Collections.Generic.HashSet<PdfLayoutPositionCapture> initializedPositionCaptures = new System.Collections.Generic.HashSet<PdfLayoutPositionCapture>();
         private readonly System.Collections.Generic.List<PdfLayerDefinition> activeLayers = new System.Collections.Generic.List<PdfLayerDefinition>();
 
-        public LayoutContext(PdfOptions options, System.Collections.Generic.IReadOnlyList<SectionBlock>? sections = null, System.Collections.Generic.IReadOnlyDictionary<string, int>? resolvedSectionPages = null) {
+        public LayoutContext(
+            PdfOptions options,
+            System.Collections.Generic.IReadOnlyList<SectionBlock>? sections = null,
+            System.Collections.Generic.IReadOnlyDictionary<string, int>? resolvedSectionPages = null,
+            System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>? materializations = null) {
             currentOpts = options;
             pageContents = new PdfPageContentStore(options.PageContentMemoryLimitBytes);
             emitGeneratedStructure = options.TaggedStructureMode == PdfTaggedStructureMode.CatalogMarkers;
             sectionDefinitions = sections ?? System.Array.Empty<SectionBlock>();
             sectionPageNumbers = resolvedSectionPages ?? new System.Collections.Generic.Dictionary<string, int>(System.StringComparer.Ordinal);
+            deferredMaterializations = materializations ?? new System.Collections.Generic.Dictionary<FlowMaterializationKey, System.Collections.Generic.IReadOnlyList<IPdfBlock>>();
             optionsStack.Push(options);
             pageGroupStack.Push(0);
         }
@@ -50,6 +58,8 @@ internal static partial class PdfWriter {
 
                 var result = new LayoutResult(pageContents) { UsedBold = usedBold, UsedItalic = usedItalic, UsedBoldItalic = usedBoldItalic };
                 foreach (var p in pages) result.Pages.Add(p);
+                result.HasTableOfContents = encounteredTableOfContents;
+                result.SectionDefinitions.AddRange(encounteredSectionDefinitions);
                 pageContentsTransferred = true;
                 return result;
             } catch {

@@ -67,4 +67,26 @@ public class PdfSectionTableOfContentsTests {
         Assert.Contains("Included", firstPage, StringComparison.Ordinal);
         Assert.Contains("p3", firstPage, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void TableOfContents_DiscoversSectionsMaterializedByDeferredFlow() {
+        byte[] bytes = PdfDocument.Create()
+            .TableOfContents()
+            .Deferred(_ => item => item.Section(
+                "Deferred details",
+                section => section.Paragraph(paragraph => paragraph.Text("Deferred body")),
+                new PdfSectionOptions { StartOnNewPage = true }))
+            .ToBytes();
+
+        PdfDocumentInfo info = PdfInspector.Inspect(bytes);
+        PdfLogicalDocument logical = PdfDocument.Load(bytes).Read.Logical();
+        IReadOnlyList<string> textByPage = PdfDocument.Load(bytes).Read.TextByPage();
+        string destination = Assert.Single(info.NamedDestinationNames);
+
+        Assert.Equal(2, info.PageCount);
+        Assert.Contains("Deferred details", textByPage[0], StringComparison.Ordinal);
+        Assert.Contains("2", textByPage[0], StringComparison.Ordinal);
+        Assert.Contains("Deferred body", textByPage[1], StringComparison.Ordinal);
+        Assert.NotEmpty(logical.GetLinksByDestinationName(destination));
+    }
 }
