@@ -112,6 +112,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             PictureStoreIndex = pictureStoreIndex;
             Picture = picture;
             Transform = transform ?? OfficeArtShapeTransform.Decode(0);
+            Geometry = OfficeArtShapeGeometry.Decode(style.Properties);
             GroupCoordinateBounds = groupCoordinateBounds;
             Children = new ReadOnlyCollection<LegacyPptShape>(
                 children?.ToArray() ?? Array.Empty<LegacyPptShape>());
@@ -155,6 +156,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets decoded rotation and mirroring state.</summary>
         public OfficeArtShapeTransform Transform { get; }
+
+        /// <summary>Gets raw shape-specific OfficeArt geometry adjustment values.</summary>
+        public OfficeArtShapeGeometry Geometry { get; }
 
         /// <summary>Gets the coordinate system used by child anchors when this is a group shape.</summary>
         public LegacyPptBounds? GroupCoordinateBounds { get; }

@@ -18,6 +18,9 @@ namespace OfficeIMO.Tests {
         private static string ConnectedFixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "ConnectedPowerPoint.ppt");
 
+        private static string AdjustedShapesFixturePath => Path.Combine(AppContext.BaseDirectory,
+            "Documents", "LegacyPptCorpus", "AdjustedShapesPowerPoint.ppt");
+
         public static IEnumerable<object[]> RepresentativeOfficeArtPresets => new[] {
             new object[] { (ushort)4, A.ShapeTypeValues.Diamond },
             new object[] { (ushort)9, A.ShapeTypeValues.Hexagon },
@@ -312,6 +315,72 @@ namespace OfficeIMO.Tests {
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);
             Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
+        public void NeutralReader_DecodesShapeSpecificAdjustmentSlots() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(AdjustedShapesFixturePath);
+            LegacyPptSlide slide = Assert.Single(legacy.Slides);
+
+            Assert.Equal(6480, slide.Shapes.Single(shape => shape.Text == "Round")
+                .Geometry.AdjustmentValues[0]);
+            Assert.Equal(5400, slide.Shapes.Single(shape => shape.Text == "Chevron")
+                .Geometry.AdjustmentValues[0]);
+            LegacyPptShape arrow = slide.Shapes.Single(shape => shape.Text == "Arrow");
+            Assert.Equal(7559, arrow.Geometry.AdjustmentValues[0]);
+            Assert.Equal(12960, arrow.Geometry.AdjustmentValues[1]);
+            Assert.Equal(8640, slide.Shapes.Single(shape => shape.Text == "Donut")
+                .Geometry.AdjustmentValues[0]);
+            Assert.Equal(6480, slide.Shapes.Single(shape => shape.Text == "Trapezoid")
+                .Geometry.AdjustmentValues[0]);
+            LegacyPptShape arc = slide.Shapes.Single(shape => shape.Text == "Arc");
+            Assert.Equal(163074539, arc.Geometry.AdjustmentValues[0]);
+            Assert.Equal(32614907, arc.Geometry.AdjustmentValues[1]);
+        }
+
+        [Fact]
+        public void NormalLoad_ProjectsOnlyProvenExactPresetAdjustments() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+                AdjustedShapesFixturePath);
+            PowerPointSlide slide = Assert.Single(presentation.Slides);
+
+            Assert.Equal("val 30000", GetAdjustmentFormula(slide, "Round", "adj"));
+            Assert.Equal("val 40000", GetAdjustmentFormula(slide, "Donut", "adj"));
+            Assert.Null(GetAdjustmentFormula(slide, "Chevron", "adj"));
+            Assert.Null(GetAdjustmentFormula(slide, "Arrow", "adj1"));
+            Assert.Null(GetAdjustmentFormula(slide, "Trapezoid", "adj"));
+            Assert.Null(GetAdjustmentFormula(slide, "Arc", "adj1"));
+            Assert.Empty(presentation.ValidateDocument());
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.Equal(File.ReadAllBytes(AdjustedShapesFixturePath),
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedPresetAdjustmentEdit_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(
+                AdjustedShapesFixturePath);
+            PowerPointTextBox shape = presentation.Slides[0].TextBoxes.Single(item =>
+                item.Text == "Round");
+            P.Shape element = Assert.IsType<P.Shape>(shape.Element);
+            A.ShapeGuide adjustment = Assert.Single(element.ShapeProperties!
+                .GetFirstChild<A.PresetGeometry>()!.AdjustValueList!
+                .Elements<A.ShapeGuide>());
+
+            adjustment.Formula = "val 25000";
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        private static string? GetAdjustmentFormula(PowerPointSlide slide, string text,
+            string guideName) {
+            PowerPointTextBox shape = slide.TextBoxes.Single(item => item.Text == text);
+            P.Shape element = Assert.IsType<P.Shape>(shape.Element);
+            return element.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.AdjustValueList?
+                .Elements<A.ShapeGuide>()
+                .FirstOrDefault(guide => guide.Name?.Value == guideName)?.Formula?.Value;
         }
     }
 }

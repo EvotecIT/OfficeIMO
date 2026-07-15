@@ -284,6 +284,8 @@ namespace OfficeIMO.PowerPoint {
                     }),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = geometry });
             if (geometry == A.ShapeTypeValues.Line) shapeProperties.Append(new A.NoFill());
+            LegacyPptShapeGeometryMapper.ApplyExactPresetAdjustments(source.OfficeArtShapeType,
+                source.Geometry, shapeProperties.GetFirstChild<A.PresetGeometry>()!);
             ApplyLegacyShapeStyle(shapeProperties, source);
             ApplyLegacyShapeTransform(shapeProperties.Transform2D!, source);
 
@@ -312,6 +314,8 @@ namespace OfficeIMO.PowerPoint {
                         Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
                     }),
                 new A.PresetGeometry(new A.AdjustValueList()) { Preset = geometry });
+            LegacyPptShapeGeometryMapper.ApplyExactPresetAdjustments(source.OfficeArtShapeType,
+                source.Geometry, properties.GetFirstChild<A.PresetGeometry>()!);
             ApplyLegacyShapeStyle(properties, source);
             ApplyLegacyShapeTransform(properties.Transform2D!, source);
             return new ConnectionShape(

@@ -31,6 +31,13 @@ connection-site indexes, native DrawingML attachment projection, and exact no-op
 SHA-256 digest is
 `9ec3ea4c6f7a0d6fca06a00a269cbe15b66ded0f4a124e9e5f029c75e3de3ef8`.
 
+`AdjustedShapesPowerPoint.ppt` was generated from a one-slide PPTX built with `python-pptx`, with
+explicit adjustments on a rounded rectangle, chevron, right arrow, donut, trapezoid, and arc, then
+converted with LibreOffice. It exercises all signed OfficeArt adjustment slots, conservative
+shape-family mapping, exact round-rectangle and donut guide projection, deliberate retention of
+unmapped shape-specific values, and exact no-op saves. Its SHA-256 digest is
+`cfbcdc8249b0cd886a6abcf6c00fe00eb85753eaa693dd933299d47b68a42599`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

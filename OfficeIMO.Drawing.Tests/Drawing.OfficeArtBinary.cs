@@ -87,6 +87,25 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtShapeGeometry_PreservesSignedShapeSpecificAdjustmentSlots() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x0147, 5400U),
+            new OfficeArtProperty(1, 0x0149, unchecked((uint)-2700)),
+            new OfficeArtProperty(2, 0x0147, 7200U)
+        };
+
+        OfficeArtShapeGeometry geometry = OfficeArtShapeGeometry.Decode(properties);
+
+        Assert.True(geometry.HasAdjustments);
+        Assert.Equal(7200, geometry.AdjustmentValues[0]);
+        Assert.Null(geometry.AdjustmentValues[1]);
+        Assert.Equal(-2700, geometry.AdjustmentValues[2]);
+        Assert.Null(geometry.AdjustmentValues[7]);
+        Assert.Equal("adjustValue", properties[0].PropertyName);
+        Assert.Equal("Geometry", properties[0].PropertyGroupName);
+    }
+
+    [Fact]
     public void OfficeArtPropertyTableReader_RejectsTruncatedFixedTableWithoutOverread() {
         byte[] payload = { 0x81, 0x01, 0x33, 0x22, 0x11 };
 

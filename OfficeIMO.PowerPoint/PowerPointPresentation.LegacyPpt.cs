@@ -171,6 +171,10 @@ namespace OfficeIMO.PowerPoint {
                 }
                 projectedProperties.Transform2D ??= new A.Transform2D();
                 ApplyLegacyShapeTransform(projectedProperties.Transform2D, shape);
+                if (projectedProperties.GetFirstChild<A.PresetGeometry>() is A.PresetGeometry preset) {
+                    LegacyPptShapeGeometryMapper.ApplyExactPresetAdjustments(shape.OfficeArtShapeType,
+                        shape.Geometry, preset);
+                }
             }
             return projectedShape?.Element;
         }

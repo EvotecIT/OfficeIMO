@@ -42,7 +42,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                 Planned(LegacyPptFeature.Hyperlinks, "Interaction", "Text and shape hyperlinks."),
                 Planned(LegacyPptFeature.Actions, "Interaction", "Shape actions, slide jumps, and programs."),
                 Planned(LegacyPptFeature.AutoShapes, "Drawing", "OfficeArt AutoShape geometry.",
-                    "OfficeArt preset geometry with a DrawingML equivalent is projected as an editable native shape, including arrows, callouts, flowcharts, ribbons, stars, and action buttons. Legacy-only geometries use explicit approximations. Adjustment values, custom geometry, text warps, and fresh binary authoring remain planned."),
+                    "OfficeArt preset geometry with a DrawingML equivalent is projected as an editable native shape, including arrows, callouts, flowcharts, ribbons, stars, and action buttons. All eight signed adjustment slots are decoded without losing their shape-specific meaning; exact round-rectangle and donut adjustments are projected natively. Legacy-only geometries use explicit approximations. Remaining preset adjustments, custom geometry, text warps, and fresh binary authoring remain planned."),
                 Planned(LegacyPptFeature.Connectors, "Drawing", "Connector shapes and connection sites.",
                     "Straight, bent, and curved OfficeArt connectors are projected as native editable connection shapes. Solver rules preserve native start/end shape attachments and connection-site indexes, and imported position and size edits round-trip. Editing attachment rules and fresh binary authoring remain planned."),
                 Planned(LegacyPptFeature.Groups, "Drawing", "Nested drawing groups and child coordinate systems.",

@@ -1,3 +1,5 @@
+using System.Globalization;
+using OfficeIMO.Drawing.Binary;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
@@ -168,5 +170,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal static bool IsApproximation(ushort shapeType) => shapeType is 14 or 17 or 18 or 100
             or >= 178 and <= 181;
+
+        internal static void ApplyExactPresetAdjustments(ushort shapeType,
+            OfficeArtShapeGeometry source, A.PresetGeometry target) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            if (target == null) throw new ArgumentNullException(nameof(target));
+            if (shapeType is not 2 and not 23 || !source.AdjustmentValues[0].HasValue) return;
+
+            long scaled = (long)Math.Round(source.AdjustmentValues[0]!.Value * (100000D / 21600D),
+                MidpointRounding.AwayFromZero);
+            A.AdjustValueList values = target.AdjustValueList ??= new A.AdjustValueList();
+            values.RemoveAllChildren<A.ShapeGuide>();
+            values.Append(new A.ShapeGuide {
+                Name = "adj",
+                Formula = "val " + scaled.ToString(CultureInfo.InvariantCulture)
+            });
+        }
     }
 }
