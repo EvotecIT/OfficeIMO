@@ -36,9 +36,13 @@ internal static class ReaderComparisonScorer {
             ReaderComparisonProbeKind.RichAsset => document.Assets.Count > 0,
             ReaderComparisonProbeKind.LocationPath => document.Chunks.Any(chunk =>
                 HasExpectedLocation(chunk.Location.Path, probe.Marker)),
-            ReaderComparisonProbeKind.LocationHeading => document.Chunks.Any(chunk => !string.IsNullOrWhiteSpace(chunk.Location.HeadingPath)),
-            ReaderComparisonProbeKind.LocationSheet => document.Chunks.Any(chunk => !string.IsNullOrWhiteSpace(chunk.Location.Sheet)),
-            ReaderComparisonProbeKind.LocationSlide => document.Chunks.Any(chunk => chunk.Location.Slide.HasValue),
+            ReaderComparisonProbeKind.LocationHeading => document.Chunks.Any(chunk =>
+                HasExpectedLocation(chunk.Location.HeadingPath, probe.Marker)),
+            ReaderComparisonProbeKind.LocationSheet => document.Chunks.Any(chunk =>
+                HasExpectedLocation(chunk.Location.Sheet, probe.Marker)),
+            ReaderComparisonProbeKind.LocationSlide => document.Chunks.Any(chunk =>
+                chunk.Location.Slide.HasValue &&
+                (!probe.ExpectedSlide.HasValue || chunk.Location.Slide == probe.ExpectedSlide)),
             ReaderComparisonProbeKind.LocationPage => document.Chunks.Any(chunk =>
                 chunk.Location.Page.HasValue &&
                 (!probe.ExpectedPage.HasValue || chunk.Location.Page == probe.ExpectedPage)),

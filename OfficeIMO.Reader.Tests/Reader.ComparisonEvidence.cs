@@ -185,6 +185,58 @@ public sealed class ReaderComparisonEvidenceTests {
     }
 
     [Fact]
+    public void Scorer_RequiresExpectedOfficeLocationValues() {
+        ReaderComparisonProbe[] probes = {
+            new ReaderComparisonProbe(
+                "heading-location",
+                ReaderComparisonProbeKind.LocationHeading,
+                "Evidence policy"),
+            new ReaderComparisonProbe(
+                "sheet-location",
+                ReaderComparisonProbeKind.LocationSheet,
+                "Evidence"),
+            new ReaderComparisonProbe(
+                "slide-location",
+                ReaderComparisonProbeKind.LocationSlide,
+                expectedSlide: 1)
+        };
+        var document = new OfficeDocumentReadResult {
+            Chunks = new[] {
+                new ReaderChunk {
+                    Location = new ReaderLocation {
+                        HeadingPath = "Wrong heading",
+                        Sheet = "Sheet1",
+                        Slide = 2
+                    }
+                }
+            }
+        };
+
+        IReadOnlyList<ReaderComparisonProbeResult> wrong = ReaderComparisonScorer.ScoreOfficeDocument(
+            string.Empty,
+            document,
+            probes,
+            rejected: false);
+        document.Chunks = new[] {
+            new ReaderChunk {
+                Location = new ReaderLocation {
+                    HeadingPath = "Evidence policy",
+                    Sheet = "Evidence",
+                    Slide = 1
+                }
+            }
+        };
+        IReadOnlyList<ReaderComparisonProbeResult> expected = ReaderComparisonScorer.ScoreOfficeDocument(
+            string.Empty,
+            document,
+            probes,
+            rejected: false);
+
+        Assert.All(wrong, result => Assert.False(result.Passed));
+        Assert.All(expected, result => Assert.True(result.Passed));
+    }
+
+    [Fact]
     public async Task FileRunner_RemovesStaleOutputAndRequiresFreshOutput() {
         string output = Path.Combine(Path.GetTempPath(), "officeimo-reader-runner-" + Guid.NewGuid().ToString("N") + ".md");
         await File.WriteAllTextAsync(output, "stale output");
@@ -237,6 +289,26 @@ public sealed class ReaderComparisonEvidenceTests {
         Assert.Equal("failed", result.Status);
         Assert.Contains("truncated", result.Error, StringComparison.OrdinalIgnoreCase);
         Assert.False(result.Rejected);
+    }
+
+    [Fact]
+    public async Task FileRunner_DoesNotTreatMissingOutputAsConverterRejection() {
+        string output = Path.Combine(
+            Path.GetTempPath(),
+            "officeimo-reader-missing-output-" + Guid.NewGuid().ToString("N") + ".md");
+        try {
+            ReaderComparisonProcessOutput result = await ReaderComparisonProcessRunner.RunAsync(
+                DotNetRunner("file", "exec", "officeimo-reader-missing-assembly.dll"),
+                inputPath: "unused",
+                outputPath: output,
+                CancellationToken.None);
+
+            Assert.Equal("failed", result.Status);
+            Assert.Contains("did not create", result.Error, StringComparison.Ordinal);
+            Assert.False(result.Rejected);
+        } finally {
+            if (File.Exists(output)) File.Delete(output);
+        }
     }
 
     [Fact]
@@ -356,6 +428,30 @@ public sealed class ReaderComparisonEvidenceTests {
 
         Assert.Equal("success", status);
         Assert.Null(error);
+    }
+
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void ExpectedExternalRejection_MustBeStableAcrossRepeats(
+        bool firstRejected,
+        bool secondRejected) {
+        var first = new ReaderComparisonProcessOutput {
+            Status = firstRejected ? "failed" : "success",
+            Rejected = firstRejected
+        };
+        var second = new ReaderComparisonProcessOutput {
+            Status = secondRejected ? "failed" : "success",
+            Rejected = secondRejected
+        };
+
+        (string status, string? error) = ReaderComparisonCommand.ResolveRepeatOutcome(
+            first,
+            second,
+            expectsRejection: true);
+
+        Assert.Equal("failed", status);
+        Assert.Contains("did not preserve", error, StringComparison.Ordinal);
     }
 
     [Fact]

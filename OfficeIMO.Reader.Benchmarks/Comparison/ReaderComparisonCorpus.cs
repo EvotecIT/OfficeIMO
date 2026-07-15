@@ -57,7 +57,7 @@ internal static class ReaderComparisonCorpus {
             Probe("table-text", ReaderComparisonProbeKind.MarkdownTable, "Retention marker"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
             Probe("rich-link", ReaderComparisonProbeKind.RichLink),
-            Probe("heading-location", ReaderComparisonProbeKind.LocationHeading));
+            Probe("heading-location", ReaderComparisonProbeKind.LocationHeading, "Evidence policy"));
     }
 
     private static ReaderComparisonCase CreateExcel() {
@@ -80,7 +80,7 @@ internal static class ReaderComparisonCorpus {
                 Probe("table-text", ReaderComparisonProbeKind.ContainsText, "Spreadsheet retention marker"),
                 Probe("markdown-table", ReaderComparisonProbeKind.MarkdownTable, "Spreadsheet retention marker"),
                 Probe("rich-table", ReaderComparisonProbeKind.RichTable),
-                Probe("sheet-location", ReaderComparisonProbeKind.LocationSheet));
+                Probe("sheet-location", ReaderComparisonProbeKind.LocationSheet, "Evidence"));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -112,7 +112,7 @@ internal static class ReaderComparisonCorpus {
             Probe("notes", ReaderComparisonProbeKind.ContainsText, "Presenter notes retention marker"),
             Probe("rich-table", ReaderComparisonProbeKind.RichTable),
             Probe("rich-asset", ReaderComparisonProbeKind.RichAsset),
-            Probe("slide-location", ReaderComparisonProbeKind.LocationSlide));
+            Probe("slide-location", ReaderComparisonProbeKind.LocationSlide, expectedSlide: 1));
     }
 
     private static ReaderComparisonCase CreatePdf() {
@@ -269,7 +269,14 @@ internal static class ReaderComparisonCorpus {
         ReaderComparisonProbeKind kind,
         string marker = "",
         string expectedTarget = "",
-        int? expectedPage = null) => new ReaderComparisonProbe(id, kind, marker, expectedTarget, expectedPage);
+        int? expectedPage = null,
+        int? expectedSlide = null) => new ReaderComparisonProbe(
+            id,
+            kind,
+            marker,
+            expectedTarget,
+            expectedPage,
+            expectedSlide);
 
     private static byte[] NormalizeOfficePackage(byte[] packageBytes) =>
         ReaderComparisonPackageNormalizer.Normalize(

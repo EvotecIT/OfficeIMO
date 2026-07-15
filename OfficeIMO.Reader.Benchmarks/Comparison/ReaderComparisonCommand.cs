@@ -223,6 +223,10 @@ internal static class ReaderComparisonCommand {
         if (!ReferenceEquals(first, second) && secondStatus != "success") {
             error = AppendError(error, "Repeat run " + secondStatus + ": " + (second.Error ?? "No error detail was provided."));
         }
+        if (!ReferenceEquals(first, second) && expectsRejection && first.Rejected != second.Rejected) {
+            status = "failed";
+            error = AppendError(error, "Repeat run did not preserve the malformed-input rejection outcome.");
+        }
         return (status, error);
     }
 
