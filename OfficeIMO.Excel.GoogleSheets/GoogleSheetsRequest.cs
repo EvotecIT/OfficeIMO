@@ -54,6 +54,22 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     /// <summary>
+    /// Applies one validation rule to an entire worksheet range without materializing every target cell.
+    /// </summary>
+    public sealed class GoogleSheetsSetDataValidationRequest : GoogleSheetsRequest {
+        public GoogleSheetsSetDataValidationRequest() : base("setDataValidation") {
+        }
+
+        public string SheetName { get; set; } = string.Empty;
+        public string A1Range { get; set; } = string.Empty;
+        public int StartRowIndex { get; set; }
+        public int EndRowIndexExclusive { get; set; }
+        public int StartColumnIndex { get; set; }
+        public int EndColumnIndexExclusive { get; set; }
+        public GoogleSheetsDataValidationRule Rule { get; set; } = new GoogleSheetsDataValidationRule();
+    }
+
+    /// <summary>
     /// Adds a named range to the target spreadsheet.
     /// </summary>
     public sealed class GoogleSheetsAddNamedRangeRequest : GoogleSheetsRequest {

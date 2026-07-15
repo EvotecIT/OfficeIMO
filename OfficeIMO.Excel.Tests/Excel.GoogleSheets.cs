@@ -1061,7 +1061,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_GoogleSheetsBatchCompiler_AndApiPayloadBuilder_EmitValidationOnlyEmptyCells() {
+        public void Test_GoogleSheetsBatchCompiler_AndApiPayloadBuilder_EmitRangeValidationForPopulatedAndEmptyCells() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsValidationOnlyEmptyCells.xlsx");
 
             try {
@@ -1087,42 +1087,53 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("NUMBER_BETWEEN", populatedValidatedCell.DataValidationRule!.ConditionType);
                 Assert.Equal(new[] { "1", "10" }, populatedValidatedCell.DataValidationRule.Values);
 
-                var emptyValidatedCellOne = Assert.Single(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
-                Assert.Equal(GoogleSheetsCellValueKind.Blank, emptyValidatedCellOne.Value.Kind);
-                Assert.NotNull(emptyValidatedCellOne.DataValidationRule);
-                Assert.Equal("NUMBER_BETWEEN", emptyValidatedCellOne.DataValidationRule!.ConditionType);
-                Assert.Equal(new[] { "1", "10" }, emptyValidatedCellOne.DataValidationRule.Values);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 3 && cell.ColumnIndex == 0);
 
-                var emptyValidatedCellTwo = Assert.Single(updateRequest.Cells, cell => cell.RowIndex == 3 && cell.ColumnIndex == 0);
-                Assert.Equal(GoogleSheetsCellValueKind.Blank, emptyValidatedCellTwo.Value.Kind);
-                Assert.NotNull(emptyValidatedCellTwo.DataValidationRule);
-                Assert.Equal("NUMBER_BETWEEN", emptyValidatedCellTwo.DataValidationRule!.ConditionType);
-                Assert.Equal(new[] { "1", "10" }, emptyValidatedCellTwo.DataValidationRule.Values);
+                GoogleSheetsSetDataValidationRequest rangeValidation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
+                Assert.Equal("A2:A4", rangeValidation.A1Range);
+                Assert.Equal(1, rangeValidation.StartRowIndex);
+                Assert.Equal(4, rangeValidation.EndRowIndexExclusive);
+                Assert.Equal("NUMBER_BETWEEN", rangeValidation.Rule.ConditionType);
+                Assert.Equal(new[] { "1", "10" }, rangeValidation.Rule.Values);
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
-                var validationPayloads = payload.Requests
-                    .Where(request => request.UpdateCells != null
-                        && request.UpdateCells.Fields.Contains("dataValidationRule")
-                        && request.UpdateCells.Start.ColumnIndex == 0
-                        && request.UpdateCells.Start.RowIndex >= 1
-                        && request.UpdateCells.Start.RowIndex <= 3)
-                    .Select(request => request.UpdateCells!)
-                    .OrderBy(request => request.Start.RowIndex)
-                    .ToList();
-
-                Assert.Equal(3, validationPayloads.Count);
-                Assert.Equal(1, validationPayloads[0].Start.RowIndex);
-                Assert.Equal(2, validationPayloads[1].Start.RowIndex);
-                Assert.Equal(3, validationPayloads[2].Start.RowIndex);
-
-                foreach (var validationPayload in validationPayloads) {
-                    var validationRule = Assert.IsType<GoogleSheetsApiDataValidationRulePayload>(validationPayload.Rows[0].Values[0].DataValidationRule);
-                    var validationCondition = Assert.IsType<GoogleSheetsApiBooleanConditionPayload>(validationRule.Condition);
-                    Assert.Equal("NUMBER_BETWEEN", validationCondition.Type);
-                    Assert.Equal(new[] { "1", "10" }, Assert.IsAssignableFrom<IEnumerable<GoogleSheetsApiConditionValuePayload>>(validationCondition.Values).Select(value => value.UserEnteredValue).ToArray());
-                }
+                GoogleSheetsApiSetDataValidationRequestPayload validationPayload = Assert.Single(payload.Requests, request => request.SetDataValidation != null).SetDataValidation!;
+                Assert.Equal(1, validationPayload.Range.StartRowIndex);
+                Assert.Equal(4, validationPayload.Range.EndRowIndex);
+                Assert.Equal(0, validationPayload.Range.StartColumnIndex);
+                Assert.Equal(1, validationPayload.Range.EndColumnIndex);
+                Assert.Equal("NUMBER_BETWEEN", validationPayload.Rule.Condition.Type);
+                Assert.Equal(new[] { "1", "10" }, validationPayload.Rule.Condition.Values!.Select(value => value.UserEnteredValue).ToArray());
 
                 Assert.Contains(batch.Report.Notices, notice => notice.Feature == "CellValidations");
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsBatchCompiler_FullColumnValidationRemainsOneRangeRequest() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsFullColumnValidation.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var data = document.AddWorksheet("Data");
+                    data.CellValue(1, 1, "Quantity");
+                    data.ValidationWholeNumber("A1:A1048576", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+                    document.Save();
+                }
+
+                using var reloadedDocument = ExcelDocument.Load(filePath);
+                GoogleSheetsBatch batch = reloadedDocument.BuildGoogleSheetsBatch();
+
+                GoogleSheetsSetDataValidationRequest validation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
+                Assert.Equal(0, validation.StartRowIndex);
+                Assert.Equal(1048576, validation.EndRowIndexExclusive);
+                Assert.True(batch.Requests.Count < 20);
+                Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>().Single().Cells);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1158,37 +1169,18 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Open", "Closed", "Pending" }, populatedDropdownCell.DataValidationRule.Values);
                 Assert.True(populatedDropdownCell.DataValidationRule.ShowCustomUi);
 
-                var emptyDropdownCellOne = Assert.Single(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
-                Assert.Equal(GoogleSheetsCellValueKind.Blank, emptyDropdownCellOne.Value.Kind);
-                Assert.NotNull(emptyDropdownCellOne.DataValidationRule);
-                Assert.Equal("ONE_OF_LIST", emptyDropdownCellOne.DataValidationRule!.ConditionType);
-                Assert.Equal(new[] { "Open", "Closed", "Pending" }, emptyDropdownCellOne.DataValidationRule.Values);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 3 && cell.ColumnIndex == 0);
 
-                var emptyDropdownCellTwo = Assert.Single(updateRequest.Cells, cell => cell.RowIndex == 3 && cell.ColumnIndex == 0);
-                Assert.Equal(GoogleSheetsCellValueKind.Blank, emptyDropdownCellTwo.Value.Kind);
-                Assert.NotNull(emptyDropdownCellTwo.DataValidationRule);
-                Assert.Equal("ONE_OF_LIST", emptyDropdownCellTwo.DataValidationRule!.ConditionType);
-                Assert.Equal(new[] { "Open", "Closed", "Pending" }, emptyDropdownCellTwo.DataValidationRule.Values);
+                GoogleSheetsSetDataValidationRequest rangeValidation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
+                Assert.Equal("A2:A4", rangeValidation.A1Range);
+                Assert.Equal("ONE_OF_LIST", rangeValidation.Rule.ConditionType);
+                Assert.Equal(new[] { "Open", "Closed", "Pending" }, rangeValidation.Rule.Values);
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
-                var validationPayloads = payload.Requests
-                    .Where(request => request.UpdateCells != null
-                        && request.UpdateCells.Fields.Contains("dataValidationRule")
-                        && request.UpdateCells.Start.ColumnIndex == 0
-                        && request.UpdateCells.Start.RowIndex >= 1
-                        && request.UpdateCells.Start.RowIndex <= 3)
-                    .Select(request => request.UpdateCells!)
-                    .OrderBy(request => request.Start.RowIndex)
-                    .ToList();
-
-                Assert.Equal(3, validationPayloads.Count);
-
-                foreach (var validationPayload in validationPayloads) {
-                    var validationRule = Assert.IsType<GoogleSheetsApiDataValidationRulePayload>(validationPayload.Rows[0].Values[0].DataValidationRule);
-                    var validationCondition = Assert.IsType<GoogleSheetsApiBooleanConditionPayload>(validationRule.Condition);
-                    Assert.Equal("ONE_OF_LIST", validationCondition.Type);
-                    Assert.Equal(new[] { "Open", "Closed", "Pending" }, Assert.IsAssignableFrom<IEnumerable<GoogleSheetsApiConditionValuePayload>>(validationCondition.Values).Select(value => value.UserEnteredValue).ToArray());
-                }
+                GoogleSheetsApiSetDataValidationRequestPayload validationPayload = Assert.Single(payload.Requests, request => request.SetDataValidation != null).SetDataValidation!;
+                Assert.Equal("ONE_OF_LIST", validationPayload.Rule.Condition.Type);
+                Assert.Equal(new[] { "Open", "Closed", "Pending" }, validationPayload.Rule.Condition.Values!.Select(value => value.UserEnteredValue).ToArray());
 
                 Assert.Contains(batch.Report.Notices, notice => notice.Feature == "CellValidations");
             } finally {
@@ -1798,7 +1790,7 @@ namespace OfficeIMO.Tests {
                     recordedRequests.Add((request.RequestUri!, request.Method.Method, body));
 
                     if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.Contains("/v4/spreadsheets/existing123?", StringComparison.Ordinal)) {
-                        return CreateJsonResponse("{\"spreadsheetId\":\"existing123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":7}},{\"properties\":{\"sheetId\":8}}]}");
+                        return CreateJsonResponse("{\"spreadsheetId\":\"existing123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":7,\"title\":\"Summary\"}},{\"properties\":{\"sheetId\":8,\"title\":\"Legacy\"}}]}");
                     }
 
                     if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
@@ -1837,6 +1829,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(5, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
                 Assert.Equal("GET", recordedRequests[1].Method);
+                Assert.Contains("sheets(properties(sheetId,title))", recordedRequests[1].Uri.Query, StringComparison.Ordinal);
                 Assert.Equal("POST", recordedRequests[2].Method);
                 Assert.Equal("POST", recordedRequests[3].Method);
                 Assert.Equal("POST", recordedRequests[4].Method);

@@ -16,6 +16,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             });
             var title = ResolveTitle(document, workbookSnapshot, options);
             var batch = new GoogleSheetsBatch(title, plan, report);
+            batch.ChartDataSheetName = BuildUniqueChartDataSheetName(workbookSnapshot.Worksheets.Select(worksheet => worksheet.Name));
 
             batch.Add(new GoogleSheetsUpdateSpreadsheetPropertiesRequest {
                 Locale = options.Spreadsheet.Locale,
@@ -148,7 +149,6 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 var updateCells = new GoogleSheetsUpdateCellsRequest {
                     SheetName = worksheet.Name
                 };
-                var emittedCellKeys = new HashSet<string>(StringComparer.Ordinal);
 
                 foreach (var cell in worksheet.Cells) {
                     if (!styleNoticeAdded && cell.Style != null) {
@@ -160,7 +160,6 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     }
 
                     var cellValue = BuildCellValue(cell, options.Formulas);
-                    emittedCellKeys.Add(CreateCellKey(cell.Row, cell.Column));
                     updateCells.AddCell(new GoogleSheetsCellData {
                         RowIndex = cell.Row - 1,
                         ColumnIndex = cell.Column - 1,
@@ -174,11 +173,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     });
                 }
 
-                AppendValidationOnlyCells(workbookSnapshot, worksheet, updateCells, emittedCellKeys, report, ref cellValidationNoticeAdded);
-
                 if (updateCells.Cells.Count > 0) {
                     batch.Add(updateCells);
                 }
+
+                AppendValidationRanges(workbookSnapshot, worksheet, batch, report, ref cellValidationNoticeAdded);
 
                 foreach (var mergedRange in worksheet.MergedRanges) {
                     batch.Add(new GoogleSheetsMergeCellsRequest {

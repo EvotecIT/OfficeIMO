@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.GoogleWorkspace;
+using System.Globalization;
 
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
@@ -158,7 +159,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     continue;
                 }
 
-                GoogleSheetsUpdateCellsRequest data = GetOrCreateChartDataRequest(batch);
+                GoogleSheetsUpdateCellsRequest data = GetOrCreateChartDataRequest(batch, out string chartDataSheetName);
                 int startRow = data.Cells.Count == 0 ? 0 : data.Cells.Max(cell => cell.RowIndex) + 2;
                 data.AddCell(new GoogleSheetsCellData { RowIndex = startRow, ColumnIndex = 0, Value = GoogleSheetsCellValue.String("Category") });
                 for (int seriesIndex = 0; seriesIndex < snapshot.Data.Series.Count; seriesIndex++) {
@@ -175,7 +176,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     SheetName = worksheet.Name,
                     Title = snapshot.Title ?? snapshot.Name,
                     ChartType = chartType,
-                    DataSheetName = ChartDataSheetName,
+                    DataSheetName = chartDataSheetName,
                     DataStartRowIndex = startRow,
                     DataRowCount = snapshot.Data.Categories.Count + 1,
                     SeriesCount = snapshot.Data.Series.Count,
@@ -185,15 +186,33 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
         }
 
-        private static GoogleSheetsUpdateCellsRequest GetOrCreateChartDataRequest(GoogleSheetsBatch batch) {
+        private static GoogleSheetsUpdateCellsRequest GetOrCreateChartDataRequest(
+            GoogleSheetsBatch batch,
+            out string chartDataSheetName) {
+            chartDataSheetName = string.IsNullOrWhiteSpace(batch.ChartDataSheetName)
+                ? BuildUniqueChartDataSheetName(batch.Requests.OfType<GoogleSheetsAddSheetRequest>().Select(request => request.SheetName))
+                : batch.ChartDataSheetName!;
+            batch.ChartDataSheetName = chartDataSheetName;
+            string existingSheetName = chartDataSheetName;
             GoogleSheetsUpdateCellsRequest? existing = batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>()
-                .FirstOrDefault(request => request.SheetName == ChartDataSheetName);
+                .FirstOrDefault(request => string.Equals(request.SheetName, existingSheetName, StringComparison.OrdinalIgnoreCase));
             if (existing != null) return existing;
+
             int index = batch.Requests.OfType<GoogleSheetsAddSheetRequest>().Select(request => request.SheetIndex).DefaultIfEmpty(-1).Max() + 1;
-            batch.Add(new GoogleSheetsAddSheetRequest { SheetName = ChartDataSheetName, SheetIndex = index, Hidden = true, HideGridlines = true });
-            var created = new GoogleSheetsUpdateCellsRequest { SheetName = ChartDataSheetName };
+            batch.Add(new GoogleSheetsAddSheetRequest { SheetName = chartDataSheetName, SheetIndex = index, Hidden = true, HideGridlines = true });
+            var created = new GoogleSheetsUpdateCellsRequest { SheetName = chartDataSheetName };
             batch.Add(created);
             return created;
+        }
+
+        private static string BuildUniqueChartDataSheetName(IEnumerable<string> reservedSheetNames) {
+            var reserved = new HashSet<string>(reservedSheetNames, StringComparer.OrdinalIgnoreCase);
+            if (!reserved.Contains(ChartDataSheetName)) return ChartDataSheetName;
+
+            for (int suffix = 2; ; suffix++) {
+                string candidate = ChartDataSheetName + "_" + suffix.ToString(CultureInfo.InvariantCulture);
+                if (!reserved.Contains(candidate)) return candidate;
+            }
         }
 
         private static bool TryMapChartType(ExcelChartType type, out string chartType) {

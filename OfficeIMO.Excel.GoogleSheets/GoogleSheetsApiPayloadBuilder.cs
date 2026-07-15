@@ -98,6 +98,24 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
                         AppendUpdateCellsRequests(batch, payload, updateSheetId, updateCells, sheetIds, spreadsheetId, includeCellValues);
                         break;
+                    case GoogleSheetsSetDataValidationRequest validation:
+                        if (!sheetIds.TryGetValue(validation.SheetName, out var validationSheetId)) {
+                            continue;
+                        }
+
+                        payload.Requests.Add(new GoogleSheetsApiRequestPayload {
+                            SetDataValidation = new GoogleSheetsApiSetDataValidationRequestPayload {
+                                Range = new GoogleSheetsApiGridRangePayload {
+                                    SheetId = validationSheetId,
+                                    StartRowIndex = validation.StartRowIndex,
+                                    EndRowIndex = validation.EndRowIndexExclusive,
+                                    StartColumnIndex = validation.StartColumnIndex,
+                                    EndColumnIndex = validation.EndColumnIndexExclusive,
+                                },
+                                Rule = BuildDataValidationRule(validation.Rule)!,
+                            }
+                        });
+                        break;
                     case GoogleSheetsMergeCellsRequest merge:
                         if (!sheetIds.TryGetValue(merge.SheetName, out var mergeSheetId)) {
                             continue;
@@ -323,13 +341,28 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         internal static GoogleSheetsApiBatchUpdatePayload BuildReplaceSpreadsheetPayload(
             GoogleSheetsBatch batch,
-            IReadOnlyCollection<int> existingSheetIds,
+            IReadOnlyDictionary<int, string> existingSheets,
             IReadOnlyDictionary<string, int> desiredSheetIds) {
             if (batch == null) throw new ArgumentNullException(nameof(batch));
-            if (existingSheetIds == null) throw new ArgumentNullException(nameof(existingSheetIds));
+            if (existingSheets == null) throw new ArgumentNullException(nameof(existingSheets));
             if (desiredSheetIds == null) throw new ArgumentNullException(nameof(desiredSheetIds));
 
             var payload = new GoogleSheetsApiBatchUpdatePayload();
+            var desiredSheets = batch.Requests
+                .OfType<GoogleSheetsAddSheetRequest>()
+                .OrderBy(sheet => sheet.SheetIndex)
+                .ToList();
+            if (desiredSheets.Count == 0) {
+                throw new InvalidOperationException("Spreadsheet replacement requires at least one desired sheet.");
+            }
+
+            int keeperSheetId = existingSheets.Keys
+                .Concat(desiredSheetIds.Values)
+                .DefaultIfEmpty(0)
+                .Max() + 1;
+            string keeperTitle = BuildUniqueReplacementKeeperTitle(
+                existingSheets.Values.Concat(desiredSheets.Select(sheet => sheet.SheetName)));
+
             var replaceProperties = new GoogleSheetsApiSpreadsheetPropertiesPayload {
                 Title = batch.Title,
             };
@@ -342,7 +375,25 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 }
             });
 
-            foreach (var sheet in batch.Requests.OfType<GoogleSheetsAddSheetRequest>().OrderBy(s => s.SheetIndex)) {
+            payload.Requests.Add(new GoogleSheetsApiRequestPayload {
+                AddSheet = new GoogleSheetsApiAddSheetRequestPayload {
+                    Properties = new GoogleSheetsApiSheetPropertiesPayload {
+                        SheetId = keeperSheetId,
+                        Title = keeperTitle,
+                        Index = 0,
+                    }
+                }
+            });
+
+            foreach (var existingSheetId in existingSheets.Keys) {
+                payload.Requests.Add(new GoogleSheetsApiRequestPayload {
+                    DeleteSheet = new GoogleSheetsApiDeleteSheetRequestPayload {
+                        SheetId = existingSheetId,
+                    }
+                });
+            }
+
+            foreach (var sheet in desiredSheets) {
                 if (!desiredSheetIds.TryGetValue(sheet.SheetName, out var desiredSheetId)) {
                     continue;
                 }
@@ -366,15 +417,24 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 });
             }
 
-            foreach (var existingSheetId in existingSheetIds) {
-                payload.Requests.Add(new GoogleSheetsApiRequestPayload {
-                    DeleteSheet = new GoogleSheetsApiDeleteSheetRequestPayload {
-                        SheetId = existingSheetId,
-                    }
-                });
-            }
+            payload.Requests.Add(new GoogleSheetsApiRequestPayload {
+                DeleteSheet = new GoogleSheetsApiDeleteSheetRequestPayload {
+                    SheetId = keeperSheetId,
+                }
+            });
 
             return payload;
+        }
+
+        private static string BuildUniqueReplacementKeeperTitle(IEnumerable<string> reservedTitles) {
+            const string baseTitle = "__OfficeIMO_Replacement_Keeper__";
+            var reserved = new HashSet<string>(reservedTitles, StringComparer.OrdinalIgnoreCase);
+            if (!reserved.Contains(baseTitle)) return baseTitle;
+
+            for (int suffix = 2; ; suffix++) {
+                string candidate = baseTitle + "_" + suffix.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (!reserved.Contains(candidate)) return candidate;
+            }
         }
 
         private static void AppendUpdateCellsRequests(
@@ -481,7 +541,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         private static object? ToValueInput(GoogleSheetsApiExtendedValuePayload? value) {
             if (value == null) return null;
             if (value.FormulaValue != null) return value.FormulaValue;
-            if (value.StringValue != null) return value.StringValue;
+            if (value.StringValue != null) return value.StringValue.Length == 0 ? string.Empty : "'" + value.StringValue;
             if (value.NumberValue.HasValue) return value.NumberValue.Value;
             if (value.BoolValue.HasValue) return value.BoolValue.Value;
             return null;

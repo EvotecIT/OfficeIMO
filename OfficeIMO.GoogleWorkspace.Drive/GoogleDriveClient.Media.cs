@@ -26,6 +26,8 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
     }
 
     public sealed partial class GoogleDriveClient {
+        internal const long MultipartUploadLimitBytes = 5L * 1024 * 1024;
+
         public async Task<GoogleDriveFile> UploadMultipartAsync(
             byte[] content,
             GoogleDriveUploadOptions options,
@@ -33,7 +35,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             CancellationToken cancellationToken = default) {
             if (content == null) throw new ArgumentNullException(nameof(content));
             ValidateUploadOptions(options);
-            if (content.LongLength > 5L * 1024 * 1024) {
+            if (content.LongLength > MultipartUploadLimitBytes) {
                 throw new ArgumentOutOfRangeException(nameof(content), "Multipart uploads are limited to 5 MB. Use UploadResumableAsync for larger content.");
             }
 

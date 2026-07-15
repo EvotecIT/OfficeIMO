@@ -43,6 +43,7 @@
     <ItemGroup>
         <ProjectReference Include="..\OfficeIMO.GoogleWorkspace\OfficeIMO.GoogleWorkspace.csproj" />
         <ProjectReference Include="..\OfficeIMO.GoogleWorkspace.Drive\OfficeIMO.GoogleWorkspace.Drive.csproj" />
+        <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
         <ProjectReference Include="..\OfficeIMO.Excel\OfficeIMO.Excel.csproj" />
     </ItemGroup>
 

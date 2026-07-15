@@ -40,6 +40,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             using var drive = new GoogleDriveClient(session);
             GoogleDriveFile source = await drive.GetFileAsync(spreadsheetId, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
             EnsureSpreadsheet(source, spreadsheetId);
+            EnsureDownloadable(source, spreadsheetId);
 
             byte[] xlsx = await drive.ExportAsync(
                 spreadsheetId,
@@ -326,6 +327,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (!string.Equals(source.MimeType, GoogleDriveMimeTypes.Spreadsheet, StringComparison.Ordinal)) {
                 throw new InvalidOperationException($"Drive file '{spreadsheetId}' is not a Google spreadsheet (mimeType: '{source.MimeType}').");
             }
+        }
+
+        private static void EnsureDownloadable(GoogleDriveFile source, string spreadsheetId) {
             if (source.Capabilities != null && !source.Capabilities.CanDownload) {
                 throw new InvalidOperationException($"Drive file '{spreadsheetId}' cannot be downloaded or exported by the current principal.");
             }

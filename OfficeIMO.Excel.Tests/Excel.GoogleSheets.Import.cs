@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsImporter_Native_ProjectsValuesFormulasStylesMergesNamesAndRanges() {
+        public async Task Test_GoogleSheetsImporter_Native_ProjectsContentWhenDriveExportIsDisabled() {
             Uri? sheetsRequest = null;
             const string nativeJson = """
                 {
@@ -68,7 +68,7 @@ namespace OfficeIMO.Tests {
                 """;
             using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") {
-                    return Task.FromResult(CreateJsonResponse("{\"id\":\"native123\",\"name\":\"Native\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":21,\"capabilities\":{\"canDownload\":true}}"));
+                    return Task.FromResult(CreateJsonResponse("{\"id\":\"native123\",\"name\":\"Native\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":21,\"capabilities\":{\"canDownload\":false}}"));
                 }
                 if (request.RequestUri.Host == "sheets.googleapis.com") {
                     sheetsRequest = request.RequestUri;

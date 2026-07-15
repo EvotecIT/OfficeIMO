@@ -61,7 +61,9 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
             GoogleDriveFile? file = null;
             var cleanupReport = new GoogleDriveCleanupReport();
             try {
-                file = await client.UploadMultipartAsync(content, options, report, cancellationToken).ConfigureAwait(false);
+                file = content.LongLength <= GoogleDriveClient.MultipartUploadLimitBytes
+                    ? await client.UploadMultipartAsync(content, options, report, cancellationToken).ConfigureAwait(false)
+                    : await client.UploadResumableAsync(content, options, report, cancellationToken).ConfigureAwait(false);
                 if (string.IsNullOrWhiteSpace(file.Id)) {
                     throw new InvalidOperationException("Temporary Drive upload did not return a file id.");
                 }

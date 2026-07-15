@@ -20,6 +20,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public GoogleSheetsTranslationPlan Plan { get; }
         public TranslationReport Report { get; }
         public IReadOnlyList<GoogleSheetsRequest> Requests => _requests;
+        internal string? ChartDataSheetName { get; set; }
 
         internal void Add(GoogleSheetsRequest request) {
             if (request == null) throw new ArgumentNullException(nameof(request));

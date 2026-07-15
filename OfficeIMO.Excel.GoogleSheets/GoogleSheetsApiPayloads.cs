@@ -88,6 +88,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiUpdateCellsRequestPayload? UpdateCells { get; set; }
 
+        [JsonPropertyName("setDataValidation")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiSetDataValidationRequestPayload? SetDataValidation { get; set; }
+
         [JsonPropertyName("mergeCells")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiMergeCellsRequestPayload? MergeCells { get; set; }
@@ -155,6 +159,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         [JsonPropertyName("fields")]
         public string Fields { get; set; } = "userEnteredValue";
+    }
+
+    internal sealed class GoogleSheetsApiSetDataValidationRequestPayload {
+        [JsonPropertyName("range")]
+        public GoogleSheetsApiGridRangePayload Range { get; set; } = new GoogleSheetsApiGridRangePayload();
+
+        [JsonPropertyName("rule")]
+        public GoogleSheetsApiDataValidationRulePayload Rule { get; set; } = new GoogleSheetsApiDataValidationRulePayload();
     }
 
     internal sealed class GoogleSheetsApiGridCoordinatePayload {

@@ -35,6 +35,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleDocsExporter_ReplaceEveryTabPreservesPerTabResetTargets() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsReplaceEveryTab.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Replacement");
+                var bodies = new List<string>();
+                const string state = "{\"documentId\":\"doc-tabs\",\"title\":\"Tabbed\",\"revisionId\":\"revision-1\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"tab-one\",\"title\":\"One\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":5,\"paragraph\":{}}]}}},{\"tabProperties\":{\"tabId\":\"tab-two\",\"title\":\"Two\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":6,\"paragraph\":{}}]}}}]}";
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return CreateJsonResponse(state);
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
+                        bodies.Add(await request.Content!.ReadAsStringAsync().ConfigureAwait(false));
+                        return CreateJsonResponse($"{{\"writeControl\":{{\"requiredRevisionId\":\"revision-{bodies.Count + 1}\"}}}}");
+                    }
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return CreateJsonResponse("{\"id\":\"doc-tabs\",\"name\":\"Tabbed\",\"mimeType\":\"application/vnd.google-apps.document\"}");
+                    }
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Location = new GoogleDriveFileLocation { ExistingFileId = "doc-tabs" },
+                    Tabs = new GoogleDocsTabOptions { Strategy = GoogleDocsTabStrategy.ReplaceEveryTab },
+                    Replace = new GoogleDocsReplaceOptions { ExpectedRevisionId = "revision-1" },
+                });
+
+                string resetBody = Assert.IsType<string>(bodies.First());
+                Assert.Contains("\"tabId\":\"tab-one\"", resetBody, StringComparison.Ordinal);
+                Assert.Contains("\"tabId\":\"tab-two\"", resetBody, StringComparison.Ordinal);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public async Task Test_GoogleDocsExporter_RejectsStaleRevisionBeforeMutation() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsStaleRevision.docx");
             try {

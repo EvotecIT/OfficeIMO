@@ -77,19 +77,20 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     var existingResponse = await transport.SendJsonAsync<GoogleSheetsApiSpreadsheetMetadataResponse>(
                         accessToken.AccessToken,
                         HttpMethod.Get,
-                        $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}?fields=spreadsheetId,spreadsheetUrl,properties.title,sheets.properties.sheetId",
+                        $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}?fields=spreadsheetId,spreadsheetUrl,properties.title,sheets(properties(sheetId,title))",
                         null,
                         GoogleWorkspaceRequestSafety.Safe,
                         "Google Sheets API",
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
-                    var existingSheetIds = existingResponse.Sheets
-                        .Select(sheet => sheet.Properties?.SheetId ?? 0)
-                        .Where(sheetId => sheetId > 0)
-                        .ToList();
-                    var sheetIdMap = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch, existingSheetIds);
-                    var replacePayload = GoogleSheetsApiPayloadBuilder.BuildReplaceSpreadsheetPayload(batch, existingSheetIds, sheetIdMap);
+                    var existingSheets = existingResponse.Sheets
+                        .Where(sheet => (sheet.Properties?.SheetId ?? 0) > 0)
+                        .ToDictionary(
+                            sheet => sheet.Properties!.SheetId,
+                            sheet => sheet.Properties!.Title ?? string.Empty);
+                    var sheetIdMap = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch, existingSheets.Keys);
+                    var replacePayload = GoogleSheetsApiPayloadBuilder.BuildReplaceSpreadsheetPayload(batch, existingSheets, sheetIdMap);
 
                     await transport.SendJsonAsync<object>(
                         accessToken.AccessToken,
@@ -428,6 +429,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
     internal sealed class GoogleSheetsApiSheetMetadataPropertiesResponse {
         [System.Text.Json.Serialization.JsonPropertyName("sheetId")]
         public int SheetId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        public string? Title { get; set; }
     }
 
 }

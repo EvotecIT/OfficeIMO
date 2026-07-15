@@ -68,7 +68,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 && ex.ResponseStatusCode == System.Net.HttpStatusCode.BadRequest) {
                 throw new GoogleWorkspaceConflictException("Google presentation changed before the batch could be applied.", effective.Location.ExistingFileId ?? effective.TemplatePresentationId ?? "presentation", effective.Replace.ExpectedRevisionId, null, batch.Plan.Report);
             } finally {
-                foreach (GoogleDriveTemporaryContentLease lease in leases.AsEnumerable().Reverse()) await lease.CleanupAsync(cancellationToken).ConfigureAwait(false);
+                foreach (GoogleDriveTemporaryContentLease lease in leases.AsEnumerable().Reverse()) await lease.CleanupAsync(CancellationToken.None).ConfigureAwait(false);
             }
         }
 

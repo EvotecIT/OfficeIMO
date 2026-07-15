@@ -208,7 +208,9 @@ namespace OfficeIMO.Word.GoogleDocs {
                 throw new ArgumentException("Tabs.TabId is required when SelectedTab is used.", nameof(options));
             }
             GoogleDocsApiTabResponse? target = GoogleDocsApiPayloadBuilder.SelectTabs(document, options.Tabs).FirstOrDefault();
-            batch.TargetTabId = target?.Properties.TabId;
+            batch.TargetTabId = options.Tabs.Strategy == GoogleDocsTabStrategy.ReplaceEveryTab
+                ? null
+                : target?.Properties.TabId;
 
             string? expected = options.Replace.ExpectedRevisionId;
             if (options.Replace.ConflictMode != GoogleDocsRevisionConflictMode.OverwriteLatest && string.IsNullOrWhiteSpace(expected)) {

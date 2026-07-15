@@ -63,6 +63,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_DriveClient_TemporaryPublicLease_UsesResumableUploadAboveMultipartLimit() {
+            var requests = new List<string>();
+            using var httpClient = new HttpClient(new FakeHandler(request => {
+                requests.Add(request.Method.Method + " " + request.RequestUri!.AbsoluteUri);
+                if (request.Method == HttpMethod.Post && request.RequestUri.AbsoluteUri.Contains("uploadType=resumable", StringComparison.Ordinal)) {
+                    HttpResponseMessage response = Json("{}");
+                    response.Headers.Location = new Uri("https://upload.example.test/temporary-large");
+                    return Task.FromResult(response);
+                }
+                if (request.Method == HttpMethod.Put && request.RequestUri.AbsoluteUri == "https://upload.example.test/temporary-large") {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.Created) {
+                        Content = new StringContent("{\"id\":\"temporary-large\",\"name\":\"large.png\",\"mimeType\":\"image/png\"}", Encoding.UTF8, "application/json")
+                    });
+                }
+                if (request.Method == HttpMethod.Post && request.RequestUri.AbsoluteUri.Contains("/temporary-large/permissions?", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"id\":\"permission-large\",\"type\":\"anyone\",\"role\":\"reader\"}"));
+                }
+                if (request.Method == HttpMethod.Delete && request.RequestUri.AbsoluteUri.Contains("/files/temporary-large?", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{}"));
+                }
+                return Task.FromResult(NotFound());
+            }));
+            using var client = CreateClient(httpClient);
+            byte[] content = new byte[(5 * 1024 * 1024) + 1];
+
+            GoogleDriveTemporaryContentLease lease = await GoogleDriveTemporaryContentLease.CreatePublicReadLeaseAsync(
+                client,
+                content,
+                new GoogleDriveUploadOptions { Name = "large.png", ContentType = "image/png" });
+            await lease.CleanupAsync();
+
+            Assert.Contains(requests, request => request.Contains("uploadType=resumable", StringComparison.Ordinal));
+            Assert.DoesNotContain(requests, request => request.Contains("uploadType=multipart", StringComparison.Ordinal));
+            Assert.Contains(requests, request => request.StartsWith("DELETE ", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public async Task Test_DriveClient_ResumableUpload_UsesAlignedChunksAndProgress() {
             var ranges = new List<string>();
             using var httpClient = new HttpClient(new FakeHandler(async request => {
