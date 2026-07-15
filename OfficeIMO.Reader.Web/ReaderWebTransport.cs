@@ -165,15 +165,22 @@ internal sealed class ReaderWebDownload {
     internal string? ContentType { get; }
     internal DateTime? LastModifiedUtc { get; }
 
-    internal void ApplyTransportMetadata(OfficeDocumentReadResult result, ReaderWebOptions options) {
+    internal void ApplyTransportMetadata(
+        OfficeDocumentReadResult result,
+        ReaderWebOptions options,
+        bool computeHashes) {
+        string sourceId = DocumentReaderEngine.BuildPortableSourceId(
+            "web:" + FormatUri(ResponseUri, includeQuery: true));
+        DocumentReaderEngine.ApplyExternalSourceMetadata(
+            result,
+            sourceId,
+            LastModifiedUtc,
+            Bytes.LongLength,
+            computeHashes);
         result.CapabilitiesUsed = result.CapabilitiesUsed
             .Concat(new[] { ReaderWebTransport.CapabilityId })
             .Distinct(StringComparer.Ordinal)
             .ToArray();
-        result.Source.LengthBytes = Bytes.LongLength;
-        if (!result.Source.LastWriteUtc.HasValue && LastModifiedUtc.HasValue) {
-            result.Source.LastWriteUtc = LastModifiedUtc;
-        }
         var metadata = new List<OfficeDocumentMetadataEntry> {
             Metadata("reader-web-request-uri", "RequestUri", FormatUri(RequestUri, options.IncludeQueryInMetadata), "uri"),
             Metadata("reader-web-response-uri", "ResponseUri", FormatUri(ResponseUri, options.IncludeQueryInMetadata), "uri"),

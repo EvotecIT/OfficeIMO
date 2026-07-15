@@ -52,7 +52,10 @@ public sealed class OfficeDocumentWebReader {
                 download.SourceName,
                 readerOptions,
                 cancellationToken).ConfigureAwait(false);
-            download.ApplyTransportMetadata(result, _options);
+            download.ApplyTransportMetadata(
+                result,
+                _options,
+                readerOptions?.ComputeHashes ?? true);
             return result;
         } finally {
             _requestGate.Release();

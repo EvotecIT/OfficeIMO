@@ -77,7 +77,11 @@ internal static class ReaderWebUriPolicy {
         if (first == 169 && second == 254) return true;
         if (first == 172 && second >= 16 && second <= 31) return true;
         if (first == 192 && second == 168) return true;
-        if (first == 192 && second == 0 && third <= 2) return true;
+        if (first == 192 && second == 0 && third == 0) {
+            byte fourth = bytes[3];
+            return fourth != 9 && fourth != 10;
+        }
+        if (first == 192 && second == 0 && third == 2) return true;
         if (first == 192 && second == 88 && third == 99) return true;
         if (first == 198 && (second == 18 || second == 19 || (second == 51 && third == 100))) return true;
         if (first == 203 && second == 0 && third == 113) return true;

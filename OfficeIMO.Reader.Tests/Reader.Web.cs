@@ -41,7 +41,40 @@ public sealed class ReaderWebTests {
             item => item.Id == "reader-web-request-uri");
         Assert.DoesNotContain("token", requestUri.Value, StringComparison.Ordinal);
         Assert.Equal(lastModified.UtcDateTime, result.Source.LastWriteUtc);
+        Assert.All(result.Chunks, chunk => {
+            Assert.Equal(result.Source.SourceId, chunk.SourceId);
+            Assert.Equal(lastModified.UtcDateTime, chunk.SourceLastWriteUtc);
+        });
         Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task WebReader_DerivesSourceIdentityFromTheFinalUriInsteadOfTheFileName() {
+        int responseIndex = 0;
+        var handler = new DelegateHttpHandler((request, cancellationToken) => {
+            int current = Interlocked.Increment(ref responseIndex);
+            HttpResponseMessage response = TextResponse("same body", "text/plain");
+            response.Content.Headers.ContentDisposition = new ContentDispositionHeaderValue("attachment") {
+                FileName = "\"report.txt\""
+            };
+            response.RequestMessage = new HttpRequestMessage(
+                HttpMethod.Get,
+                "https://cdn.example/tenant-" + current.ToString(CultureInfo.InvariantCulture) + "/report.txt?token=secret");
+            return Task.FromResult(response);
+        });
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        OfficeDocumentReadResult first = await webReader.ReadDocumentAsync(new Uri("https://example.test/report"));
+        OfficeDocumentReadResult second = await webReader.ReadDocumentAsync(new Uri("https://example.test/report"));
+
+        Assert.Equal("report.txt", first.Source.Path);
+        Assert.Equal(first.Source.Path, second.Source.Path);
+        Assert.NotEqual(first.Source.SourceId, second.Source.SourceId);
+        Assert.DoesNotContain("cdn.example", first.Source.SourceId, StringComparison.Ordinal);
+        Assert.All(first.Chunks, chunk => Assert.Equal(first.Source.SourceId, chunk.SourceId));
+        Assert.All(second.Chunks, chunk => Assert.Equal(second.Source.SourceId, chunk.SourceId));
+        Assert.NotEqual(Assert.Single(first.Chunks).ChunkHash, Assert.Single(second.Chunks).ChunkHash);
     }
 
     [Fact]
@@ -68,6 +101,39 @@ public sealed class ReaderWebTests {
             webReader.ReadDocumentAsync(new Uri("http://127.0.0.1/private.txt")));
 
         Assert.Equal(0, handler.CallCount);
+    }
+
+    [Theory]
+    [InlineData("192.0.0.8")]
+    [InlineData("192.0.0.170")]
+    [InlineData("192.0.0.171")]
+    public async Task WebReader_RejectsNonGlobalIanaProtocolAssignmentTargets(string host) {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("not reached", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
+            webReader.ReadDocumentAsync(new Uri("http://" + host + "/special.txt")));
+
+        Assert.Equal(0, handler.CallCount);
+    }
+
+    [Theory]
+    [InlineData("192.0.0.9")]
+    [InlineData("192.0.0.10")]
+    [InlineData("192.0.1.1")]
+    public async Task WebReader_DoesNotOverblockGloballyReachableOrOrdinaryTargets(string host) {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("public fixture", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
+            new Uri("http://" + host + "/public.txt"));
+
+        Assert.Contains("public fixture", result.Markdown, StringComparison.Ordinal);
+        Assert.Equal(1, handler.CallCount);
     }
 
     [Fact]
