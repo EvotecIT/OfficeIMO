@@ -139,6 +139,110 @@ public sealed class EmailCalendarProjectionEdgeTests {
     }
 
     [Fact]
+    public void PreservesAbsoluteAlarmTriggersThroughStoreConversion() {
+        DateTimeOffset signal = new DateTimeOffset(2026, 8, 1, 9, 45, 0, TimeSpan.Zero);
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:absolute-alarm@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:Reminder\r\n" +
+            "TRIGGER;VALUE=DATE-TIME:20260801T094500Z\r\nEND:VALARM\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.True(report.CanWrite);
+        Assert.Equal(signal, document.Appointment!.ReminderSignalTime);
+        Assert.Equal(signal, roundTrip.Appointment!.ReminderSignalTime);
+    }
+
+    [Fact]
+    public void BlocksDistinctTransportMessageIdAndCalendarUidBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Message-ID: <transport@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Equal("transport@example.com", document.MessageId);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void BlocksDistinctTransportFromAndCalendarOrganizerBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "From: Relay <relay@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nORGANIZER;CN=Owner:mailto:owner@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Equal("relay@example.com", document.From!.Address);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void BlocksDistinctMimeBodyAndCalendarDescriptionBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nWrapper text\r\n" +
+            "--x\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nDESCRIPTION:Event notes\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Equal("Wrapper text", document.Body.Text!.Trim());
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void DecodesEscapedCalendarTextSequentially() {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:escape@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "SUMMARY:Literal \\\\n value\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Equal("Literal \\n value", document.Subject);
+        Assert.Equal("Literal \\n value", roundTrip.Subject);
+    }
+
+    [Fact]
+    public void UnescapesQuotedCalendarParameters() {
+        const string parameterName = "Alice \\\"A\\\" \\\\ Team";
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:parameter@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "ATTENDEE;CN=\"" + parameterName + "\":mailto:alice@example.com\r\n" +
+            "END:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Equal("Alice \"A\" \\ Team", Assert.Single(document.Recipients).Address.DisplayName);
+        Assert.Equal("Alice \"A\" \\ Team", Assert.Single(roundTrip.Recipients).Address.DisplayName);
+    }
+
+    [Fact]
     public void BlocksMultipleSemanticMimeBodyPartsBeforeStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=x\r\n\r\n" +

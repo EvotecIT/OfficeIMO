@@ -209,6 +209,17 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void ParsesEncodedDisplayNamesThatDecodeToAngleBrackets() {
+        const string eml = "To: =?utf-8?Q?Team_=3CEU=3E?= <team@example.com>\r\n\r\nbody";
+
+        EmailRecipient recipient = Assert.Single(
+            new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml)).Document.Recipients);
+
+        Assert.Equal("team@example.com", recipient.Address.Address);
+        Assert.Equal("Team <EU>", recipient.Address.DisplayName);
+    }
+
+    [Fact]
     public void PreservesCidTextPartsAsInlineAttachments() {
         const string eml = "Subject: related\r\nContent-Type: multipart/related; boundary=x\r\n\r\n" +
             "--x\r\nContent-Type: text/html; charset=utf-8\r\n\r\n<p>body</p>\r\n" +
@@ -293,6 +304,23 @@ public sealed class EmailMimeReaderTests {
             Assert.False(attachment.IsProjectedSemanticContent);
             Assert.True(attachment.Length > 0);
         });
+    }
+
+    [Fact]
+    public void PreservesEmptyAddressGroupsThroughStoreTransportHeaders() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "To: undisclosed-recipients:;\r\nSubject: private list\r\n\r\nbody");
+        EmailDocument source = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument stored = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
+        string regenerated = Encoding.UTF8.GetString(
+            new EmailDocumentWriter().ToBytes(stored, EmailFileFormat.Eml));
+
+        Assert.Empty(stored.Recipients);
+        Assert.Contains(stored.Headers, header => header.Name == "To" &&
+            (header.RawValue ?? header.Value).Contains("undisclosed-recipients:;", StringComparison.Ordinal));
+        Assert.Contains("To: undisclosed-recipients:;", regenerated, StringComparison.Ordinal);
     }
 
     [Fact]

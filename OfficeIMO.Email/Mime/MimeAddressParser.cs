@@ -10,6 +10,10 @@ internal static class MimeAddressParser {
     }
 
     internal static EmailAddress? ParseOne(string? input) {
+        return ParseOne(input, DecodeDisplayName);
+    }
+
+    private static EmailAddress? ParseOne(string? input, Func<string, string> decodeDisplayName) {
         if (string.IsNullOrWhiteSpace(input)) return null;
         string raw = input!.Trim();
         if (IsCommentOnly(raw)) return null;
@@ -17,18 +21,18 @@ internal static class MimeAddressParser {
         int greater = less >= 0 ? raw.IndexOf('>', less + 1) : -1;
         if (less >= 0 && greater > less) {
             if (!HasOnlyCommentsAfter(raw, greater + 1)) return null;
-            string display = DecodeDisplayName(raw.Substring(0, less));
+            string display = decodeDisplayName(raw.Substring(0, less));
             string address = raw.Substring(less + 1, greater - less - 1).Trim();
             return new EmailAddress(address.Length == 0 ? null : address, display.Length == 0 ? null : display, raw);
         }
         if (less >= 0 || raw.IndexOf('>') >= 0) return null;
-        if (TryParseAddressWithTrailingComment(raw, out EmailAddress? commented)) return commented;
+        if (TryParseAddressWithTrailingComment(raw, decodeDisplayName, out EmailAddress? commented)) return commented;
         return new EmailAddress(raw, null, raw);
     }
 
     internal static EmailAddress? ParseOne(string? input, IList<EmailDiagnostic> diagnostics, string location) {
         if (string.IsNullOrWhiteSpace(input)) return null;
-        return ParseOne(MimeTextCodec.DecodeHeader(input!, diagnostics, location));
+        return ParseOne(input, value => DecodeDisplayName(MimeTextCodec.DecodeHeader(value, diagnostics, location)));
     }
 
     internal static IEnumerable<EmailAddress> ParseMany(string? input, IList<EmailDiagnostic> diagnostics,
@@ -184,7 +188,8 @@ internal static class MimeAddressParser {
         return sawComment && depth == 0;
     }
 
-    private static bool TryParseAddressWithTrailingComment(string value, out EmailAddress? address) {
+    private static bool TryParseAddressWithTrailingComment(string value, Func<string, string> decodeDisplayName,
+        out EmailAddress? address) {
         address = null;
         int open = value.IndexOf('(');
         if (open <= 0) return false;
@@ -192,7 +197,7 @@ internal static class MimeAddressParser {
         if (close <= open || value.Substring(close + 1).Trim().Length != 0) return false;
         string addressText = value.Substring(0, open).Trim();
         if (addressText.Length == 0 || addressText.IndexOfAny(new[] { ' ', '\t', '<', '>' }) >= 0) return false;
-        string displayName = DecodeDisplayName(value.Substring(open + 1, close - open - 1));
+        string displayName = decodeDisplayName(value.Substring(open + 1, close - open - 1));
         address = new EmailAddress(addressText, displayName.Length == 0 ? null : displayName, value);
         return true;
     }

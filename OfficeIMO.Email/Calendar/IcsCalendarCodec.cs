@@ -23,7 +23,8 @@ internal static partial class IcsCalendarCodec {
         if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location);
         else ProjectTask(activeProperties, document, diagnostics, location);
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
-            diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED");
+            diagnostic.Code == "EMAIL_ICALENDAR_TIMEZONE_UNRESOLVED" ||
+            diagnostic.Code == "EMAIL_ICALENDAR_DATE_INVALID");
         return true;
     }
 
@@ -113,12 +114,19 @@ internal static partial class IcsCalendarCodec {
         IcsProperty[] actions = alarmProperties.Where(property => property.Name == "ACTION").ToArray();
         IcsProperty[] triggers = alarmProperties.Where(property => property.Name == "TRIGGER").ToArray();
         if (actions.Length != 1 || !actions[0].Value.Trim().Equals("DISPLAY", StringComparison.OrdinalIgnoreCase) ||
-            triggers.Length != 1 || !IcsDurationCodec.Parse(triggers[0].Value).HasValue) return true;
-        if (triggers[0].Parameters.Any(parameter =>
-                parameter.Key.Equals("RELATED", StringComparison.OrdinalIgnoreCase)
-                    ? !parameter.Value.Equals("START", StringComparison.OrdinalIgnoreCase)
-                    : !parameter.Key.Equals("VALUE", StringComparison.OrdinalIgnoreCase) ||
-                      !parameter.Value.Equals("DURATION", StringComparison.OrdinalIgnoreCase))) return true;
+            triggers.Length != 1) return true;
+        bool absolute = triggers[0].Parameters.TryGetValue("VALUE", out string? valueType) &&
+            valueType.Equals("DATE-TIME", StringComparison.OrdinalIgnoreCase);
+        if (absolute) {
+            if (string.IsNullOrWhiteSpace(triggers[0].Value) || triggers[0].Parameters.Any(parameter =>
+                    !parameter.Key.Equals("VALUE", StringComparison.OrdinalIgnoreCase))) return true;
+        } else {
+            if (!IcsDurationCodec.Parse(triggers[0].Value).HasValue || triggers[0].Parameters.Any(parameter =>
+                    parameter.Key.Equals("RELATED", StringComparison.OrdinalIgnoreCase)
+                        ? !parameter.Value.Equals("START", StringComparison.OrdinalIgnoreCase)
+                        : !parameter.Key.Equals("VALUE", StringComparison.OrdinalIgnoreCase) ||
+                          !parameter.Value.Equals("DURATION", StringComparison.OrdinalIgnoreCase))) return true;
+        }
         return alarmProperties.Any(property => property.Name != "ACTION" && property.Name != "TRIGGER" &&
             property.Name != "DESCRIPTION");
     }
@@ -256,8 +264,17 @@ internal static partial class IcsCalendarCodec {
         string? description = Unescape(GetValue(properties, "DESCRIPTION"));
         string? uid = Unescape(GetValue(properties, "UID"));
         if (!string.IsNullOrWhiteSpace(summary)) document.Subject = summary;
-        if (!string.IsNullOrWhiteSpace(description) && document.Body.Text == null) document.Body.Text = description;
-        if (!string.IsNullOrWhiteSpace(uid) && document.MessageId == null) document.MessageId = uid;
+        if (!string.IsNullOrWhiteSpace(description)) {
+            if (document.Body.Text == null) document.Body.Text = description;
+            else if (!string.Equals(document.Body.Text, description, StringComparison.Ordinal)) {
+                document.MimeSemanticProjectionIsIncomplete = true;
+            }
+        }
+        if (!string.IsNullOrWhiteSpace(uid)) {
+            if (document.MessageId == null) document.MessageId = uid;
+            else if (!string.Equals(document.MessageId.Trim().Trim('<', '>'), uid,
+                         StringComparison.Ordinal)) document.MimeSemanticProjectionIsIncomplete = true;
+        }
         int? calendarSensitivity = ParseCalendarSensitivity(GetValue(properties, "CLASS"));
         if (calendarSensitivity.HasValue) document.MessageMetadata.Sensitivity = calendarSensitivity;
         foreach (IcsProperty property in properties.Where(property => property.Name == "CATEGORIES")) {
@@ -269,7 +286,20 @@ internal static partial class IcsCalendarCodec {
             }
         }
         string? organizer = GetOrganizer(properties);
-        if (document.From == null && !string.IsNullOrWhiteSpace(organizer)) document.From = new EmailAddress(organizer!);
+        if (!string.IsNullOrWhiteSpace(organizer)) {
+            IcsProperty? organizerProperty = GetProperty(properties, "ORGANIZER");
+            string? organizerName = null;
+            organizerProperty?.Parameters.TryGetValue("CN", out organizerName);
+            if (document.From == null) document.From = new EmailAddress(organizer!, organizerName);
+            else if (!string.Equals(document.From.Address, organizer, StringComparison.OrdinalIgnoreCase)) {
+                document.MimeSemanticProjectionIsIncomplete = true;
+            } else if (string.IsNullOrWhiteSpace(document.From.DisplayName)) {
+                document.From.DisplayName = organizerName;
+            } else if (!string.IsNullOrWhiteSpace(organizerName) &&
+                       !string.Equals(document.From.DisplayName, organizerName, StringComparison.Ordinal)) {
+                document.MimeSemanticProjectionIsIncomplete = true;
+            }
+        }
     }
 
     private static void WriteEvent(StringBuilder output, EmailDocument document) {
@@ -667,8 +697,22 @@ internal static partial class IcsCalendarCodec {
         yield return Unescape(current.ToString());
     }
 
-    private static string Unescape(string? value) => (value ?? string.Empty).Replace("\\n", "\n")
-        .Replace("\\N", "\n").Replace("\\,", ",").Replace("\\;", ";").Replace("\\\\", "\\");
+    private static string Unescape(string? value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        var result = new StringBuilder(value!.Length);
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            if (character != '\\' || index + 1 >= value.Length) {
+                result.Append(character);
+                continue;
+            }
+            char escaped = value[++index];
+            if (escaped == 'n' || escaped == 'N') result.Append('\n');
+            else if (escaped == ',' || escaped == ';' || escaped == '\\') result.Append(escaped);
+            else result.Append('\\').Append(escaped);
+        }
+        return result.ToString();
+    }
 
     private static string? UnescapeOrNull(string? value) => string.IsNullOrWhiteSpace(value)
         ? null

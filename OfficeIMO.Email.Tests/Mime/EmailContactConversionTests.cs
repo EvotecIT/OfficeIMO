@@ -180,6 +180,56 @@ public sealed class EmailContactConversionTests {
     }
 
     [Fact]
+    public void BlocksVcardUidBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "UID:contact-123\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void BlocksDistinctMimeBodyAndVcardNoteBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\nContent-Type: multipart/alternative; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nWrapper text\r\n" +
+            "--x\r\nContent-Type: text/vcard; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nNOTE:Contact notes\r\n" +
+            "END:VCARD\r\n--x--\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Equal("Wrapper text", document.Body.Text!.Trim());
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void DecodesEscapedVcardTextSequentially() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nNOTE:Literal \\\\n value\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument stored = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(stored, EmailFileFormat.Eml)).Document;
+
+        Assert.Equal("Literal \\n value", document.Body.Text);
+        Assert.Equal("Literal \\n value", roundTrip.Body.Text);
+    }
+
+    [Fact]
     public void KeepsOrdinaryVcardAttachmentAlongsideGeneratedContact() {
         var source = new EmailDocument {
             Format = EmailFileFormat.OutlookMsg,

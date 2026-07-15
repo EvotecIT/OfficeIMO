@@ -21,11 +21,23 @@ internal static partial class IcsCalendarCodec {
             for (int index = 1; index < tokens.Count; index++) {
                 int equals = FindUnquotedSeparator(tokens[index], '=');
                 if (equals > 0) property.Parameters[tokens[index].Substring(0, equals).Trim()] =
-                    tokens[index].Substring(equals + 1).Trim().Trim('"');
+                    DecodeParameterValue(tokens[index].Substring(equals + 1));
             }
             result.Add(property);
         }
         return result;
+    }
+
+    private static string DecodeParameterValue(string value) {
+        string trimmed = value.Trim();
+        if (trimmed.Length < 2 || trimmed[0] != '"' || trimmed[trimmed.Length - 1] != '"') return trimmed;
+        var result = new StringBuilder(trimmed.Length - 2);
+        for (int index = 1; index < trimmed.Length - 1; index++) {
+            char character = trimmed[index];
+            if (character == '\\' && index + 1 < trimmed.Length - 1) result.Append(trimmed[++index]);
+            else result.Append(character);
+        }
+        return result.ToString();
     }
 
     private static IReadOnlyList<IcsProperty> SelectActiveComponentProperties(

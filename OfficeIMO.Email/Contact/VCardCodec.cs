@@ -11,7 +11,8 @@ internal static class VCardCodec {
         document.MimeSemanticProjectionIsIncomplete |= cardCount > 1 || properties.Any(property =>
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
-            property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "CLASS" &&
+            property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "UID" ||
+            property.Name == "CLASS" &&
             !ParseVCardSensitivity(property.Value).HasValue);
 
         var contact = document.Contact ?? new OutlookContact();
@@ -56,7 +57,12 @@ internal static class VCardCodec {
             }
         }
         string? note = Unescape(GetValue(properties, "NOTE"));
-        if (document.Body.Text == null && !string.IsNullOrWhiteSpace(note)) document.Body.Text = note;
+        if (!string.IsNullOrWhiteSpace(note)) {
+            if (document.Body.Text == null) document.Body.Text = note;
+            else if (!string.Equals(document.Body.Text, note, StringComparison.Ordinal)) {
+                document.MimeSemanticProjectionIsIncomplete = true;
+            }
+        }
         return true;
     }
 
@@ -456,8 +462,22 @@ internal static class VCardCodec {
     private static string Escape(string? value) => (value ?? string.Empty).Replace("\\", "\\\\")
         .Replace(";", "\\;").Replace(",", "\\,").Replace("\r\n", "\\n").Replace("\r", "\\n").Replace("\n", "\\n");
 
-    private static string Unescape(string? value) => (value ?? string.Empty).Replace("\\n", "\n")
-        .Replace("\\N", "\n").Replace("\\,", ",").Replace("\\;", ";").Replace("\\\\", "\\");
+    private static string Unescape(string? value) {
+        if (string.IsNullOrEmpty(value)) return string.Empty;
+        var result = new StringBuilder(value!.Length);
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            if (character != '\\' || index + 1 >= value.Length) {
+                result.Append(character);
+                continue;
+            }
+            char escaped = value[++index];
+            if (escaped == 'n' || escaped == 'N') result.Append('\n');
+            else if (escaped == ',' || escaped == ';' || escaped == '\\') result.Append(escaped);
+            else result.Append('\\').Append(escaped);
+        }
+        return result.ToString();
+    }
 
     private static string? UnescapeOrNull(string? value) => string.IsNullOrWhiteSpace(value)
         ? null

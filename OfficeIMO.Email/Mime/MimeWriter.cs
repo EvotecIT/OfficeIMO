@@ -116,7 +116,14 @@ internal static class MimeWriter {
             }
             addresses = parsed.ToArray();
         }
-        if (addresses.Length > 0) WriteLine(output, string.Concat(name, ": ", string.Join(",\r\n ", addresses)));
+        if (addresses.Length > 0) {
+            WriteLine(output, string.Concat(name, ": ", string.Join(",\r\n ", addresses)));
+        } else if (!hasProjectedRecipients) {
+            foreach (EmailHeader header in document.Headers.Where(header =>
+                         string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))) {
+                WriteRetainedHeader(output, header);
+            }
+        }
     }
 
     private static void WriteAddressHeader(Stream output, EmailDocument document, EmailAddress? address, string name) {
@@ -311,8 +318,19 @@ internal static class MimeWriter {
         bool structured = scalarAddress != null || recipientKind.HasValue &&
             document.Recipients.Any(recipient => recipient.Kind == recipientKind.Value);
         if (!retained && !structured) return;
+        bool hasProjectedRecipients = document.Recipients.Any(recipient =>
+            recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
+            recipient.Kind == EmailRecipientKind.Bcc || recipient.Kind == EmailRecipientKind.ReplyTo);
+        long initialPosition = output.Position;
         if (recipientKind.HasValue) WriteRecipientHeader(output, document, recipientKind.Value, name);
         else WriteAddressHeader(output, document, scalarAddress, name);
+        if (retained && output.Position == initialPosition &&
+            (!recipientKind.HasValue || !hasProjectedRecipients)) {
+            foreach (EmailHeader header in document.Headers.Where(header =>
+                         string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))) {
+                WriteRetainedHeader(output, header);
+            }
+        }
     }
 
     private static bool HasHeader(EmailDocument document, string name) => document.Headers.Any(header =>
