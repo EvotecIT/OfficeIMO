@@ -758,10 +758,10 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void NativeWriter_PreflightReportsTransitionAndVisualStyleLoss() {
+        public void NativeWriter_PreflightReportsUnsupportedTransitionAndVisualStyleLoss() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
-            slide.Transition = SlideTransition.Fade;
+            slide.Transition = SlideTransition.Morph;
             slide.AddRectangle(100000, 100000, 1000000, 500000).Fill("FF0000");
 
             LegacyPptWritePreflightReport report = presentation.AnalyzeLegacyPptWrite();

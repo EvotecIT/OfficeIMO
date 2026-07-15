@@ -62,6 +62,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 + (presentation.NotesHeaderFooterDefaults == null ? 0 : 1)
                 + presentation.Masters.Count(master => master.HeaderFooter != null)
                 + presentation.Slides.Count(slide => slide.HeaderFooter != null);
+            TransitionCount = presentation.Slides.Count(slide =>
+                slide.Transition != null);
+            TransitionSoundCount = presentation.Slides.Count(slide =>
+                slide.Transition?.PlaySound == true
+                || slide.Transition?.StopSound == true);
             WarningCount = presentation.Diagnostics.Count(diagnostic =>
                 diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning);
             ErrorCount = presentation.Diagnostics.Count(diagnostic =>
@@ -133,6 +138,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of decoded document, master, and per-slide header/footer scopes.</summary>
         public int HeaderFooterScopeCount { get; }
+
+        /// <summary>Gets the number of decoded slide-show transition atoms.</summary>
+        public int TransitionCount { get; }
+
+        /// <summary>Gets the number of transitions that play or stop sound.</summary>
+        public int TransitionSoundCount { get; }
 
         /// <summary>Gets the warning count.</summary>
         public int WarningCount { get; }

@@ -260,6 +260,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint? notesIdRef) {
             var children = new List<byte[]>();
             bool hasSlideShowInfo = false;
+            if (!TryReadTransition(slide, out LegacyPptWriterTransition? transition,
+                    out string? transitionReason)) {
+                throw new NotSupportedException(transitionReason);
+            }
+            bool needsSlideShowInfo = slide.Hidden || transition != null;
             bool hasHeaderFooter = prototype.Children.Any(child =>
                 child.Type == RecordHeadersFooters && child.Instance == 0);
             LegacyPptWriterHeaderFooter? headerFooter = ReadSlideHeaderFooter(slide);
@@ -284,7 +289,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
-                    children.Add(PatchHiddenState(child.CopyRecordBytes(), slide.Hidden));
+                    if (needsSlideShowInfo) {
+                        children.Add(PatchSlideShowInfo(child.CopyRecordBytes(), slide));
+                    }
                     hasSlideShowInfo = true;
                     if (headerFooter != null && !hasHeaderFooter) {
                         children.Add(BuildHeaderFooterRecord(headerFooter,
@@ -299,27 +306,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     children.Add(child.CopyRecordBytes());
                 }
             }
-            if (slide.Hidden && !hasSlideShowInfo) {
+            if (needsSlideShowInfo && !hasSlideShowInfo) {
                 int slideAtomIndex = prototype.Children.TakeWhile(child => child.Type != RecordSlideAtom).Count();
-                children.Insert(Math.Min(children.Count, slideAtomIndex + 1), BuildSlideShowInfo(hidden: true));
+                children.Insert(Math.Min(children.Count, slideAtomIndex + 1),
+                    BuildSlideShowInfoRecord(slide));
             }
             return BuildContainer(RecordSlide, instance: 0, children);
-        }
-
-        private static byte[] PatchHiddenState(byte[] slideShowInfo, bool hidden) {
-            if (slideShowInfo.Length < 19) {
-                throw new InvalidDataException("The slide-show information atom is too short for its flags.");
-            }
-            slideShowInfo[18] = hidden
-                ? unchecked((byte)(slideShowInfo[18] | 0x04))
-                : unchecked((byte)(slideShowInfo[18] & ~0x04));
-            return slideShowInfo;
-        }
-
-        private static byte[] BuildSlideShowInfo(bool hidden) {
-            var payload = new byte[16];
-            payload[10] = hidden ? (byte)0x05 : (byte)0x01;
-            return BuildRecord(version: 0, instance: 0, RecordSlideShowSlideInfoAtom, payload);
         }
 
         private static byte[] BuildDrawingRecord(LegacyPptRecord slidePrototype,

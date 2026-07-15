@@ -74,6 +74,7 @@ namespace OfficeIMO.PowerPoint {
                     : projected.AddSlide();
                 slide.Hidden = legacySlide.Hidden;
                 ProjectLegacySlideDesign(slide, legacySlide);
+                ProjectLegacyTransition(slide, legacySlide.Transition);
                 var projectedShapeIds = new Dictionary<uint, uint>();
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
                     OpenXmlElement? projectedShape = ProjectLegacyShape(slide, shape);

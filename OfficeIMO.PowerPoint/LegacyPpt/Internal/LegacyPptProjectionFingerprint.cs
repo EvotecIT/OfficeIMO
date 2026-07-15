@@ -110,7 +110,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 return;
             }
-            if (root is P.Slide slideRoot) slideRoot.Show = null;
+            if (root is P.Slide slideRoot) {
+                slideRoot.Show = null;
+                slideRoot.Transition = null;
+            }
 
             foreach (P.Shape shape in root.Descendants<P.Shape>()) {
                 uint? shapeId = shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value;

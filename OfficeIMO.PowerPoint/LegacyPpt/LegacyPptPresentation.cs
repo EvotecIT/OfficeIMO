@@ -173,11 +173,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             slide.HeaderFooter = ReadHeaderFooterSettings(slideRecord, instance: 0,
                 $"slide {slide.SlideId}", allowHeader: false, options);
             slide.ColorScheme = ReadColorScheme(slideRecord);
-            LegacyPptRecord? slideShowInfo = slideRecord.Children.FirstOrDefault(record =>
-                record.Type == RecordSlideShowSlideInfoAtom);
-            if (slideShowInfo != null && slideShowInfo.PayloadLength >= 11) {
-                slide.Hidden = (slideShowInfo.ReadByte(10) & 0x04) != 0;
-            }
+            ParseSlideShowInfo(slideRecord, slide, options);
             LegacyPptColorScheme? effectiveScheme = slide.FollowsMasterColorScheme
                 ? _masters.FirstOrDefault(master => master.MasterId == slide.MasterId)?.ColorScheme
                 : slide.ColorScheme;

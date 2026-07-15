@@ -34,9 +34,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         slideIndex));
                 }
                 P.Slide? slideRoot = slide.SlidePart.Slide;
-                if (slide.Transition != SlideTransition.None) {
+                if (!LegacyPptWriter.TryReadTransition(slide, out _,
+                        out string? transitionReason)) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Transitions, "PPT-WRITE-TRANSITION",
-                        "Slide transitions are not encoded by the native binary writer.", slideIndex));
+                        transitionReason ?? "The slide transition cannot be encoded by the native binary writer.",
+                        slideIndex));
                 }
                 if (slideRoot?.Timing != null) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Animations, "PPT-WRITE-TIMING",
@@ -81,7 +83,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             if (slide.SlidePart.NotesSlidePart != null && !string.IsNullOrWhiteSpace(slide.Notes.Text)) return false;
             P.Slide? slideRoot = slide.SlidePart.Slide;
-            if (slide.Transition != SlideTransition.None || slideRoot?.Timing != null
+            if (!LegacyPptWriter.TryReadTransition(slide, out _, out _)
+                || slideRoot?.Timing != null
                 || slideRoot?.CommonSlideData?.Background != null) {
                 return false;
             }
