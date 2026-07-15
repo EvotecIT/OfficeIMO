@@ -138,6 +138,53 @@ public sealed class ReaderComparisonEvidenceTests {
     }
 
     [Fact]
+    public void Scorer_DoesNotTreatImageSyntaxAsARetainedLink() {
+        var probe = new ReaderComparisonProbe(
+            "link",
+            ReaderComparisonProbeKind.MarkdownLink,
+            "Policy",
+            "https://example.com/policy");
+
+        ReaderComparisonProbeResult imageOnly = Assert.Single(ReaderComparisonScorer.ScoreMarkdown(
+            "![Policy](https://example.com/policy)",
+            new[] { probe },
+            rejected: false));
+        ReaderComparisonProbeResult link = Assert.Single(ReaderComparisonScorer.ScoreMarkdown(
+            "[Policy](https://example.com/policy)",
+            new[] { probe },
+            rejected: false));
+
+        Assert.False(imageOnly.Passed);
+        Assert.True(link.Passed);
+    }
+
+    [Fact]
+    public void Scorer_RequiresTheExpectedPageLocation() {
+        var probe = new ReaderComparisonProbe(
+            "page-location",
+            ReaderComparisonProbeKind.LocationPage,
+            expectedPage: 2);
+        var document = new OfficeDocumentReadResult {
+            Chunks = new[] { new ReaderChunk { Location = new ReaderLocation { Page = 1 } } }
+        };
+
+        ReaderComparisonProbeResult wrongPage = Assert.Single(ReaderComparisonScorer.ScoreOfficeDocument(
+            string.Empty,
+            document,
+            new[] { probe },
+            rejected: false));
+        document.Chunks = new[] { new ReaderChunk { Location = new ReaderLocation { Page = 2 } } };
+        ReaderComparisonProbeResult expectedPage = Assert.Single(ReaderComparisonScorer.ScoreOfficeDocument(
+            string.Empty,
+            document,
+            new[] { probe },
+            rejected: false));
+
+        Assert.False(wrongPage.Passed);
+        Assert.True(expectedPage.Passed);
+    }
+
+    [Fact]
     public async Task FileRunner_RemovesStaleOutputAndRequiresFreshOutput() {
         string output = Path.Combine(Path.GetTempPath(), "officeimo-reader-runner-" + Guid.NewGuid().ToString("N") + ".md");
         await File.WriteAllTextAsync(output, "stale output");
@@ -160,6 +207,25 @@ public sealed class ReaderComparisonEvidenceTests {
     [Fact]
     public async Task Runner_RejectsTruncatedStdout() {
         ReaderComparisonRunnerConfiguration configuration = DotNetRunner("stdout", "--info");
+        configuration.MaxOutputBytes = 1024;
+
+        ReaderComparisonProcessOutput result = await ReaderComparisonProcessRunner.RunAsync(
+            configuration,
+            inputPath: "unused",
+            outputPath: "unused",
+            CancellationToken.None);
+
+        Assert.Equal("failed", result.Status);
+        Assert.Contains("truncated", result.Error, StringComparison.OrdinalIgnoreCase);
+        Assert.False(result.Rejected);
+    }
+
+    [Fact]
+    public async Task Runner_DoesNotTreatTruncatedNonZeroOutputAsConverterRejection() {
+        ReaderComparisonRunnerConfiguration configuration = DotNetRunner(
+            "stdout",
+            "exec",
+            "officeimo-reader-missing-" + new string('x', 2048) + ".dll");
         configuration.MaxOutputBytes = 1024;
 
         ReaderComparisonProcessOutput result = await ReaderComparisonProcessRunner.RunAsync(

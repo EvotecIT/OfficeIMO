@@ -39,7 +39,9 @@ internal static class ReaderComparisonScorer {
             ReaderComparisonProbeKind.LocationHeading => document.Chunks.Any(chunk => !string.IsNullOrWhiteSpace(chunk.Location.HeadingPath)),
             ReaderComparisonProbeKind.LocationSheet => document.Chunks.Any(chunk => !string.IsNullOrWhiteSpace(chunk.Location.Sheet)),
             ReaderComparisonProbeKind.LocationSlide => document.Chunks.Any(chunk => chunk.Location.Slide.HasValue),
-            ReaderComparisonProbeKind.LocationPage => document.Chunks.Any(chunk => chunk.Location.Page.HasValue),
+            ReaderComparisonProbeKind.LocationPage => document.Chunks.Any(chunk =>
+                chunk.Location.Page.HasValue &&
+                (!probe.ExpectedPage.HasValue || chunk.Location.Page == probe.ExpectedPage)),
             _ => false
         };
         return Result(probe, true, passed);
@@ -101,6 +103,10 @@ internal static class ReaderComparisonScorer {
         while (searchFrom < markdown.Length) {
             int start = markdown.IndexOf(prefix, searchFrom, StringComparison.OrdinalIgnoreCase);
             if (start < 0) return false;
+            if (!isImage && start > 0 && markdown[start - 1] == '!') {
+                searchFrom = start + prefix.Length;
+                continue;
+            }
             int targetStart = start + prefix.Length;
             int targetEnd = markdown.IndexOf(')', targetStart);
             if (targetEnd < 0) return false;

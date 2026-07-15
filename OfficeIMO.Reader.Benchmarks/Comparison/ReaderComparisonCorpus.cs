@@ -126,7 +126,7 @@ internal static class ReaderComparisonCorpus {
         return Case("pdf", "evidence-report.pdf", document.ToBytes(),
             Probe("heading", ReaderComparisonProbeKind.MarkdownHeading, "PDF evidence heading"),
             Probe("page-two", ReaderComparisonProbeKind.ContainsText, "PDF second-page retention marker"),
-            Probe("page-location", ReaderComparisonProbeKind.LocationPage));
+            Probe("page-location", ReaderComparisonProbeKind.LocationPage, expectedPage: 2));
     }
 
     private static ReaderComparisonCase CreateHtml() {
@@ -268,7 +268,8 @@ internal static class ReaderComparisonCorpus {
         string id,
         ReaderComparisonProbeKind kind,
         string marker = "",
-        string expectedTarget = "") => new ReaderComparisonProbe(id, kind, marker, expectedTarget);
+        string expectedTarget = "",
+        int? expectedPage = null) => new ReaderComparisonProbe(id, kind, marker, expectedTarget, expectedPage);
 
     private static byte[] NormalizeOfficePackage(byte[] packageBytes) =>
         ReaderComparisonPackageNormalizer.Normalize(

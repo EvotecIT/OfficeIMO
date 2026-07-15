@@ -23,17 +23,20 @@ internal sealed class ReaderComparisonProbe {
         string id,
         ReaderComparisonProbeKind kind,
         string marker = "",
-        string expectedTarget = "") {
+        string expectedTarget = "",
+        int? expectedPage = null) {
         Id = id;
         Kind = kind;
         Marker = marker;
         ExpectedTarget = expectedTarget;
+        ExpectedPage = expectedPage;
     }
 
     public string Id { get; }
     public ReaderComparisonProbeKind Kind { get; }
     public string Marker { get; }
     public string ExpectedTarget { get; }
+    public int? ExpectedPage { get; }
 }
 
 internal sealed class ReaderComparisonCase {

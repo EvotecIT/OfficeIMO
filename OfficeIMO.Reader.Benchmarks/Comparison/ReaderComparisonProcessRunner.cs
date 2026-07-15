@@ -138,7 +138,7 @@ internal static class ReaderComparisonProcessRunner {
                 Error = error,
                 DurationMilliseconds = stopwatch.Elapsed.TotalMilliseconds,
                 PeakWorkingSetBytes = SafePeakWorkingSet(process),
-                Rejected = process.ExitCode != 0
+                Rejected = process.ExitCode != 0 && !truncated
             };
         }
     }
