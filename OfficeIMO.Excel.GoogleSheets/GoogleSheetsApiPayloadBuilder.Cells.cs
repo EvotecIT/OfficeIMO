@@ -181,7 +181,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
             string hyperlinkTarget) {
             var namedRanges = batch.Requests
                 .OfType<GoogleSheetsAddNamedRangeRequest>()
-                .Where(request => string.Equals(request.Name, hyperlinkTarget, StringComparison.OrdinalIgnoreCase))
+                .Where(request => string.Equals(
+                    string.IsNullOrWhiteSpace(request.SourceName) ? request.Name : request.SourceName,
+                    hyperlinkTarget,
+                    StringComparison.OrdinalIgnoreCase))
                 .ToList();
 
             if (namedRanges.Count == 0) {

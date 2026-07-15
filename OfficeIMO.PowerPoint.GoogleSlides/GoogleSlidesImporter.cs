@@ -48,6 +48,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 if (source.PageSize?.Width != null && source.PageSize.Height != null) presentation.SlideSize.SetSizePoints(ToPoints(source.PageSize.Width), ToPoints(source.PageSize.Height));
                 foreach (GoogleSlidesApiPage sourceSlide in source.Slides) {
                     PowerPointSlide slide = presentation.AddSlide();
+                    slide.Hidden = sourceSlide.SlideProperties?.IsSkipped == true;
                     foreach (GoogleSlidesApiPageElement element in sourceSlide.PageElements) {
                         double left = ToPoints(element.Transform?.TranslateX ?? 0, element.Transform?.Unit);
                         double top = ToPoints(element.Transform?.TranslateY ?? 0, element.Transform?.Unit);

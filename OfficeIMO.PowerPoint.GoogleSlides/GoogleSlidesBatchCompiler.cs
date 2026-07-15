@@ -12,12 +12,15 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
 
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide source = presentation.Slides[slideIndex];
-                var target = new GoogleSlidesSlide(ObjectId("slide", slideIndex, 0), slideIndex);
+                var target = new GoogleSlidesSlide(ObjectId("slide", slideIndex, 0), slideIndex) {
+                    IsSkipped = source.Hidden,
+                };
                 PowerPointSlideBackground background = source.GetBackground();
                 if (background.Kind == PowerPointSlideBackgroundKind.SolidColor) target.BackgroundColorHex = background.Color;
                 if (source.Notes.TryGetExistingText(out string notes)) { target.SpeakerNotes = notes; plan.SpeakerNotesCount++; }
 
-                PowerPointShape[] unsupported = source.Shapes.Where(IsUnsupported).ToArray();
+                PowerPointShape[] visibleShapes = source.Shapes.Where(shape => !shape.Hidden).ToArray();
+                PowerPointShape[] unsupported = visibleShapes.Where(IsUnsupported).ToArray();
                 if (unsupported.Length > 0 && options.ComplexSlides == GoogleSlidesComplexSlideMode.RasterizeComplexSlides) {
                     byte[] bytes = source.ToPng(new PowerPointImageExportOptions { IncludeSlideBackground = true, IncludeHiddenShapes = false });
                     target.IsRasterized = true;
@@ -31,7 +34,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                 }
 
                 int elementIndex = 0;
-                foreach (PowerPointShape shape in source.Shapes.OrderBy(shape => shape.DrawingOrder)) {
+                foreach (PowerPointShape shape in visibleShapes.OrderBy(shape => shape.DrawingOrder)) {
                     string id = ObjectId("element", slideIndex, elementIndex++);
                     switch (shape) {
                         case PowerPointTextBox textBox:
@@ -49,10 +52,20 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             target.Add(new GoogleSlidesTable(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, cells));
                             plan.NativeTableCount++;
                             break;
-                        case PowerPointPicture picture:
+                        case PowerPointPicture picture when IsSupportedSlidesImage(picture):
                             target.Add(new GoogleSlidesImage(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints,
-                                picture.GetImageBytes(), picture.ContentType ?? "image/png", $"picture-{slideIndex + 1}-{elementIndex}.png"));
+                                picture.GetImageBytes(), picture.ContentType ?? "image/png", $"picture-{slideIndex + 1}-{elementIndex}{ImageExtension(picture.ContentType)}"));
                             plan.NativeImageCount++;
+                            break;
+                        case PowerPointPicture picture:
+                            plan.UnsupportedElementCount++;
+                            report.Add(
+                                TranslationSeverity.Warning,
+                                "Images",
+                                $"Skipped image '{picture.Name ?? id}' with content type '{picture.ContentType ?? "unknown"}' because Google Slides createImage accepts PNG, JPEG, or GIF only.",
+                                path: $"slide/{slideIndex + 1}/{picture.Name ?? id}",
+                                code: "SLIDES.IMAGE.FORMAT_SKIPPED",
+                                action: TranslationAction.Skip);
                             break;
                         case PowerPointAutoShape autoShape:
                             target.Add(new GoogleSlidesShape(id, shape.LeftPoints, shape.TopPoints, shape.WidthPoints, shape.HeightPoints, MapShape(autoShape)));
@@ -71,13 +84,28 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             return batch;
         }
 
-        private static bool IsUnsupported(PowerPointShape shape) => shape.ShapeContentType == PowerPointShapeContentType.Chart
+        private static bool IsUnsupported(PowerPointShape shape) => (shape is PowerPointPicture picture && !IsSupportedSlidesImage(picture))
+            || shape.ShapeContentType == PowerPointShapeContentType.Chart
             || shape.ShapeContentType == PowerPointShapeContentType.SmartArt
             || shape.ShapeContentType == PowerPointShapeContentType.Media
             || shape.ShapeContentType == PowerPointShapeContentType.Group
             || shape.ShapeContentType == PowerPointShapeContentType.Connector
             || shape.ShapeContentType == PowerPointShapeContentType.OleObject
             || shape.ShapeContentType == PowerPointShapeContentType.Unknown;
+
+        private static bool IsSupportedSlidesImage(PowerPointPicture picture) {
+            string contentType = picture.ContentType ?? string.Empty;
+            return contentType.Equals("image/png", StringComparison.OrdinalIgnoreCase)
+                || contentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase)
+                || contentType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase)
+                || contentType.Equals("image/gif", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string ImageExtension(string? contentType) => (contentType ?? string.Empty).ToLowerInvariant() switch {
+            "image/jpeg" or "image/jpg" => ".jpg",
+            "image/gif" => ".gif",
+            _ => ".png",
+        };
 
         private static string MapShape(PowerPointAutoShape shape) {
             string name = shape.ShapeType?.ToString() ?? string.Empty;

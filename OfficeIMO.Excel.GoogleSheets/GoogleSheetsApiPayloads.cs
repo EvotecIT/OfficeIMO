@@ -529,8 +529,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     internal sealed class GoogleSheetsApiTableColumnPropertiesPayload {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("columnIndex")]
+        public int ColumnIndex { get; set; }
+
+        [JsonPropertyName("columnName")]
+        public string ColumnName { get; set; } = string.Empty;
 
         [JsonPropertyName("columnType")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

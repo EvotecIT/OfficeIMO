@@ -113,7 +113,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 }
 
                 criteria.Add(new GoogleSheetsFilterColumnCriteria {
-                    ColumnId = filterColumn.ColumnId,
+                    ColumnId = filter.StartColumn + filterColumn.ColumnId - 1,
                     HiddenValues = hiddenValues,
                     Condition = condition,
                 });

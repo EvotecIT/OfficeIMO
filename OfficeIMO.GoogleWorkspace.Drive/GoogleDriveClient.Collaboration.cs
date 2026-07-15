@@ -16,6 +16,11 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         public int PageSize { get; set; } = 100;
         public bool IncludeRemoved { get; set; } = true;
         public bool IncludeCorpusRemovals { get; set; } = true;
+        /// <summary>
+        /// Whether a user change feed should include items from shared drives. Disable this when shared-drive
+        /// feeds are consumed separately to prevent the same shared-drive change from being observed twice.
+        /// </summary>
+        public bool IncludeItemsFromAllDrives { get; set; } = true;
         public string? Fields { get; set; }
     }
 
@@ -222,7 +227,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
                 "pageSize=" + Math.Max(1, Math.Min(1000, options.PageSize)).ToString(System.Globalization.CultureInfo.InvariantCulture),
                 "includeRemoved=" + Bool(options.IncludeRemoved),
                 "includeCorpusRemovals=" + Bool(options.IncludeCorpusRemovals),
-                "includeItemsFromAllDrives=true",
+                "includeItemsFromAllDrives=" + Bool(options.IncludeItemsFromAllDrives),
                 "supportsAllDrives=" + Bool(Options.SupportsAllDrives),
                 "fields=" + Escape(options.Fields ?? $"nextPageToken,newStartPageToken,changes(fileId,removed,changeType,driveId,file({DefaultFileFields}))"),
             };

@@ -77,6 +77,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         public string Name { get; set; } = string.Empty;
+        /// <summary>Original Excel defined name used to resolve source hyperlinks after target-name qualification.</summary>
+        public string SourceName { get; set; } = string.Empty;
         public string? SheetName { get; set; }
         public string A1Range { get; set; } = string.Empty;
     }
@@ -363,7 +365,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     /// <summary>
-    /// Filter criteria for one relative column within a Google Sheets filter range.
+    /// Filter criteria keyed by the absolute zero-based sheet column index required by the Google Sheets API.
     /// </summary>
     public sealed class GoogleSheetsFilterColumnCriteria {
         public int ColumnId { get; set; }

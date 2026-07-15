@@ -109,11 +109,6 @@ namespace OfficeIMO.Word.GoogleDocs {
                     for (int cellIndex = 0; cellIndex < Math.Min(sourceRow.Cells.Count, liveRow.Cells.Count); cellIndex++) {
                         var sourceCell = sourceRow.Cells[cellIndex];
                         var liveCell = liveRow.Cells[cellIndex];
-                        var cellText = BuildCellText(sourceCell);
-                        if (string.IsNullOrWhiteSpace(cellText)) {
-                            continue;
-                        }
-
                         if (!TryGetFirstWritableParagraphIndex(liveCell, out var insertionIndex)) {
                             batch.Report.Add(
                                 TranslationSeverity.Warning,
@@ -131,7 +126,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                             allowFootnotes: true,
                             prepared.Footnotes,
                             allowNamedRanges: true);
-                        if (requests.Count == 0) {
+                        if (!HasMeaningfulCellContentRequests(requests)) {
                             continue;
                         }
 
@@ -180,11 +175,6 @@ namespace OfficeIMO.Word.GoogleDocs {
                     for (int cellIndex = 0; cellIndex < Math.Min(sourceRow.Cells.Count, liveRow.Cells.Count); cellIndex++) {
                         var sourceCell = sourceRow.Cells[cellIndex];
                         var liveCell = liveRow.Cells[cellIndex];
-                        var cellText = BuildCellText(sourceCell);
-                        if (string.IsNullOrWhiteSpace(cellText)) {
-                            continue;
-                        }
-
                         if (!TryGetFirstWritableParagraphIndex(liveCell, out var insertionIndex)) {
                             report.Add(
                                 TranslationSeverity.Warning,
@@ -202,7 +192,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                             allowFootnotes: false,
                             null,
                             allowNamedRanges: true);
-                        if (requests.Count == 0) {
+                        if (!HasMeaningfulCellContentRequests(requests)) {
                             continue;
                         }
 

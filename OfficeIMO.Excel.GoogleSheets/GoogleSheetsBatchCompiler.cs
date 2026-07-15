@@ -198,6 +198,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 }
             }
 
+            var reservedNamedRangeNames = new HashSet<string>(
+                workbookSnapshot.NamedRanges
+                    .Where(namedRange => !namedRange.IsBuiltIn && string.IsNullOrWhiteSpace(namedRange.SheetName))
+                    .Select(namedRange => namedRange.Name),
+                StringComparer.OrdinalIgnoreCase);
             foreach (var namedRange in workbookSnapshot.NamedRanges) {
                 if (namedRange.IsBuiltIn) {
                     if (!builtInNameNoticeAdded) {
@@ -210,8 +215,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     continue;
                 }
 
+                string targetName = string.IsNullOrWhiteSpace(namedRange.SheetName)
+                    ? namedRange.Name
+                    : BuildSheetScopedNamedRangeName(namedRange, reservedNamedRangeNames, report);
                 batch.Add(new GoogleSheetsAddNamedRangeRequest {
-                    Name = namedRange.Name,
+                    Name = targetName,
+                    SourceName = namedRange.Name,
                     SheetName = namedRange.SheetName,
                     A1Range = namedRange.ReferenceA1,
                 });

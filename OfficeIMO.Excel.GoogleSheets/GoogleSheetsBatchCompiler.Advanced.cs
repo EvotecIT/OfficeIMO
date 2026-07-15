@@ -73,7 +73,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     Index = index++,
                     ConditionType = conditionType,
                     Values = values,
-                    Format = BuildConditionalFormat(rule),
+                    Format = BuildConditionalFormat(rule, report, sheet.Name),
                 });
             }
         }
@@ -97,6 +97,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 };
             } else if (type.Equals("Expression", StringComparison.OrdinalIgnoreCase)) {
                 conditionType = "CUSTOM_FORMULA";
+                values = values.Select(value => string.IsNullOrWhiteSpace(value) || value.StartsWith("=", StringComparison.Ordinal)
+                    ? value
+                    : "=" + value).ToArray();
             } else if (type.Equals("ContainsText", StringComparison.OrdinalIgnoreCase)) {
                 conditionType = "TEXT_CONTAINS";
                 values = new[] { rule.Text ?? rule.Formulas?.FirstOrDefault() ?? string.Empty };
@@ -133,16 +136,27 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return (colon >= 0 ? value.Substring(0, colon) : value).Replace("$", string.Empty);
         }
 
-        private static GoogleSheetsCellStyle BuildConditionalFormat(ExcelConditionalFormattingInfo rule) {
+        private static GoogleSheetsCellStyle BuildConditionalFormat(
+            ExcelConditionalFormattingInfo rule,
+            TranslationReport report,
+            string sheetName) {
+            if (rule.DifferentialFontUnderline == true
+                || !string.IsNullOrWhiteSpace(rule.DifferentialFontName)
+                || rule.DifferentialFontSize.HasValue
+                || rule.DifferentialBorder != null) {
+                report.Add(
+                    TranslationSeverity.Info,
+                    "ConditionalFormatting",
+                    $"Conditional-formatting rule on '{sheetName}!{rule.Range}' contains underline, font family/size, or border styling that Google Sheets boolean rules cannot accept; those attributes were omitted.",
+                    code: "SHEETS.CONDITIONAL_FORMAT.STYLE_REDUCED",
+                    action: TranslationAction.Preserve,
+                    targetId: sheetName);
+            }
             return new GoogleSheetsCellStyle {
                 Bold = rule.DifferentialFontBold == true,
                 Italic = rule.DifferentialFontItalic == true,
-                Underline = rule.DifferentialFontUnderline == true,
-                FontName = rule.DifferentialFontName,
-                FontSize = rule.DifferentialFontSize,
                 FontColorArgb = rule.DifferentialFontColorArgb,
                 FillColorArgb = rule.DifferentialFillColorArgb,
-                Borders = BuildBorders(rule.DifferentialBorder),
             };
         }
 
@@ -159,14 +173,32 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     continue;
                 }
 
+                IReadOnlyList<double>? scatterDomain = null;
+                if (chartType == "SCATTER" && !TryGetScatterDomain(snapshot.Data, out scatterDomain)) {
+                    HandleAdvancedUnsupported(
+                        report,
+                        "Charts",
+                        "SHEETS.CHART.SCATTER_X_VALUES_UNSUPPORTED",
+                        snapshot.Name,
+                        policy);
+                    continue;
+                }
+
                 GoogleSheetsUpdateCellsRequest data = GetOrCreateChartDataRequest(batch, out string chartDataSheetName);
                 int startRow = data.Cells.Count == 0 ? 0 : data.Cells.Max(cell => cell.RowIndex) + 2;
-                data.AddCell(new GoogleSheetsCellData { RowIndex = startRow, ColumnIndex = 0, Value = GoogleSheetsCellValue.String("Category") });
+                data.AddCell(new GoogleSheetsCellData { RowIndex = startRow, ColumnIndex = 0, Value = GoogleSheetsCellValue.String(scatterDomain == null ? "Category" : "X") });
                 for (int seriesIndex = 0; seriesIndex < snapshot.Data.Series.Count; seriesIndex++) {
                     data.AddCell(new GoogleSheetsCellData { RowIndex = startRow, ColumnIndex = seriesIndex + 1, Value = GoogleSheetsCellValue.String(snapshot.Data.Series[seriesIndex].Name) });
                 }
-                for (int row = 0; row < snapshot.Data.Categories.Count; row++) {
-                    data.AddCell(new GoogleSheetsCellData { RowIndex = startRow + row + 1, ColumnIndex = 0, Value = GoogleSheetsCellValue.String(snapshot.Data.Categories[row]) });
+                int dataRowCount = scatterDomain?.Count ?? snapshot.Data.Categories.Count;
+                for (int row = 0; row < dataRowCount; row++) {
+                    data.AddCell(new GoogleSheetsCellData {
+                        RowIndex = startRow + row + 1,
+                        ColumnIndex = 0,
+                        Value = scatterDomain == null
+                            ? GoogleSheetsCellValue.String(snapshot.Data.Categories[row])
+                            : GoogleSheetsCellValue.Number(scatterDomain[row]),
+                    });
                     for (int seriesIndex = 0; seriesIndex < snapshot.Data.Series.Count; seriesIndex++) {
                         data.AddCell(new GoogleSheetsCellData { RowIndex = startRow + row + 1, ColumnIndex = seriesIndex + 1, Value = GoogleSheetsCellValue.Number(snapshot.Data.Series[seriesIndex].Values[row]) });
                     }
@@ -178,12 +210,39 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     ChartType = chartType,
                     DataSheetName = chartDataSheetName,
                     DataStartRowIndex = startRow,
-                    DataRowCount = snapshot.Data.Categories.Count + 1,
+                    DataRowCount = dataRowCount + 1,
                     SeriesCount = snapshot.Data.Series.Count,
                     AnchorRowIndex = Math.Max(0, snapshot.RowIndex - 1),
                     AnchorColumnIndex = Math.Max(0, snapshot.ColumnIndex - 1),
                 });
             }
+        }
+
+        private static bool TryGetScatterDomain(ExcelChartData data, out IReadOnlyList<double>? domain) {
+            domain = null;
+            IReadOnlyList<double>? firstExplicit = data.Series.Select(series => series.XValues).FirstOrDefault(values => values != null);
+            if (firstExplicit != null) {
+                if (data.Series.Any(series => series.XValues == null
+                        || series.XValues.Count != firstExplicit.Count
+                        || !series.XValues.SequenceEqual(firstExplicit))) {
+                    return false;
+                }
+                domain = firstExplicit;
+                return true;
+            }
+
+            var parsed = new List<double>(data.Categories.Count);
+            foreach (string category in data.Categories) {
+                if (!double.TryParse(category, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double value)) {
+                    return false;
+                }
+                parsed.Add(value);
+            }
+            if (parsed.Count == 0 || data.Series.Any(series => series.Values.Count != parsed.Count)) {
+                return false;
+            }
+            domain = parsed;
+            return true;
         }
 
         private static GoogleSheetsUpdateCellsRequest GetOrCreateChartDataRequest(

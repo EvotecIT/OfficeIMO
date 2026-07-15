@@ -393,17 +393,17 @@ namespace OfficeIMO.Tests {
                 var basicFilter = Assert.Single(batch.Requests.OfType<GoogleSheetsSetBasicFilterRequest>(), r => r.SheetName == "Summary");
                 Assert.Equal("G1:J4", basicFilter.A1Range);
                 Assert.Equal(4, basicFilter.Criteria.Count);
-                var basicFilterValueCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 0);
+                var basicFilterValueCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 6);
                 Assert.Equal(new[] { "Closed" }, basicFilterValueCriteria.HiddenValues);
-                var basicFilterContainsCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 1);
+                var basicFilterContainsCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 7);
                 Assert.NotNull(basicFilterContainsCriteria.Condition);
                 Assert.Equal("TEXT_CONTAINS", basicFilterContainsCriteria.Condition!.Type);
                 Assert.Equal(new[] { "or" }, basicFilterContainsCriteria.Condition.Values);
-                var basicFilterNumericCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 2);
+                var basicFilterNumericCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 8);
                 Assert.NotNull(basicFilterNumericCriteria.Condition);
                 Assert.Equal("NUMBER_GREATER_THAN_EQ", basicFilterNumericCriteria.Condition!.Type);
                 Assert.Equal(new[] { "15" }, basicFilterNumericCriteria.Condition.Values);
-                var basicFilterBetweenCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 3);
+                var basicFilterBetweenCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 9);
                 Assert.NotNull(basicFilterBetweenCriteria.Condition);
                 Assert.Equal("NUMBER_BETWEEN", basicFilterBetweenCriteria.Condition!.Type);
                 Assert.Equal(new[] { "10", "20" }, basicFilterBetweenCriteria.Condition.Values);
@@ -421,7 +421,7 @@ namespace OfficeIMO.Tests {
                 var namedRanges = batch.Requests.OfType<GoogleSheetsAddNamedRangeRequest>().ToList();
                 Assert.Equal(2, namedRanges.Count);
                 Assert.Contains(namedRanges, r => r.Name == "GlobalData" && r.SheetName == null && r.A1Range == "'Summary'!$A$1:$B$2");
-                Assert.Contains(namedRanges, r => r.Name == "LocalData" && r.SheetName == "Summary" && r.A1Range == "'Summary'!$A$2:$B$2");
+                Assert.Contains(namedRanges, r => r.Name == "Summary_LocalData" && r.SourceName == "LocalData" && r.SheetName == "Summary" && r.A1Range == "'Summary'!$A$2:$B$2");
                 Assert.Contains(batch.Report.Notices, n => n.Feature == "SheetProtection");
                 Assert.Contains(batch.Report.Notices, n => n.Feature == "SheetProtectionPermissions");
                 Assert.Contains(batch.Report.Notices, n => n.Feature == "TableTotals");
@@ -666,7 +666,7 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 var apiTableRequest = Assert.Single(payload.Requests, r => r.AddTable != null);
-                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.Name == "Status");
+                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.ColumnName == "Status");
                 Assert.Equal("DROPDOWN", apiStatusColumn.ColumnType);
                 Assert.NotNull(apiStatusColumn.DataValidationRule);
                 Assert.Equal("ONE_OF_LIST", apiStatusColumn.DataValidationRule!.Condition.Type);
@@ -727,7 +727,7 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 var apiTableRequest = Assert.Single(payload.Requests, r => r.AddTable != null);
-                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.Name == "Status");
+                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.ColumnName == "Status");
                 Assert.Equal("DROPDOWN", apiStatusColumn.ColumnType);
                 Assert.NotNull(apiStatusColumn.DataValidationRule);
                 Assert.Equal("ONE_OF_LIST", apiStatusColumn.DataValidationRule!.Condition.Type);
@@ -785,7 +785,7 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 var apiTableRequest = Assert.Single(payload.Requests, r => r.AddTable != null);
-                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.Name == "Status");
+                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.ColumnName == "Status");
                 Assert.Equal("DROPDOWN", apiStatusColumn.ColumnType);
                 Assert.NotNull(apiStatusColumn.DataValidationRule);
                 Assert.Equal("ONE_OF_LIST", apiStatusColumn.DataValidationRule!.Condition.Type);
@@ -842,7 +842,7 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 var apiTableRequest = Assert.Single(payload.Requests, r => r.AddTable != null);
-                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.Name == "Status");
+                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.ColumnName == "Status");
                 Assert.Equal("DROPDOWN", apiStatusColumn.ColumnType);
                 Assert.NotNull(apiStatusColumn.DataValidationRule);
                 Assert.Equal("ONE_OF_LIST", apiStatusColumn.DataValidationRule!.Condition.Type);
@@ -1296,13 +1296,13 @@ namespace OfficeIMO.Tests {
                 var basicFilterRequest = Assert.Single(batchPayload.Requests, r => r.SetBasicFilter != null);
                 Assert.Equal(1, basicFilterRequest.SetBasicFilter!.Filter.Range.SheetId);
                 Assert.Equal(6, basicFilterRequest.SetBasicFilter.Filter.Range.StartColumnIndex);
-                Assert.Contains("Closed", basicFilterRequest.SetBasicFilter.Filter.Criteria!["0"].HiddenValues!);
-                Assert.Equal("TEXT_CONTAINS", basicFilterRequest.SetBasicFilter.Filter.Criteria["1"].Condition!.Type);
-                Assert.Equal("or", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["1"].Condition!.Values!).UserEnteredValue);
-                Assert.Equal("NUMBER_GREATER_THAN_EQ", basicFilterRequest.SetBasicFilter.Filter.Criteria["2"].Condition!.Type);
-                Assert.Equal("15", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["2"].Condition!.Values!).UserEnteredValue);
-                Assert.Equal("NUMBER_BETWEEN", basicFilterRequest.SetBasicFilter.Filter.Criteria["3"].Condition!.Type);
-                Assert.Equal(new[] { "10", "20" }, basicFilterRequest.SetBasicFilter.Filter.Criteria["3"].Condition!.Values!.Select(v => v.UserEnteredValue).ToArray());
+                Assert.Contains("Closed", basicFilterRequest.SetBasicFilter.Filter.Criteria!["6"].HiddenValues!);
+                Assert.Equal("TEXT_CONTAINS", basicFilterRequest.SetBasicFilter.Filter.Criteria["7"].Condition!.Type);
+                Assert.Equal("or", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["7"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("NUMBER_GREATER_THAN_EQ", basicFilterRequest.SetBasicFilter.Filter.Criteria["8"].Condition!.Type);
+                Assert.Equal("15", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["8"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("NUMBER_BETWEEN", basicFilterRequest.SetBasicFilter.Filter.Criteria["9"].Condition!.Type);
+                Assert.Equal(new[] { "10", "20" }, basicFilterRequest.SetBasicFilter.Filter.Criteria["9"].Condition!.Values!.Select(v => v.UserEnteredValue).ToArray());
 
                 var filterViewRequest = Assert.Single(batchPayload.Requests, r => r.AddFilterView != null);
                 Assert.Equal("SummaryTable Filter", filterViewRequest.AddFilterView!.Filter.Title);
@@ -1317,8 +1317,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(footerColor.Red > 0.84d);
                 Assert.True(footerColor.Green > 0.91d);
                 Assert.True(footerColor.Blue > 0.82d);
-                Assert.Equal("Name", tableRequest.AddTable.Table.ColumnProperties![0].Name);
+                Assert.Equal(0, tableRequest.AddTable.Table.ColumnProperties![0].ColumnIndex);
+                Assert.Equal("Name", tableRequest.AddTable.Table.ColumnProperties[0].ColumnName);
+                Assert.Equal(1, tableRequest.AddTable.Table.ColumnProperties[1].ColumnIndex);
                 Assert.Equal("PERCENT", tableRequest.AddTable.Table.ColumnProperties[1].ColumnType);
+                string serializedBatchPayload = JsonSerializer.Serialize(batchPayload);
+                Assert.Contains("\"columnIndex\":0", serializedBatchPayload, StringComparison.Ordinal);
+                Assert.Contains("\"columnName\":\"Name\"", serializedBatchPayload, StringComparison.Ordinal);
 
                 var protectedRange = Assert.Single(batchPayload.Requests, r => r.AddProtectedRange != null);
                 Assert.Equal(1, protectedRange.AddProtectedRange!.ProtectedRange.Range.SheetId);

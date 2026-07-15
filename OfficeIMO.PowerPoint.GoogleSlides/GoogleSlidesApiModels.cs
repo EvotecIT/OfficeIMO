@@ -27,6 +27,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     }
 
     internal sealed class GoogleSlidesApiSlideProperties {
+        [JsonPropertyName("isSkipped")] public bool IsSkipped { get; set; }
         [JsonPropertyName("notesPage")] public GoogleSlidesApiPage? NotesPage { get; set; }
     }
 

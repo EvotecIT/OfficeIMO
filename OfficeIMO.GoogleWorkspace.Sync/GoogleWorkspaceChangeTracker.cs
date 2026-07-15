@@ -77,6 +77,7 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
             var sources = new List<GoogleWorkspaceChangeSource> { new GoogleWorkspaceChangeSource(GoogleWorkspaceChangeSourceKind.User, null) };
             sources.AddRange(NormalizeDriveIds(checkpoint.SharedDriveChangeTokens.Keys.Concat(options.SharedDriveIds))
                 .Select(id => new GoogleWorkspaceChangeSource(GoogleWorkspaceChangeSourceKind.SharedDrive, id)));
+            bool readsSharedDriveFeeds = sources.Any(source => source.Kind == GoogleWorkspaceChangeSourceKind.SharedDrive);
 
             foreach (GoogleWorkspaceChangeSource source in sources) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -99,6 +100,7 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
                             PageSize = options.PageSize,
                             IncludeRemoved = options.IncludeRemoved,
                             IncludeCorpusRemovals = options.IncludeCorpusRemovals,
+                            IncludeItemsFromAllDrives = source.Kind == GoogleWorkspaceChangeSourceKind.SharedDrive || !readsSharedDriveFeeds,
                         }, report, cancellationToken).ConfigureAwait(false);
                         sourceChanges.AddRange(response.Changes.Select(change => new GoogleWorkspaceTrackedChange(source, change)));
                         if (!string.IsNullOrWhiteSpace(response.NextPageToken)) {

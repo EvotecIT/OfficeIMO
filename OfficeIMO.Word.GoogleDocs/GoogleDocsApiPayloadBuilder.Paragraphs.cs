@@ -162,6 +162,17 @@ namespace OfficeIMO.Word.GoogleDocs {
                 });
             }
 
+            if (paragraph.StartsNewSectionBefore && segmentId == null && allowStructuralBreaks) {
+                payload.Requests.Add(new GoogleDocsApiRequestPayload {
+                    InsertSectionBreak = new GoogleDocsApiInsertSectionBreakRequestPayload {
+                        SectionType = ResolveSectionBreakType(paragraph.SectionBreakType, report),
+                        Location = new GoogleDocsApiLocationPayload {
+                            Index = insertionIndex,
+                        }
+                    }
+                });
+            }
+
             AppendSectionStyleRequest(
                 payload,
                 insertionIndex,
@@ -268,17 +279,6 @@ namespace OfficeIMO.Word.GoogleDocs {
                     TranslationSeverity.Warning,
                     segmentId == null ? "Tables" : "HeadersAndFooters",
                     "PageBreakBefore inside a table cell is ignored in the current Google Docs slice because insertPageBreak is only emitted for top-level document flow.");
-            }
-
-            if (paragraph.StartsNewSectionBefore && segmentId == null && allowStructuralBreaks) {
-                payload.Requests.Add(new GoogleDocsApiRequestPayload {
-                    InsertSectionBreak = new GoogleDocsApiInsertSectionBreakRequestPayload {
-                        SectionType = ResolveSectionBreakType(paragraph.SectionBreakType, report),
-                        Location = new GoogleDocsApiLocationPayload {
-                            Index = insertionIndex,
-                        }
-                    }
-                });
             }
 
             if (paragraph.StartsNewSectionBefore && segmentId != null) {

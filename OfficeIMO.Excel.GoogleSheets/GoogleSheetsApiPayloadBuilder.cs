@@ -273,7 +273,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                                     Range = tableRange,
                                     RowsProperties = BuildTableRowsProperties(table),
                                     ColumnProperties = table.Columns.Select(column => new GoogleSheetsApiTableColumnPropertiesPayload {
-                                        Name = column.Name,
+                                        ColumnIndex = column.ColumnIndex,
+                                        ColumnName = column.Name,
                                         ColumnType = column.ColumnType,
                                         DataValidationRule = BuildDataValidationRule(column.DataValidationRule),
                                     }).ToList(),

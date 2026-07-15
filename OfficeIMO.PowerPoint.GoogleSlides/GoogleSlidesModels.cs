@@ -63,6 +63,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         public int Index { get; }
         public string? BackgroundColorHex { get; internal set; }
         public string? SpeakerNotes { get; internal set; }
+        /// <summary>Whether the source slide is hidden and should be skipped during presentation playback.</summary>
+        public bool IsSkipped { get; internal set; }
         public bool IsRasterized { get; internal set; }
         public IReadOnlyList<GoogleSlidesElement> Elements => _elements;
         internal void Add(GoogleSlidesElement element) => _elements.Add(element);

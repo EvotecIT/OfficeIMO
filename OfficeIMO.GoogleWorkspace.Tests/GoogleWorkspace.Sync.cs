@@ -14,8 +14,10 @@ namespace OfficeIMO.Tests {
     public sealed class GoogleWorkspaceSyncTests {
         [Fact]
         public async Task ChangeTracker_ConsumesEveryPageForUserAndSharedDrive() {
+            var changeUris = new List<string>();
             using var httpClient = new HttpClient(new FakeHandler(request => {
                 string uri = request.RequestUri!.AbsoluteUri;
+                if (uri.Contains("/changes?", StringComparison.Ordinal)) changeUris.Add(uri);
                 if (uri.Contains("startPageToken", StringComparison.Ordinal) && uri.Contains("driveId=drive-a", StringComparison.Ordinal)) return Task.FromResult(Json("{\"startPageToken\":\"drive-start\"}"));
                 if (uri.Contains("startPageToken", StringComparison.Ordinal)) return Task.FromResult(Json("{\"startPageToken\":\"user-start\"}"));
                 if (uri.Contains("pageToken=user-start", StringComparison.Ordinal)) return Task.FromResult(Json("{\"changes\":[{\"fileId\":\"user-1\"}],\"nextPageToken\":\"user-page-2\"}"));
@@ -36,6 +38,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("drive-next", result.NextCheckpoint.SharedDriveChangeTokens["drive-a"]);
             Assert.Equal("user-start", checkpoint.UserChangeToken);
             Assert.Equal("drive-start", checkpoint.SharedDriveChangeTokens["drive-a"]);
+            Assert.All(changeUris.Where(uri => !uri.Contains("driveId=drive-a", StringComparison.Ordinal)),
+                uri => Assert.Contains("includeItemsFromAllDrives=false", uri, StringComparison.Ordinal));
+            Assert.All(changeUris.Where(uri => uri.Contains("driveId=drive-a", StringComparison.Ordinal)),
+                uri => Assert.Contains("includeItemsFromAllDrives=true", uri, StringComparison.Ordinal));
         }
 
         [Fact]

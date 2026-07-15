@@ -834,6 +834,11 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
                 var sectionBreakRequest = Assert.Single(payload.Requests, request => request.InsertSectionBreak != null);
+                var sectionBreakIndex = payload.Requests.IndexOf(sectionBreakRequest);
+                var secondSectionStyleIndex = payload.Requests.FindIndex(request =>
+                    request.UpdateSectionStyle?.Range.StartIndex == sectionBreakRequest.InsertSectionBreak!.Location.Index
+                    && request.UpdateSectionStyle.SectionStyle.PageSize != null);
+                Assert.True(secondSectionStyleIndex > sectionBreakIndex);
                 Assert.Equal("NEXT_PAGE", sectionBreakRequest.InsertSectionBreak!.SectionType);
                 Assert.Equal(1, sectionBreakRequest.InsertSectionBreak.Location.Index);
                 Assert.Contains(batch.Report.Notices, notice => notice.Feature == "SectionBreaks");
@@ -1265,7 +1270,7 @@ namespace OfficeIMO.Tests {
                     request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image:batchUpdate"
                     && request.Body != null
                     && request.Body.Contains("\"insertInlineImage\"", StringComparison.Ordinal));
-                Assert.Contains("\"text\":\"Cell \\n\"", tableBatchRequest.Body!);
+                Assert.Contains("\"text\":\"\\n\"", tableBatchRequest.Body!);
                 Assert.Contains("\"insertInlineImage\"", tableBatchRequest.Body!);
                 var tableStyleBatchRequest = recordedRequests.Single(request =>
                     request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image:batchUpdate"
@@ -3891,7 +3896,6 @@ namespace OfficeIMO.Tests {
 
             var table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             var paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-            paragraph.Text = "Cell ";
             var image = paragraph.InsertImage(imagePath, width: 1, height: 1, description: "CellLogo");
             image.Title = "CellBrand";
 

@@ -189,6 +189,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("next-start", changes.NewStartPageToken);
             Assert.Contains(uris, uri => uri.Contains("fields=id,content,anchor,resolved", StringComparison.Ordinal));
             Assert.Contains(uris, uri => uri.Contains("driveId=drive-1", StringComparison.Ordinal));
+            Assert.Contains(uris, uri => uri.Contains("includeItemsFromAllDrives=true", StringComparison.Ordinal));
             Assert.Contains(report.Notices, notice => notice.Code == "DRIVE.COMMENT.EDITOR_ANCHOR_UNAVAILABLE");
         }
 

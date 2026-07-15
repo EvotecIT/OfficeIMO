@@ -15,7 +15,10 @@ namespace OfficeIMO.Tests {
         public void BatchCompiler_MapsEditableCoreAndDeterministicIds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
+            slide.Hidden = true;
             slide.AddTextBoxPoints("Hello Slides", 20, 30, 300, 80).Paragraphs[0].Runs[0].Bold = true;
+            PowerPointTextBox hiddenText = slide.AddTextBoxPoints("Hidden shape", 20, 110, 300, 40);
+            hiddenText.Hidden = true;
             PowerPointTable table = slide.AddTablePoints(2, 2, 40, 140, 400, 160);
             table.RowItems[0].Cells[0].Text = "A1";
             slide.Notes.Text = "Speaker note";
@@ -24,7 +27,9 @@ namespace OfficeIMO.Tests {
 
             Assert.Single(batch.Slides);
             Assert.Equal("officeimo_slide_0001_0001", batch.Slides[0].ObjectId);
+            Assert.True(batch.Slides[0].IsSkipped);
             Assert.Contains(batch.Slides[0].Elements, element => element is GoogleSlidesTextBox text && text.Text == "Hello Slides" && text.Bold);
+            Assert.DoesNotContain(batch.Slides[0].Elements, element => element is GoogleSlidesTextBox text && text.Text == "Hidden shape");
             Assert.Contains(batch.Slides[0].Elements, element => element is GoogleSlidesTable grid && grid.Cells[0][0] == "A1");
             Assert.Equal("Speaker note", batch.Slides[0].SpeakerNotes);
             Assert.Equal(1, batch.Plan.NativeTextBoxCount);
@@ -32,9 +37,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void BatchCompiler_DoesNotSendUnsupportedNativeImageFormats() {
+            string svgPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".svg");
+            try {
+                File.WriteAllText(svgPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"2\" height=\"2\"><rect width=\"2\" height=\"2\"/></svg>");
+                using PowerPointPresentation presentation = PowerPointPresentation.Create();
+                presentation.AddSlide().AddPicture(svgPath, left: 0, top: 0, width: 1000, height: 1000);
+
+                GoogleSlidesBatch batch = presentation.BuildGoogleSlidesBatch(new GoogleSlidesSaveOptions {
+                    ComplexSlides = GoogleSlidesComplexSlideMode.PreferNativeAndReport,
+                });
+
+                Assert.Empty(Assert.Single(batch.Slides).Elements.OfType<GoogleSlidesImage>());
+                Assert.Contains(batch.Plan.Report.Notices, notice => notice.Code == "SLIDES.IMAGE.FORMAT_SKIPPED");
+            } finally {
+                if (File.Exists(svgPath)) File.Delete(svgPath);
+            }
+        }
+
+        [Fact]
         public async Task Exporter_CreatesAndReplacesInitialSlideWithRevisionGuard() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
-            presentation.AddSlide().AddTextBoxPoints("Hello Slides", 20, 30, 300, 80);
+            PowerPointSlide authoredSlide = presentation.AddSlide();
+            authoredSlide.Hidden = true;
+            authoredSlide.AddTextBoxPoints("Hello Slides", 20, 30, 300, 80);
             var batchBodies = new List<string>();
             using var httpClient = new HttpClient(new DelegateHandler(async request => {
                 string uri = request.RequestUri!.AbsoluteUri;
@@ -54,6 +80,7 @@ namespace OfficeIMO.Tests {
             string body = Assert.Single(batchBodies);
             Assert.Contains("\"deleteObject\":{\"objectId\":\"initial-slide\"}", body);
             Assert.Contains("\"createSlide\"", body);
+            Assert.Contains("\"slideProperties\":{\"isSkipped\":true},\"fields\":\"isSkipped\"", body);
             Assert.Contains("\"createShape\"", body);
             Assert.Contains("Hello Slides", body);
             Assert.Contains("\"requiredRevisionId\":\"revision-1\"", body);
@@ -179,13 +206,14 @@ namespace OfficeIMO.Tests {
         public async Task NativeImporter_ProjectsTextTableAndNotesWhenDriveExportIsDisabled() {
             using var httpClient = new HttpClient(new DelegateHandler(request => {
                 if (request.RequestUri!.Host == "www.googleapis.com") return Task.FromResult(Json("{\"id\":\"deck-import\",\"name\":\"Import\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"version\":4,\"capabilities\":{\"canDownload\":false}}"));
-                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\",\"style\":{\"bold\":true}}}]}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\"}}]}}]}]}}],\"slideProperties\":{\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\"}}]}}}]}}}]}";
+                const string slides = "{\"presentationId\":\"deck-import\",\"title\":\"Import\",\"revisionId\":\"r4\",\"pageSize\":{\"width\":{\"magnitude\":720,\"unit\":\"PT\"},\"height\":{\"magnitude\":405,\"unit\":\"PT\"}},\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"text-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":80,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"TEXT_BOX\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported text\",\"style\":{\"bold\":true}}}]}}},{\"objectId\":\"table-1\",\"size\":{\"width\":{\"magnitude\":300,\"unit\":\"PT\"},\"height\":{\"magnitude\":100,\"unit\":\"PT\"}},\"transform\":{\"translateX\":30,\"translateY\":130,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Cell\"}}]}}]}]}}],\"slideProperties\":{\"isSkipped\":true,\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Imported notes\"}}]}}}]}}}]}";
                 return Task.FromResult(Json(slides));
             }));
 
             GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync("deck-import", Session(httpClient), new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
             using (imported.Presentation) {
                 PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
+                Assert.True(slide.Hidden);
                 Assert.Contains(slide.TextBoxes, text => text.Text == "Imported text");
                 Assert.Equal("Cell", Assert.Single(slide.Tables).RowItems[0].Cells[0].Text);
                 Assert.Equal("Imported notes", slide.Notes.Text);

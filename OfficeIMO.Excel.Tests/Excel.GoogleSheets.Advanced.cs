@@ -33,6 +33,67 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsBatch_NormalizesExpressionRulesAndDropsRejectedStyles() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsConditionalExpression.xlsx");
+            try {
+                using (var document = ExcelDocument.Create(path)) {
+                    ExcelSheet sheet = document.AddWorksheet("Data");
+                    sheet.CellValue(2, 1, 12);
+                    sheet.AddConditionalRule("A2:A5", ConditionalFormattingOperatorValues.GreaterThan, "10", fillColor: "FFC6EFCE");
+                    document.Save();
+                }
+
+                using (SpreadsheetDocument package = SpreadsheetDocument.Open(path, true)) {
+                    WorksheetPart worksheetPart = package.WorkbookPart!.WorksheetParts.Single();
+                    ConditionalFormattingRule rule = worksheetPart.Worksheet.Descendants<ConditionalFormattingRule>().Single();
+                    rule.Type = ConditionalFormatValues.Expression;
+                    rule.Operator = null;
+                    rule.Elements<Formula>().Single().Text = "A2>10";
+
+                    Stylesheet stylesheet = package.WorkbookPart.WorkbookStylesPart!.Stylesheet!;
+                    DifferentialFormat differential = stylesheet.DifferentialFormats!.Elements<DifferentialFormat>()
+                        .ElementAt((int)(rule.FormatId?.Value ?? 0));
+                    differential.Font = new Font(
+                        new FontName { Val = "Aptos" },
+                        new Bold(),
+                        new Italic(),
+                        new DocumentFormat.OpenXml.Spreadsheet.Color { Rgb = "FF112233" },
+                        new FontSize { Val = 14D },
+                        new Underline());
+                    differential.Border = new Border(new LeftBorder { Style = BorderStyleValues.Thin });
+                    stylesheet.Save();
+                    worksheetPart.Worksheet.Save();
+                }
+
+                using var reloaded = ExcelDocument.Load(path);
+                GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(reloaded);
+                GoogleSheetsAddConditionalFormatRuleRequest conditional = Assert.Single(batch.Requests.OfType<GoogleSheetsAddConditionalFormatRuleRequest>());
+
+                Assert.Equal("CUSTOM_FORMULA", conditional.ConditionType);
+                Assert.Equal("=A2>10", Assert.Single(conditional.Values));
+                Assert.True(conditional.Format!.Bold);
+                Assert.True(conditional.Format.Italic);
+                Assert.False(conditional.Format.Underline);
+                Assert.Null(conditional.Format.FontName);
+                Assert.Null(conditional.Format.FontSize);
+                Assert.Null(conditional.Format.Borders);
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "SHEETS.CONDITIONAL_FORMAT.STYLE_REDUCED");
+
+                GoogleSheetsApiBatchUpdatePayload payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
+                    batch,
+                    GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
+                GoogleSheetsApiCellFormatPayload format = Assert.Single(payload.Requests, request => request.AddConditionalFormatRule != null)
+                    .AddConditionalFormatRule!.Rule.BooleanRule.Format;
+                Assert.Null(format.Borders);
+                Assert.Null(format.TextFormat!.Underline);
+                Assert.Null(format.TextFormat.FontFamily);
+                Assert.Null(format.TextFormat.FontSize);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleSheetsBatch_CompilesSupportedChartThroughHiddenDataRange() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsChart.xlsx");
             try {
@@ -52,6 +113,90 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("_OfficeIMO_ChartData", chart.DataSheetName);
                 Assert.Contains(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == chart.DataSheetName && request.Hidden);
                 Assert.DoesNotContain(batch.Report.Notices, notice => notice.Code == "SHEETS.CHART.UNSUPPORTED");
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsBatch_UsesExplicitScatterXValues() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScatter.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                sheet.AddChart(
+                    new ExcelChartData(
+                        Array.Empty<string>(),
+                        new[] { new ExcelChartSeries("Points", new[] { 10D, 20D }, new[] { 1D, 4D }, ExcelChartType.Scatter) }),
+                    row: 2,
+                    column: 4,
+                    type: ExcelChartType.Scatter,
+                    title: "Scatter");
+
+                GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
+
+                GoogleSheetsAddChartRequest chart = Assert.Single(batch.Requests.OfType<GoogleSheetsAddChartRequest>());
+                Assert.Equal("SCATTER", chart.ChartType);
+                Assert.Equal(3, chart.DataRowCount);
+                GoogleSheetsUpdateCellsRequest chartData = Assert.Single(
+                    batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>(),
+                    request => request.SheetName == chart.DataSheetName);
+                Assert.Equal(new[] { 1D, 4D }, chartData.Cells
+                    .Where(cell => cell.ColumnIndex == 0 && cell.RowIndex > chart.DataStartRowIndex)
+                    .OrderBy(cell => cell.RowIndex)
+                    .Select(cell => Assert.IsType<double>(cell.Value.Value))
+                    .ToArray());
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsBatch_SkipsScatterSeriesWithDifferentXDomains() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScatterDifferentDomains.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                sheet.AddChart(
+                    new ExcelChartData(
+                        Array.Empty<string>(),
+                        new[] {
+                            new ExcelChartSeries("First", new[] { 10D, 20D }, new[] { 1D, 4D }, ExcelChartType.Scatter),
+                            new ExcelChartSeries("Second", new[] { 30D, 40D }, new[] { 2D, 8D }, ExcelChartType.Scatter),
+                        }),
+                    row: 2,
+                    column: 4,
+                    type: ExcelChartType.Scatter,
+                    title: "Different domains");
+
+                GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
+
+                Assert.Empty(batch.Requests.OfType<GoogleSheetsAddChartRequest>());
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "SHEETS.CHART.SCATTER_X_VALUES_UNSUPPORTED");
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsBatch_QualifiesSheetScopedNamedRanges() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsNamedRangeScopes.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet north = document.AddWorksheet("North");
+                ExcelSheet south = document.AddWorksheet("South");
+                north.SetNamedRange("LocalData", "A1:A2", save: false);
+                south.SetNamedRange("LocalData", "B1:B2", save: false);
+                document.SetNamedRange("North_LocalData", "'North'!C1:C2", save: false);
+
+                GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
+                GoogleSheetsAddNamedRangeRequest[] names = batch.Requests.OfType<GoogleSheetsAddNamedRangeRequest>().ToArray();
+
+                Assert.Equal(3, names.Select(name => name.Name).Distinct(StringComparer.OrdinalIgnoreCase).Count());
+                Assert.Contains(names, name => name.SheetName == null && name.Name == "North_LocalData");
+                Assert.Contains(names, name => name.SheetName == "North" && name.SourceName == "LocalData" && name.Name == "North_LocalData_2");
+                Assert.Contains(names, name => name.SheetName == "South" && name.SourceName == "LocalData" && name.Name == "South_LocalData");
+                Assert.Equal(2, batch.Report.Notices.Count(notice => notice.Code == "SHEETS.NAMED_RANGE.QUALIFIED"));
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }
