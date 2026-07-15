@@ -80,6 +80,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Location = location;
         }
 
+        internal void ApplyExtension(string? screenTip, uint flags) {
+            ScreenTip = screenTip;
+            ExtensionFlags = flags;
+        }
+
         /// <summary>Gets the identifier referenced by InteractiveInfoAtom records.</summary>
         public uint Id { get; }
 
@@ -91,6 +96,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the location within the destination, when present.</summary>
         public string? Location { get; }
+
+        /// <summary>Gets the PowerPoint 2000+ screen tip, when present.</summary>
+        public string? ScreenTip { get; private set; }
+
+        /// <summary>Gets the raw PowerPoint 2000+ hyperlink flags.</summary>
+        public uint ExtensionFlags { get; private set; }
+
+        /// <summary>Gets whether the hyperlink was created through the Insert Hyperlink dialog.</summary>
+        public bool WasCreatedByInsertHyperlinkDialog => (ExtensionFlags & 0x01U) != 0;
+
+        /// <summary>Gets whether the location identifies a named custom show.</summary>
+        public bool LocationIsNamedShow => (ExtensionFlags & 0x02U) != 0;
+
+        /// <summary>Gets whether a named custom show returns to the invoking slide.</summary>
+        public bool ReturnsToSlideAfterCustomShow => (ExtensionFlags & 0x04U) != 0;
 
         /// <summary>Gets a combined URI when the target can be represented as one.</summary>
         public Uri? Uri {

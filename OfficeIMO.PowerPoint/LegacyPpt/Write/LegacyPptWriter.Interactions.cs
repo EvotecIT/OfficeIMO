@@ -147,21 +147,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (hyperlink.ChildElements.Count > 0
                 || hyperlink.GetAttributes().Any(attribute =>
                     !string.Equals(attribute.LocalName, "id", StringComparison.Ordinal)
-                    && !string.Equals(attribute.LocalName, "action", StringComparison.Ordinal))) {
-                reason = "Hyperlink screen tips, target frames, history/highlight flags, sounds, and extension data are not encoded yet.";
+                    && !string.Equals(attribute.LocalName, "action", StringComparison.Ordinal)
+                    && !string.Equals(attribute.LocalName, "tooltip", StringComparison.Ordinal))) {
+                reason = "Hyperlink target frames, history/highlight flags, sounds, and extension data are not encoded yet.";
                 return false;
             }
             string? relationshipId;
             string? action;
+            string? screenTip;
             if (hyperlink is A.HyperlinkOnClick click) {
                 relationshipId = click.Id?.Value;
                 action = click.Action?.Value;
+                screenTip = click.Tooltip?.Value;
             } else if (hyperlink is A.HyperlinkOnMouseOver hover) {
                 relationshipId = hover.Id?.Value;
                 action = hover.Action?.Value;
+                screenTip = hover.Tooltip?.Value;
             } else if (hyperlink is A.HyperlinkOnHover shapeHover) {
                 relationshipId = shapeHover.Id?.Value;
                 action = shapeHover.Action?.Value;
+                screenTip = shapeHover.Tooltip?.Value;
             } else {
                 reason = $"Unsupported DrawingML interaction element {hyperlink.LocalName}.";
                 return false;
@@ -179,7 +184,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     reason = $"Hyperlink relationship '{relationshipId}' is missing or is not external.";
                     return false;
                 }
-                LegacyPptWriterHyperlink target = catalog.GetOrAdd(relationship.Uri);
+                LegacyPptWriterHyperlink target = catalog.GetOrAdd(relationship.Uri,
+                    screenTip);
                 interaction = new LegacyPptWriterInteraction(trigger,
                     LegacyPptInteractionAction.Hyperlink, LegacyPptInteractionJump.None,
                     MapHyperlinkType(relationship.Uri), target.Id);
@@ -190,6 +196,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = string.IsNullOrEmpty(action)
                     ? "A DrawingML hyperlink has neither a relationship target nor a supported action."
                     : $"DrawingML action '{action}' is not representable by the current binary action writer.";
+                return false;
+            }
+            if (screenTip != null) {
+                reason = "Screen tips on built-in slide-show jump actions have no binary hyperlink target.";
                 return false;
             }
             interaction = new LegacyPptWriterInteraction(trigger,
@@ -311,14 +321,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal LegacyPptWriterHyperlink? FindHyperlink(uint id) =>
                 _hyperlinks.FirstOrDefault(link => link.Id == id);
 
-            internal LegacyPptWriterHyperlink GetOrAdd(Uri uri) {
+            internal LegacyPptWriterHyperlink GetOrAdd(Uri uri, string? screenTip) {
                 string target = uri.OriginalString;
-                if (_hyperlinksByTarget.TryGetValue(target,
+                string key = CreateHyperlinkKey(target, screenTip);
+                if (_hyperlinksByTarget.TryGetValue(key,
                         out LegacyPptWriterHyperlink? existing)) return existing;
                 var created = new LegacyPptWriterHyperlink(
-                    checked((uint)_hyperlinks.Count + 1U), target);
+                    checked((uint)_hyperlinks.Count + 1U), target, screenTip);
                 _hyperlinks.Add(created);
-                _hyperlinksByTarget.Add(target, created);
+                _hyperlinksByTarget.Add(key, created);
                 return created;
             }
 
@@ -377,14 +388,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal sealed class LegacyPptWriterHyperlink {
-            internal LegacyPptWriterHyperlink(uint id, string target) {
+            internal LegacyPptWriterHyperlink(uint id, string target,
+                string? screenTip = null, uint extensionFlags = 0) {
                 Id = id;
                 Target = target;
+                ScreenTip = screenTip;
+                ExtensionFlags = extensionFlags;
             }
 
             internal uint Id { get; }
             internal string Target { get; }
+            internal string? ScreenTip { get; }
+            internal uint ExtensionFlags { get; }
         }
+
+        internal static string CreateHyperlinkKey(string target, string? screenTip) =>
+            target + "\0" + (screenTip == null ? "-" : screenTip.Length + ":" + screenTip);
 
         private sealed class ReferenceComparer : IEqualityComparer<OpenXmlElement> {
             internal static ReferenceComparer Instance { get; } = new();

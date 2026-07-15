@@ -40,9 +40,18 @@ namespace OfficeIMO.PowerPoint {
                     isExternal: true);
                 return interaction.Trigger == LegacyPptInteractionTrigger.MouseOver
                     ? new OpenXmlElement[] { shapeLevel
-                        ? new A.HyperlinkOnHover { Id = relationship.Id }
-                        : new A.HyperlinkOnMouseOver { Id = relationship.Id } }
-                    : new OpenXmlElement[] { new A.HyperlinkOnClick { Id = relationship.Id } };
+                        ? new A.HyperlinkOnHover {
+                            Id = relationship.Id,
+                            Tooltip = interaction.Hyperlink.ScreenTip
+                        }
+                        : new A.HyperlinkOnMouseOver {
+                            Id = relationship.Id,
+                            Tooltip = interaction.Hyperlink.ScreenTip
+                        } }
+                    : new OpenXmlElement[] { new A.HyperlinkOnClick {
+                        Id = relationship.Id,
+                        Tooltip = interaction.Hyperlink.ScreenTip
+                    } };
             }
 
             string? action = GetLegacyPowerPointAction(interaction);

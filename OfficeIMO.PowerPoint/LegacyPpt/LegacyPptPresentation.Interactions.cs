@@ -24,7 +24,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptImportOptions options) {
             LegacyPptRecord[] lists = document.Children.Where(record =>
                 record.Type == RecordExternalObjectList).ToArray();
-            if (lists.Length == 0) return;
+            if (lists.Length == 0) {
+                ParseHyperlinkExtensions(document, options);
+                return;
+            }
             if (lists.Length > 1) {
                 AddDiagnostic("PPT-HYPERLINK-LISTS", LegacyPptDiagnosticSeverity.Warning,
                     "The document has multiple external-object lists; hyperlink edits remain loss-blocked.",
@@ -33,6 +36,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             foreach (LegacyPptRecord list in lists) {
                 ParseHyperlinkList(list, options);
             }
+            ParseHyperlinkExtensions(document, options);
         }
 
         private void ParseHyperlinkList(LegacyPptRecord list,

@@ -232,6 +232,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 return interaction.Jump != LegacyPptInteractionJump.None;
             }
             if (interaction.Action != LegacyPptInteractionAction.Hyperlink) return false;
+            if (interaction.Hyperlink != null
+                && interaction.Hyperlink.ExtensionFlags != 0) return false;
             return interaction.Hyperlink?.Uri != null
                 || interaction.HyperlinkType == LegacyPptHyperlinkType.NextSlide
                 || interaction.HyperlinkType == LegacyPptHyperlinkType.PreviousSlide

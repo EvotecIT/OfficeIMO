@@ -175,7 +175,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     children.Add(child.CopyRecordBytes());
                 }
             }
-            return BuildContainer(RecordDocument, instance: 0, children);
+            byte[] rebuilt = BuildContainer(RecordDocument, instance: 0, children);
+            LegacyPptRecord rebuiltRecord = LegacyPptRecordReader.ReadSingle(rebuilt, 0,
+                new LegacyPptImportOptions());
+            if (!TryRewriteDocumentHyperlinkExtensions(rebuiltRecord,
+                    interactionCatalog.Hyperlinks, replaceExisting: true,
+                    out byte[] withExtensions)) {
+                throw new InvalidDataException(
+                    "The embedded document template has malformed hyperlink extension records.");
+            }
+            return withExtensions;
         }
 
         private static void PatchDocumentSettings(byte[] atom,

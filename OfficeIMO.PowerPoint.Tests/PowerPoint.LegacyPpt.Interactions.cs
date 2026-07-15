@@ -100,7 +100,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void NativeWriter_BlocksHyperlinkMetadataWithoutBinaryBaseRepresentation() {
+        public void NativeWriter_BlocksTargetFrameWithoutBinaryBaseRepresentation() {
             using PowerPointPresentation source = PowerPointPresentation.Create();
             PowerPointSlide slide = source.AddSlide();
             PowerPointTextBox textBox = slide.AddTextBox("Details");
@@ -111,7 +111,7 @@ namespace OfficeIMO.Tests {
             run.RunProperties ??= new A.RunProperties();
             run.RunProperties.Append(new A.HyperlinkOnClick {
                 Id = relationship.Id,
-                Tooltip = "Screen tip"
+                TargetFrame = "_blank"
             });
 
             LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
@@ -119,8 +119,62 @@ namespace OfficeIMO.Tests {
             LegacyPptWriteFinding finding = Assert.Single(report.Findings,
                 item => item.Code == "PPT-WRITE-INTERACTION");
             Assert.Equal(LegacyPptFeature.Hyperlinks, finding.Feature);
-            Assert.Contains("screen tips", finding.Description,
+            Assert.Contains("target frames", finding.Description,
                 StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void NativeWriter_AuthorsAndProjectsPpt9ScreenTip() {
+            var target = new Uri("https://example.com/screen-tip");
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide();
+                PowerPointTextBox textBox = slide.AddTextBox("Details");
+                textBox.Paragraphs.Single().Runs.Single().SetHyperlink(target,
+                    "Open the detailed report");
+
+                LegacyPptWritePreflightReport report = source.AnalyzeLegacyPptWrite();
+                Assert.True(report.CanWrite, string.Join(Environment.NewLine, report.Findings));
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            LegacyPptHyperlink hyperlink = Assert.Single(legacy.Hyperlinks);
+            Assert.Equal(target, hyperlink.Uri);
+            Assert.Equal("Open the detailed report", hyperlink.ScreenTip);
+            Assert.Equal(0U, hyperlink.ExtensionFlags);
+            LegacyPptImportReport inventory = legacy.CreateImportReport();
+            Assert.Equal(1, inventory.HyperlinkScreenTipCount);
+            Assert.Equal(0, inventory.HyperlinkExtensionFlagCount);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected = PowerPointPresentation.Load(input);
+            A.HyperlinkOnClick projectedLink = projected.Slides[0].SlidePart.Slide!
+                .Descendants<A.HyperlinkOnClick>().Single();
+            Assert.Equal("Open the detailed report", projectedLink.Tooltip?.Value);
+            Assert.Empty(projected.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_KeepsDistinctScreenTipsForTheSameTarget() {
+            var target = new Uri("https://example.com/shared-target");
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide();
+                AddShapeHyperlink(slide, slide.AddRectangle(
+                    100000, 100000, 1000000, 500000), target,
+                    mouseOver: false, screenTip: "First tip");
+                AddShapeHyperlink(slide, slide.AddRectangle(
+                    1200000, 100000, 1000000, 500000), target,
+                    mouseOver: false, screenTip: "Second tip");
+                Assert.True(source.AnalyzeLegacyPptWrite().CanWrite);
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            Assert.Equal(2, legacy.Hyperlinks.Count);
+            Assert.Equal(new[] { "First tip", "Second tip" }, legacy.Hyperlinks
+                .Select(link => link.ScreenTip).OrderBy(value => value).ToArray());
         }
 
         [Fact]
@@ -276,6 +330,52 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.Equal(sourceBytes, savedBytes);
+        }
+
+        [Fact]
+        public void ImportedHyperlink_EditAndRemoveScreenTipAppendsPreservingRecords() {
+            byte[] sourceBytes;
+            var target = new Uri("https://example.com/edit-screen-tip");
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide();
+                AddShapeHyperlink(slide, slide.AddRectangle(
+                    100000, 100000, 1000000, 500000), target,
+                    mouseOver: false, screenTip: "Original tip");
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
+
+            byte[] editedBytes;
+            using (var input = new MemoryStream(sourceBytes, writable: false))
+            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+                A.HyperlinkOnClick link = imported.Slides[0].SlidePart.Slide!
+                    .Descendants<A.HyperlinkOnClick>().Single();
+                link.Tooltip = "Updated tip";
+                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);
+            Assert.Equal("Updated tip", Assert.Single(edited.Slides[0].Shapes
+                .SelectMany(shape => shape.Interactions)).Hyperlink!.ScreenTip);
+            Assert.True(edited.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            byte[] removedBytes;
+            using (var input = new MemoryStream(editedBytes, writable: false))
+            using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
+                A.HyperlinkOnClick link = imported.Slides[0].SlidePart.Slide!
+                    .Descendants<A.HyperlinkOnClick>().Single();
+                link.Tooltip = null;
+                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation removed = LegacyPptPresentation.Load(removedBytes);
+            Assert.Null(Assert.Single(removed.Slides[0].Shapes
+                .SelectMany(shape => shape.Interactions)).Hyperlink!.ScreenTip);
+            Assert.True(removed.Package.DocumentStream.AsSpan(0,
+                    edited.Package.DocumentStream.Length)
+                .SequenceEqual(edited.Package.DocumentStream));
         }
 
         [Fact]
@@ -438,13 +538,20 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AddShapeHyperlink(PowerPointSlide slide,
-            PowerPointShape shape, Uri uri, bool mouseOver) {
+            PowerPointShape shape, Uri uri, bool mouseOver,
+            string? screenTip = null) {
             HyperlinkRelationship relationship = slide.SlidePart
                 .AddHyperlinkRelationship(uri, true);
             P.NonVisualDrawingProperties properties = GetDrawingProperties(shape);
             properties.Append(mouseOver
-                ? new A.HyperlinkOnHover { Id = relationship.Id }
-                : new A.HyperlinkOnClick { Id = relationship.Id });
+                ? new A.HyperlinkOnHover {
+                    Id = relationship.Id,
+                    Tooltip = screenTip
+                }
+                : new A.HyperlinkOnClick {
+                    Id = relationship.Id,
+                    Tooltip = screenTip
+                });
         }
 
         private static P.NonVisualDrawingProperties GetDrawingProperties(

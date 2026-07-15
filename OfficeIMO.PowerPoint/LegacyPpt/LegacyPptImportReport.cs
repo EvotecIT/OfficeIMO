@@ -73,6 +73,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 .Distinct()
                 .Count();
             HyperlinkTargetCount = presentation.Hyperlinks.Count;
+            HyperlinkScreenTipCount = presentation.Hyperlinks.Count(hyperlink =>
+                hyperlink.ScreenTip != null);
+            HyperlinkExtensionFlagCount = presentation.Hyperlinks.Count(hyperlink =>
+                hyperlink.ExtensionFlags != 0);
             LegacyPptShape[] interactiveShapes = EnumerateShapes(presentation).ToArray();
             ShapeInteractionCount = interactiveShapes.Sum(shape => shape.Interactions.Count);
             TextInteractionCount = interactiveShapes.Sum(shape =>
@@ -163,6 +167,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of decoded document-level hyperlink targets.</summary>
         public int HyperlinkTargetCount { get; }
+
+        /// <summary>Gets the number of decoded hyperlinks with PowerPoint 2000+ screen tips.</summary>
+        public int HyperlinkScreenTipCount { get; }
+
+        /// <summary>Gets the number of decoded hyperlinks with nonzero PowerPoint 2000+ flags.</summary>
+        public int HyperlinkExtensionFlagCount { get; }
 
         /// <summary>Gets the number of decoded shape-level click and mouse-over actions.</summary>
         public int ShapeInteractionCount { get; }

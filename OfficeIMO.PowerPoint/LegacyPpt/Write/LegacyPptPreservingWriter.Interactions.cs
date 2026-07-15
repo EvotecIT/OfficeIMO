@@ -63,8 +63,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             string? sourceTarget = source.Hyperlink?.Uri?.OriginalString;
             string? currentTarget = catalog.FindHyperlink(
                 current.HyperlinkIdReference)?.Target;
+            LegacyPptWriter.LegacyPptWriterHyperlink? currentHyperlink =
+                catalog.FindHyperlink(current.HyperlinkIdReference);
             return string.Equals(sourceTarget, currentTarget,
-                StringComparison.Ordinal);
+                    StringComparison.Ordinal)
+                && string.Equals(source.Hyperlink?.ScreenTip,
+                    currentHyperlink?.ScreenTip, StringComparison.Ordinal);
         }
 
         private static bool TryMapHyperlinkTypeToJump(LegacyPptHyperlinkType type,
@@ -175,9 +179,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
             if (!inserted) return false;
-            bytes = BuildRecord(document.Version, document.Instance, document.Type,
-                Concat(documentChildren));
-            return true;
+            byte[] rebuilt = BuildRecord(document.Version, document.Instance,
+                document.Type, Concat(documentChildren));
+            LegacyPptRecord rebuiltRecord = LegacyPptRecordReader.ReadSingle(rebuilt, 0,
+                new LegacyPptImportOptions());
+            return LegacyPptWriter.TryRewriteDocumentHyperlinkExtensions(
+                rebuiltRecord, hyperlinks, replaceExisting: false, out bytes);
         }
 
         private static bool TryRewriteClientDataInteractions(LegacyPptRecord clientData,
@@ -286,8 +293,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 foreach (LegacyPptHyperlink hyperlink in existing) {
                     _nextId = Math.Max(_nextId, hyperlink.Id);
                     string? target = hyperlink.Uri?.OriginalString;
-                    if (target != null && !_idsByTarget.ContainsKey(target)) {
-                        _idsByTarget.Add(target, hyperlink.Id);
+                    string? key = target == null ? null :
+                        LegacyPptWriter.CreateHyperlinkKey(target, hyperlink.ScreenTip);
+                    if (key != null && !_idsByTarget.ContainsKey(key)) {
+                        _idsByTarget.Add(key, hyperlink.Id);
                     }
                 }
             }
@@ -298,12 +307,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal bool TryMap(LegacyPptWriter.LegacyPptWriterHyperlink hyperlink,
                 out uint binaryId) {
                 if (_binaryIdsByCatalogId.TryGetValue(hyperlink.Id, out binaryId)) return true;
-                if (!_idsByTarget.TryGetValue(hyperlink.Target, out binaryId)) {
+                string key = LegacyPptWriter.CreateHyperlinkKey(hyperlink.Target,
+                    hyperlink.ScreenTip);
+                if (!_idsByTarget.TryGetValue(key, out binaryId)) {
                     if (_nextId == uint.MaxValue) return false;
                     binaryId = ++_nextId;
-                    _idsByTarget.Add(hyperlink.Target, binaryId);
+                    _idsByTarget.Add(key, binaryId);
                     _newHyperlinks.Add(new LegacyPptWriter.LegacyPptWriterHyperlink(
-                        binaryId, hyperlink.Target));
+                        binaryId, hyperlink.Target, hyperlink.ScreenTip,
+                        hyperlink.ExtensionFlags));
                 }
                 _binaryIdsByCatalogId.Add(hyperlink.Id, binaryId);
                 return true;
