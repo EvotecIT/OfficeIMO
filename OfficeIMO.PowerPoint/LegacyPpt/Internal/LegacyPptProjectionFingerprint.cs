@@ -75,7 +75,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         StringComparison.Ordinal)
                     || part is NotesSlidePart notesPart
                     && ReferenceEquals(notesPart.SlidePart, slidePart),
-            (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart,
+            (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart
+                and not SlidePart,
             (owner, relationship) => relationship is not HyperlinkRelationship);
 
         private static void NormalizePresentationTopology(OpenXmlElement root) {

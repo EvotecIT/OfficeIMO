@@ -83,7 +83,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!LegacyPptWriter.TryReadInteractions(presentation,
                     out LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
                     out _)
-                || !TryCreateInteractionContext(package, projectionMap,
+                || !TryCreateInteractionContext(presentation, package, projectionMap,
                     interactionCatalog, out PreservingInteractionContext interactionContext)) {
                 return false;
             }
@@ -164,10 +164,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             && currentInteractions.HasInteractions) return false;
                         bool shapeInteractionsChanged = shapeProjection.CanEditInteractions
                             && !ShapeInteractionsEqual(shapeProjection, currentInteractions,
-                                interactionCatalog);
+                                interactionCatalog, projectionMap);
                         bool textInteractionsChanged = shapeProjection.CanEditInteractions
                             && !TextInteractionsEqual(shapeProjection, currentInteractions,
-                                interactionCatalog);
+                                interactionCatalog, projectionMap);
                         ProjectedInteractionEdit? interactionEdit =
                             shapeInteractionsChanged || textInteractionsChanged
                                 ? new ProjectedInteractionEdit(

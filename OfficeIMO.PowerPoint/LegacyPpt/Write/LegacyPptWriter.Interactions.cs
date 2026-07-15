@@ -173,6 +173,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             if (!string.IsNullOrEmpty(relationshipId)) {
+                if (slidePart.TryGetPartById(relationshipId!,
+                        out OpenXmlPart? internalPart)) {
+                    if (internalPart is not SlidePart targetSlidePart
+                        || !string.Equals(action, "ppaction://hlinksldjump",
+                            StringComparison.OrdinalIgnoreCase)
+                        || !TryResolveInternalSlideTarget(targetSlidePart,
+                            out LegacyPptWriterSlideTarget slideTarget)) {
+                        reason = $"Internal hyperlink relationship '{relationshipId}' does not identify a supported slide target.";
+                        return false;
+                    }
+                    LegacyPptWriterHyperlink internalTarget = catalog.GetOrAdd(
+                        slideTarget, screenTip);
+                    interaction = new LegacyPptWriterInteraction(trigger,
+                        LegacyPptInteractionAction.Hyperlink,
+                        LegacyPptInteractionJump.None,
+                        LegacyPptHyperlinkType.SlideNumber, internalTarget.Id);
+                    return true;
+                }
                 if (!string.IsNullOrEmpty(action)) {
                     reason = "Hyperlinks that combine a relationship target with a DrawingML action are not encoded yet.";
                     return false;
@@ -206,6 +224,29 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 LegacyPptInteractionAction.Jump, jump, LegacyPptHyperlinkType.Nil,
                 hyperlinkIdReference: 0);
             return true;
+        }
+
+        private static bool TryResolveInternalSlideTarget(SlidePart targetSlidePart,
+            out LegacyPptWriterSlideTarget target) {
+            target = default;
+            PresentationPart? presentationPart = targetSlidePart.OpenXmlPackage.RootPart
+                as PresentationPart;
+            P.SlideId[] slideIds = presentationPart?.Presentation?.SlideIdList?
+                .Elements<P.SlideId>().ToArray() ?? Array.Empty<P.SlideId>();
+            for (int index = 0; index < slideIds.Length; index++) {
+                string? relationshipId = slideIds[index].RelationshipId?.Value;
+                if (string.IsNullOrEmpty(relationshipId)
+                    || !presentationPart!.TryGetPartById(relationshipId!,
+                        out OpenXmlPart? candidate)
+                    || !ReferenceEquals(candidate, targetSlidePart)) continue;
+                target = new LegacyPptWriterSlideTarget(
+                    targetSlidePart.Uri.ToString(),
+                    checked(unchecked((uint)index) + 256U),
+                    checked(index + 1),
+                    targetSlidePart.Slide?.CommonSlideData?.Name?.Value);
+                return true;
+            }
+            return false;
         }
 
         private static bool TryMapShowJump(string? action,
@@ -260,21 +301,40 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     listAtomPayload)
             };
             foreach (LegacyPptWriterHyperlink hyperlink in catalog.Hyperlinks) {
-                children.Add(BuildExternalHyperlinkRecord(hyperlink.Id,
-                    hyperlink.Target));
+                children.Add(BuildExternalHyperlinkRecord(hyperlink));
             }
             return BuildContainer(RecordExternalObjectList, instance: 0, children);
         }
 
-        internal static byte[] BuildExternalHyperlinkRecord(uint id, string target) {
+        internal static byte[] BuildExternalHyperlinkRecord(
+            LegacyPptWriterHyperlink hyperlink) {
             var atomPayload = new byte[4];
-            WriteUInt32(atomPayload, 0, id);
+            WriteUInt32(atomPayload, 0, hyperlink.Id);
+            ushort stringInstance;
+            string value;
+            if (hyperlink.IsInternalSlideTarget) {
+                if (!hyperlink.TargetSlideId.HasValue
+                    || !hyperlink.TargetSlideNumber.HasValue) {
+                    throw new InvalidOperationException(
+                        "An internal hyperlink has no binary slide destination.");
+                }
+                stringInstance = 3;
+                value = hyperlink.TargetSlideId.Value + ","
+                    + hyperlink.TargetSlideNumber.Value + ","
+                    + (string.IsNullOrWhiteSpace(hyperlink.TargetSlideName)
+                        ? " " : hyperlink.TargetSlideName);
+            } else {
+                stringInstance = 1;
+                value = hyperlink.Target
+                    ?? throw new InvalidOperationException(
+                        "An external hyperlink has no target URI.");
+            }
             return BuildContainer(RecordExternalHyperlink, instance: 0,
                 new[] {
                     BuildRecord(version: 0, instance: 0,
                         RecordExternalHyperlinkAtom, atomPayload),
-                    BuildRecord(version: 0, instance: 1, RecordCString,
-                        System.Text.Encoding.Unicode.GetBytes(target))
+                    BuildRecord(version: 0, instance: stringInstance, RecordCString,
+                        System.Text.Encoding.Unicode.GetBytes(value))
                 });
         }
 
@@ -328,6 +388,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         out LegacyPptWriterHyperlink? existing)) return existing;
                 var created = new LegacyPptWriterHyperlink(
                     checked((uint)_hyperlinks.Count + 1U), target, screenTip);
+                _hyperlinks.Add(created);
+                _hyperlinksByTarget.Add(key, created);
+                return created;
+            }
+
+            internal LegacyPptWriterHyperlink GetOrAdd(
+                LegacyPptWriterSlideTarget target, string? screenTip) {
+                string key = CreateInternalHyperlinkKey(target.PartUri, screenTip);
+                if (_hyperlinksByTarget.TryGetValue(key,
+                        out LegacyPptWriterHyperlink? existing)) return existing;
+                var created = new LegacyPptWriterHyperlink(
+                    checked((uint)_hyperlinks.Count + 1U), target.PartUri,
+                    target.BinarySlideId, target.SlideNumber, target.Name, screenTip);
                 _hyperlinks.Add(created);
                 _hyperlinksByTarget.Add(key, created);
                 return created;
@@ -396,14 +469,55 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 ExtensionFlags = extensionFlags;
             }
 
+            internal LegacyPptWriterHyperlink(uint id, string targetSlidePartUri,
+                uint targetSlideId, int targetSlideNumber, string? targetSlideName,
+                string? screenTip = null, uint extensionFlags = 0) {
+                if (targetSlideNumber <= 0) {
+                    throw new ArgumentOutOfRangeException(nameof(targetSlideNumber));
+                }
+                Id = id;
+                TargetSlidePartUri = targetSlidePartUri
+                    ?? throw new ArgumentNullException(nameof(targetSlidePartUri));
+                TargetSlideId = targetSlideId;
+                TargetSlideNumber = targetSlideNumber;
+                TargetSlideName = targetSlideName;
+                ScreenTip = screenTip;
+                ExtensionFlags = extensionFlags;
+            }
+
             internal uint Id { get; }
-            internal string Target { get; }
+            internal string? Target { get; }
+            internal string? TargetSlidePartUri { get; }
+            internal uint? TargetSlideId { get; }
+            internal int? TargetSlideNumber { get; }
+            internal string? TargetSlideName { get; }
+            internal bool IsInternalSlideTarget => TargetSlidePartUri != null;
             internal string? ScreenTip { get; }
             internal uint ExtensionFlags { get; }
         }
 
         internal static string CreateHyperlinkKey(string target, string? screenTip) =>
-            target + "\0" + (screenTip == null ? "-" : screenTip.Length + ":" + screenTip);
+            "external\0" + target + "\0"
+            + (screenTip == null ? "-" : screenTip.Length + ":" + screenTip);
+
+        internal static string CreateInternalHyperlinkKey(string targetSlidePartUri,
+            string? screenTip) => "slide\0" + targetSlidePartUri + "\0"
+            + (screenTip == null ? "-" : screenTip.Length + ":" + screenTip);
+
+        internal readonly struct LegacyPptWriterSlideTarget {
+            internal LegacyPptWriterSlideTarget(string partUri, uint binarySlideId,
+                int slideNumber, string? name) {
+                PartUri = partUri ?? throw new ArgumentNullException(nameof(partUri));
+                BinarySlideId = binarySlideId;
+                SlideNumber = slideNumber;
+                Name = name;
+            }
+
+            internal string PartUri { get; }
+            internal uint BinarySlideId { get; }
+            internal int SlideNumber { get; }
+            internal string? Name { get; }
+        }
 
         private sealed class ReferenceComparer : IEqualityComparer<OpenXmlElement> {
             internal static ReferenceComparer Instance { get; } = new();

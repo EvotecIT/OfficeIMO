@@ -9,7 +9,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.Tests {
-    public class PowerPointLegacyPptInteractionTests {
+    public partial class PowerPointLegacyPptInteractionTests {
         [Fact]
         public void NativeWriter_AuthorsAndProjectsShapeTextAndJumpInteractions() {
             var shapeUri = new Uri("https://example.com/shape");
@@ -351,7 +351,9 @@ namespace OfficeIMO.Tests {
                 A.HyperlinkOnClick link = imported.Slides[0].SlidePart.Slide!
                     .Descendants<A.HyperlinkOnClick>().Single();
                 link.Tooltip = "Updated tip";
-                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                LegacyPptWritePreflightReport report = imported.AnalyzeLegacyPptWrite();
+                Assert.True(report.CanWrite,
+                    string.Join(Environment.NewLine, report.Findings));
                 editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
             }
             LegacyPptPresentation edited = LegacyPptPresentation.Load(editedBytes);

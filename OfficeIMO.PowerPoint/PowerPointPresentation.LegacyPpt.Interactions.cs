@@ -7,7 +7,8 @@ using A = DocumentFormat.OpenXml.Drawing;
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
         private static void ApplyLegacyShapeInteractions(OpenXmlPart ownerPart,
-            OpenXmlElement target, LegacyPptShape source) {
+            OpenXmlElement target, LegacyPptShape source,
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null) {
             NonVisualDrawingProperties? properties = target switch {
                 Shape shape => shape.NonVisualShapeProperties?.NonVisualDrawingProperties,
                 ConnectionShape connector => connector.NonVisualConnectionShapeProperties?
@@ -20,7 +21,8 @@ namespace OfficeIMO.PowerPoint {
             if (properties == null) return;
             foreach (LegacyPptInteraction interaction in source.Interactions) {
                 foreach (OpenXmlElement element in ProjectLegacyInteraction(ownerPart,
-                             interaction, shapeLevel: true)) {
+                             interaction, shapeLevel: true,
+                             slidePartsByLegacyId: slidePartsByLegacyId)) {
                     if (element is A.HyperlinkOnClick) {
                         properties.RemoveAllChildren<A.HyperlinkOnClick>();
                     } else if (element is A.HyperlinkOnHover) {
@@ -33,8 +35,43 @@ namespace OfficeIMO.PowerPoint {
 
         private static IReadOnlyList<OpenXmlElement> ProjectLegacyInteraction(
             OpenXmlPart ownerPart, LegacyPptInteraction interaction,
-            bool shapeLevel = false) {
+            bool shapeLevel = false,
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null) {
             if (interaction.Action == LegacyPptInteractionAction.Hyperlink
+                && interaction.HyperlinkType == LegacyPptHyperlinkType.SlideNumber
+                && interaction.Hyperlink?.TargetSlideId is uint targetSlideId) {
+                if (slidePartsByLegacyId == null
+                    || !slidePartsByLegacyId.TryGetValue(targetSlideId,
+                        out SlidePart? targetSlidePart)) {
+                    throw new InvalidDataException(
+                        $"Internal hyperlink target slide {targetSlideId} cannot be resolved in the projected presentation.");
+                }
+                if (!ownerPart.Parts.Any(pair => ReferenceEquals(
+                        pair.OpenXmlPart, targetSlidePart))) {
+                    ownerPart.AddPart(targetSlidePart);
+                }
+                string relationshipId = ownerPart.GetIdOfPart(targetSlidePart);
+                const string internalSlideAction = "ppaction://hlinksldjump";
+                return interaction.Trigger == LegacyPptInteractionTrigger.MouseOver
+                    ? new OpenXmlElement[] { shapeLevel
+                        ? new A.HyperlinkOnHover {
+                            Id = relationshipId,
+                            Action = internalSlideAction,
+                            Tooltip = interaction.Hyperlink.ScreenTip
+                        }
+                        : new A.HyperlinkOnMouseOver {
+                            Id = relationshipId,
+                            Action = internalSlideAction,
+                            Tooltip = interaction.Hyperlink.ScreenTip
+                        } }
+                    : new OpenXmlElement[] { new A.HyperlinkOnClick {
+                        Id = relationshipId,
+                        Action = internalSlideAction,
+                        Tooltip = interaction.Hyperlink.ScreenTip
+                    } };
+            }
+            if (interaction.Action == LegacyPptInteractionAction.Hyperlink
+                && interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
                 && interaction.Hyperlink?.Uri is Uri uri) {
                 HyperlinkRelationship relationship = ownerPart.AddHyperlinkRelationship(uri,
                     isExternal: true);

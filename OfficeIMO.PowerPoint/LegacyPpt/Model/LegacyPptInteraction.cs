@@ -70,7 +70,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         Nil = 255
     }
 
-    /// <summary>Represents one document-level external hyperlink target.</summary>
+    /// <summary>Represents one document-level external or internal-slide hyperlink target.</summary>
     public sealed class LegacyPptHyperlink {
         internal LegacyPptHyperlink(uint id, string? friendlyName, string? target,
             string? location) {
@@ -78,6 +78,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             FriendlyName = friendlyName;
             Target = target;
             Location = location;
+            if (string.IsNullOrEmpty(target)
+                && TryParseSlideLocation(location, out uint slideId,
+                    out int slideNumber, out string? slideName)) {
+                TargetSlideId = slideId;
+                TargetSlideNumber = slideNumber;
+                TargetSlideName = slideName;
+            }
         }
 
         internal void ApplyExtension(string? screenTip, uint flags) {
@@ -97,6 +104,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the location within the destination, when present.</summary>
         public string? Location { get; }
 
+        /// <summary>Gets the binary slide identifier for an internal-slide target, when present.</summary>
+        public uint? TargetSlideId { get; }
+
+        /// <summary>Gets the one-based slide ordinal recorded with an internal-slide target, when present.</summary>
+        public int? TargetSlideNumber { get; }
+
+        /// <summary>Gets the recorded internal-slide name, when present.</summary>
+        public string? TargetSlideName { get; }
+
+        /// <summary>Gets whether this hyperlink points to a slide in the same presentation.</summary>
+        public bool IsInternalSlideTarget => TargetSlideId.HasValue;
+
         /// <summary>Gets the PowerPoint 2000+ screen tip, when present.</summary>
         public string? ScreenTip { get; private set; }
 
@@ -115,6 +134,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets a combined URI when the target can be represented as one.</summary>
         public Uri? Uri {
             get {
+                if (IsInternalSlideTarget) return null;
                 string value = Target ?? string.Empty;
                 if (!string.IsNullOrEmpty(Location)) {
                     value = string.IsNullOrEmpty(value)
@@ -123,6 +143,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 }
                 return Uri.TryCreate(value, UriKind.RelativeOrAbsolute, out Uri? uri) ? uri : null;
             }
+        }
+
+        private static bool TryParseSlideLocation(string? value, out uint slideId,
+            out int slideNumber, out string? slideName) {
+            slideId = 0;
+            slideNumber = 0;
+            slideName = null;
+            if (value == null || value.Length == 0) return false;
+            string location = value;
+            int firstComma = location.IndexOf(',');
+            int secondComma = firstComma < 0 ? -1 : location.IndexOf(',', firstComma + 1);
+            if (firstComma <= 0 || secondComma <= firstComma + 1
+                || !uint.TryParse(location.Substring(0, firstComma).Trim(), out slideId)
+                || slideId < 256U || slideId > 0x7FFFFFFFU
+                || !int.TryParse(location.Substring(firstComma + 1,
+                    secondComma - firstComma - 1).Trim(), out slideNumber)
+                || slideNumber <= 0) {
+                slideId = 0;
+                slideNumber = 0;
+                return false;
+            }
+            string name = location.Substring(secondComma + 1).Trim();
+            slideName = name.Length == 0 ? null : name;
+            return true;
         }
     }
 

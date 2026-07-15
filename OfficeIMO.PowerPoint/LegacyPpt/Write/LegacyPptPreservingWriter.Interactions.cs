@@ -15,13 +15,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool ShapeInteractionsEqual(LegacyPptShapeProjection source,
             LegacyPptWriter.LegacyPptWriterShapeInteractions current,
-            LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog) =>
+            LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog,
+            LegacyPptProjectionMap projectionMap) =>
             InteractionListsEqual(source.ShapeInteractions,
-                current.ShapeInteractions, catalog);
+                current.ShapeInteractions, catalog, projectionMap);
 
         private static bool TextInteractionsEqual(LegacyPptShapeProjection source,
             LegacyPptWriter.LegacyPptWriterShapeInteractions current,
-            LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog) {
+            LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog,
+            LegacyPptProjectionMap projectionMap) {
             if (source.TextInteractions.Count != current.TextInteractions.Count) return false;
             for (int index = 0; index < source.TextInteractions.Count; index++) {
                 LegacyPptTextInteraction left = source.TextInteractions[index];
@@ -30,7 +32,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (left.Start != right.Begin
                     || left.Start + left.Length != right.End
                     || !InteractionsEqual(left.Interaction, right.Interaction,
-                        catalog)) return false;
+                        catalog, projectionMap)) return false;
             }
             return true;
         }
@@ -38,17 +40,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool InteractionListsEqual(
             IReadOnlyList<LegacyPptInteraction> source,
             IReadOnlyList<LegacyPptWriter.LegacyPptWriterInteraction> current,
-            LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog) {
+            LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog,
+            LegacyPptProjectionMap projectionMap) {
             if (source.Count != current.Count) return false;
             for (int index = 0; index < source.Count; index++) {
-                if (!InteractionsEqual(source[index], current[index], catalog)) return false;
+                if (!InteractionsEqual(source[index], current[index], catalog,
+                        projectionMap)) return false;
             }
             return true;
         }
 
         private static bool InteractionsEqual(LegacyPptInteraction source,
             LegacyPptWriter.LegacyPptWriterInteraction current,
-            LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog) {
+            LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog,
+            LegacyPptProjectionMap projectionMap) {
             LegacyPptInteractionAction action = source.Action;
             LegacyPptInteractionJump jump = source.Jump;
             if (action == LegacyPptInteractionAction.Hyperlink
@@ -60,11 +65,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (source.Trigger != current.Trigger || action != current.Action
                 || jump != current.Jump) return false;
             if (action != LegacyPptInteractionAction.Hyperlink) return true;
-            string? sourceTarget = source.Hyperlink?.Uri?.OriginalString;
-            string? currentTarget = catalog.FindHyperlink(
-                current.HyperlinkIdReference)?.Target;
             LegacyPptWriter.LegacyPptWriterHyperlink? currentHyperlink =
                 catalog.FindHyperlink(current.HyperlinkIdReference);
+            if (source.Hyperlink?.TargetSlideId is uint sourceSlideId) {
+                return projectionMap.TryGetSlide(sourceSlideId,
+                           out LegacyPptSlideProjection? targetSlide)
+                    && targetSlide != null
+                    && string.Equals(targetSlide.SlidePartUri,
+                        currentHyperlink?.TargetSlidePartUri,
+                        StringComparison.Ordinal)
+                    && string.Equals(source.Hyperlink.ScreenTip,
+                        currentHyperlink?.ScreenTip, StringComparison.Ordinal);
+            }
+            string? sourceTarget = source.Hyperlink?.Uri?.OriginalString;
+            string? currentTarget = currentHyperlink?.Target;
             return string.Equals(sourceTarget, currentTarget,
                     StringComparison.Ordinal)
                 && string.Equals(source.Hyperlink?.ScreenTip,
@@ -83,11 +97,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return jump != LegacyPptInteractionJump.None;
         }
 
-        private static bool TryCreateInteractionContext(LegacyPptPackage package,
+        private static bool TryCreateInteractionContext(PowerPointPresentation presentation,
+            LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap,
             LegacyPptWriter.LegacyPptWriterInteractionCatalog catalog,
             out PreservingInteractionContext context) {
-            context = new PreservingInteractionContext(projectionMap.Hyperlinks,
+            context = new PreservingInteractionContext(presentation, projectionMap,
                 ReadExternalObjectIdSeed(package));
             foreach (LegacyPptWriter.LegacyPptWriterHyperlink hyperlink
                      in catalog.Hyperlinks) {
@@ -135,8 +150,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         RecordExternalObjectListAtom, seedPayload)
                 };
                 listChildren.AddRange(hyperlinks.Select(link =>
-                    LegacyPptWriter.BuildExternalHyperlinkRecord(link.Id,
-                        link.Target)));
+                    LegacyPptWriter.BuildExternalHyperlinkRecord(link)));
                 rewrittenList = BuildRecord(version: 0x0F, instance: 0,
                     RecordExternalObjectList, Concat(listChildren));
             } else {
@@ -158,8 +172,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                 }
                 listChildren.AddRange(hyperlinks.Select(link =>
-                    LegacyPptWriter.BuildExternalHyperlinkRecord(link.Id,
-                        link.Target)));
+                    LegacyPptWriter.BuildExternalHyperlinkRecord(link)));
                 rewrittenList = BuildRecord(list.Version, list.Instance,
                     list.Type, Concat(listChildren));
             }
@@ -285,16 +298,49 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new(StringComparer.Ordinal);
             private readonly Dictionary<uint, uint> _binaryIdsByCatalogId = new();
             private readonly List<LegacyPptWriter.LegacyPptWriterHyperlink> _newHyperlinks = new();
+            private readonly Dictionary<string, LegacyPptWriter.LegacyPptWriterSlideTarget>
+                _slideTargetsByPartUri = new(StringComparer.Ordinal);
             private uint _nextId;
 
             internal PreservingInteractionContext(
-                IReadOnlyList<LegacyPptHyperlink> existing, uint objectIdSeed) {
+                PowerPointPresentation presentation,
+                LegacyPptProjectionMap projectionMap, uint objectIdSeed) {
                 _nextId = objectIdSeed;
-                foreach (LegacyPptHyperlink hyperlink in existing) {
+                uint nextSlideId = projectionMap.Slides.Count == 0
+                    ? 255U
+                    : projectionMap.Slides.Max(slide => slide.SlideId);
+                for (int index = 0; index < presentation.Slides.Count; index++) {
+                    PowerPointSlide slide = presentation.Slides[index];
+                    uint binarySlideId;
+                    if (projectionMap.TryGetSlide(slide,
+                            out LegacyPptSlideProjection? sourceSlide)
+                        && sourceSlide != null) {
+                        binarySlideId = sourceSlide.SlideId;
+                    } else {
+                        if (nextSlideId >= 0x7FFFFFFFU) continue;
+                        binarySlideId = ++nextSlideId;
+                    }
+                    string partUri = slide.SlidePart.Uri.ToString();
+                    _slideTargetsByPartUri[partUri] =
+                        new LegacyPptWriter.LegacyPptWriterSlideTarget(
+                            partUri, binarySlideId, index + 1,
+                            slide.SlidePart.Slide?.CommonSlideData?.Name?.Value);
+                }
+                foreach (LegacyPptHyperlink hyperlink in projectionMap.Hyperlinks) {
                     _nextId = Math.Max(_nextId, hyperlink.Id);
-                    string? target = hyperlink.Uri?.OriginalString;
-                    string? key = target == null ? null :
-                        LegacyPptWriter.CreateHyperlinkKey(target, hyperlink.ScreenTip);
+                    string? key;
+                    if (hyperlink.TargetSlideId is uint targetSlideId
+                        && projectionMap.TryGetSlide(targetSlideId,
+                            out LegacyPptSlideProjection? targetSlide)
+                        && targetSlide != null) {
+                        key = LegacyPptWriter.CreateInternalHyperlinkKey(
+                            targetSlide.SlidePartUri, hyperlink.ScreenTip);
+                    } else {
+                        string? target = hyperlink.Uri?.OriginalString;
+                        key = target == null ? null :
+                            LegacyPptWriter.CreateHyperlinkKey(target,
+                                hyperlink.ScreenTip);
+                    }
                     if (key != null && !_idsByTarget.ContainsKey(key)) {
                         _idsByTarget.Add(key, hyperlink.Id);
                     }
@@ -307,15 +353,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal bool TryMap(LegacyPptWriter.LegacyPptWriterHyperlink hyperlink,
                 out uint binaryId) {
                 if (_binaryIdsByCatalogId.TryGetValue(hyperlink.Id, out binaryId)) return true;
-                string key = LegacyPptWriter.CreateHyperlinkKey(hyperlink.Target,
-                    hyperlink.ScreenTip);
+                string key;
+                LegacyPptWriter.LegacyPptWriterSlideTarget slideTarget = default;
+                if (hyperlink.TargetSlidePartUri != null) {
+                    if (!_slideTargetsByPartUri.TryGetValue(
+                            hyperlink.TargetSlidePartUri, out slideTarget)) return false;
+                    key = LegacyPptWriter.CreateInternalHyperlinkKey(
+                        hyperlink.TargetSlidePartUri, hyperlink.ScreenTip);
+                } else {
+                    if (hyperlink.Target == null) return false;
+                    key = LegacyPptWriter.CreateHyperlinkKey(hyperlink.Target,
+                        hyperlink.ScreenTip);
+                }
                 if (!_idsByTarget.TryGetValue(key, out binaryId)) {
                     if (_nextId == uint.MaxValue) return false;
                     binaryId = ++_nextId;
                     _idsByTarget.Add(key, binaryId);
-                    _newHyperlinks.Add(new LegacyPptWriter.LegacyPptWriterHyperlink(
-                        binaryId, hyperlink.Target, hyperlink.ScreenTip,
-                        hyperlink.ExtensionFlags));
+                    _newHyperlinks.Add(hyperlink.TargetSlidePartUri != null
+                        ? new LegacyPptWriter.LegacyPptWriterHyperlink(
+                            binaryId, slideTarget.PartUri,
+                            slideTarget.BinarySlideId, slideTarget.SlideNumber,
+                            slideTarget.Name, hyperlink.ScreenTip,
+                            hyperlink.ExtensionFlags)
+                        : new LegacyPptWriter.LegacyPptWriterHyperlink(
+                            binaryId, hyperlink.Target!, hyperlink.ScreenTip,
+                            hyperlink.ExtensionFlags));
                 }
                 _binaryIdsByCatalogId.Add(hyperlink.Id, binaryId);
                 return true;

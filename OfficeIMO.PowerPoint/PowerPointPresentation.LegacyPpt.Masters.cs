@@ -227,7 +227,8 @@ namespace OfficeIMO.PowerPoint {
 
         private static ShapeTree CreateLegacyShapeTree(OpenXmlPart? ownerPart = null,
             IReadOnlyList<LegacyPptShape>? shapes = null,
-            IReadOnlyList<LegacyPptConnectorRule>? connectorRules = null) {
+            IReadOnlyList<LegacyPptConnectorRule>? connectorRules = null,
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null) {
             var tree = new ShapeTree(
                 new NonVisualGroupShapeProperties(
                     new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
@@ -242,7 +243,8 @@ namespace OfficeIMO.PowerPoint {
             uint nextShapeId = 2U;
             var projectedShapeIds = new Dictionary<uint, uint>();
             foreach (LegacyPptShape source in shapes) {
-                OpenXmlElement? shape = CreateLegacyOpenXmlShape(ownerPart, source, ref nextShapeId);
+                OpenXmlElement? shape = CreateLegacyOpenXmlShape(ownerPart, source,
+                    ref nextShapeId, slidePartsByLegacyId);
                 if (shape == null) continue;
                 tree.Append(shape);
                 RegisterLegacyShapeIds(source, shape, projectedShapeIds);
@@ -254,19 +256,21 @@ namespace OfficeIMO.PowerPoint {
         }
 
         internal static OpenXmlElement? CreateLegacyOpenXmlShape(OpenXmlPart ownerPart,
-            LegacyPptShape source, ref uint nextShapeId) {
+            LegacyPptShape source, ref uint nextShapeId,
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId = null) {
             if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
             if (source == null) throw new ArgumentNullException(nameof(source));
             uint shapeId = nextShapeId++;
             OpenXmlElement? projected = source.Kind switch {
                 LegacyPptShapeKind.Picture => CreateLegacyPicture(ownerPart, source, shapeId),
                 LegacyPptShapeKind.Group => CreateLegacyGroupShape(ownerPart, source, shapeId,
-                    ref nextShapeId),
-                _ => CreateLegacyShape(ownerPart, source, shapeId)
+                    ref nextShapeId, slidePartsByLegacyId),
+                _ => CreateLegacyShape(ownerPart, source, shapeId, slidePartsByLegacyId)
             };
             if (projected != null) {
                 ApplyLegacyShapeMetadata(projected, source);
-                ApplyLegacyShapeInteractions(ownerPart, projected, source);
+                ApplyLegacyShapeInteractions(ownerPart, projected, source,
+                    slidePartsByLegacyId);
             }
             return projected;
         }
@@ -286,7 +290,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static OpenXmlElement? CreateLegacyShape(OpenXmlPart ownerPart,
-            LegacyPptShape source, uint shapeId) {
+            LegacyPptShape source, uint shapeId,
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId) {
             if (source.Kind == LegacyPptShapeKind.Connector
                 && LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
                     out A.ShapeTypeValues connectorGeometry)) {
@@ -347,7 +352,8 @@ namespace OfficeIMO.PowerPoint {
                     || source.TextBody.HasParagraphFormatting
                     || source.TextBody.HasInteractions
                     ? LegacyPptTextProjection.CreateTextBody(source.TextBody,
-                        interaction => ProjectLegacyInteraction(ownerPart, interaction))
+                        interaction => ProjectLegacyInteraction(ownerPart, interaction,
+                            slidePartsByLegacyId: slidePartsByLegacyId))
                     : new TextBody(
                         new A.BodyProperties(),
                         new A.ListStyle(),
@@ -379,7 +385,8 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static GroupShape? CreateLegacyGroupShape(OpenXmlPart ownerPart, LegacyPptShape source,
-            uint shapeId, ref uint nextShapeId) {
+            uint shapeId, ref uint nextShapeId,
+            IReadOnlyDictionary<uint, SlidePart>? slidePartsByLegacyId) {
             if (!source.GroupCoordinateBounds.HasValue || source.Children.Count == 0) return null;
             LegacyPptBounds coordinate = source.GroupCoordinateBounds.Value;
             var transform = new A.TransformGroup(
@@ -407,7 +414,8 @@ namespace OfficeIMO.PowerPoint {
                     new ApplicationNonVisualDrawingProperties()),
                 new GroupShapeProperties(transform));
             foreach (LegacyPptShape child in source.Children) {
-                OpenXmlElement? projected = CreateLegacyOpenXmlShape(ownerPart, child, ref nextShapeId);
+                OpenXmlElement? projected = CreateLegacyOpenXmlShape(ownerPart, child,
+                    ref nextShapeId, slidePartsByLegacyId);
                 if (projected != null) group.Append(projected);
             }
             return group;

@@ -106,7 +106,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
             if (!TryReadHyperlinkString(container, 0, out string? friendlyName)
                 || !TryReadHyperlinkString(container, 1, out string? target)
-                || !TryReadHyperlinkString(container, 2, out string? location)) {
+                || !TryReadHyperlinkString(container, 3, out string? location)) {
                 AddDiagnostic("PPT-HYPERLINK-STRING", LegacyPptDiagnosticSeverity.Warning,
                     $"Hyperlink identifier {id} has duplicate or malformed text fields and remains preserve-only.",
                     container.Offset);
@@ -302,7 +302,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 return interaction.Jump != LegacyPptInteractionJump.None;
             }
             if (interaction.Action != LegacyPptInteractionAction.Hyperlink) return false;
-            return interaction.Hyperlink?.Uri != null
+            return (interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
+                    && interaction.Hyperlink?.Uri != null)
+                || (interaction.HyperlinkType == LegacyPptHyperlinkType.SlideNumber
+                    && interaction.Hyperlink?.IsInternalSlideTarget == true)
                 || interaction.HyperlinkType == LegacyPptHyperlinkType.NextSlide
                 || interaction.HyperlinkType == LegacyPptHyperlinkType.PreviousSlide
                 || interaction.HyperlinkType == LegacyPptHyperlinkType.FirstSlide

@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
@@ -67,6 +68,9 @@ namespace OfficeIMO.PowerPoint {
             LegacyPptLayoutCatalog layoutTargets = ProjectLegacyMasters(projected, legacy);
             ProjectLegacySpecialMasters(projected, legacy);
 
+            var slideProjections = new List<(LegacyPptSlide Source, PowerPointSlide Target)>(
+                legacy.Slides.Count);
+            var slidePartsByLegacyId = new Dictionary<uint, SlidePart>();
             foreach (LegacyPptSlide legacySlide in legacy.Slides) {
                 PowerPointSlide slide = layoutTargets.TryGet(legacySlide,
                     out LegacyPptLayoutTarget target)
@@ -75,9 +79,19 @@ namespace OfficeIMO.PowerPoint {
                 slide.Hidden = legacySlide.Hidden;
                 ProjectLegacySlideDesign(slide, legacySlide);
                 ProjectLegacyTransition(slide, legacySlide.Transition);
+                slideProjections.Add((legacySlide, slide));
+                if (slidePartsByLegacyId.ContainsKey(legacySlide.SlideId)) {
+                    throw new InvalidDataException(
+                        $"Binary slide identifier {legacySlide.SlideId} occurs more than once.");
+                }
+                slidePartsByLegacyId.Add(legacySlide.SlideId, slide.SlidePart);
+            }
+
+            foreach ((LegacyPptSlide legacySlide, PowerPointSlide slide) in slideProjections) {
                 var projectedShapeIds = new Dictionary<uint, uint>();
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
-                    OpenXmlElement? projectedShape = ProjectLegacyShape(slide, shape);
+                    OpenXmlElement? projectedShape = ProjectLegacyShape(slide, shape,
+                        slidePartsByLegacyId);
                     if (projectedShape != null) {
                         RegisterLegacyShapeIds(shape, projectedShape, projectedShapeIds);
                     }
@@ -99,7 +113,8 @@ namespace OfficeIMO.PowerPoint {
             return presentation;
         }
 
-        private static OpenXmlElement? ProjectLegacyShape(PowerPointSlide slide, LegacyPptShape shape) {
+        private static OpenXmlElement? ProjectLegacyShape(PowerPointSlide slide, LegacyPptShape shape,
+            IReadOnlyDictionary<uint, SlidePart> slidePartsByLegacyId) {
             long left = ToEmus(shape.Bounds.Left);
             long top = ToEmus(shape.Bounds.Top);
             long width = Math.Max(1L, ToEmus(shape.Bounds.Width));
@@ -116,7 +131,8 @@ namespace OfficeIMO.PowerPoint {
                     if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value;
                     LegacyPptTextProjection.Apply(
                         (DocumentFormat.OpenXml.Presentation.Shape)textBox.Element, shape.TextBody,
-                        interaction => ProjectLegacyInteraction(slide.SlidePart, interaction));
+                        interaction => ProjectLegacyInteraction(slide.SlidePart, interaction,
+                            slidePartsByLegacyId: slidePartsByLegacyId));
                     if (shape.OfficeArtShapeType != 202
                         && LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out A.ShapeTypeValues textGeometry)
@@ -162,7 +178,7 @@ namespace OfficeIMO.PowerPoint {
                         .DefaultIfEmpty(1U)
                         .Max() + 1U;
                     OpenXmlElement? group = CreateLegacyOpenXmlShape(slide.SlidePart, shape,
-                        ref nextShapeId);
+                        ref nextShapeId, slidePartsByLegacyId);
                     if (group != null) tree.Append(group);
                     return group;
             }
@@ -191,7 +207,8 @@ namespace OfficeIMO.PowerPoint {
             if (projectedShape?.Element is OpenXmlElement projectedElement) {
                 ApplyLegacyPlaceholder(projectedElement, shape);
                 ApplyLegacyShapeMetadata(projectedElement, shape);
-                ApplyLegacyShapeInteractions(slide.SlidePart, projectedElement, shape);
+                ApplyLegacyShapeInteractions(slide.SlidePart, projectedElement, shape,
+                    slidePartsByLegacyId);
             }
             return projectedShape?.Element;
         }

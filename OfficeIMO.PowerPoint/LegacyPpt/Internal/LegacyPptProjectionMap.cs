@@ -6,6 +6,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Links projected Open XML slides and shapes back to their original binary persist records.</summary>
     internal sealed class LegacyPptProjectionMap {
         private readonly IReadOnlyDictionary<string, LegacyPptSlideProjection> _slidesByPartUri;
+        private readonly IReadOnlyDictionary<uint, LegacyPptSlideProjection> _slidesByLegacyId;
         private readonly IReadOnlyDictionary<string, uint> _masterIdsByLayoutPartUri;
 
         private LegacyPptProjectionMap(IReadOnlyList<LegacyPptSlideProjection> slides,
@@ -14,6 +15,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Slides = new ReadOnlyCollection<LegacyPptSlideProjection>(slides.ToArray());
             _slidesByPartUri = new ReadOnlyDictionary<string, LegacyPptSlideProjection>(slides.ToDictionary(
                 slide => slide.SlidePartUri, StringComparer.Ordinal));
+            _slidesByLegacyId = new ReadOnlyDictionary<uint, LegacyPptSlideProjection>(slides.ToDictionary(
+                slide => slide.SlideId));
             _masterIdsByLayoutPartUri = new ReadOnlyDictionary<string, uint>(
                 masterIdsByLayoutPartUri.ToDictionary(pair => pair.Key, pair => pair.Value,
                     StringComparer.Ordinal));
@@ -28,6 +31,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             return _slidesByPartUri.TryGetValue(slide.SlidePart.Uri.ToString(), out projection);
         }
+
+        internal bool TryGetSlide(uint legacySlideId,
+            out LegacyPptSlideProjection? projection) =>
+            _slidesByLegacyId.TryGetValue(legacySlideId, out projection);
 
         internal bool TryGetMasterId(PowerPointSlide slide, out uint masterId) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
@@ -234,7 +241,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (interaction.Action != LegacyPptInteractionAction.Hyperlink) return false;
             if (interaction.Hyperlink != null
                 && interaction.Hyperlink.ExtensionFlags != 0) return false;
-            return interaction.Hyperlink?.Uri != null
+            return (interaction.HyperlinkType != LegacyPptHyperlinkType.SlideNumber
+                    && interaction.Hyperlink?.Uri != null)
+                || (interaction.HyperlinkType == LegacyPptHyperlinkType.SlideNumber
+                    && interaction.Hyperlink?.IsInternalSlideTarget == true)
                 || interaction.HyperlinkType == LegacyPptHyperlinkType.NextSlide
                 || interaction.HyperlinkType == LegacyPptHyperlinkType.PreviousSlide
                 || interaction.HyperlinkType == LegacyPptHyperlinkType.FirstSlide
