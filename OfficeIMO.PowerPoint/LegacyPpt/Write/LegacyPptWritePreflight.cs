@@ -12,6 +12,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 || LegacyPptPreservingWriter.CanWritePresentation(presentation)) {
                 return new LegacyPptWritePreflightReport(findings);
             }
+            if (presentation.LegacyPptPackage != null) {
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.UnknownRecordsAndStreams,
+                    "PPT-WRITE-IMPORT-LOSS",
+                    "The imported binary presentation contains edits that cannot be encoded without losing preserved content."));
+            }
             if (presentation.GetSections().Count > 0) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Sections, "PPT-WRITE-SECTIONS",
                     "Presentation sections are not encoded by the native binary writer."));

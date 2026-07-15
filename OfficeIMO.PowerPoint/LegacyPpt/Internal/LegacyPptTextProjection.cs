@@ -35,8 +35,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             int paragraphStart) {
             LegacyPptParagraphRun? run = source.ParagraphRuns.FirstOrDefault(item =>
                 paragraphStart >= item.Start && paragraphStart < item.Start + item.Length);
-            if (run == null || !run.HasExplicitFormatting) return;
-            var properties = new A.ParagraphProperties { Level = run.IndentLevel };
+            if ((run == null || !run.HasExplicitFormatting)
+                && source.Ruler?.HasFormatting != true) return;
+            ushort level = run?.IndentLevel ?? 0;
+            var properties = new A.ParagraphProperties { Level = level };
+            ApplyRulerProperties(properties, source.Ruler, level);
+            if (run != null) ApplyParagraphFormatting(properties, run, includeLevel: true);
+            if (run == null || run.TabStops.Count == 0) {
+                AppendTabStops(properties, source.Ruler?.TabStops ?? Array.Empty<LegacyPptTabStop>());
+            }
+            paragraph.Append(properties);
+        }
+
+        internal static void ApplyParagraphFormatting(A.TextParagraphPropertiesType properties,
+            LegacyPptParagraphRun run, bool includeLevel) {
+            if (properties == null) throw new ArgumentNullException(nameof(properties));
+            if (run == null) throw new ArgumentNullException(nameof(run));
+            if (includeLevel) properties.Level = run.IndentLevel;
+            if (run.LeftMargin.HasValue) properties.LeftMargin = ToEmus(run.LeftMargin.Value);
+            if (run.Indent.HasValue) properties.Indent = ToEmus(run.Indent.Value);
+            if (run.DefaultTabSize >= 0) {
+                properties.DefaultTabSize = ToEmus(run.DefaultTabSize.Value);
+            }
             if (run.Alignment.HasValue) properties.Alignment = MapAlignment(run.Alignment.Value);
             if (run.FontAlignment.HasValue) {
                 properties.FontAlignment = MapFontAlignment(run.FontAlignment.Value);
@@ -57,10 +77,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 properties.Append(new A.SpaceAfter(CreateSpacing(run.SpaceAfter.Value)));
             }
             AppendBulletProperties(properties, run);
-            paragraph.Append(properties);
+            AppendTabStops(properties, run.TabStops);
         }
 
-        private static void AppendBulletProperties(A.ParagraphProperties properties,
+        private static void ApplyRulerProperties(A.TextParagraphPropertiesType properties,
+            LegacyPptTextRuler? ruler, ushort level) {
+            if (ruler == null) return;
+            LegacyPptTextRulerLevel? rulerLevel = ruler.FindLevel(level);
+            if (rulerLevel?.LeftMargin != null) {
+                properties.LeftMargin = ToEmus(rulerLevel.LeftMargin.Value);
+            }
+            if (rulerLevel?.Indent != null) properties.Indent = ToEmus(rulerLevel.Indent.Value);
+            if (ruler.DefaultTabSize >= 0) {
+                properties.DefaultTabSize = ToEmus(ruler.DefaultTabSize.Value);
+            }
+        }
+
+        private static void AppendBulletProperties(A.TextParagraphPropertiesType properties,
             LegacyPptParagraphRun run) {
             if (run.HasBullet == false) {
                 properties.Append(new A.NoBullet());
@@ -92,6 +125,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
         }
 
+        private static void AppendTabStops(A.TextParagraphPropertiesType properties,
+            IReadOnlyList<LegacyPptTabStop> tabStops) {
+            if (tabStops.Count == 0) return;
+            var list = new A.TabStopList();
+            foreach (LegacyPptTabStop tabStop in tabStops) {
+                list.Append(new A.TabStop {
+                    Position = ToEmus(tabStop.Position),
+                    Alignment = MapTabAlignment(tabStop.Alignment)
+                });
+            }
+            properties.Append(list);
+        }
+
+        private static int ToEmus(short masterUnits) => checked((int)Math.Round(
+            masterUnits * 1587.5D, MidpointRounding.AwayFromZero));
+
         private static OpenXmlElement CreateSpacing(short value) {
             if (value >= 0) return new A.SpacingPercent { Val = checked(value * 1000) };
             int points = checked((int)Math.Round(-(long)value * 12.5D,
@@ -115,6 +164,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptFontAlignment.Hanging => A.TextFontAlignmentValues.Top,
             LegacyPptFontAlignment.Center => A.TextFontAlignmentValues.Center,
             LegacyPptFontAlignment.Bottom => A.TextFontAlignmentValues.Bottom,
+            _ => throw new ArgumentOutOfRangeException(nameof(value))
+        };
+
+        private static A.TextTabAlignmentValues MapTabAlignment(LegacyPptTabAlignment value) => value switch {
+            LegacyPptTabAlignment.Left => A.TextTabAlignmentValues.Left,
+            LegacyPptTabAlignment.Center => A.TextTabAlignmentValues.Center,
+            LegacyPptTabAlignment.Right => A.TextTabAlignmentValues.Right,
+            LegacyPptTabAlignment.Decimal => A.TextTabAlignmentValues.Decimal,
             _ => throw new ArgumentOutOfRangeException(nameof(value))
         };
 
@@ -150,15 +207,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static A.RunProperties? CreateRunProperties(LegacyPptCharacterRun source) {
-            bool hasNativeFormatting = source.Bold.HasValue || source.Italic.HasValue
-                || source.Underline.HasValue || source.FontSizePoints.HasValue
+            if (!HasNativeCharacterFormatting(source)) return null;
+            var properties = new A.RunProperties();
+            ApplyCharacterFormatting(properties, source);
+            return properties;
+        }
+
+        internal static A.DefaultRunProperties? CreateDefaultRunProperties(
+            LegacyPptCharacterRun source) {
+            if (!HasNativeCharacterFormatting(source)) return null;
+            var properties = new A.DefaultRunProperties();
+            ApplyCharacterFormatting(properties, source);
+            return properties;
+        }
+
+        private static bool HasNativeCharacterFormatting(LegacyPptCharacterRun source) =>
+            source.Bold.HasValue || source.Italic.HasValue
+                || source.Underline.HasValue || source.Kumi.HasValue || source.FontSizePoints.HasValue
                 || source.Color != null || source.BaselinePositionPercent.HasValue
                 || source.Typeface != null || source.AnsiTypeface != null
                 || source.OldEastAsianTypeface != null || source.SymbolTypeface != null;
-            if (!hasNativeFormatting) return null;
-            var properties = new A.RunProperties();
+
+        private static void ApplyCharacterFormatting(A.TextCharacterPropertiesType properties,
+            LegacyPptCharacterRun source) {
             if (source.Bold.HasValue) properties.Bold = source.Bold.Value;
             if (source.Italic.HasValue) properties.Italic = source.Italic.Value;
+            if (source.Kumi.HasValue) properties.Kumimoji = source.Kumi.Value;
             if (source.Underline.HasValue) {
                 properties.Underline = source.Underline.Value
                     ? A.TextUnderlineValues.Single
@@ -181,7 +255,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (source.SymbolTypeface != null) {
                 properties.Append(new A.SymbolFont { Typeface = source.SymbolTypeface });
             }
-            return properties;
         }
     }
 }

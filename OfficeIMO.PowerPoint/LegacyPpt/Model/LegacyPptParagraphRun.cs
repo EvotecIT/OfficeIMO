@@ -37,6 +37,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         RightToLeft = 1
     }
 
+    /// <summary>Specifies how text aligns at a binary PowerPoint tab stop.</summary>
+    public enum LegacyPptTabAlignment : ushort {
+        /// <summary>Text starts at the tab stop.</summary>
+        Left = 0,
+        /// <summary>Text is centered on the tab stop.</summary>
+        Center = 1,
+        /// <summary>Text ends at the tab stop.</summary>
+        Right = 2,
+        /// <summary>Text is aligned on its decimal separator.</summary>
+        Decimal = 3
+    }
+
+    /// <summary>Represents one tab stop from binary PowerPoint paragraph formatting.</summary>
+    public sealed class LegacyPptTabStop {
+        internal LegacyPptTabStop(short position, LegacyPptTabAlignment alignment) {
+            Position = position;
+            Alignment = alignment;
+        }
+
+        /// <summary>Gets the tab position in PowerPoint master units.</summary>
+        public short Position { get; }
+
+        /// <summary>Gets how text aligns at the tab position.</summary>
+        public LegacyPptTabAlignment Alignment { get; }
+    }
+
     /// <summary>Represents one paragraph-formatting run from a binary PowerPoint text box.</summary>
     public sealed class LegacyPptParagraphRun {
         internal LegacyPptParagraphRun(int start, int length, ushort indentLevel,
@@ -46,7 +72,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LegacyPptTextAlignment? alignment, short? lineSpacing, short? spaceBefore,
             short? spaceAfter, LegacyPptFontAlignment? fontAlignment,
             bool? characterWrap, bool? wordWrap, bool? overflow,
-            LegacyPptTextDirection? textDirection, bool hasUnprojectedFormatting) {
+            LegacyPptTextDirection? textDirection, bool hasUnprojectedFormatting,
+            short? leftMargin = null, short? indent = null, short? defaultTabSize = null,
+            IReadOnlyList<LegacyPptTabStop>? tabStops = null) {
             Start = start;
             Length = length;
             IndentLevel = indentLevel;
@@ -70,6 +98,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Overflow = overflow;
             TextDirection = textDirection;
             HasUnprojectedFormatting = hasUnprojectedFormatting;
+            LeftMargin = leftMargin;
+            Indent = indent;
+            DefaultTabSize = defaultTabSize;
+            TabStops = tabStops?.ToArray() ?? Array.Empty<LegacyPptTabStop>();
         }
 
         /// <summary>Gets the zero-based character offset covered by this run.</summary>
@@ -138,6 +170,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the explicit paragraph text direction.</summary>
         public LegacyPptTextDirection? TextDirection { get; }
 
+        /// <summary>Gets the explicit left margin in PowerPoint master units.</summary>
+        public short? LeftMargin { get; }
+
+        /// <summary>Gets the explicit first-line indentation in PowerPoint master units.</summary>
+        public short? Indent { get; }
+
+        /// <summary>Gets the explicit default tab size in PowerPoint master units.</summary>
+        public short? DefaultTabSize { get; }
+
+        /// <summary>Gets explicit paragraph tab stops.</summary>
+        public IReadOnlyList<LegacyPptTabStop> TabStops { get; }
+
         /// <summary>Gets whether the run includes fields that are retained but not projected yet.</summary>
         public bool HasUnprojectedFormatting { get; }
 
@@ -148,6 +192,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             || BulletColor != null || Alignment.HasValue || LineSpacing.HasValue
             || SpaceBefore.HasValue || SpaceAfter.HasValue || FontAlignment.HasValue
             || CharacterWrap.HasValue || WordWrap.HasValue || Overflow.HasValue
-            || TextDirection.HasValue;
+            || TextDirection.HasValue || LeftMargin.HasValue || Indent.HasValue
+            || DefaultTabSize.HasValue || TabStops.Count != 0;
     }
 }

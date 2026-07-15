@@ -20,9 +20,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordFontCollection = 0x07D5;
         private const ushort RecordDrawing = 0x040C;
         private const ushort RecordPlaceholder = 0x0BC3;
+        private const ushort RecordTextHeaderAtom = 0x0F9F;
         private const ushort RecordTextChars = 0x0FA0;
         private const ushort RecordStyleTextPropAtom = 0x0FA1;
         private const ushort RecordTextMasterStyleAtom = 0x0FA3;
+        private const ushort RecordTextRulerAtom = 0x0FA6;
         private const ushort RecordTextBytes = 0x0FA8;
         private const ushort RecordFontEntityAtom = 0x0FB7;
         private const ushort RecordFontEmbedDataBlob = 0x0FB8;
@@ -125,7 +127,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             ParseBlipStore(document, package, options);
             ParseFontCollection(document, options);
-            AddMasterTextStyleDiagnostic(document, options);
 
             ParseMasters(document, documentStream, persistOffsets, options);
 
@@ -190,19 +191,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 effectiveScheme ?? slide.ColorScheme, slide.AddConnectorRule);
         }
 
-        private void AddMasterTextStyleDiagnostic(LegacyPptRecord document,
-            LegacyPptImportOptions options) {
-            if (!options.ReportUnsupportedContent) return;
-            LegacyPptRecord? style = document.DescendantsAndSelf().FirstOrDefault(record =>
-                record.Type == RecordTextMasterStyleAtom);
-            if (style != null) {
-                AddDiagnostic("PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY",
-                    LegacyPptDiagnosticSeverity.Warning,
-                    "Document text master styles are preserved but not projected to native slide-master text styles yet.",
-                    style.Offset);
-            }
-        }
-
         private void ParseMasters(LegacyPptRecord document, byte[] documentStream,
             IReadOnlyDictionary<uint, uint> persistOffsets, LegacyPptImportOptions options) {
             LegacyPptRecord? masterList = document.Children.FirstOrDefault(record =>
@@ -250,9 +238,40 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 LegacyPptColorScheme? effectiveScheme = !isMainMaster && master.FollowsMasterColorScheme
                     ? _masters.FirstOrDefault(candidate => candidate.MasterId == master.ParentMasterId)?.ColorScheme
                     : master.ColorScheme;
+                ParseTextMasterStyles(masterRecord, master, effectiveScheme ?? master.ColorScheme, options);
                 ParseShapes(masterRecord, master.AddShape, isMainMaster ? "main master" : "title master",
                     options, effectiveScheme ?? master.ColorScheme, master.AddConnectorRule);
                 _masters.Add(master);
+            }
+        }
+
+        private void ParseTextMasterStyles(LegacyPptRecord masterRecord, LegacyPptMaster master,
+            LegacyPptColorScheme? colorScheme, LegacyPptImportOptions options) {
+            foreach (LegacyPptRecord record in masterRecord.Children.Where(child =>
+                         child.Type == RecordTextMasterStyleAtom)) {
+                LegacyPptTextMasterStyle? style = LegacyPptTextMasterStyleReader.Read(record,
+                    colorScheme, _fontsByIndex);
+                if (style == null) {
+                    if (options.ReportUnsupportedContent) {
+                        AddDiagnostic("PPT-TEXT-MASTER-STYLE-TYPE",
+                            LegacyPptDiagnosticSeverity.Warning,
+                            $"TextMasterStyleAtom instance {record.Instance} is not a defined text type and remains preserve-only.",
+                            record.Offset);
+                    }
+                    continue;
+                }
+                master.AddTextMasterStyle(style);
+                if (style.IsTruncated) {
+                    AddDiagnostic("PPT-TEXT-MASTER-STYLE-TRUNCATED",
+                        LegacyPptDiagnosticSeverity.Warning,
+                        $"The {style.TextType} TextMasterStyleAtom is malformed or truncated and remains preserve-only.",
+                        record.Offset);
+                } else if (style.HasUnprojectedFormatting && options.ReportUnsupportedContent) {
+                    AddDiagnostic("PPT-TEXT-MASTER-STYLE-PARTIAL",
+                        LegacyPptDiagnosticSeverity.Warning,
+                        $"The {style.TextType} master text style contains legacy-only formatting that remains preserve-only.",
+                        record.Offset);
+                }
             }
         }
 
@@ -327,8 +346,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             string text = textData.Text;
             LegacyPptRecord? textStyle = textbox?.DescendantsAndSelf().FirstOrDefault(record =>
                 record.Type == RecordStyleTextPropAtom);
+            LegacyPptRecord? textHeader = textbox?.DescendantsAndSelf().FirstOrDefault(record =>
+                record.Type == RecordTextHeaderAtom);
+            LegacyPptTextType? textType = ReadTextType(textHeader);
+            if (textHeader != null && !textType.HasValue && options.ReportUnsupportedContent) {
+                AddDiagnostic("PPT-TEXT-TYPE-INVALID", LegacyPptDiagnosticSeverity.Warning,
+                    "A TextHeaderAtom is truncated or contains an undefined text type; its text remains available without master-style classification.",
+                    textHeader.Offset);
+            }
+            LegacyPptRecord? textRulerRecord = textbox?.DescendantsAndSelf().FirstOrDefault(record =>
+                record.Type == RecordTextRulerAtom);
+            LegacyPptTextRuler? textRuler = LegacyPptTextRulerReader.Read(textRulerRecord,
+                out bool isTextRulerTruncated);
             LegacyPptTextBody textBody = LegacyPptTextStyleReader.Read(text, textData.RawCharacterCount,
-                textStyle, colorScheme, _fontsByIndex);
+                textStyle, colorScheme, _fontsByIndex, textType, textRuler,
+                hasRulerRecord: textRulerRecord != null, isRulerTruncated: isTextRulerTruncated);
             LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
             LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,
                 (shapeFlags & (1U << 8)) != 0);
@@ -367,6 +399,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         "Typeface references and legacy-only character effects are preserved but not projected yet.",
                         textStyle?.Offset ?? textbox?.Offset);
                 }
+            }
+            if (textBody.IsRulerTruncated) {
+                AddDiagnostic("PPT-TEXT-RULER-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    "A TextRulerAtom is malformed or truncated; its ruler formatting remains preserved only.",
+                    textRulerRecord?.Offset ?? textbox?.Offset);
             }
             if (fopt != null && fopt.Instance > 0 && style.Properties.Count == 0) {
                 AddDiagnostic("PPT-SHAPE-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
@@ -583,6 +620,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 : textRecord.ReadLowByteUnicodeText();
             return new LegacyPptTextData(
                 text.TrimEnd('\0').Replace("\r", "\n").TrimEnd('\n'), text.Length);
+        }
+
+        private static LegacyPptTextType? ReadTextType(LegacyPptRecord? header) {
+            if (header == null || header.PayloadLength < 4) return null;
+            uint value = header.ReadUInt32(0);
+            return value == 0 || value == 1 || value == 2 || value == 4
+                || value == 5 || value == 6 || value == 7 || value == 8
+                ? (LegacyPptTextType)value
+                : null;
         }
 
         private readonly struct LegacyPptTextData {

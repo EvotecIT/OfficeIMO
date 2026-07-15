@@ -3,6 +3,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     public sealed class LegacyPptMaster {
         private readonly List<LegacyPptShape> _shapes = new();
         private readonly List<LegacyPptConnectorRule> _connectorRules = new();
+        private readonly List<LegacyPptTextMasterStyle> _textMasterStyles = new();
 
         internal LegacyPptMaster(uint masterId, uint persistId, bool isMainMaster, uint parentMasterId) {
             MasterId = masterId;
@@ -41,8 +42,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets OfficeArt connector attachment rules in solver order.</summary>
         public IReadOnlyList<LegacyPptConnectorRule> ConnectorRules => _connectorRules;
 
+        /// <summary>Gets the decoded title, body, notes, and other master text styles.</summary>
+        public IReadOnlyList<LegacyPptTextMasterStyle> TextMasterStyles => _textMasterStyles;
+
         internal void AddShape(LegacyPptShape shape) => _shapes.Add(shape);
 
         internal void AddConnectorRule(LegacyPptConnectorRule rule) => _connectorRules.Add(rule);
+
+        internal void AddTextMasterStyle(LegacyPptTextMasterStyle style) => _textMasterStyles.Add(style);
     }
 }

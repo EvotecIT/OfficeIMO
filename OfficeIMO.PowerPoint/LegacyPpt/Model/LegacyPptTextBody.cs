@@ -1,12 +1,14 @@
 using System.Collections.ObjectModel;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
-    /// <summary>Represents text and decoded character-run formatting from a binary PowerPoint text box.</summary>
+    /// <summary>Represents text, its category, formatting runs, and ruler from a binary PowerPoint text box.</summary>
     public sealed class LegacyPptTextBody {
         internal LegacyPptTextBody(string text, IReadOnlyList<LegacyPptCharacterRun> characterRuns,
             IReadOnlyList<LegacyPptParagraphRun> paragraphRuns, bool hasStyleRecord,
             bool hasUnprojectedCharacterFormatting, bool hasUnprojectedParagraphFormatting,
-            bool isStyleTruncated = false) {
+            bool isStyleTruncated = false, LegacyPptTextType? textType = null,
+            LegacyPptTextRuler? ruler = null, bool hasRulerRecord = false,
+            bool isRulerTruncated = false) {
             Text = text ?? string.Empty;
             CharacterRuns = new ReadOnlyCollection<LegacyPptCharacterRun>(
                 characterRuns?.ToArray() ?? throw new ArgumentNullException(nameof(characterRuns)));
@@ -16,6 +18,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             HasUnprojectedCharacterFormatting = hasUnprojectedCharacterFormatting;
             HasUnprojectedParagraphFormatting = hasUnprojectedParagraphFormatting;
             IsStyleTruncated = isStyleTruncated;
+            TextType = textType;
+            Ruler = ruler;
+            HasRulerRecord = hasRulerRecord;
+            IsRulerTruncated = isRulerTruncated;
         }
 
         /// <summary>Gets the normalized text, with binary paragraph separators represented by line feeds.</summary>
@@ -31,7 +37,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         public bool HasStyleRecord { get; }
 
         /// <summary>Gets whether paragraph formatting or a nonzero paragraph level was decoded.</summary>
-        public bool HasParagraphFormatting => ParagraphRuns.Any(run => run.HasExplicitFormatting);
+        public bool HasParagraphFormatting => ParagraphRuns.Any(run => run.HasExplicitFormatting)
+            || Ruler?.HasFormatting == true;
 
         /// <summary>Gets whether decoded character formatting includes fields not yet projected natively.</summary>
         public bool HasUnprojectedCharacterFormatting { get; }
@@ -41,6 +48,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets whether the style record was malformed or truncated.</summary>
         public bool IsStyleTruncated { get; }
+
+        /// <summary>Gets the text category from the TextHeaderAtom, when valid.</summary>
+        public LegacyPptTextType? TextType { get; }
+
+        /// <summary>Gets the decoded text ruler, when present and valid.</summary>
+        public LegacyPptTextRuler? Ruler { get; }
+
+        /// <summary>Gets whether the binary text box contains a TextRulerAtom.</summary>
+        public bool HasRulerRecord { get; }
+
+        /// <summary>Gets whether the text ruler was malformed or truncated.</summary>
+        public bool IsRulerTruncated { get; }
 
         /// <summary>Gets whether at least one character run carries explicit formatting.</summary>
         public bool HasExplicitCharacterFormatting => CharacterRuns.Any(run => run.HasExplicitFormatting);

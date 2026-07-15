@@ -78,6 +78,7 @@ namespace OfficeIMO.PowerPoint {
                 ApplyLegacyColorScheme(masterPart, master.ColorScheme);
                 ApplyLegacyBackground(slideMaster.CommonSlideData, master.ColorScheme.Background);
             }
+            ApplyLegacyMasterTextStyles(slideMaster, master.TextMasterStyles);
             SlideLayoutPart blankLayout = masterPart.SlideLayoutParts.First();
             if (blankLayout.SlideLayout?.CommonSlideData != null) {
                 blankLayout.SlideLayout.CommonSlideData.Name = GetLegacyMasterName(master);

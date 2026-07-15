@@ -15,6 +15,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ImportableBlipCount = presentation.BlipStoreEntries.Count(entry => entry.HasImportableImage);
             FontCount = presentation.Fonts.Count;
             EmbeddedFontCount = presentation.Fonts.Count(font => font.HasEmbeddedData);
+            TextRulerCount = presentation.Slides.Sum(slide =>
+                slide.Shapes.Count(shape => shape.TextBody.HasRulerRecord));
+            MasterTextStyleCount = presentation.Masters.Sum(master => master.TextMasterStyles.Count);
+            MasterTextStyleLevelCount = presentation.Masters.Sum(master =>
+                master.TextMasterStyles.Sum(style => style.Levels.Count));
             UnsupportedShapeCount = presentation.Slides.Sum(slide =>
                 slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.Unsupported));
             NotesSlideCount = presentation.Slides.Count(slide => !string.IsNullOrWhiteSpace(slide.NotesText));
@@ -50,6 +55,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of font entries with preserved embedded font data.</summary>
         public int EmbeddedFontCount { get; }
+
+        /// <summary>Gets the number of slide text shapes that contain a TextRulerAtom.</summary>
+        public int TextRulerCount { get; }
+
+        /// <summary>Gets the number of decoded base master text styles.</summary>
+        public int MasterTextStyleCount { get; }
+
+        /// <summary>Gets the number of decoded base master text-style levels.</summary>
+        public int MasterTextStyleLevelCount { get; }
 
         /// <summary>Gets the preserve-only unsupported shape count.</summary>
         public int UnsupportedShapeCount { get; }

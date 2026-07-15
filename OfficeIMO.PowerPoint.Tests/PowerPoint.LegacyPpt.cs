@@ -50,9 +50,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal("3465A4", title.LineColor);
             Assert.Contains(title.Style.Properties, property => property.PropertyName == "lineColor");
             Assert.Contains(slide.Shapes, shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.Title);
-            Assert.True(legacy.CreateImportReport().HasConversionLoss);
-            Assert.Contains(legacy.Diagnostics,
-                diagnostic => diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY");
+            Assert.Equal(8, legacy.Masters[0].TextMasterStyles.Count);
+            Assert.All(legacy.Masters[0].TextMasterStyles, style => Assert.False(style.IsTruncated));
+            LegacyPptTextMasterStyle bodyStyle = Assert.Single(legacy.Masters[0].TextMasterStyles,
+                style => style.TextType == LegacyPptTextType.Body);
+            Assert.Equal(5, bodyStyle.Levels.Count);
+            Assert.Equal((short)216, bodyStyle.Levels[0].ParagraphProperties.LeftMargin);
+            Assert.Equal((short)18, bodyStyle.Levels[0].CharacterProperties.FontSizePoints);
+            Assert.NotNull(bodyStyle.Levels[0].CharacterProperties.Typeface);
+            LegacyPptTextRuler titleRuler = Assert.IsType<LegacyPptTextRuler>(title.TextBody.Ruler);
+            Assert.Equal(LegacyPptTextType.Title, title.TextBody.TextType);
+            Assert.Equal(12, titleRuler.TabStops.Count);
+            Assert.Equal((short)576, titleRuler.TabStops[0].Position);
+            Assert.Equal(LegacyPptTabAlignment.Left, titleRuler.TabStops[0].Alignment);
+            Assert.False(title.TextBody.IsRulerTruncated);
+            LegacyPptImportReport report = legacy.CreateImportReport();
+            Assert.Equal(3, report.TextRulerCount);
+            Assert.Equal(88, report.MasterTextStyleCount);
+            Assert.Equal(440, report.MasterTextStyleLevelCount);
+            Assert.True(report.HasConversionLoss);
+            Assert.DoesNotContain(legacy.Diagnostics,
+                diagnostic => diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY"
+                    || diagnostic.Code == "PPT-TEXT-MASTER-STYLE-TRUNCATED"
+                    || diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PARTIAL");
             Assert.NotEmpty(legacy.Package.UserEdits);
             Assert.NotEmpty(legacy.Package.PersistObjects);
             Assert.True(legacy.CreateImportReport().CompoundStreamCount >= 2);
@@ -352,8 +372,10 @@ namespace OfficeIMO.Tests {
 
             LegacyPptPresentation saved = LegacyPptPresentation.Load(bytes);
             Assert.Contains(saved.Slides[0].Shapes, shape => shape.Text == replacementText);
-            Assert.Contains(saved.Diagnostics, diagnostic =>
-                diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY");
+            Assert.DoesNotContain(saved.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY"
+                    || diagnostic.Code == "PPT-TEXT-MASTER-STYLE-TRUNCATED"
+                    || diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PARTIAL");
         }
 
         [Fact]

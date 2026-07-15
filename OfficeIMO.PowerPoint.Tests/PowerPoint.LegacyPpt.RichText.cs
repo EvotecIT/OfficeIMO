@@ -38,6 +38,9 @@ namespace OfficeIMO.Tests {
             Assert.False(arial.HasEmbeddedData);
             Assert.Equal(legacy.Fonts.Count, legacy.CreateImportReport().FontCount);
             Assert.Equal(0, legacy.CreateImportReport().EmbeddedFontCount);
+            Assert.Equal(0, legacy.CreateImportReport().TextRulerCount);
+            Assert.Equal(8, legacy.CreateImportReport().MasterTextStyleCount);
+            Assert.Equal(32, legacy.CreateImportReport().MasterTextStyleLevelCount);
             Assert.Collection(textBody.CharacterRuns,
                 run => AssertRun(run, "Bold red", 0, bold: true, size: 32, color: "C00000"),
                 run => AssertRun(run, " | ", 8, size: 24, color: "222222"),
@@ -55,8 +58,18 @@ namespace OfficeIMO.Tests {
                 diagnostic => diagnostic.Code == "PPT-TEXT-PARAGRAPH-PARTIAL");
             Assert.DoesNotContain(legacy.Diagnostics,
                 diagnostic => diagnostic.Code == "PPT-TEXT-CHARACTER-PARTIAL");
-            Assert.Contains(legacy.Diagnostics,
-                diagnostic => diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY");
+            LegacyPptMaster master = Assert.Single(legacy.Masters);
+            Assert.Equal(8, master.TextMasterStyles.Count);
+            Assert.All(master.TextMasterStyles, style => Assert.False(style.IsTruncated));
+            LegacyPptTextMasterStyle titleStyle = Assert.Single(master.TextMasterStyles,
+                style => style.TextType == LegacyPptTextType.Title);
+            LegacyPptTextMasterStyleLevel titleLevel = Assert.Single(titleStyle.Levels);
+            Assert.Equal((short)44, titleLevel.CharacterProperties.FontSizePoints);
+            Assert.Equal("Calibri Light", titleLevel.CharacterProperties.Typeface);
+            Assert.DoesNotContain(legacy.Diagnostics,
+                diagnostic => diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY"
+                    || diagnostic.Code == "PPT-TEXT-MASTER-STYLE-TRUNCATED"
+                    || diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PARTIAL");
             Assert.DoesNotContain(legacy.Diagnostics,
                 diagnostic => diagnostic.Code == "PPT-TEXT-STYLE-TRUNCATED");
         }
@@ -68,6 +81,21 @@ namespace OfficeIMO.Tests {
             P.Shape shape = Assert.IsType<P.Shape>(Assert.Single(
                 Assert.Single(presentation.Slides).TextBoxes).Element);
             A.Paragraph[] paragraphs = shape.TextBody!.Elements<A.Paragraph>().ToArray();
+            P.SlideMaster slideMaster = presentation.Slides[0].SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.SlideMaster!;
+            A.Level1ParagraphProperties nativeTitle = Assert.IsType<A.Level1ParagraphProperties>(
+                slideMaster.TextStyles!.TitleStyle!.FirstChild);
+            Assert.Equal(0, nativeTitle.LeftMargin!.Value);
+            Assert.Equal(0, nativeTitle.Indent!.Value);
+            Assert.Equal(A.TextAlignmentTypeValues.Left, nativeTitle.Alignment!.Value);
+            A.DefaultRunProperties nativeTitleRun = nativeTitle.GetFirstChild<A.DefaultRunProperties>()!;
+            Assert.Equal(4400, nativeTitleRun.FontSize!.Value);
+            Assert.Equal("Calibri Light", nativeTitleRun.GetFirstChild<A.LatinFont>()!.Typeface!.Value);
+            A.Level1ParagraphProperties nativeBody = Assert.IsType<A.Level1ParagraphProperties>(
+                slideMaster.TextStyles.BodyStyle!.FirstChild);
+            Assert.Equal(228600, nativeBody.LeftMargin!.Value);
+            Assert.Equal(0, nativeBody.Indent!.Value);
+            Assert.Equal(2800, nativeBody.GetFirstChild<A.DefaultRunProperties>()!.FontSize!.Value);
 
             Assert.Equal(2, paragraphs.Length);
             A.Run[] firstParagraph = paragraphs[0].Elements<A.Run>().ToArray();
@@ -131,6 +159,37 @@ namespace OfficeIMO.Tests {
             P.Shape shape = Assert.IsType<P.Shape>(Assert.Single(
                 presentation.Slides[0].TextBoxes).Element);
             shape.TextBody!.Descendants<A.Run>().First().RunProperties!.Bold = false;
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings,
+                finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
+        public void ImportedMasterTextStyleEdit_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
+            P.SlideMaster slideMaster = presentation.Slides[0].SlidePart.SlideLayoutPart!
+                .SlideMasterPart!.SlideMaster!;
+            A.Level1ParagraphProperties title = Assert.IsType<A.Level1ParagraphProperties>(
+                slideMaster.TextStyles!.TitleStyle!.FirstChild);
+            title.GetFirstChild<A.DefaultRunProperties>()!.FontSize = 4500;
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings,
+                finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
+        public void ImportedTextRulerEdit_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            P.Shape title = Assert.IsType<P.Shape>(presentation.Slides[0].TextBoxes.Single(textBox =>
+                textBox.Text == "OfficeIMO PowerPoint Basics").Element);
+            A.TabStop tab = title.TextBody!.Descendants<A.TabStop>().First();
+            tab.Position = tab.Position!.Value + 1588;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
 
@@ -273,6 +332,142 @@ namespace OfficeIMO.Tests {
             Assert.Equal(80000, properties.GetFirstChild<A.BulletSizePercentage>()!.Val!.Value);
             Assert.Equal("Arial", properties.GetFirstChild<A.BulletFont>()!.Typeface!.Value);
             Assert.Equal("•", properties.GetFirstChild<A.CharacterBullet>()!.Char!.Value);
+        }
+
+        [Fact]
+        public void TextRulerReader_ProjectsTabsMarginsAndIndentation() {
+            byte[] payload;
+            using (var stream = new MemoryStream()) {
+                using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
+                    uint mask = (1U << 0) | (1U << 1) | (1U << 2)
+                        | (1U << 3) | (1U << 4) | (1U << 8) | (1U << 9);
+                    writer.Write(mask);
+                    writer.Write((short)2);       // ruler level count
+                    writer.Write((short)720);     // default tab size
+                    writer.Write((ushort)2);      // tab-stop count
+                    writer.Write((short)576);
+                    writer.Write((ushort)LegacyPptTabAlignment.Left);
+                    writer.Write((short)1152);
+                    writer.Write((ushort)LegacyPptTabAlignment.Decimal);
+                    writer.Write((short)144);     // level 0 left margin
+                    writer.Write((short)-72);     // level 0 first-line indent
+                    writer.Write((short)432);     // level 1 left margin
+                    writer.Write((short)288);     // level 1 first-line indent
+                }
+                payload = stream.ToArray();
+            }
+            var record = new LegacyPptRecord(payload, 0, 0, 0, 0x0FA6, 0, payload.Length);
+
+            LegacyPptTextRuler ruler = Assert.IsType<LegacyPptTextRuler>(
+                LegacyPptTextRulerReader.Read(record, out bool truncated));
+
+            Assert.False(truncated);
+            Assert.Equal((short)2, ruler.LevelCount);
+            Assert.Equal((short)720, ruler.DefaultTabSize);
+            Assert.Collection(ruler.Levels,
+                level => {
+                    Assert.Equal((ushort)0, level.Level);
+                    Assert.Equal((short)144, level.LeftMargin);
+                    Assert.Equal((short)-72, level.Indent);
+                },
+                level => {
+                    Assert.Equal((ushort)1, level.Level);
+                    Assert.Equal((short)432, level.LeftMargin);
+                    Assert.Equal((short)288, level.Indent);
+                });
+            Assert.Collection(ruler.TabStops,
+                tab => {
+                    Assert.Equal((short)576, tab.Position);
+                    Assert.Equal(LegacyPptTabAlignment.Left, tab.Alignment);
+                },
+                tab => {
+                    Assert.Equal((short)1152, tab.Position);
+                    Assert.Equal(LegacyPptTabAlignment.Decimal, tab.Alignment);
+                });
+
+            LegacyPptTextBody body = LegacyPptTextStyleReader.Read("A", 1, styleRecord: null,
+                colorScheme: null, textType: LegacyPptTextType.Other, ruler: ruler,
+                hasRulerRecord: true);
+            A.ParagraphProperties properties = Assert.Single(
+                LegacyPptTextProjection.CreateTextBody(body).Elements<A.Paragraph>())
+                .ParagraphProperties!;
+            Assert.Equal(228600, properties.LeftMargin!.Value);
+            Assert.Equal(-114300, properties.Indent!.Value);
+            Assert.Equal(1143000, properties.DefaultTabSize!.Value);
+            Assert.Collection(properties.GetFirstChild<A.TabStopList>()!.Elements<A.TabStop>(),
+                tab => {
+                    Assert.Equal(914400, tab.Position!.Value);
+                    Assert.Equal(A.TextTabAlignmentValues.Left, tab.Alignment!.Value);
+                },
+                tab => {
+                    Assert.Equal(1828800, tab.Position!.Value);
+                    Assert.Equal(A.TextTabAlignmentValues.Decimal, tab.Alignment!.Value);
+                });
+        }
+
+        [Fact]
+        public void TextRulerReader_RejectsReservedMaskBitsWithoutEscapingBounds() {
+            byte[] payload = { 0x00, 0x00, 0x00, 0x80 };
+            var record = new LegacyPptRecord(payload, 0, 0, 0, 0x0FA6, 0, payload.Length);
+
+            LegacyPptTextRuler? ruler = LegacyPptTextRulerReader.Read(record, out bool truncated);
+
+            Assert.Null(ruler);
+            Assert.True(truncated);
+        }
+
+        [Fact]
+        public void TextMasterStyleReader_DecodesExplicitCenterStyleLevels() {
+            byte[] payload;
+            using (var stream = new MemoryStream()) {
+                using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
+                    writer.Write((ushort)2);       // style-level count
+                    writer.Write((ushort)1);       // explicit level for text types 5 through 8
+                    writer.Write(0U);              // empty TextPFException
+                    writer.Write(1U << 17);        // character size
+                    writer.Write((short)18);
+                    writer.Write((ushort)0);       // explicit level zero
+                    writer.Write(1U << 11);        // paragraph alignment
+                    writer.Write((ushort)1);       // centered
+                    writer.Write(0U);              // empty TextCFException
+                }
+                payload = stream.ToArray();
+            }
+            var record = new LegacyPptRecord(payload, 0, 0, 5, 0x0FA3, 0, payload.Length);
+
+            LegacyPptTextMasterStyle style = Assert.IsType<LegacyPptTextMasterStyle>(
+                LegacyPptTextMasterStyleReader.Read(record, colorScheme: null, fonts: null));
+
+            Assert.False(style.IsTruncated);
+            Assert.False(style.HasUnprojectedFormatting);
+            Assert.Equal(LegacyPptTextType.CenterBody, style.TextType);
+            Assert.Collection(style.Levels,
+                level => {
+                    Assert.Equal((ushort)0, level.Level);
+                    Assert.Equal(LegacyPptTextAlignment.Center,
+                        level.ParagraphProperties.Alignment);
+                },
+                level => {
+                    Assert.Equal((ushort)1, level.Level);
+                    Assert.Equal((short)18, level.CharacterProperties.FontSizePoints);
+                });
+        }
+
+        [Fact]
+        public void TextMasterStyleReader_RejectsInvalidExplicitLevelWithoutEscapingBounds() {
+            byte[] payload = {
+                0x01, 0x00, // one level
+                0x01, 0x00, // invalid: level must be less than cLevels
+                0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00
+            };
+            var record = new LegacyPptRecord(payload, 0, 0, 5, 0x0FA3, 0, payload.Length);
+
+            LegacyPptTextMasterStyle style = Assert.IsType<LegacyPptTextMasterStyle>(
+                LegacyPptTextMasterStyleReader.Read(record, colorScheme: null, fonts: null));
+
+            Assert.True(style.IsTruncated);
+            Assert.Empty(style.Levels);
         }
 
         private static void AssertRun(LegacyPptCharacterRun run, string text, int start,
