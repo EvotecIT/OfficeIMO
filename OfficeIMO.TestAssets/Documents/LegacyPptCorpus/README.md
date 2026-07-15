@@ -68,7 +68,7 @@ no-op saves, and loss blocking for unsupported metadata edits. Its SHA-256 diges
 Microsoft PowerPoint for Mac. Its text box contains separate bold red, italic green, underlined
 blue, separator, and second-paragraph runs with sizes from 20 to 32 points. It exercises bounded
 `StyleTextPropAtom` paragraph and character arrays, native emphasis, size, and direct RGB color
-projection, exact no-op saves, formatting-preserving geometry edits, and loss blocking for
+projection, document font-collection resolution, exact no-op saves, formatting-preserving geometry edits, and loss blocking for
 unsupported formatting edits. Its SHA-256 digest is
 `91d0c2a9ee4380357befeee9803d45b4bcdfb2774d84ea5360e3f8b3964dab88`.
 

@@ -22,7 +22,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Bold red | Italic green | Underlined blue\nRegular second paragraph",
                 textBody.Text);
             Assert.True(textBody.HasParagraphFormatting);
-            Assert.True(textBody.HasUnprojectedCharacterFormatting);
+            Assert.False(textBody.HasUnprojectedParagraphFormatting);
+            LegacyPptParagraphRun paragraphRun = Assert.Single(textBody.ParagraphRuns);
+            Assert.Equal(0, paragraphRun.Start);
+            Assert.Equal(textBody.Text.Length, paragraphRun.Length);
+            Assert.Equal((ushort)0, paragraphRun.IndentLevel);
+            Assert.True(paragraphRun.CharacterWrap);
+            Assert.Null(paragraphRun.WordWrap);
+            Assert.True(paragraphRun.Overflow);
+            Assert.False(paragraphRun.HasUnprojectedFormatting);
+            Assert.False(textBody.HasUnprojectedCharacterFormatting);
+            LegacyPptFont arial = Assert.Single(legacy.Fonts,
+                font => font.Index == 1 && font.Typeface == "Arial");
+            Assert.True(arial.IsTrueType);
+            Assert.False(arial.HasEmbeddedData);
+            Assert.Equal(legacy.Fonts.Count, legacy.CreateImportReport().FontCount);
+            Assert.Equal(0, legacy.CreateImportReport().EmbeddedFontCount);
             Assert.Collection(textBody.CharacterRuns,
                 run => AssertRun(run, "Bold red", 0, bold: true, size: 32, color: "C00000"),
                 run => AssertRun(run, " | ", 8, size: 24, color: "222222"),
@@ -33,12 +48,15 @@ namespace OfficeIMO.Tests {
                 run => AssertRun(run, "Regular second paragraph", 42, size: 20, color: "333333"));
             Assert.All(textBody.CharacterRuns, run => {
                 Assert.Equal((ushort)1, run.FontIndex);
-                Assert.True(run.HasUnprojectedFormatting);
+                Assert.Equal("Arial", run.Typeface);
+                Assert.False(run.HasUnprojectedFormatting);
             });
-            Assert.Contains(legacy.Diagnostics,
+            Assert.DoesNotContain(legacy.Diagnostics,
                 diagnostic => diagnostic.Code == "PPT-TEXT-PARAGRAPH-PARTIAL");
-            Assert.Contains(legacy.Diagnostics,
+            Assert.DoesNotContain(legacy.Diagnostics,
                 diagnostic => diagnostic.Code == "PPT-TEXT-CHARACTER-PARTIAL");
+            Assert.Contains(legacy.Diagnostics,
+                diagnostic => diagnostic.Code == "PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY");
             Assert.DoesNotContain(legacy.Diagnostics,
                 diagnostic => diagnostic.Code == "PPT-TEXT-STYLE-TRUNCATED");
         }
@@ -54,21 +72,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, paragraphs.Length);
             A.Run[] firstParagraph = paragraphs[0].Elements<A.Run>().ToArray();
             Assert.Equal(5, firstParagraph.Length);
+            Assert.True(paragraphs[0].ParagraphProperties!.EastAsianLineBreak!.Value);
+            Assert.True(paragraphs[0].ParagraphProperties.Height!.Value);
+            Assert.True(paragraphs[1].ParagraphProperties!.EastAsianLineBreak!.Value);
+            Assert.True(paragraphs[1].ParagraphProperties.Height!.Value);
             Assert.Equal("Bold red", firstParagraph[0].Text!.Text);
             Assert.True(firstParagraph[0].RunProperties!.Bold!.Value);
             Assert.Equal(3200, firstParagraph[0].RunProperties.FontSize!.Value);
             Assert.Equal("C00000", GetRunColor(firstParagraph[0]));
+            Assert.Equal("Arial", firstParagraph[0].RunProperties
+                .GetFirstChild<A.LatinFont>()!.Typeface!.Value);
             Assert.True(firstParagraph[2].RunProperties!.Italic!.Value);
             Assert.Equal(2600, firstParagraph[2].RunProperties.FontSize!.Value);
             Assert.Equal("008000", GetRunColor(firstParagraph[2]));
+            Assert.Equal("Arial", firstParagraph[2].RunProperties
+                .GetFirstChild<A.LatinFont>()!.Typeface!.Value);
             Assert.Equal(A.TextUnderlineValues.Single,
                 firstParagraph[4].RunProperties!.Underline!.Value);
             Assert.Equal(2200, firstParagraph[4].RunProperties.FontSize!.Value);
             Assert.Equal("0000C0", GetRunColor(firstParagraph[4]));
+            Assert.Equal("Arial", firstParagraph[4].RunProperties
+                .GetFirstChild<A.LatinFont>()!.Typeface!.Value);
             A.Run secondParagraph = Assert.Single(paragraphs[1].Elements<A.Run>());
             Assert.Equal("Regular second paragraph", secondParagraph.Text!.Text);
             Assert.Equal(2000, secondParagraph.RunProperties!.FontSize!.Value);
             Assert.Equal("333333", GetRunColor(secondParagraph));
+            Assert.Equal("Arial", secondParagraph.RunProperties
+                .GetFirstChild<A.LatinFont>()!.Typeface!.Value);
             Assert.Empty(presentation.ValidateDocument());
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
             Assert.Equal(source, presentation.ToBytes(PowerPointFileFormat.Ppt));
@@ -169,6 +199,82 @@ namespace OfficeIMO.Tests {
             Assert.True(runs[1].RunProperties!.Bold!.Value);
         }
 
+        [Fact]
+        public void TextStyleReader_ProjectsParagraphSpacingBulletsDirectionAndWrapping() {
+            byte[] payload;
+            using (var stream = new MemoryStream()) {
+                using (var writer = new BinaryWriter(stream, Encoding.UTF8, leaveOpen: true)) {
+                    writer.Write(2U); // TextPFRun covers A and the terminal character
+                    writer.Write((ushort)2);
+                    uint masks = 0x000000FFU | (1U << 11) | (1U << 12) | (1U << 13)
+                        | (1U << 14) | (1U << 16) | (7U << 17) | (1U << 21);
+                    writer.Write(masks);
+                    writer.Write((ushort)0x000F); // bullet enabled with font, color, and size
+                    writer.Write((ushort)'•');
+                    writer.Write((ushort)1);      // Arial
+                    writer.Write((short)80);      // 80 percent
+                    writer.Write((byte)0xAA);
+                    writer.Write((byte)0xBB);
+                    writer.Write((byte)0xCC);
+                    writer.Write((byte)0xFE);
+                    writer.Write((ushort)2);      // right aligned
+                    writer.Write((short)150);     // 150 percent line spacing
+                    writer.Write((short)-80);     // 10 points before
+                    writer.Write((short)25);      // 25 percent after
+                    writer.Write((ushort)2);      // centered within line height
+                    writer.Write((ushort)0x0003); // East Asian break + word-only wrapping
+                    writer.Write((ushort)1);      // right to left
+                    writer.Write(2U);             // TextCFRun covers A and terminal character
+                    writer.Write(0U);
+                }
+                payload = stream.ToArray();
+            }
+            var record = new LegacyPptRecord(payload, 0, 0, 0, 0x0FA1, 0, payload.Length);
+            var arial = new LegacyPptFont(1, "Arial", 0, false, false, false,
+                true, false, 0x22, false);
+
+            LegacyPptTextBody result = LegacyPptTextStyleReader.Read("A", 1, record,
+                colorScheme: null, fonts: new Dictionary<ushort, LegacyPptFont> { [1] = arial });
+
+            Assert.False(result.IsStyleTruncated);
+            Assert.False(result.HasUnprojectedParagraphFormatting);
+            LegacyPptParagraphRun paragraph = Assert.Single(result.ParagraphRuns);
+            Assert.Equal((ushort)2, paragraph.IndentLevel);
+            Assert.True(paragraph.HasBullet);
+            Assert.Equal('•', paragraph.BulletCharacter);
+            Assert.Equal("Arial", paragraph.BulletTypeface);
+            Assert.Equal((short)80, paragraph.BulletSize);
+            Assert.Equal("AABBCC", paragraph.BulletColor);
+            Assert.Equal(LegacyPptTextAlignment.Right, paragraph.Alignment);
+            Assert.Equal((short)150, paragraph.LineSpacing);
+            Assert.Equal((short)-80, paragraph.SpaceBefore);
+            Assert.Equal((short)25, paragraph.SpaceAfter);
+            Assert.Equal(LegacyPptFontAlignment.Center, paragraph.FontAlignment);
+            Assert.True(paragraph.CharacterWrap);
+            Assert.True(paragraph.WordWrap);
+            Assert.False(paragraph.Overflow);
+            Assert.Equal(LegacyPptTextDirection.RightToLeft, paragraph.TextDirection);
+
+            A.ParagraphProperties properties = Assert.Single(
+                LegacyPptTextProjection.CreateTextBody(result).Elements<A.Paragraph>())
+                .ParagraphProperties!;
+            Assert.Equal(2, properties.Level!.Value);
+            Assert.Equal(A.TextAlignmentTypeValues.Right, properties.Alignment!.Value);
+            Assert.Equal(A.TextFontAlignmentValues.Center, properties.FontAlignment!.Value);
+            Assert.True(properties.RightToLeft!.Value);
+            Assert.True(properties.EastAsianLineBreak!.Value);
+            Assert.False(properties.LatinLineBreak!.Value);
+            Assert.False(properties.Height!.Value);
+            Assert.Equal(150000, properties.LineSpacing!.SpacingPercent!.Val!.Value);
+            Assert.Equal(1000, properties.SpaceBefore!.SpacingPoints!.Val!.Value);
+            Assert.Equal(25000, properties.SpaceAfter!.SpacingPercent!.Val!.Value);
+            Assert.Equal("AABBCC", properties.GetFirstChild<A.BulletColor>()!
+                .RgbColorModelHex!.Val!.Value);
+            Assert.Equal(80000, properties.GetFirstChild<A.BulletSizePercentage>()!.Val!.Value);
+            Assert.Equal("Arial", properties.GetFirstChild<A.BulletFont>()!.Typeface!.Value);
+            Assert.Equal("•", properties.GetFirstChild<A.CharacterBullet>()!.Char!.Value);
+        }
+
         private static void AssertRun(LegacyPptCharacterRun run, string text, int start,
             bool? bold = null, bool? italic = null, bool? underline = null,
             short? size = null, string? color = null) {
@@ -187,7 +293,7 @@ namespace OfficeIMO.Tests {
 
         private static string DescribeRun(LegacyPptCharacterRun run) => string.Join("|",
             run.Start, run.Length, run.Text, run.Bold, run.Italic, run.Underline,
-            run.FontIndex, run.FontSizePoints, run.Color, run.ColorSchemeIndex,
+            run.FontIndex, run.Typeface, run.FontSizePoints, run.Color, run.ColorSchemeIndex,
             run.BaselinePositionPercent);
     }
 }

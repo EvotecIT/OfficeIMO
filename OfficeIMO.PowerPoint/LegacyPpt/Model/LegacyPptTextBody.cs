@@ -4,14 +4,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents text and decoded character-run formatting from a binary PowerPoint text box.</summary>
     public sealed class LegacyPptTextBody {
         internal LegacyPptTextBody(string text, IReadOnlyList<LegacyPptCharacterRun> characterRuns,
-            bool hasStyleRecord, bool hasParagraphFormatting, bool hasUnprojectedCharacterFormatting,
+            IReadOnlyList<LegacyPptParagraphRun> paragraphRuns, bool hasStyleRecord,
+            bool hasUnprojectedCharacterFormatting, bool hasUnprojectedParagraphFormatting,
             bool isStyleTruncated = false) {
             Text = text ?? string.Empty;
             CharacterRuns = new ReadOnlyCollection<LegacyPptCharacterRun>(
                 characterRuns?.ToArray() ?? throw new ArgumentNullException(nameof(characterRuns)));
+            ParagraphRuns = new ReadOnlyCollection<LegacyPptParagraphRun>(
+                paragraphRuns?.ToArray() ?? throw new ArgumentNullException(nameof(paragraphRuns)));
             HasStyleRecord = hasStyleRecord;
-            HasParagraphFormatting = hasParagraphFormatting;
             HasUnprojectedCharacterFormatting = hasUnprojectedCharacterFormatting;
+            HasUnprojectedParagraphFormatting = hasUnprojectedParagraphFormatting;
             IsStyleTruncated = isStyleTruncated;
         }
 
@@ -21,14 +24,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets character-formatting runs clipped to the exposed text.</summary>
         public IReadOnlyList<LegacyPptCharacterRun> CharacterRuns { get; }
 
+        /// <summary>Gets paragraph-formatting runs clipped to the exposed text.</summary>
+        public IReadOnlyList<LegacyPptParagraphRun> ParagraphRuns { get; }
+
         /// <summary>Gets whether the binary text box contains a StyleTextPropAtom.</summary>
         public bool HasStyleRecord { get; }
 
         /// <summary>Gets whether paragraph formatting or a nonzero paragraph level was decoded.</summary>
-        public bool HasParagraphFormatting { get; }
+        public bool HasParagraphFormatting => ParagraphRuns.Any(run => run.HasExplicitFormatting);
 
         /// <summary>Gets whether decoded character formatting includes fields not yet projected natively.</summary>
         public bool HasUnprojectedCharacterFormatting { get; }
+
+        /// <summary>Gets whether decoded paragraph formatting includes fields not yet projected natively.</summary>
+        public bool HasUnprojectedParagraphFormatting { get; }
 
         /// <summary>Gets whether the style record was malformed or truncated.</summary>
         public bool IsStyleTruncated { get; }
@@ -37,8 +46,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         public bool HasExplicitCharacterFormatting => CharacterRuns.Any(run => run.HasExplicitFormatting);
 
         internal static LegacyPptTextBody Plain(string text) => new(text ?? string.Empty,
-            Array.Empty<LegacyPptCharacterRun>(), hasStyleRecord: false,
-            hasParagraphFormatting: false, hasUnprojectedCharacterFormatting: false);
+            Array.Empty<LegacyPptCharacterRun>(), Array.Empty<LegacyPptParagraphRun>(),
+            hasStyleRecord: false, hasUnprojectedCharacterFormatting: false,
+            hasUnprojectedParagraphFormatting: false);
     }
 
     /// <summary>Represents one character-formatting run from a binary PowerPoint text box.</summary>
@@ -47,7 +57,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             bool? bold, bool? italic, bool? underline,
             bool? shadow, bool? farEastHint, bool? kumi, bool? emboss,
             ushort? fontIndex, ushort? oldEastAsianFontIndex, ushort? ansiFontIndex,
-            ushort? symbolFontIndex, short? fontSizePoints, string? color,
+            ushort? symbolFontIndex, string? typeface, string? oldEastAsianTypeface,
+            string? ansiTypeface, string? symbolTypeface, short? fontSizePoints, string? color,
             byte? colorSchemeIndex, short? baselinePositionPercent,
             bool hasUnprojectedFormatting) {
             Start = start;
@@ -64,6 +75,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             OldEastAsianFontIndex = oldEastAsianFontIndex;
             AnsiFontIndex = ansiFontIndex;
             SymbolFontIndex = symbolFontIndex;
+            Typeface = typeface;
+            OldEastAsianTypeface = oldEastAsianTypeface;
+            AnsiTypeface = ansiTypeface;
+            SymbolTypeface = symbolTypeface;
             FontSizePoints = fontSizePoints;
             Color = color;
             ColorSchemeIndex = colorSchemeIndex;
@@ -113,6 +128,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the legacy symbol typeface index, or null when inherited.</summary>
         public ushort? SymbolFontIndex { get; }
 
+        /// <summary>Gets the resolved primary typeface name, or null when inherited or unresolved.</summary>
+        public string? Typeface { get; }
+
+        /// <summary>Gets the resolved old East Asian typeface name, or null when inherited or unresolved.</summary>
+        public string? OldEastAsianTypeface { get; }
+
+        /// <summary>Gets the resolved ANSI typeface name, or null when inherited or unresolved.</summary>
+        public string? AnsiTypeface { get; }
+
+        /// <summary>Gets the resolved symbol typeface name, or null when inherited or unresolved.</summary>
+        public string? SymbolTypeface { get; }
+
         /// <summary>Gets the explicit font size in points, or null when inherited.</summary>
         public short? FontSizePoints { get; }
 
@@ -132,7 +159,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         public bool HasExplicitFormatting => Bold.HasValue || Italic.HasValue || Underline.HasValue
             || Shadow.HasValue || FarEastHint.HasValue || Kumi.HasValue || Emboss.HasValue
             || FontIndex.HasValue || OldEastAsianFontIndex.HasValue || AnsiFontIndex.HasValue
-            || SymbolFontIndex.HasValue || FontSizePoints.HasValue || Color != null
+            || SymbolFontIndex.HasValue || Typeface != null || OldEastAsianTypeface != null
+            || AnsiTypeface != null || SymbolTypeface != null || FontSizePoints.HasValue || Color != null
             || ColorSchemeIndex.HasValue || BaselinePositionPercent.HasValue;
     }
 }

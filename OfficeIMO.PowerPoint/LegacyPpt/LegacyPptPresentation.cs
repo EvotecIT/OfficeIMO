@@ -8,7 +8,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>
     /// Represents the dependency-free, normalized contents of a PowerPoint 97-2003 binary presentation.
     /// </summary>
-    public sealed class LegacyPptPresentation {
+    public sealed partial class LegacyPptPresentation {
         private const ushort RecordDocument = 0x03E8;
         private const ushort RecordDocumentAtom = 0x03E9;
         private const ushort RecordSlide = 0x03EE;
@@ -17,11 +17,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordMainMaster = 0x03F8;
         private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
         private const ushort RecordColorSchemeAtom = 0x07F0;
+        private const ushort RecordFontCollection = 0x07D5;
         private const ushort RecordDrawing = 0x040C;
         private const ushort RecordPlaceholder = 0x0BC3;
         private const ushort RecordTextChars = 0x0FA0;
         private const ushort RecordStyleTextPropAtom = 0x0FA1;
+        private const ushort RecordTextMasterStyleAtom = 0x0FA3;
         private const ushort RecordTextBytes = 0x0FA8;
+        private const ushort RecordFontEntityAtom = 0x0FB7;
+        private const ushort RecordFontEmbedDataBlob = 0x0FB8;
         private const ushort RecordSlideListWithText = 0x0FF0;
         private const ushort OfficeArtSpContainer = 0xF004;
         private const ushort OfficeArtSpgrContainer = 0xF003;
@@ -39,6 +43,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private readonly List<LegacyPptSlide> _slides = new();
         private readonly List<LegacyPptMaster> _masters = new();
         private readonly List<OfficeArtBlipStoreEntry> _blipStoreEntries = new();
+        private readonly List<LegacyPptFont> _fonts = new();
+        private readonly Dictionary<ushort, LegacyPptFont> _fontsByIndex = new();
         private readonly List<LegacyPptImportDiagnostic> _diagnostics = new();
 
         private LegacyPptPresentation() { }
@@ -59,6 +65,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the document-level OfficeArt BLIP store in one-based reference order.</summary>
         public IReadOnlyList<OfficeArtBlipStoreEntry> BlipStoreEntries => _blipStoreEntries;
+
+        /// <summary>Gets document fonts by their binary PowerPoint font index.</summary>
+        public IReadOnlyList<LegacyPptFont> Fonts => _fonts;
 
         /// <summary>Gets import diagnostics, including preserve-only content.</summary>
         public IReadOnlyList<LegacyPptImportDiagnostic> Diagnostics => _diagnostics;
@@ -115,6 +124,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             }
 
             ParseBlipStore(document, package, options);
+            ParseFontCollection(document, options);
+            AddMasterTextStyleDiagnostic(document, options);
 
             ParseMasters(document, documentStream, persistOffsets, options);
 
@@ -177,6 +188,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 : slide.ColorScheme;
             ParseShapes(slideRecord, slide.AddShape, "slide", options,
                 effectiveScheme ?? slide.ColorScheme, slide.AddConnectorRule);
+        }
+
+        private void AddMasterTextStyleDiagnostic(LegacyPptRecord document,
+            LegacyPptImportOptions options) {
+            if (!options.ReportUnsupportedContent) return;
+            LegacyPptRecord? style = document.DescendantsAndSelf().FirstOrDefault(record =>
+                record.Type == RecordTextMasterStyleAtom);
+            if (style != null) {
+                AddDiagnostic("PPT-TEXT-MASTER-STYLE-PRESERVE-ONLY",
+                    LegacyPptDiagnosticSeverity.Warning,
+                    "Document text master styles are preserved but not projected to native slide-master text styles yet.",
+                    style.Offset);
+            }
         }
 
         private void ParseMasters(LegacyPptRecord document, byte[] documentStream,
@@ -304,7 +328,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? textStyle = textbox?.DescendantsAndSelf().FirstOrDefault(record =>
                 record.Type == RecordStyleTextPropAtom);
             LegacyPptTextBody textBody = LegacyPptTextStyleReader.Read(text, textData.RawCharacterCount,
-                textStyle, colorScheme);
+                textStyle, colorScheme, _fontsByIndex);
             LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
             LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,
                 (shapeFlags & (1U << 8)) != 0);
@@ -333,9 +357,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "A StyleTextPropAtom is malformed or truncated; its text remains available as plain text.",
                     textStyle?.Offset ?? textbox?.Offset);
             } else {
-                if (textBody.HasParagraphFormatting) {
+                if (textBody.HasUnprojectedParagraphFormatting) {
                     AddDiagnostic("PPT-TEXT-PARAGRAPH-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
-                        "Paragraph formatting and master-level inheritance are preserved but not projected yet.",
+                        "A text ruler field, unresolved bullet resource, or unsupported bullet size is preserved but not projected yet.",
                         textStyle?.Offset ?? textbox?.Offset);
                 }
                 if (textBody.HasUnprojectedCharacterFormatting) {

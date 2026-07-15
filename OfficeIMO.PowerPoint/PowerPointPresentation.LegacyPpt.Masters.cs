@@ -313,6 +313,7 @@ namespace OfficeIMO.PowerPoint {
                 shapeProperties);
             if (source.Kind == LegacyPptShapeKind.TextBox) {
                 shape.Append(source.TextBody.HasExplicitCharacterFormatting
+                    || source.TextBody.HasParagraphFormatting
                     ? LegacyPptTextProjection.CreateTextBody(source.TextBody)
                     : new TextBody(
                         new A.BodyProperties(),

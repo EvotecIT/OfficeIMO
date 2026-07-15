@@ -57,11 +57,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return _source[PayloadOffset + relativeOffset];
         }
 
-        internal string ReadUtf16Text() {
-            if ((PayloadLength & 1) != 0) {
+        internal string ReadUtf16Text() => ReadUtf16Text(0, PayloadLength);
+
+        internal string ReadUtf16Text(int relativeOffset, int byteCount) {
+            if ((byteCount & 1) != 0) {
                 throw new InvalidDataException($"Record 0x{Type:X4} at 0x{Offset:X} has an odd UTF-16 payload length.");
             }
-            return Encoding.Unicode.GetString(_source, PayloadOffset, PayloadLength);
+            EnsureAvailable(relativeOffset, byteCount);
+            return Encoding.Unicode.GetString(_source, PayloadOffset + relativeOffset, byteCount);
         }
 
         internal string ReadLowByteUnicodeText() {
