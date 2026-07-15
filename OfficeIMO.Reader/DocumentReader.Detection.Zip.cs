@@ -44,9 +44,15 @@ internal static partial class DocumentReaderEngine {
 
             DetectionCandidate? match = MatchContainerEntry(name);
             if (match != null) return match;
-            if (name == "mimetype" &&
-                TryReadEpubMimeType(stream, start, localHeaderOffset, compression, compressedSize, nextEntryOffset)) {
-                return EpubCandidate();
+            if (name == "mimetype") {
+                DetectionCandidate? mimeType = TryReadContainerMimeType(
+                    stream,
+                    start,
+                    localHeaderOffset,
+                    compression,
+                    compressedSize,
+                    nextEntryOffset);
+                if (mimeType != null) return mimeType;
             }
 
             stream.Position = nextEntryOffset;
@@ -92,15 +98,17 @@ internal static partial class DocumentReaderEngine {
 
             DetectionCandidate? match = MatchContainerEntry(name);
             if (match != null) return match;
-            if (name == "mimetype" && await TryReadEpubMimeTypeAsync(
-                    stream,
-                    start,
-                    localHeaderOffset,
-                    compression,
-                    compressedSize,
-                    nextEntryOffset,
-                    cancellationToken).ConfigureAwait(false)) {
-                return EpubCandidate();
+            if (name == "mimetype") {
+                DetectionCandidate? mimeType = await TryReadContainerMimeTypeAsync(
+                        stream,
+                        start,
+                        localHeaderOffset,
+                        compression,
+                        compressedSize,
+                        nextEntryOffset,
+                        cancellationToken)
+                    .ConfigureAwait(false);
+                if (mimeType != null) return mimeType;
             }
 
             stream.Position = nextEntryOffset;
@@ -200,22 +208,22 @@ internal static partial class DocumentReaderEngine {
         return false;
     }
 
-    private static bool TryReadEpubMimeType(
+    private static DetectionCandidate? TryReadContainerMimeType(
         Stream stream,
         long start,
         uint localHeaderOffset,
         ushort compression,
         uint compressedSize,
         long returnPosition) {
-        if (compression != 0 || compressedSize == 0 || compressedSize > 128) return false;
+        if (compression != 0 || compressedSize == 0 || compressedSize > 128) return null;
 
         var header = new byte[30];
         long headerPosition = start + localHeaderOffset;
-        if (headerPosition < start || headerPosition > stream.Length - header.Length) return false;
+        if (headerPosition < start || headerPosition > stream.Length - header.Length) return null;
         stream.Position = headerPosition;
         if (!ReadExact(stream, header, 0, header.Length) || ReadUInt32(header, 0) != ZipLocalHeaderSignature) {
             stream.Position = returnPosition;
-            return false;
+            return null;
         }
 
         ushort nameLength = ReadUInt16(header, 26);
@@ -223,17 +231,19 @@ internal static partial class DocumentReaderEngine {
         long dataPosition = stream.Position + nameLength + extraLength;
         if (dataPosition < stream.Position || dataPosition > stream.Length - compressedSize) {
             stream.Position = returnPosition;
-            return false;
+            return null;
         }
 
         stream.Position = dataPosition;
         var mimeBytes = new byte[(int)compressedSize];
-        bool isEpub = ReadExact(stream, mimeBytes, 0, mimeBytes.Length) && IsEpubMimeType(mimeBytes);
+        DetectionCandidate? candidate = ReadExact(stream, mimeBytes, 0, mimeBytes.Length)
+            ? MatchContainerMimeType(mimeBytes)
+            : null;
         stream.Position = returnPosition;
-        return isEpub;
+        return candidate;
     }
 
-    private static async Task<bool> TryReadEpubMimeTypeAsync(
+    private static async Task<DetectionCandidate?> TryReadContainerMimeTypeAsync(
         Stream stream,
         long start,
         uint localHeaderOffset,
@@ -241,16 +251,16 @@ internal static partial class DocumentReaderEngine {
         uint compressedSize,
         long returnPosition,
         CancellationToken cancellationToken) {
-        if (compression != 0 || compressedSize == 0 || compressedSize > 128) return false;
+        if (compression != 0 || compressedSize == 0 || compressedSize > 128) return null;
 
         var header = new byte[30];
         long headerPosition = start + localHeaderOffset;
-        if (headerPosition < start || headerPosition > stream.Length - header.Length) return false;
+        if (headerPosition < start || headerPosition > stream.Length - header.Length) return null;
         stream.Position = headerPosition;
         if (!await ReadExactAsync(stream, header, 0, header.Length, cancellationToken).ConfigureAwait(false) ||
             ReadUInt32(header, 0) != ZipLocalHeaderSignature) {
             stream.Position = returnPosition;
-            return false;
+            return null;
         }
 
         ushort nameLength = ReadUInt16(header, 26);
@@ -258,26 +268,34 @@ internal static partial class DocumentReaderEngine {
         long dataPosition = stream.Position + nameLength + extraLength;
         if (dataPosition < stream.Position || dataPosition > stream.Length - compressedSize) {
             stream.Position = returnPosition;
-            return false;
+            return null;
         }
 
         stream.Position = dataPosition;
         var mimeBytes = new byte[(int)compressedSize];
-        bool isEpub = await ReadExactAsync(stream, mimeBytes, 0, mimeBytes.Length, cancellationToken).ConfigureAwait(false) &&
-                      IsEpubMimeType(mimeBytes);
+        DetectionCandidate? candidate = await ReadExactAsync(stream, mimeBytes, 0, mimeBytes.Length, cancellationToken)
+                .ConfigureAwait(false)
+            ? MatchContainerMimeType(mimeBytes)
+            : null;
         stream.Position = returnPosition;
-        return isEpub;
+        return candidate;
     }
 
     private static string NormalizeZipEntryName(byte[] nameBytes) {
         return Encoding.UTF8.GetString(nameBytes).Replace('\\', '/').ToLowerInvariant();
     }
 
-    private static bool IsEpubMimeType(byte[] mimeBytes) {
-        return string.Equals(
-            Encoding.ASCII.GetString(mimeBytes).Trim(),
-            "application/epub+zip",
-            StringComparison.Ordinal);
+    private static DetectionCandidate? MatchContainerMimeType(byte[] mimeBytes) {
+        string mediaType = Encoding.ASCII.GetString(mimeBytes).Trim();
+        if (string.Equals(mediaType, "application/epub+zip", StringComparison.Ordinal)) {
+            return EpubCandidate();
+        }
+        if (string.Equals(mediaType, "application/vnd.oasis.opendocument.text", StringComparison.Ordinal) ||
+            string.Equals(mediaType, "application/vnd.oasis.opendocument.spreadsheet", StringComparison.Ordinal) ||
+            string.Equals(mediaType, "application/vnd.oasis.opendocument.presentation", StringComparison.Ordinal)) {
+            return OpenDocumentCandidate(mediaType);
+        }
+        return null;
     }
 
     private static DetectionCandidate GenericZipCandidate() {
@@ -286,5 +304,12 @@ internal static partial class DocumentReaderEngine {
 
     private static DetectionCandidate EpubCandidate() {
         return DetectionCandidate.High(ReaderInputKind.Epub, "application/epub+zip", "container:epub-mimetype");
+    }
+
+    private static DetectionCandidate OpenDocumentCandidate(string mediaType) {
+        return DetectionCandidate.High(
+            ReaderInputKind.OpenDocument,
+            mediaType,
+            "container:opendocument-mimetype");
     }
 }

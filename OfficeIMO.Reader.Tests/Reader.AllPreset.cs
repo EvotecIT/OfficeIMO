@@ -1,3 +1,4 @@
+using OfficeIMO.OpenDocument;
 using OfficeIMO.Reader.All;
 using Xunit;
 
@@ -51,5 +52,39 @@ public sealed class ReaderAllPresetTests {
             Encoding.UTF8.GetBytes("name,value\nalpha,1\nbeta,2"),
             "data.csv");
         Assert.Equal(2, document.Chunks.Count);
+    }
+
+    [Fact]
+    public void PresetPreservesOpenDocumentRoutingWhenContentIsPreferred() {
+        OdtDocument text = OdtDocument.Create();
+        text.AddParagraph("ODT semantic marker");
+        OdsDocument spreadsheet = OdsDocument.Create();
+        spreadsheet.AddSheet("Data").Cell(0, 0).SetString("ODS semantic marker");
+        OdpPresentation presentation = OdpPresentation.Create();
+        presentation.AddSlide("Summary")
+            .AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 3), "ODP semantic marker");
+        var cases = new[] {
+            (Name: "document.odt", Bytes: text.ToBytes(), Marker: "ODT semantic marker"),
+            (Name: "document.ods", Bytes: spreadsheet.ToBytes(), Marker: "ODS semantic marker"),
+            (Name: "document.odp", Bytes: presentation.ToBytes(), Marker: "ODP semantic marker")
+        };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddAllOfficeIMOHandlers()
+            .Build();
+
+        foreach ((string name, byte[] bytes, string marker) in cases) {
+            OfficeDocumentReadResult result = reader.ReadDocument(
+                bytes,
+                name,
+                new ReaderOptions { DetectionMode = ReaderDetectionMode.PreferContent });
+
+            Assert.Equal(ReaderInputKind.OpenDocument, result.Kind);
+            Assert.Contains("officeimo.reader.opendocument", result.CapabilitiesUsed);
+            IEnumerable<string> extractedValues = result.Chunks.Select(chunk => chunk.Text)
+                .Concat(result.Chunks
+                    .SelectMany(chunk => chunk.Tables ?? Array.Empty<ReaderTable>())
+                    .SelectMany(table => table.Columns.Concat(table.Rows.SelectMany(row => row))));
+            Assert.Contains(marker, string.Join("\n", extractedValues), StringComparison.Ordinal);
+        }
     }
 }
