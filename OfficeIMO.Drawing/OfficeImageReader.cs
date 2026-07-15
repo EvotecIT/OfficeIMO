@@ -9,7 +9,7 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Header-only image metadata reader used to avoid full image decoding dependencies.
 /// </summary>
-public static class OfficeImageReader {
+public static partial class OfficeImageReader {
     /// <summary>
     /// Identifies image metadata from a file.
     /// </summary>
@@ -286,65 +286,6 @@ public static class OfficeImageReader {
         }
 
         info = new OfficeImageInfo(OfficeImageFormat.Bmp, width, height, dpiX, dpiY);
-        return width > 0 && height > 0;
-    }
-
-    private static bool TryReadTiff(byte[] data, out OfficeImageInfo info) {
-        info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length < 8) {
-            return false;
-        }
-
-        bool littleEndian;
-        if (data[0] == (byte)'I' && data[1] == (byte)'I') {
-            littleEndian = true;
-        } else if (data[0] == (byte)'M' && data[1] == (byte)'M') {
-            littleEndian = false;
-        } else {
-            return false;
-        }
-
-        int magic = ReadUInt16(data, 2, littleEndian);
-        if (magic != 42) {
-            return false;
-        }
-
-        int ifdOffset = ReadInt32(data, 4, littleEndian);
-        if (ifdOffset < 0 || ifdOffset + 2 > data.Length) {
-            return false;
-        }
-
-        int entryCount = ReadUInt16(data, ifdOffset, littleEndian);
-        int width = 0;
-        int height = 0;
-        double dpiX = 96.0;
-        double dpiY = 96.0;
-        int unit = 2;
-
-        for (int i = 0; i < entryCount; i++) {
-            int entry = ifdOffset + 2 + (i * 12);
-            if (entry + 12 > data.Length) {
-                break;
-            }
-
-            int tag = ReadUInt16(data, entry, littleEndian);
-            int type = ReadUInt16(data, entry + 2, littleEndian);
-            int count = ReadInt32(data, entry + 4, littleEndian);
-            int valueOrOffset = ReadInt32(data, entry + 8, littleEndian);
-
-            if (tag == 256) width = ReadTiffScalar(data, type, count, valueOrOffset, littleEndian);
-            else if (tag == 257) height = ReadTiffScalar(data, type, count, valueOrOffset, littleEndian);
-            else if (tag == 282) dpiX = ReadTiffRational(data, valueOrOffset, littleEndian, dpiX);
-            else if (tag == 283) dpiY = ReadTiffRational(data, valueOrOffset, littleEndian, dpiY);
-            else if (tag == 296) unit = ReadTiffScalar(data, type, count, valueOrOffset, littleEndian);
-        }
-
-        if (unit == 3) {
-            dpiX *= 2.54;
-            dpiY *= 2.54;
-        }
-
-        info = new OfficeImageInfo(OfficeImageFormat.Tiff, width, height, dpiX, dpiY);
         return width > 0 && height > 0;
     }
 
@@ -749,26 +690,6 @@ public static class OfficeImageReader {
         if (offset < 0 || count <= 0 || offset >= data.Length) return string.Empty;
         count = Math.Min(count, data.Length - offset);
         return System.Text.Encoding.ASCII.GetString(data, offset, count);
-    }
-
-    private static int ReadTiffScalar(byte[] data, int type, int count, int valueOrOffset, bool littleEndian) {
-        if (count <= 0) return 0;
-        if (type == 3) {
-            return littleEndian ? valueOrOffset & 0xFFFF : (valueOrOffset >> 16) & 0xFFFF;
-        }
-
-        if (type == 4) {
-            return valueOrOffset;
-        }
-
-        return 0;
-    }
-
-    private static double ReadTiffRational(byte[] data, int offset, bool littleEndian, double fallback) {
-        if (offset < 0 || offset + 8 > data.Length) return fallback;
-        int numerator = ReadInt32(data, offset, littleEndian);
-        int denominator = ReadInt32(data, offset + 4, littleEndian);
-        return denominator != 0 ? (double)numerator / denominator : fallback;
     }
 
     private static int ReadInt32(byte[] data, int offset, bool littleEndian) =>

@@ -69,6 +69,18 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_IdentifiesBigTiffFromItsHeader() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(CreateBigTiff(7, 5), "image.tiff");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal("image/tiff", asset.MediaType);
+        Assert.Equal(7, asset.Width);
+        Assert.Equal(5, asset.Height);
+    }
+
+    [Fact]
     public void ImageAdapter_IdentifiesContentVerifiedSvgAfterBomAndComment() {
         const string svg = "\uFEFF<!-- generated --><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3\" height=\"2\"/>";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
@@ -392,6 +404,17 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void SubtitleAdapter_DoesNotTreatAnSrtIdentifierStartingWithWebVttAsAHeader() {
+        const string srt = "WEBVTT_note\n00:00:00,000 --> 00:00:01,000\nFirst cue\n";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(srt), "captions.srt");
+
+        Assert.Equal("First cue", Assert.Single(result.Chunks).Text);
+        Assert.Contains(result.Metadata, item => item.Name == "Format" && item.Value == "srt");
+    }
+
+    [Fact]
     public void SubtitleAdapter_ParsesHoursBeyondOneDay() {
         const string srt = "1\n24:00:00,000 --> 25:01:02,003\nLong recording\n";
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build();
@@ -483,6 +506,43 @@ public sealed class ReaderMediaAdapterTests {
         WriteUInt24LittleEndian(bytes, 24, width - 1);
         WriteUInt24LittleEndian(bytes, 27, height - 1);
         return bytes;
+    }
+
+    private static byte[] CreateBigTiff(int width, int height) {
+        var bytes = new byte[72];
+        bytes[0] = (byte)'I';
+        bytes[1] = (byte)'I';
+        WriteUInt16LittleEndian(bytes, 2, 43);
+        WriteUInt16LittleEndian(bytes, 4, 8);
+        WriteUInt64LittleEndian(bytes, 8, 16);
+        WriteUInt64LittleEndian(bytes, 16, 2);
+        WriteBigTiffLongEntry(bytes, 24, 256, width);
+        WriteBigTiffLongEntry(bytes, 44, 257, height);
+        return bytes;
+    }
+
+    private static void WriteBigTiffLongEntry(byte[] bytes, int offset, int tag, int value) {
+        WriteUInt16LittleEndian(bytes, offset, tag);
+        WriteUInt16LittleEndian(bytes, offset + 2, 4);
+        WriteUInt64LittleEndian(bytes, offset + 4, 1);
+        WriteUInt32LittleEndian(bytes, offset + 12, value);
+    }
+
+    private static void WriteUInt16LittleEndian(byte[] bytes, int offset, int value) {
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+    }
+
+    private static void WriteUInt32LittleEndian(byte[] bytes, int offset, int value) {
+        for (int index = 0; index < 4; index++) {
+            bytes[offset + index] = (byte)(value >> (index * 8));
+        }
+    }
+
+    private static void WriteUInt64LittleEndian(byte[] bytes, int offset, ulong value) {
+        for (int index = 0; index < 8; index++) {
+            bytes[offset + index] = (byte)(value >> (index * 8));
+        }
     }
 
     private static void WriteUInt24LittleEndian(byte[] bytes, int offset, int value) {

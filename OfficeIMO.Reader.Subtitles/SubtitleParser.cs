@@ -9,7 +9,7 @@ internal static class SubtitleParser {
         CancellationToken cancellationToken) {
         string normalized = (content ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
         string[] lines = normalized.Split('\n');
-        bool webVtt = lines.Length > 0 && lines[0].TrimStart('\uFEFF').StartsWith("WEBVTT", StringComparison.OrdinalIgnoreCase);
+        bool webVtt = lines.Length > 0 && IsWebVttSignature(lines[0]);
         var cues = new List<SubtitleCue>(Math.Min(lines.Length / 3, options.MaxCues));
         var warnings = new List<string>();
         int index = webVtt ? SkipWebVttHeader(lines) : 0;
@@ -79,6 +79,14 @@ internal static class SubtitleParser {
         int index = 1;
         while (index < lines.Length && !string.IsNullOrWhiteSpace(lines[index])) index++;
         return index;
+    }
+
+    private static bool IsWebVttSignature(string value) {
+        string signature = value.TrimStart('\uFEFF');
+        return string.Equals(signature, "WEBVTT", StringComparison.OrdinalIgnoreCase) ||
+            (signature.Length > "WEBVTT".Length &&
+             signature.StartsWith("WEBVTT", StringComparison.OrdinalIgnoreCase) &&
+             char.IsWhiteSpace(signature["WEBVTT".Length]));
     }
 
     private static bool IsWebVttMetadataBlock(string value) {
