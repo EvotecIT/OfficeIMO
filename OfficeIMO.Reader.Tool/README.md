@@ -29,7 +29,7 @@ officeimo-reader folder ./documents `
     --max-files 500
 ```
 
-Folder output preserves relative source paths and adds `.md` or `.reader.json`. Traversal is deterministic, skips directory reparse points, and is bounded by `--max-files`; `--max-total-bytes` provides an optional aggregate input ceiling. Use `--no-recursive` for the top directory only.
+Folder output preserves relative source paths and adds `.md` or `.reader.json`. Discovery streams filesystem entries, stops at `--max-files`, skips reparse points, and sorts the selected paths before conversion; `--max-total-bytes` provides an optional aggregate input ceiling. Use `--no-recursive` for the top directory only. Output and asset paths are resolved through existing symbolic links or junctions and must remain outside the input tree.
 
 ## Inspect capabilities
 

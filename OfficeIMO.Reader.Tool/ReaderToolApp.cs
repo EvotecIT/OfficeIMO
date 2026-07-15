@@ -122,10 +122,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         string? assetsPath = string.IsNullOrWhiteSpace(options.AssetsPath)
             ? null
             : Path.GetFullPath(options.AssetsPath!);
-        if (IsSameOrChildPath(inputPath, outputPath) ||
-            (assetsPath != null && IsSameOrChildPath(inputPath, assetsPath))) {
-            throw new ReaderToolOutputException("Folder output and asset directories must be outside the input folder.");
-        }
+        ReaderToolPathSafety.EnsureOutsideInput(inputPath, outputPath, assetsPath);
 
         IReadOnlyList<string> paths = ReaderToolFileDiscovery.FindSupportedFiles(
             inputPath,
@@ -152,16 +149,6 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             cancellationToken).ConfigureAwait(false);
         await standardError.WriteLineAsync("Converted " + paths.Count + " document(s).").ConfigureAwait(false);
         return (int)ReaderToolExitCode.Success;
-    }
-
-    private static bool IsSameOrChildPath(string parentPath, string candidatePath) {
-        string parent = Path.TrimEndingDirectorySeparator(Path.GetFullPath(parentPath));
-        string candidate = Path.TrimEndingDirectorySeparator(Path.GetFullPath(candidatePath));
-        StringComparison comparison = OperatingSystem.IsWindows()
-            ? StringComparison.OrdinalIgnoreCase
-            : StringComparison.Ordinal;
-        if (string.Equals(parent, candidate, comparison)) return true;
-        return candidate.StartsWith(parent + Path.DirectorySeparatorChar, comparison);
     }
 
     private static async Task<int> RunCapabilitiesAsync(

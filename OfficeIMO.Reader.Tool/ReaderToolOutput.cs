@@ -63,11 +63,13 @@ internal static class ReaderToolOutput {
             string relativePath = Path.GetRelativePath(sourceRoot, paths[index]);
             string suffix = format == ReaderToolOutputFormat.Json ? ".reader.json" : ".md";
             string outputPath = Path.Combine(outputRoot, relativePath + suffix);
+            ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, outputPath);
             await WriteFileAsync(outputPath, FormatDocument(documents[index], format), cancellationToken)
                 .ConfigureAwait(false);
 
             if (!string.IsNullOrWhiteSpace(assetsRoot) && documents[index].Assets.Count > 0) {
                 string assetDirectory = Path.Combine(assetsRoot!, relativePath + ".assets");
+                ReaderToolPathSafety.EnsureOutsideInput(sourceRoot, assetDirectory);
                 WriteAssets(documents[index], assetDirectory, cancellationToken);
             }
         }

@@ -1,4 +1,5 @@
 using OfficeIMO.Reader.Tool;
+using System.Threading;
 using System.Threading.Tasks;
 using Xunit;
 
@@ -162,6 +163,74 @@ public sealed class ReaderToolTests {
 
         Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
         Assert.Contains("outside the input folder", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task FolderRejectsLinkedOutputThatTargetsInputTree() {
+        if (OperatingSystem.IsWindows()) return;
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string inputRoot = Path.Combine(temporary.Path, "input");
+        string convertedRoot = Path.Combine(inputRoot, "converted");
+        string linkedOutput = Path.Combine(temporary.Path, "linked-output");
+        Directory.CreateDirectory(convertedRoot);
+        Directory.CreateSymbolicLink(linkedOutput, convertedRoot);
+        await File.WriteAllTextAsync(Path.Combine(inputRoot, "document.md"), "# Input");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "folder", inputRoot, "--output", linkedOutput },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Contains("outside the input folder", error.ToString(), StringComparison.Ordinal);
+        Assert.Empty(Directory.EnumerateFiles(convertedRoot));
+    }
+
+    [Fact]
+    public async Task FolderRejectsRealOutputInsideLinkedInputTree() {
+        if (OperatingSystem.IsWindows()) return;
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string inputRoot = Path.Combine(temporary.Path, "input");
+        string linkedInput = Path.Combine(temporary.Path, "linked-input");
+        string outputRoot = Path.Combine(inputRoot, "converted");
+        Directory.CreateDirectory(inputRoot);
+        Directory.CreateSymbolicLink(linkedInput, inputRoot);
+        await File.WriteAllTextAsync(Path.Combine(inputRoot, "document.md"), "# Input");
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "folder", linkedInput, "--output", outputRoot },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Contains("outside the input folder", error.ToString(), StringComparison.Ordinal);
+        Assert.False(Directory.Exists(outputRoot));
+    }
+
+    [Fact]
+    public void FolderDiscoveryStopsAtMaxFilesAndSortsBoundedResults() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        for (int index = 0; index < 100; index++) {
+            File.WriteAllText(Path.Combine(temporary.Path, index.ToString("D3") + ".md"), "# Document");
+        }
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().Build();
+
+        IReadOnlyList<string> paths = ReaderToolFileDiscovery.FindSupportedFiles(
+            temporary.Path,
+            reader,
+            recurse: true,
+            maxFiles: 3,
+            maxTotalBytes: null,
+            CancellationToken.None);
+
+        Assert.Equal(3, paths.Count);
+        Assert.Equal(paths.OrderBy(path => path, StringComparer.Ordinal), paths);
     }
 }
 
