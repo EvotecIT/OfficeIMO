@@ -1,6 +1,6 @@
 namespace OfficeIMO.Email;
 
-internal static class VCardCodec {
+internal static partial class VCardCodec {
     internal static bool TryProject(string text, EmailDocument document, IList<EmailDiagnostic> diagnostics,
         string location) {
         int projectionDiagnosticStart = diagnostics.Count;
@@ -71,9 +71,9 @@ internal static class VCardCodec {
 
         document.MimeSemanticProjectionIsIncomplete |= ApplyEmails(properties, contact) ||
             ApplyPhones(properties, contact.Phones) ||
-            HasUnsupportedPhonePreference(properties) ||
             HasAddressSlotOverflow(properties) || HasUnprojectedAddressComponents(properties) ||
-            HasUrlSlotOverflow(properties) || HasUnsupportedEmailPreference(properties);
+            HasUnsupportedAddressTypes(properties) || HasUrlSlotOverflow(properties) ||
+            HasUnsupportedUrlTypes(properties);
         ApplyAddresses(properties, contact);
         ApplyUrls(properties, contact);
         ApplyExtensions(properties, contact);
@@ -203,7 +203,7 @@ internal static class VCardCodec {
         VCardProperty[] emails = properties.Where(property => property.Name == "EMAIL").ToArray();
         OutlookContactEmailAddress[] targets = { contact.Email1, contact.Email2, contact.Email3 };
         var used = new bool[targets.Length];
-        bool typeSlotFallback = false;
+        bool incomplete = false;
         foreach (VCardProperty email in emails) {
             string types = email.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
             int preferredIndex = ContainsType(types, "HOME") ? 1 : ContainsType(types, "OTHER") ? 2 :
@@ -212,7 +212,8 @@ internal static class VCardCodec {
                 ? preferredIndex
                 : Array.FindIndex(used, value => !value);
             if (index < 0) break;
-            typeSlotFallback |= preferredIndex >= 0 && index != preferredIndex;
+            incomplete |= preferredIndex >= 0 && index != preferredIndex ||
+                HasUnsupportedEmailSlot(email, index, types);
             used[index] = true;
             targets[index].Address = Unescape(email.Value);
             targets[index].AddressType = "SMTP";
@@ -223,12 +224,12 @@ internal static class VCardCodec {
             targets[index].OriginalDisplayName = UnescapeOrNull(GetValue(properties,
                 string.Concat(prefix, "-ORIGINAL-DISPLAY-NAME")));
         }
-        return typeSlotFallback;
+        return incomplete;
     }
 
     private static bool ApplyPhones(IEnumerable<VCardProperty> properties, OutlookContactPhones phones) {
         var counts = new Dictionary<VCardPhoneSlot, int>();
-        bool overflow = false;
+        bool incomplete = false;
         foreach (VCardProperty property in properties.Where(property => property.Name == "TEL")) {
             string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
             string value = Unescape(property.Value);
@@ -237,7 +238,7 @@ internal static class VCardCodec {
             counts[slot] = count;
             int capacity = slot == VCardPhoneSlot.Home || slot == VCardPhoneSlot.Work ||
                 slot == VCardPhoneSlot.General ? 2 : 1;
-            overflow |= count > capacity;
+            incomplete |= count > capacity || HasUnsupportedPhoneSlot(property, slot, count, types);
             switch (slot) {
                 case VCardPhoneSlot.Mobile: phones.Mobile = value; break;
                 case VCardPhoneSlot.Assistant: phones.Assistant = value; break;
@@ -256,6 +257,7 @@ internal static class VCardCodec {
                     else phones.Home2 = value;
                     break;
                 case VCardPhoneSlot.Pager: phones.Pager = value; break;
+                case VCardPhoneSlot.Other: phones.Other = value; break;
                 case VCardPhoneSlot.Work:
                     if (count == 1) phones.Business = value;
                     else phones.Business2 = value;
@@ -266,7 +268,7 @@ internal static class VCardCodec {
                     break;
             }
         }
-        return overflow;
+        return incomplete;
     }
 
     private static VCardPhoneSlot GetPhoneSlot(string types) {
@@ -284,57 +286,9 @@ internal static class VCardCodec {
         if (ContainsType(types, "FAX")) return VCardPhoneSlot.BusinessFax;
         if (ContainsType(types, "HOME")) return VCardPhoneSlot.Home;
         if (ContainsType(types, "PAGER")) return VCardPhoneSlot.Pager;
+        if (ContainsType(types, "OTHER")) return VCardPhoneSlot.Other;
         if (ContainsType(types, "WORK")) return VCardPhoneSlot.Work;
         return VCardPhoneSlot.General;
-    }
-
-    private static bool HasAddressSlotOverflow(IEnumerable<VCardProperty> properties) =>
-        HasAddressSlotOverflow(properties, "ADR") || HasAddressSlotOverflow(properties, "LABEL");
-
-    private static bool HasUnprojectedAddressComponents(IEnumerable<VCardProperty> properties) =>
-        properties.Where(property => property.Name == "ADR").Any(property => {
-            string[] values = SplitEscaped(property.Value, ';');
-            return !string.IsNullOrWhiteSpace(ValueAt(values, 1));
-        });
-
-    private static bool HasUnsupportedEmailPreference(IEnumerable<VCardProperty> properties) =>
-        properties.Where(property => property.Name == "EMAIL").Any(property => {
-            string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
-            bool preferred = ContainsType(types, "PREF") || property.Parameters.ContainsKey("PREF");
-            return preferred && !ContainsType(types, "WORK");
-        });
-
-    private static bool HasUnsupportedPhonePreference(IEnumerable<VCardProperty> properties) =>
-        properties.Where(property => property.Name == "TEL").Any(property => {
-            string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
-            bool preferred = ContainsType(types, "PREF") || property.Parameters.ContainsKey("PREF");
-            if (!preferred) return false;
-            VCardPhoneSlot slot = GetPhoneSlot(types);
-            return slot != VCardPhoneSlot.General && slot != VCardPhoneSlot.PrimaryFax;
-        });
-
-    private static bool HasAddressSlotOverflow(IEnumerable<VCardProperty> properties, string propertyName) {
-        int homeCount = 0;
-        int workCount = 0;
-        int otherCount = 0;
-        foreach (VCardProperty property in properties.Where(property => property.Name == propertyName)) {
-            string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
-            if (ContainsType(types, "HOME")) homeCount++;
-            else if (ContainsType(types, "WORK")) workCount++;
-            else otherCount++;
-        }
-        return homeCount > 1 || workCount > 2 || otherCount > 1;
-    }
-
-    private static bool HasUrlSlotOverflow(IEnumerable<VCardProperty> properties) {
-        int homeCount = 0;
-        int workCount = 0;
-        foreach (VCardProperty property in properties.Where(property => property.Name == "URL")) {
-            string types = property.Parameters.TryGetValue("TYPE", out string? type) ? type : string.Empty;
-            if (ContainsType(types, "HOME")) homeCount++;
-            else workCount++;
-        }
-        return homeCount > 1 || workCount > 1;
     }
 
     private static void ApplyAddresses(IEnumerable<VCardProperty> properties, OutlookContact contact) {
@@ -658,6 +612,7 @@ internal static class VCardCodec {
         Car,
         Radio,
         Pager,
+        Other,
         Callback,
         Telex,
         Text,

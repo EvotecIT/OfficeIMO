@@ -449,6 +449,27 @@ public sealed class EmailContactConversionTests {
     }
 
     [Theory]
+    [InlineData("EMAIL;TYPE=WORK:ada@example.com")]
+    [InlineData("EMAIL:ada@example.com")]
+    [InlineData("TEL;TYPE=VOICE:+48-123-456-789")]
+    [InlineData("TEL:+48-123-456-789")]
+    [InlineData("URL;TYPE=OTHER:https://example.com")]
+    [InlineData("ADR;TYPE=HOME,POSTAL:;;123 Main;Town;;;")]
+    public void BlocksVcardTypeSemanticsThatOutlookSlotsCannotPreserve(string property) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\n" + property + "\r\nEND:VCARD\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
     [InlineData("NICKNAME:Bob,Rob")]
     [InlineData("IMPP:xmpp:first@example.com\r\nIMPP:xmpp:second@example.com")]
     public void BlocksUnrepresentableMultiValueVcardPropertiesBeforeStoreConversion(string properties) {
@@ -482,6 +503,29 @@ public sealed class EmailContactConversionTests {
         Assert.Equal("Wrapper text", document.Body.Text!.Trim());
         Assert.Contains(report.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Fact]
+    public void KeepsSemanticVcardAsTheMimeBodyWhenOtherAttachmentsExist() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Subject: Contact\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/vcard; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nNOTE:Contact notes\r\nEND:VCARD\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8; name=notes.txt\r\n" +
+            "Content-Disposition: attachment; filename=notes.txt\r\n\r\nOrdinary attachment\r\n--x--\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(rewritten);
+        Multipart mixed = Assert.IsAssignableFrom<Multipart>(MimeMessage.Load(stream).Body);
+
+        Assert.Equal(2, mixed.Count);
+        MimePart contactBody = Assert.IsAssignableFrom<MimePart>(mixed[0]);
+        Assert.True(VCardContentType(contactBody.ContentType.MimeType));
+        Assert.False(contactBody.IsAttachment);
+        MimePart attachment = Assert.IsAssignableFrom<MimePart>(mixed[1]);
+        Assert.True(attachment.IsAttachment);
+        Assert.Equal("notes.txt", attachment.FileName);
     }
 
     [Fact]

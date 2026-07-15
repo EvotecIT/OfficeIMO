@@ -105,9 +105,11 @@ internal static class MimeWriter {
     private static void WriteRecipientHeader(Stream output, EmailDocument document, EmailRecipientKind kind, string name) {
         string[] addresses = document.Recipients.Where(item => item.Kind == kind)
             .Select(item => FormatAddress(item.Address)).ToArray();
-        bool hasProjectedRecipients = document.Recipients.Any(item =>
+        bool hasProjectedRecipients = document.Recipients.Any(item => item.Kind == kind);
+        bool hasAnyProjectedRecipients = document.Recipients.Any(item =>
             item.Kind == EmailRecipientKind.To || item.Kind == EmailRecipientKind.Cc ||
             item.Kind == EmailRecipientKind.Bcc || item.Kind == EmailRecipientKind.ReplyTo);
+        bool retainedHeaderIsParseable = false;
         if (addresses.Length == 0 && !hasProjectedRecipients) {
             var parsed = new List<string>();
             var diagnostics = new List<EmailDiagnostic>();
@@ -116,11 +118,12 @@ internal static class MimeWriter {
                 parsed.AddRange(MimeAddressParser.ParseMany(header.RawValue ?? header.Value, diagnostics,
                     string.Concat("transport/", name)).Select(FormatAddress));
             }
-            addresses = parsed.ToArray();
+            retainedHeaderIsParseable = parsed.Count > 0;
+            if (!hasAnyProjectedRecipients) addresses = parsed.ToArray();
         }
         if (addresses.Length > 0) {
             WriteLine(output, string.Concat(name, ": ", string.Join(",\r\n ", addresses)));
-        } else if (!hasProjectedRecipients) {
+        } else if (!hasProjectedRecipients && !retainedHeaderIsParseable) {
             foreach (EmailHeader header in document.Headers.Where(header =>
                          string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))) {
                 WriteRetainedHeader(output, header);
@@ -188,21 +191,23 @@ internal static class MimeWriter {
                 ? calendarAttachment
                 : IcsCalendarCodec.CreateRegeneratedAttachment(document, calendarAttachment));
         }
+        EmailAttachment? contactBodyPart = null;
         if (document.OutlookItemKind == OutlookItemKind.Contact && document.Contact != null) {
             EmailAttachment contactPart = VCardCodec.CreateAttachment(document,
                 semanticSourceUnchanged ? vcardAttachment : null);
             if (!document.MimeHasMessageBody && document.Body.Html == null && document.Body.Rtf == null &&
-                calendarContent == null && regularAttachmentList.Count == 0) {
-                WriteAttachment(output, contactPart, state, depth + 1, 0);
-                return;
+                calendarContent == null) {
+                contactBodyPart = contactPart;
+            } else {
+                regularAttachmentList.Add(contactPart);
             }
-            regularAttachmentList.Add(contactPart);
         } else if (vcardAttachment != null) {
             regularAttachmentList.Add(vcardAttachment);
         }
         EmailAttachment[] regularAttachments = regularAttachmentList.ToArray();
         bool includeTextBody = document.Body.Text != null &&
-            (document.MimeHasMessageBody || calendarAttachment == null);
+            (document.MimeHasMessageBody || calendarAttachment == null && contactBodyPart == null &&
+             document.OutlookItemKind != OutlookItemKind.Contact);
         bool hasAlternative = CountBodyAlternatives(document.Body, includeTextBody) +
             (calendarContent == null ? 0 : 1) > 1;
         bool hasRelatedResources = regularAttachments.Any(attachment => IsRelatedResource(document, attachment));
@@ -214,10 +219,10 @@ internal static class MimeWriter {
             WriteLine(output, string.Concat("--", boundary));
             if (hasRelatedResources) {
                 WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                    calendarSourceReused ? calendarAttachment : null, regularAttachments);
+                    calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
             } else {
                 WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                    calendarSourceReused ? calendarAttachment : null);
+                    calendarSourceReused ? calendarAttachment : null, contactBodyPart);
             }
             for (int i = 0; i < regularAttachments.Length; i++) {
                 if (IsRelatedResource(document, regularAttachments[i])) continue;
@@ -230,23 +235,24 @@ internal static class MimeWriter {
 
         if (hasRelatedResources) {
             WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                calendarSourceReused ? calendarAttachment : null, regularAttachments);
+                calendarSourceReused ? calendarAttachment : null, contactBodyPart, regularAttachments);
         } else {
             WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-                calendarSourceReused ? calendarAttachment : null);
+                calendarSourceReused ? calendarAttachment : null, contactBodyPart);
         }
     }
 
     private static void WriteRelatedBodyEntity(Stream output, EmailDocument document, MimeWriterState state,
         int depth, bool hasAlternative, bool includeTextBody, byte[]? calendarContent,
         EmailAttachment? calendarAttachment,
+        EmailAttachment? contactBodyPart,
         IReadOnlyList<EmailAttachment> attachments) {
         string boundary = CreateBoundary(document, depth, "related");
         WriteLine(output, string.Concat("Content-Type: multipart/related; boundary=\"", boundary, "\""));
         WriteLine(output, string.Empty);
         WriteLine(output, string.Concat("--", boundary));
         WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
-            calendarAttachment);
+            calendarAttachment, contactBodyPart);
         for (int i = 0; i < attachments.Count; i++) {
             if (!IsRelatedResource(document, attachments[i])) continue;
             WriteLine(output, string.Concat("--", boundary));
@@ -266,7 +272,8 @@ internal static class MimeWriter {
     }
 
     private static void WriteBodyEntity(Stream output, EmailDocument document, MimeWriterState state, int depth,
-        bool hasAlternative, bool includeTextBody, byte[]? calendarContent, EmailAttachment? calendarAttachment) {
+        bool hasAlternative, bool includeTextBody, byte[]? calendarContent, EmailAttachment? calendarAttachment,
+        EmailAttachment? contactBodyPart) {
         if (hasAlternative) {
             string boundary = CreateBoundary(document, depth, "alternative");
             WriteLine(output, string.Concat("Content-Type: multipart/alternative; boundary=\"", boundary, "\""));
@@ -290,6 +297,8 @@ internal static class MimeWriter {
             WriteLine(output, string.Concat("--", boundary, "--"));
         } else if (calendarContent != null) {
             WriteCalendarPart(output, document, calendarContent, calendarAttachment, state.Options.Base64LineLength);
+        } else if (contactBodyPart != null) {
+            WriteAttachment(output, contactBodyPart, state, depth + 1, 0);
         } else if (document.Body.Html != null) {
             WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength);
         } else if (document.Body.Rtf != null) {
@@ -326,19 +335,8 @@ internal static class MimeWriter {
         bool structured = scalarAddress != null || recipientKind.HasValue &&
             document.Recipients.Any(recipient => recipient.Kind == recipientKind.Value);
         if (!retained && !structured) return;
-        bool hasProjectedRecipients = document.Recipients.Any(recipient =>
-            recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
-            recipient.Kind == EmailRecipientKind.Bcc || recipient.Kind == EmailRecipientKind.ReplyTo);
-        long initialPosition = output.Position;
         if (recipientKind.HasValue) WriteRecipientHeader(output, document, recipientKind.Value, name);
         else WriteAddressHeader(output, document, scalarAddress, name);
-        if (retained && output.Position == initialPosition &&
-            (!recipientKind.HasValue || !hasProjectedRecipients)) {
-            foreach (EmailHeader header in document.Headers.Where(header =>
-                         string.Equals(header.Name, name, StringComparison.OrdinalIgnoreCase))) {
-                WriteRetainedHeader(output, header);
-            }
-        }
     }
 
     private static bool HasHeader(EmailDocument document, string name) => document.Headers.Any(header =>

@@ -444,4 +444,17 @@ public sealed class EmailMimeWriterTests {
 
         Assert.Contains(name + ": " + value + "\r\n", eml, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void RetainsEachUnparsedRecipientHeaderIndependently() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "To: (undisclosed)\r\nCc: Valid <valid@example.com>\r\nSubject: retained\r\n\r\nbody\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(source).Document;
+
+        string eml = Encoding.ASCII.GetString(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
+
+        Assert.Contains("To: (undisclosed)\r\n", eml, StringComparison.Ordinal);
+        Assert.Contains("Cc: Valid <valid@example.com>\r\n", eml, StringComparison.Ordinal);
+    }
 }
