@@ -11,10 +11,16 @@ internal static partial class DocumentReaderEngine {
         CancellationToken cancellationToken) {
         if (path == null) throw new ArgumentNullException(nameof(path));
         if (!File.Exists(path)) throw new FileNotFoundException("File '" + path + "' does not exist.", path);
-        ReaderInputLimits.EnforceFileSize(path, options.MaxInputBytes);
+        long? maxInputBytes = ResolveInitialMaxInputBytes(path, options);
+        ReaderInputLimits.EnforceFileSize(path, maxInputBytes);
 
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        ReaderAdapterInputSnapshot snapshot = ReadAdapterInput(stream, path, options, cancellationToken);
+        ReaderAdapterInputSnapshot snapshot = ReadAdapterInput(
+            stream,
+            path,
+            options,
+            cancellationToken,
+            maxInputBytes);
         DateTime? lastWriteUtc = null;
         try {
             lastWriteUtc = File.GetLastWriteTimeUtc(path);
@@ -36,14 +42,28 @@ internal static partial class DocumentReaderEngine {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanRead) throw new ArgumentException("Stream must be readable.", nameof(stream));
         string logicalName = string.IsNullOrWhiteSpace(sourceName) ? "memory" : sourceName!.Trim();
+        return ReadAdapterInput(
+            stream,
+            logicalName,
+            options,
+            cancellationToken,
+            ResolveInitialMaxInputBytes(logicalName, options));
+    }
+
+    private static ReaderAdapterInputSnapshot ReadAdapterInput(
+        Stream stream,
+        string logicalName,
+        ReaderOptions options,
+        CancellationToken cancellationToken,
+        long? maxInputBytes) {
         long? originalPosition = TryGetPosition(stream);
         Stream snapshot = ReaderInputLimits.EnsureSeekableReadStream(
             stream,
-            options.MaxInputBytes,
+            maxInputBytes,
             cancellationToken,
             out bool ownsSnapshot);
         try {
-            using MemoryStream bytes = CopyToMemory(snapshot, cancellationToken, options.MaxInputBytes);
+            using MemoryStream bytes = CopyToMemory(snapshot, cancellationToken, maxInputBytes);
             byte[] payload = bytes.ToArray();
             return new ReaderAdapterInputSnapshot(
                 payload,

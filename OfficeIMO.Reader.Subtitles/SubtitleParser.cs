@@ -160,20 +160,43 @@ internal static class SubtitleParser {
 
     private static string StripMarkup(string value) {
         var text = new StringBuilder(value.Length);
-        bool insideTag = false;
         for (int index = 0; index < value.Length; index++) {
-            char character = value[index];
-            if (character == '<') {
-                insideTag = true;
+            if (value[index] == '<' && TryFindCueTagEnd(value, index, out int tagEnd)) {
+                index = tagEnd;
                 continue;
             }
-            if (insideTag) {
-                if (character == '>') insideTag = false;
-                continue;
-            }
-            text.Append(character);
+            text.Append(value[index]);
         }
         return WebUtility.HtmlDecode(text.ToString()).Trim();
+    }
+
+    private static bool TryFindCueTagEnd(string value, int tagStart, out int tagEnd) {
+        tagEnd = value.IndexOf('>', tagStart + 1);
+        if (tagEnd < 0) return false;
+
+        int nameStart = tagStart + 1;
+        if (nameStart < tagEnd && value[nameStart] == '/') nameStart++;
+        if (nameStart >= tagEnd) return false;
+
+        if (!char.IsLetter(value[nameStart])) {
+            string timestamp = value.Substring(nameStart, tagEnd - nameStart);
+            return TryParseTimestamp(timestamp, out _);
+        }
+
+        int nameEnd = nameStart + 1;
+        while (nameEnd < tagEnd && (char.IsLetterOrDigit(value[nameEnd]) || value[nameEnd] == '-')) nameEnd++;
+        string name = value.Substring(nameStart, nameEnd - nameStart);
+        return name.Equals("b", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("br", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("c", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("font", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("i", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("lang", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("rt", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("ruby", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("span", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("u", StringComparison.OrdinalIgnoreCase) ||
+            name.Equals("v", StringComparison.OrdinalIgnoreCase);
     }
 
     private static void AddWarning(List<string> warnings, string value) {

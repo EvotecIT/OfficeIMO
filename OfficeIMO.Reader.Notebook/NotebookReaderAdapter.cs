@@ -208,7 +208,7 @@ internal static class NotebookReaderAdapter {
             Environment.NewLine + Environment.NewLine,
             new[] { source }.Concat(outputs.Select(static output => output.Text))
                 .Where(static value => !string.IsNullOrWhiteSpace(value)))
-            .Trim();
+            .TrimEnd();
     }
 
     private static string BuildFence(string value) {

@@ -132,6 +132,7 @@ public sealed class ReaderMediaAdapterTests {
 
         ReaderChunk chunk = Assert.Single(result.Chunks);
         Assert.StartsWith("    indented code", chunk.Markdown, StringComparison.Ordinal);
+        Assert.StartsWith("    indented code", chunk.Text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -212,6 +213,44 @@ public sealed class ReaderMediaAdapterTests {
         Assert.Equal("3500", timing.Attributes["endMilliseconds"]);
         Assert.Equal("captions.srt", timing.Location?.Path);
         Assert.Contains(OfficeDocumentReaderBuilderSubtitleExtensions.HandlerId, result.CapabilitiesUsed);
+    }
+
+    [Theory]
+    [InlineData("1 < 2", "1 < 2")]
+    [InlineData("1 < 2 > 0", "1 < 2 > 0")]
+    [InlineData("Keep <unknown> literal", "Keep <unknown> literal")]
+    [InlineData("<i>Hello</i> <v Speaker>there</v>", "Hello there")]
+    public void SubtitleAdapter_StripsCueTagsWithoutDroppingLiteralComparisons(string cueText, string expected) {
+        string srt = "1\n00:00:00,000 --> 00:00:01,000\n" + cueText + "\n";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(srt), "literal.srt");
+
+        Assert.Equal(expected, Assert.Single(result.Chunks).Text);
+    }
+
+    [Fact]
+    public void AdapterSnapshot_ReappliesTheRegisteredDefaultInputLimit() {
+        const string extension = ".adapterlimit";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.adapter-limit",
+                Kind = ReaderInputKind.Text,
+                Extensions = new[] { extension },
+                DefaultMaxInputBytes = 16,
+                ReadDocumentStream = (_input, sourceName, options, cancellationToken) => {
+                    using var oversized = new MemoryStream(new byte[17], writable: false);
+                    _ = DocumentReaderEngine.ReadAdapterInput(oversized, sourceName, options, cancellationToken);
+                    return new OfficeDocumentReadResult { Kind = ReaderInputKind.Text };
+                }
+            })
+            .Build();
+
+        IOException exception = Assert.Throws<IOException>(() => reader.ReadDocument(
+            new byte[1],
+            "sample" + extension));
+
+        Assert.Contains("MaxInputBytes", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
