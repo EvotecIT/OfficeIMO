@@ -57,6 +57,15 @@
     <ProjectReference Include="..\OfficeIMO.Zip\OfficeIMO.Zip.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' != 'net472'">
+    <Compile Include="..\OfficeIMO.Reader.Benchmarks\Comparison\*.cs"
+             Link="ReaderComparison\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Compile Remove="Reader.ComparisonEvidence.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <Compile Include="..\OfficeIMO.Pdf.Tests\Pdf\PdfPngTestImages.cs" Link="Pdf\PdfPngTestImages.cs" />
     <Compile Include="..\OfficeIMO.TestAssets\TestStreams\NonSeekableReadStream.cs" Link="TestStreams\NonSeekableReadStream.cs" />

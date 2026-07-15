@@ -1,0 +1,20 @@
+{
+  "runners": [
+    {
+      "name": "Microsoft MarkItDown",
+      "fileName": "markitdown",
+      "arguments": [ "{input}" ],
+      "outputMode": "stdout",
+      "timeoutSeconds": 120,
+      "maxOutputBytes": 16777216
+    },
+    {
+      "name": "ElBruno.MarkItDotNet",
+      "fileName": "markitdown",
+      "arguments": [ "{input}", "-o", "{output}" ],
+      "outputMode": "file",
+      "timeoutSeconds": 120,
+      "maxOutputBytes": 16777216
+    }
+  ]
+}
