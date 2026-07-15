@@ -137,6 +137,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                         WebViewLink = updatedDriveMetadata?.WebViewLink ?? BuildDocumentWebViewLink(effectiveLocation.ExistingFileId),
                         Location = effectiveLocation,
                         RevisionId = refreshedDocument?.RevisionId ?? batch.WriteControlState?.RevisionId ?? existingDocument.RevisionId,
+                        DriveVersion = updatedDriveMetadata?.Version,
+                        ModifiedTime = updatedDriveMetadata?.ModifiedTime,
                         Report = batch.Report,
                     };
                 }
@@ -191,6 +193,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                     WebViewLink = createdDriveMetadata?.WebViewLink ?? BuildDocumentWebViewLink(documentId),
                     Location = effectiveLocation,
                     RevisionId = batch.WriteControlState?.RevisionId ?? createResponse.RevisionId,
+                    DriveVersion = createdDriveMetadata?.Version,
+                    ModifiedTime = createdDriveMetadata?.ModifiedTime,
                     Report = batch.Report,
                 };
             } catch (GoogleWorkspaceExportException) {

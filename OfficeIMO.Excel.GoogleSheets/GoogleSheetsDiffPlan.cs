@@ -116,7 +116,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 foreach (ExcelMergedRangeSnapshot merge in sheet.MergedRanges) result[$"sheet/{sheet.Name}/merge/{merge.A1Range}"] = Hash(merge.A1Range);
                 foreach (ExcelTableSnapshot table in sheet.Tables) result[$"sheet/{sheet.Name}/table/{table.Name}"] = Hash($"{table.A1Range}|{table.StyleName}|{table.TotalsRowShown}");
             }
-            foreach (ExcelNamedRangeSnapshot name in snapshot.NamedRanges) result[$"name/{name.Name}"] = Hash($"{name.SheetName}|{name.ReferenceA1}");
+            foreach (ExcelNamedRangeSnapshot name in snapshot.NamedRanges) {
+                string path = string.IsNullOrWhiteSpace(name.SheetName)
+                    ? $"name/{name.Name}"
+                    : $"name/sheet/{name.SheetName}/{name.Name}";
+                result[path] = Hash(name.ReferenceA1);
+            }
             return result;
         }
 

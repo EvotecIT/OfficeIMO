@@ -41,7 +41,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
             bool cellValidationNoticeAdded = false;
 
             foreach (var worksheet in workbookSnapshot.Worksheets) {
-                ResolveGridSize(worksheet, workbookSnapshot.NamedRanges, out int rowCount, out int columnCount);
+                ResolveGridSize(worksheet, workbookSnapshot.NamedRanges, options, out int rowCount, out int columnCount);
                 batch.Add(new GoogleSheetsAddSheetRequest {
                     SheetName = worksheet.Name,
                     SheetIndex = worksheet.Index,
@@ -246,6 +246,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         private static void ResolveGridSize(
             ExcelWorksheetSnapshot worksheet,
             IReadOnlyList<ExcelNamedRangeSnapshot> namedRanges,
+            GoogleSheetsSaveOptions options,
             out int rowCount,
             out int columnCount) {
             rowCount = DefaultGoogleSheetsRowCount;
@@ -268,6 +269,21 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
             foreach (ExcelTableSnapshot table in worksheet.Tables) {
                 ExpandGridToInclude(table.A1Range, ref rowCount, ref columnCount);
+            }
+
+            foreach (ExcelRowSnapshot row in worksheet.Rows) {
+                rowCount = Math.Max(rowCount, row.Index);
+            }
+
+            foreach (ExcelColumnSnapshot column in worksheet.Columns) {
+                columnCount = Math.Max(columnCount, column.EndIndex);
+            }
+
+            if (worksheet.Protection != null
+                && options.Protection.UnprotectedRangesBySheet.TryGetValue(worksheet.Name, out var unprotectedRanges)) {
+                foreach (string a1Range in unprotectedRanges) {
+                    ExpandGridToInclude(a1Range, ref rowCount, ref columnCount);
+                }
             }
 
             foreach (ExcelNamedRangeSnapshot namedRange in namedRanges.Where(range => !range.IsBuiltIn)) {

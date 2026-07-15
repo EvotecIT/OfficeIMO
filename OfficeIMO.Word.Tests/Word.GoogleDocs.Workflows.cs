@@ -157,6 +157,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleDocsExporter_ReturnsPostWriteDriveCheckpointMetadata() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsDriveCheckpoint.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Replacement");
+                DateTimeOffset modified = DateTimeOffset.Parse("2026-07-15T20:00:00Z", System.Globalization.CultureInfo.InvariantCulture);
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(request => {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse(CreateTabbedDocumentStateJson("doc-checkpoint", "revision-1", "tab-a", "Remote")));
+                    }
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.Host == "docs.googleapis.com") {
+                        return Task.FromResult(CreateJsonResponse("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}"));
+                    }
+                    if (request.Method == HttpMethod.Get
+                        && request.RequestUri!.AbsolutePath == "/drive/v3/files/doc-checkpoint") {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-checkpoint\",\"name\":\"Checkpoint\",\"mimeType\":\"application/vnd.google-apps.document\",\"webViewLink\":\"https://docs.google.com/document/d/doc-checkpoint/edit\",\"version\":42,\"modifiedTime\":\"2026-07-15T20:00:00Z\"}"));
+                    }
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.NotFound));
+                }));
+                var session = new GoogleWorkspaceSession(
+                    new FakeGoogleWorkspaceCredentialSource(),
+                    new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Location = new GoogleDriveFileLocation { ExistingFileId = "doc-checkpoint" },
+                    Replace = new GoogleDocsReplaceOptions { ExpectedRevisionId = "revision-1" },
+                });
+
+                Assert.Equal(42, result.DriveVersion);
+                Assert.Equal(modified, result.ModifiedTime);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public async Task Test_GoogleDocsExporter_ChainsWriteControlAndSelectedTab() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsWriteControl.docx");
             try {

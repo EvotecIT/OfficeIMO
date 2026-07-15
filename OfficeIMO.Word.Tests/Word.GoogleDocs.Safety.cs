@@ -48,7 +48,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("doc-safe-image", result.DocumentId);
                 Assert.Equal(3, batchUpdateCount);
-                Assert.DoesNotContain(requestUris, uri => uri.Contains("drive/v3", StringComparison.Ordinal));
+                Assert.DoesNotContain(requestUris, uri => uri.Contains("upload/drive/v3", StringComparison.Ordinal));
+                Assert.DoesNotContain(requestUris, uri => uri.Contains("/permissions", StringComparison.Ordinal));
                 Assert.Contains(result.Report.Notices, notice =>
                     notice.Code == "DOCS.IMAGE.STAGING_DISABLED"
                     && notice.Action == TranslationAction.Skip);

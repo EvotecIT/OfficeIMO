@@ -66,6 +66,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task ChangeTracker_UsesUserFeedToCoverNewSharedDriveHistoryWithoutDuplicatingPartitionedDrives() {
+            var changeUris = new List<string>();
+            using var httpClient = new HttpClient(new FakeHandler(request => {
+                string uri = request.RequestUri!.AbsoluteUri;
+                if (uri.Contains("/changes?", StringComparison.Ordinal)) changeUris.Add(uri);
+                if (uri.Contains("pageToken=user-old", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"changes\":[{\"fileId\":\"existing-drive-change\",\"driveId\":\"drive-a\"},{\"fileId\":\"new-drive-change\",\"driveId\":\"drive-b\"}],\"newStartPageToken\":\"user-next\"}"));
+                }
+                if (uri.Contains("pageToken=drive-a-old", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"changes\":[{\"fileId\":\"existing-drive-change\",\"driveId\":\"drive-a\"}],\"newStartPageToken\":\"drive-a-next\"}"));
+                }
+                if (uri.Contains("startPageToken", StringComparison.Ordinal) && uri.Contains("driveId=drive-b", StringComparison.Ordinal)) {
+                    return Task.FromResult(Json("{\"startPageToken\":\"drive-b-start\"}"));
+                }
+                return Task.FromResult(NotFound(uri));
+            }));
+            var checkpoint = new GoogleWorkspaceSyncCheckpoint { UserChangeToken = "user-old" };
+            checkpoint.SharedDriveChangeTokens["drive-a"] = "drive-a-old";
+            var options = new GoogleWorkspaceChangeReadOptions();
+            options.SharedDriveIds.Add("drive-b");
+            using var tracker = new GoogleWorkspaceChangeTracker(Session(httpClient));
+
+            GoogleWorkspaceChangeReadResult result = await tracker.ReadAsync(checkpoint, options);
+
+            Assert.False(result.HasFailures);
+            Assert.Equal(new[] { "new-drive-change", "existing-drive-change" }, result.Changes.Select(change => change.Change.FileId));
+            Assert.Equal("drive-b-start", result.NextCheckpoint.SharedDriveChangeTokens["drive-b"]);
+            Assert.Contains(changeUris, uri =>
+                uri.Contains("pageToken=user-old", StringComparison.Ordinal)
+                && uri.Contains("includeItemsFromAllDrives=true", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public async Task Executor_DryRunBlocksConflictsAndUnapprovedLossyItems() {
             GoogleWorkspaceSyncPlan plan = Plan();
             int calls = 0;

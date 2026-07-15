@@ -77,7 +77,14 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
             var sources = new List<GoogleWorkspaceChangeSource> { new GoogleWorkspaceChangeSource(GoogleWorkspaceChangeSourceKind.User, null) };
             sources.AddRange(NormalizeDriveIds(checkpoint.SharedDriveChangeTokens.Keys.Concat(options.SharedDriveIds))
                 .Select(id => new GoogleWorkspaceChangeSource(GoogleWorkspaceChangeSourceKind.SharedDrive, id)));
-            bool readsSharedDriveFeeds = sources.Any(source => source.Kind == GoogleWorkspaceChangeSourceKind.SharedDrive);
+            var partitionedDriveIds = new HashSet<string>(
+                checkpoint.SharedDriveChangeTokens
+                    .Where(pair => !string.IsNullOrWhiteSpace(pair.Value))
+                    .Select(pair => pair.Key),
+                StringComparer.Ordinal);
+            bool hasUnpartitionedSharedDrives = sources.Any(source =>
+                source.Kind == GoogleWorkspaceChangeSourceKind.SharedDrive
+                && !partitionedDriveIds.Contains(source.DriveId!));
 
             foreach (GoogleWorkspaceChangeSource source in sources) {
                 cancellationToken.ThrowIfCancellationRequested();
@@ -95,14 +102,21 @@ namespace OfficeIMO.GoogleWorkspace.Sync {
                     string pageToken = startToken!;
                     string? completedToken = null;
                     for (int page = 0; page < options.MaxPagesPerSource; page++) {
+                        bool includeItemsFromAllDrives = source.Kind == GoogleWorkspaceChangeSourceKind.SharedDrive
+                            || partitionedDriveIds.Count == 0
+                            || hasUnpartitionedSharedDrives;
                         GoogleDriveChangeList response = await _drive.ListChangesAsync(pageToken, new GoogleDriveChangeListOptions {
                             DriveId = source.DriveId,
                             PageSize = options.PageSize,
                             IncludeRemoved = options.IncludeRemoved,
                             IncludeCorpusRemovals = options.IncludeCorpusRemovals,
-                            IncludeItemsFromAllDrives = source.Kind == GoogleWorkspaceChangeSourceKind.SharedDrive || !readsSharedDriveFeeds,
+                            IncludeItemsFromAllDrives = includeItemsFromAllDrives,
                         }, report, cancellationToken).ConfigureAwait(false);
-                        sourceChanges.AddRange(response.Changes.Select(change => new GoogleWorkspaceTrackedChange(source, change)));
+                        IEnumerable<GoogleDriveChange> pageChanges = response.Changes;
+                        if (source.Kind == GoogleWorkspaceChangeSourceKind.User && includeItemsFromAllDrives) {
+                            pageChanges = pageChanges.Where(change => !partitionedDriveIds.Contains(change.DriveId ?? change.File?.DriveId ?? string.Empty));
+                        }
+                        sourceChanges.AddRange(pageChanges.Select(change => new GoogleWorkspaceTrackedChange(source, change)));
                         if (!string.IsNullOrWhiteSpace(response.NextPageToken)) {
                             pageToken = response.NextPageToken!;
                             continue;

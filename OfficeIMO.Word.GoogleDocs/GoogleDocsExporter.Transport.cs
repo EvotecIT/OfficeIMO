@@ -9,12 +9,16 @@ namespace OfficeIMO.Word.GoogleDocs {
             GoogleDriveFileLocation location,
             TranslationReport report,
             CancellationToken cancellationToken) {
-            if (string.IsNullOrWhiteSpace(fileId) || string.IsNullOrWhiteSpace(location.FolderId)) {
+            if (string.IsNullOrWhiteSpace(fileId)) {
                 return null;
             }
 
-            await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
-            return await driveClient.MoveFileAsync(fileId!, location.FolderId!, report, cancellationToken).ConfigureAwait(false);
+            if (!string.IsNullOrWhiteSpace(location.FolderId)) {
+                await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
+                return await driveClient.MoveFileAsync(fileId!, location.FolderId!, report, cancellationToken).ConfigureAwait(false);
+            }
+
+            return await driveClient.GetFileAsync(fileId!, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         private static string? BuildDocumentWebViewLink(string? documentId) {

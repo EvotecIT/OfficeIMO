@@ -1267,7 +1267,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-table-image", result.DocumentId);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(10, recordedRequests.Count);
                 Assert.Equal(3, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -1345,7 +1345,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-footnote", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.Equal(2, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -1398,7 +1398,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-highlight", result.DocumentId);
-                Assert.Equal(2, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 var batchRequest = Assert.Single(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-highlight:batchUpdate");
                 Assert.Contains("\"backgroundColor\"", batchRequest.Body!);
                 Assert.Contains("\"red\":1", batchRequest.Body!);
@@ -2009,7 +2009,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-bookmark", result.DocumentId);
-                Assert.Equal(2, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatchRequest = Assert.Single(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-bookmark:batchUpdate");
@@ -2176,7 +2176,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-table-footnote", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(8, recordedRequests.Count);
                 Assert.Equal(4, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -2281,7 +2281,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-merge-table", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(8, recordedRequests.Count);
                 Assert.Equal(4, batchUpdateCount);
                 Assert.Equal(2, documentReadCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
@@ -2384,7 +2384,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("doc123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/doc123/edit", result.WebViewLink);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(10, recordedRequests.Count);
                 Assert.Equal(3, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -2477,7 +2477,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("existing-doc-123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/existing-doc-123/edit", result.WebViewLink);
-                Assert.Equal(4, recordedRequests.Count);
+                Assert.Equal(5, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
                 Assert.Equal("POST", recordedRequests[1].Method);
                 Assert.Equal("POST", recordedRequests[2].Method);
@@ -2782,7 +2782,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-hf", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(8, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
@@ -2856,7 +2856,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-header-table", result.DocumentId);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(10, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
@@ -2951,7 +2951,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-footer-table", result.DocumentId);
-                Assert.Equal(9, recordedRequests.Count);
+                Assert.Equal(10, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
@@ -3034,7 +3034,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-header-table", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -3097,7 +3097,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-first-footer-table", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
                 Assert.Contains(recordedRequests, request => request.Body?.Contains("\"useFirstPageHeaderFooter\":true", StringComparison.Ordinal) == true);
                 Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
@@ -3158,7 +3158,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-footer-table", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -3220,7 +3220,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-first-hf", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
                 Assert.Contains(recordedRequests, request => request.Body?.Contains("\"useFirstPageHeaderFooter\":true", StringComparison.Ordinal) == true);
                 Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
@@ -3282,7 +3282,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-hf", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -3413,7 +3413,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-header-table-bookmark", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -3481,7 +3481,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-footer-table-bookmark", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
@@ -4451,8 +4451,16 @@ namespace OfficeIMO.Tests {
                 _handler = handler ?? throw new ArgumentNullException(nameof(handler));
             }
 
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
-                return _handler(request);
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+                HttpResponseMessage response = await _handler(request).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound
+                    && request.Method == HttpMethod.Get
+                    && string.Equals(request.RequestUri?.Host, "www.googleapis.com", StringComparison.Ordinal)
+                    && request.RequestUri.AbsolutePath.StartsWith("/drive/v3/files/", StringComparison.Ordinal)) {
+                    response.Dispose();
+                    return CreateJsonResponse("{\"id\":\"test-document\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":1,\"modifiedTime\":\"2026-01-01T00:00:00Z\"}");
+                }
+                return response;
             }
         }
     }

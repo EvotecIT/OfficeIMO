@@ -162,13 +162,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     return null;
                 }
 
-                if (!TryParseValidationDate(validation.Formula1, out var firstDateValue)) {
+                if (!TryParseValidationDate(validation.Formula1, workbookSnapshot.DateSystem, out var firstDateValue)) {
                     return null;
                 }
 
                 var dateValues = new List<string> { firstDateValue };
                 if (dateRequiresSecondValue) {
-                    if (!TryParseValidationDate(validation.Formula2, out var secondDateValue)) {
+                    if (!TryParseValidationDate(validation.Formula2, workbookSnapshot.DateSystem, out var secondDateValue)) {
                         return null;
                     }
 
@@ -389,7 +389,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return true;
         }
 
-        private static bool TryParseValidationDate(string? value, out string normalizedDate) {
+        private static bool TryParseValidationDate(
+            string? value,
+            ExcelDateSystem dateSystem,
+            out string normalizedDate) {
             normalizedDate = string.Empty;
             if (string.IsNullOrWhiteSpace(value)) {
                 return false;
@@ -400,7 +403,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             try {
-                normalizedDate = DateTime.FromOADate(serialDate).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                normalizedDate = ExcelDateSystemConverter.FromSerial(serialDate, dateSystem)
+                    .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                 return true;
             } catch (ArgumentException) {
                 return false;

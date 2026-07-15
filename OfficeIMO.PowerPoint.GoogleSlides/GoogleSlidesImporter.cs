@@ -61,7 +61,20 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         double height = ToPoints(element.Size?.Height) * (element.Transform?.ScaleY ?? 1);
                         if (element.Shape?.Text != null) {
                             string text = ExtractText(element.Shape.Text);
-                            PowerPointTextBox box = slide.AddTextBoxPoints(text, left, top, Math.Max(1, width), Math.Max(1, height));
+                            PowerPointTextBox box;
+                            if (TryMapShapeType(element.Shape.ShapeType, out A.ShapeTypeValues textShapeType)) {
+                                box = slide.AddTextShapePoints(textShapeType, text, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
+                            } else {
+                                box = slide.AddTextBoxPoints(text, left, top, Math.Max(1, width), Math.Max(1, height));
+                                if (!string.Equals(element.Shape.ShapeType, "TEXT_BOX", StringComparison.OrdinalIgnoreCase)) {
+                                    report.Add(
+                                        TranslationSeverity.Warning,
+                                        "Shapes",
+                                        $"Native Google Slides text shape '{element.Shape.ShapeType ?? "unspecified"}' was imported as a plain PowerPoint text box because its geometry is unsupported.",
+                                        code: "SLIDES.IMPORT.TEXT_SHAPE_GEOMETRY_UNSUPPORTED",
+                                        action: TranslationAction.Flatten);
+                                }
+                            }
                             GoogleSlidesApiTextRun? style = element.Shape.Text.TextElements.Select(item => item.TextRun).FirstOrDefault(run => run?.Style != null);
                             PowerPointTextRun? run = box.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (style?.Style != null && run != null) {

@@ -364,6 +364,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task NativeImporter_PreservesGeometryForTextBearingShapes() {
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(Json("{\"id\":\"deck-text-shape\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":false}}"));
+                }
+                const string slides = "{\"presentationId\":\"deck-text-shape\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"arrow-1\",\"size\":{\"width\":{\"magnitude\":180,\"unit\":\"PT\"},\"height\":{\"magnitude\":60,\"unit\":\"PT\"}},\"transform\":{\"translateX\":20,\"translateY\":30,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RIGHT_ARROW\",\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Next step\",\"style\":{\"bold\":true}}}]}}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync(
+                "deck-text-shape",
+                Session(httpClient),
+                new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+
+            using (imported.Presentation) {
+                PowerPointTextBox shape = Assert.Single(
+                    Assert.Single(imported.Presentation.Slides).TextBoxes,
+                    candidate => candidate.Text == "Next step");
+                Assert.Equal(A.ShapeTypeValues.RightArrow, shape.ShapeType);
+                Assert.True(shape.Paragraphs[0].Runs[0].Bold);
+            }
+        }
+
+        [Fact]
         public async Task NativeImporter_PreservesGifImages() {
             byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
             using var httpClient = new HttpClient(new DelegateHandler(request => {

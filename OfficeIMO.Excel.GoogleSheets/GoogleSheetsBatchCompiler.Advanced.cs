@@ -369,9 +369,16 @@ namespace OfficeIMO.Excel.GoogleSheets {
             columns = Array.Empty<GoogleSheetsPivotGroup>();
             values = Array.Empty<GoogleSheetsPivotValue>();
             ExcelWorksheetSnapshot? source = workbook.Worksheets.FirstOrDefault(sheet => string.Equals(sheet.Name, pivot.SourceSheet, StringComparison.OrdinalIgnoreCase));
-            if (source == null || !A1.TryParseRange(pivot.SourceRange!, out int startRow, out int startColumn, out _, out _)) return false;
-            var headers = source.Cells.Where(cell => cell.Row == startRow)
-                .ToDictionary(cell => Convert.ToString(cell.Value) ?? string.Empty, cell => cell.Column - startColumn, StringComparer.OrdinalIgnoreCase);
+            if (source == null || !A1.TryParseRange(pivot.SourceRange!, out int startRow, out int startColumn, out _, out int endColumn)) return false;
+            var headers = new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+            foreach (ExcelCellSnapshot cell in source.Cells.Where(cell =>
+                         cell.Row == startRow
+                         && cell.Column >= startColumn
+                         && cell.Column <= endColumn)) {
+                string caption = Convert.ToString(cell.Value) ?? string.Empty;
+                if (headers.ContainsKey(caption)) return false;
+                headers[caption] = cell.Column - startColumn;
+            }
             if (headers.Count == 0) return false;
             if (pivot.RowFields.Any(field => !headers.ContainsKey(field))
                 || pivot.ColumnFields.Any(field => !headers.ContainsKey(field))
