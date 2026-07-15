@@ -379,7 +379,7 @@ internal static partial class IcsCalendarCodec {
     }
 
     private static void WriteOrganizer(StringBuilder output, EmailAddress? address) {
-        if (string.IsNullOrWhiteSpace(address?.Address)) return;
+        if (!HasPortableMailtoAddress(address)) return;
         string organizer = string.Concat("ORGANIZER");
         if (!string.IsNullOrWhiteSpace(address!.DisplayName)) organizer += string.Concat(";CN=\"",
             EscapeParameter(address.DisplayName!), "\"");
@@ -390,7 +390,7 @@ internal static partial class IcsCalendarCodec {
         foreach (EmailRecipient recipient in document.Recipients.Where(recipient =>
             (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
              recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
-            !string.IsNullOrWhiteSpace(recipient.Address.Address))) {
+            HasPortableMailtoAddress(recipient.Address))) {
             string role = recipient.Kind == EmailRecipientKind.Cc ? "OPT-PARTICIPANT" :
                 recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource
                     ? "NON-PARTICIPANT"
@@ -534,6 +534,12 @@ internal static partial class IcsCalendarCodec {
     private static bool HasCalendarRecipients(EmailDocument document) => document.Recipients.Any(recipient =>
         recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
         recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource);
+
+    /// <summary>Determines whether an address can be represented safely as an iCalendar mailto URI.</summary>
+    internal static bool HasPortableMailtoAddress(EmailAddress? address) =>
+        !string.IsNullOrWhiteSpace(address?.Address) &&
+        (string.IsNullOrWhiteSpace(address!.AddressType) ||
+         string.Equals(address.AddressType, "SMTP", StringComparison.OrdinalIgnoreCase));
 
     internal static string GetMethod(EmailDocument document) {
         string messageClass = document.MessageClass ?? string.Empty;

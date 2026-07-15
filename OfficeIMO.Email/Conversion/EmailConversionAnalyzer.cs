@@ -40,8 +40,16 @@ internal static class EmailConversionAnalyzer {
                     hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
-                        "The appointment has attendee display text but no recipient addresses from which valid iCalendar ATTENDEE values can be created.",
+                        "The appointment has attendee state without portable SMTP recipient addresses from which valid iCalendar ATTENDEE values can be created.",
                         "appointment/attendees"));
+                }
+                if (HasNonPortableCalendarOrganizer(document) &&
+                    !HasUnchangedMimeSemanticSource(document)) {
+                    hasPotentialDataLoss = true;
+                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                        "EMAIL_ICALENDAR_ORGANIZER_ADDRESS_REQUIRED",
+                        "The appointment organizer does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
+                        "appointment/organizer"));
                 }
             } else if (document.OutlookItemKind == OutlookItemKind.Task) {
                 if (document.Task?.IsRecurring == true && !HasUnchangedMimeSemanticSource(document)) {
@@ -51,12 +59,20 @@ internal static class EmailConversionAnalyzer {
                         "The task is recurring, but its recurrence rule is not available for a safe iCalendar VTODO representation.",
                         "task/recurrence"));
                 }
-                if (HasAddresslessCalendarRecipient(document) && !HasUnchangedMimeSemanticSource(document)) {
+                if (HasNonPortableCalendarRecipient(document) && !HasUnchangedMimeSemanticSource(document)) {
                     hasPotentialDataLoss = true;
                     diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                         "EMAIL_ICALENDAR_ATTENDEE_ADDRESS_REQUIRED",
-                        "The task has an assignee recipient without an address from which a valid iCalendar ATTENDEE value can be created.",
+                        "The task has an assignee recipient without a portable SMTP address from which a valid iCalendar ATTENDEE value can be created.",
                         "task/attendees"));
+                }
+                if (HasNonPortableCalendarOrganizer(document, document.Task?.Owner) &&
+                    !HasUnchangedMimeSemanticSource(document)) {
+                    hasPotentialDataLoss = true;
+                    diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                        "EMAIL_ICALENDAR_ORGANIZER_ADDRESS_REQUIRED",
+                        "The task owner does not have a portable SMTP address from which a valid iCalendar ORGANIZER value can be created.",
+                        "task/organizer"));
                 }
             } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
                 document.MessageClass != null &&
@@ -142,7 +158,7 @@ internal static class EmailConversionAnalyzer {
 
     private static bool HasAddresslessAttendeeDisplayState(EmailDocument document) {
         OutlookAppointment appointment = document.Appointment!;
-        if (HasAddresslessCalendarRecipient(document)) return true;
+        if (HasNonPortableCalendarRecipient(document)) return true;
 
         EmailRecipient[] requiredRecipients = document.Recipients.Where(recipient =>
             recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Room ||
@@ -188,8 +204,17 @@ internal static class EmailConversionAnalyzer {
             displayValue.EndsWith(string.Concat("<", address.Address, ">"), StringComparison.OrdinalIgnoreCase);
     }
 
-    private static bool HasAddresslessCalendarRecipient(EmailDocument document) => document.Recipients.Any(recipient =>
+    private static bool HasNonPortableCalendarRecipient(EmailDocument document) => document.Recipients.Any(recipient =>
         (recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc ||
          recipient.Kind == EmailRecipientKind.Room || recipient.Kind == EmailRecipientKind.Resource) &&
-        string.IsNullOrWhiteSpace(recipient.Address.Address));
+        !IcsCalendarCodec.HasPortableMailtoAddress(recipient.Address));
+
+    private static bool HasNonPortableCalendarOrganizer(EmailDocument document, string? taskOwner = null) {
+        EmailAddress? from = document.From;
+        string? fromAddress = from?.Address;
+        if (string.IsNullOrWhiteSpace(fromAddress) ||
+            document.OutlookItemKind == OutlookItemKind.Task &&
+            !string.Equals(fromAddress, taskOwner, StringComparison.OrdinalIgnoreCase)) return false;
+        return !IcsCalendarCodec.HasPortableMailtoAddress(from);
+    }
 }

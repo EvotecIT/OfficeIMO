@@ -18,7 +18,8 @@ internal static partial class VCardCodec {
             properties.Count(property => property.Name == "EMAIL") > 3 || properties.Any(property =>
             property.Name == "PHOTO" || property.Name == "KEY" || property.Name == "LOGO" ||
             property.Name == "GENDER" || property.Name == "GEO" || property.Name == "TZ" ||
-            property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "UID" ||
+            property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "AGENT" ||
+            property.Name == "SORT-STRING" || property.Name == "MAILER" || property.Name == "UID" ||
             property.Name == "SOURCE" || property.Name == "FBURL" || property.Name == "CALURI" ||
             property.Name == "CALADRURI" || property.Name == "SOUND" ||
             property.Name == "VERSION" &&

@@ -29,6 +29,7 @@ internal static partial class IcsCalendarCodec {
             activeProperties.Any(property =>
                 property.Name == "RRULE" || property.Name == "RDATE" ||
                 property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
+                property.Name == "RELATED-TO" ||
                 property.Name == "CREATED" || property.Name == "LAST-MODIFIED" ||
                 property.Name == "COMMENT" || property.Name == "RESOURCES" || property.Name == "GEO" ||
                 isEvent && property.Name == "CONTACT" ||

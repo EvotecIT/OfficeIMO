@@ -356,13 +356,10 @@ internal static class MimeWriter {
 
     private static void WriteCalendarPart(Stream output, EmailDocument document, byte[] content,
         EmailAttachment? source, int base64LineLength) {
-        string method = source != null && source.ContentTypeParameters.TryGetValue("method", out string? retainedMethod)
-            ? retainedMethod
-            : IcsCalendarCodec.GetMethod(document);
-        string charset = source != null && source.ContentTypeParameters.TryGetValue("charset", out string? retainedCharset)
-            ? string.Concat("; charset=", SanitizeToken(retainedCharset))
-            : source == null ? "; charset=utf-8" : string.Empty;
-        WriteLine(output, string.Concat("Content-Type: text/calendar; method=", SanitizeToken(method), charset));
+        string parameters = source == null
+            ? string.Concat("; method=", SanitizeToken(IcsCalendarCodec.GetMethod(document)), "; charset=utf-8")
+            : FormatContentTypeParameters(source.ContentTypeParameters);
+        WriteLine(output, string.Concat("Content-Type: text/calendar", parameters));
         WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
         WriteBase64(output, content, base64LineLength);
