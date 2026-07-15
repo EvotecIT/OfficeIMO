@@ -29,13 +29,14 @@ public sealed class PdfTextSpan {
     public double RotationDegrees { get; }
     /// <summary>Optional visual clipping path in page top-left coordinates.</summary>
     internal PdfPageClipPath? ClipPath { get; }
+    internal string? DrawingFontFamily { get; }
     internal double PaintOrder { get; }
     /// <summary>Creates a new text span.</summary>
     public PdfTextSpan(string text, string fontResource, double fontSize, double x, double y, double advance = 0, OfficeColor? color = null, bool isVisible = true, double rotationDegrees = 0D, string? baseFont = null)
         : this(text, fontResource, fontSize, x, y, advance, color, isVisible, rotationDegrees, baseFont, null) {
     }
 
-    internal PdfTextSpan(string text, string fontResource, double fontSize, double x, double y, double advance, OfficeColor? color, bool isVisible, double rotationDegrees, string? baseFont, PdfPageClipPath? clipPath, double paintOrder = 0D) {
-        Text = text; FontResource = fontResource; BaseFont = baseFont; FontSize = fontSize; X = x; Y = y; Advance = advance; Color = color; IsVisible = isVisible; RotationDegrees = rotationDegrees; ClipPath = clipPath; PaintOrder = paintOrder;
+    internal PdfTextSpan(string text, string fontResource, double fontSize, double x, double y, double advance, OfficeColor? color, bool isVisible, double rotationDegrees, string? baseFont, PdfPageClipPath? clipPath, double paintOrder = 0D, string? drawingFontFamily = null) {
+        Text = text; FontResource = fontResource; BaseFont = baseFont; FontSize = fontSize; X = x; Y = y; Advance = advance; Color = color; IsVisible = isVisible; RotationDegrees = rotationDegrees; ClipPath = clipPath; PaintOrder = paintOrder; DrawingFontFamily = drawingFontFamily;
     }
 }

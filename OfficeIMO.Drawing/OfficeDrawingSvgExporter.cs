@@ -124,6 +124,9 @@ public static partial class OfficeDrawingSvgExporter {
                 case OfficeDrawingImagePattern imagePattern:
                     AppendImagePattern(sb, imagePattern, ref clipPathId);
                     break;
+                case OfficeDrawingTilingPattern tilingPattern:
+                    AppendTilingPattern(sb, tilingPattern, ref gradientId, ref clipPathId);
+                    break;
                 case OfficeDrawingGroup drawingGroup:
                     AppendGroup(sb, drawingGroup, ref gradientId, ref clipPathId);
                     break;
@@ -132,17 +135,6 @@ public static partial class OfficeDrawingSvgExporter {
                     break;
             }
         }
-    }
-
-    private static void AppendEffectGroup(StringBuilder sb, OfficeDrawingEffectGroup effectGroup, ref int gradientId, ref int clipPathId) {
-        sb.Append("<g")
-            .Append(BuildMatrixTransformAttribute(effectGroup.Transform, 0D, 0D));
-        if (effectGroup.Opacity < 1D) {
-            sb.Append(" opacity=\"").Append(Format(effectGroup.Opacity)).Append('"');
-        }
-        sb.Append('>');
-        AppendElements(sb, effectGroup.InnerDrawing.Elements, ref gradientId, ref clipPathId);
-        sb.Append("</g>");
     }
 
     private static void AppendGroup(StringBuilder sb, OfficeDrawingGroup drawingGroup, ref int gradientId, ref int clipPathId) {

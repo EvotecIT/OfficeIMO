@@ -37,7 +37,23 @@ public static partial class PdfPageImageRenderer {
         PdfPageRenderOptions? options = null,
         PdfReadOptions? readOptions = null,
         CancellationToken cancellationToken = default) {
-        return RenderPages(pdf, PdfPageSelection.Parse(pageRanges), options, readOptions, cancellationToken);
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        return RenderPages(pdf, PdfPageSelector.Parse(pageRanges).ResolveSelection(document.Pages.Count), options, readOptions, cancellationToken);
+    }
+
+    /// <summary>Renders pages resolved by a document-relative selector.</summary>
+    public static IReadOnlyList<PdfPageRenderResult> RenderPages(
+        byte[] pdf,
+        PdfPageSelector selector,
+        PdfPageRenderOptions? options = null,
+        PdfReadOptions? readOptions = null,
+        CancellationToken cancellationToken = default) {
+        Guard.NotNull(pdf, nameof(pdf));
+        Guard.NotNull(selector, nameof(selector));
+        PdfReadDocument document = PdfReadDocument.Load(pdf, readOptions);
+        return RenderPages(pdf, selector.ResolveSelection(document.Pages.Count), options, readOptions, cancellationToken);
     }
 
     private static PdfPageRenderResult RenderPage(PdfReadDocument document, int pageNumber, PdfPageRenderOptions options, CancellationToken cancellationToken) {

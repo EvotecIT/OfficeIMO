@@ -18,7 +18,9 @@ internal static class PdfCatalogDictionaryBuilder {
         string? openAction = null,
         string? pageMode = null,
         string? pageLayout = null,
-        string? catalogUriBase = null) {
+        string? catalogUriBase = null,
+        int portfolioId = 0,
+        int optionalContentPropertiesId = 0) {
         var sb = new StringBuilder();
         AppendCatalogStart(sb, pagesId);
 
@@ -56,6 +58,14 @@ internal static class PdfCatalogDictionaryBuilder {
 
         if (structTreeRootId < 0) {
             throw new ArgumentOutOfRangeException(nameof(structTreeRootId), "PDF structure-tree root object number cannot be negative.");
+        }
+
+        if (portfolioId < 0) {
+            throw new ArgumentOutOfRangeException(nameof(portfolioId), "PDF portfolio object number cannot be negative.");
+        }
+
+        if (optionalContentPropertiesId < 0) {
+            throw new ArgumentOutOfRangeException(nameof(optionalContentPropertiesId), "PDF optional-content properties object number cannot be negative.");
         }
 
         if (associatedFileIds != null) {
@@ -143,6 +153,13 @@ internal static class PdfCatalogDictionaryBuilder {
 
         if (associatedFileIds != null && associatedFileIds.Count > 0) {
             AppendAssociatedFilesEntry(sb, associatedFileIds);
+        }
+
+        if (portfolioId > 0) {
+            AppendReferenceEntry(sb, "Collection", portfolioId);
+        }
+        if (optionalContentPropertiesId > 0) {
+            AppendReferenceEntry(sb, "OCProperties", optionalContentPropertiesId);
         }
 
         sb.Append(" >>\n");

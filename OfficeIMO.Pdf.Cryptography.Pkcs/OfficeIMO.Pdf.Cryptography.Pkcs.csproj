@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Description>Optional SignedCms and X.509 signature-validation provider for OfficeIMO.Pdf.</Description>
+    <Description>Optional first-party managed CMS signing and X.509 signature-validation provider for OfficeIMO.Pdf.</Description>
     <AssemblyName>OfficeIMO.Pdf.Cryptography.Pkcs</AssemblyName>
     <AssemblyTitle>OfficeIMO.Pdf.Cryptography.Pkcs</AssemblyTitle>
     <VersionPrefix>2.0.1</VersionPrefix>
@@ -27,7 +27,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\OfficeIMO.Pdf\OfficeIMO.Pdf.csproj" />
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.9" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
   </ItemGroup>
 
   <ItemGroup>

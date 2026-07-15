@@ -69,4 +69,86 @@ public partial class DrawingTests {
         Assert.Equal(OfficeColor.Transparent, raster.GetPixel(10, 20));
         Assert.Contains("matrix(0 1 -1 0 25 5)", svg, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void OfficeDrawingEffectGroup_UsesManagedMultiplyBlending() {
+        var source = new OfficeDrawing(8D, 8D);
+        OfficeShape blue = OfficeShape.Rectangle(8D, 8D);
+        blue.FillColor = OfficeColor.FromRgb(64, 128, 255);
+        blue.StrokeWidth = 0D;
+        source.AddShape(blue, 0D, 0D);
+
+        var drawing = new OfficeDrawing(8D, 8D);
+        OfficeShape orange = OfficeShape.Rectangle(8D, 8D);
+        orange.FillColor = OfficeColor.FromRgb(240, 128, 32);
+        orange.StrokeWidth = 0D;
+        drawing.AddShape(orange, 0D, 0D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Identity, OfficeBlendMode.Multiply);
+
+        OfficeColor pixel = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(4, 4);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+
+        Assert.InRange(pixel.R, (byte)59, (byte)61);
+        Assert.InRange(pixel.G, (byte)63, (byte)65);
+        Assert.InRange(pixel.B, (byte)31, (byte)33);
+        Assert.Equal((byte)255, pixel.A);
+        Assert.Contains("mix-blend-mode:multiply", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingEffectGroup_AppliesReusableLuminositySoftMask() {
+        var source = new OfficeDrawing(10D, 4D);
+        OfficeShape red = OfficeShape.Rectangle(10D, 4D);
+        red.FillColor = OfficeColor.Red;
+        red.StrokeWidth = 0D;
+        source.AddShape(red, 0D, 0D);
+
+        var maskDrawing = new OfficeDrawing(10D, 4D);
+        OfficeShape whiteHalf = OfficeShape.Rectangle(5D, 4D);
+        whiteHalf.FillColor = OfficeColor.White;
+        whiteHalf.StrokeWidth = 0D;
+        maskDrawing.AddShape(whiteHalf, 0D, 0D);
+        var mask = new OfficeDrawingSoftMask(maskDrawing, OfficeSoftMaskMode.Luminosity);
+
+        var drawing = new OfficeDrawing(10D, 4D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Identity, OfficeBlendMode.Normal, mask);
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        string svg = OfficeDrawingSvgExporter.ToSvg(drawing);
+        OfficeDrawingEffectGroup effect = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(2, 2));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(8, 2));
+        Assert.Equal(OfficeSoftMaskMode.Luminosity, effect.SoftMask!.Mode);
+        Assert.Contains("<mask id=\"officeimo-mask-", svg, StringComparison.Ordinal);
+        Assert.Contains("mask-type:luminance", svg, StringComparison.Ordinal);
+        Assert.Contains("mask=\"url(#officeimo-mask-", svg, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void OfficeDrawingEffectGroup_CompositesPartialLuminosityMaskOverBackdrop() {
+        var source = new OfficeDrawing(4D, 4D);
+        OfficeShape red = OfficeShape.Rectangle(4D, 4D);
+        red.FillColor = OfficeColor.Red;
+        red.StrokeWidth = 0D;
+        source.AddShape(red, 0D, 0D);
+
+        var maskDrawing = new OfficeDrawing(4D, 4D);
+        OfficeShape translucentBlack = OfficeShape.Rectangle(4D, 4D);
+        translucentBlack.FillColor = OfficeColor.FromRgba(0, 0, 0, 128);
+        translucentBlack.StrokeWidth = 0D;
+        maskDrawing.AddShape(translucentBlack, 0D, 0D);
+        var mask = new OfficeDrawingSoftMask(
+            maskDrawing,
+            OfficeSoftMaskMode.Luminosity,
+            backdropColor: OfficeColor.White);
+
+        var drawing = new OfficeDrawing(4D, 4D);
+        drawing.AddEffectDrawing(source, OfficeTransform.Identity, OfficeBlendMode.Normal, mask);
+
+        OfficeColor pixel = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(2, 2);
+
+        Assert.Equal((byte)255, pixel.R);
+        Assert.InRange(pixel.A, (byte)126, (byte)128);
+    }
 }

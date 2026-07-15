@@ -14,7 +14,8 @@ internal static class PdfPageDictionaryBuilder {
         IReadOnlyList<(string Name, int Id)> shadings,
         IReadOnlyList<int> annotationIds,
         int? structParents = null,
-        bool useStructureTabOrder = false) {
+        bool useStructureTabOrder = false,
+        IReadOnlyList<(string Name, int Id)>? properties = null) {
         ValidatePositiveFinite(pageWidth, nameof(pageWidth));
         ValidatePositiveFinite(pageHeight, nameof(pageHeight));
 
@@ -31,6 +32,7 @@ internal static class PdfPageDictionaryBuilder {
         AppendResourcePart(sb, "XObject", xObjects);
         AppendResourcePart(sb, "ExtGState", graphicsStates);
         AppendResourcePart(sb, "Shading", shadings);
+        AppendResourcePart(sb, "Properties", properties ?? Array.Empty<(string Name, int Id)>());
 
         sb.Append(" >> /Contents ")
             .Append(PdfSyntaxEscaper.IndirectReference(contentId));

@@ -10,15 +10,44 @@ public sealed partial class PdfReadPage {
         (double Width, double Height) size = GetVisualPageSize();
         Matrix2D pageTransform = GetVisualPageTransform();
         var drawing = new OfficeDrawing(size.Width, size.Height);
+        RegisterEmbeddedFonts(drawing, ResolveDictionary(GetInheritedValue("Resources")), new HashSet<PdfStream>(), 0);
 
         List<PdfPageDrawingElement> pageElements = GetOrderedPageDrawingElements(size.Width, size.Height, pageTransform);
+        IReadOnlyList<PdfPageDrawingEffectTransition> effects = GetGraphicsEffectTransitions(pageTransform, size.Height);
+        var softMasks = new Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask>();
         for (int i = 0; i < pageElements.Count; i++) {
-            AddDrawingElement(drawing, size.Height, pageElements[i]);
+            PdfPageDrawingElement element = pageElements[i].WithEffect(ResolveDrawingEffect(effects, pageElements[i].PaintOrder));
+            AddDrawingElement(drawing, size.Height, pageTransform, element, softMasks);
         }
 
         AddAnnotationAppearances(drawing, size.Height, pageTransform);
 
         return drawing;
+    }
+
+    private void RegisterEmbeddedFonts(OfficeDrawing drawing, PdfDictionary? resources, HashSet<PdfStream> activeForms, int depth) {
+        EnsureContentNestingBudget(depth);
+        if (resources == null) return;
+
+        foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
+            if (font.EmbeddedTrueTypeFont == null) continue;
+            OfficeFontInfo info = ToOfficeFontInfo(font.BaseFont, 12D, font.DrawingFontFamily);
+            drawing.Fonts.TryAdd(info.FamilyName, font.EmbeddedTrueTypeFont, info.Style);
+        }
+
+        PdfDictionary? xObjects = ResolveDictionary(resources.Items.TryGetValue("XObject", out PdfObject? xObjectValue) ? xObjectValue : null);
+        if (xObjects == null) return;
+        foreach (PdfObject value in xObjects.Items.Values) {
+            if (ResolveObject(value) is not PdfStream form ||
+                !string.Equals(form.Dictionary.Get<PdfName>("Subtype")?.Name, "Form", StringComparison.Ordinal) ||
+                !activeForms.Add(form)) continue;
+            try {
+                PdfDictionary? formResources = ResolveDictionary(form.Dictionary.Items.TryGetValue("Resources", out PdfObject? formResourceValue) ? formResourceValue : null) ?? resources;
+                RegisterEmbeddedFonts(drawing, formResources, activeForms, depth + 1);
+            } finally {
+                activeForms.Remove(form);
+            }
+        }
     }
 
     private List<PdfPageDrawingElement> GetOrderedPageDrawingElements(double pageWidth, double pageHeight, Matrix2D pageTransform) {
@@ -56,7 +85,27 @@ public sealed partial class PdfReadPage {
         });
     }
 
-    private static void AddDrawingElement(OfficeDrawing drawing, double pageHeight, PdfPageDrawingElement element) {
+    private void AddDrawingElement(
+        OfficeDrawing drawing,
+        double pageHeight,
+        Matrix2D pageTransform,
+        PdfPageDrawingElement element,
+        Dictionary<PdfPageSoftMaskResource, OfficeDrawingSoftMask> softMasks) {
+        if (element.Effect.IsDefault) {
+            AddDrawingElementCore(drawing, pageHeight, element);
+            return;
+        }
+
+        var isolated = new OfficeDrawing(drawing.Width, drawing.Height);
+        AddDrawingElementCore(isolated, pageHeight, element);
+        if (isolated.Elements.Count == 0) return;
+        OfficeDrawingSoftMask? softMask = element.Effect.SoftMask == null
+            ? null
+            : GetOrCreateSoftMask(element.Effect.SoftMask, drawing.Width, drawing.Height, pageTransform, softMasks);
+        drawing.AddEffectDrawing(isolated, OfficeTransform.Identity, element.Effect.BlendMode, softMask);
+    }
+
+    private static void AddDrawingElementCore(OfficeDrawing drawing, double pageHeight, PdfPageDrawingElement element) {
         switch (element.Kind) {
             case PdfPageDrawingElementKind.Primitive:
                 AddVisualPrimitive(drawing, element.Primitive);
@@ -71,12 +120,25 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddVisualPrimitive(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
-        if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
-            AddRectangle(drawing, primitive);
-        } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-            AddLine(drawing, primitive);
-        } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Path) {
-            AddPath(drawing, primitive);
+        if (primitive.FillTilingPattern != null) {
+            AddTilingPatternFill(drawing, primitive);
+        }
+
+        bool hasOrdinaryFill = primitive.FillColor.HasValue || primitive.FillGradient != null || primitive.FillRadialGradient != null;
+        bool hasOrdinaryStroke = primitive.StrokeWidth > 0D &&
+            (primitive.StrokeColor.HasValue || primitive.StrokeGradient != null || primitive.StrokeRadialGradient != null);
+        if (hasOrdinaryFill || hasOrdinaryStroke) {
+            if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
+                AddRectangle(drawing, primitive);
+            } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
+                AddLine(drawing, primitive);
+            } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Path) {
+                AddPath(drawing, primitive);
+            }
+        }
+
+        if (primitive.StrokeTilingPattern != null && primitive.StrokeWidth > 0D) {
+            AddTilingPatternStroke(drawing, primitive);
         }
     }
 
@@ -288,16 +350,17 @@ public sealed partial class PdfReadPage {
         double paintOrderOffset = 0D,
         PdfPageClipPath? initialClipPath = null,
         OfficeColor? initialFillColor = null,
-        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialFillColorSpace = default,
         double? initialFillOpacity = null,
         OfficeColor? initialStrokeColor = null,
-        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialStrokeColorSpace = default,
         double? initialStrokeOpacity = null,
         double? initialStrokeWidth = null,
         OfficeStrokeDashStyle? initialStrokeDashStyle = null,
         OfficeStrokeLineCap? initialStrokeLineCap = null,
         OfficeStrokeLineJoin? initialStrokeLineJoin = null,
-        int contentNestingDepth = 0) {
+        int contentNestingDepth = 0,
+        bool includeTilingPatterns = true) {
         EnsureContentNestingBudget(contentNestingDepth);
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         primitives.AddRange(PdfPageContentVisualParser.Parse(
@@ -308,6 +371,7 @@ public sealed partial class PdfReadPage {
             GetColorSpaceResources(resources),
             GetShadingResources(resources),
             GetShadingPatternResources(resources),
+            includeTilingPatterns ? GetTilingPatternResources(resources) : null,
             GetOptionalContentVisibility(resources),
             paintOrderBase,
             paintOrderScale,
@@ -323,7 +387,8 @@ public sealed partial class PdfReadPage {
             initialStrokeDashStyle,
             initialStrokeLineCap,
             initialStrokeLineJoin,
-            maxOperations: _limits.MaxContentOperations));
+            maxOperations: _limits.MaxContentOperations,
+            patternBaseColorSpaces: GetPatternBaseColorSpaceResources(resources)));
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -381,7 +446,8 @@ public sealed partial class PdfReadPage {
                     initialStrokeDashStyle: invocation.StrokeDashStyle,
                     initialStrokeLineCap: invocation.StrokeLineCap,
                     initialStrokeLineJoin: invocation.StrokeLineJoin,
-                    contentNestingDepth: contentNestingDepth + 1);
+                    contentNestingDepth: contentNestingDepth + 1,
+                    includeTilingPatterns: includeTilingPatterns);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -477,7 +543,7 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        PdfPageColorSpaceKind colorSpace = PdfPageColorSpaceKind.DeviceGray;
+        PdfPageColorSpace colorSpace = PdfPageColorSpaceKind.DeviceGray;
         if (dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject)) {
             TryReadColorSpaceResource(colorSpaceObject, out colorSpace);
         }
@@ -500,7 +566,7 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private bool TryReadShadingStops(PdfObject? functionObject, PdfPageColorSpaceKind colorSpace, out IReadOnlyList<OfficeGradientStop> stops) {
+    private bool TryReadShadingStops(PdfObject? functionObject, PdfPageColorSpace colorSpace, out IReadOnlyList<OfficeGradientStop> stops) {
         stops = Array.Empty<OfficeGradientStop>();
         PdfObject? resolved = ResolveObject(functionObject);
         if (resolved is PdfArray functionArray && functionArray.Items.Count > 0) {
@@ -555,7 +621,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private bool TryReadType2FunctionColors(PdfDictionary? function, PdfPageColorSpaceKind colorSpace, bool reversed, out OfficeColor start, out OfficeColor end) {
+    private bool TryReadType2FunctionColors(PdfDictionary? function, PdfPageColorSpace colorSpace, bool reversed, out OfficeColor start, out OfficeColor end) {
         start = OfficeColor.Black;
         end = OfficeColor.Black;
         if (function == null || TryReadInteger(function.Items.TryGetValue("FunctionType", out PdfObject? type) ? type : null) != 2) return false;
@@ -580,15 +646,15 @@ public sealed partial class PdfReadPage {
         return resolved is PdfDictionary dictionary ? dictionary : null;
     }
 
-    private OfficeColor ReadFunctionColor(PdfDictionary function, string key, PdfPageColorSpaceKind colorSpace, bool endColor) {
+    private OfficeColor ReadFunctionColor(PdfDictionary function, string key, PdfPageColorSpace colorSpace, bool endColor) {
         IReadOnlyList<double> components = function.Items.TryGetValue(key, out PdfObject? value)
             ? ReadNumberArray(value)
             : Array.Empty<double>();
         return ReadColorComponents(components, colorSpace, endColor);
     }
 
-    private static OfficeColor ReadColorComponents(IReadOnlyList<double> components, PdfPageColorSpaceKind colorSpace, bool endColor) {
-        switch (colorSpace) {
+    private static OfficeColor ReadColorComponents(IReadOnlyList<double> components, PdfPageColorSpace colorSpace, bool endColor) {
+        switch (colorSpace.Kind) {
             case PdfPageColorSpaceKind.DeviceRgb:
                 return OfficeColor.FromRgb(
                     ToColorByte(ComponentAt(components, 0, endColor ? 1D : 0D)),
@@ -600,10 +666,15 @@ public sealed partial class PdfReadPage {
                 double magenta = ComponentAt(components, 1, cmykFallback);
                 double yellow = ComponentAt(components, 2, cmykFallback);
                 double black = ComponentAt(components, 3, cmykFallback);
-                return OfficeColor.FromRgb(
-                    ToColorByte((1D - cyan) * (1D - black)),
-                    ToColorByte((1D - magenta) * (1D - black)),
-                    ToColorByte((1D - yellow) * (1D - black)));
+                return OfficeColorSpaceConverter.FromCmyk(cyan, magenta, yellow, black);
+            case PdfPageColorSpaceKind.CalGray:
+                return PdfPageColorConverter.FromCalGray(ComponentAt(components, 0, endColor ? 1D : 0D));
+            case PdfPageColorSpaceKind.CalRgb:
+                return PdfPageColorConverter.FromCalRgb(
+                    ComponentAt(components, 0, endColor ? 1D : 0D),
+                    ComponentAt(components, 1, endColor ? 1D : 0D),
+                    ComponentAt(components, 2, endColor ? 1D : 0D),
+                    colorSpace);
             case PdfPageColorSpaceKind.Lab:
                 return PdfPageColorConverter.FromLab(
                     ComponentAtRaw(components, 0, endColor ? 100D : 0D),
@@ -651,21 +722,26 @@ public sealed partial class PdfReadPage {
             OfficeStrokeDashStyle? strokeDashStyle = ReadStrokeDashStyle(state);
             OfficeStrokeLineCap? strokeLineCap = ReadStrokeLineCap(state);
             OfficeStrokeLineJoin? strokeLineJoin = ReadStrokeLineJoin(state);
+            OfficeBlendMode? blendMode = ReadBlendMode(state);
+            bool hasSoftMask = state.Items.ContainsKey("SMask");
+            PdfPageSoftMaskResource? softMask = hasSoftMask ? ReadSoftMask(state) : null;
             if (fillOpacity.HasValue ||
                 strokeOpacity.HasValue ||
                 strokeWidth.HasValue ||
                 strokeDashStyle.HasValue ||
                 strokeLineCap.HasValue ||
-                strokeLineJoin.HasValue) {
-                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin);
+                strokeLineJoin.HasValue ||
+                blendMode.HasValue ||
+                hasSoftMask) {
+                result[entry.Key] = new PdfPageGraphicsStateResource(fillOpacity, strokeOpacity, strokeWidth, strokeDashStyle, strokeLineCap, strokeLineJoin, blendMode, hasSoftMask, softMask);
             }
         }
 
         return result;
     }
 
-    private Dictionary<string, PdfPageColorSpaceKind> GetColorSpaceResources(PdfDictionary? resources) {
-        var result = new Dictionary<string, PdfPageColorSpaceKind>(StringComparer.Ordinal);
+    private Dictionary<string, PdfPageColorSpace> GetColorSpaceResources(PdfDictionary? resources) {
+        var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
         if (resources == null ||
             !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject)) {
             return result;
@@ -677,7 +753,7 @@ public sealed partial class PdfReadPage {
         }
 
         foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
-            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpaceKind colorSpace)) {
+            if (TryReadColorSpaceResource(entry.Value, out PdfPageColorSpace colorSpace)) {
                 result[entry.Key] = colorSpace;
             }
         }
@@ -685,7 +761,28 @@ public sealed partial class PdfReadPage {
         return result;
     }
 
-    private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpaceKind colorSpace) {
+    private Dictionary<string, PdfPageColorSpace> GetPatternBaseColorSpaceResources(PdfDictionary? resources) {
+        var result = new Dictionary<string, PdfPageColorSpace>(StringComparer.Ordinal);
+        if (resources == null ||
+            !resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpacesObject) ||
+            ResolveDictionary(colorSpacesObject) is not PdfDictionary colorSpaces) {
+            return result;
+        }
+
+        foreach (KeyValuePair<string, PdfObject> entry in colorSpaces.Items) {
+            if (ResolveObject(entry.Value) is not PdfArray array ||
+                array.Items.Count < 2 ||
+                ResolveObject(array.Items[0]) is not PdfName { Name: "Pattern" } ||
+                !TryReadColorSpaceResource(array.Items[1], out PdfPageColorSpace baseColorSpace) ||
+                baseColorSpace == PdfPageColorSpaceKind.Pattern) {
+                continue;
+            }
+            result[entry.Key] = baseColorSpace;
+        }
+        return result;
+    }
+
+    private bool TryReadColorSpaceResource(PdfObject? value, out PdfPageColorSpace colorSpace) {
         PdfObject? resolved = ResolveObject(value);
         if (resolved is PdfName directName) {
             return TryReadStandardColorSpaceName(directName.Name, out colorSpace);
@@ -710,6 +807,11 @@ public sealed partial class PdfReadPage {
                 };
                 return components is 1 or 3 or 4;
             }
+            if (arrayName.Name == "CalRGB" && array.Items.Count > 1 &&
+                ResolveDictionary(array.Items[1]) is PdfDictionary calibration &&
+                TryReadCalRgbColorSpace(calibration, out colorSpace)) {
+                return true;
+            }
             return TryReadStandardColorSpaceName(arrayName.Name, out colorSpace);
         }
 
@@ -717,7 +819,29 @@ public sealed partial class PdfReadPage {
         return false;
     }
 
-    private static bool TryReadStandardColorSpaceName(string name, out PdfPageColorSpaceKind colorSpace) {
+    private bool TryReadCalRgbColorSpace(PdfDictionary calibration, out PdfPageColorSpace colorSpace) {
+        colorSpace = PdfPageColorSpaceKind.DeviceGray;
+        if (!calibration.Items.TryGetValue("WhitePoint", out PdfObject? whitePointObject)) return false;
+        IReadOnlyList<double> whitePoint = ReadNumberArray(whitePointObject);
+        if (whitePoint.Count != 3 || whitePoint.Any(static value => !IsFinite(value) || value <= 0D)) return false;
+
+        IReadOnlyList<double>? gamma = null;
+        if (calibration.Items.TryGetValue("Gamma", out PdfObject? gammaObject)) {
+            gamma = ReadNumberArray(gammaObject);
+            if (gamma.Count != 3 || gamma.Any(static value => !IsFinite(value) || value <= 0D)) return false;
+        }
+
+        IReadOnlyList<double>? matrix = null;
+        if (calibration.Items.TryGetValue("Matrix", out PdfObject? matrixObject)) {
+            matrix = ReadNumberArray(matrixObject);
+            if (matrix.Count != 9 || matrix.Any(static value => !IsFinite(value))) return false;
+        }
+
+        colorSpace = PdfPageColorSpace.CalRgb(whitePoint[0], whitePoint[1], whitePoint[2], gamma, matrix);
+        return true;
+    }
+
+    private static bool TryReadStandardColorSpaceName(string name, out PdfPageColorSpace colorSpace) {
         switch (name) {
             case "DeviceRGB":
             case "RGB":
@@ -729,11 +853,13 @@ public sealed partial class PdfReadPage {
                 return true;
             case "DeviceGray":
             case "G":
-            case "CalGray":
                 colorSpace = PdfPageColorSpaceKind.DeviceGray;
                 return true;
+            case "CalGray":
+                colorSpace = PdfPageColorSpaceKind.CalGray;
+                return true;
             case "CalRGB":
-                colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                colorSpace = PdfPageColorSpaceKind.CalRgb;
                 return true;
             case "Lab":
                 colorSpace = PdfPageColorSpaceKind.Lab;
@@ -898,7 +1024,7 @@ public sealed partial class PdfReadPage {
 
             SortDrawingElements(elements);
             for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
-                AddDrawingElement(drawing, pageHeight, elements[elementIndex]);
+                AddDrawingElementCore(drawing, pageHeight, elements[elementIndex]);
             }
         }
     }
@@ -1085,7 +1211,7 @@ public sealed partial class PdfReadPage {
             y,
             width,
             height,
-            ToOfficeFontInfo(span.BaseFont, span.FontSize),
+            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
             span.Color ?? OfficeColor.Black,
             rotationDegrees: -span.RotationDegrees,
             rotationCenterX: x,
@@ -1150,7 +1276,7 @@ public sealed partial class PdfReadPage {
             clip.X,
             clip.Y,
             officeClipPath,
-            ToOfficeFontInfo(span.BaseFont, span.FontSize),
+            ToOfficeFontInfo(span.BaseFont, span.FontSize, span.DrawingFontFamily),
             span.Color ?? OfficeColor.Black,
             rotationDegrees: -span.RotationDegrees,
             rotationCenterX: x,
@@ -1159,7 +1285,7 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static OfficeFontInfo ToOfficeFontInfo(string? baseFont, double size) {
+    private static OfficeFontInfo ToOfficeFontInfo(string? baseFont, double size, string? drawingFontFamily = null) {
         string normalized = StripSubsetPrefix(baseFont);
         OfficeFontStyle style = OfficeFontStyle.Regular;
         if (ContainsFontStyleToken(normalized, "Bold") ||
@@ -1175,7 +1301,9 @@ public sealed partial class PdfReadPage {
             style |= OfficeFontStyle.Italic;
         }
 
-        string family = ResolveOfficeFontFamily(normalized);
+        string family = string.IsNullOrWhiteSpace(drawingFontFamily)
+            ? ResolveOfficeFontFamily(normalized)
+            : drawingFontFamily!;
         return new OfficeFontInfo(family, size, style);
     }
 
@@ -1588,7 +1716,8 @@ public sealed partial class PdfReadPage {
             PdfPageVisualPrimitive primitive,
             PdfTextSpan? textSpan,
             PdfImagePlacement? imagePlacement,
-            PdfExtractedImage? image) {
+            PdfExtractedImage? image,
+            PdfPageDrawingEffect effect) {
             Kind = kind;
             PaintOrder = paintOrder;
             Sequence = sequence;
@@ -1596,16 +1725,17 @@ public sealed partial class PdfReadPage {
             TextSpan = textSpan;
             ImagePlacement = imagePlacement;
             Image = image;
+            Effect = effect;
         }
 
         public static PdfPageDrawingElement FromPrimitive(PdfPageVisualPrimitive primitive, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Primitive, primitive.PaintOrder, sequence, primitive, null, null, null);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Primitive, primitive.PaintOrder, sequence, primitive, null, null, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromText(PdfTextSpan textSpan, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Text, textSpan.PaintOrder, sequence, default, textSpan, null, null);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Text, textSpan.PaintOrder, sequence, default, textSpan, null, null, PdfPageDrawingEffect.Default);
 
         public static PdfPageDrawingElement FromImage(PdfImagePlacement imagePlacement, PdfExtractedImage image, int sequence) =>
-            new PdfPageDrawingElement(PdfPageDrawingElementKind.Image, imagePlacement.PaintOrder, sequence, default, null, imagePlacement, image);
+            new PdfPageDrawingElement(PdfPageDrawingElementKind.Image, imagePlacement.PaintOrder, sequence, default, null, imagePlacement, image, PdfPageDrawingEffect.Default);
 
         public PdfPageDrawingElementKind Kind { get; }
 
@@ -1620,5 +1750,10 @@ public sealed partial class PdfReadPage {
         public PdfImagePlacement? ImagePlacement { get; }
 
         public PdfExtractedImage? Image { get; }
+
+        public PdfPageDrawingEffect Effect { get; }
+
+        public PdfPageDrawingElement WithEffect(PdfPageDrawingEffect effect) =>
+            new PdfPageDrawingElement(Kind, PaintOrder, Sequence, Primitive, TextSpan, ImagePlacement, Image, effect);
     }
 }

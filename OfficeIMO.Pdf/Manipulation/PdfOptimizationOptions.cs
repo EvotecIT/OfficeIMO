@@ -50,7 +50,7 @@ public sealed class PdfOptimizationOptions {
     /// <summary>Cross-reference representation for the optimized candidate.</summary>
     public PdfOptimizationXrefFormat XrefFormat { get; set; } = PdfOptimizationXrefFormat.ClassicTable;
 
-    /// <summary>Request standards-compliant Fast Web View linearization. Unsupported requests fail rather than emitting a misleading marker.</summary>
+    /// <summary>Emit standards-compliant Fast Web View linearization with classic cross-reference tables and primary hint tables.</summary>
     public bool Linearize { get; set; }
 
     /// <summary>Maximum decoded image bytes considered for semantic image deduplication.</summary>
@@ -70,7 +70,7 @@ public sealed class PdfOptimizationOptions {
             case PdfOptimizationProfile.MaximumCompression:
                 return new PdfOptimizationOptions { Profile = profile, UseObjectStreams = true, XrefFormat = PdfOptimizationXrefFormat.XrefStream, KeepOriginalWhenNotSmaller = false };
             case PdfOptimizationProfile.Web:
-                return new PdfOptimizationOptions { Profile = profile, UseObjectStreams = false, XrefFormat = PdfOptimizationXrefFormat.ClassicTable, Linearize = false, KeepOriginalWhenNotSmaller = false };
+                return new PdfOptimizationOptions { Profile = profile, UseObjectStreams = false, XrefFormat = PdfOptimizationXrefFormat.ClassicTable, Linearize = true, KeepOriginalWhenNotSmaller = false };
             case PdfOptimizationProfile.Archival:
                 return new PdfOptimizationOptions { Profile = profile, UseObjectStreams = false, XrefFormat = PdfOptimizationXrefFormat.ClassicTable, Linearize = false };
             case PdfOptimizationProfile.Custom:

@@ -46,9 +46,9 @@ public sealed partial class PdfReadPage {
     }
 
     private void CollectFontCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
-        PdfDictionary? fonts = ResolveDictionary(resources.Items.TryGetValue("Font", out PdfObject? value) ? value : null);
-        if (fonts == null) return;
-        foreach (string name in fonts.Items.Keys) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FontSubstitutionId, name);
+        foreach (PdfFontResource font in ResourceResolver.GetFontsForResources(resources, _objects).Values) {
+            if (font.EmbeddedTrueTypeFont == null) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.FontSubstitutionId, font.ResourceName);
+        }
     }
 
     private void CollectColorSpaceCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
@@ -63,13 +63,36 @@ public sealed partial class PdfReadPage {
         PdfDictionary? patterns = ResolveDictionary(resources.Items.TryGetValue("Pattern", out PdfObject? value) ? value : null);
         if (patterns == null) return;
         foreach (KeyValuePair<string, PdfObject> entry in patterns.Items) {
-            PdfDictionary? pattern = ResolveObject(entry.Value) switch {
+            PdfObject? resolved = ResolveObject(entry.Value);
+            PdfDictionary? pattern = resolved switch {
                 PdfDictionary dictionary => dictionary,
                 PdfStream stream => stream.Dictionary,
                 _ => null
             };
-            if (pattern?.Get<PdfNumber>("PatternType")?.Value == 1D) AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.TilingPatternId, entry.Key);
+            if (pattern?.Get<PdfNumber>("PatternType")?.Value == 1D) {
+                if (!IsStructurallySupportedTilingPattern(resolved, pattern)) {
+                    AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedTilingPatternId, entry.Key);
+                }
+            }
         }
+    }
+
+    private bool IsStructurallySupportedTilingPattern(PdfObject? resolved, PdfDictionary pattern) {
+        int? paintType = TryReadInteger(pattern.Items.TryGetValue("PaintType", out PdfObject? paintTypeObject) ? paintTypeObject : null);
+        int? tilingType = TryReadInteger(pattern.Items.TryGetValue("TilingType", out PdfObject? tilingTypeObject) ? tilingTypeObject : null);
+        Matrix2D matrix = pattern.Items.TryGetValue("Matrix", out PdfObject? matrixObject)
+            ? ReadPatternMatrix(matrixObject)
+            : Matrix2D.Identity;
+        return resolved is PdfStream &&
+            (paintType == 1 || paintType == 2) &&
+            tilingType >= 1 && tilingType <= 3 &&
+            TryReadRectangle(pattern.Items.TryGetValue("BBox", out PdfObject? boxObject) ? boxObject : null, out (double X1, double Y1, double X2, double Y2) box) &&
+            box.X2 > box.X1 && box.Y2 > box.Y1 &&
+            ResolveObject(pattern.Items.TryGetValue("XStep", out PdfObject? xStepObject) ? xStepObject : null) is PdfNumber xStep &&
+            ResolveObject(pattern.Items.TryGetValue("YStep", out PdfObject? yStepObject) ? yStepObject : null) is PdfNumber yStep &&
+            !double.IsNaN(xStep.Value) && !double.IsInfinity(xStep.Value) && Math.Abs(xStep.Value) > 0.0000001D &&
+            !double.IsNaN(yStep.Value) && !double.IsInfinity(yStep.Value) && Math.Abs(yStep.Value) > 0.0000001D &&
+            IsUsableTilingPatternMatrix(matrix);
     }
 
     private void CollectGraphicsStateCapabilityDiagnostics(PdfDictionary resources, List<PdfRenderCapabilityDiagnostic> diagnostics, HashSet<string> seen) {
@@ -78,23 +101,15 @@ public sealed partial class PdfReadPage {
         foreach (KeyValuePair<string, PdfObject> entry in states.Items) {
             PdfDictionary? state = ResolveDictionary(entry.Value);
             if (state == null) continue;
-            if (state.Items.TryGetValue("BM", out PdfObject? blendMode) && HasNonDefaultBlendMode(blendMode)) {
-                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.BlendModeId, entry.Key);
+            if (state.Items.TryGetValue("BM", out _) && !ReadBlendMode(state).HasValue) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedBlendModeId, entry.Key);
             }
-            if (state.Items.TryGetValue("SMask", out PdfObject? mask) && ResolveObject(mask) is not PdfName { Name: "None" }) {
-                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.SoftMaskId, entry.Key);
+            if (state.Items.TryGetValue("SMask", out PdfObject? mask) &&
+                ResolveObject(mask) is not PdfName { Name: "None" } &&
+                ReadSoftMask(state) == null) {
+                AddRenderDiagnostic(diagnostics, seen, PdfRenderCapabilities.UnsupportedSoftMaskId, entry.Key);
             }
         }
-    }
-
-    private bool HasNonDefaultBlendMode(PdfObject? value) {
-        PdfObject? resolved = ResolveObject(value);
-        if (resolved is PdfName name) return name.Name != "Normal" && name.Name != "Compatible";
-        if (resolved is not PdfArray array) return true;
-        for (int i = 0; i < array.Items.Count; i++) {
-            if (ResolveObject(array.Items[i]) is PdfName candidate && (candidate.Name == "Normal" || candidate.Name == "Compatible")) return false;
-        }
-        return true;
     }
 
     private void CollectXObjectCapabilityDiagnostics(

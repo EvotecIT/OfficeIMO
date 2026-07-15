@@ -9,7 +9,16 @@ public sealed class OfficeDrawingEffectGroup : OfficeDrawingElement {
     private readonly OfficeDrawing _drawing;
 
     /// <summary>Creates a transformed, isolated nested drawing group.</summary>
-    public OfficeDrawingEffectGroup(OfficeDrawing drawing, OfficeTransform transform, double opacity = 1D) {
+    public OfficeDrawingEffectGroup(OfficeDrawing drawing, OfficeTransform transform, double opacity = 1D)
+        : this(drawing, transform, OfficeBlendMode.Normal, null, opacity) { }
+
+    /// <summary>Creates a transformed group with managed blending and an optional vector soft mask.</summary>
+    public OfficeDrawingEffectGroup(
+        OfficeDrawing drawing,
+        OfficeTransform transform,
+        OfficeBlendMode blendMode,
+        OfficeDrawingSoftMask? softMask = null,
+        double opacity = 1D) {
         if (drawing == null) throw new ArgumentNullException(nameof(drawing));
         if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
             throw new ArgumentOutOfRangeException(nameof(opacity), "Group opacity must be between zero and one.");
@@ -17,6 +26,8 @@ public sealed class OfficeDrawingEffectGroup : OfficeDrawingElement {
         _drawing = drawing.Clone();
         Transform = transform;
         Opacity = opacity;
+        BlendMode = blendMode;
+        SoftMask = softMask?.Clone();
     }
 
     /// <summary>Detached nested drawing content.</summary>
@@ -31,5 +42,11 @@ public sealed class OfficeDrawingEffectGroup : OfficeDrawingElement {
     /// <summary>Isolated group opacity from zero through one.</summary>
     public double Opacity { get; }
 
-    internal override OfficeDrawingElement CloneElement() => new OfficeDrawingEffectGroup(_drawing, Transform, Opacity);
+    /// <summary>Blend operation used against the existing destination.</summary>
+    public OfficeBlendMode BlendMode { get; }
+
+    /// <summary>Optional detached vector soft mask.</summary>
+    public OfficeDrawingSoftMask? SoftMask { get; }
+
+    internal override OfficeDrawingElement CloneElement() => new OfficeDrawingEffectGroup(_drawing, Transform, BlendMode, SoftMask, Opacity);
 }

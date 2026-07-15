@@ -1,6 +1,5 @@
 #if NET8_0_OR_GREATER
 using System.Security.Cryptography;
-using System.Security.Cryptography.Pkcs;
 using System.Security.Cryptography.X509Certificates;
 using OfficeIMO.Pdf;
 using OfficeIMO.Pdf.Cryptography;
@@ -63,12 +62,10 @@ public class PdfExternalEngineProofTests {
                 },
                 ReservedSignatureContentsBytes = 8192
             });
-        var cms = new SignedCms(new ContentInfo(preparation.SignedContent), detached: true);
-        var signer = new CmsSigner(SubjectIdentifierType.IssuerAndSerialNumber, certificate) {
-            IncludeOption = X509IncludeOption.EndCertOnly
-        };
-        cms.ComputeSignature(signer);
-        return PdfIncrementalUpdater.ApplyExternalSignature(preparation, cms.Encode());
+        using var signer = new PdfPkcsExternalSigner(certificate);
+        return PdfIncrementalUpdater.ApplyExternalSignature(
+            preparation,
+            signer.Sign(new PdfExternalSignatureRequest(preparation)));
     }
 
     private static X509Certificate2 CreateSigningCertificate() {

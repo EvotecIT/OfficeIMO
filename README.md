@@ -28,7 +28,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Visio | `System.IO.Packaging` | VSDX model, diagram builders, editing, validation, topology, and SVG/PNG export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
-| Pdf.Cryptography.Pkcs | `System.Security.Cryptography.Pkcs` | PDF signature discovery, byte ranges, revisions, permissions, and validation model |
+| Pdf.Cryptography.Pkcs | No external runtime package | Managed detached CMS signing and validation, X.509 chain policy, RFC 3161 parsing, and the PDF signature/revision model |
 | OCR packages | A caller-supplied executable or an installed Tesseract CLI | Candidate selection, bounded execution, protocol, result model, and diagnostics |
 | Google Workspace packages | `System.Text.Json` and platform HTTP/cryptography | Credentials abstraction, request/retry logic, Drive placement, translation plans, and reports; no Google client SDK |
 | Converter packages not listed above | Only the OfficeIMO format packages they connect | Feature mapping, limits, loss reports, and destination APIs |
@@ -149,19 +149,21 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX
 
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
-- [x] Create PDFs with page setup, rich text, multilingual font fallback, links, lists, panels, rows/columns, tables, and images
+- [x] Create PDFs with page setup, rich text, multilingual font fallback, links, lists, styled containers, block-flow columns, tables, and images
+- [x] Conditional and replayable flow, position capture, semantic sections, generated TOCs, named destinations, outlines, and generated optional-content layers
 - [x] Vector drawings, chart scenes, backgrounds, page decorations, headers, first/even footers, watermarks, metadata, and viewer preferences
 - [x] AcroForm creation, field values, choice fields, appearance generation, filling, flattening, and validation
 - [x] Annotations, bookmarks/outlines, named destinations, attachments/associated files, optional-content layers, and structured/tagged output
 - [x] PDF/A, PDF/UA, Factur-X, output-intent, XMP, identification-metadata, and compliance-readiness analysis
 - [x] Text extraction by page/range, layout-aware Markdown, logical paragraphs/headings/lists/tables, links, forms, images, and navigation
 - [x] Inspect pages, boxes, fonts, images, attachments, outlines, forms, actions, layers, tags, catalog metadata, security, signatures, and revisions
-- [x] Extract, split, merge, import, crop, delete, duplicate, reorder, move, and rotate pages
+- [x] Extract, split, merge, import, crop, delete, duplicate, reorder, move, rotate, and overlay/underlay complete source pages
 - [x] Edit metadata, forms, annotations, bookmarks, attachments, and security; stamp text/images and apply watermarks
 - [x] Redaction search/application/verification, sanitization, optimization, OCR hooks, and document-understanding pipelines
 - [x] Standard and modern encrypted PDF read/write plus signature mutation and permissions analysis
 - [x] Incremental object updates and append-only annotation paths where the source structure allows them
 - [x] Managed page rendering to PNG or SVG with page selections, pixel/page limits, capability diagnostics, and continue-on-error batches
+- [x] Exact embedded TrueType outlines plus shared managed CMYK, Lab, XYZ, and calibrated-color conversion where supported
 - [x] Logical recovery used by PDF-to-Word, PDF-to-Excel, PDF-to-PowerPoint, and PDF-to-RTF adapters
 - [x] Conversion proof, visual comparison, external-validator hooks, and rewrite-preservation reports for warnings, blockers, and structure drift
 
@@ -171,9 +173,10 @@ _Dependency footprint:_ only `OfficeIMO.Drawing`; no third-party PDF parser, wri
 
 - [x] CMS/PKCS signature math and signed-attribute validation
 - [x] X.509 chain, revocation-policy, and RFC 3161 timestamp validation
+- [x] First-party RSA/SHA-256 detached CMS signer for the existing external-signature workflow
 - [x] Opt-in cryptography over the signature discovery and revision model in `OfficeIMO.Pdf`
 
-_Dependency footprint:_ `System.Security.Cryptography.Pkcs` plus `OfficeIMO.Pdf`.
+_Dependency footprint:_ only `OfficeIMO.Pdf`; no external runtime package.
 
 #### [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md)
 

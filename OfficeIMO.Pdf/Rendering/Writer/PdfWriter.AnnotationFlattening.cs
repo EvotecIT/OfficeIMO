@@ -4,7 +4,7 @@ internal static partial class PdfWriter {
     private static string BuildFlattenedVisualAnnotationContent(
         LayoutResult.Page page,
         PdfOptions pageOptions,
-        List<byte[]> objects,
+        IList<byte[]> objects,
         List<(string Name, int Id)> xobjects,
         Func<PdfStandardFont, PdfOptions, int> ensureFont,
         Func<PdfOptions, int> ensureFormHelveticaFont,

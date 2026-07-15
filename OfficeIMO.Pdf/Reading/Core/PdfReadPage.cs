@@ -441,9 +441,9 @@ public sealed partial class PdfReadPage {
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
         OfficeColor? initialFillColor = null,
-        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialFillColorSpace = default,
         OfficeColor? initialStrokeColor = null,
-        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialStrokeColorSpace = default,
         double? initialFillOpacity = null,
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
@@ -457,6 +457,8 @@ public sealed partial class PdfReadPage {
             widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
         string? ResolveBaseFont(string fontRes) =>
             fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.BaseFont : null;
+        string? ResolveDrawingFontFamily(string fontRes) =>
+            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.DrawingFontFamily : null;
         string? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualText(resources, propertyName);
 
@@ -468,6 +470,7 @@ public sealed partial class PdfReadPage {
             graphicsStates: GetGraphicsStateResources(resources),
             colorSpaces: GetColorSpaceResources(resources),
             baseFontForResource: ResolveBaseFont,
+            drawingFontFamilyForResource: ResolveDrawingFontFamily,
             optionalContentVisibility: GetOptionalContentVisibility(resources),
             pageHeight: pageHeight,
             paintOrderBase: paintOrderBase,
@@ -556,7 +559,7 @@ public sealed partial class PdfReadPage {
         List<PdfImagePlacement> placements,
         HashSet<PdfStream> activeForms,
         OfficeColor? initialFillColor = null,
-        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialFillColorSpace = default,
         double? initialFillOpacity = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,

@@ -463,7 +463,7 @@ internal static partial class PdfWriter {
             sb.Length = contentStart;
             string token = "\n%OIMO_EFFECT_GROUP_" + (currentPage.EffectGroups.Count + 1).ToString("D6", CultureInfo.InvariantCulture) + "\n";
             currentPage.EffectGroups.Add(new PageEffectGroup {
-                Content = groupContent,
+                Content = pageContents.Store(groupContent),
                 Token = token,
                 Transform = transform,
                 GraphicsStateName = opacityState

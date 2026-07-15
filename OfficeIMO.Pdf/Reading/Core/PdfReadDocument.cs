@@ -33,6 +33,7 @@ public sealed partial class PdfReadDocument {
         Outlines = ExtractOutlines();
         OpenAction = ExtractOpenAction();
         ViewerPreferences = ExtractViewerPreferences();
+        Portfolio = ExtractPortfolio();
         AcroFormDefaultAppearance = ExtractAcroFormText("DA");
         AcroFormQuadding = ExtractAcroFormInteger("Q");
         AcroFormXfa = ExtractAcroFormXfaInfo();
@@ -68,6 +69,9 @@ public sealed partial class PdfReadDocument {
 
     /// <summary>Simple viewer preference entries discovered from the document catalog, when supported.</summary>
     public PdfViewerPreferences? ViewerPreferences { get; }
+
+    /// <summary>Document portfolio metadata discovered from the catalog, when present.</summary>
+    public PdfPortfolioInfo? Portfolio { get; }
 
     /// <summary>Simple AcroForm fields discovered from the document catalog.</summary>
     public IReadOnlyList<PdfFormField> FormFields { get; }

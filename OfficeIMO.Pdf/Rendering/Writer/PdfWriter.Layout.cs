@@ -74,6 +74,78 @@ internal static partial class PdfWriter {
     }
 
     private static LayoutResult LayoutBlocks(IEnumerable<IPdfBlock> blocks, PdfOptions opts) {
-        return new LayoutContext(opts).Layout(blocks);
+        var blockList = blocks as IReadOnlyList<IPdfBlock> ?? blocks.ToList();
+        IReadOnlyList<SectionBlock> sections = Array.Empty<SectionBlock>();
+        IReadOnlyDictionary<string, int>? pageNumbers = null;
+        var deferredMaterializations = new Dictionary<FlowMaterializationKey, IReadOnlyList<IPdfBlock>>();
+        LayoutResult result = null!;
+        for (int pass = 0; pass < 5; pass++) {
+            result?.Dispose();
+            using var context = new LayoutContext(opts, sections, pageNumbers, deferredMaterializations);
+            result = context.Layout(blockList);
+            if (!result.HasTableOfContents) {
+                ApplySectionReferences(result);
+                return result;
+            }
+
+            IReadOnlyDictionary<string, int> resolved = BuildSectionPageNumbers(result);
+            IReadOnlyList<SectionBlock> resolvedSections = result.SectionDefinitions;
+            if (pageNumbers != null &&
+                SectionPageNumbersEqual(pageNumbers, resolved) &&
+                SectionDefinitionsEqual(sections, resolvedSections)) {
+                ApplySectionReferences(result);
+                return result;
+            }
+
+            pageNumbers = resolved;
+            sections = resolvedSections;
+        }
+
+        result?.Dispose();
+        throw new InvalidOperationException("Generated table of contents did not stabilize within five layout passes.");
+    }
+
+    private static bool SectionDefinitionsEqual(IReadOnlyList<SectionBlock> left, IReadOnlyList<SectionBlock> right) {
+        if (left.Count != right.Count) return false;
+        for (int i = 0; i < left.Count; i++) {
+            SectionBlock first = left[i];
+            SectionBlock second = right[i];
+            if (!string.Equals(first.DestinationName, second.DestinationName, StringComparison.Ordinal) ||
+                !string.Equals(first.Title, second.Title, StringComparison.Ordinal) ||
+                first.Options.Level != second.Options.Level ||
+                first.Options.IncludeInTableOfContents != second.Options.IncludeInTableOfContents) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static Dictionary<string, int> BuildSectionPageNumbers(LayoutResult result) {
+        var pageNumbers = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (int pageIndex = 0; pageIndex < result.Pages.Count; pageIndex++) {
+            foreach (PageSection section in result.Pages[pageIndex].Sections) {
+                pageNumbers[section.DestinationName] = pageIndex + 1;
+            }
+        }
+
+        return pageNumbers;
+    }
+
+    private static bool SectionPageNumbersEqual(IReadOnlyDictionary<string, int> left, IReadOnlyDictionary<string, int> right) {
+        if (left.Count != right.Count) return false;
+        foreach (KeyValuePair<string, int> pair in left) {
+            if (!right.TryGetValue(pair.Key, out int page) || page != pair.Value) return false;
+        }
+
+        return true;
+    }
+
+    private static void ApplySectionReferences(LayoutResult result) {
+        for (int pageIndex = 0; pageIndex < result.Pages.Count; pageIndex++) {
+            foreach (PageSection section in result.Pages[pageIndex].Sections) {
+                section.Reference?.Set(section.DestinationName, section.Title, pageIndex + 1, section.Y);
+            }
+        }
     }
 }

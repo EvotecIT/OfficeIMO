@@ -210,6 +210,262 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_ProjectsExtGStateBlendModeThroughSharedEffectGroup() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            0.94 0.5 0.13 rg
+            40 80 80 60 re f
+            /GS1 gs
+            0.25 0.5 1 rg
+            40 80 80 60 re f
+            """,
+            "<< /ExtGState << /GS1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /ExtGState /BM /Multiply >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup effect = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeColor pixel = OfficeDrawingRasterRenderer.Render(drawing).GetPixel(60, 90);
+
+        Assert.Equal(OfficeBlendMode.Multiply, effect.BlendMode);
+        Assert.InRange(pixel.R, (byte)59, (byte)61);
+        Assert.InRange(pixel.G, (byte)63, (byte)65);
+        Assert.InRange(pixel.B, (byte)32, (byte)34);
+        Assert.Equal((byte)255, pixel.A);
+    }
+
+    [Fact]
+    public void RenderPage_SelectsFirstSupportedBlendModeFromFallbackArray() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/GS1 gs\n0 0 1 rg\n20 20 40 40 re f",
+            "<< /ExtGState << /GS1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /ExtGState /BM [/UnknownVendorMode /Screen] >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup effect = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Equal(OfficeBlendMode.Screen, effect.BlendMode);
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedBlendModeId);
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsExtGStateFormSoftMaskThroughSharedDrawing() {
+        string maskContent = "1 g\n0 0 120 200 re f";
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            /GS1 gs
+            1 0 0 rg
+            0 0 240 200 re f
+            """,
+            "<< /ExtGState << /GS1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /ExtGState /SMask 6 0 R >>\nendobj",
+            "6 0 obj\n<< /S /Alpha /G 7 0 R >>\nendobj",
+            BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /S /Transparency /CS /DeviceGray >> /Resources << >>", maskContent));
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingEffectGroup effect = Assert.Single(drawing.Elements.OfType<OfficeDrawingEffectGroup>());
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+
+        Assert.NotNull(effect.SoftMask);
+        Assert.Equal(OfficeSoftMaskMode.Alpha, effect.SoftMask!.Mode);
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(60, 100));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(180, 100));
+    }
+
+    [Fact]
+    public void RenderPage_IgnoresBackdropColorForAlphaSoftMask() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/GS1 gs\n1 0 0 rg\n0 0 240 200 re f",
+            "<< /ExtGState << /GS1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /ExtGState /SMask 6 0 R >>\nendobj",
+            "6 0 obj\n<< /S /Alpha /BC [1] /G 7 0 R >>\nendobj",
+            BuildStreamObject(
+                7,
+                "<< /Type /XObject /Subtype /Form /BBox [0 0 240 200] /Group << /S /Transparency /CS /DeviceGray >> /Resources << >>",
+                "1 g\n0 0 120 200 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(60, 100));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(180, 100));
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsColoredTilingPatternThroughSharedVectorPattern() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            /Pattern cs
+            /P1 scn
+            20 40 100 80 re f
+            """,
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Matrix [1 0 0 1 0 0] /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(drawing);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 155));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(35, 155));
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.TilingPatternId);
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsBasicUncoloredTilingPatternWithPaintTint() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs\n0 1 0 /P1 scn\n20 40 100 80 re f",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "0 g\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.FromRgb(0, 255, 0), raster.GetPixel(25, 155));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(35, 155));
+    }
+
+    [Fact]
+    public void RenderPage_TintsTextInsideUncoloredTilingPattern() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs\n0 1 0 /P1 scn\n20 40 100 80 re f",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 20 20] /XStep 30 /YStep 30 /Resources << /Font << /F1 6 0 R >> >>",
+                "0 g\nBT /F1 8 Tf 1 0 0 1 2 12 Tm (X) Tj ET"),
+            "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        OfficeDrawingTilingPattern pattern = Assert.Single(group.Drawing.Elements.OfType<OfficeDrawingTilingPattern>());
+        OfficeDrawingText text = Assert.Single(pattern.Tile.Elements.OfType<OfficeDrawingText>());
+
+        Assert.Equal(OfficeColor.FromRgb(0, 255, 0), text.Color);
+    }
+
+    [Fact]
+    public void RenderPage_ClipsTilingPatternFillThatOverlapsPageEdge() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs\n/P1 scn\n-10 40 100 80 re f",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(5, 155));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(15, 155));
+    }
+
+    [Fact]
+    public void RenderPage_UsesDeclaredCmykBaseColorForUncoloredTilingPattern() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/PatternCmyk cs\n0 1 1 0 /P1 scn\n20 40 100 80 re f",
+            "<< /ColorSpace << /PatternCmyk [ /Pattern /DeviceCMYK ] >> /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 2 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "0 g\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 155));
+    }
+
+    [Fact]
+    public void RenderPage_ClearsPreviousShadingWhenTilingPatternIsSelected() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs\n/S1 scn\n/P1 scn\n20 40 100 80 re f",
+            "<< /Pattern << /S1 5 0 R /P1 6 0 R >> >>",
+            "5 0 obj\n<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 80 120 80] /Function << /FunctionType 2 /Domain [0 1] /C0 [0 0 1] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >>\nendobj",
+            BuildStreamObject(
+                6,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(25, 155));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(35, 155));
+    }
+
+    [Fact]
+    public void RenderPage_ProjectsStrokeTilingPatternThroughVectorMask() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern CS\n/P1 SCN\n8 w\n20 40 100 80 re S\n20 20 m\n120 20 l\nS",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(PdfPageImageRenderer.RenderPage(pdf));
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(21, 155));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(30, 155));
+        Assert.Equal(OfficeColor.Red, raster.GetPixel(21, 178));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(30, 178));
+        Assert.Equal(OfficeColor.Transparent, raster.GetPixel(21, 170));
+        Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedTilingPatternId);
+    }
+
+    [Fact]
+    public void RenderPage_ReportsMalformedTilingPatternInsteadOfClaimingSupport() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs\n/P1 scn\n20 40 100 80 re f",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 0 /YStep 20 /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedTilingPatternId);
+    }
+
+    [Fact]
+    public void RenderPage_ReportsNonInvertibleTilingPatternMatrixInsteadOfThrowing() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/Pattern cs\n/P1 scn\n20 40 100 80 re f",
+            "<< /Pattern << /P1 5 0 R >> >>",
+            BuildStreamObject(
+                5,
+                "<< /Type /Pattern /PatternType 1 /PaintType 1 /TilingType 1 /BBox [0 0 10 10] /XStep 20 /YStep 20 /Matrix [0 0 0 0 0 0] /Resources << >>",
+                "1 0 0 rg\n0 0 10 10 re f"));
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingTilingPattern);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedTilingPatternId);
+    }
+
+    [Fact]
+    public void RenderPage_ReportsSoftMaskWithoutTransparencyGroup() {
+        byte[] pdf = BuildSingleStreamPdf(
+            "/GS1 gs\n1 0 0 rg\n0 0 120 200 re f",
+            "<< /ExtGState << /GS1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /ExtGState /SMask 6 0 R >>\nendobj",
+            "6 0 obj\n<< /S /Alpha /G 7 0 R >>\nendobj",
+            BuildStreamObject(7, "<< /Type /XObject /Subtype /Form /BBox [0 0 120 200] /Resources << >>", "1 g\n0 0 120 200 re f"));
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        PdfPageRenderResult result = Assert.Single(PdfPageImageRenderer.RenderPages(pdf));
+
+        Assert.DoesNotContain(drawing.Elements, element => element is OfficeDrawingEffectGroup);
+        Assert.Contains(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == PdfRenderCapabilities.UnsupportedSoftMaskId);
+    }
+
+    [Fact]
     public void RenderPage_InheritsOpacityIntoFormInlineImage() {
         byte[] pdf = BuildSingleStreamPdf(
             """
@@ -329,6 +585,35 @@ public class PdfPageImageRendererTests {
         Assert.Equal("Courier New", text.Font.FamilyName);
         Assert.True(text.Font.IsBold);
         Assert.True(text.Font.IsItalic);
+    }
+
+    [Fact]
+    public void TextParser_PreservesDistinctEmbeddedSubsetFontIdentities() {
+        var first = new PdfFontResource("F1", "ABCDEF+Arial", "WinAnsiEncoding", hasToUnicode: false, embeddedTrueTypeFont: new byte[] { 1, 2, 3 });
+        var second = new PdfFontResource("F2", "GHIJKL+Arial", "WinAnsiEncoding", hasToUnicode: false, embeddedTrueTypeFont: new byte[] { 4, 5, 6 });
+        var fonts = new Dictionary<string, PdfFontResource>(StringComparer.Ordinal) {
+            ["F1"] = first,
+            ["F2"] = second
+        };
+
+        List<PdfTextSpan> spans = TextContentParser.Parse(
+            "BT /F1 12 Tf (First) Tj /F2 12 Tf (Second) Tj ET",
+            (_, bytes) => Encoding.ASCII.GetString(bytes),
+            (_, bytes) => bytes.Length * 500D,
+            baseFontForResource: resource => fonts[resource].BaseFont,
+            drawingFontFamilyForResource: resource => fonts[resource].DrawingFontFamily);
+
+        Assert.Collection(
+            spans,
+            span => {
+                Assert.Equal("ABCDEF+Arial", span.BaseFont);
+                Assert.Equal(first.DrawingFontFamily, span.DrawingFontFamily);
+            },
+            span => {
+                Assert.Equal("GHIJKL+Arial", span.BaseFont);
+                Assert.Equal(second.DrawingFontFamily, span.DrawingFontFamily);
+            });
+        Assert.NotEqual(spans[0].DrawingFontFamily, spans[1].DrawingFontFamily);
     }
 
     [Fact]
@@ -801,7 +1086,7 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_ProjectsCalibratedAndIccColorSpacesThroughManagedApproximations() {
+    public void RenderPage_ProjectsCalibratedAndIccColorSpacesThroughManagedConversion() {
         byte[] pdf = BuildSingleStreamPdf(
             """
             /CsCal cs
@@ -813,7 +1098,7 @@ public class PdfPageImageRendererTests {
             130 80 70 40 re
             f
             """,
-            "<< /ColorSpace << /CsCal [/CalRGB << /WhitePoint [0.9505 1 1.089] >>] /CsIcc [/ICCBased 5 0 R] >> >>",
+            "<< /ColorSpace << /CsCal [/CalRGB << /WhitePoint [0.9642 1 0.8249] /Gamma [2.2 1.8 1.4] /Matrix [0.7 0.2 0.1 0.1 0.8 0.1 0.2 0.1 0.7] >>] /CsIcc [/ICCBased 5 0 R] >> >>",
             "5 0 obj\n<< /N 3 /Length 0 >>\nstream\n\nendstream\nendobj");
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
@@ -821,7 +1106,13 @@ public class PdfPageImageRendererTests {
             pdf,
             options: new PdfPageRenderOptions { Format = PdfPageRenderFormat.Svg }));
 
-        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(26, 51, 76));
+        OfficeColor calibrated = OfficeColorSpaceConverter.FromCalibratedRgb(
+            0.1D, 0.2D, 0.3D,
+            0.9642D, 1D, 0.8249D,
+            new[] { 2.2D, 1.8D, 1.4D },
+            new[] { 0.7D, 0.2D, 0.1D, 0.1D, 0.8D, 0.1D, 0.2D, 0.1D, 0.7D });
+        Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == calibrated);
+        Assert.NotEqual(OfficeColorSpaceConverter.FromCalibratedRgb(0.1D, 0.2D, 0.3D, 0.9505D, 1D, 1.089D), calibrated);
         Assert.Contains(drawing.Shapes, item => item.Shape.FillColor == OfficeColor.FromRgb(204, 26, 51));
         Assert.DoesNotContain(result.CapabilityDiagnostics, diagnostic => diagnostic.Code == "render.resource.colorspace-unsupported");
     }

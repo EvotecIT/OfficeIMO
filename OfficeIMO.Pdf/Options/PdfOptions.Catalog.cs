@@ -3,6 +3,24 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfOptions {
     /// <summary>When true, generated page content streams are written with Flate compression.</summary>
     public bool CompressContentStreams { get; set; }
+    private long _objectBufferMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes;
+    private long _pageContentMemoryLimitBytes = PdfPageContentStore.DefaultMemoryLimitBytes;
+    /// <summary>Maximum serialized-object bytes retained in memory while saving. Zero spills every completed object to temporary storage.</summary>
+    public long ObjectBufferMemoryLimitBytes {
+        get => _objectBufferMemoryLimitBytes;
+        set {
+            if (value < 0L) throw new System.ArgumentOutOfRangeException(nameof(ObjectBufferMemoryLimitBytes), value, "PDF object-buffer memory limit cannot be negative.");
+            _objectBufferMemoryLimitBytes = value;
+        }
+    }
+    /// <summary>Maximum completed page-content bytes retained during layout. Zero spills every completed page and effect stream to temporary storage.</summary>
+    public long PageContentMemoryLimitBytes {
+        get => _pageContentMemoryLimitBytes;
+        set {
+            if (value < 0L) throw new System.ArgumentOutOfRangeException(nameof(PageContentMemoryLimitBytes), value, "PDF page-content memory limit cannot be negative.");
+            _pageContentMemoryLimitBytes = value;
+        }
+    }
     /// <summary>When true, generated standard-font resources include WinAnsi-to-Unicode CMaps for stronger extraction and compliance groundwork.</summary>
     public bool IncludeStandardFontToUnicodeMaps { get; set; }
     /// <summary>When true, embedded TrueType font file streams are Flate-compressed while preserving their original /Length1 metadata.</summary>
@@ -193,6 +211,27 @@ public sealed partial class PdfOptions {
 
     internal System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile> EmbeddedFileSnapshots =>
         (System.Collections.Generic.IReadOnlyList<PdfEmbeddedFile>?)CloneEmbeddedFiles(_embeddedFiles) ?? System.Array.Empty<PdfEmbeddedFile>();
+
+    /// <summary>Optional document portfolio configuration for the generated embedded files.</summary>
+    public PdfPortfolioOptions? Portfolio {
+        get => _portfolio?.Clone();
+        set => _portfolio = value?.Clone();
+    }
+
+    internal PdfPortfolioOptions? PortfolioSnapshot => _portfolio?.Clone();
+
+    /// <summary>Configures the generated embedded files as a document portfolio.</summary>
+    public PdfOptions SetPortfolio(PdfPortfolioOptions portfolio) {
+        Guard.NotNull(portfolio, nameof(portfolio));
+        Portfolio = portfolio;
+        return this;
+    }
+
+    /// <summary>Clears the generated document portfolio configuration without removing embedded files.</summary>
+    public PdfOptions ClearPortfolio() {
+        _portfolio = null;
+        return this;
+    }
 
     /// <summary>Embedded TrueType font mappings keyed by generated standard-font slot.</summary>
     public System.Collections.Generic.IReadOnlyDictionary<PdfStandardFont, PdfEmbeddedFont> EmbeddedFonts {

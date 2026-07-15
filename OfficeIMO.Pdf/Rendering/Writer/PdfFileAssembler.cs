@@ -3,22 +3,37 @@ using System.Globalization;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfFileAssembler {
-    internal static byte[] Assemble(IReadOnlyList<byte[]> objects, int catalogId, int infoId, PdfFileVersion fileVersion = PdfFileVersion.Pdf14, PdfStandardEncryptionOptions? encryption = null) {
+    internal static byte[] Assemble(
+        IReadOnlyList<byte[]> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
+        PdfStandardEncryptionOptions? encryption = null,
+        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes) {
         using var stream = new MemoryStream();
-        Assemble(stream, objects, catalogId, infoId, fileVersion, encryption);
+        Assemble(stream, objects, catalogId, infoId, fileVersion, encryption, objectMemoryLimitBytes);
         return stream.ToArray();
     }
 
-    internal static long Assemble(Stream destination, IReadOnlyList<byte[]> objects, int catalogId, int infoId, PdfFileVersion fileVersion = PdfFileVersion.Pdf14, PdfStandardEncryptionOptions? encryption = null) {
+    internal static long Assemble(
+        Stream destination,
+        IReadOnlyList<byte[]> objects,
+        int catalogId,
+        int infoId,
+        PdfFileVersion fileVersion = PdfFileVersion.Pdf14,
+        PdfStandardEncryptionOptions? encryption = null,
+        long objectMemoryLimitBytes = PdfObjectStore.DefaultMemoryLimitBytes) {
         Guard.FileVersion(fileVersion, nameof(fileVersion));
         Guard.NotNull(destination, nameof(destination));
         Guard.NotNull(objects, nameof(objects));
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+        if (objectMemoryLimitBytes < 0L) throw new ArgumentOutOfRangeException(nameof(objectMemoryLimitBytes), objectMemoryLimitBytes, "PDF object-buffer memory limit cannot be negative.");
 
-        PdfEncryptionAssembly? encryptionAssembly = null;
-        if (encryption != null) {
-            fileVersion = RequireAtLeast(fileVersion, GetMinimumEncryptionVersion(encryption.Algorithm));
-            encryptionAssembly = PdfStandardSecurityWriter.Encrypt(objects, encryption);
+        using PdfEncryptionAssembly? encryptionAssembly = encryption == null
+            ? null
+            : PdfStandardSecurityWriter.Encrypt(objects, encryption, objectMemoryLimitBytes);
+        if (encryptionAssembly != null) {
+            fileVersion = RequireAtLeast(fileVersion, GetMinimumEncryptionVersion(encryption!.Algorithm));
             objects = encryptionAssembly.Objects;
         }
 
@@ -29,9 +44,14 @@ internal static class PdfFileAssembler {
         var offsets = new List<long> { 0L };
         for (int i = 0; i < objects.Count; i++) {
             offsets.Add(written);
-            byte[] obj = objects[i];
-            destination.Write(obj, 0, obj.Length);
-            written += obj.LongLength;
+            if (objects is PdfObjectStore objectStore) {
+                objectStore.CopyTo(i, destination);
+                written += objectStore.GetLength(i);
+            } else {
+                byte[] obj = objects[i];
+                destination.Write(obj, 0, obj.Length);
+                written += obj.LongLength;
+            }
         }
 
         long xrefPos = written;

@@ -15,15 +15,15 @@ internal static class TextContentParser {
         public double HScale { get; }
         public double TextRise { get; }
         public OfficeColor FillColor { get; }
-        public PdfPageColorSpaceKind FillColorSpace { get; }
+        public PdfPageColorSpace FillColorSpace { get; }
         public OfficeColor StrokeColor { get; }
-        public PdfPageColorSpaceKind StrokeColorSpace { get; }
+        public PdfPageColorSpace StrokeColorSpace { get; }
         public double? FillOpacity { get; }
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
         public PdfPageClipPath? ClipPath { get; }
 
-        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpaceKind fillColorSpace, OfficeColor strokeColor, PdfPageColorSpaceKind strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath) {
+        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpace fillColorSpace, OfficeColor strokeColor, PdfPageColorSpace strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath) {
             Ctm = ctm;
             Font = font;
             Size = size;
@@ -76,9 +76,9 @@ internal static class TextContentParser {
         public Matrix2D Transform { get; }
         public double PaintOrder { get; }
         public OfficeColor FillColor { get; }
-        public PdfPageColorSpaceKind FillColorSpace { get; }
+        public PdfPageColorSpace FillColorSpace { get; }
         public OfficeColor StrokeColor { get; }
-        public PdfPageColorSpaceKind StrokeColorSpace { get; }
+        public PdfPageColorSpace StrokeColorSpace { get; }
         public double? FillOpacity { get; }
         public double? StrokeOpacity { get; }
         public int TextRenderingMode { get; }
@@ -89,9 +89,9 @@ internal static class TextContentParser {
             Matrix2D transform,
             double paintOrder = 0D,
             OfficeColor? fillColor = null,
-            PdfPageColorSpaceKind fillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+            PdfPageColorSpace fillColorSpace = default,
             OfficeColor? strokeColor = null,
-            PdfPageColorSpaceKind strokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+            PdfPageColorSpace strokeColorSpace = default,
             double? fillOpacity = null,
             double? strokeOpacity = null,
             int textRenderingMode = 0,
@@ -117,17 +117,18 @@ internal static class TextContentParser {
         bool adjustKerningFromTJ = true,
         System.Func<string, string?>? actualTextForProperty = null,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
-        IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces = null,
+        IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
+        System.Func<string, string?>? drawingFontFamilyForResource = null,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double pageHeight = 0D,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
         OfficeColor? initialFillColor = null,
-        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialFillColorSpace = default,
         OfficeColor? initialStrokeColor = null,
-        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialStrokeColorSpace = default,
         double? initialFillOpacity = null,
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
@@ -139,9 +140,9 @@ internal static class TextContentParser {
         bool inText = false;
         string font = "F1"; double size = 12; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
-        PdfPageColorSpaceKind fillColorSpace = initialFillColorSpace;
+        PdfPageColorSpace fillColorSpace = initialFillColorSpace;
         OfficeColor strokeColor = initialStrokeColor ?? OfficeColor.Black;
-        PdfPageColorSpaceKind strokeColorSpace = initialStrokeColorSpace;
+        PdfPageColorSpace strokeColorSpace = initialStrokeColorSpace;
         double? fillOpacity = initialFillOpacity;
         double? strokeOpacity = initialStrokeOpacity;
         int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
@@ -338,14 +339,14 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "cs":
-                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedColorSpace)) {
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSpace = parsedColorSpace;
                     }
 
                     args.Clear();
                     break;
                 case "CS":
-                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedStrokeColorSpace)) {
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedStrokeColorSpace)) {
                         strokeColorSpace = parsedStrokeColorSpace;
                     }
 
@@ -562,11 +563,11 @@ internal static class TextContentParser {
                 textOut = actualTextState.ActualText;
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
-                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder));
+                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder, drawingFontFamilyForResource?.Invoke(font)));
                     sbOutGlobal.Append(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
-                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder));
+                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder, drawingFontFamilyForResource?.Invoke(font)));
                 sbOutGlobal.Append(textOut);
             }
 
@@ -916,16 +917,9 @@ internal static class TextContentParser {
             return OfficeColor.FromRgb(value, value, value);
         }
         OfficeColor ReadCmyk(int startIndex) {
-            double cyan = Clamp01(NumberAt(startIndex));
-            double magenta = Clamp01(NumberAt(startIndex + 1));
-            double yellow = Clamp01(NumberAt(startIndex + 2));
-            double black = Clamp01(NumberAt(startIndex + 3));
-            return OfficeColor.FromRgb(
-                ToByte((1D - cyan) * (1D - black)),
-                ToByte((1D - magenta) * (1D - black)),
-                ToByte((1D - yellow) * (1D - black)));
+            return OfficeColorSpaceConverter.FromCmyk(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2), NumberAt(startIndex + 3));
         }
-        bool TryReadColor(PdfPageColorSpaceKind colorSpace, out OfficeColor color) {
+        bool TryReadColor(PdfPageColorSpace colorSpace, out OfficeColor color) {
             color = OfficeColor.Black;
             int componentCount = GetColorComponentCount(colorSpace);
             int endIndex = args.Count;
@@ -938,12 +932,18 @@ internal static class TextContentParser {
             }
 
             int startIndex = endIndex - componentCount;
-            switch (colorSpace) {
+            switch (colorSpace.Kind) {
                 case PdfPageColorSpaceKind.DeviceRgb:
                     color = ReadRgb(startIndex);
                     return true;
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     color = ReadCmyk(startIndex);
+                    return true;
+                case PdfPageColorSpaceKind.CalGray:
+                    color = PdfPageColorConverter.FromCalGray(NumberAt(startIndex));
+                    return true;
+                case PdfPageColorSpaceKind.CalRgb:
+                    color = PdfPageColorConverter.FromCalRgb(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2), colorSpace);
                     return true;
                 case PdfPageColorSpaceKind.Lab:
                     color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
@@ -953,7 +953,7 @@ internal static class TextContentParser {
                     return true;
             }
         }
-        bool TryReadColorSpace(string name, out PdfPageColorSpaceKind colorSpace) {
+        bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {
             switch (name) {
                 case "DeviceRGB":
                 case "RGB":
@@ -965,11 +965,13 @@ internal static class TextContentParser {
                     return true;
                 case "DeviceGray":
                 case "G":
-                case "CalGray":
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
                     return true;
+                case "CalGray":
+                    colorSpace = PdfPageColorSpaceKind.CalGray;
+                    return true;
                 case "CalRGB":
-                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    colorSpace = PdfPageColorSpaceKind.CalRgb;
                     return true;
                 case "Lab":
                     colorSpace = PdfPageColorSpaceKind.Lab;
@@ -983,9 +985,10 @@ internal static class TextContentParser {
                     return false;
             }
         }
-        static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
-            switch (colorSpace) {
+        static int GetColorComponentCount(PdfPageColorSpace colorSpace) {
+            switch (colorSpace.Kind) {
                 case PdfPageColorSpaceKind.DeviceRgb:
+                case PdfPageColorSpaceKind.CalRgb:
                 case PdfPageColorSpaceKind.Lab:
                     return 3;
                 case PdfPageColorSpaceKind.DeviceCmyk:
@@ -1075,12 +1078,12 @@ internal static class TextContentParser {
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
         IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
-        IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces = null,
+        IReadOnlyDictionary<string, PdfPageColorSpace>? colorSpaces = null,
         double pageHeight = 0D,
         OfficeColor? initialFillColor = null,
-        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialFillColorSpace = default,
         OfficeColor? initialStrokeColor = null,
-        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        PdfPageColorSpace initialStrokeColorSpace = default,
         double? initialFillOpacity = null,
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
@@ -1089,9 +1092,9 @@ internal static class TextContentParser {
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
-        PdfPageColorSpaceKind fillColorSpace = initialFillColorSpace;
+        PdfPageColorSpace fillColorSpace = initialFillColorSpace;
         OfficeColor strokeColor = initialStrokeColor ?? OfficeColor.Black;
-        PdfPageColorSpaceKind strokeColorSpace = initialStrokeColorSpace;
+        PdfPageColorSpace strokeColorSpace = initialStrokeColorSpace;
         double? fillOpacity = initialFillOpacity;
         double? strokeOpacity = initialStrokeOpacity;
         int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
@@ -1284,14 +1287,14 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "cs":
-                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedColorSpace)) {
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedColorSpace)) {
                         fillColorSpace = parsedColorSpace;
                     }
 
                     args.Clear();
                     break;
                 case "CS":
-                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedStrokeColorSpace)) {
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpace parsedStrokeColorSpace)) {
                         strokeColorSpace = parsedStrokeColorSpace;
                     }
 
@@ -1517,17 +1520,10 @@ internal static class TextContentParser {
         }
 
         OfficeColor ReadCmyk(int startIndex) {
-            double cyan = Clamp01(NumberAt(startIndex));
-            double magenta = Clamp01(NumberAt(startIndex + 1));
-            double yellow = Clamp01(NumberAt(startIndex + 2));
-            double black = Clamp01(NumberAt(startIndex + 3));
-            return OfficeColor.FromRgb(
-                ToByte((1D - cyan) * (1D - black)),
-                ToByte((1D - magenta) * (1D - black)),
-                ToByte((1D - yellow) * (1D - black)));
+            return OfficeColorSpaceConverter.FromCmyk(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2), NumberAt(startIndex + 3));
         }
 
-        bool TryReadColor(PdfPageColorSpaceKind colorSpace, out OfficeColor color) {
+        bool TryReadColor(PdfPageColorSpace colorSpace, out OfficeColor color) {
             color = OfficeColor.Black;
             int componentCount = GetColorComponentCount(colorSpace);
             int endIndex = args.Count;
@@ -1540,12 +1536,18 @@ internal static class TextContentParser {
             }
 
             int startIndex = endIndex - componentCount;
-            switch (colorSpace) {
+            switch (colorSpace.Kind) {
                 case PdfPageColorSpaceKind.DeviceRgb:
                     color = ReadRgb(startIndex);
                     return true;
                 case PdfPageColorSpaceKind.DeviceCmyk:
                     color = ReadCmyk(startIndex);
+                    return true;
+                case PdfPageColorSpaceKind.CalGray:
+                    color = PdfPageColorConverter.FromCalGray(NumberAt(startIndex));
+                    return true;
+                case PdfPageColorSpaceKind.CalRgb:
+                    color = PdfPageColorConverter.FromCalRgb(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2), colorSpace);
                     return true;
                 case PdfPageColorSpaceKind.Lab:
                     color = PdfPageColorConverter.FromLab(NumberAt(startIndex), NumberAt(startIndex + 1), NumberAt(startIndex + 2));
@@ -1556,7 +1558,7 @@ internal static class TextContentParser {
             }
         }
 
-        bool TryReadColorSpace(string name, out PdfPageColorSpaceKind colorSpace) {
+        bool TryReadColorSpace(string name, out PdfPageColorSpace colorSpace) {
             switch (name) {
                 case "DeviceRGB":
                 case "RGB":
@@ -1568,11 +1570,13 @@ internal static class TextContentParser {
                     return true;
                 case "DeviceGray":
                 case "G":
-                case "CalGray":
                     colorSpace = PdfPageColorSpaceKind.DeviceGray;
                     return true;
+                case "CalGray":
+                    colorSpace = PdfPageColorSpaceKind.CalGray;
+                    return true;
                 case "CalRGB":
-                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    colorSpace = PdfPageColorSpaceKind.CalRgb;
                     return true;
                 case "Lab":
                     colorSpace = PdfPageColorSpaceKind.Lab;
@@ -1587,9 +1591,10 @@ internal static class TextContentParser {
             }
         }
 
-        static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
-            switch (colorSpace) {
+        static int GetColorComponentCount(PdfPageColorSpace colorSpace) {
+            switch (colorSpace.Kind) {
                 case PdfPageColorSpaceKind.DeviceRgb:
+                case PdfPageColorSpaceKind.CalRgb:
                 case PdfPageColorSpaceKind.Lab:
                     return 3;
                 case PdfPageColorSpaceKind.DeviceCmyk:
