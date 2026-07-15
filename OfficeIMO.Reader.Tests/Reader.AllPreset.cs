@@ -66,16 +66,19 @@ public sealed class ReaderAllPresetTests {
         var cases = new[] {
             (
                 Name: "document.odt",
+                CrossLabeledName: "document.ods",
                 Bytes: text.ToBytes(),
                 Marker: "ODT semantic marker",
                 MediaType: "application/vnd.oasis.opendocument.text"),
             (
                 Name: "document.ods",
+                CrossLabeledName: "document.odp",
                 Bytes: spreadsheet.ToBytes(),
                 Marker: "ODS semantic marker",
                 MediaType: "application/vnd.oasis.opendocument.spreadsheet"),
             (
                 Name: "document.odp",
+                CrossLabeledName: "document.odt",
                 Bytes: presentation.ToBytes(),
                 Marker: "ODP semantic marker",
                 MediaType: "application/vnd.oasis.opendocument.presentation")
@@ -84,7 +87,7 @@ public sealed class ReaderAllPresetTests {
             .AddAllOfficeIMOHandlers()
             .Build();
 
-        foreach ((string name, byte[] bytes, string marker, string mediaType) in cases) {
+        foreach ((string name, string crossLabeledName, byte[] bytes, string marker, string mediaType) in cases) {
             ReaderDetectionResult detection = reader.Detect(bytes, name);
 
             Assert.Equal(ReaderInputKind.OpenDocument, detection.ExtensionKind);
@@ -92,6 +95,16 @@ public sealed class ReaderAllPresetTests {
             Assert.Equal(ReaderInputKind.OpenDocument, detection.Kind);
             Assert.Equal(mediaType, detection.MediaType);
             Assert.Equal(ReaderDetectionConfidence.High, detection.Confidence);
+
+            ReaderDetectionResult crossLabeled = reader.Detect(
+                bytes,
+                crossLabeledName,
+                new ReaderDetectionOptions { Mode = ReaderDetectionMode.PreferContent });
+            Assert.Equal(ReaderInputKind.OpenDocument, crossLabeled.ExtensionKind);
+            Assert.Equal(ReaderInputKind.OpenDocument, crossLabeled.ContentKind);
+            Assert.Equal(ReaderInputKind.OpenDocument, crossLabeled.Kind);
+            Assert.Equal(mediaType, crossLabeled.MediaType);
+            Assert.Contains("container:opendocument-mimetype", crossLabeled.Evidence);
 
             OfficeDocumentReadResult result = reader.ReadDocument(
                 bytes,

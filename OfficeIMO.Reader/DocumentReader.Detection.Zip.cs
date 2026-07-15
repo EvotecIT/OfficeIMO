@@ -303,13 +303,18 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static DetectionCandidate EpubCandidate() {
-        return DetectionCandidate.High(ReaderInputKind.Epub, "application/epub+zip", "container:epub-mimetype");
+        return DetectionCandidate.High(
+            ReaderInputKind.Epub,
+            "application/epub+zip",
+            "container:epub-mimetype",
+            mediaTypeIsDeclared: true);
     }
 
     private static DetectionCandidate OpenDocumentCandidate(string mediaType) {
         return DetectionCandidate.High(
             ReaderInputKind.OpenDocument,
             mediaType,
-            "container:opendocument-mimetype");
+            "container:opendocument-mimetype",
+            mediaTypeIsDeclared: true);
     }
 }

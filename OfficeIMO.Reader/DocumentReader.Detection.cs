@@ -345,6 +345,16 @@ internal static partial class DocumentReaderEngine {
             effectiveConfidence = content.Confidence;
         }
 
+        bool useContentMediaType = content.Kind == effectiveKind &&
+            content.MediaType != null &&
+            (effectiveKind != extensionResult.ExtensionKind ||
+             (mode == ReaderDetectionMode.PreferContent && content.MediaTypeIsDeclared));
+        string? effectiveMediaType = useContentMediaType
+            ? content.MediaType
+            : effectiveKind == extensionResult.ExtensionKind
+                ? extensionResult.MediaType ?? GetMediaType(effectiveKind)
+                : GetMediaType(effectiveKind);
+
         return new ReaderDetectionResult {
             SourceName = extensionResult.SourceName,
             Extension = extensionResult.Extension,
@@ -354,11 +364,7 @@ internal static partial class DocumentReaderEngine {
             ContentConfidence = content.Confidence,
             Kind = effectiveKind,
             Confidence = effectiveConfidence,
-            MediaType = effectiveKind == extensionResult.ExtensionKind
-                ? extensionResult.MediaType ?? GetMediaType(effectiveKind)
-                : content.Kind == effectiveKind && content.MediaType != null
-                    ? content.MediaType
-                    : GetMediaType(effectiveKind),
+            MediaType = effectiveMediaType,
             ContentInspected = true,
             ContainerInspected = containerInspected,
             InspectedBytes = inspectedBytes,
@@ -675,17 +681,20 @@ internal static partial class DocumentReaderEngine {
             ReaderInputKind kind,
             ReaderDetectionConfidence confidence,
             string? mediaType,
-            IReadOnlyList<string> evidence) {
+            IReadOnlyList<string> evidence,
+            bool mediaTypeIsDeclared = false) {
             Kind = kind;
             Confidence = confidence;
             MediaType = mediaType;
             Evidence = evidence;
+            MediaTypeIsDeclared = mediaTypeIsDeclared;
         }
 
         public ReaderInputKind Kind { get; }
         public ReaderDetectionConfidence Confidence { get; }
         public string? MediaType { get; }
         public IReadOnlyList<string> Evidence { get; }
+        public bool MediaTypeIsDeclared { get; }
 
         public static DetectionCandidate Unknown(string evidence) =>
             new DetectionCandidate(ReaderInputKind.Unknown, ReaderDetectionConfidence.None, null, new[] { evidence });
@@ -696,8 +705,17 @@ internal static partial class DocumentReaderEngine {
         public static DetectionCandidate Medium(ReaderInputKind kind, string mediaType, string evidence) =>
             new DetectionCandidate(kind, ReaderDetectionConfidence.Medium, mediaType, new[] { evidence });
 
-        public static DetectionCandidate High(ReaderInputKind kind, string mediaType, string evidence) =>
-            new DetectionCandidate(kind, ReaderDetectionConfidence.High, mediaType, new[] { evidence });
+        public static DetectionCandidate High(
+            ReaderInputKind kind,
+            string mediaType,
+            string evidence,
+            bool mediaTypeIsDeclared = false) =>
+            new DetectionCandidate(
+                kind,
+                ReaderDetectionConfidence.High,
+                mediaType,
+                new[] { evidence },
+                mediaTypeIsDeclared);
     }
 
     private sealed class HandlerDetectionResolution {
