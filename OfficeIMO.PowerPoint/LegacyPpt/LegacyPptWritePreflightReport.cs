@@ -1,13 +1,19 @@
+using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
+
 namespace OfficeIMO.PowerPoint.LegacyPpt {
     /// <summary>Describes content that the native binary PowerPoint writer cannot encode.</summary>
     public sealed class LegacyPptWriteFinding {
-        internal LegacyPptWriteFinding(string code, string description, int? slideIndex = null,
-            int? shapeIndex = null) {
+        internal LegacyPptWriteFinding(LegacyPptFeature feature, string code, string description,
+            int? slideIndex = null, int? shapeIndex = null) {
+            Feature = feature;
             Code = code;
             Description = description;
             SlideIndex = slideIndex;
             ShapeIndex = shapeIndex;
         }
+
+        /// <summary>Gets the capability-contract feature associated with the loss finding.</summary>
+        public LegacyPptFeature Feature { get; }
 
         /// <summary>Gets a stable finding code.</summary>
         public string Code { get; }

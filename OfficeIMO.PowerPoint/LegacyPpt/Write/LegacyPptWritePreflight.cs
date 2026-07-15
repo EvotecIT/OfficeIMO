@@ -1,6 +1,7 @@
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static class LegacyPptWritePreflight {
@@ -8,34 +9,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             var findings = new List<LegacyPptWriteFinding>();
             if (presentation.GetSections().Count > 0) {
-                findings.Add(new LegacyPptWriteFinding("PPT-WRITE-SECTIONS",
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Sections, "PPT-WRITE-SECTIONS",
                     "Presentation sections are not encoded by the native binary writer."));
             }
             if (presentation.OpenXmlDocument.PresentationPart?.VbaProjectPart != null) {
-                findings.Add(new LegacyPptWriteFinding("PPT-WRITE-VBA",
+                findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "PPT-WRITE-VBA",
                     "VBA projects are not encoded by the native binary writer."));
             }
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
                 if (slide.Hidden) {
-                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-HIDDEN-SLIDE",
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.SlideVisibility, "PPT-WRITE-HIDDEN-SLIDE",
                         "Hidden-slide state is not encoded by the native binary writer.", slideIndex));
                 }
                 if (slide.SlidePart.NotesSlidePart != null && !string.IsNullOrWhiteSpace(slide.Notes.Text)) {
-                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-NOTES",
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.SpeakerNotes, "PPT-WRITE-NOTES",
                         "Speaker notes are not encoded by the native binary writer.", slideIndex));
                 }
                 P.Slide? slideRoot = slide.SlidePart.Slide;
                 if (slide.Transition != SlideTransition.None) {
-                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-TRANSITION",
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Transitions, "PPT-WRITE-TRANSITION",
                         "Slide transitions are not encoded by the native binary writer.", slideIndex));
                 }
                 if (slideRoot?.Timing != null) {
-                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-TIMING",
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Animations, "PPT-WRITE-TIMING",
                         "Animations and media timing are not encoded by the native binary writer.", slideIndex));
                 }
                 if (slideRoot?.CommonSlideData?.Background != null) {
-                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-BACKGROUND",
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
                         "Custom slide backgrounds are not encoded by the native binary writer.", slideIndex));
                 }
                 for (int shapeIndex = 0; shapeIndex < slide.Shapes.Count; shapeIndex++) {
@@ -46,18 +47,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
                             || autoShape.ShapeType == A.ShapeTypeValues.Line);
                     if (!supportedShape) {
-                        findings.Add(new LegacyPptWriteFinding("PPT-WRITE-SHAPE",
+                        findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
                             $"{shape.ShapeContentType} content is outside the native writer's text/rectangle/ellipse/line subset.",
                             slideIndex, shapeIndex));
                         continue;
                     }
                     if (HasUnsupportedVisualStyle(shape)) {
-                        findings.Add(new LegacyPptWriteFinding("PPT-WRITE-SHAPE-STYLE",
+                        findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ShapeStyles, "PPT-WRITE-SHAPE-STYLE",
                             "Fill, outline, transform, effects, hyperlink, visibility, or alternative-text styling is not encoded.",
                             slideIndex, shapeIndex));
                     }
                     if (shape is PowerPointTextBox textBox && HasRichTextFormatting(textBox)) {
-                        findings.Add(new LegacyPptWriteFinding("PPT-WRITE-RICH-TEXT",
+                        findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichText, "PPT-WRITE-RICH-TEXT",
                             "Rich run or paragraph formatting is flattened to plain text.", slideIndex, shapeIndex));
                     }
                 }
@@ -66,11 +67,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             foreach (var diagnostic in presentation.LegacyPptImportDiagnostics) {
                 if (diagnostic.Severity == Diagnostics.LegacyPptDiagnosticSeverity.Warning
                     || diagnostic.Severity == Diagnostics.LegacyPptDiagnosticSeverity.Error) {
-                    findings.Add(new LegacyPptWriteFinding("PPT-WRITE-IMPORT-LOSS",
+                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.UnknownRecordsAndStreams,
+                        "PPT-WRITE-IMPORT-LOSS",
                         $"Imported legacy content was not fully projected: {diagnostic.Code}."));
                 }
             }
             return new LegacyPptWritePreflightReport(findings);
+        }
+
+        private static LegacyPptFeature MapShapeFeature(PowerPointShape shape) {
+            switch (shape.ShapeContentType) {
+                case PowerPointShapeContentType.Picture: return LegacyPptFeature.RasterPictures;
+                case PowerPointShapeContentType.Table: return LegacyPptFeature.Tables;
+                case PowerPointShapeContentType.Chart: return LegacyPptFeature.Charts;
+                case PowerPointShapeContentType.Group: return LegacyPptFeature.Groups;
+                case PowerPointShapeContentType.Media: return LegacyPptFeature.Media;
+                case PowerPointShapeContentType.SmartArt: return LegacyPptFeature.SmartArt;
+                case PowerPointShapeContentType.OleObject: return LegacyPptFeature.EmbeddedOle;
+                case PowerPointShapeContentType.Connector: return LegacyPptFeature.Connectors;
+                case PowerPointShapeContentType.AutoShape: return LegacyPptFeature.AutoShapes;
+                case PowerPointShapeContentType.TextBox: return LegacyPptFeature.RichText;
+                default: return LegacyPptFeature.UnknownRecordsAndStreams;
+            }
         }
 
         private static bool HasUnsupportedVisualStyle(PowerPointShape shape) =>
