@@ -168,6 +168,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Equation_ProjectionsApplyOmmlCharacterDefaultsAndDelimiterSeparators() {
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath>" +
+                "<m:acc><m:e><m:r><m:t>x</m:t></m:r></m:e></m:acc>" +
+                "<m:groupChr><m:e><m:r><m:t>y</m:t></m:r></m:e></m:groupChr>" +
+                "<m:nary><m:sub><m:r><m:t>i</m:t></m:r></m:sub><m:sup><m:r><m:t>n</m:t></m:r></m:sup><m:e><m:r><m:t>z</m:t></m:r></m:e></m:nary>" +
+                "<m:d><m:dPr><m:sepChr m:val=\"|\"/></m:dPr><m:e><m:r><m:t>a</m:t></m:r></m:e><m:e><m:r><m:t>b</m:t></m:r></m:e></m:d>" +
+                "<m:d><m:dPr/><m:e><m:r><m:t>c</m:t></m:r></m:e><m:e><m:r><m:t>d</m:t></m:r></m:e></m:d>" +
+                "<m:d><m:dPr><m:sepChr m:val=\"\"/></m:dPr><m:e><m:r><m:t>e</m:t></m:r></m:e><m:e><m:r><m:t>f</m:t></m:r></m:e></m:d>" +
+                "</m:oMath></m:oMathPara>";
+            using WordDocument document = WordDocument.Create();
+            document.AddEquation(omml);
+
+            WordEquation equation = Assert.Single(document.Equations);
+
+            Assert.Equal("hat(x)underbrace(y)int_(i)^(n)(z)(a|b)(c│d)(ef)", equation.Text);
+            string latex = equation.ToLatex();
+            Assert.Contains("\\hat{x}", latex, StringComparison.Ordinal);
+            Assert.Contains("\\underbrace{y}", latex, StringComparison.Ordinal);
+            Assert.Contains("\\int_{i}^{n} z", latex, StringComparison.Ordinal);
+            Assert.Contains("\\left(a\\middle|b\\right)", latex, StringComparison.Ordinal);
+            Assert.Contains("\\left(c\\middle|d\\right)", latex, StringComparison.Ordinal);
+            Assert.Contains("\\left(ef\\right)", latex, StringComparison.Ordinal);
+
+            string mathMl = equation.ToMathMl();
+            Assert.Contains("<mover accent=\"true\"><mtext>x</mtext><mo>̂</mo></mover>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<munder accentunder=\"true\"><mtext>y</mtext><mo>⏟</mo></munder>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<mo>∫</mo>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<mo>|</mo>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<mo>│</mo>", mathMl, StringComparison.Ordinal);
+
+            string field = equation.ToEquationFieldInstruction();
+            Assert.Contains("\\o(x,̂)", field, StringComparison.Ordinal);
+            Assert.Contains("\\i(i,n,z)", field, StringComparison.Ordinal);
+            Assert.Contains("(a|b)", field, StringComparison.Ordinal);
+            Assert.Contains("(c│d)", field, StringComparison.Ordinal);
+            Assert.Contains("(ef)", field, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Equation_EscapesFunctionParenthesesInsideEqArguments() {
             const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath>" +
                 "<m:f><m:num><m:func><m:fName><m:r><m:t>sin</m:t></m:r></m:fName><m:e><m:r><m:t>x</m:t></m:r></m:e></m:func></m:num>" +
@@ -203,6 +242,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(
                 new[] { paragraphChildren.IndexOf(insertedRun), paragraphChildren.IndexOf(moveToRun) },
                 occurrences.Select(occurrence => occurrence.StartChildIndex));
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Fact]
+        public void EquationOccurrences_DiscoverOmmlAndEqFieldsInsideInlineContentControls() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            var content = new SdtContentRun(
+                new M.OfficeMath(new M.Run(new M.Text("omml"))),
+                new SimpleField(new Run(new Text("simple"))) { Instruction = " EQ x " },
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" EQ \\f(a,b) ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("complex")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+            var contentControl = new SdtRun(
+                new SdtProperties(new SdtId { Val = 2076 }),
+                content);
+            paragraph._paragraph.Append(contentControl);
+            paragraph.AddText(" after");
+
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(document, paragraph._paragraph);
+            int contentControlIndex = paragraph._paragraph.ChildElements.ToList().IndexOf(contentControl);
+
+            Assert.Equal(new[] { "omml", "simple", "complex" }, occurrences.Select(occurrence => occurrence.Equation.Text));
+            Assert.All(occurrences, occurrence => Assert.Equal(contentControlIndex, occurrence.StartChildIndex));
+            Assert.Equal(new[] { "omml", "simple", "complex" }, document.Equations.Select(equation => equation.Text));
             Assert.Empty(document.ValidateDocument());
         }
 

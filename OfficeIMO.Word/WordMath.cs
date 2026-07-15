@@ -126,7 +126,7 @@ namespace OfficeIMO.Word {
 
         private static void AppendAccentText(StringBuilder builder, OpenXmlElement element) {
             string expression = ReadChildText(element, "e");
-            string accent = ReadCharacter(element, "chr").Value;
+            string accent = ReadCharacterOrDefault(element, "chr", "\u0302");
             string functionName = accent switch {
                 "^" => "hat",
                 "\u0302" => "hat",
@@ -153,12 +153,12 @@ namespace OfficeIMO.Word {
             MathCharacter begin = ReadCharacter(element, "begChr");
             MathCharacter end = ReadCharacter(element, "endChr");
             builder.Append(begin.Present ? begin.Value : "(");
-            AppendJoinedChildText(builder, element, "e", ",");
+            AppendJoinedChildText(builder, element, "e", ReadDelimiterSeparator(element));
             builder.Append(end.Present ? end.Value : ")");
         }
 
         private static void AppendGroupCharacterText(StringBuilder builder, OpenXmlElement element) {
-            string character = ReadCharacter(element, "chr").Value;
+            string character = ReadCharacterOrDefault(element, "chr", "\u23df");
             string functionName = character switch {
                 "\u23de" => "overbrace",
                 "\u23df" => "underbrace",
@@ -234,7 +234,7 @@ namespace OfficeIMO.Word {
         private static string ReadNaryOperatorText(OpenXmlElement element) {
             if (element.LocalName == "int") return "int";
             MathCharacter character = ReadCharacter(element, "chr");
-            if (!character.Present || character.Value.Length == 0) return "sum";
+            if (!character.Present) return "int";
             return character.Value switch {
                 "\u2211" => "sum",
                 "\u220F" => "prod",
@@ -242,6 +242,14 @@ namespace OfficeIMO.Word {
                 _ => character.Value
             };
         }
+
+        private static string ReadCharacterOrDefault(OpenXmlElement element, string localName, string defaultValue) {
+            MathCharacter character = ReadCharacter(element, localName);
+            return character.Present ? character.Value : defaultValue;
+        }
+
+        private static string ReadDelimiterSeparator(OpenXmlElement element) =>
+            ReadCharacterOrDefault(element, "sepChr", "\u2502");
 
         private static MathCharacter ReadCharacter(OpenXmlElement element, string localName) {
             OpenXmlElement? propertyContainer = element.ChildElements.FirstOrDefault(child =>
@@ -254,7 +262,7 @@ namespace OfficeIMO.Word {
                     return new MathCharacter(true, attribute.Value ?? string.Empty);
                 }
             }
-            return new MathCharacter(false, string.Empty);
+            return new MathCharacter(true, string.Empty);
         }
 
         private static IEnumerable<OpenXmlElement> FindChildren(OpenXmlElement element, string localName) {

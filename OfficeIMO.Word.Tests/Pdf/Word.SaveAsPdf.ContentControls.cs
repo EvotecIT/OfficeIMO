@@ -6,6 +6,7 @@ using System;
 using System.IO;
 using System.Linq;
 using System.Text;
+using M = DocumentFormat.OpenXml.Math;
 using PdfPigDocument = UglyToad.PdfPig.PdfDocument;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
@@ -32,6 +33,11 @@ public partial class Word {
 
             document.AddParagraph("Native body equation:").AddEquation(bodyOmml);
 
+            WordParagraph controlledEquation = document.AddParagraph("Native controlled equation:");
+            controlledEquation._paragraph.Append(new SdtRun(
+                new SdtProperties(new SdtId { Val = 2076 }),
+                new SdtContentRun(new M.OfficeMath(new M.Run(new M.Text("controlled=5"))))));
+
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Native table equation:";
             table.Rows[0].Cells[0].Paragraphs[0].AddEquation(tableOmml);
@@ -49,6 +55,8 @@ public partial class Word {
         Assert.Contains("Native body equation:", text);
         Assert.Contains("(a)/(b)", NormalizePdfText(text));
         string normalizedText = NormalizePdfText(text);
+        Assert.Contains("Native controlled equation:", normalizedText);
+        Assert.Contains("controlled=5", normalizedText);
         Assert.Contains("Native table equation:", normalizedText);
         Assert.Contains("c=4", normalizedText);
     }

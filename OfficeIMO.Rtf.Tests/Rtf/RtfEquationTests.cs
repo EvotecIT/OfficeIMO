@@ -74,13 +74,21 @@ public sealed class RtfEquationTests {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End })) {
                 Id = "3",
                 Author = "Reviewer"
+            },
+            new MoveToRun(
+                new SimpleField(new Run(new Text("simple field"))) {
+                    Instruction = " EQ \\r(,x) "
+                }) {
+                Id = "4",
+                Author = "Reviewer"
             });
 
         RtfDocument rtf = word.ToRtfDocument();
         RtfField[] fields = Assert.Single(rtf.Paragraphs).Inlines.OfType<RtfField>().ToArray();
 
-        Assert.Equal(new[] { "inserted", "moved", "(a)/(b)" }, fields.Select(field => field.ToPlainText()));
+        Assert.Equal(new[] { "inserted", "moved", "(a)/(b)", "simple field" }, fields.Select(field => field.ToPlainText()));
         Assert.Contains("\\f(a,b)", fields[2].Instruction, StringComparison.Ordinal);
+        Assert.Contains("\\r(,x)", fields[3].Instruction, StringComparison.Ordinal);
         Assert.All(fields, field => Assert.All(field.Result.Inlines.OfType<RtfRun>(), run =>
             Assert.Equal(RtfRevisionKind.Inserted, run.RevisionKind)));
     }

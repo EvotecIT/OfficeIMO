@@ -55,6 +55,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToHtml_ExportsEquationInsideInlineContentControl() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            paragraph._paragraph.Append(new SdtRun(
+                new SdtProperties(new SdtId { Val = 2076 }),
+                new SdtContentRun(new M.OfficeMath(new M.Run(new M.Text("controlled"))))));
+            paragraph.AddText(" after");
+
+            string html = document.ToHtml();
+
+            int before = html.IndexOf("before ", StringComparison.Ordinal);
+            int math = html.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
+            int after = html.IndexOf(" after", StringComparison.Ordinal);
+            Assert.True(before >= 0 && before < math && math < after, html);
+            Assert.Contains("aria-label=\"controlled\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void WordToHtml_ExportsComplexEqFieldsAsMathMlWithoutCachedTextDuplication() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("before ");

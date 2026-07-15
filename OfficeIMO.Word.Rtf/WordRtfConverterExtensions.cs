@@ -259,6 +259,18 @@ public static partial class WordRtfConverterExtensions {
                     previousRun = null;
                     hasContent = true;
                     break;
+                case SimpleField simpleField:
+                    AppendSimpleField(
+                        wordParagraph,
+                        simpleField,
+                        paragraph,
+                        rtfDocument,
+                        revisionAuthorIndexes,
+                        revisionKind,
+                        authorIndex);
+                    previousRun = null;
+                    hasContent = true;
+                    break;
             }
         }
 
@@ -406,12 +418,26 @@ public static partial class WordRtfConverterExtensions {
         destination.RevisionTimestampValue = source.RevisionTimestampValue;
     }
 
-    private static void AppendSimpleField(WordParagraph wordParagraph, SimpleField simpleField, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes) {
+    private static void AppendSimpleField(
+        WordParagraph wordParagraph,
+        SimpleField simpleField,
+        RtfParagraph paragraph,
+        RtfDocument rtfDocument,
+        Dictionary<string, int> revisionAuthorIndexes,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
         string instruction = simpleField.Instruction?.Value ?? string.Empty;
         RtfField field = paragraph.AddField(instruction.Trim());
         RtfRun? previousRun = null;
         foreach (Run childRun in simpleField.Elements<Run>()) {
-            AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun), field.Result, ref previousRun, rtfDocument, revisionAuthorIndexes);
+            AppendWordRun(
+                new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun),
+                field.Result,
+                ref previousRun,
+                rtfDocument,
+                revisionAuthorIndexes,
+                revisionKind,
+                revisionAuthorIndex);
         }
     }
 

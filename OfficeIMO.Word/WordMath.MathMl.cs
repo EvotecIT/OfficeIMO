@@ -67,7 +67,7 @@ namespace OfficeIMO.Word {
                 case "acc":
                     builder.Append("<mover accent=\"true\">");
                     AppendMathMlChild(builder, element, "e");
-                    AppendMathMlOperator(builder, ReadCharacter(element, "chr").Value);
+                    AppendMathMlOperator(builder, ReadCharacterOrDefault(element, "chr", "\u0302"));
                     builder.Append("</mover>");
                     return;
                 case "bar":
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word {
                     AppendDelimiterMathMl(builder, element);
                     return;
                 case "groupChr":
-                    string groupCharacter = ReadCharacter(element, "chr").Value;
+                    string groupCharacter = ReadCharacterOrDefault(element, "chr", "\u23df");
                     bool underGroupCharacter = groupCharacter == "\u23df" || groupCharacter == "\u23b5";
                     builder.Append(underGroupCharacter ? "<munder accentunder=\"true\">" : "<mover accent=\"true\">");
                     AppendMathMlChild(builder, element, "e");
@@ -160,9 +160,10 @@ namespace OfficeIMO.Word {
             builder.Append("<mrow>");
             string beginValue = begin.Present ? begin.Value : "(";
             if (beginValue.Length > 0) AppendMathMlOperator(builder, beginValue, fence: true);
+            string separator = ReadDelimiterSeparator(element);
             bool first = true;
             foreach (OpenXmlElement expression in FindChildren(element, "e")) {
-                if (!first) AppendMathMlOperator(builder, ",");
+                if (!first && separator.Length > 0) AppendMathMlOperator(builder, separator);
                 AppendMathMl(builder, expression);
                 first = false;
             }

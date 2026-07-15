@@ -137,7 +137,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void AppendAccentLatex(StringBuilder builder, OpenXmlElement element) {
-            string accent = ReadCharacter(element, "chr").Value;
+            string accent = ReadCharacterOrDefault(element, "chr", "\u0302");
             string command = accent switch {
                 "^" => "\\hat",
                 "\u0302" => "\\hat",
@@ -160,9 +160,13 @@ namespace OfficeIMO.Word {
             MathCharacter end = ReadCharacter(element, "endChr");
             builder.Append("\\left");
             builder.Append(ToLatexDelimiter(begin.Present ? begin.Value : "("));
+            string separator = ReadDelimiterSeparator(element);
             bool first = true;
             foreach (OpenXmlElement expression in FindChildren(element, "e")) {
-                if (!first) builder.Append(',');
+                if (!first && separator.Length > 0) {
+                    builder.Append("\\middle");
+                    builder.Append(ToLatexDelimiter(separator));
+                }
                 AppendLatex(builder, expression);
                 first = false;
             }
@@ -171,7 +175,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void AppendGroupCharacterLatex(StringBuilder builder, OpenXmlElement element) {
-            string character = ReadCharacter(element, "chr").Value;
+            string character = ReadCharacterOrDefault(element, "chr", "\u23df");
             string command = character switch {
                 "\u23de" => "\\overbrace",
                 "\u23df" => "\\underbrace",
@@ -220,6 +224,7 @@ namespace OfficeIMO.Word {
                 "[" => "[",
                 "]" => "]",
                 "|" => "|",
+                "\u2502" => "|",
                 "\u2016" => "\\|",
                 _ => EscapeLatex(value)
             };

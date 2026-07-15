@@ -126,9 +126,97 @@ namespace OfficeIMO.Word {
                 occurrences.Add(new WordEquationOccurrence(equation, startIndex, endIndex));
             }
 
+            foreach (SdtRun contentControl in EnumerateVisibleInlineContentControls(paragraph)) {
+                foreach (WordEquation equation in GetContentControlEquations(document, paragraph, contentControl)) {
+                    if (equation.TryGetChildRange(children, out int startIndex, out int endIndex)) {
+                        occurrences.Add(new WordEquationOccurrence(equation, startIndex, endIndex));
+                    }
+                }
+            }
+
             return occurrences
                 .OrderBy(occurrence => occurrence.StartChildIndex)
                 .ToList();
+        }
+
+        private static IEnumerable<SdtRun> EnumerateVisibleInlineContentControls(OpenXmlElement container) {
+            foreach (OpenXmlElement child in container.ChildElements) {
+                if (child is DeletedRun || child is MoveFromRun) continue;
+                if (child is SdtRun contentControl) {
+                    yield return contentControl;
+                    continue;
+                }
+
+                foreach (SdtRun nested in EnumerateVisibleInlineContentControls(child)) {
+                    yield return nested;
+                }
+            }
+        }
+
+        private static IEnumerable<WordEquation> GetContentControlEquations(
+            WordDocument document,
+            Paragraph paragraph,
+            SdtRun contentControl) {
+            var candidates = new List<(int Order, WordEquation Equation)>();
+            var complexFields = new List<(int Order, List<Run> Runs)>();
+            int order = 0;
+
+            foreach (OpenXmlElement element in EnumerateVisibleInlineContent(contentControl)) {
+                int elementOrder = order++;
+                if (element is DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
+                    candidates.Add((elementOrder, new WordEquation(document, paragraph, mathParagraph)));
+                    continue;
+                }
+
+                if (element is DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
+                    candidates.Add((elementOrder, new WordEquation(document, paragraph, officeMath)));
+                    continue;
+                }
+
+                if (element is SimpleField simpleField) {
+                    var field = new WordField(document, paragraph, simpleField, null);
+                    if (field.FieldType == WordFieldType.EQ) {
+                        candidates.Add((elementOrder, new WordEquation(document, paragraph, simpleField)));
+                    }
+                    continue;
+                }
+
+                if (element is not Run run) continue;
+
+                foreach ((int _, List<Run> runs) in complexFields) runs.Add(run);
+                FieldChar? fieldCharacter = run.Elements<FieldChar>().FirstOrDefault();
+                if (fieldCharacter?.FieldCharType?.Value == FieldCharValues.Begin) {
+                    complexFields.Add((elementOrder, new List<Run> { run }));
+                } else if (fieldCharacter?.FieldCharType?.Value == FieldCharValues.End && complexFields.Count > 0) {
+                    (int fieldOrder, List<Run> fieldRuns) = complexFields[complexFields.Count - 1];
+                    complexFields.RemoveAt(complexFields.Count - 1);
+                    var field = new WordField(document, paragraph, null, fieldRuns);
+                    if (field.FieldType == WordFieldType.EQ) {
+                        candidates.Add((fieldOrder, new WordEquation(document, paragraph, fieldRuns)));
+                    }
+                }
+            }
+
+            return candidates
+                .OrderBy(candidate => candidate.Order)
+                .Select(candidate => candidate.Equation);
+        }
+
+        private static IEnumerable<OpenXmlElement> EnumerateVisibleInlineContent(OpenXmlElement container) {
+            foreach (OpenXmlElement child in container.ChildElements) {
+                if (child is DeletedRun || child is MoveFromRun) continue;
+                if (child is Run ||
+                    child is SimpleField ||
+                    child is DocumentFormat.OpenXml.Math.OfficeMath ||
+                    child is DocumentFormat.OpenXml.Math.Paragraph) {
+                    yield return child;
+                    continue;
+                }
+
+                foreach (OpenXmlElement nested in EnumerateVisibleInlineContent(child)) {
+                    yield return nested;
+                }
+            }
         }
 
         private bool TryGetChildRange(IReadOnlyList<OpenXmlElement> children, out int startIndex, out int endIndex) {

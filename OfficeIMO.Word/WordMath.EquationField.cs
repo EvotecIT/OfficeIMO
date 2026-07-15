@@ -63,7 +63,7 @@ namespace OfficeIMO.Word {
                     builder.Append("\\o(");
                     AppendEquationFieldChild(builder, element, "e");
                     builder.Append(',');
-                    builder.Append(EscapeEquationFieldLiteral(ReadCharacter(element, "chr").Value));
+                    builder.Append(EscapeEquationFieldLiteral(ReadCharacterOrDefault(element, "chr", "\u0302")));
                     builder.Append(')');
                     return;
                 case "bar":
@@ -136,9 +136,10 @@ namespace OfficeIMO.Word {
             MathCharacter end = ReadCharacter(element, "endChr");
             string beginValue = begin.Present ? begin.Value : "(";
             string endValue = end.Present ? end.Value : ")";
+            string separator = EscapeEquationFieldLiteral(ReadDelimiterSeparator(element));
             if (beginValue.Length == 0 || endValue.Length == 0) {
                 builder.Append(EscapeEquationFieldLiteral(beginValue));
-                AppendJoinedEquationFieldChildren(builder, element, "e", "\\,");
+                AppendJoinedEquationFieldChildren(builder, element, "e", separator);
                 builder.Append(EscapeEquationFieldLiteral(endValue));
                 return;
             }
@@ -147,7 +148,7 @@ namespace OfficeIMO.Word {
             builder.Append("\\rc");
             builder.Append(EscapeEquationFieldDelimiter(endValue));
             builder.Append('(');
-            AppendJoinedEquationFieldChildren(builder, element, "e", "\\,");
+            AppendJoinedEquationFieldChildren(builder, element, "e", separator);
             builder.Append(')');
         }
 

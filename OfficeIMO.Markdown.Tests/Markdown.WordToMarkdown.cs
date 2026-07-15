@@ -376,6 +376,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToMarkdown_ProjectsEquationInsideInlineContentControl() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("Formula:");
+            paragraph._paragraph.Append(new SdtRun(
+                new SdtProperties(new SdtId { Val = 2076 }),
+                new SdtContentRun(new M.OfficeMath(new M.Run(new M.Text("controlled"))))));
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("Formula:", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "controlled" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
         public void WordToMarkdown_ExportsComplexEqFieldOnceAsMathFence() {
             using var doc = WordDocument.Create();
             WordParagraph paragraph = doc.AddParagraph("before ");
