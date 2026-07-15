@@ -25,6 +25,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordSlideListWithText = 0x0FF0;
         private const ushort OfficeArtSpContainer = 0xF004;
         private const ushort OfficeArtSpgrContainer = 0xF003;
+        private const ushort OfficeArtSolverContainer = 0xF005;
+        private const ushort OfficeArtFConnectorRule = 0xF012;
         private const ushort OfficeArtBStoreContainer = 0xF001;
         private const ushort OfficeArtFbse = 0xF007;
         private const ushort OfficeArtFspgr = 0xF009;
@@ -174,7 +176,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 ? _masters.FirstOrDefault(master => master.MasterId == slide.MasterId)?.ColorScheme
                 : slide.ColorScheme;
             ParseShapes(slideRecord, slide.AddShape, "slide", options,
-                effectiveScheme ?? slide.ColorScheme);
+                effectiveScheme ?? slide.ColorScheme, slide.AddConnectorRule);
         }
 
         private void ParseMasters(LegacyPptRecord document, byte[] documentStream,
@@ -225,13 +227,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     ? _masters.FirstOrDefault(candidate => candidate.MasterId == master.ParentMasterId)?.ColorScheme
                     : master.ColorScheme;
                 ParseShapes(masterRecord, master.AddShape, isMainMaster ? "main master" : "title master",
-                    options, effectiveScheme ?? master.ColorScheme);
+                    options, effectiveScheme ?? master.ColorScheme, master.AddConnectorRule);
                 _masters.Add(master);
             }
         }
 
         private void ParseShapes(LegacyPptRecord ownerRecord, Action<LegacyPptShape> addShape,
-            string ownerDescription, LegacyPptImportOptions options, LegacyPptColorScheme? colorScheme) {
+            string ownerDescription, LegacyPptImportOptions options, LegacyPptColorScheme? colorScheme,
+            Action<LegacyPptConnectorRule>? addConnectorRule = null) {
             LegacyPptRecord? drawing = ownerRecord.Children.FirstOrDefault(record => record.Type == RecordDrawing);
             if (drawing == null) return;
 
@@ -247,6 +250,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 };
                 if (shape != null) addShape(shape);
             }
+            if (addConnectorRule != null) {
+                ParseConnectorRules(drawing, addConnectorRule, options);
+            }
+        }
+
+        private void ParseConnectorRules(LegacyPptRecord drawing,
+            Action<LegacyPptConnectorRule> addConnectorRule, LegacyPptImportOptions options) {
+            foreach (LegacyPptRecord solver in drawing.DescendantsAndSelf().Where(record =>
+                         record.Type == OfficeArtSolverContainer)) {
+                foreach (LegacyPptRecord rule in solver.Children.Where(record =>
+                             record.Type == OfficeArtFConnectorRule)) {
+                    if (rule.PayloadLength < 24) {
+                        if (options.ReportUnsupportedContent) {
+                            AddDiagnostic("PPT-CONNECTOR-RULE-TRUNCATED",
+                                LegacyPptDiagnosticSeverity.Warning,
+                                "An OfficeArt connector rule is truncated and was skipped.", rule.Offset);
+                        }
+                        continue;
+                    }
+                    addConnectorRule(new LegacyPptConnectorRule(
+                        rule.ReadUInt32(0), rule.ReadUInt32(4), rule.ReadUInt32(8),
+                        rule.ReadUInt32(12), rule.ReadUInt32(16), rule.ReadUInt32(20)));
+                }
+            }
         }
 
         private LegacyPptShape? ParseShapeContainer(LegacyPptRecord shapeContainer,
@@ -258,6 +285,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
             ushort shapeType = fsp.Instance;
             uint shapeId = fsp.ReadUInt32(0);
+            uint shapeFlags = fsp.ReadUInt32(4);
             LegacyPptBounds bounds;
             try {
                 bounds = ReadBounds(anchor);
@@ -271,11 +299,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 record.Type == OfficeArtClientTextbox);
             string text = textbox == null ? string.Empty : ReadText(textbox);
             LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
-            LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0);
+            LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,
+                (shapeFlags & (1U << 8)) != 0);
             LegacyPptRecord? fopt = shapeContainer.Children.FirstOrDefault(record =>
                 record.Type == OfficeArtFopt);
             OfficeArtShapeStyle style = ReadShapeStyle(fopt);
-            OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(fsp.ReadUInt32(4),
+            OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(shapeFlags,
                 style.Properties);
             int? pictureStoreIndex = ReadPictureStoreIndex(style);
             OfficeArtBlipStoreEntry? picture = ResolvePicture(pictureStoreIndex);
@@ -521,9 +550,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 : LegacyPptPlaceholderKind.None;
         }
 
-        private static LegacyPptShapeKind ClassifyShape(ushort shapeType, bool hasText) {
+        private static LegacyPptShapeKind ClassifyShape(ushort shapeType, bool hasText,
+            bool isConnector = false) {
             if (hasText || shapeType == 202) return LegacyPptShapeKind.TextBox;
             if (shapeType == 75) return LegacyPptShapeKind.Picture;
+            if (isConnector) return LegacyPptShapeKind.Connector;
             if (shapeType == 1) return LegacyPptShapeKind.Rectangle;
             if (shapeType == 3) return LegacyPptShapeKind.Ellipse;
             if (shapeType == 20) return LegacyPptShapeKind.Line;

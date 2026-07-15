@@ -24,6 +24,13 @@ and vertical mirroring, plus a nested group. The fixture exercises OfficeArt fix
 FSP flip flags, exact no-op saves, and loss blocking for unsupported transform edits. Its SHA-256 digest is
 `eef8191b166d1a2eb4714bddac250390075eb16122c7ecbce6dd285ef707d2e2`.
 
+`ConnectedPowerPoint.ppt` was generated from a one-slide PPTX built with `python-pptx`, with an
+Open XML connector explicitly attached between a rounded rectangle and a diamond, then converted
+with LibreOffice. It exercises OfficeArt connector solver rules, start/end shape identifiers,
+connection-site indexes, native DrawingML attachment projection, and exact no-op saves. Its
+SHA-256 digest is
+`9ec3ea4c6f7a0d6fca06a00a269cbe15b66ded0f4a124e9e5f029c75e3de3ef8`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

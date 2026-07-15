@@ -74,9 +74,14 @@ namespace OfficeIMO.PowerPoint {
                     : projected.AddSlide();
                 slide.Hidden = legacySlide.Hidden;
                 ProjectLegacySlideDesign(slide, legacySlide);
+                var projectedShapeIds = new Dictionary<uint, uint>();
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
-                    ProjectLegacyShape(slide, shape);
+                    OpenXmlElement? projectedShape = ProjectLegacyShape(slide, shape);
+                    if (projectedShape != null) {
+                        RegisterLegacyShapeIds(shape, projectedShape, projectedShapeIds);
+                    }
                 }
+                ProjectLegacyConnectorRules(slide, legacySlide.ConnectorRules, projectedShapeIds);
                 if (!string.IsNullOrWhiteSpace(legacySlide.NotesText)) {
                     slide.Notes.Text = legacySlide.NotesText;
                 }
@@ -89,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
             return presentation;
         }
 
-        private static void ProjectLegacyShape(PowerPointSlide slide, LegacyPptShape shape) {
+        private static OpenXmlElement? ProjectLegacyShape(PowerPointSlide slide, LegacyPptShape shape) {
             long left = ToEmus(shape.Bounds.Left);
             long top = ToEmus(shape.Bounds.Top);
             long width = Math.Max(1L, ToEmus(shape.Bounds.Width));
@@ -151,7 +156,7 @@ namespace OfficeIMO.PowerPoint {
                     OpenXmlElement? group = CreateLegacyOpenXmlShape(slide.SlidePart, shape,
                         ref nextShapeId);
                     if (group != null) tree.Append(group);
-                    break;
+                    return group;
             }
             DocumentFormat.OpenXml.Presentation.ShapeProperties? projectedProperties =
                 projectedShape?.Element switch {
@@ -167,7 +172,85 @@ namespace OfficeIMO.PowerPoint {
                 projectedProperties.Transform2D ??= new A.Transform2D();
                 ApplyLegacyShapeTransform(projectedProperties.Transform2D, shape);
             }
+            return projectedShape?.Element;
         }
+
+        private static void RegisterLegacyShapeIds(LegacyPptShape source, OpenXmlElement projected,
+            IDictionary<uint, uint> projectedShapeIds) {
+            uint? projectedId = projected switch {
+                DocumentFormat.OpenXml.Presentation.Shape item => item.NonVisualShapeProperties?
+                    .NonVisualDrawingProperties?.Id?.Value,
+                DocumentFormat.OpenXml.Presentation.ConnectionShape item => item.NonVisualConnectionShapeProperties?
+                    .NonVisualDrawingProperties?.Id?.Value,
+                DocumentFormat.OpenXml.Presentation.Picture item => item.NonVisualPictureProperties?
+                    .NonVisualDrawingProperties?.Id?.Value,
+                DocumentFormat.OpenXml.Presentation.GroupShape item => item.NonVisualGroupShapeProperties?
+                    .NonVisualDrawingProperties?.Id?.Value,
+                _ => null
+            };
+            if (projectedId.HasValue) projectedShapeIds[source.ShapeId] = projectedId.Value;
+            if (source.Kind != LegacyPptShapeKind.Group
+                || projected is not DocumentFormat.OpenXml.Presentation.GroupShape group) return;
+
+            LegacyPptShape[] sourceChildren = source.Children
+                .Where(child => child.Kind != LegacyPptShapeKind.Unsupported)
+                .ToArray();
+            OpenXmlElement[] projectedChildren = group.ChildElements
+                .Where(IsLegacyDrawingElement)
+                .ToArray();
+            int count = Math.Min(sourceChildren.Length, projectedChildren.Length);
+            for (int index = 0; index < count; index++) {
+                RegisterLegacyShapeIds(sourceChildren[index], projectedChildren[index], projectedShapeIds);
+            }
+        }
+
+        private static void ProjectLegacyConnectorRules(PowerPointSlide slide,
+            IReadOnlyList<LegacyPptConnectorRule> rules,
+            IReadOnlyDictionary<uint, uint> projectedShapeIds) {
+            if (rules.Count == 0) return;
+            ShapeTree? tree = slide.SlidePart.Slide?.CommonSlideData?.ShapeTree;
+            if (tree == null) return;
+            ProjectLegacyConnectorRules(tree, rules, projectedShapeIds);
+        }
+
+        private static void ProjectLegacyConnectorRules(ShapeTree tree,
+            IReadOnlyList<LegacyPptConnectorRule> rules,
+            IReadOnlyDictionary<uint, uint> projectedShapeIds) {
+            foreach (LegacyPptConnectorRule rule in rules) {
+                if (!projectedShapeIds.TryGetValue(rule.ConnectorShapeId, out uint connectorId)) continue;
+                DocumentFormat.OpenXml.Presentation.ConnectionShape? connector = tree
+                    .Descendants<DocumentFormat.OpenXml.Presentation.ConnectionShape>()
+                    .FirstOrDefault(item => item.NonVisualConnectionShapeProperties?
+                        .NonVisualDrawingProperties?.Id?.Value == connectorId);
+                if (connector == null) continue;
+                NonVisualConnectorShapeDrawingProperties drawingProperties =
+                    connector.NonVisualConnectionShapeProperties?.NonVisualConnectorShapeDrawingProperties
+                    ?? new NonVisualConnectorShapeDrawingProperties();
+                connector.NonVisualConnectionShapeProperties ??= new NonVisualConnectionShapeProperties();
+                connector.NonVisualConnectionShapeProperties.NonVisualConnectorShapeDrawingProperties =
+                    drawingProperties;
+                drawingProperties.RemoveAllChildren<A.StartConnection>();
+                drawingProperties.RemoveAllChildren<A.EndConnection>();
+                if (projectedShapeIds.TryGetValue(rule.StartShapeId, out uint startShapeId)) {
+                    drawingProperties.Append(new A.StartConnection {
+                        Id = startShapeId,
+                        Index = rule.StartConnectionSiteIndex
+                    });
+                }
+                if (projectedShapeIds.TryGetValue(rule.EndShapeId, out uint endShapeId)) {
+                    drawingProperties.Append(new A.EndConnection {
+                        Id = endShapeId,
+                        Index = rule.EndConnectionSiteIndex
+                    });
+                }
+            }
+        }
+
+        private static bool IsLegacyDrawingElement(OpenXmlElement element) =>
+            element is DocumentFormat.OpenXml.Presentation.Shape
+                or DocumentFormat.OpenXml.Presentation.ConnectionShape
+                or DocumentFormat.OpenXml.Presentation.Picture
+                or DocumentFormat.OpenXml.Presentation.GroupShape;
 
         private static ImagePartType GetLegacyPicturePartType(string contentType) => contentType switch {
             "image/png" => ImagePartType.Png,

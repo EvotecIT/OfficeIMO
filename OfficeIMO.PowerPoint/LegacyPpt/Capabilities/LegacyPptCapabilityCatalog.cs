@@ -44,7 +44,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                 Planned(LegacyPptFeature.AutoShapes, "Drawing", "OfficeArt AutoShape geometry.",
                     "OfficeArt preset geometry with a DrawingML equivalent is projected as an editable native shape, including arrows, callouts, flowcharts, ribbons, stars, and action buttons. Legacy-only geometries use explicit approximations. Adjustment values, custom geometry, text warps, and fresh binary authoring remain planned."),
                 Planned(LegacyPptFeature.Connectors, "Drawing", "Connector shapes and connection sites.",
-                    "Straight, bent, and curved OfficeArt connectors are projected as native editable connection shapes; imported position and size edits round-trip. Connection-site relationships, solver rules, and fresh binary authoring remain planned."),
+                    "Straight, bent, and curved OfficeArt connectors are projected as native editable connection shapes. Solver rules preserve native start/end shape attachments and connection-site indexes, and imported position and size edits round-trip. Editing attachment rules and fresh binary authoring remain planned."),
                 Planned(LegacyPptFeature.Groups, "Drawing", "Nested drawing groups and child coordinate systems.",
                     "Nested OfficeArt group hierarchies and child coordinate systems are projected as native editable Open XML groups. Imported outer group geometry edits round-trip; child edits, reparenting, and fresh binary group authoring remain planned."),
                 Planned(LegacyPptFeature.ShapeTransforms, "Drawing", "Position, size, rotation, flip, and z-order.",

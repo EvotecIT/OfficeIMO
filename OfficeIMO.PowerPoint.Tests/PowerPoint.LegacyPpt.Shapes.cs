@@ -15,6 +15,9 @@ namespace OfficeIMO.Tests {
         private static string TransformFixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "TransformPowerPoint.ppt");
 
+        private static string ConnectedFixturePath => Path.Combine(AppContext.BaseDirectory,
+            "Documents", "LegacyPptCorpus", "ConnectedPowerPoint.ppt");
+
         public static IEnumerable<object[]> RepresentativeOfficeArtPresets => new[] {
             new object[] { (ushort)4, A.ShapeTypeValues.Diamond },
             new object[] { (ushort)9, A.ShapeTypeValues.Hexagon },
@@ -246,6 +249,65 @@ namespace OfficeIMO.Tests {
                 item.Text == "Rotate 30");
 
             shape.Rotation = 42D;
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
+        public void NeutralReader_DecodesConnectorSolverRuleAndConnectionSites() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(ConnectedFixturePath);
+
+            LegacyPptSlide slide = Assert.Single(legacy.Slides);
+            LegacyPptShape start = slide.Shapes.Single(shape => shape.Text == "Start");
+            LegacyPptShape end = slide.Shapes.Single(shape => shape.Text == "End");
+            LegacyPptShape connector = Assert.Single(slide.Shapes,
+                shape => shape.Kind == LegacyPptShapeKind.Connector);
+            LegacyPptConnectorRule rule = Assert.Single(slide.ConnectorRules);
+            Assert.Equal(start.ShapeId, rule.StartShapeId);
+            Assert.Equal(end.ShapeId, rule.EndShapeId);
+            Assert.Equal(connector.ShapeId, rule.ConnectorShapeId);
+            Assert.Equal(3U, rule.StartConnectionSiteIndex);
+            Assert.Equal(1U, rule.EndConnectionSiteIndex);
+        }
+
+        [Fact]
+        public void NormalLoad_ProjectsNativeConnectorAttachmentsAndPreservesBinaryExactly() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(ConnectedFixturePath);
+
+            PowerPointSlide slide = Assert.Single(presentation.Slides);
+            PowerPointTextBox start = slide.TextBoxes.Single(shape => shape.Text == "Start");
+            PowerPointTextBox end = slide.TextBoxes.Single(shape => shape.Text == "End");
+            PowerPointConnectionShape connector = Assert.Single(
+                slide.Shapes.OfType<PowerPointConnectionShape>());
+            P.ConnectionShape element = Assert.IsType<P.ConnectionShape>(connector.Element);
+            A.StartConnection startConnection = Assert.IsType<A.StartConnection>(element
+                .NonVisualConnectionShapeProperties!.NonVisualConnectorShapeDrawingProperties!
+                .GetFirstChild<A.StartConnection>());
+            A.EndConnection endConnection = Assert.IsType<A.EndConnection>(element
+                .NonVisualConnectionShapeProperties.NonVisualConnectorShapeDrawingProperties!
+                .GetFirstChild<A.EndConnection>());
+            Assert.Equal(start.Id, startConnection.Id!.Value);
+            Assert.Equal(end.Id, endConnection.Id!.Value);
+            Assert.Equal(3U, startConnection.Index!.Value);
+            Assert.Equal(1U, endConnection.Index!.Value);
+            Assert.Empty(presentation.ValidateDocument());
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.Equal(File.ReadAllBytes(ConnectedFixturePath),
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedConnectorAttachmentEdit_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(ConnectedFixturePath);
+            PowerPointConnectionShape connector = Assert.Single(presentation.Slides[0].Shapes
+                .OfType<PowerPointConnectionShape>());
+            P.ConnectionShape element = Assert.IsType<P.ConnectionShape>(connector.Element);
+            A.StartConnection start = element.NonVisualConnectionShapeProperties!
+                .NonVisualConnectorShapeDrawingProperties!.GetFirstChild<A.StartConnection>()!;
+
+            start.Index = 0U;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
             Assert.False(preflight.CanWrite);

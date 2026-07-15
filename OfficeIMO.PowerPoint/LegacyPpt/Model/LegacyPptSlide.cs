@@ -2,6 +2,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Represents one presentation slide decoded from a binary PowerPoint file.</summary>
     public sealed class LegacyPptSlide {
         private readonly List<LegacyPptShape> _shapes = new();
+        private readonly List<LegacyPptConnectorRule> _connectorRules = new();
 
         internal LegacyPptSlide(uint slideId, uint persistId) {
             SlideId = slideId;
@@ -41,9 +42,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the projected shapes in drawing order.</summary>
         public IReadOnlyList<LegacyPptShape> Shapes => _shapes;
 
+        /// <summary>Gets OfficeArt connector attachment rules in solver order.</summary>
+        public IReadOnlyList<LegacyPptConnectorRule> ConnectorRules => _connectorRules;
+
         /// <summary>Gets speaker notes flattened to plain text.</summary>
         public string NotesText { get; internal set; } = string.Empty;
 
         internal void AddShape(LegacyPptShape shape) => _shapes.Add(shape);
+
+        internal void AddConnectorRule(LegacyPptConnectorRule rule) => _connectorRules.Add(rule);
     }
 }

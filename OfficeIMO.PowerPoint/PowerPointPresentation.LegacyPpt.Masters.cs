@@ -70,7 +70,8 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyLegacyMaster(SlideMasterPart masterPart, LegacyPptMaster master) {
             SlideMaster slideMaster = masterPart.SlideMaster
                 ?? throw new InvalidDataException("The projected PowerPoint package has no slide master.");
-            slideMaster.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(masterPart, master.Shapes)) {
+            slideMaster.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(masterPart, master.Shapes,
+                master.ConnectorRules)) {
                 Name = GetLegacyMasterName(master)
             };
             if (master.ColorScheme != null) {
@@ -89,7 +90,7 @@ namespace OfficeIMO.PowerPoint {
             string relationshipId = GetNextRelationshipId(masterPart);
             SlideLayoutPart layoutPart = masterPart.AddNewPart<SlideLayoutPart>(relationshipId);
             layoutPart.SlideLayout = CreateLegacyLayout(layoutPart, GetLegacyMasterName(titleMaster),
-                SlideLayoutValues.Title, titleMaster.Shapes);
+                SlideLayoutValues.Title, titleMaster.Shapes, titleMaster.ConnectorRules);
             layoutPart.AddPart(masterPart);
             if (!titleMaster.FollowsMasterObjects && layoutPart.SlideLayout.CommonSlideData != null) {
                 SetShowsMasterShapes(layoutPart.SlideLayout.CommonSlideData, false);
@@ -191,12 +192,14 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static SlideLayout CreateLegacyLayout(OpenXmlPart ownerPart, string name, SlideLayoutValues type,
-            IReadOnlyList<LegacyPptShape> shapes) => new(
-                new CommonSlideData(CreateLegacyShapeTree(ownerPart, shapes)) { Name = name },
+            IReadOnlyList<LegacyPptShape> shapes,
+            IReadOnlyList<LegacyPptConnectorRule>? connectorRules = null) => new(
+                new CommonSlideData(CreateLegacyShapeTree(ownerPart, shapes, connectorRules)) { Name = name },
                 new ColorMapOverride(new A.MasterColorMapping())) { Type = type };
 
         private static ShapeTree CreateLegacyShapeTree(OpenXmlPart? ownerPart = null,
-            IReadOnlyList<LegacyPptShape>? shapes = null) {
+            IReadOnlyList<LegacyPptShape>? shapes = null,
+            IReadOnlyList<LegacyPptConnectorRule>? connectorRules = null) {
             var tree = new ShapeTree(
                 new NonVisualGroupShapeProperties(
                     new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
@@ -209,10 +212,15 @@ namespace OfficeIMO.PowerPoint {
             }
 
             uint nextShapeId = 2U;
+            var projectedShapeIds = new Dictionary<uint, uint>();
             foreach (LegacyPptShape source in shapes) {
                 OpenXmlElement? shape = CreateLegacyOpenXmlShape(ownerPart, source, ref nextShapeId);
                 if (shape == null) continue;
                 tree.Append(shape);
+                RegisterLegacyShapeIds(source, shape, projectedShapeIds);
+            }
+            if (connectorRules != null) {
+                ProjectLegacyConnectorRules(tree, connectorRules, projectedShapeIds);
             }
             return tree;
         }
