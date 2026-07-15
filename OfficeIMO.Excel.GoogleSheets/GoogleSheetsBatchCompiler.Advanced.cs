@@ -203,6 +203,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         data.AddCell(new GoogleSheetsCellData { RowIndex = startRow + row + 1, ColumnIndex = seriesIndex + 1, Value = GoogleSheetsCellValue.Number(snapshot.Data.Series[seriesIndex].Values[row]) });
                     }
                 }
+                ResizeChartDataSheet(batch, chartDataSheetName, data);
 
                 batch.Add(new GoogleSheetsAddChartRequest {
                     SheetName = worksheet.Name,
@@ -258,10 +259,27 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (existing != null) return existing;
 
             int index = batch.Requests.OfType<GoogleSheetsAddSheetRequest>().Select(request => request.SheetIndex).DefaultIfEmpty(-1).Max() + 1;
-            batch.Add(new GoogleSheetsAddSheetRequest { SheetName = chartDataSheetName, SheetIndex = index, Hidden = true, HideGridlines = true });
+            batch.Add(new GoogleSheetsAddSheetRequest {
+                SheetName = chartDataSheetName,
+                SheetIndex = index,
+                Hidden = true,
+                HideGridlines = true,
+                RowCount = DefaultGoogleSheetsRowCount,
+                ColumnCount = DefaultGoogleSheetsColumnCount,
+            });
             var created = new GoogleSheetsUpdateCellsRequest { SheetName = chartDataSheetName };
             batch.Add(created);
             return created;
+        }
+
+        private static void ResizeChartDataSheet(
+            GoogleSheetsBatch batch,
+            string chartDataSheetName,
+            GoogleSheetsUpdateCellsRequest data) {
+            GoogleSheetsAddSheetRequest sheet = batch.Requests.OfType<GoogleSheetsAddSheetRequest>()
+                .Single(request => string.Equals(request.SheetName, chartDataSheetName, StringComparison.OrdinalIgnoreCase));
+            sheet.RowCount = Math.Max(sheet.RowCount, data.Cells.Max(cell => cell.RowIndex) + 1);
+            sheet.ColumnCount = Math.Max(sheet.ColumnCount, data.Cells.Max(cell => cell.ColumnIndex) + 1);
         }
 
         private static string BuildUniqueChartDataSheetName(IEnumerable<string> reservedSheetNames) {
@@ -354,7 +372,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         private static string MapAggregate(DataConsolidateFunctionValues function) {
             if (function == DataConsolidateFunctionValues.Average) return "AVERAGE";
-            if (function == DataConsolidateFunctionValues.Count || function == DataConsolidateFunctionValues.CountNumbers) return "COUNTA";
+            if (function == DataConsolidateFunctionValues.Count) return "COUNTA";
+            if (function == DataConsolidateFunctionValues.CountNumbers) return "COUNT";
             if (function == DataConsolidateFunctionValues.Maximum) return "MAX";
             if (function == DataConsolidateFunctionValues.Minimum) return "MIN";
             if (function == DataConsolidateFunctionValues.Product) return "PRODUCT";

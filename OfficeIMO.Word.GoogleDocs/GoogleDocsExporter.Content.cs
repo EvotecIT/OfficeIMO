@@ -99,6 +99,15 @@ namespace OfficeIMO.Word.GoogleDocs {
                         cancellationToken).ConfigureAwait(false);
                 }
 
+                if (tablePayload.Requests.Count > 0) {
+                    documentState = await GetDocumentAsync(
+                        transport,
+                        accessToken,
+                        documentId,
+                        batch,
+                        cancellationToken).ConfigureAwait(false);
+                }
+
                 var mergePayload = GoogleDocsApiPayloadBuilder.BuildTableMergeBatchUpdatePayload(batch, documentState);
                 if (mergePayload.Requests.Count > 0) {
                     await SendBatchUpdateAsync(transport, accessToken, documentId, batch, mergePayload, cancellationToken).ConfigureAwait(false);

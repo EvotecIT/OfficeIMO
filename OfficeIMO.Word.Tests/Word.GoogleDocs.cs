@@ -1258,7 +1258,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-table-image", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.Equal(3, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -2167,7 +2167,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-table-footnote", result.DocumentId);
-                Assert.Equal(6, recordedRequests.Count);
+                Assert.Equal(7, recordedRequests.Count);
                 Assert.Equal(4, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -2226,13 +2226,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_ReplaysMergedTableCells() {
+        public async Task Test_GoogleDocsExporter_RefreshesTableStateBeforeReplayingMergedCells() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterMergedTable.docx");
 
             try {
-                using var document = BuildGoogleDocsMergedTableDocument(filePath);
+                using var document = BuildGoogleDocsShiftedMergedTableDocument(filePath);
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body, string? Authorization)>();
                 int batchUpdateCount = 0;
+                int documentReadCount = 0;
 
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
                     string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -2248,7 +2249,11 @@ namespace OfficeIMO.Tests {
                     }
 
                     if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-merge-table?includeTabsContent=true") {
-                        return CreateJsonResponse(CreateBodyTableDocumentStateJson("doc-merge-table", "Merged Table Export"));
+                        documentReadCount++;
+                        return CreateJsonResponse(CreateTwoBodyTableDocumentStateJson(
+                            "doc-merge-table",
+                            "Merged Table Export",
+                            documentReadCount == 1 ? 20 : 35));
                     }
 
                     return new HttpResponseMessage(HttpStatusCode.NotFound) {
@@ -2267,8 +2272,9 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-merge-table", result.DocumentId);
-                Assert.Equal(6, recordedRequests.Count);
+                Assert.Equal(7, recordedRequests.Count);
                 Assert.Equal(4, batchUpdateCount);
+                Assert.Equal(2, documentReadCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var mergeBatchRequest = recordedRequests.Single(request =>
@@ -2278,11 +2284,33 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("\"mergeTableCells\"", mergeBatchRequest.Body!);
                 Assert.Contains("\"rowSpan\":1", mergeBatchRequest.Body!);
                 Assert.Contains("\"columnSpan\":2", mergeBatchRequest.Body!);
+                using (var mergeJson = JsonDocument.Parse(mergeBatchRequest.Body!)) {
+                    JsonElement merge = mergeJson.RootElement.GetProperty("requests").EnumerateArray()
+                        .Single(request => request.TryGetProperty("mergeTableCells", out _))
+                        .GetProperty("mergeTableCells");
+                    Assert.Equal(
+                        35,
+                        merge.GetProperty("tableRange")
+                            .GetProperty("tableCellLocation")
+                            .GetProperty("tableStartLocation")
+                            .GetProperty("index")
+                            .GetInt32());
+                }
                 var tableStyleBatchRequest = recordedRequests.Single(request =>
                     request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-merge-table:batchUpdate"
                     && request.Body != null
                     && request.Body.Contains("\"updateTableColumnProperties\"", StringComparison.Ordinal));
                 Assert.Contains("\"widthType\":\"FIXED_WIDTH\"", tableStyleBatchRequest.Body!);
+                using (var styleJson = JsonDocument.Parse(tableStyleBatchRequest.Body!)) {
+                    int[] tableStartIndexes = styleJson.RootElement.GetProperty("requests").EnumerateArray()
+                        .Where(request => request.TryGetProperty("updateTableColumnProperties", out _))
+                        .Select(request => request.GetProperty("updateTableColumnProperties")
+                            .GetProperty("tableStartLocation")
+                            .GetProperty("index")
+                            .GetInt32())
+                        .ToArray();
+                    Assert.Contains(35, tableStartIndexes);
+                }
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2347,7 +2375,7 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("doc123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/doc123/edit", result.WebViewLink);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(9, recordedRequests.Count);
                 Assert.Equal(3, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -3928,6 +3956,23 @@ namespace OfficeIMO.Tests {
             return document;
         }
 
+        private WordDocument BuildGoogleDocsShiftedMergedTableDocument(string filePath) {
+            var document = WordDocument.Create(filePath);
+            document.BuiltinDocumentProperties.Title = "Google Docs Shifted Merged Table";
+
+            var prefix = document.AddTable(1, 1, WordTableStyle.TableGrid);
+            prefix.Rows[0].Cells[0].Paragraphs[0].Text = "Prefix content that shifts the later table";
+
+            var merged = document.AddTable(2, 2, WordTableStyle.TableGrid);
+            merged.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
+            merged.Rows[0].Cells[1].Paragraphs[0].Text = "Hidden";
+            merged.Rows[1].Cells[0].Paragraphs[0].Text = "Alpha";
+            merged.Rows[1].Cells[1].Paragraphs[0].Text = "42";
+            merged.Rows[0].Cells[0].MergeHorizontally(1);
+
+            return document;
+        }
+
         private WordDocument BuildGoogleDocsLeadingTableSectionDocument(string filePath) {
             var document = WordDocument.Create(filePath);
             document.BuiltinDocumentProperties.Title = "Google Docs Leading Table Section";
@@ -4266,6 +4311,73 @@ namespace OfficeIMO.Tests {
                                                         endIndex = 41,
                                                         paragraph = new { }
                                                     }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        private static string CreateTwoBodyTableDocumentStateJson(
+            string documentId,
+            string title,
+            int secondTableStartIndex) {
+            return JsonSerializer.Serialize(new {
+                documentId,
+                title,
+                body = new {
+                    content = new object[] {
+                        new {
+                            startIndex = 1,
+                            endIndex = 19,
+                            table = new {
+                                tableRows = new object[] {
+                                    new {
+                                        tableCells = new object[] {
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = 5, endIndex = 6, paragraph = new { } }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        new {
+                            startIndex = secondTableStartIndex,
+                            endIndex = secondTableStartIndex + 59,
+                            table = new {
+                                tableRows = new object[] {
+                                    new {
+                                        tableCells = new object[] {
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = secondTableStartIndex + 24, endIndex = secondTableStartIndex + 25, paragraph = new { } }
+                                                }
+                                            },
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = secondTableStartIndex + 29, endIndex = secondTableStartIndex + 30, paragraph = new { } }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    new {
+                                        tableCells = new object[] {
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = secondTableStartIndex + 34, endIndex = secondTableStartIndex + 35, paragraph = new { } }
+                                                }
+                                            },
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = secondTableStartIndex + 39, endIndex = secondTableStartIndex + 40, paragraph = new { } }
                                                 }
                                             }
                                         }

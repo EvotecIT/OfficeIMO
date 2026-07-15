@@ -180,6 +180,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_GoogleDocsExporter_UsesCreatedTabIdInsteadOfCallerTabId() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsCreatedTab.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Created tab content");
+                var bodies = new List<string>();
+                using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
+                    if (request.Method == HttpMethod.Post
+                        && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents") {
+                        return CreateJsonResponse("{\"documentId\":\"doc-created-tab\",\"title\":\"Created\",\"revisionId\":\"revision-1\",\"tabs\":[{\"tabProperties\":{\"tabId\":\"api-created-tab\",\"title\":\"Tab 1\"},\"documentTab\":{\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":1,\"paragraph\":{}}]}}}]}");
+                    }
+                    if (request.Method == HttpMethod.Post
+                        && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-created-tab:batchUpdate") {
+                        bodies.Add(await request.Content!.ReadAsStringAsync().ConfigureAwait(false));
+                        return CreateJsonResponse("{\"writeControl\":{\"requiredRevisionId\":\"revision-2\"}}");
+                    }
+                    return new HttpResponseMessage(HttpStatusCode.NotFound);
+                }));
+                var session = new GoogleWorkspaceSession(new FakeGoogleWorkspaceCredentialSource(), new GoogleWorkspaceSessionOptions { HttpClient = httpClient });
+
+                GoogleDocumentReference result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                    Tabs = new GoogleDocsTabOptions { Strategy = GoogleDocsTabStrategy.SelectedTab, TabId = "caller-supplied-tab" },
+                });
+
+                string body = Assert.Single(bodies);
+                Assert.Contains("\"tabId\":\"api-created-tab\"", body, StringComparison.Ordinal);
+                Assert.DoesNotContain("caller-supplied-tab", body, StringComparison.Ordinal);
+                Assert.Equal("revision-2", result.RevisionId);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public async Task Test_GoogleDocsExporter_ScopesFirstSectionHeaderToSelectedTab() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsSelectedTabHeader.docx");
             try {

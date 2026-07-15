@@ -119,6 +119,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleSheetsBatch_SizesHiddenChartDataGridFromStagedCells() {
+            string path = Path.Combine(_directoryWithFiles, "GoogleSheetsLargeChart.xlsx");
+            try {
+                using var document = ExcelDocument.Create(path);
+                ExcelSheet sheet = document.AddWorksheet("Dashboard");
+                string[] categories = Enumerable.Range(1, 1001).Select(index => $"Category {index}").ToArray();
+                ExcelChartSeries[] series = Enumerable.Range(1, 27)
+                    .Select(seriesIndex => new ExcelChartSeries(
+                        $"Series {seriesIndex}",
+                        Enumerable.Range(1, categories.Length).Select(value => (double)(value + seriesIndex)).ToArray()))
+                    .ToArray();
+                sheet.AddChart(
+                    new ExcelChartData(categories, series),
+                    row: 2,
+                    column: 4,
+                    type: ExcelChartType.ColumnClustered,
+                    title: "Large chart");
+
+                GoogleSheetsBatch batch = new GoogleSheetsExporter().BuildBatch(document);
+                GoogleSheetsAddChartRequest chart = Assert.Single(batch.Requests.OfType<GoogleSheetsAddChartRequest>());
+                GoogleSheetsAddSheetRequest dataSheet = Assert.Single(
+                    batch.Requests.OfType<GoogleSheetsAddSheetRequest>(),
+                    request => request.SheetName == chart.DataSheetName);
+
+                Assert.Equal(1002, dataSheet.RowCount);
+                Assert.Equal(28, dataSheet.ColumnCount);
+
+                GoogleSheetsApiCreateSpreadsheetPayload payload = GoogleSheetsApiPayloadBuilder.BuildCreateSpreadsheetPayload(batch);
+                GoogleSheetsApiGridPropertiesPayload grid = Assert.Single(
+                    payload.Sheets,
+                    candidate => candidate.Properties.Title == chart.DataSheetName)
+                    .Properties.GridProperties;
+                Assert.Equal(1002, grid.RowCount);
+                Assert.Equal(28, grid.ColumnCount);
+            } finally {
+                if (File.Exists(path)) File.Delete(path);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleSheetsBatch_UsesExplicitScatterXValues() {
             string path = Path.Combine(_directoryWithFiles, "GoogleSheetsScatter.xlsx");
             try {
@@ -355,13 +395,15 @@ namespace OfficeIMO.Tests {
                     name: "PopulationPivot",
                     rowFields: new[] { "Region" },
                     dataFields: new[] {
+                        new ExcelPivotDataField("Value", DataConsolidateFunctionValues.Count, "Non-empty count"),
+                        new ExcelPivotDataField("Value", DataConsolidateFunctionValues.CountNumbers, "Numeric count"),
                         new ExcelPivotDataField("Value", DataConsolidateFunctionValues.StandardDeviationP, "Population SD"),
                         new ExcelPivotDataField("Value", DataConsolidateFunctionValues.VarianceP, "Population Variance"),
                     });
 
                 GoogleSheetsBatch batch = document.BuildGoogleSheetsBatch();
                 GoogleSheetsAddPivotTableRequest pivot = Assert.Single(batch.Requests.OfType<GoogleSheetsAddPivotTableRequest>());
-                Assert.Equal(new[] { "STDEVP", "VARP" }, pivot.Values.Select(value => value.SummarizeFunction).ToArray());
+                Assert.Equal(new[] { "COUNTA", "COUNT", "STDEVP", "VARP" }, pivot.Values.Select(value => value.SummarizeFunction).ToArray());
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }

@@ -139,7 +139,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 }
 
                 var documentId = createResponse.DocumentId!;
-                ConfigureCreatedDocumentWrite(batch, createResponse, effectiveOptions);
+                ConfigureCreatedDocumentWrite(batch, createResponse);
 
                 await ApplyDocumentContentAsync(
                     transport,
@@ -241,11 +241,8 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         private static void ConfigureCreatedDocumentWrite(
             GoogleDocsBatch batch,
-            GoogleDocsApiCreateDocumentResponse document,
-            GoogleDocsSaveOptions options) {
-            batch.TargetTabId = options.Tabs.Strategy == GoogleDocsTabStrategy.SelectedTab
-                ? options.Tabs.TabId
-                : GoogleDocsApiPayloadBuilder.FlattenTabs(document.Tabs).FirstOrDefault()?.Properties.TabId;
+            GoogleDocsApiCreateDocumentResponse document) {
+            batch.TargetTabId = GoogleDocsApiPayloadBuilder.FlattenTabs(document.Tabs).FirstOrDefault()?.Properties.TabId;
             batch.WriteControlState = new GoogleDocsWriteControlState(GoogleDocsRevisionConflictMode.RequireRevision, document.RevisionId);
         }
 
