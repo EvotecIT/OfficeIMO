@@ -82,10 +82,17 @@ internal static class SubtitleParser {
     }
 
     private static bool IsWebVttMetadataBlock(string value) {
-        string trimmed = value.TrimStart();
-        return trimmed.StartsWith("NOTE", StringComparison.Ordinal) ||
-            trimmed.StartsWith("STYLE", StringComparison.Ordinal) ||
-            trimmed.StartsWith("REGION", StringComparison.Ordinal);
+        string trimmed = value.Trim();
+        return IsWebVttNote(trimmed) ||
+            string.Equals(trimmed, "STYLE", StringComparison.Ordinal) ||
+            string.Equals(trimmed, "REGION", StringComparison.Ordinal);
+    }
+
+    private static bool IsWebVttNote(string value) {
+        return string.Equals(value, "NOTE", StringComparison.Ordinal) ||
+            (value.Length > "NOTE".Length &&
+             value.StartsWith("NOTE", StringComparison.Ordinal) &&
+             char.IsWhiteSpace(value["NOTE".Length]));
     }
 
     private static int SkipBlock(string[] lines, int index) {
@@ -102,9 +109,53 @@ internal static class SubtitleParser {
         string endAndSettings = value.Substring(arrow + 3).Trim();
         int separator = endAndSettings.IndexOfAny(new[] { ' ', '\t' });
         string endText = (separator < 0 ? endAndSettings : endAndSettings.Substring(0, separator)).Replace(',', '.');
-        return TimeSpan.TryParse(startText, CultureInfo.InvariantCulture, out start) &&
-            TimeSpan.TryParse(endText, CultureInfo.InvariantCulture, out end) &&
+        return TryParseTimestamp(startText, out start) &&
+            TryParseTimestamp(endText, out end) &&
             start >= TimeSpan.Zero && end >= start;
+    }
+
+    private static bool TryParseTimestamp(string value, out TimeSpan timestamp) {
+        timestamp = default;
+        string[] timeParts = value.Split(':');
+        if (timeParts.Length is < 2 or > 3) return false;
+
+        long hours = 0;
+        string minutesText;
+        string secondsAndMilliseconds;
+        if (timeParts.Length == 3) {
+            if (timeParts[0].Length < 2 ||
+                !long.TryParse(timeParts[0], NumberStyles.None, CultureInfo.InvariantCulture, out hours)) {
+                return false;
+            }
+            minutesText = timeParts[1];
+            secondsAndMilliseconds = timeParts[2];
+        } else {
+            minutesText = timeParts[0];
+            secondsAndMilliseconds = timeParts[1];
+        }
+
+        int decimalPoint = secondsAndMilliseconds.IndexOf('.');
+        if (minutesText.Length != 2 ||
+            decimalPoint != 2 ||
+            secondsAndMilliseconds.Length != 6 ||
+            !int.TryParse(minutesText, NumberStyles.None, CultureInfo.InvariantCulture, out int minutes) ||
+            !int.TryParse(secondsAndMilliseconds.Substring(0, 2), NumberStyles.None, CultureInfo.InvariantCulture, out int seconds) ||
+            !int.TryParse(secondsAndMilliseconds.Substring(3, 3), NumberStyles.None, CultureInfo.InvariantCulture, out int milliseconds) ||
+            minutes > 59 || seconds > 59) {
+            return false;
+        }
+
+        try {
+            long ticks = checked(
+                checked(hours * TimeSpan.TicksPerHour) +
+                checked(minutes * TimeSpan.TicksPerMinute) +
+                checked(seconds * TimeSpan.TicksPerSecond) +
+                checked(milliseconds * TimeSpan.TicksPerMillisecond));
+            timestamp = TimeSpan.FromTicks(ticks);
+            return true;
+        } catch (OverflowException) {
+            return false;
+        }
     }
 
     private static string StripMarkup(string value) {

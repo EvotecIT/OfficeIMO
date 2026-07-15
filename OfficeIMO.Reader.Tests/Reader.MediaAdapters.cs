@@ -69,6 +69,19 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_IdentifiesContentVerifiedSvgAfterBomAndComment() {
+        const string svg = "\uFEFF<!-- generated --><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3\" height=\"2\"/>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(svg), "image.svg");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal("image/svg+xml", asset.MediaType);
+        Assert.Equal(3, asset.Width);
+        Assert.Equal(2, asset.Height);
+    }
+
+    [Fact]
     public void NotebookAdapter_ProjectsMarkdownCodeAndTextOutputsInCellOrder() {
         const string notebook = """
             {
@@ -203,6 +216,44 @@ public sealed class ReaderMediaAdapterTests {
         Assert.DoesNotContain("ignored note", result.Markdown, StringComparison.Ordinal);
         Assert.Contains(result.Metadata, item => item.Name == "Format" && item.Value == "webvtt");
         Assert.Equal(0, stream.Position);
+    }
+
+    [Fact]
+    public void SubtitleAdapter_ParsesHoursBeyondOneDay() {
+        const string srt = "1\n24:00:00,000 --> 25:01:02,003\nLong recording\n";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(srt), "long.srt");
+
+        ReaderChunk cue = Assert.Single(result.Chunks);
+        Assert.Contains("24:00:00.000 → 25:01:02.003", cue.Markdown, StringComparison.Ordinal);
+        OfficeDocumentMetadataEntry timing = Assert.Single(result.Metadata, item => item.Id == "subtitle-cue-000000-timing");
+        Assert.Equal("86400000", timing.Attributes["startMilliseconds"]);
+        Assert.Equal("90062003", timing.Attributes["endMilliseconds"]);
+    }
+
+    [Fact]
+    public void SubtitleAdapter_PreservesCueIdentifiersThatOnlyStartWithMetadataWords() {
+        const string vtt = """
+            WEBVTT
+
+            NOTE1
+            00:00:00.000 --> 00:00:01.000
+            First cue
+
+            STYLE_intro
+            00:00:01.000 --> 00:00:02.000
+            Second cue
+
+            REGION-a
+            00:00:02.000 --> 00:00:03.000
+            Third cue
+            """;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(vtt), "identifiers.vtt");
+
+        Assert.Equal(new[] { "First cue", "Second cue", "Third cue" }, result.Chunks.Select(chunk => chunk.Text));
     }
 
     [Fact]

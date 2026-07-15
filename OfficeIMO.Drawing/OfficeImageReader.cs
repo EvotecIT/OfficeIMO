@@ -1,6 +1,7 @@
 using System;
 using System.Globalization;
 using System.IO;
+using System.Text;
 using System.Xml;
 using System.Xml.Linq;
 
@@ -496,9 +497,7 @@ public static class OfficeImageReader {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         bool likelySvg = FromExtension(fileName) == OfficeImageFormat.Svg;
         if (!likelySvg) {
-            var prefix = GetAscii(data, 0, Math.Min(data.Length, 256)).TrimStart();
-            likelySvg = prefix.StartsWith("<svg", StringComparison.OrdinalIgnoreCase) ||
-                        prefix.StartsWith("<?xml", StringComparison.OrdinalIgnoreCase);
+            likelySvg = HasSvgXmlPrefix(data);
         }
 
         if (!likelySvg) {
@@ -554,6 +553,39 @@ public static class OfficeImageReader {
             info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
             return false;
         }
+    }
+
+    private static bool HasSvgXmlPrefix(byte[] data) {
+        string prefix;
+        try {
+            prefix = Encoding.UTF8.GetString(data, 0, Math.Min(data.Length, 4096));
+        } catch (ArgumentException) {
+            return false;
+        }
+
+        int offset = 0;
+        while (true) {
+            while (offset < prefix.Length && (char.IsWhiteSpace(prefix[offset]) || prefix[offset] == '\uFEFF')) offset++;
+            if (StartsWith(prefix, offset, "<?")) {
+                int end = prefix.IndexOf("?>", offset + 2, StringComparison.Ordinal);
+                if (end < 0) return false;
+                offset = end + 2;
+                continue;
+            }
+            if (StartsWith(prefix, offset, "<!--")) {
+                int end = prefix.IndexOf("-->", offset + 4, StringComparison.Ordinal);
+                if (end < 0) return false;
+                offset = end + 3;
+                continue;
+            }
+            return StartsWith(prefix, offset, "<svg", StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    private static bool StartsWith(string value, int offset, string expected, StringComparison comparison = StringComparison.Ordinal) {
+        return offset >= 0 &&
+            offset <= value.Length - expected.Length &&
+            string.Compare(value, offset, expected, 0, expected.Length, comparison) == 0;
     }
 
     private static bool TryReadWebp(byte[] data, out OfficeImageInfo info) {
