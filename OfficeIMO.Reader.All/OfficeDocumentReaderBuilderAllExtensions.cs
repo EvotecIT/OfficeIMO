@@ -4,11 +4,14 @@ using OfficeIMO.Reader.EmailAddressBook;
 using OfficeIMO.Reader.EmailStore;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Image;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Latex;
+using OfficeIMO.Reader.Notebook;
 using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Rtf;
+using OfficeIMO.Reader.Subtitles;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
@@ -41,11 +44,14 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddEmailStoreHandler(configured.EmailStore)
             .AddEpubHandler(configured.Epub)
             .AddHtmlHandler(configured.Html)
+            .AddImageHandler(configured.Image)
             .AddJsonHandler(configured.Json)
             .AddLatexHandler(configured.Latex)
+            .AddNotebookHandler(configured.Notebook)
             .AddOpenDocumentHandler()
             .AddPdfHandler(configured.Pdf)
             .AddRtfHandler(configured.Rtf)
+            .AddSubtitleHandler(configured.Subtitles)
             .AddVisioHandler(configured.Visio)
             .AddXmlHandler(configured.Xml)
             .AddYamlHandler(configured.Yaml)

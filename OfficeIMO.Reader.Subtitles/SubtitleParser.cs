@@ -1,0 +1,170 @@
+using System.Net;
+
+namespace OfficeIMO.Reader.Subtitles;
+
+internal static class SubtitleParser {
+    internal static SubtitleParseResult Parse(
+        string content,
+        ReaderSubtitleOptions options,
+        CancellationToken cancellationToken) {
+        string normalized = (content ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
+        string[] lines = normalized.Split('\n');
+        bool webVtt = lines.Length > 0 && lines[0].TrimStart('\uFEFF').StartsWith("WEBVTT", StringComparison.OrdinalIgnoreCase);
+        var cues = new List<SubtitleCue>(Math.Min(lines.Length / 3, options.MaxCues));
+        var warnings = new List<string>();
+        int index = webVtt ? SkipWebVttHeader(lines) : 0;
+        while (index < lines.Length) {
+            cancellationToken.ThrowIfCancellationRequested();
+            while (index < lines.Length && string.IsNullOrWhiteSpace(lines[index])) index++;
+            if (index >= lines.Length) break;
+            if (webVtt && IsWebVttMetadataBlock(lines[index])) {
+                index = SkipBlock(lines, index);
+                continue;
+            }
+            if (cues.Count >= options.MaxCues) {
+                AddWarning(warnings, "Subtitle cue parsing stopped at MaxCues.");
+                break;
+            }
+
+            int blockStart = index;
+            string? identifier = null;
+            string timingLine = lines[index].Trim();
+            if (!timingLine.Contains("-->", StringComparison.Ordinal)) {
+                identifier = timingLine;
+                index++;
+                if (index >= lines.Length) break;
+                timingLine = lines[index].Trim();
+            }
+            if (!TryParseTiming(timingLine, out TimeSpan start, out TimeSpan end)) {
+                AddWarning(warnings, "Ignored a subtitle block with an invalid timing line at line " +
+                    (blockStart + 1).ToString(CultureInfo.InvariantCulture) + ".");
+                index = SkipBlock(lines, blockStart);
+                continue;
+            }
+
+            index++;
+            var text = new StringBuilder();
+            while (index < lines.Length && !string.IsNullOrWhiteSpace(lines[index])) {
+                if (text.Length > 0) text.AppendLine();
+                text.Append(lines[index]);
+                index++;
+            }
+            string cueText = text.ToString().Trim();
+            if (options.StripCueMarkup) cueText = StripMarkup(cueText);
+            if (string.IsNullOrWhiteSpace(cueText)) continue;
+            bool truncated = cueText.Length > options.MaxCueCharacters;
+            if (truncated) cueText = cueText.Substring(0, options.MaxCueCharacters);
+            cues.Add(new SubtitleCue(
+                identifier,
+                start,
+                end,
+                cueText,
+                blockStart + 1,
+                Math.Max(blockStart + 1, index),
+                truncated));
+        }
+
+        return new SubtitleParseResult(cues, warnings, webVtt ? "webvtt" : "srt");
+    }
+
+    internal static string FormatTimestamp(TimeSpan value) {
+        long totalHours = value.Ticks / TimeSpan.TicksPerHour;
+        return totalHours.ToString("D2", CultureInfo.InvariantCulture) + ":" +
+            value.Minutes.ToString("D2", CultureInfo.InvariantCulture) + ":" +
+            value.Seconds.ToString("D2", CultureInfo.InvariantCulture) + "." +
+            value.Milliseconds.ToString("D3", CultureInfo.InvariantCulture);
+    }
+
+    private static int SkipWebVttHeader(string[] lines) {
+        int index = 1;
+        while (index < lines.Length && !string.IsNullOrWhiteSpace(lines[index])) index++;
+        return index;
+    }
+
+    private static bool IsWebVttMetadataBlock(string value) {
+        string trimmed = value.TrimStart();
+        return trimmed.StartsWith("NOTE", StringComparison.Ordinal) ||
+            trimmed.StartsWith("STYLE", StringComparison.Ordinal) ||
+            trimmed.StartsWith("REGION", StringComparison.Ordinal);
+    }
+
+    private static int SkipBlock(string[] lines, int index) {
+        while (index < lines.Length && !string.IsNullOrWhiteSpace(lines[index])) index++;
+        return index;
+    }
+
+    private static bool TryParseTiming(string value, out TimeSpan start, out TimeSpan end) {
+        start = default;
+        end = default;
+        int arrow = value.IndexOf("-->", StringComparison.Ordinal);
+        if (arrow < 0) return false;
+        string startText = value.Substring(0, arrow).Trim().Replace(',', '.');
+        string endAndSettings = value.Substring(arrow + 3).Trim();
+        int separator = endAndSettings.IndexOfAny(new[] { ' ', '\t' });
+        string endText = (separator < 0 ? endAndSettings : endAndSettings.Substring(0, separator)).Replace(',', '.');
+        return TimeSpan.TryParse(startText, CultureInfo.InvariantCulture, out start) &&
+            TimeSpan.TryParse(endText, CultureInfo.InvariantCulture, out end) &&
+            start >= TimeSpan.Zero && end >= start;
+    }
+
+    private static string StripMarkup(string value) {
+        var text = new StringBuilder(value.Length);
+        bool insideTag = false;
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            if (character == '<') {
+                insideTag = true;
+                continue;
+            }
+            if (insideTag) {
+                if (character == '>') insideTag = false;
+                continue;
+            }
+            text.Append(character);
+        }
+        return WebUtility.HtmlDecode(text.ToString()).Trim();
+    }
+
+    private static void AddWarning(List<string> warnings, string value) {
+        if (warnings.Count < 100) warnings.Add(value);
+    }
+}
+
+internal sealed class SubtitleParseResult {
+    internal SubtitleParseResult(IReadOnlyList<SubtitleCue> cues, IReadOnlyList<string> warnings, string format) {
+        Cues = cues;
+        Warnings = warnings;
+        Format = format;
+    }
+
+    internal IReadOnlyList<SubtitleCue> Cues { get; }
+    internal IReadOnlyList<string> Warnings { get; }
+    internal string Format { get; }
+}
+
+internal sealed class SubtitleCue {
+    internal SubtitleCue(
+        string? identifier,
+        TimeSpan start,
+        TimeSpan end,
+        string text,
+        int startLine,
+        int endLine,
+        bool truncated) {
+        Identifier = identifier;
+        Start = start;
+        End = end;
+        Text = text;
+        StartLine = startLine;
+        EndLine = endLine;
+        Truncated = truncated;
+    }
+
+    internal string? Identifier { get; }
+    internal TimeSpan Start { get; }
+    internal TimeSpan End { get; }
+    internal string Text { get; }
+    internal int StartLine { get; }
+    internal int EndLine { get; }
+    internal bool Truncated { get; }
+}

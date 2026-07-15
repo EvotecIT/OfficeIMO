@@ -64,7 +64,7 @@ Built-in and modular adapters can extract:
 - PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
 - EML/MIME, Outlook MSG/MAPI, TNEF/`winmail.dat`, and mbox as message, body, attachment, and embedded-item chunks. Rich results include attachment assets and typed Outlook metadata.
-- OpenDocument (`.odt`, `.ods`, `.odp`), PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
+- OpenDocument (`.odt`, `.ods`, `.odp`), PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, standalone images, Jupyter notebooks, SRT/WebVTT subtitles, and structured text through modular adapter packages.
 
 ## Modular adapters
 
@@ -74,10 +74,13 @@ For services and concurrent hosts, build an isolated reader with only the adapte
 using OfficeIMO.Reader.Csv;
 using OfficeIMO.Reader.Epub;
 using OfficeIMO.Reader.Html;
+using OfficeIMO.Reader.Image;
 using OfficeIMO.Reader.Json;
+using OfficeIMO.Reader.Notebook;
 using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Rtf;
+using OfficeIMO.Reader.Subtitles;
 using OfficeIMO.Reader.Visio;
 using OfficeIMO.Reader.Xml;
 using OfficeIMO.Reader.Yaml;
@@ -87,10 +90,13 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .AddCsvHandler()
     .AddEpubHandler()
     .AddHtmlHandler()
+    .AddImageHandler()
     .AddJsonHandler()
+    .AddNotebookHandler()
     .AddOpenDocumentHandler()
     .AddPdfHandler()
     .AddRtfHandler()
+    .AddSubtitleHandler()
     .AddVisioHandler()
     .AddXmlHandler()
     .AddYamlHandler()
@@ -116,7 +122,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
     .Build();
 ```
 
-The preset contains no parser or provider logic. It excludes OCR engines, process adapters, network clients, and hosted providers; those remain explicit host choices.
+The preset contains no parser or provider logic. It excludes OCR engines, process adapters, network clients, and hosted providers; those remain explicit host choices. Standalone images expose header metadata, source assets, and optional OCR candidates without running OCR. Notebook cells are never executed, and subtitle support reads local SRT/WebVTT text only.
 
 For scripts and shell pipelines, install the dependency-bounded global tool:
 
