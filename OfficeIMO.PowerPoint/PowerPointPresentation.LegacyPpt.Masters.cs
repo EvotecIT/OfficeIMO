@@ -469,17 +469,20 @@ namespace OfficeIMO.PowerPoint {
             } else if (source.FillColor != null && style.FillType.GetValueOrDefault() == 0) {
                 SetLegacyShapeFill(properties, CreateLegacySolidFill(source.FillColor, style.FillOpacity));
             }
-
             bool hasLineStyle = style.LineEnabled.HasValue || source.LineColor != null
                 || style.LineOpacity.HasValue || style.LineWidthEmus.HasValue || style.LineDashing.HasValue
                 || style.LineStartArrowhead.HasValue || style.LineEndArrowhead.HasValue
                 || style.LineJoinStyle.HasValue || style.LineEndCapStyle.HasValue;
-            if (!hasLineStyle) return;
+            if (!hasLineStyle) {
+                ApplyLegacyShapeShadow(properties, source);
+                return;
+            }
 
             A.Outline outline = properties.GetFirstChild<A.Outline>() ?? new A.Outline();
             if (outline.Parent == null) properties.Append(outline);
             if (style.LineEnabled == false) {
                 SetLegacyOutlineFill(outline, new A.NoFill());
+                ApplyLegacyShapeShadow(properties, source);
                 return;
             }
 
@@ -494,6 +497,47 @@ namespace OfficeIMO.PowerPoint {
                 style.LineStartArrowWidth, style.LineStartArrowLength);
             ApplyLegacyLineEnd(outline, isHead: false, style.LineEndArrowhead,
                 style.LineEndArrowWidth, style.LineEndArrowLength);
+            ApplyLegacyShapeShadow(properties, source);
+        }
+
+        private static void ApplyLegacyShapeShadow(ShapeProperties properties,
+            LegacyPptShape source) {
+            OfficeIMO.Drawing.Binary.OfficeArtShapeStyle style = source.Style;
+            if (!style.HasProjectableShadow) return;
+
+            int offsetX = style.ShadowOffsetXEmus ?? 0x6338;
+            int offsetY = style.ShadowOffsetYEmus ?? 0x6338;
+            double angle = Math.Atan2(offsetY, offsetX) * 180D / Math.PI;
+            if (angle < 0D) angle += 360D;
+            long distance = (long)Math.Round(Math.Sqrt((double)offsetX * offsetX
+                + (double)offsetY * offsetY), MidpointRounding.AwayFromZero);
+            var color = new A.RgbColorModelHex { Val = source.ShadowColor ?? "808080" };
+            color.Append(new A.Alpha { Val = checked((int)Math.Round(
+                Math.Max(0D, Math.Min(1D, style.ShadowOpacity ?? 1D)) * 100000D)) });
+            var shadow = new A.OuterShadow(color) {
+                BlurRadius = Math.Max(0, style.ShadowSoftnessEmus ?? 0),
+                Distance = distance,
+                Direction = (int)Math.Round(angle * 60000D, MidpointRounding.AwayFromZero),
+                RotateWithShape = false
+            };
+            A.EffectList effects = properties.GetFirstChild<A.EffectList>() ?? new A.EffectList();
+            effects.RemoveAllChildren<A.OuterShadow>();
+            effects.Append(shadow);
+            if (effects.Parent == null) {
+                OpenXmlElement? insertBefore = properties.ChildElements.FirstOrDefault(child =>
+                    child is not A.Transform2D
+                    && child is not A.CustomGeometry
+                    && child is not A.PresetGeometry
+                    && child is not A.NoFill
+                    && child is not A.SolidFill
+                    && child is not A.GradientFill
+                    && child is not A.BlipFill
+                    && child is not A.PatternFill
+                    && child is not A.GroupFill
+                    && child is not A.Outline);
+                if (insertBefore != null) properties.InsertBefore(effects, insertBefore);
+                else properties.Append(effects);
+            }
         }
 
         private static A.SolidFill CreateLegacySolidFill(string color, double? opacity) {

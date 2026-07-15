@@ -471,7 +471,7 @@ Warnings: 0
 | PropertyId:0x0080 | 3 |
 | PropertyId:0x008B | 3 |
 | PropertyId:0x0158 | 3 |
-| PropertyId:0x0201 | 3 |
+| shadowColor | 3 |
 | ShadowStyleBooleanProperties | 3 |
 | TextBooleanProperties | 4 |
 

@@ -21,6 +21,9 @@ namespace OfficeIMO.Tests {
         private static string AdjustedShapesFixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "AdjustedShapesPowerPoint.ppt");
 
+        private static string ShadowFixturePath => Path.Combine(AppContext.BaseDirectory,
+            "Documents", "LegacyPptCorpus", "ShadowPowerPoint.ppt");
+
         public static IEnumerable<object[]> RepresentativeOfficeArtPresets => new[] {
             new object[] { (ushort)4, A.ShapeTypeValues.Diamond },
             new object[] { (ushort)9, A.ShapeTypeValues.Hexagon },
@@ -339,6 +342,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NeutralReader_DecodesOffsetShadowProperties() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(ShadowFixturePath);
+            LegacyPptShape[] shapes = Assert.Single(legacy.Slides).Shapes
+                .OrderBy(shape => shape.Bounds.Left)
+                .ToArray();
+
+            Assert.Equal(2, shapes.Length);
+            Assert.All(shapes, shape => Assert.True(shape.Style.HasProjectableShadow));
+            Assert.Equal("445566", shapes[0].ShadowColor);
+            Assert.Equal(39336D / 65536D, shapes[0].Style.ShadowOpacity);
+            Assert.Equal(26640, shapes[0].Style.ShadowOffsetXEmus);
+            Assert.Equal(26640, shapes[0].Style.ShadowOffsetYEmus);
+            Assert.Equal("000000", shapes[1].ShadowColor);
+            Assert.Equal(-18000, shapes[1].Style.ShadowOffsetXEmus);
+            Assert.Equal(18000, shapes[1].Style.ShadowOffsetYEmus);
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-SHAPE-STYLE-PARTIAL");
+        }
+
+        [Fact]
+        public void NormalLoad_ProjectsOffsetShadowsAndPreservesBinaryExactly() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShadowFixturePath);
+            PowerPointSlide slide = Assert.Single(presentation.Slides);
+
+            A.OuterShadow first = GetOuterShadow(slide, "Shadow 45");
+            Assert.Equal(37675L, first.Distance!.Value);
+            Assert.Equal(2700000, first.Direction!.Value);
+            Assert.Equal(0L, first.BlurRadius!.Value);
+            A.RgbColorModelHex firstColor = Assert.IsType<A.RgbColorModelHex>(first.FirstChild);
+            Assert.Equal("445566", firstColor.Val!.Value);
+            Assert.Equal(60022, firstColor.GetFirstChild<A.Alpha>()!.Val!.Value);
+
+            A.OuterShadow second = GetOuterShadow(slide, "Shadow 135");
+            Assert.Equal(25456L, second.Distance!.Value);
+            Assert.Equal(8100000, second.Direction!.Value);
+            Assert.Equal("000000", Assert.IsType<A.RgbColorModelHex>(second.FirstChild).Val!.Value);
+            Assert.Empty(presentation.ValidateDocument());
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.Equal(File.ReadAllBytes(ShadowFixturePath),
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedShadowEdit_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(ShadowFixturePath);
+            A.OuterShadow shadow = GetOuterShadow(presentation.Slides[0], "Shadow 45");
+
+            shadow.Distance = shadow.Distance!.Value + 1000L;
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+        }
+
+        [Fact]
         public void NormalLoad_ProjectsOnlyProvenExactPresetAdjustments() {
             using PowerPointPresentation presentation = PowerPointPresentation.Load(
                 AdjustedShapesFixturePath);
@@ -381,6 +439,13 @@ namespace OfficeIMO.Tests {
             return element.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.AdjustValueList?
                 .Elements<A.ShapeGuide>()
                 .FirstOrDefault(guide => guide.Name?.Value == guideName)?.Formula?.Value;
+        }
+
+        private static A.OuterShadow GetOuterShadow(PowerPointSlide slide, string text) {
+            PowerPointTextBox shape = slide.TextBoxes.Single(item => item.Text == text);
+            P.Shape element = Assert.IsType<P.Shape>(shape.Element);
+            return Assert.IsType<A.OuterShadow>(element.ShapeProperties?
+                .GetFirstChild<A.EffectList>()?.GetFirstChild<A.OuterShadow>());
         }
     }
 }

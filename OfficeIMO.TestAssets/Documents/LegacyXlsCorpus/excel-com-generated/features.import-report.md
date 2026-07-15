@@ -2401,9 +2401,9 @@ Warnings: 0
 | PropertyId:0x0158 | 1 |
 | PropertyId:0x0185 | 1 |
 | PropertyId:0x01C3 | 1 |
-| PropertyId:0x0201 | 1 |
 | PropertyId:0x0203 | 1 |
 | ProtectionBooleanProperties | 7 |
+| shadowColor | 1 |
 | ShadowStyleBooleanProperties | 1 |
 | TextBooleanProperties | 9 |
 | wzName | 2 |

@@ -51,6 +51,12 @@ DrawingML luminance and monochrome projection, baked-image fallback, and exact n
 SHA-256 digest is
 `db2eadf76110641fe46230949f04ac4c54cb158678b7cd301ceea193161e27d2`.
 
+`ShadowPowerPoint.ppt` was generated from a one-slide PPTX containing two rounded rectangles with
+45-degree and 135-degree outer shadows, then converted with LibreOffice. It exercises primary RGB
+color, opacity, positive and negative signed EMU offsets, polar DrawingML projection, explicit
+shadow visibility, and exact no-op saves. Its SHA-256 digest is
+`33eff835786f06fd721f9f3b2b15300ea2d8aa96ec1dd79160c6e0811d207897`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

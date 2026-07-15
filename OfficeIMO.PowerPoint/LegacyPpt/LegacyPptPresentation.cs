@@ -318,7 +318,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 bounds, text, placeholder, style,
                 ResolveShapeColor(style.FillColor, colorScheme),
                 ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture,
-                transform);
+                transform, shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme));
 
             if (textbox != null && textbox.DescendantsAndSelf()
                     .Any(record => record.Type == RecordStyleTextPropAtom)) {
@@ -330,7 +330,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "The OfficeArt property table is truncated and could not be decoded.", fopt.Offset);
             } else if (!isPictureFrame && style.HasUnprojectedVisualStyle) {
                 AddDiagnostic("PPT-SHAPE-STYLE-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
-                    "The shape uses a non-solid fill, compound line, custom dash, or enabled shadow that is preserved but not projected yet.",
+                    "The shape uses a non-solid fill, compound line, custom dash, or richer shadow type that is preserved but not projected yet.",
                     shapeContainer.Offset);
             }
 
@@ -400,7 +400,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 groupContainer.Offset, bounds, string.Empty, LegacyPptPlaceholderKind.None,
                 style, ResolveShapeColor(style.FillColor, colorScheme),
                 ResolveShapeColor(style.LineColor, colorScheme), transform: transform,
-                groupCoordinateBounds: coordinateBounds, children: children);
+                groupCoordinateBounds: coordinateBounds, children: children,
+                shadowColor: ResolveShapeColor(style.ShadowColor, colorScheme));
         }
 
         private void ParseBlipStore(LegacyPptRecord document, LegacyPptPackage package,

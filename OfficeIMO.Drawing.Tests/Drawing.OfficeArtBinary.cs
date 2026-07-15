@@ -56,6 +56,32 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtShapeStyle_DecodesProjectableSignedOffsetShadow() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x0200, 0U),
+            new OfficeArtProperty(1, 0x0201, 0x00332211U),
+            new OfficeArtProperty(2, 0x0204, 32768U),
+            new OfficeArtProperty(3, 0x0205, unchecked((uint)-12700)),
+            new OfficeArtProperty(4, 0x0206, 25400U),
+            new OfficeArtProperty(5, 0x021C, 50800U),
+            new OfficeArtProperty(6, 0x023F, 0x00020002U)
+        };
+
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(properties);
+
+        Assert.True(style.HasProjectableShadow);
+        Assert.False(style.HasUnprojectedVisualStyle);
+        Assert.Equal(0U, style.ShadowType);
+        Assert.Equal(new OfficeArtColorReference(0x00332211U), style.ShadowColor);
+        Assert.Equal(0.5D, style.ShadowOpacity);
+        Assert.Equal(-12700, style.ShadowOffsetXEmus);
+        Assert.Equal(25400, style.ShadowOffsetYEmus);
+        Assert.Equal(50800, style.ShadowSoftnessEmus);
+        Assert.Equal("shadowOffsetX", properties[3].PropertyName);
+        Assert.Equal("Shadow", properties[3].PropertyGroupName);
+    }
+
+    [Fact]
     public void OfficeArtShapeTransform_DecodesSignedRotationAndFspFlips() {
         var properties = new[] {
             new OfficeArtProperty(0, 0x0004, unchecked((uint)(-45 * 65536)))

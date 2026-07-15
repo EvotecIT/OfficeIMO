@@ -30,6 +30,12 @@ public sealed class OfficeArtShapeStyle {
         LineJoinStyle = GetUInt32(0x01D6);
         LineEndCapStyle = GetUInt32(0x01D7);
         LineEnabled = GetBoolean(0x01FF, 0x00080000U, 0x00000008U);
+        ShadowType = GetUInt32(0x0200);
+        ShadowColor = GetColor(0x0201);
+        ShadowOpacity = GetFixedPoint(0x0204);
+        ShadowOffsetXEmus = GetInt32(0x0205);
+        ShadowOffsetYEmus = GetInt32(0x0206);
+        ShadowSoftnessEmus = GetInt32(0x021C);
         ShadowEnabled = GetBoolean(0x023F, 0x00020000U, 0x00000002U);
     }
 
@@ -97,6 +103,24 @@ public sealed class OfficeArtShapeStyle {
     /// <summary>Gets explicit line visibility, or null when the property inherits its default.</summary>
     public bool? LineEnabled { get; }
 
+    /// <summary>Gets the MSOSHADOWTYPE value.</summary>
+    public uint? ShadowType { get; }
+
+    /// <summary>Gets the primary shadow color reference.</summary>
+    public OfficeArtColorReference? ShadowColor { get; }
+
+    /// <summary>Gets shadow opacity from 0 through 1.</summary>
+    public double? ShadowOpacity { get; }
+
+    /// <summary>Gets the signed horizontal shadow offset in English Metric Units.</summary>
+    public int? ShadowOffsetXEmus { get; }
+
+    /// <summary>Gets the signed vertical shadow offset in English Metric Units.</summary>
+    public int? ShadowOffsetYEmus { get; }
+
+    /// <summary>Gets the shadow blur radius in English Metric Units.</summary>
+    public int? ShadowSoftnessEmus { get; }
+
     /// <summary>Gets explicit shadow visibility, or null when the property inherits its default.</summary>
     public bool? ShadowEnabled { get; }
 
@@ -104,14 +128,17 @@ public sealed class OfficeArtShapeStyle {
     public bool HasProjectableStyle => FillEnabled.HasValue || FillColor.HasValue || FillOpacity.HasValue
         || LineEnabled.HasValue || LineColor.HasValue || LineOpacity.HasValue || LineWidthEmus.HasValue
         || LineDashing.HasValue || LineStartArrowhead.HasValue || LineEndArrowhead.HasValue
-        || LineJoinStyle.HasValue || LineEndCapStyle.HasValue;
+        || LineJoinStyle.HasValue || LineEndCapStyle.HasValue || HasProjectableShadow;
+
+    /// <summary>Gets whether an enabled offset shadow can be projected directly.</summary>
+    public bool HasProjectableShadow => ShadowEnabled == true && ShadowType.GetValueOrDefault() == 0;
 
     /// <summary>Gets whether enabled visual state requires a richer projector than solid fills and lines.</summary>
     public bool HasUnprojectedVisualStyle =>
         FillEnabled != false && FillType.GetValueOrDefault() > 0
         || LineEnabled != false && (LineType.GetValueOrDefault() > 0 || LineStyle.GetValueOrDefault() > 0)
         || LineEnabled != false && Properties.Any(property => property.PropertyId == 0x01CF)
-        || ShadowEnabled == true;
+        || ShadowEnabled == true && ShadowType.GetValueOrDefault() != 0;
 
     private OfficeArtProperty? GetProperty(ushort propertyId) =>
         Properties.LastOrDefault(property => property.PropertyId == propertyId && !property.IsComplex);

@@ -98,7 +98,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             int? pictureStoreIndex = null, OfficeArtBlipStoreEntry? picture = null,
             OfficeArtShapeTransform? transform = null,
             LegacyPptBounds? groupCoordinateBounds = null,
-            IReadOnlyList<LegacyPptShape>? children = null) {
+            IReadOnlyList<LegacyPptShape>? children = null,
+            string? shadowColor = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -114,6 +115,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Transform = transform ?? OfficeArtShapeTransform.Decode(0);
             Geometry = OfficeArtShapeGeometry.Decode(style.Properties);
             PictureProperties = OfficeArtPictureProperties.Decode(style.Properties);
+            ShadowColor = shadowColor;
             GroupCoordinateBounds = groupCoordinateBounds;
             Children = new ReadOnlyCollection<LegacyPptShape>(
                 children?.ToArray() ?? Array.Empty<LegacyPptShape>());
@@ -148,6 +150,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the resolved line color as RRGGBB, when available.</summary>
         public string? LineColor { get; }
+
+        /// <summary>Gets the resolved shadow color as RRGGBB, when available.</summary>
+        public string? ShadowColor { get; }
 
         /// <summary>Gets the one-based OfficeArt BStore index referenced by the picture frame.</summary>
         public int? PictureStoreIndex { get; }
