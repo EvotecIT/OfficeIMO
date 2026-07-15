@@ -90,6 +90,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 if (shape.TextBody != null) shape.TextBody.RemoveAllChildren<A.Paragraph>();
             }
+            foreach (P.Picture picture in root.Descendants<P.Picture>()) {
+                uint? shapeId = picture.NonVisualPictureProperties?.NonVisualDrawingProperties?.Id?.Value;
+                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value, out _)) continue;
+                A.Transform2D? transform = picture.ShapeProperties?.Transform2D;
+                if (transform?.Offset != null) {
+                    transform.Offset.X = 0L;
+                    transform.Offset.Y = 0L;
+                }
+                if (transform?.Extents != null) {
+                    transform.Extents.Cx = 0L;
+                    transform.Extents.Cy = 0L;
+                }
+            }
         }
     }
 }

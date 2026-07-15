@@ -38,6 +38,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal byte[] CurrentUserStream { get; }
 
+        internal byte[]? PicturesStream => CompoundFile.Streams.TryGetValue("Pictures", out byte[]? stream)
+            ? stream
+            : null;
+
         internal uint CurrentEditOffset { get; }
 
         internal uint DocumentPersistId { get; }

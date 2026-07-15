@@ -115,12 +115,29 @@ namespace OfficeIMO.PowerPoint {
                 case LegacyPptShapeKind.Line:
                     projectedShape = slide.AddShape(A.ShapeTypeValues.Line, left, top, width, height);
                     break;
+                case LegacyPptShapeKind.Picture:
+                    if (shape.Picture?.HasImportableImage == true && shape.Picture.ContentType != null) {
+                        using var image = new MemoryStream(shape.Picture.ImageBytes, writable: false);
+                        projectedShape = slide.AddPicture(image,
+                            GetLegacyPicturePartType(shape.Picture.ContentType), left, top, width, height);
+                    }
+                    break;
             }
             if (projectedShape?.Element is DocumentFormat.OpenXml.Presentation.Shape projected
                 && projected.ShapeProperties != null) {
                 ApplyLegacyShapeStyle(projected.ShapeProperties, shape);
             }
         }
+
+        private static ImagePartType GetLegacyPicturePartType(string contentType) => contentType switch {
+            "image/png" => ImagePartType.Png,
+            "image/jpeg" => ImagePartType.Jpeg,
+            "image/bmp" => ImagePartType.Bmp,
+            "image/tiff" => ImagePartType.Tiff,
+            "image/x-emf" => ImagePartType.Emf,
+            "image/x-wmf" => ImagePartType.Wmf,
+            _ => throw new NotSupportedException($"Legacy picture content type '{contentType}' is not supported.")
+        };
 
         private static PlaceholderValues? MapPlaceholder(LegacyPptPlaceholderKind placeholder) {
             switch (placeholder) {

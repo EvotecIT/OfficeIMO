@@ -11,6 +11,9 @@ namespace OfficeIMO.Tests {
         private static string FixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "BasicPowerPoint.ppt");
 
+        private static string PictureFixturePath => Path.Combine(AppContext.BaseDirectory,
+            "Documents", "LegacyPptCorpus", "PicturePowerPoint.ppt");
+
         [Fact]
         public void NeutralReader_DecodesRealBinaryPresentation() {
             LegacyPptPresentation legacy = LegacyPptPresentation.Load(FixturePath);
@@ -45,6 +48,105 @@ namespace OfficeIMO.Tests {
             Assert.NotEmpty(legacy.Package.UserEdits);
             Assert.NotEmpty(legacy.Package.PersistObjects);
             Assert.True(legacy.CreateImportReport().CompoundStreamCount >= 2);
+        }
+
+        [Fact]
+        public void NeutralReader_DecodesDelayedPngPictureStoreAndFrameReference() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(PictureFixturePath);
+
+            OfficeArtBlipStoreEntry entry = Assert.Single(legacy.BlipStoreEntries);
+            Assert.Equal(OfficeArtBlipStorage.Delayed, entry.Storage);
+            Assert.Equal(OfficeArtBlipType.Png, entry.RecordInstanceBlipType);
+            Assert.Equal("OfficeArtBlipPNG", entry.BlipRecordTypeName);
+            Assert.Equal("image/png", entry.ContentType);
+            Assert.Equal(21283U, entry.BlipPayloadLength);
+            Assert.Equal(21283, entry.BlipPayloadAvailableLength);
+            Assert.Equal("E715CBA6CDBDDB873B50FB2B8ACBEC0CF72D4DD74468440B2B95B921FD99DD51",
+                entry.BlipPayloadSha256);
+            Assert.Equal(21266, entry.ImageBytes.Length);
+            Assert.Equal(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A },
+                entry.ImageBytes.Take(8));
+
+            LegacyPptShape picture = Assert.Single(Assert.Single(legacy.Slides).Shapes,
+                shape => shape.Kind == LegacyPptShapeKind.Picture);
+            Assert.Equal(75, picture.OfficeArtShapeType);
+            Assert.Equal(1, picture.PictureStoreIndex);
+            Assert.Same(entry, picture.Picture);
+            Assert.Equal(new LegacyPptBounds(576, 576, 1728, 403), picture.Bounds);
+            LegacyPptImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.PictureShapeCount);
+            Assert.Equal(1, report.BlipStoreEntryCount);
+            Assert.Equal(1, report.ImportableBlipCount);
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
+                diagnostic.Code == "PPT-PICTURE-BLIP-MISSING"
+                || diagnostic.Code == "PPT-PICTURE-BLIP-TRUNCATED"
+                || diagnostic.Code == "PPT-PICTURE-FORMAT-UNSUPPORTED");
+        }
+
+        [Fact]
+        public void NormalLoad_ProjectsBinaryPictureIntoValidEditablePptxModel() {
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(PictureFixturePath);
+            byte[] expected = Assert.Single(legacy.BlipStoreEntries).ImageBytes;
+
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(PictureFixturePath);
+
+            PowerPointSlide slide = Assert.Single(presentation.Slides);
+            PowerPointPicture picture = Assert.Single(slide.Pictures);
+            Assert.Equal("image/png", picture.ContentType);
+            Assert.Equal(expected, picture.GetImageBytes());
+            Assert.Single(slide.SlidePart.ImageParts);
+            Assert.Empty(presentation.ValidateDocument());
+
+            using MemoryStream pptx = presentation.ToStream();
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(pptx);
+            Assert.Equal(expected, Assert.Single(reopened.Slides[0].Pictures).GetImageBytes());
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void UnmodifiedPictureBinarySave_PreservesOriginalPackageExactly() {
+            byte[] source = File.ReadAllBytes(PictureFixturePath);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(PictureFixturePath);
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            Assert.Equal(source, presentation.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedPictureGeometryEdit_UsesIncrementalAnchorRewriteAndPreservesImageStream() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(PictureFixturePath);
+            LegacyPptShape sourcePicture = Assert.Single(original.Slides[0].Shapes,
+                shape => shape.Kind == LegacyPptShapeKind.Picture);
+            byte[] picturesStream = original.Package.CopyCompoundStreams()["Pictures"];
+
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(PictureFixturePath);
+            PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
+            picture.Left += 15875;
+            picture.Width += 3175;
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape savedPicture = Assert.Single(saved.Slides[0].Shapes,
+                shape => shape.Kind == LegacyPptShapeKind.Picture);
+            Assert.Equal(sourcePicture.Bounds.Left + 10, savedPicture.Bounds.Left);
+            Assert.Equal(sourcePicture.Bounds.Width + 2, savedPicture.Bounds.Width);
+            Assert.Equal(picturesStream, saved.Package.CopyCompoundStreams()["Pictures"]);
+            Assert.Equal(original.BlipStoreEntries[0].ImageBytes, saved.BlipStoreEntries[0].ImageBytes);
+        }
+
+        [Fact]
+        public void ImportedPictureImageReplacement_RemainsLossBlocked() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(PictureFixturePath);
+            PowerPointPicture picture = Assert.Single(presentation.Slides[0].Pictures);
+            using var replacement = new MemoryStream(picture.GetImageBytes(), writable: false);
+
+            picture.UpdateImage(replacement, ImagePartType.Png);
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.Throws<NotSupportedException>(() => presentation.ToBytes(PowerPointFileFormat.Ppt));
         }
 
         [Fact]

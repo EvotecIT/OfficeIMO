@@ -312,9 +312,12 @@ namespace OfficeIMO.PowerPoint {
                 case ConnectionShape c:
                     return new PowerPointConnectionShape(c);
                 case Picture p:
-                    return ownerPart is SlidePart slidePart && PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
-                        ? new PowerPointMedia(p, slidePart, kind)
-                        : new PowerPointPicture(p, ownerPart);
+                    if (ownerPart is SlidePart slidePart) {
+                        return PowerPointMedia.TryGetMediaKind(p, out PowerPointMediaKind kind)
+                            ? new PowerPointMedia(p, slidePart, kind)
+                            : new PowerPointPicture(p, slidePart);
+                    }
+                    return new PowerPointPicture(p, ownerPart);
                 case GroupShape g:
                     return new PowerPointGroupShape(g, ownerPart);
                 case GraphicFrame g when g.Graphic?.GraphicData?.GetFirstChild<A.Table>() != null:

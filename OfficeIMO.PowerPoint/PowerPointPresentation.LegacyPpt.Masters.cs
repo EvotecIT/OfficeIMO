@@ -52,7 +52,7 @@ namespace OfficeIMO.PowerPoint {
                 masterPart.DeletePart(extraLayout);
             }
 
-            blankLayout.SlideLayout = CreateLegacyLayout("Binary Main Master", SlideLayoutValues.Blank,
+            blankLayout.SlideLayout = CreateLegacyLayout(blankLayout, "Binary Main Master", SlideLayoutValues.Blank,
                 Array.Empty<LegacyPptShape>());
             SlideMaster slideMaster = masterPart.SlideMaster
                 ?? throw new InvalidDataException("The native PowerPoint scaffold has no slide master.");
@@ -69,7 +69,7 @@ namespace OfficeIMO.PowerPoint {
         private static void ApplyLegacyMaster(SlideMasterPart masterPart, LegacyPptMaster master) {
             SlideMaster slideMaster = masterPart.SlideMaster
                 ?? throw new InvalidDataException("The projected PowerPoint package has no slide master.");
-            slideMaster.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(master.Shapes)) {
+            slideMaster.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(masterPart, master.Shapes)) {
                 Name = GetLegacyMasterName(master)
             };
             if (master.ColorScheme != null) {
@@ -87,7 +87,7 @@ namespace OfficeIMO.PowerPoint {
         private static int AddLegacyTitleMasterLayout(SlideMasterPart masterPart, LegacyPptMaster titleMaster) {
             string relationshipId = GetNextRelationshipId(masterPart);
             SlideLayoutPart layoutPart = masterPart.AddNewPart<SlideLayoutPart>(relationshipId);
-            layoutPart.SlideLayout = CreateLegacyLayout(GetLegacyMasterName(titleMaster),
+            layoutPart.SlideLayout = CreateLegacyLayout(layoutPart, GetLegacyMasterName(titleMaster),
                 SlideLayoutValues.Title, titleMaster.Shapes);
             layoutPart.AddPart(masterPart);
             if (!titleMaster.FollowsMasterObjects && layoutPart.SlideLayout.CommonSlideData != null) {
@@ -189,12 +189,13 @@ namespace OfficeIMO.PowerPoint {
             element.Append(new A.RgbColorModelHex { Val = value });
         }
 
-        private static SlideLayout CreateLegacyLayout(string name, SlideLayoutValues type,
+        private static SlideLayout CreateLegacyLayout(OpenXmlPart ownerPart, string name, SlideLayoutValues type,
             IReadOnlyList<LegacyPptShape> shapes) => new(
-                new CommonSlideData(CreateLegacyShapeTree(shapes)) { Name = name },
+                new CommonSlideData(CreateLegacyShapeTree(ownerPart, shapes)) { Name = name },
                 new ColorMapOverride(new A.MasterColorMapping())) { Type = type };
 
-        private static ShapeTree CreateLegacyShapeTree(IReadOnlyList<LegacyPptShape>? shapes = null) {
+        private static ShapeTree CreateLegacyShapeTree(OpenXmlPart? ownerPart = null,
+            IReadOnlyList<LegacyPptShape>? shapes = null) {
             var tree = new ShapeTree(
                 new NonVisualGroupShapeProperties(
                     new NonVisualDrawingProperties { Id = 1U, Name = string.Empty },
@@ -205,7 +206,9 @@ namespace OfficeIMO.PowerPoint {
 
             uint shapeId = 2U;
             foreach (LegacyPptShape source in shapes) {
-                Shape? shape = CreateLegacyShape(source, shapeId);
+                OpenXmlElement? shape = source.Kind == LegacyPptShapeKind.Picture && ownerPart != null
+                    ? CreateLegacyPicture(ownerPart, source, shapeId)
+                    : CreateLegacyShape(source, shapeId);
                 if (shape == null) continue;
                 tree.Append(shape);
                 shapeId++;
@@ -259,6 +262,39 @@ namespace OfficeIMO.PowerPoint {
                     new A.Paragraph(new A.Run(new A.Text(source.Text)))));
             }
             return shape;
+        }
+
+        private static Picture? CreateLegacyPicture(OpenXmlPart ownerPart, LegacyPptShape source,
+            uint shapeId) {
+            if (source.Picture?.HasImportableImage != true || source.Picture.ContentType == null) return null;
+            ImagePartType type = GetLegacyPicturePartType(source.Picture.ContentType);
+            PartTypeInfo partType = type.ToPartTypeInfo();
+            ImagePart imagePart = ownerPart switch {
+                SlideMasterPart masterPart => masterPart.AddImagePart(partType),
+                SlideLayoutPart layoutPart => layoutPart.AddImagePart(partType),
+                _ => throw new NotSupportedException(
+                    $"Legacy master pictures cannot be attached to {ownerPart.GetType().Name}.")
+            };
+            using (var stream = new MemoryStream(source.Picture.ImageBytes, writable: false)) {
+                imagePart.FeedData(stream);
+            }
+            string relationshipId = ownerPart.GetIdOfPart(imagePart);
+            return new Picture(
+                new NonVisualPictureProperties(
+                    new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Picture {shapeId - 1U}" },
+                    new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
+                    new ApplicationNonVisualDrawingProperties()),
+                new BlipFill(
+                    new A.Blip { Embed = relationshipId },
+                    new A.Stretch(new A.FillRectangle())),
+                new ShapeProperties(
+                    new A.Transform2D(
+                        new A.Offset { X = ToEmus(source.Bounds.Left), Y = ToEmus(source.Bounds.Top) },
+                        new A.Extents {
+                            Cx = Math.Max(1L, ToEmus(source.Bounds.Width)),
+                            Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
+                        }),
+                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle }));
         }
 
         internal static void ApplyLegacyShapeStyle(ShapeProperties properties, LegacyPptShape source) {

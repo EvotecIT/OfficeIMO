@@ -61,4 +61,131 @@ public partial class DrawingTests {
 
         Assert.Empty(OfficeArtPropertyTableReader.Read(payload, 1));
     }
+
+    [Fact]
+    public void OfficeArtBlipStoreEntryReader_ResolvesEmbeddedAndDelayedPngRecords() {
+        byte[] png = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A };
+        byte[] blip = BuildBlipRecord(0x06E0, 0xF01E, png);
+
+        byte[] embeddedFbse = BuildFbse(blip, uint.MaxValue);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(embeddedFbse, 0x0006,
+            out OfficeArtBlipStoreEntry? embedded));
+        Assert.NotNull(embedded);
+        Assert.Equal(OfficeArtBlipStorage.Embedded, embedded!.Storage);
+        Assert.Equal(OfficeArtBlipType.Png, embedded.RecordInstanceBlipType);
+        Assert.Equal("OfficeArtBlipPNG", embedded.BlipRecordTypeName);
+        Assert.Equal("image/png", embedded.ContentType);
+        Assert.Equal(png, embedded.ImageBytes);
+        Assert.True(embedded.HasImportableImage);
+
+        byte[] delayedFbse = BuildFbse(Array.Empty<byte>(), 0);
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(delayedFbse, 0,
+            delayedFbse.Length, 0x0006, blip, out OfficeArtBlipStoreEntry? delayed));
+        Assert.NotNull(delayed);
+        Assert.Equal(OfficeArtBlipStorage.Delayed, delayed!.Storage);
+        Assert.Equal(png, delayed.ImageBytes);
+        Assert.Equal(25, delayed.BlipPayloadAvailableLength);
+        Assert.False(delayed.IsPayloadTruncated);
+    }
+
+    [Fact]
+    public void OfficeArtBlipStoreEntryReader_UsesTwoUidRasterPrefixAndBuildsBmpFileHeader() {
+        byte[] dib = new byte[44];
+        WriteOfficeArtUInt32(dib, 0, 40);
+        WriteOfficeArtUInt32(dib, 4, 1);
+        WriteOfficeArtUInt32(dib, 8, 1);
+        dib[12] = 1;
+        dib[14] = 24;
+        dib[40] = 0x11;
+        dib[41] = 0x22;
+        dib[42] = 0x33;
+        byte[] blip = BuildBlipRecord(0x07A9, 0xF01F, dib, twoUids: true);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(BuildFbse(blip, uint.MaxValue), 0x0007,
+            out OfficeArtBlipStoreEntry? entry));
+
+        Assert.NotNull(entry);
+        Assert.Equal("image/bmp", entry!.ContentType);
+        Assert.Equal(58, entry.ImageBytes.Length);
+        Assert.Equal(0x42, entry.ImageBytes[0]);
+        Assert.Equal(0x4D, entry.ImageBytes[1]);
+        Assert.Equal(54U, ReadOfficeArtUInt32(entry.ImageBytes, 10));
+    }
+
+    [Fact]
+    public void OfficeArtBlipStoreEntryReader_ExtractsUncompressedMetafilePayload() {
+        byte[] metafile = { 0x01, 0x02, 0x03, 0x04 };
+        byte[] header = new byte[34];
+        WriteOfficeArtUInt32(header, 0, unchecked((uint)metafile.Length));
+        WriteOfficeArtUInt32(header, 28, unchecked((uint)metafile.Length));
+        header[32] = 0xFE;
+        header[33] = 0xFE;
+        byte[] blip = BuildBlipRecord(0x03D4, 0xF01A, header.Concat(metafile).ToArray(),
+            includeTag: false);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(BuildFbse(blip, uint.MaxValue), 0x0002,
+            out OfficeArtBlipStoreEntry? entry));
+
+        Assert.NotNull(entry);
+        Assert.Equal("image/x-emf", entry!.ContentType);
+        Assert.Equal(metafile, entry.ImageBytes);
+    }
+
+    [Theory]
+    [InlineData(0xF01D, 0x046A, "image/jpeg")]
+    [InlineData(0xF02A, 0x06E2, "image/jpeg")]
+    [InlineData(0xF029, 0x06E4, "image/tiff")]
+    public void OfficeArtBlipStoreEntryReader_ExtractsSupportedRasterFormats(
+        ushort recordType, ushort recordInstance, string contentType) {
+        byte[] image = recordType == 0xF029
+            ? new byte[] { 0x49, 0x49, 0x2A, 0x00, 0x01 }
+            : new byte[] { 0xFF, 0xD8, 0xFF, 0xD9 };
+        byte[] blip = BuildBlipRecord(recordInstance, recordType, image);
+
+        Assert.True(OfficeArtBlipStoreEntryReader.TryRead(BuildFbse(blip, uint.MaxValue), 0x0005,
+            out OfficeArtBlipStoreEntry? entry));
+
+        Assert.NotNull(entry);
+        Assert.Equal(contentType, entry!.ContentType);
+        Assert.Equal(image, entry.ImageBytes);
+    }
+
+    private static byte[] BuildFbse(byte[] embeddedBlip, uint delayedOffset) {
+        byte[] payload = new byte[36 + embeddedBlip.Length];
+        payload[0] = 0x06;
+        payload[1] = 0x06;
+        for (int index = 0; index < 16; index++) payload[2 + index] = unchecked((byte)index);
+        WriteOfficeArtUInt32(payload, 20, unchecked((uint)embeddedBlip.Length));
+        WriteOfficeArtUInt32(payload, 24, 1);
+        WriteOfficeArtUInt32(payload, 28, delayedOffset);
+        Buffer.BlockCopy(embeddedBlip, 0, payload, 36, embeddedBlip.Length);
+        return payload;
+    }
+
+    private static byte[] BuildBlipRecord(ushort instance, ushort type, byte[] imageData,
+        bool twoUids = false, bool includeTag = true) {
+        int uidLength = twoUids ? 32 : 16;
+        byte[] payload = new byte[uidLength + (includeTag ? 1 : 0) + imageData.Length];
+        if (includeTag) payload[uidLength] = 0xFF;
+        Buffer.BlockCopy(imageData, 0, payload, uidLength + (includeTag ? 1 : 0), imageData.Length);
+        byte[] record = new byte[8 + payload.Length];
+        ushort versionAndInstance = unchecked((ushort)(instance << 4));
+        record[0] = unchecked((byte)versionAndInstance);
+        record[1] = unchecked((byte)(versionAndInstance >> 8));
+        record[2] = unchecked((byte)type);
+        record[3] = unchecked((byte)(type >> 8));
+        WriteOfficeArtUInt32(record, 4, unchecked((uint)payload.Length));
+        Buffer.BlockCopy(payload, 0, record, 8, payload.Length);
+        return record;
+    }
+
+    private static uint ReadOfficeArtUInt32(byte[] source, int offset) => unchecked((uint)(
+        source[offset] | source[offset + 1] << 8 | source[offset + 2] << 16 | source[offset + 3] << 24));
+
+    private static void WriteOfficeArtUInt32(byte[] target, int offset, uint value) {
+        target[offset] = unchecked((byte)value);
+        target[offset + 1] = unchecked((byte)(value >> 8));
+        target[offset + 2] = unchecked((byte)(value >> 16));
+        target[offset + 3] = unchecked((byte)(value >> 24));
+    }
 }

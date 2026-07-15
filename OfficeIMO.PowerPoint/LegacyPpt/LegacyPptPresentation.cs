@@ -24,6 +24,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordTextBytes = 0x0FA8;
         private const ushort RecordSlideListWithText = 0x0FF0;
         private const ushort OfficeArtSpContainer = 0xF004;
+        private const ushort OfficeArtBStoreContainer = 0xF001;
+        private const ushort OfficeArtFbse = 0xF007;
         private const ushort OfficeArtFsp = 0xF00A;
         private const ushort OfficeArtFopt = 0xF00B;
         private const ushort OfficeArtClientTextbox = 0xF00D;
@@ -32,6 +34,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private readonly List<LegacyPptSlide> _slides = new();
         private readonly List<LegacyPptMaster> _masters = new();
+        private readonly List<OfficeArtBlipStoreEntry> _blipStoreEntries = new();
         private readonly List<LegacyPptImportDiagnostic> _diagnostics = new();
 
         private LegacyPptPresentation() { }
@@ -49,6 +52,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets decoded main masters and title masters in document order.</summary>
         public IReadOnlyList<LegacyPptMaster> Masters => _masters;
+
+        /// <summary>Gets the document-level OfficeArt BLIP store in one-based reference order.</summary>
+        public IReadOnlyList<OfficeArtBlipStoreEntry> BlipStoreEntries => _blipStoreEntries;
 
         /// <summary>Gets import diagnostics, including preserve-only content.</summary>
         public IReadOnlyList<LegacyPptImportDiagnostic> Diagnostics => _diagnostics;
@@ -103,6 +109,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     SlideHeight = height;
                 }
             }
+
+            ParseBlipStore(document, package, options);
 
             ParseMasters(document, documentStream, persistOffsets, options);
 
@@ -261,10 +269,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 LegacyPptRecord? fopt = shapeContainer.Children.FirstOrDefault(record =>
                     record.Type == OfficeArtFopt);
                 OfficeArtShapeStyle style = ReadShapeStyle(fopt);
+                int? pictureStoreIndex = ReadPictureStoreIndex(style);
+                OfficeArtBlipStoreEntry? picture = ResolvePicture(pictureStoreIndex);
+                bool isPictureFrame = shapeType == 75;
+                if (isPictureFrame) {
+                    kind = picture?.HasImportableImage == true
+                        ? LegacyPptShapeKind.Picture
+                        : LegacyPptShapeKind.Unsupported;
+                }
                 addShape(new LegacyPptShape(kind, shapeType, shapeId, shapeContainer.Offset,
                     bounds, text, placeholder, style,
                     ResolveShapeColor(style.FillColor, colorScheme),
-                    ResolveShapeColor(style.LineColor, colorScheme)));
+                    ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture));
 
                 if (textbox != null && textbox.DescendantsAndSelf()
                         .Any(record => record.Type == RecordStyleTextPropAtom)) {
@@ -274,16 +290,68 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (fopt != null && fopt.Instance > 0 && style.Properties.Count == 0) {
                     AddDiagnostic("PPT-SHAPE-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
                         "The OfficeArt property table is truncated and could not be decoded.", fopt.Offset);
-                } else if (style.HasUnprojectedVisualStyle) {
+                } else if (!isPictureFrame && style.HasUnprojectedVisualStyle) {
                     AddDiagnostic("PPT-SHAPE-STYLE-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
                         "The shape uses a non-solid fill, compound line, custom dash, or enabled shadow that is preserved but not projected yet.",
                         shapeContainer.Offset);
                 }
 
-                if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
+                if (isPictureFrame && kind == LegacyPptShapeKind.Unsupported
+                    && options.ReportUnsupportedContent) {
+                    AddPictureDiagnostic(pictureStoreIndex, picture, shapeContainer.Offset);
+                } else if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
                     AddDiagnostic("PPT-SHAPE-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
                         $"OfficeArt shape type {shapeType} on a {ownerDescription} is not projected to the editable PowerPoint model.", shapeContainer.Offset);
                 }
+            }
+        }
+
+        private void ParseBlipStore(LegacyPptRecord document, LegacyPptPackage package,
+            LegacyPptImportOptions options) {
+            LegacyPptRecord? store = document.DescendantsAndSelf()
+                .FirstOrDefault(record => record.Type == OfficeArtBStoreContainer);
+            if (store == null) return;
+            foreach (LegacyPptRecord fbse in store.Children.Where(record => record.Type == OfficeArtFbse)) {
+                byte[] bytes = fbse.CopyRecordBytes();
+                if (OfficeArtBlipStoreEntryReader.TryRead(bytes, 8, fbse.PayloadLength, fbse.Instance,
+                        package.PicturesStream, out OfficeArtBlipStoreEntry? entry,
+                        options.MaxInputBytes) && entry != null) {
+                    _blipStoreEntries.Add(entry);
+                } else if (options.ReportUnsupportedContent) {
+                    AddDiagnostic("PPT-PICTURE-FBSE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                        "An OfficeArt picture-store entry is truncated and could not be decoded.", fbse.Offset);
+                }
+            }
+        }
+
+        private static int? ReadPictureStoreIndex(OfficeArtShapeStyle style) {
+            OfficeArtProperty? property = style.Properties.FirstOrDefault(candidate =>
+                candidate.PropertyId == 0x0104 && candidate.IsBlipId && candidate.Value > 0);
+            if (property == null || property.Value > int.MaxValue) return null;
+            return unchecked((int)property.Value);
+        }
+
+        private OfficeArtBlipStoreEntry? ResolvePicture(int? oneBasedIndex) {
+            if (!oneBasedIndex.HasValue) return null;
+            int index = oneBasedIndex.Value - 1;
+            return (uint)index < (uint)_blipStoreEntries.Count ? _blipStoreEntries[index] : null;
+        }
+
+        private void AddPictureDiagnostic(int? storeIndex, OfficeArtBlipStoreEntry? picture,
+            long offset) {
+            if (picture == null) {
+                AddDiagnostic("PPT-PICTURE-BLIP-MISSING", LegacyPptDiagnosticSeverity.Warning,
+                    storeIndex.HasValue
+                        ? $"The picture frame references missing BLIP store entry {storeIndex.Value}."
+                        : "The picture frame has no valid BLIP store reference.", offset);
+            } else if (picture.IsPayloadTruncated) {
+                AddDiagnostic("PPT-PICTURE-BLIP-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    $"The {picture.BlipRecordTypeName ?? picture.RecordInstanceBlipTypeName} payload is truncated.",
+                    offset);
+            } else {
+                AddDiagnostic("PPT-PICTURE-FORMAT-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
+                    $"The {picture.BlipRecordTypeName ?? picture.RecordInstanceBlipTypeName} picture cannot be projected to an editable Open XML image part.",
+                    offset);
             }
         }
 
@@ -386,6 +454,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private static LegacyPptShapeKind ClassifyShape(ushort shapeType, bool hasText) {
             if (hasText || shapeType == 202) return LegacyPptShapeKind.TextBox;
+            if (shapeType == 75) return LegacyPptShapeKind.Picture;
             if (shapeType == 1) return LegacyPptShapeKind.Rectangle;
             if (shapeType == 3) return LegacyPptShapeKind.Ellipse;
             if (shapeType == 20) return LegacyPptShapeKind.Line;

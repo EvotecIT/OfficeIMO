@@ -1,9 +1,34 @@
+using OfficeIMO.Drawing.Binary;
+
 namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
     /// Describes an OfficeArt FBSE image-store entry discovered in a legacy XLS drawing group.
     /// </summary>
     public sealed class LegacyXlsDrawingBlipStoreEntry {
         private readonly byte[] _embeddedBlipPayloadBytes;
+
+        internal LegacyXlsDrawingBlipStoreEntry(OfficeArtBlipStoreEntry source) {
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            RecordInstance = source.RecordInstance;
+            RecordInstanceBlipTypeKind = ToLegacyType(source.RecordInstanceBlipType);
+            RecordInstanceBlipTypeName = source.RecordInstanceBlipTypeName;
+            Win32BlipType = source.Win32BlipType;
+            Win32BlipTypeKind = ToLegacyType(source.Win32BlipTypeKind);
+            Win32BlipTypeName = source.Win32BlipTypeName;
+            MacOsBlipType = source.MacOsBlipType;
+            MacOsBlipTypeKind = ToLegacyType(source.MacOsBlipTypeKind);
+            MacOsBlipTypeName = source.MacOsBlipTypeName;
+            UidHex = source.UidHex;
+            SizeBytes = source.SizeBytes;
+            ReferenceCount = source.ReferenceCount;
+            EmbeddedBlipRecordType = source.BlipRecordType;
+            EmbeddedBlipRecordTypeName = source.BlipRecordTypeName;
+            EmbeddedBlipPayloadLength = source.BlipPayloadLength;
+            EmbeddedBlipPayloadAvailableLength = source.BlipPayloadAvailableLength;
+            EmbeddedBlipPayloadSha256 = source.BlipPayloadSha256;
+            _embeddedBlipPayloadBytes = source.ImageBytes;
+            EmbeddedBlipContentType = source.ContentType;
+        }
 
         /// <summary>
         /// Creates preserve-only metadata for an OfficeArt FBSE image-store entry.
@@ -119,6 +144,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 _ => null
             };
         }
+
+        private static LegacyXlsDrawingBlipType? ToLegacyType(OfficeArtBlipType? value) => value.HasValue
+            ? (LegacyXlsDrawingBlipType)unchecked((int)value.Value)
+            : null;
 
         private static string GetBlipTypeName(ushort value) {
             return TryGetBlipTypeKind(value)?.ToString() ?? $"BlipType:0x{value:X2}";

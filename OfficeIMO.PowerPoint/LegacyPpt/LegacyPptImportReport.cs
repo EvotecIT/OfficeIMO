@@ -9,6 +9,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ShapeCount = presentation.Slides.Sum(slide => slide.Shapes.Count);
             TextShapeCount = presentation.Slides.Sum(slide =>
                 slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.TextBox));
+            PictureShapeCount = presentation.Slides.Sum(slide =>
+                slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.Picture));
+            BlipStoreEntryCount = presentation.BlipStoreEntries.Count;
+            ImportableBlipCount = presentation.BlipStoreEntries.Count(entry => entry.HasImportableImage);
             UnsupportedShapeCount = presentation.Slides.Sum(slide =>
                 slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.Unsupported));
             NotesSlideCount = presentation.Slides.Count(slide => !string.IsNullOrWhiteSpace(slide.NotesText));
@@ -29,6 +33,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the decoded text-shape count.</summary>
         public int TextShapeCount { get; }
+
+        /// <summary>Gets the number of slide picture frames with importable image data.</summary>
+        public int PictureShapeCount { get; }
+
+        /// <summary>Gets the number of document-level OfficeArt BLIP store entries.</summary>
+        public int BlipStoreEntryCount { get; }
+
+        /// <summary>Gets the number of BLIP entries that can be projected as Open XML images.</summary>
+        public int ImportableBlipCount { get; }
 
         /// <summary>Gets the preserve-only unsupported shape count.</summary>
         public int UnsupportedShapeCount { get; }

@@ -15,6 +15,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>A line auto shape.</summary>
         Line,
 
+        /// <summary>An OfficeArt picture frame with importable image data.</summary>
+        Picture,
+
         /// <summary>A recognized OfficeArt shape that is preserved only as metadata.</summary>
         Unsupported
     }
@@ -81,7 +84,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     public sealed class LegacyPptShape {
         internal LegacyPptShape(LegacyPptShapeKind kind, ushort officeArtShapeType, uint shapeId,
             long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholderKind placeholderKind,
-            OfficeArtShapeStyle style, string? fillColor, string? lineColor) {
+            OfficeArtShapeStyle style, string? fillColor, string? lineColor,
+            int? pictureStoreIndex = null, OfficeArtBlipStoreEntry? picture = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -92,6 +96,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             Style = style ?? throw new ArgumentNullException(nameof(style));
             FillColor = fillColor;
             LineColor = lineColor;
+            PictureStoreIndex = pictureStoreIndex;
+            Picture = picture;
         }
 
         /// <summary>Gets the projected shape kind.</summary>
@@ -123,5 +129,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the resolved line color as RRGGBB, when available.</summary>
         public string? LineColor { get; }
+
+        /// <summary>Gets the one-based OfficeArt BStore index referenced by the picture frame.</summary>
+        public int? PictureStoreIndex { get; }
+
+        /// <summary>Gets the resolved OfficeArt picture entry, when available.</summary>
+        public OfficeArtBlipStoreEntry? Picture { get; }
     }
 }
