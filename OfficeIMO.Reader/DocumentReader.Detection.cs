@@ -644,6 +644,9 @@ internal static partial class DocumentReaderEngine {
             ".json" => "application/json",
             ".xml" => "application/xml",
             ".yml" or ".yaml" => "application/yaml",
+            ".odt" => "application/vnd.oasis.opendocument.text",
+            ".ods" => "application/vnd.oasis.opendocument.spreadsheet",
+            ".odp" => "application/vnd.oasis.opendocument.presentation",
             _ => GetMediaType(kind)
         };
     }

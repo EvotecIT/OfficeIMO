@@ -64,15 +64,35 @@ public sealed class ReaderAllPresetTests {
         presentation.AddSlide("Summary")
             .AddTextBox(OdfRect.FromCentimeters(1, 1, 12, 3), "ODP semantic marker");
         var cases = new[] {
-            (Name: "document.odt", Bytes: text.ToBytes(), Marker: "ODT semantic marker"),
-            (Name: "document.ods", Bytes: spreadsheet.ToBytes(), Marker: "ODS semantic marker"),
-            (Name: "document.odp", Bytes: presentation.ToBytes(), Marker: "ODP semantic marker")
+            (
+                Name: "document.odt",
+                Bytes: text.ToBytes(),
+                Marker: "ODT semantic marker",
+                MediaType: "application/vnd.oasis.opendocument.text"),
+            (
+                Name: "document.ods",
+                Bytes: spreadsheet.ToBytes(),
+                Marker: "ODS semantic marker",
+                MediaType: "application/vnd.oasis.opendocument.spreadsheet"),
+            (
+                Name: "document.odp",
+                Bytes: presentation.ToBytes(),
+                Marker: "ODP semantic marker",
+                MediaType: "application/vnd.oasis.opendocument.presentation")
         };
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
             .AddAllOfficeIMOHandlers()
             .Build();
 
-        foreach ((string name, byte[] bytes, string marker) in cases) {
+        foreach ((string name, byte[] bytes, string marker, string mediaType) in cases) {
+            ReaderDetectionResult detection = reader.Detect(bytes, name);
+
+            Assert.Equal(ReaderInputKind.OpenDocument, detection.ExtensionKind);
+            Assert.Equal(ReaderInputKind.OpenDocument, detection.ContentKind);
+            Assert.Equal(ReaderInputKind.OpenDocument, detection.Kind);
+            Assert.Equal(mediaType, detection.MediaType);
+            Assert.Equal(ReaderDetectionConfidence.High, detection.Confidence);
+
             OfficeDocumentReadResult result = reader.ReadDocument(
                 bytes,
                 name,
