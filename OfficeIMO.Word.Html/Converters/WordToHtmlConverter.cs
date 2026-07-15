@@ -71,17 +71,19 @@ namespace OfficeIMO.Word.Html {
                 bool inQuote = false;
                 IElement? quote = null;
 
+                IElement? CreateEquationNode(WordEquation equation) {
+                    IElement? mathNode = new HtmlParser()
+                        .ParseFragment(equation.ToMathMl(), parent)
+                        .OfType<IElement>()
+                        .FirstOrDefault();
+                    mathNode?.SetAttribute("aria-label", equation.Text);
+                    return mathNode;
+                }
+
                 void AppendEquationNodesBefore(int childIndex) {
-                    while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex <= childIndex) {
-                        WordEquation equation = equations[nextEquation++].Equation;
-                        string mathMl = equation.ToMathMl();
-                        IElement? mathNode = new HtmlParser()
-                            .ParseFragment(mathMl, parent)
-                            .OfType<IElement>()
-                            .FirstOrDefault();
-                        if (mathNode == null) continue;
-                        mathNode.SetAttribute("aria-label", equation.Text);
-                        nodes.Add(mathNode);
+                    while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex < childIndex) {
+                        IElement? mathNode = CreateEquationNode(equations[nextEquation++].Equation);
+                        if (mathNode != null) nodes.Add(mathNode);
                     }
                 }
 
@@ -92,7 +94,31 @@ namespace OfficeIMO.Word.Html {
                         ?? run._run;
                     int runIndex = runContainer == null ? int.MaxValue : paragraphChildren.IndexOf(runContainer);
                     AppendEquationNodesBefore(runIndex < 0 ? int.MaxValue : runIndex);
-                    if (equations.Any(equation => equation.ContainsChildIndex(runIndex))) {
+                    List<WordEquationOccurrence> coveringEquations = equations
+                        .Where(equation => equation.ContainsChildIndex(runIndex))
+                        .ToList();
+                    if (runContainer != null &&
+                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex)) {
+                        foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
+                            if (segment.Equation != null) {
+                                IElement? mathNode = CreateEquationNode(segment.Equation);
+                                if (mathNode != null) nodes.Add(mathNode);
+                            } else if (!string.IsNullOrEmpty(segment.Text)) {
+                                nodes.Add(CreateEquationAdjacentTextNode(
+                                    htmlDoc,
+                                    run,
+                                    segment.Text!,
+                                    options,
+                                    document.Settings.Language,
+                                    runStyles));
+                            }
+                        }
+                        while (nextEquation < equations.Count && equations[nextEquation].StartChildIndex == runIndex) {
+                            nextEquation++;
+                        }
+                        continue;
+                    }
+                    if (coveringEquations.Count > 0) {
                         continue;
                     }
                     if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(run)) {

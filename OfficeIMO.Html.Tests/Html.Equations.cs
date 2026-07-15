@@ -60,16 +60,41 @@ namespace OfficeIMO.Tests {
             WordParagraph paragraph = document.AddParagraph("before ");
             paragraph._paragraph.Append(new SdtRun(
                 new SdtProperties(new SdtId { Val = 2076 }),
-                new SdtContentRun(new M.OfficeMath(new M.Run(new M.Text("controlled"))))));
+                new SdtContentRun(
+                    new Run(new Text("control-prefix ")),
+                    new M.OfficeMath(new M.Run(new M.Text("controlled"))),
+                    new Run(new Text(" control-suffix")))));
             paragraph.AddText(" after");
 
             string html = document.ToHtml();
 
             int before = html.IndexOf("before ", StringComparison.Ordinal);
+            int prefix = html.IndexOf("control-prefix ", StringComparison.Ordinal);
             int math = html.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
+            int suffix = html.IndexOf(" control-suffix", StringComparison.Ordinal);
             int after = html.IndexOf(" after", StringComparison.Ordinal);
-            Assert.True(before >= 0 && before < math && math < after, html);
+            Assert.True(before >= 0 && before < prefix && prefix < math && math < suffix && suffix < after, html);
             Assert.Contains("aria-label=\"controlled\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void WordToHtml_ExportsEquationAndSurroundingTextInsideHyperlink() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph._paragraph.Append(new Hyperlink(
+                new Run(new Text("link-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                new Run(new Text(" link-suffix"))) {
+                Anchor = "target"
+            });
+
+            string html = document.ToHtml();
+
+            int prefix = html.IndexOf("link-prefix ", StringComparison.Ordinal);
+            int math = html.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
+            int suffix = html.IndexOf(" link-suffix", StringComparison.Ordinal);
+            Assert.True(prefix >= 0 && prefix < math && math < suffix, html);
+            Assert.Contains("aria-label=\"linked\"", html, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

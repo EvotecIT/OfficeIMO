@@ -421,11 +421,13 @@ namespace OfficeIMO.Tests {
         public void LegacyDoc_SaveDocPath_ConvertsOmmlToNativeEqFieldsAndReloadsAsEquations() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string fractionOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
+            const string noBarFractionOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:fPr><m:type m:val=\"noBar\"/></m:fPr><m:num><m:r><m:t>e</m:t></m:r></m:num><m:den><m:r><m:t>f</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
             const string oneSidedOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:d><m:dPr><m:begChr m:val=\"{\"/><m:endChr m:val=\"\"/></m:dPr><m:e><m:r><m:t>x</m:t></m:r></m:e></m:d></m:oMath></m:oMathPara>";
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
                     document.AddEquation(fractionOmml);
+                    document.AddEquation(noBarFractionOmml);
                     WordTable table = document.AddTable(1, 1);
                     table.Rows[0].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true).AddEquation(oneSidedOmml.Replace("<m:t>x</m:t>", "<m:t>t</m:t>"));
                     document.AddHeadersAndFooters();
@@ -442,6 +444,7 @@ namespace OfficeIMO.Tests {
                 string wordDocumentAscii = Encoding.ASCII.GetString(ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument"));
                 Assert.Contains(" EQ ", wordDocumentAscii, StringComparison.Ordinal);
                 Assert.Contains("\\f(a,b)", wordDocumentAscii, StringComparison.Ordinal);
+                Assert.Contains("\\a\\co1(e,f)", wordDocumentAscii, StringComparison.Ordinal);
                 Assert.Contains("EQ {t", wordDocumentAscii, StringComparison.Ordinal);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
@@ -451,6 +454,10 @@ namespace OfficeIMO.Tests {
                     equation.Representation == WordEquationRepresentation.EquationField &&
                     equation.Text == "(a)/(b)" &&
                     equation.FieldInstruction!.Contains("\\f(a,b)", StringComparison.Ordinal));
+                Assert.Contains(reloaded.Equations, equation =>
+                    equation.Representation == WordEquationRepresentation.EquationField &&
+                    equation.Text == "stack(e,f)" &&
+                    equation.FieldInstruction!.Contains("\\a\\co1(e,f)", StringComparison.Ordinal));
 
                 MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
                 SimpleField[] equationFields = mainPart.Document.Descendants<SimpleField>()
@@ -460,7 +467,7 @@ namespace OfficeIMO.Tests {
                     .Concat(mainPart.EndnotesPart!.Endnotes!.Descendants<SimpleField>())
                     .Where(field => field.Instruction?.Value.TrimStart().StartsWith("EQ", StringComparison.OrdinalIgnoreCase) == true)
                     .ToArray();
-                Assert.Equal(6, equationFields.Length);
+                Assert.Equal(7, equationFields.Length);
                 Assert.Contains(equationFields, field => field.InnerText == "{t");
                 Assert.Contains(equationFields, field => field.InnerText == "{f");
                 Assert.Contains(equationFields, field => field.InnerText == "{n");

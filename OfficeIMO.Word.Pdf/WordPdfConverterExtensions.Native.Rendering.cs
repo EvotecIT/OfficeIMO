@@ -461,7 +461,8 @@ namespace OfficeIMO.Word.Pdf {
 
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
-            if (hasRenderableRuns) {
+            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
+            if (hasRenderableRuns && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (run.IsImage && run.Image != null) {
                         continue;
@@ -484,6 +485,8 @@ namespace OfficeIMO.Word.Pdf {
                 if (!string.IsNullOrEmpty(supplementalText)) {
                     AddNativeText(builder, supplementalText!, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
                 }
+            } else if (hasEquationContent) {
+                AddNativeText(builder, content, paragraph, tabStops, ref tabIndex, nativeDefaults, nativeFontMap);
             } else if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 ApplyNativeTextStyle(builder, paragraph, nativeDefaults: nativeDefaults, nativeFontMap: nativeFontMap);
                 AddNativeHyperLinkRun(builder, paragraph.Hyperlink.Text, paragraph.Hyperlink, tabStops, ref tabIndex);

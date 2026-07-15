@@ -130,6 +130,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Equation_ProjectsEveryOmmlFractionTypeAcrossRepresentations() {
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath>" +
+                "<m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f>" +
+                "<m:f><m:fPr><m:type m:val=\"lin\"/></m:fPr><m:num><m:r><m:t>c</m:t></m:r></m:num><m:den><m:r><m:t>d</m:t></m:r></m:den></m:f>" +
+                "<m:f><m:fPr><m:type m:val=\"noBar\"/></m:fPr><m:num><m:r><m:t>e</m:t></m:r></m:num><m:den><m:r><m:t>f</m:t></m:r></m:den></m:f>" +
+                "<m:f><m:fPr><m:type m:val=\"skw\"/></m:fPr><m:num><m:r><m:t>g</m:t></m:r></m:num><m:den><m:r><m:t>h</m:t></m:r></m:den></m:f>" +
+                "</m:oMath></m:oMathPara>";
+            using WordDocument document = WordDocument.Create();
+            document.AddEquation(omml);
+
+            WordEquation equation = Assert.Single(document.Equations);
+
+            Assert.Equal("(a)/(b)c/dstack(e,f)g⁄h", equation.Text);
+            string latex = equation.ToLatex();
+            Assert.Contains("\\frac{a}{b}", latex, StringComparison.Ordinal);
+            Assert.Contains("{c}/{d}", latex, StringComparison.Ordinal);
+            Assert.Contains("\\genfrac{}{}{0pt}{}{e}{f}", latex, StringComparison.Ordinal);
+            Assert.Contains("{}^{g}\\! / \\!{}_{h}", latex, StringComparison.Ordinal);
+
+            string mathMl = equation.ToMathMl();
+            Assert.Contains("<mfrac><mtext>a</mtext><mtext>b</mtext></mfrac>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<mrow><mtext>c</mtext><mo>/</mo><mtext>d</mtext></mrow>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<mfrac linethickness=\"0\"><mtext>e</mtext><mtext>f</mtext></mfrac>", mathMl, StringComparison.Ordinal);
+            Assert.Contains("<mfrac bevelled=\"true\"><mtext>g</mtext><mtext>h</mtext></mfrac>", mathMl, StringComparison.Ordinal);
+
+            string field = equation.ToEquationFieldInstruction();
+            Assert.Contains("\\f(a,b)", field, StringComparison.Ordinal);
+            Assert.Contains("c/d", field, StringComparison.Ordinal);
+            Assert.Contains("\\a\\co1(e,f)", field, StringComparison.Ordinal);
+            Assert.Contains("g⁄h", field, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Equation_ProjectsCommonOmmlStructuresToNativeEqSwitches() {
             const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath>" +
                 "<m:rad><m:deg/><m:e><m:r><m:t>x</m:t></m:r></m:e></m:rad>" +
@@ -269,6 +302,34 @@ namespace OfficeIMO.Tests {
             Assert.Equal(new[] { "omml", "simple", "complex" }, occurrences.Select(occurrence => occurrence.Equation.Text));
             Assert.All(occurrences, occurrence => Assert.Equal(contentControlIndex, occurrence.StartChildIndex));
             Assert.Equal(new[] { "omml", "simple", "complex" }, document.Equations.Select(equation => equation.Text));
+            Assert.Empty(document.ValidateDocument());
+        }
+
+        [Fact]
+        public void EquationOccurrences_DiscoverAndOrderMathInsideHyperlinks() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            var hyperlink = new Hyperlink(
+                new Run(new Text("link-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("linked"))),
+                new Run(new Text(" link-suffix"))) {
+                Anchor = "equation-target"
+            };
+            paragraph._paragraph.Append(hyperlink);
+            paragraph.AddText(" after");
+
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(document, paragraph._paragraph);
+            WordEquationOccurrence occurrence = Assert.Single(occurrences);
+            IReadOnlyList<WordEquationContentSegment> segments =
+                WordEquation.GetVisibleContentSegments(hyperlink, occurrences);
+
+            Assert.Equal("linked", occurrence.Equation.Text);
+            Assert.Collection(
+                segments,
+                segment => Assert.Equal("link-prefix ", segment.Text),
+                segment => Assert.Same(occurrence.Equation, segment.Equation),
+                segment => Assert.Equal(" link-suffix", segment.Text));
+            Assert.Equal("link-prefix linked link-suffix", WordEquation.GetVisibleTextWithEquations(hyperlink, occurrences));
             Assert.Empty(document.ValidateDocument());
         }
 

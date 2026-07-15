@@ -18,11 +18,7 @@ namespace OfficeIMO.Word {
 
             switch (element.LocalName) {
                 case "f":
-                    builder.Append("\\f(");
-                    AppendEquationFieldChild(builder, element, "num");
-                    builder.Append(',');
-                    AppendEquationFieldChild(builder, element, "den");
-                    builder.Append(')');
+                    AppendFractionEquationField(builder, element);
                     return;
                 case "sSup":
                     AppendEquationFieldChild(builder, element, "e");
@@ -104,6 +100,35 @@ namespace OfficeIMO.Word {
         private static void AppendEquationFieldChild(StringBuilder builder, OpenXmlElement element, string localName) {
             OpenXmlElement? child = FindFirstChild(element, localName);
             if (child != null) AppendEquationField(builder, child);
+        }
+
+        private static void AppendFractionEquationField(StringBuilder builder, OpenXmlElement element) {
+            switch (ReadFractionType(element)) {
+                case MathFractionType.Linear:
+                    AppendEquationFieldChild(builder, element, "num");
+                    builder.Append('/');
+                    AppendEquationFieldChild(builder, element, "den");
+                    return;
+                case MathFractionType.NoBar:
+                    builder.Append("\\a\\co1(");
+                    AppendEquationFieldChild(builder, element, "num");
+                    builder.Append(',');
+                    AppendEquationFieldChild(builder, element, "den");
+                    builder.Append(')');
+                    return;
+                case MathFractionType.Skewed:
+                    AppendEquationFieldChild(builder, element, "num");
+                    builder.Append('\u2044');
+                    AppendEquationFieldChild(builder, element, "den");
+                    return;
+                default:
+                    builder.Append("\\f(");
+                    AppendEquationFieldChild(builder, element, "num");
+                    builder.Append(',');
+                    AppendEquationFieldChild(builder, element, "den");
+                    builder.Append(')');
+                    return;
+            }
         }
 
         private static void AppendEquationFieldScript(StringBuilder builder, string switchName, OpenXmlElement element, string localName) {

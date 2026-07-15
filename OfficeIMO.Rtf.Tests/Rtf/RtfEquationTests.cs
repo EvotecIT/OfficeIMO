@@ -43,6 +43,24 @@ public sealed class RtfEquationTests {
     }
 
     [Fact]
+    public void WordToRtf_MapsOmmlFractionTypeVariantsToNativeEqFields() {
+        const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath>" +
+            "<m:f><m:fPr><m:type m:val=\"lin\"/></m:fPr><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f>" +
+            "<m:f><m:fPr><m:type m:val=\"noBar\"/></m:fPr><m:num><m:r><m:t>c</m:t></m:r></m:num><m:den><m:r><m:t>d</m:t></m:r></m:den></m:f>" +
+            "<m:f><m:fPr><m:type m:val=\"skw\"/></m:fPr><m:num><m:r><m:t>e</m:t></m:r></m:num><m:den><m:r><m:t>f</m:t></m:r></m:den></m:f>" +
+            "</m:oMath></m:oMathPara>";
+        using WordDocument word = WordDocument.Create();
+        word.AddEquation(omml);
+
+        RtfField field = Assert.Single(Assert.Single(word.ToRtfDocument().Paragraphs).Inlines.OfType<RtfField>());
+
+        Assert.Equal("a/bstack(c,d)e⁄f", field.ToPlainText());
+        Assert.Contains("a/b", field.Instruction, StringComparison.Ordinal);
+        Assert.Contains("\\a\\co1(c,d)", field.Instruction, StringComparison.Ordinal);
+        Assert.Contains("e⁄f", field.Instruction, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfParagraph_AddEquationField_NormalizesEqPrefix() {
         RtfParagraph paragraph = RtfDocument.Create().AddParagraph();
 

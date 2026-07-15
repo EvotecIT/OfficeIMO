@@ -749,7 +749,15 @@ namespace OfficeIMO.Word.Markdown {
                     ?? (OpenXmlElement?)run._stdRun
                     ?? run._run;
                 int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
-                if (equations.Any(equation => equation.ContainsChildIndex(runIndex))) {
+                List<WordEquationOccurrence> coveringEquations = equations
+                    .Where(equation => equation.ContainsChildIndex(runIndex))
+                    .ToList();
+                if (coveringEquations.Count > 0) {
+                    if (runContainer != null &&
+                        coveringEquations.Any(equation => equation.StartChildIndex == runIndex)) {
+                        string surroundingText = WordEquation.GetVisibleTextOutsideEquations(runContainer, coveringEquations);
+                        AppendRunInlines(sequence, run, options, preferredCodeFont, implicitCodeFont, surroundingText);
+                    }
                     continue;
                 }
 
@@ -768,7 +776,8 @@ namespace OfficeIMO.Word.Markdown {
             WordParagraph run,
             WordToMarkdownOptions options,
             string? preferredCodeFont,
-            string? implicitCodeFont) {
+            string? implicitCodeFont,
+            string? textOverride = null) {
             if (run.IsCheckBox) {
                 return;
             }
@@ -787,7 +796,7 @@ namespace OfficeIMO.Word.Markdown {
                 return;
             }
 
-            string? text = run.Text;
+            string? text = textOverride ?? run.Text;
             if (run.PageBreak != null && !string.IsNullOrEmpty(text)) {
                 text = text!.Replace("\u2028", string.Empty);
             }

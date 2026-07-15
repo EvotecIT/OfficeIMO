@@ -657,6 +657,14 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string? AppendNativeHeaderFooterEquationText(string? text, WordParagraph paragraph) {
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            if (occurrences.Count > 0) {
+                string orderedText = WordEquation.GetVisibleTextWithEquations(paragraph._paragraph, occurrences);
+                if (!string.IsNullOrWhiteSpace(orderedText)) {
+                    return orderedText;
+                }
+            }
+
             string? equationText = GetNativeEquationText(paragraph);
             if (string.IsNullOrWhiteSpace(equationText)) {
                 return text;
@@ -765,19 +773,13 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         private static string AppendNativeTextWithEquation(string text, WordParagraph paragraph) {
-            string? equationText = GetNativeEquationText(paragraph);
-            if (string.IsNullOrWhiteSpace(equationText) ||
-                text.IndexOf(equationText!, StringComparison.Ordinal) >= 0) {
+            IReadOnlyList<WordEquationOccurrence> occurrences = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph);
+            if (occurrences.Count == 0) {
                 return text;
             }
 
-            if (string.IsNullOrEmpty(text)) {
-                return equationText!;
-            }
-
-            return char.IsWhiteSpace(text[text.Length - 1])
-                ? text + equationText
-                : text + " " + equationText;
+            string orderedText = WordEquation.GetVisibleTextWithEquations(paragraph._paragraph, occurrences);
+            return string.IsNullOrEmpty(orderedText) ? text : orderedText;
         }
 
         private static string? GetNativeEquationText(WordParagraph paragraph) {

@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
 
             switch (element.LocalName) {
                 case "f":
-                    AppendDelimitedText(builder, element, "num", "den", "(", ")/(", ")");
+                    AppendFractionText(builder, element);
                     return;
                 case "sSup":
                     AppendChildText(builder, element, "e");
@@ -116,12 +116,23 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AppendDelimitedText(StringBuilder builder, OpenXmlElement element, string leftChild, string rightChild, string prefix, string separator, string suffix) {
-            builder.Append(prefix);
-            AppendChildText(builder, element, leftChild);
-            builder.Append(separator);
-            AppendChildText(builder, element, rightChild);
-            builder.Append(suffix);
+        private static void AppendFractionText(StringBuilder builder, OpenXmlElement element) {
+            string numerator = ReadChildText(element, "num");
+            string denominator = ReadChildText(element, "den");
+            switch (ReadFractionType(element)) {
+                case MathFractionType.Linear:
+                    builder.Append(numerator).Append('/').Append(denominator);
+                    return;
+                case MathFractionType.NoBar:
+                    builder.Append("stack(").Append(numerator).Append(',').Append(denominator).Append(')');
+                    return;
+                case MathFractionType.Skewed:
+                    builder.Append(numerator).Append('\u2044').Append(denominator);
+                    return;
+                default:
+                    builder.Append('(').Append(numerator).Append(")/(").Append(denominator).Append(')');
+                    return;
+            }
         }
 
         private static void AppendAccentText(StringBuilder builder, OpenXmlElement element) {
@@ -251,6 +262,21 @@ namespace OfficeIMO.Word {
         private static string ReadDelimiterSeparator(OpenXmlElement element) =>
             ReadCharacterOrDefault(element, "sepChr", "\u2502");
 
+        private static MathFractionType ReadFractionType(OpenXmlElement element) {
+            OpenXmlElement? properties = FindFirstChild(element, "fPr");
+            OpenXmlElement? type = properties == null ? null : FindFirstChild(properties, "type");
+            string? value = type?.GetAttributes()
+                .FirstOrDefault(attribute => attribute.LocalName == "val" &&
+                    (attribute.NamespaceUri == MathNamespace || attribute.NamespaceUri.Length == 0))
+                .Value;
+            return value switch {
+                "lin" => MathFractionType.Linear,
+                "noBar" => MathFractionType.NoBar,
+                "skw" => MathFractionType.Skewed,
+                _ => MathFractionType.Bar
+            };
+        }
+
         private static MathCharacter ReadCharacter(OpenXmlElement element, string localName) {
             OpenXmlElement? propertyContainer = element.ChildElements.FirstOrDefault(child =>
                 child.NamespaceUri == MathNamespace && child.LocalName.EndsWith("Pr", StringComparison.Ordinal));
@@ -282,6 +308,13 @@ namespace OfficeIMO.Word {
 
             internal bool Present { get; }
             internal string Value { get; }
+        }
+
+        private enum MathFractionType {
+            Bar,
+            Linear,
+            NoBar,
+            Skewed
         }
     }
 }

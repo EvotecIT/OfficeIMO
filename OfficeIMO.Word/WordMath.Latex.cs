@@ -17,7 +17,7 @@ namespace OfficeIMO.Word {
 
             switch (element.LocalName) {
                 case "f":
-                    AppendLatexCommandWithTwoChildren(builder, "\\frac", element, "num", "den");
+                    AppendFractionLatex(builder, element);
                     return;
                 case "sSup":
                     AppendLatexChild(builder, element, "e");
@@ -103,6 +103,35 @@ namespace OfficeIMO.Word {
             builder.Append("}{");
             AppendLatexChild(builder, element, second);
             builder.Append('}');
+        }
+
+        private static void AppendFractionLatex(StringBuilder builder, OpenXmlElement element) {
+            switch (ReadFractionType(element)) {
+                case MathFractionType.Linear:
+                    builder.Append('{');
+                    AppendLatexChild(builder, element, "num");
+                    builder.Append("}/{");
+                    AppendLatexChild(builder, element, "den");
+                    builder.Append('}');
+                    return;
+                case MathFractionType.NoBar:
+                    builder.Append("\\genfrac{}{}{0pt}{}{");
+                    AppendLatexChild(builder, element, "num");
+                    builder.Append("}{");
+                    AppendLatexChild(builder, element, "den");
+                    builder.Append('}');
+                    return;
+                case MathFractionType.Skewed:
+                    builder.Append("{}^{");
+                    AppendLatexChild(builder, element, "num");
+                    builder.Append("}\\! / \\!{}_{");
+                    AppendLatexChild(builder, element, "den");
+                    builder.Append('}');
+                    return;
+                default:
+                    AppendLatexCommandWithTwoChildren(builder, "\\frac", element, "num", "den");
+                    return;
+            }
         }
 
         private static void AppendLatexChild(StringBuilder builder, OpenXmlElement element, string localName) {

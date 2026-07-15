@@ -117,20 +117,9 @@ namespace OfficeIMO.Word {
 
             List<OpenXmlElement> children = paragraph.ChildElements.ToList();
             var occurrences = new List<WordEquationOccurrence>();
-            foreach (WordParagraph logicalParagraph in WordSection.ConvertParagraphToWordParagraphs(document, paragraph)) {
-                WordEquation? equation = logicalParagraph.Equation;
-                if (equation == null || !equation.TryGetChildRange(children, out int startIndex, out int endIndex)) {
-                    continue;
-                }
-
-                occurrences.Add(new WordEquationOccurrence(equation, startIndex, endIndex));
-            }
-
-            foreach (SdtRun contentControl in EnumerateVisibleInlineContentControls(paragraph)) {
-                foreach (WordEquation equation in GetContentControlEquations(document, paragraph, contentControl)) {
-                    if (equation.TryGetChildRange(children, out int startIndex, out int endIndex)) {
-                        occurrences.Add(new WordEquationOccurrence(equation, startIndex, endIndex));
-                    }
+            foreach (WordEquation equation in GetVisibleEquations(document, paragraph, paragraph)) {
+                if (equation.TryGetChildRange(children, out int startIndex, out int endIndex)) {
+                    occurrences.Add(new WordEquationOccurrence(equation, startIndex, endIndex));
                 }
             }
 
@@ -139,29 +128,100 @@ namespace OfficeIMO.Word {
                 .ToList();
         }
 
-        private static IEnumerable<SdtRun> EnumerateVisibleInlineContentControls(OpenXmlElement container) {
-            foreach (OpenXmlElement child in container.ChildElements) {
-                if (child is DeletedRun || child is MoveFromRun) continue;
-                if (child is SdtRun contentControl) {
-                    yield return contentControl;
-                    continue;
-                }
+        internal static IReadOnlyList<WordEquationContentSegment> GetVisibleContentSegments(
+            OpenXmlElement container,
+            IReadOnlyList<WordEquationOccurrence> occurrences) {
+            if (container == null) throw new ArgumentNullException(nameof(container));
+            if (occurrences == null) throw new ArgumentNullException(nameof(occurrences));
 
-                foreach (SdtRun nested in EnumerateVisibleInlineContentControls(child)) {
-                    yield return nested;
+            var segments = new List<WordEquationContentSegment>();
+            var emittedEquations = new HashSet<WordEquation>();
+            AppendVisibleContentSegments(segments, container, occurrences, emittedEquations);
+            return segments;
+        }
+
+        internal static string GetVisibleTextOutsideEquations(
+            OpenXmlElement container,
+            IReadOnlyList<WordEquationOccurrence> occurrences) =>
+            string.Concat(GetVisibleContentSegments(container, occurrences)
+                .Where(segment => segment.Equation == null)
+                .Select(segment => segment.Text));
+
+        internal static string GetVisibleTextWithEquations(
+            OpenXmlElement container,
+            IReadOnlyList<WordEquationOccurrence> occurrences) =>
+            string.Concat(GetVisibleContentSegments(container, occurrences)
+                .Select(segment => segment.Equation?.Text ?? segment.Text));
+
+        private static void AppendVisibleContentSegments(
+            List<WordEquationContentSegment> segments,
+            OpenXmlElement element,
+            IReadOnlyList<WordEquationOccurrence> occurrences,
+            HashSet<WordEquation> emittedEquations) {
+            if (element is DeletedRun || element is MoveFromRun) return;
+
+            WordEquation? backedEquation = occurrences
+                .Select(occurrence => occurrence.Equation)
+                .FirstOrDefault(equation => equation.IsBackingElement(element));
+            if (backedEquation != null) {
+                if (emittedEquations.Add(backedEquation)) {
+                    segments.Add(WordEquationContentSegment.FromEquation(backedEquation));
                 }
+                return;
+            }
+
+            if (element is Text text) {
+                AppendVisibleTextSegment(segments, text.Text);
+                return;
+            }
+            if (element is TabChar) {
+                AppendVisibleTextSegment(segments, "\t");
+                return;
+            }
+            if (element is Break || element is CarriageReturn) {
+                AppendVisibleTextSegment(segments, "\n");
+                return;
+            }
+            if (element is NoBreakHyphen) {
+                AppendVisibleTextSegment(segments, "\u2011");
+                return;
+            }
+            if (element is SoftHyphen) {
+                AppendVisibleTextSegment(segments, "\u00ad");
+                return;
+            }
+
+            foreach (OpenXmlElement child in element.ChildElements) {
+                AppendVisibleContentSegments(segments, child, occurrences, emittedEquations);
             }
         }
 
-        private static IEnumerable<WordEquation> GetContentControlEquations(
+        private static void AppendVisibleTextSegment(List<WordEquationContentSegment> segments, string? text) {
+            if (string.IsNullOrEmpty(text)) return;
+            if (segments.Count > 0 && segments[segments.Count - 1].Equation == null) {
+                WordEquationContentSegment previous = segments[segments.Count - 1];
+                segments[segments.Count - 1] = WordEquationContentSegment.FromText((previous.Text ?? string.Empty) + text);
+                return;
+            }
+
+            segments.Add(WordEquationContentSegment.FromText(text!));
+        }
+
+        private bool IsBackingElement(OpenXmlElement element) =>
+            ReferenceEquals(element, _mathParagraph) ||
+            ReferenceEquals(element, _officeMath) ||
+            ReferenceEquals(element, _simpleField) ||
+            (_runs?.Any(run => ReferenceEquals(run, element)) ?? false);
+
+        private static IEnumerable<WordEquation> GetVisibleEquations(
             WordDocument document,
             Paragraph paragraph,
-            SdtRun contentControl) {
+            OpenXmlElement container) {
             var candidates = new List<(int Order, WordEquation Equation)>();
             var complexFields = new List<(int Order, List<Run> Runs)>();
             int order = 0;
 
-            foreach (OpenXmlElement element in EnumerateVisibleInlineContent(contentControl)) {
+            foreach (OpenXmlElement element in EnumerateVisibleInlineContent(container)) {
                 int elementOrder = order++;
                 if (element is DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
                     candidates.Add((elementOrder, new WordEquation(document, paragraph, mathParagraph)));
@@ -273,5 +333,18 @@ namespace OfficeIMO.Word {
 
         internal bool ContainsChildIndex(int childIndex) =>
             childIndex >= StartChildIndex && childIndex <= EndChildIndex;
+    }
+
+    internal sealed class WordEquationContentSegment {
+        private WordEquationContentSegment(string? text, WordEquation? equation) {
+            Text = text;
+            Equation = equation;
+        }
+
+        internal string? Text { get; }
+        internal WordEquation? Equation { get; }
+
+        internal static WordEquationContentSegment FromText(string text) => new(text, null);
+        internal static WordEquationContentSegment FromEquation(WordEquation equation) => new(null, equation);
     }
 }

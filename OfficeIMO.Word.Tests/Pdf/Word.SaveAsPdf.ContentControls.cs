@@ -27,16 +27,24 @@ public partial class Word {
 
         using (WordDocument document = WordDocument.Create(docPath)) {
             document.AddHeadersAndFooters();
-            RequireSectionHeader(document, 0, HeaderFooterValues.Default)
-                .AddParagraph("Native header equation:")
-                .AddEquation(headerOmml);
+            WordParagraph headerEquation = RequireSectionHeader(document, 0, HeaderFooterValues.Default)
+                .AddParagraph("Native header equation: ");
+            headerEquation.AddEquation(headerOmml);
+            headerEquation.AddText(" header-suffix");
 
             document.AddParagraph("Native body equation:").AddEquation(bodyOmml);
 
             WordParagraph controlledEquation = document.AddParagraph("Native controlled equation:");
             controlledEquation._paragraph.Append(new SdtRun(
                 new SdtProperties(new SdtId { Val = 2076 }),
-                new SdtContentRun(new M.OfficeMath(new M.Run(new M.Text("controlled=5"))))));
+                new SdtContentRun(
+                    new Run(new Text(" control-prefix ")),
+                    new M.OfficeMath(new M.Run(new M.Text("controlled=5"))),
+                    new Run(new Text(" control-suffix")))));
+
+            WordParagraph interleavedEquation = document.AddParagraph("pdf-prefix ");
+            interleavedEquation._paragraph.Append(new M.OfficeMath(new M.Run(new M.Text("pdf-equation"))));
+            interleavedEquation.AddText(" pdf-suffix");
 
             WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
             table.Rows[0].Cells[0].Paragraphs[0].Text = "Native table equation:";
@@ -50,13 +58,13 @@ public partial class Word {
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
 
         string text = PdfCore.PdfTextExtractor.ExtractAllText(pdfPath);
-        Assert.Contains("Native header equation:", text);
-        Assert.Contains("h=2", text);
+        Assert.Contains("Native header equation: h=2 header-suffix", NormalizePdfText(text));
         Assert.Contains("Native body equation:", text);
         Assert.Contains("(a)/(b)", NormalizePdfText(text));
         string normalizedText = NormalizePdfText(text);
         Assert.Contains("Native controlled equation:", normalizedText);
-        Assert.Contains("controlled=5", normalizedText);
+        Assert.Contains("Native controlled equation: control-prefix controlled=5 control-suffix", normalizedText);
+        Assert.Contains("pdf-prefix pdf-equation pdf-suffix", normalizedText);
         Assert.Contains("Native table equation:", normalizedText);
         Assert.Contains("c=4", normalizedText);
     }
@@ -72,9 +80,11 @@ public partial class Word {
         using (WordDocument document = WordDocument.Create(docPath)) {
             WordParagraph simple = document.AddParagraph("Simple field: ");
             AppendSimpleField(simple._paragraph, " EQ \\f(a,b) ", "(a)/(b)");
+            simple.AddText(" simple-suffix");
 
             WordParagraph complex = document.AddParagraph("Complex field: ");
             AppendComplexField(complex._paragraph, " EQ \\r(,x) ", "sqrt(x)");
+            complex.AddText(" complex-suffix");
 
             document.Save();
             document.SaveAsPdf(pdfPath, options);
@@ -82,10 +92,8 @@ public partial class Word {
 
         Assert.DoesNotContain(options.Warnings, warning => warning.Code == "NativeBodyEquationUnsupported");
         string text = NormalizePdfText(PdfCore.PdfTextExtractor.ExtractAllText(pdfPath));
-        Assert.Contains("Simple field:", text, StringComparison.Ordinal);
-        Assert.Contains("(a)/(b)", text, StringComparison.Ordinal);
-        Assert.Contains("Complex field:", text, StringComparison.Ordinal);
-        Assert.Contains("sqrt(x)", text, StringComparison.Ordinal);
+        Assert.Contains("Simple field: (a)/(b) simple-suffix", text, StringComparison.Ordinal);
+        Assert.Contains("Complex field: sqrt(x) complex-suffix", text, StringComparison.Ordinal);
     }
 
     [Fact]

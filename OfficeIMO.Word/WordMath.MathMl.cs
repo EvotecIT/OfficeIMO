@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
 
             switch (element.LocalName) {
                 case "f":
-                    AppendMathMlTwoChildElement(builder, "mfrac", element, "num", "den");
+                    AppendFractionMathMl(builder, element);
                     return;
                 case "sSup":
                     AppendMathMlTwoChildElement(builder, "msup", element, "e", "sup");
@@ -118,6 +118,33 @@ namespace OfficeIMO.Word {
             AppendMathMlChild(builder, element, first);
             AppendMathMlChild(builder, element, second);
             builder.Append("</").Append(tag).Append('>');
+        }
+
+        private static void AppendFractionMathMl(StringBuilder builder, OpenXmlElement element) {
+            switch (ReadFractionType(element)) {
+                case MathFractionType.Linear:
+                    builder.Append("<mrow>");
+                    AppendMathMlChild(builder, element, "num");
+                    AppendMathMlOperator(builder, "/");
+                    AppendMathMlChild(builder, element, "den");
+                    builder.Append("</mrow>");
+                    return;
+                case MathFractionType.NoBar:
+                    builder.Append("<mfrac linethickness=\"0\">");
+                    AppendMathMlChild(builder, element, "num");
+                    AppendMathMlChild(builder, element, "den");
+                    builder.Append("</mfrac>");
+                    return;
+                case MathFractionType.Skewed:
+                    builder.Append("<mfrac bevelled=\"true\">");
+                    AppendMathMlChild(builder, element, "num");
+                    AppendMathMlChild(builder, element, "den");
+                    builder.Append("</mfrac>");
+                    return;
+                default:
+                    AppendMathMlTwoChildElement(builder, "mfrac", element, "num", "den");
+                    return;
+            }
         }
 
         private static void AppendMathMlThreeChildElement(StringBuilder builder, string tag, OpenXmlElement element, string first, string second, string third) {

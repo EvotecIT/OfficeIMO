@@ -488,11 +488,12 @@ namespace OfficeIMO.Word.Pdf {
             string content = paragraph.IsHyperLink && paragraph.Hyperlink != null ? paragraph.Hyperlink.Text : AppendNativeTextWithEquation(paragraph.Text, paragraph);
             bool hasRenderableRuns = runs.Any(run => IsNativeRenderableTextRun(run, paragraph));
             bool shouldRenderDirectContent = ShouldRenderNativeDirectText(paragraph, runs, content);
+            bool hasEquationContent = WordEquation.GetOccurrences(paragraph._document, paragraph._paragraph).Count > 0;
             IReadOnlyList<WordTabStop> tabStops = GetNativeParagraphEffectiveTabStops(paragraph);
             int tabIndex = 0;
             IReadOnlyList<W.SdtRun> repeatingSectionControls = GetNativeRepeatingSectionControls(paragraph);
 
-            if (hasRenderableRuns) {
+            if (hasRenderableRuns && !hasEquationContent) {
                 foreach (WordParagraph run in runs) {
                     if (run.IsImage && run.Image != null) {
                         continue;
@@ -515,6 +516,8 @@ namespace OfficeIMO.Word.Pdf {
                 if (!string.IsNullOrEmpty(supplementalText)) {
                     AddNativeCellText(result, supplementalText!, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
                 }
+            } else if (hasEquationContent) {
+                AddNativeCellText(result, content, paragraph, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
             } else if (paragraph.IsHyperLink && paragraph.Hyperlink != null && !IsNativeHiddenTextRun(paragraph) && !string.IsNullOrEmpty(paragraph.Hyperlink.Text)) {
                 AddNativeCellHyperLinkRun(result, paragraph.Hyperlink.Text, paragraph, paragraph.Hyperlink, tableStyleDefaults, nativeDefaults, nativeFontMap, tabStops, ref tabIndex);
             } else if (shouldRenderDirectContent) {
