@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         sourceShape.RecordOffset, sourceShape.Kind, sourceShape.Bounds, sourceShape.Text));
                 }
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
-                    sourceSlide.PersistId, sourceSlide.SlideId, shapes));
+                    sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.Hidden, shapes));
             }
             return new LegacyPptProjectionMap(slides);
         }
@@ -63,11 +63,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal sealed class LegacyPptSlideProjection {
         private readonly IReadOnlyDictionary<uint, LegacyPptShapeProjection> _shapesByOpenXmlId;
 
-        internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId,
+        internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, bool hidden,
             IReadOnlyList<LegacyPptShapeProjection> shapes) {
             SlidePartUri = slidePartUri ?? throw new ArgumentNullException(nameof(slidePartUri));
             PersistId = persistId;
             SlideId = slideId;
+            Hidden = hidden;
             Shapes = new ReadOnlyCollection<LegacyPptShapeProjection>(shapes.ToArray());
             _shapesByOpenXmlId = new ReadOnlyDictionary<uint, LegacyPptShapeProjection>(shapes.ToDictionary(
                 shape => shape.OpenXmlShapeId));
@@ -78,6 +79,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal uint PersistId { get; }
 
         internal uint SlideId { get; }
+
+        internal bool Hidden { get; }
 
         internal IReadOnlyList<LegacyPptShapeProjection> Shapes { get; }
 

@@ -67,6 +67,7 @@ namespace OfficeIMO.PowerPoint {
 
             foreach (LegacyPptSlide legacySlide in legacy.Slides) {
                 PowerPointSlide slide = projected.AddSlide();
+                slide.Hidden = legacySlide.Hidden;
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
                     ProjectLegacyShape(slide, shape);
                 }

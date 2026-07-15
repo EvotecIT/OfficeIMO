@@ -12,6 +12,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     /// </summary>
     internal static class LegacyPptPreservingWriter {
         private const ushort RecordPersistDirectory = 0x1772;
+        private const ushort RecordSlideAtom = 0x03EF;
+        private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
         private const ushort RecordTextHeader = 0x0F9F;
         private const ushort RecordTextChars = 0x0FA0;
         private const ushort RecordTextBytes = 0x0FA8;
@@ -99,12 +101,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 new ProjectedShapeEdit(changedBounds, shapeProjection.Text, changedText));
                         }
                     }
-                    if (editsByOfficeArtId.Count == 0) continue;
+                    bool? hidden = slide.Hidden == slideProjection.Hidden ? null : slide.Hidden;
+                    if (editsByOfficeArtId.Count == 0 && !hidden.HasValue) continue;
 
                     LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(persistObject.RecordBytes, 0,
                         new LegacyPptImportOptions());
-                    RecordRewrite result = RewriteRecord(slideRecord, editsByOfficeArtId);
-                    if (!result.Changed || result.PatchedShapeCount != editsByOfficeArtId.Count) return false;
+                    if (!TryRewriteSlide(slideRecord, editsByOfficeArtId, hidden, out RecordRewrite result)
+                        || !result.Changed || result.PatchedShapeCount != editsByOfficeArtId.Count) return false;
                     rewritten.Add(slideProjection.PersistId, result.Bytes);
                 }
                 return true;
@@ -114,6 +117,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 rewritten.Clear();
                 return false;
             }
+        }
+
+        private static bool TryRewriteSlide(LegacyPptRecord slideRecord,
+            IReadOnlyDictionary<uint, ProjectedShapeEdit> editsByOfficeArtId, bool? hidden,
+            out RecordRewrite result) {
+            bool hasSlideShowInfo = slideRecord.Children.Any(child => child.Type == RecordSlideShowSlideInfoAtom);
+            bool patchedHidden = !hidden.HasValue;
+            bool changed = false;
+            int patchedShapeCount = 0;
+            var children = new List<byte[]>(slideRecord.Children.Count + 1);
+            foreach (LegacyPptRecord child in slideRecord.Children) {
+                if (hidden.HasValue && child.Type == RecordSlideShowSlideInfoAtom) {
+                    children.Add(PatchHiddenState(child.CopyRecordBytes(), hidden.Value));
+                    patchedHidden = true;
+                    changed = true;
+                } else {
+                    RecordRewrite childResult = RewriteRecord(child, editsByOfficeArtId);
+                    children.Add(childResult.Bytes);
+                    changed |= childResult.Changed;
+                    patchedShapeCount = checked(patchedShapeCount + childResult.PatchedShapeCount);
+                }
+                if (hidden == true && !hasSlideShowInfo && child.Type == RecordSlideAtom) {
+                    children.Add(BuildSlideShowInfo(hidden: true));
+                    patchedHidden = true;
+                    changed = true;
+                }
+            }
+            if (!patchedHidden) {
+                result = new RecordRewrite(slideRecord.CopyRecordBytes(), changed: false, patchedShapeCount: 0);
+                return false;
+            }
+            result = changed
+                ? new RecordRewrite(BuildRecord(slideRecord.Version, slideRecord.Instance, slideRecord.Type,
+                    Concat(children)), changed: true, patchedShapeCount)
+                : new RecordRewrite(slideRecord.CopyRecordBytes(), changed: false, patchedShapeCount: 0);
+            return true;
         }
 
         private static RecordRewrite RewriteRecord(LegacyPptRecord record,
@@ -302,6 +341,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             WriteUInt32(patched, 16, editOffset);
             return patched;
+        }
+
+        private static byte[] PatchHiddenState(byte[] slideShowInfo, bool hidden) {
+            if (slideShowInfo.Length < 19) {
+                throw new InvalidDataException("The slide-show information atom is too short for its flags.");
+            }
+            slideShowInfo[18] = hidden
+                ? unchecked((byte)(slideShowInfo[18] | 0x04))
+                : unchecked((byte)(slideShowInfo[18] & ~0x04));
+            return slideShowInfo;
+        }
+
+        private static byte[] BuildSlideShowInfo(bool hidden) {
+            var payload = new byte[16];
+            payload[10] = hidden ? (byte)0x05 : (byte)0x01;
+            return BuildRecord(version: 0, instance: 0, RecordSlideShowSlideInfoAtom, payload);
         }
 
         private static LegacyPptBounds GetBounds(PowerPointShape shape) {

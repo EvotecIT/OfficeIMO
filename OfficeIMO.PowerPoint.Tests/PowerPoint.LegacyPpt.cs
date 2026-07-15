@@ -232,6 +232,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_RoundTripsHiddenSlideState() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.AddSlide().AddTextBox("Visible");
+            PowerPointSlide hidden = presentation.AddSlide();
+            hidden.AddTextBox("Hidden");
+            hidden.Hidden = true;
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            Assert.False(legacy.Slides[0].Hidden);
+            Assert.True(legacy.Slides[1].Hidden);
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            Assert.False(reopened.Slides[0].Hidden);
+            Assert.True(reopened.Slides[1].Hidden);
+        }
+
+        [Fact]
+        public void ImportedBinaryHiddenState_TogglesThroughIncrementalEdits() {
+            byte[] hiddenBytes;
+            using (PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath)) {
+                presentation.Slides[0].Hidden = true;
+                Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+                hiddenBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation hidden = LegacyPptPresentation.Load(hiddenBytes);
+            Assert.True(hidden.Slides[0].Hidden);
+
+            using var input = new MemoryStream(hiddenBytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(input);
+            reopened.Slides[0].Hidden = false;
+            Assert.True(reopened.AnalyzeLegacyPptWrite().CanWrite);
+            LegacyPptPresentation visible = LegacyPptPresentation.Load(
+                reopened.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.False(visible.Slides[0].Hidden);
+            Assert.Equal(hidden.Package.UserEdits.Count + 1, visible.Package.UserEdits.Count);
+        }
+
+        [Fact]
         public void NativeWriter_BlocksKnownLossUnlessExplicitlyAllowed() {
             string image = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             using PowerPointPresentation presentation = PowerPointPresentation.Create();

@@ -12,7 +12,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                 Native(LegacyPptFeature.SlideSize, "Structure", "Presentation page dimensions."),
                 Native(LegacyPptFeature.Slides, "Structure", "Slide containers and editable slide content."),
                 Native(LegacyPptFeature.SlideOrder, "Structure", "Display-order slide directory entries."),
-                Planned(LegacyPptFeature.SlideVisibility, "Structure", "Hidden-slide state."),
+                Native(LegacyPptFeature.SlideVisibility, "Structure", "Hidden-slide state."),
                 Blocked(LegacyPptFeature.Sections, "Structure", "Modern presentation sections.",
                     "PowerPoint 97-2003 has no native section model."),
                 Planned(LegacyPptFeature.CustomShows, "Structure", "Named custom slide shows."),

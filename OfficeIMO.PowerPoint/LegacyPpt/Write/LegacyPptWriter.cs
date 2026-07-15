@@ -15,6 +15,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordSlide = 0x03EE;
         private const ushort RecordSlideAtom = 0x03EF;
         private const ushort RecordSlidePersistAtom = 0x03F3;
+        private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
         private const ushort RecordDrawingGroup = 0x040B;
         private const ushort RecordDrawing = 0x040C;
         private const ushort RecordPlaceholder = 0x0BC3;
@@ -51,7 +52,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 PowerPointSlide slide = presentation.Slides[index];
                 IReadOnlyList<PowerPointShape> supportedShapes = slide.Shapes.Where(IsSupportedShape).ToArray();
                 slideShapeCounts.Add(supportedShapes.Count);
-                slideRecords.Add(BuildSlideRecord(template.SlidePrototype, supportedShapes, index));
+                slideRecords.Add(BuildSlideRecord(template.SlidePrototype, slide, supportedShapes, index));
             }
 
             var persistObjects = new List<byte[]>(13 + slideRecords.Count) {
@@ -159,9 +160,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(RecordSlideListWithText, instance: 0, children);
         }
 
-        private static byte[] BuildSlideRecord(LegacyPptRecord prototype,
+        private static byte[] BuildSlideRecord(LegacyPptRecord prototype, PowerPointSlide slide,
             IReadOnlyList<PowerPointShape> shapes, int slideIndex) {
             var children = new List<byte[]>();
+            bool hasSlideShowInfo = false;
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordSlideAtom) {
                     byte[] atom = child.CopyRecordBytes();
@@ -169,11 +171,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     children.Add(atom);
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, slideIndex));
+                } else if (child.Type == RecordSlideShowSlideInfoAtom) {
+                    children.Add(PatchHiddenState(child.CopyRecordBytes(), slide.Hidden));
+                    hasSlideShowInfo = true;
                 } else if (child.Type != 0x1388) {
                     children.Add(child.CopyRecordBytes());
                 }
             }
+            if (slide.Hidden && !hasSlideShowInfo) {
+                int slideAtomIndex = prototype.Children.TakeWhile(child => child.Type != RecordSlideAtom).Count();
+                children.Insert(Math.Min(children.Count, slideAtomIndex + 1), BuildSlideShowInfo(hidden: true));
+            }
             return BuildContainer(RecordSlide, instance: 0, children);
+        }
+
+        private static byte[] PatchHiddenState(byte[] slideShowInfo, bool hidden) {
+            if (slideShowInfo.Length < 19) {
+                throw new InvalidDataException("The slide-show information atom is too short for its flags.");
+            }
+            slideShowInfo[18] = hidden
+                ? unchecked((byte)(slideShowInfo[18] | 0x04))
+                : unchecked((byte)(slideShowInfo[18] & ~0x04));
+            return slideShowInfo;
+        }
+
+        private static byte[] BuildSlideShowInfo(bool hidden) {
+            var payload = new byte[16];
+            payload[10] = hidden ? (byte)0x05 : (byte)0x01;
+            return BuildRecord(version: 0, instance: 0, RecordSlideShowSlideInfoAtom, payload);
         }
 
         private static byte[] BuildDrawingRecord(LegacyPptRecord slidePrototype,

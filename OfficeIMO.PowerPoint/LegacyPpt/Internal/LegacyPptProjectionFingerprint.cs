@@ -24,6 +24,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 string.Equals(slide.SlidePartUri, partUri.ToString(), StringComparison.Ordinal));
             if (slideProjection == null) return;
 
+            if (root is P.Slide slideRoot) slideRoot.Show = null;
+
             foreach (P.Shape shape in root.Descendants<P.Shape>()) {
                 uint? shapeId = shape.NonVisualShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
                 if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value, out _)) continue;

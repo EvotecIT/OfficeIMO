@@ -13,6 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordSlide = 0x03EE;
         private const ushort RecordSlideAtom = 0x03EF;
         private const ushort RecordSlidePersistAtom = 0x03F3;
+        private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
         private const ushort RecordDrawing = 0x040C;
         private const ushort RecordPlaceholder = 0x0BC3;
         private const ushort RecordTextChars = 0x0FA0;
@@ -135,6 +136,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         }
 
         private void ParseSlide(LegacyPptRecord slideRecord, LegacyPptSlide slide, LegacyPptImportOptions options) {
+            LegacyPptRecord? slideShowInfo = slideRecord.Children.FirstOrDefault(record =>
+                record.Type == RecordSlideShowSlideInfoAtom);
+            if (slideShowInfo != null && slideShowInfo.PayloadLength >= 11) {
+                slide.Hidden = (slideShowInfo.ReadByte(10) & 0x04) != 0;
+            }
             LegacyPptRecord? drawing = slideRecord.Children.FirstOrDefault(record => record.Type == RecordDrawing);
             if (drawing == null) return;
 

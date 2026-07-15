@@ -22,10 +22,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
-                if (slide.Hidden) {
-                    findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.SlideVisibility, "PPT-WRITE-HIDDEN-SLIDE",
-                        "Hidden-slide state is not encoded by the native binary writer.", slideIndex));
-                }
                 if (slide.SlidePart.NotesSlidePart != null && !string.IsNullOrWhiteSpace(slide.Notes.Text)) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.SpeakerNotes, "PPT-WRITE-NOTES",
                         "Speaker notes are not encoded by the native binary writer.", slideIndex));
