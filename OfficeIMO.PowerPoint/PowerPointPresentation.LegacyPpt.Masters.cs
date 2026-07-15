@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -203,23 +204,47 @@ namespace OfficeIMO.PowerPoint {
                     new ApplicationNonVisualDrawingProperties()),
                 PowerPointUtils.CreateDefaultGroupShapeProperties());
             if (shapes == null) return tree;
+            if (ownerPart == null) {
+                throw new InvalidOperationException("An owning Open XML part is required to project legacy shapes.");
+            }
 
-            uint shapeId = 2U;
+            uint nextShapeId = 2U;
             foreach (LegacyPptShape source in shapes) {
-                OpenXmlElement? shape = source.Kind == LegacyPptShapeKind.Picture && ownerPart != null
-                    ? CreateLegacyPicture(ownerPart, source, shapeId)
-                    : CreateLegacyShape(source, shapeId);
+                OpenXmlElement? shape = CreateLegacyOpenXmlShape(ownerPart, source, ref nextShapeId);
                 if (shape == null) continue;
                 tree.Append(shape);
-                shapeId++;
             }
             return tree;
         }
 
-        private static Shape? CreateLegacyShape(LegacyPptShape source, uint shapeId) {
+        internal static OpenXmlElement? CreateLegacyOpenXmlShape(OpenXmlPart ownerPart,
+            LegacyPptShape source, ref uint nextShapeId) {
+            if (ownerPart == null) throw new ArgumentNullException(nameof(ownerPart));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            uint shapeId = nextShapeId++;
+            return source.Kind switch {
+                LegacyPptShapeKind.Picture => CreateLegacyPicture(ownerPart, source, shapeId),
+                LegacyPptShapeKind.Group => CreateLegacyGroupShape(ownerPart, source, shapeId,
+                    ref nextShapeId),
+                _ => CreateLegacyShape(source, shapeId)
+            };
+        }
+
+        private static OpenXmlElement? CreateLegacyShape(LegacyPptShape source, uint shapeId) {
+            if (source.Kind == LegacyPptShapeKind.Connector
+                && LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
+                    out A.ShapeTypeValues connectorGeometry)) {
+                return CreateLegacyConnectionShape(source, shapeId, connectorGeometry);
+            }
             A.ShapeTypeValues geometry;
             switch (source.Kind) {
                 case LegacyPptShapeKind.TextBox:
+                    geometry = source.OfficeArtShapeType != 202
+                        && LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
+                            out A.ShapeTypeValues textGeometry)
+                        ? textGeometry
+                        : A.ShapeTypeValues.Rectangle;
+                    break;
                 case LegacyPptShapeKind.Rectangle:
                     geometry = A.ShapeTypeValues.Rectangle;
                     break;
@@ -228,6 +253,10 @@ namespace OfficeIMO.PowerPoint {
                     break;
                 case LegacyPptShapeKind.Line:
                     geometry = A.ShapeTypeValues.Line;
+                    break;
+                case LegacyPptShapeKind.AutoShape:
+                    if (!LegacyPptShapeGeometryMapper.TryGetPreset(source.OfficeArtShapeType,
+                            out geometry)) return null;
                     break;
                 default:
                     return null;
@@ -264,12 +293,66 @@ namespace OfficeIMO.PowerPoint {
             return shape;
         }
 
+        private static ConnectionShape CreateLegacyConnectionShape(LegacyPptShape source, uint shapeId,
+            A.ShapeTypeValues geometry) {
+            var properties = new ShapeProperties(
+                new A.Transform2D(
+                    new A.Offset { X = ToEmus(source.Bounds.Left), Y = ToEmus(source.Bounds.Top) },
+                    new A.Extents {
+                        Cx = Math.Max(1L, ToEmus(source.Bounds.Width)),
+                        Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
+                    }),
+                new A.PresetGeometry(new A.AdjustValueList()) { Preset = geometry });
+            ApplyLegacyShapeStyle(properties, source);
+            return new ConnectionShape(
+                new NonVisualConnectionShapeProperties(
+                    new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Connector {shapeId - 1U}" },
+                    new NonVisualConnectorShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()),
+                properties);
+        }
+
+        private static GroupShape? CreateLegacyGroupShape(OpenXmlPart ownerPart, LegacyPptShape source,
+            uint shapeId, ref uint nextShapeId) {
+            if (!source.GroupCoordinateBounds.HasValue || source.Children.Count == 0) return null;
+            LegacyPptBounds coordinate = source.GroupCoordinateBounds.Value;
+            var group = new GroupShape(
+                new NonVisualGroupShapeProperties(
+                    new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Group {shapeId - 1U}" },
+                    new NonVisualGroupShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()),
+                new GroupShapeProperties(
+                    new A.TransformGroup(
+                        new A.Offset {
+                            X = ToEmus(source.Bounds.Left),
+                            Y = ToEmus(source.Bounds.Top)
+                        },
+                        new A.Extents {
+                            Cx = Math.Max(1L, ToEmus(source.Bounds.Width)),
+                            Cy = Math.Max(1L, ToEmus(source.Bounds.Height))
+                        },
+                        new A.ChildOffset {
+                            X = ToEmus(coordinate.Left),
+                            Y = ToEmus(coordinate.Top)
+                        },
+                        new A.ChildExtents {
+                            Cx = Math.Max(1L, ToEmus(coordinate.Width)),
+                            Cy = Math.Max(1L, ToEmus(coordinate.Height))
+                        })));
+            foreach (LegacyPptShape child in source.Children) {
+                OpenXmlElement? projected = CreateLegacyOpenXmlShape(ownerPart, child, ref nextShapeId);
+                if (projected != null) group.Append(projected);
+            }
+            return group;
+        }
+
         private static Picture? CreateLegacyPicture(OpenXmlPart ownerPart, LegacyPptShape source,
             uint shapeId) {
             if (source.Picture?.HasImportableImage != true || source.Picture.ContentType == null) return null;
             ImagePartType type = GetLegacyPicturePartType(source.Picture.ContentType);
             PartTypeInfo partType = type.ToPartTypeInfo();
             ImagePart imagePart = ownerPart switch {
+                SlidePart slidePart => slidePart.AddImagePart(partType),
                 SlideMasterPart masterPart => masterPart.AddImagePart(partType),
                 SlideLayoutPart layoutPart => layoutPart.AddImagePart(partType),
                 _ => throw new NotSupportedException(

@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing.Binary;
+using System.Collections.ObjectModel;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     /// <summary>Identifies the shape kinds currently projected from binary PowerPoint files.</summary>
@@ -14,6 +15,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>A line auto shape.</summary>
         Line,
+
+        /// <summary>An OfficeArt AutoShape with a DrawingML preset-geometry equivalent.</summary>
+        AutoShape,
+
+        /// <summary>An OfficeArt connector with a DrawingML connector-geometry equivalent.</summary>
+        Connector,
+
+        /// <summary>A nested OfficeArt shape group with its own child coordinate system.</summary>
+        Group,
 
         /// <summary>An OfficeArt picture frame with importable image data.</summary>
         Picture,
@@ -85,7 +95,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         internal LegacyPptShape(LegacyPptShapeKind kind, ushort officeArtShapeType, uint shapeId,
             long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholderKind placeholderKind,
             OfficeArtShapeStyle style, string? fillColor, string? lineColor,
-            int? pictureStoreIndex = null, OfficeArtBlipStoreEntry? picture = null) {
+            int? pictureStoreIndex = null, OfficeArtBlipStoreEntry? picture = null,
+            LegacyPptBounds? groupCoordinateBounds = null,
+            IReadOnlyList<LegacyPptShape>? children = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -98,6 +110,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LineColor = lineColor;
             PictureStoreIndex = pictureStoreIndex;
             Picture = picture;
+            GroupCoordinateBounds = groupCoordinateBounds;
+            Children = new ReadOnlyCollection<LegacyPptShape>(
+                children?.ToArray() ?? Array.Empty<LegacyPptShape>());
         }
 
         /// <summary>Gets the projected shape kind.</summary>
@@ -135,5 +150,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the resolved OfficeArt picture entry, when available.</summary>
         public OfficeArtBlipStoreEntry? Picture { get; }
+
+        /// <summary>Gets the coordinate system used by child anchors when this is a group shape.</summary>
+        public LegacyPptBounds? GroupCoordinateBounds { get; }
+
+        /// <summary>Gets nested shapes in drawing order when this is a group shape.</summary>
+        public IReadOnlyList<LegacyPptShape> Children { get; }
     }
 }

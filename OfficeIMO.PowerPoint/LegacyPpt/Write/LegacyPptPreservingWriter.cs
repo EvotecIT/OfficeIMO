@@ -433,9 +433,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool MatchesProjectedKind(PowerPointShape shape, LegacyPptShapeKind kind) {
-            if (kind == LegacyPptShapeKind.TextBox) return shape is PowerPointTextBox;
+            if (kind == LegacyPptShapeKind.TextBox) {
+                return shape is PowerPointTextBox;
+            }
             if (kind == LegacyPptShapeKind.Picture) return shape is PowerPointPicture;
+            if (kind == LegacyPptShapeKind.Connector) return shape is PowerPointConnectionShape;
+            if (kind == LegacyPptShapeKind.Group) return shape is PowerPointGroupShape;
             if (shape is not PowerPointAutoShape autoShape) return false;
+            if (kind == LegacyPptShapeKind.AutoShape) return autoShape.ShapeType.HasValue;
             if (kind == LegacyPptShapeKind.Rectangle) return autoShape.ShapeType == A.ShapeTypeValues.Rectangle;
             if (kind == LegacyPptShapeKind.Ellipse) return autoShape.ShapeType == A.ShapeTypeValues.Ellipse;
             return kind == LegacyPptShapeKind.Line && autoShape.ShapeType == A.ShapeTypeValues.Line;

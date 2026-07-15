@@ -24,8 +24,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordTextBytes = 0x0FA8;
         private const ushort RecordSlideListWithText = 0x0FF0;
         private const ushort OfficeArtSpContainer = 0xF004;
+        private const ushort OfficeArtSpgrContainer = 0xF003;
         private const ushort OfficeArtBStoreContainer = 0xF001;
         private const ushort OfficeArtFbse = 0xF007;
+        private const ushort OfficeArtFspgr = 0xF009;
         private const ushort OfficeArtFsp = 0xF00A;
         private const ushort OfficeArtFopt = 0xF00B;
         private const ushort OfficeArtClientTextbox = 0xF00D;
@@ -234,76 +236,134 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (drawing == null) return;
 
             LegacyPptRecord? primaryShapeGroup = drawing.DescendantsAndSelf()
-                .FirstOrDefault(record => record.Type == 0xF003);
+                .FirstOrDefault(record => record.Type == OfficeArtSpgrContainer);
             if (primaryShapeGroup == null) return;
 
-            if (primaryShapeGroup.Children.Any(record => record.Type == 0xF003)) {
-                AddDiagnostic("PPT-GROUP-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
-                    $"Grouped OfficeArt shapes on a {ownerDescription} are not projected because their nested coordinate system is not yet supported.",
-                    primaryShapeGroup.Offset);
+            foreach (LegacyPptRecord child in primaryShapeGroup.Children) {
+                LegacyPptShape? shape = child.Type switch {
+                    OfficeArtSpContainer => ParseShapeContainer(child, ownerDescription, options, colorScheme),
+                    OfficeArtSpgrContainer => ParseShapeGroup(child, ownerDescription, options, colorScheme),
+                    _ => null
+                };
+                if (shape != null) addShape(shape);
+            }
+        }
+
+        private LegacyPptShape? ParseShapeContainer(LegacyPptRecord shapeContainer,
+            string ownerDescription, LegacyPptImportOptions options, LegacyPptColorScheme? colorScheme) {
+            LegacyPptRecord? fsp = shapeContainer.Children.FirstOrDefault(record => record.Type == OfficeArtFsp);
+            LegacyPptRecord? anchor = shapeContainer.Children.FirstOrDefault(record =>
+                record.Type == OfficeArtClientAnchor || record.Type == OfficeArtChildAnchor);
+            if (fsp == null || anchor == null || fsp.PayloadLength < 8) return null;
+
+            ushort shapeType = fsp.Instance;
+            uint shapeId = fsp.ReadUInt32(0);
+            LegacyPptBounds bounds;
+            try {
+                bounds = ReadBounds(anchor);
+            } catch (InvalidDataException) {
+                AddDiagnostic("PPT-SHAPE-ANCHOR", LegacyPptDiagnosticSeverity.Warning,
+                    "A shape has an unsupported or truncated anchor and was skipped.", anchor.Offset);
+                return null;
             }
 
-            foreach (LegacyPptRecord shapeContainer in primaryShapeGroup.Children
-                         .Where(record => record.Type == OfficeArtSpContainer)) {
-                LegacyPptRecord? fsp = shapeContainer.Children.FirstOrDefault(record => record.Type == OfficeArtFsp);
-                LegacyPptRecord? anchor = shapeContainer.Children.FirstOrDefault(record =>
-                    record.Type == OfficeArtClientAnchor || record.Type == OfficeArtChildAnchor);
-                if (fsp == null || anchor == null || fsp.PayloadLength < 8) continue;
-
-                ushort shapeType = fsp.Instance;
-                uint shapeId = fsp.ReadUInt32(0);
-                LegacyPptBounds bounds;
-                try {
-                    bounds = ReadBounds(anchor);
-                } catch (InvalidDataException) {
-                    AddDiagnostic("PPT-SHAPE-ANCHOR", LegacyPptDiagnosticSeverity.Warning,
-                        "A shape has an unsupported or truncated anchor and was skipped.", anchor.Offset);
-                    continue;
-                }
-
-                LegacyPptRecord? textbox = shapeContainer.Children.FirstOrDefault(record =>
-                    record.Type == OfficeArtClientTextbox);
-                string text = textbox == null ? string.Empty : ReadText(textbox);
-                LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
-                LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0);
-                LegacyPptRecord? fopt = shapeContainer.Children.FirstOrDefault(record =>
-                    record.Type == OfficeArtFopt);
-                OfficeArtShapeStyle style = ReadShapeStyle(fopt);
-                int? pictureStoreIndex = ReadPictureStoreIndex(style);
-                OfficeArtBlipStoreEntry? picture = ResolvePicture(pictureStoreIndex);
-                bool isPictureFrame = shapeType == 75;
-                if (isPictureFrame) {
-                    kind = picture?.HasImportableImage == true
-                        ? LegacyPptShapeKind.Picture
-                        : LegacyPptShapeKind.Unsupported;
-                }
-                addShape(new LegacyPptShape(kind, shapeType, shapeId, shapeContainer.Offset,
-                    bounds, text, placeholder, style,
-                    ResolveShapeColor(style.FillColor, colorScheme),
-                    ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture));
-
-                if (textbox != null && textbox.DescendantsAndSelf()
-                        .Any(record => record.Type == RecordStyleTextPropAtom)) {
-                    AddDiagnostic("PPT-TEXT-FORMATTING-FLATTENED", LegacyPptDiagnosticSeverity.Warning,
-                        "Rich text and paragraph formatting was flattened to plain text.", textbox.Offset);
-                }
-                if (fopt != null && fopt.Instance > 0 && style.Properties.Count == 0) {
-                    AddDiagnostic("PPT-SHAPE-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
-                        "The OfficeArt property table is truncated and could not be decoded.", fopt.Offset);
-                } else if (!isPictureFrame && style.HasUnprojectedVisualStyle) {
-                    AddDiagnostic("PPT-SHAPE-STYLE-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
-                        "The shape uses a non-solid fill, compound line, custom dash, or enabled shadow that is preserved but not projected yet.",
-                        shapeContainer.Offset);
-                }
-
-                if (isPictureFrame && kind == LegacyPptShapeKind.Unsupported
-                    && options.ReportUnsupportedContent) {
-                    AddPictureDiagnostic(pictureStoreIndex, picture, shapeContainer.Offset);
-                } else if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
-                    AddDiagnostic("PPT-SHAPE-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
-                        $"OfficeArt shape type {shapeType} on a {ownerDescription} is not projected to the editable PowerPoint model.", shapeContainer.Offset);
-                }
+            LegacyPptRecord? textbox = shapeContainer.Children.FirstOrDefault(record =>
+                record.Type == OfficeArtClientTextbox);
+            string text = textbox == null ? string.Empty : ReadText(textbox);
+            LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
+            LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0);
+            LegacyPptRecord? fopt = shapeContainer.Children.FirstOrDefault(record =>
+                record.Type == OfficeArtFopt);
+            OfficeArtShapeStyle style = ReadShapeStyle(fopt);
+            int? pictureStoreIndex = ReadPictureStoreIndex(style);
+            OfficeArtBlipStoreEntry? picture = ResolvePicture(pictureStoreIndex);
+            bool isPictureFrame = shapeType == 75;
+            if (isPictureFrame) {
+                kind = picture?.HasImportableImage == true
+                    ? LegacyPptShapeKind.Picture
+                    : LegacyPptShapeKind.Unsupported;
             }
+            var shape = new LegacyPptShape(kind, shapeType, shapeId, shapeContainer.Offset,
+                bounds, text, placeholder, style,
+                ResolveShapeColor(style.FillColor, colorScheme),
+                ResolveShapeColor(style.LineColor, colorScheme), pictureStoreIndex, picture);
+
+            if (textbox != null && textbox.DescendantsAndSelf()
+                    .Any(record => record.Type == RecordStyleTextPropAtom)) {
+                AddDiagnostic("PPT-TEXT-FORMATTING-FLATTENED", LegacyPptDiagnosticSeverity.Warning,
+                    "Rich text and paragraph formatting was flattened to plain text.", textbox.Offset);
+            }
+            if (fopt != null && fopt.Instance > 0 && style.Properties.Count == 0) {
+                AddDiagnostic("PPT-SHAPE-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                    "The OfficeArt property table is truncated and could not be decoded.", fopt.Offset);
+            } else if (!isPictureFrame && style.HasUnprojectedVisualStyle) {
+                AddDiagnostic("PPT-SHAPE-STYLE-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
+                    "The shape uses a non-solid fill, compound line, custom dash, or enabled shadow that is preserved but not projected yet.",
+                    shapeContainer.Offset);
+            }
+
+            if (isPictureFrame && kind == LegacyPptShapeKind.Unsupported
+                && options.ReportUnsupportedContent) {
+                AddPictureDiagnostic(pictureStoreIndex, picture, shapeContainer.Offset);
+            } else if (kind == LegacyPptShapeKind.Unsupported && options.ReportUnsupportedContent) {
+                AddDiagnostic("PPT-SHAPE-UNSUPPORTED", LegacyPptDiagnosticSeverity.Warning,
+                    $"OfficeArt shape type {shapeType} on a {ownerDescription} is not projected to the editable PowerPoint model.", shapeContainer.Offset);
+            } else if (LegacyPptShapeGeometryMapper.IsApproximation(shapeType)
+                && options.ReportUnsupportedContent) {
+                AddDiagnostic("PPT-SHAPE-GEOMETRY-APPROXIMATED", LegacyPptDiagnosticSeverity.Warning,
+                    $"OfficeArt shape type {shapeType} uses the closest DrawingML preset geometry.",
+                    shapeContainer.Offset);
+            }
+            return shape;
+        }
+
+        private LegacyPptShape? ParseShapeGroup(LegacyPptRecord groupContainer,
+            string ownerDescription, LegacyPptImportOptions options, LegacyPptColorScheme? colorScheme) {
+            LegacyPptRecord? descriptor = groupContainer.Children.FirstOrDefault(record =>
+                record.Type == OfficeArtSpContainer
+                && record.Children.Any(child => child.Type == OfficeArtFspgr));
+            LegacyPptRecord? fspgr = descriptor?.Children.FirstOrDefault(record => record.Type == OfficeArtFspgr);
+            LegacyPptRecord? fsp = descriptor?.Children.FirstOrDefault(record => record.Type == OfficeArtFsp);
+            LegacyPptRecord? anchor = descriptor?.Children.FirstOrDefault(record =>
+                record.Type == OfficeArtClientAnchor || record.Type == OfficeArtChildAnchor);
+            if (descriptor == null || fspgr == null || fsp == null || anchor == null
+                || fsp.PayloadLength < 8 || fspgr.PayloadLength < 16) {
+                if (options.ReportUnsupportedContent) {
+                    AddDiagnostic("PPT-GROUP-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
+                        $"A shape group on a {ownerDescription} has incomplete coordinate or anchor records.",
+                        groupContainer.Offset);
+                }
+                return null;
+            }
+
+            LegacyPptBounds bounds;
+            LegacyPptBounds coordinateBounds;
+            try {
+                bounds = ReadBounds(anchor);
+                coordinateBounds = CreateBounds(fspgr.ReadInt32(0), fspgr.ReadInt32(4),
+                    fspgr.ReadInt32(8), fspgr.ReadInt32(12));
+            } catch (InvalidDataException) {
+                AddDiagnostic("PPT-GROUP-ANCHOR", LegacyPptDiagnosticSeverity.Warning,
+                    "A shape group has an unsupported or truncated coordinate system.",
+                    groupContainer.Offset);
+                return null;
+            }
+
+            var children = new List<LegacyPptShape>();
+            foreach (LegacyPptRecord child in groupContainer.Children.Where(record =>
+                         !ReferenceEquals(record, descriptor))) {
+                LegacyPptShape? shape = child.Type switch {
+                    OfficeArtSpContainer => ParseShapeContainer(child, ownerDescription, options, colorScheme),
+                    OfficeArtSpgrContainer => ParseShapeGroup(child, ownerDescription, options, colorScheme),
+                    _ => null
+                };
+                if (shape != null) children.Add(shape);
+            }
+            if (children.Count == 0) return null;
+            return new LegacyPptShape(LegacyPptShapeKind.Group, fsp.Instance, fsp.ReadUInt32(0),
+                groupContainer.Offset, bounds, string.Empty, LegacyPptPlaceholderKind.None,
+                OfficeArtShapeStyle.Decode(Array.Empty<OfficeArtProperty>()), null, null,
+                groupCoordinateBounds: coordinateBounds, children: children);
         }
 
         private void ParseBlipStore(LegacyPptRecord document, LegacyPptPackage package,
@@ -385,8 +445,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 return CreateBounds(left, top, right, bottom);
             }
             if (anchor.PayloadLength >= 16) {
-                int top = anchor.ReadInt32(0);
-                int left = anchor.ReadInt32(4);
+                bool isChildAnchor = anchor.Type == OfficeArtChildAnchor;
+                int left = anchor.ReadInt32(isChildAnchor ? 0 : 4);
+                int top = anchor.ReadInt32(isChildAnchor ? 4 : 0);
                 int right = anchor.ReadInt32(8);
                 int bottom = anchor.ReadInt32(12);
                 return CreateBounds(left, top, right, bottom);
@@ -458,6 +519,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             if (shapeType == 1) return LegacyPptShapeKind.Rectangle;
             if (shapeType == 3) return LegacyPptShapeKind.Ellipse;
             if (shapeType == 20) return LegacyPptShapeKind.Line;
+            if (LegacyPptShapeGeometryMapper.IsConnector(shapeType)) return LegacyPptShapeKind.Connector;
+            if (LegacyPptShapeGeometryMapper.TryGetPreset(shapeType, out _)) return LegacyPptShapeKind.AutoShape;
             return LegacyPptShapeKind.Unsupported;
         }
 

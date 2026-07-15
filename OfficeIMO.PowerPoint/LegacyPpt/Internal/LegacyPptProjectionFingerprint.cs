@@ -103,6 +103,33 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cy = 0L;
                 }
             }
+            foreach (P.ConnectionShape connection in root.Descendants<P.ConnectionShape>()) {
+                uint? shapeId = connection.NonVisualConnectionShapeProperties?
+                    .NonVisualDrawingProperties?.Id?.Value;
+                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value, out _)) continue;
+                A.Transform2D? transform = connection.ShapeProperties?.Transform2D;
+                if (transform?.Offset != null) {
+                    transform.Offset.X = 0L;
+                    transform.Offset.Y = 0L;
+                }
+                if (transform?.Extents != null) {
+                    transform.Extents.Cx = 0L;
+                    transform.Extents.Cy = 0L;
+                }
+            }
+            foreach (P.GroupShape group in root.Descendants<P.GroupShape>()) {
+                uint? shapeId = group.NonVisualGroupShapeProperties?.NonVisualDrawingProperties?.Id?.Value;
+                if (!shapeId.HasValue || !slideProjection.TryGetShape(shapeId.Value, out _)) continue;
+                A.TransformGroup? transform = group.GroupShapeProperties?.TransformGroup;
+                if (transform?.Offset != null) {
+                    transform.Offset.X = 0L;
+                    transform.Offset.Y = 0L;
+                }
+                if (transform?.Extents != null) {
+                    transform.Extents.Cx = 0L;
+                    transform.Extents.Cy = 0L;
+                }
+            }
         }
     }
 }

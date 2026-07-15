@@ -183,6 +183,6 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static bool IsDrawingElement(OpenXmlElement element) =>
-            element is Shape or Picture or GraphicFrame or GroupShape;
+            element is Shape or ConnectionShape or Picture or GraphicFrame or GroupShape;
     }
 }

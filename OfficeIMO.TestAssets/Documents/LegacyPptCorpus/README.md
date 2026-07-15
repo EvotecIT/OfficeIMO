@@ -10,6 +10,14 @@ LibreOffice. Its image is stored as a PNG BLIP in the compound file's `Pictures`
 slide picture frame resolves that image through the document-level OfficeArt BStore and a one-based
 `pib` property.
 
+`ShapePowerPoint.ppt` was generated from a one-slide PPTX built with `python-pptx`, then converted
+with LibreOffice. It contains text-bearing and empty preset shapes from several geometry families,
+straight, bent, and curved connectors, plus a group containing a rounded rectangle and an ellipse.
+The fixture exercises OfficeArt preset mapping, native connector projection, nested group parsing,
+child coordinate systems, exact no-op saves, and incremental connector and outer-group geometry
+edits. Its SHA-256 digest is
+`50f5094a5004cba187defe96d9d15f7e7302fcd8c1176711a1538eeee05eae20`.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

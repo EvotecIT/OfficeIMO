@@ -104,6 +104,13 @@ namespace OfficeIMO.PowerPoint {
                         : slide.AddTextBox(shape.Text, left, top, width, height);
                     PlaceholderValues? placeholder = MapPlaceholder(shape.PlaceholderKind);
                     if (placeholder.HasValue) textBox.PlaceholderType = placeholder.Value;
+                    if (shape.OfficeArtShapeType != 202
+                        && LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
+                            out A.ShapeTypeValues textGeometry)
+                        && textBox.Element is DocumentFormat.OpenXml.Presentation.Shape textShape
+                        && textShape.ShapeProperties?.GetFirstChild<A.PresetGeometry>() is A.PresetGeometry preset) {
+                        preset.Preset = textGeometry;
+                    }
                     projectedShape = textBox;
                     break;
                 case LegacyPptShapeKind.Rectangle:
@@ -115,6 +122,18 @@ namespace OfficeIMO.PowerPoint {
                 case LegacyPptShapeKind.Line:
                     projectedShape = slide.AddShape(A.ShapeTypeValues.Line, left, top, width, height);
                     break;
+                case LegacyPptShapeKind.AutoShape:
+                    if (LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
+                            out A.ShapeTypeValues geometry)) {
+                        projectedShape = slide.AddShape(geometry, left, top, width, height);
+                    }
+                    break;
+                case LegacyPptShapeKind.Connector:
+                    if (LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
+                            out A.ShapeTypeValues connectorGeometry)) {
+                        projectedShape = slide.AddConnectionShape(connectorGeometry, left, top, width, height);
+                    }
+                    break;
                 case LegacyPptShapeKind.Picture:
                     if (shape.Picture?.HasImportableImage == true && shape.Picture.ContentType != null) {
                         using var image = new MemoryStream(shape.Picture.ImageBytes, writable: false);
@@ -122,11 +141,25 @@ namespace OfficeIMO.PowerPoint {
                             GetLegacyPicturePartType(shape.Picture.ContentType), left, top, width, height);
                     }
                     break;
+                case LegacyPptShapeKind.Group:
+                    ShapeTree tree = slide.SlidePart.Slide?.CommonSlideData?.ShapeTree
+                        ?? throw new InvalidDataException("The projected slide has no shape tree.");
+                    uint nextShapeId = tree.Descendants<NonVisualDrawingProperties>()
+                        .Select(item => item.Id?.Value ?? 0U)
+                        .DefaultIfEmpty(1U)
+                        .Max() + 1U;
+                    OpenXmlElement? group = CreateLegacyOpenXmlShape(slide.SlidePart, shape,
+                        ref nextShapeId);
+                    if (group != null) tree.Append(group);
+                    break;
             }
-            if (projectedShape?.Element is DocumentFormat.OpenXml.Presentation.Shape projected
-                && projected.ShapeProperties != null) {
-                ApplyLegacyShapeStyle(projected.ShapeProperties, shape);
-            }
+            DocumentFormat.OpenXml.Presentation.ShapeProperties? projectedProperties =
+                projectedShape?.Element switch {
+                    DocumentFormat.OpenXml.Presentation.Shape projected => projected.ShapeProperties,
+                    DocumentFormat.OpenXml.Presentation.ConnectionShape projected => projected.ShapeProperties,
+                    _ => null
+                };
+            if (projectedProperties != null) ApplyLegacyShapeStyle(projectedProperties, shape);
         }
 
         private static ImagePartType GetLegacyPicturePartType(string contentType) => contentType switch {

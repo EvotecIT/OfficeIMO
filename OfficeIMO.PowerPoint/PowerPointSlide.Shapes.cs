@@ -36,6 +36,27 @@ namespace OfficeIMO.PowerPoint {
             return autoShape;
         }
 
+        internal PowerPointConnectionShape AddConnectionShape(A.ShapeTypeValues shapeType, long left,
+            long top, long width, long height) {
+            ShapeProperties shapeProperties = new(
+                new A.Transform2D(new A.Offset { X = left, Y = top },
+                    new A.Extents { Cx = width, Cy = height }),
+                new A.PresetGeometry(new A.AdjustValueList()) { Preset = shapeType });
+            var connection = new ConnectionShape(
+                new NonVisualConnectionShapeProperties(
+                    new NonVisualDrawingProperties {
+                        Id = _nextShapeId++,
+                        Name = GenerateUniqueName("Connector")
+                    },
+                    new NonVisualConnectorShapeDrawingProperties(),
+                    new ApplicationNonVisualDrawingProperties()),
+                shapeProperties);
+            CommonSlideData data = SlideRoot.CommonSlideData ??= new CommonSlideData(new ShapeTree());
+            ShapeTree tree = data.ShapeTree ??= new ShapeTree();
+            tree.Append(connection);
+            return TrackShape(new PowerPointConnectionShape(connection));
+        }
+
         /// <summary>
         ///     Adds an auto shape with the specified geometry using centimeter measurements.
         /// </summary>
