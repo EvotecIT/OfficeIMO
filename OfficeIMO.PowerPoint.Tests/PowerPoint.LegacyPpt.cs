@@ -58,6 +58,8 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(PowerPointFileFormat.Ppt, presentation.SourceFormat);
             Assert.Equal(FixturePath, presentation.SourcePath);
+            Assert.Single(presentation.LegacyPptProjectionMap!.Slides);
+            Assert.Equal(3, presentation.LegacyPptProjectionMap.Slides[0].Shapes.Count);
             PowerPointSlide slide = Assert.Single(presentation.Slides);
             Assert.Equal(3, slide.TextBoxes.Count());
             Assert.Contains(slide.TextBoxes, textBox => textBox.Text == "OfficeIMO PowerPoint Basics");

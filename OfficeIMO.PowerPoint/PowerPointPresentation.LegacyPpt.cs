@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint.LegacyPpt;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using A = DocumentFormat.OpenXml.Drawing;
 
@@ -76,7 +77,8 @@ namespace OfficeIMO.PowerPoint {
 
             byte[] packageBytes = projected.ToBytes();
             PowerPointPresentation presentation = LoadPackage(packageBytes, sourcePath, sourceStream, loadOptions);
-            presentation.MarkLoadedFromLegacyPpt(sourcePath, legacy, sourceFormat);
+            LegacyPptProjectionMap projectionMap = LegacyPptProjectionMap.Create(presentation, legacy);
+            presentation.MarkLoadedFromLegacyPpt(sourcePath, legacy, projectionMap, sourceFormat);
             return presentation;
         }
 

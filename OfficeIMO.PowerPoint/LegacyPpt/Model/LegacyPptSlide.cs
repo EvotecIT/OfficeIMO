@@ -3,12 +3,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
     public sealed class LegacyPptSlide {
         private readonly List<LegacyPptShape> _shapes = new();
 
-        internal LegacyPptSlide(uint slideId) {
+        internal LegacyPptSlide(uint slideId, uint persistId) {
             SlideId = slideId;
+            PersistId = persistId;
         }
 
         /// <summary>Gets the legacy slide identifier.</summary>
         public uint SlideId { get; }
+
+        /// <summary>Gets the persist object id that owns this slide container.</summary>
+        public uint PersistId { get; }
 
         /// <summary>Gets the slide name, when present.</summary>
         public string? Name { get; internal set; }

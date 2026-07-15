@@ -39,10 +39,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
     /// <summary>Represents a shape decoded from a binary PowerPoint slide.</summary>
     public sealed class LegacyPptShape {
-        internal LegacyPptShape(LegacyPptShapeKind kind, ushort officeArtShapeType, LegacyPptBounds bounds,
-            string text, LegacyPptPlaceholderKind placeholderKind) {
+        internal LegacyPptShape(LegacyPptShapeKind kind, ushort officeArtShapeType, uint shapeId,
+            long recordOffset, LegacyPptBounds bounds, string text, LegacyPptPlaceholderKind placeholderKind) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
+            ShapeId = shapeId;
+            RecordOffset = recordOffset;
             Bounds = bounds;
             Text = text ?? string.Empty;
             PlaceholderKind = placeholderKind;
@@ -53,6 +55,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the raw OfficeArt shape type.</summary>
         public ushort OfficeArtShapeType { get; }
+
+        /// <summary>Gets the OfficeArt shape identifier.</summary>
+        public uint ShapeId { get; }
+
+        /// <summary>Gets the shape-container offset in the PowerPoint Document stream.</summary>
+        public long RecordOffset { get; }
 
         /// <summary>Gets the shape bounds in master units.</summary>
         public LegacyPptBounds Bounds { get; }

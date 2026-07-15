@@ -7,6 +7,7 @@ namespace OfficeIMO.PowerPoint {
         private LegacyPptImportDiagnostic[] _legacyPptImportDiagnostics = Array.Empty<LegacyPptImportDiagnostic>();
         private string? _legacyPptSourcePath;
         private LegacyPptPackage? _legacyPptPackage;
+        private LegacyPptProjectionMap? _legacyPptProjectionMap;
         private string? _legacyPptProjectionFingerprint;
 
         /// <summary>Gets the detected physical format of the presentation source.</summary>
@@ -21,16 +22,18 @@ namespace OfficeIMO.PowerPoint {
         public IReadOnlyList<LegacyPptImportDiagnostic> LegacyPptImportDiagnostics => _legacyPptImportDiagnostics;
 
         internal void MarkLoadedFromLegacyPpt(string? sourcePath, LegacyPptPresentation legacy,
-            PowerPointFileFormat sourceFormat) {
+            LegacyPptProjectionMap projectionMap, PowerPointFileFormat sourceFormat) {
             _legacyPptSourcePath = sourcePath;
             _legacyPptImportDiagnostics = legacy.Diagnostics.ToArray();
             _legacyPptPackage = legacy.Package;
+            _legacyPptProjectionMap = projectionMap;
             _legacyPptProjectionFingerprint = CreatePackageFingerprint(_document!);
             SourceFormat = sourceFormat;
         }
 
         internal void MarkLoadedFromOpenXml() {
             _legacyPptPackage = null;
+            _legacyPptProjectionMap = null;
             _legacyPptProjectionFingerprint = null;
             SourceFormat = PowerPointFileFormat.Pptx;
         }
@@ -39,6 +42,10 @@ namespace OfficeIMO.PowerPoint {
             && _legacyPptProjectionFingerprint != null
             && string.Equals(_legacyPptProjectionFingerprint, CreatePackageFingerprint(_document!),
                 StringComparison.Ordinal);
+
+        internal LegacyPptPackage? LegacyPptPackage => _legacyPptPackage;
+
+        internal LegacyPptProjectionMap? LegacyPptProjectionMap => _legacyPptProjectionMap;
 
         internal bool TryCopyOriginalLegacyPackage(out byte[] bytes) {
             if (CanPreserveOriginalLegacyPackage) {
@@ -51,6 +58,7 @@ namespace OfficeIMO.PowerPoint {
 
         private void ClearLegacyPptPackageState() {
             _legacyPptPackage = null;
+            _legacyPptProjectionMap = null;
             _legacyPptProjectionFingerprint = null;
         }
 

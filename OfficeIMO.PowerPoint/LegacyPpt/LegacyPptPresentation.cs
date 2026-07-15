@@ -127,7 +127,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     continue;
                 }
 
-                var slide = new LegacyPptSlide(slideId) { Name = $"Slide {++slideIndex}" };
+                var slide = new LegacyPptSlide(slideId, persistId) { Name = $"Slide {++slideIndex}" };
                 ParseSlide(slideRecord, slide, options);
                 TryReadNotes(slideRecord, slide, documentStream, persistOffsets, options);
                 _slides.Add(slide);
@@ -156,6 +156,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (fsp == null || anchor == null || fsp.PayloadLength < 8) continue;
 
                 ushort shapeType = fsp.Instance;
+                uint shapeId = fsp.ReadUInt32(0);
                 LegacyPptBounds bounds;
                 try {
                     bounds = ReadBounds(anchor);
@@ -170,7 +171,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 string text = textbox == null ? string.Empty : ReadText(textbox);
                 LegacyPptPlaceholderKind placeholder = ReadPlaceholder(shapeContainer);
                 LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0);
-                slide.AddShape(new LegacyPptShape(kind, shapeType, bounds, text, placeholder));
+                slide.AddShape(new LegacyPptShape(kind, shapeType, shapeId, shapeContainer.Offset,
+                    bounds, text, placeholder));
 
                 if (textbox != null && textbox.DescendantsAndSelf()
                         .Any(record => record.Type == RecordStyleTextPropAtom)) {
