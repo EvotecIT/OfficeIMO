@@ -198,7 +198,7 @@ internal static partial class PdfWriter {
         content
             .FillColor(color)
             .MoveText(x, y)
-            .ShowText(EncodeTextShowCommand(text, font, pageOptions), fontSize)
+            .ShowText(EncodeTextShowCommand(text, font, pageOptions), fontSize, textRise)
             .EndText();
     }
 

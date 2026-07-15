@@ -229,7 +229,7 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
-    public ContentStreamBuilder ShowText(PdfTextShowCommand command, double fontSize) {
+    public ContentStreamBuilder ShowText(PdfTextShowCommand command, double fontSize, double currentTextRise = 0D) {
         Guard.NotNull(command, nameof(command));
         if (fontSize <= 0 || double.IsNaN(fontSize) || double.IsInfinity(fontSize)) {
             throw new ArgumentOutOfRangeException(nameof(fontSize), "PDF text font size must be positive and finite.");
@@ -244,7 +244,7 @@ internal sealed class ContentStreamBuilder {
         if (!command.HasPositioning) {
             ShowHexText(command.GlyphHex);
         } else {
-            AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize);
+            AppendPositionedGlyphs(command.PositionedGlyphs!, fontSize, currentTextRise);
         }
 
         if (command.ActualText != null) {
@@ -254,12 +254,12 @@ internal sealed class ContentStreamBuilder {
         return this;
     }
 
-    private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize) {
+    private void AppendPositionedGlyphs(IReadOnlyList<PdfGlyphInfo> glyphs, double fontSize, double baseTextRise) {
         int currentOffsetY1000 = 0;
         for (int index = 0; index < glyphs.Count; index++) {
             PdfGlyphInfo glyph = glyphs[index];
             if (glyph.OffsetY1000 != currentOffsetY1000) {
-                _sb.Append(F(glyph.OffsetY1000 * fontSize / 1000D)).Append(" Ts\n");
+                _sb.Append(F(baseTextRise + glyph.OffsetY1000 * fontSize / 1000D)).Append(" Ts\n");
                 currentOffsetY1000 = glyph.OffsetY1000;
             }
 
@@ -281,7 +281,7 @@ internal sealed class ContentStreamBuilder {
         }
 
         if (currentOffsetY1000 != 0) {
-            _sb.Append("0 Ts\n");
+            _sb.Append(F(baseTextRise)).Append(" Ts\n");
         }
     }
 

@@ -152,20 +152,7 @@ internal static partial class PdfWriter {
                     RichSeg segment = line[segmentIndex];
                     if (segment.InlineElement != null) {
                         if (segment.LeadingSpace) {
-                            runs.Add(new TextRun(
-                                " ",
-                                segment.Bold,
-                                segment.Underline,
-                                segment.Color,
-                                segment.Italic,
-                                segment.Strike,
-                                segment.FontSize,
-                                segment.Font,
-                                segment.Uri,
-                                segment.Contents,
-                                segment.Baseline,
-                                segment.DestinationName,
-                                backgroundColor: segment.BackgroundColor));
+                            runs.Add(BuildTextRunFromWrappedSegment(" ", segment));
                         }
 
                         runs.Add(TextRun.Inline(segment.InlineElement));
@@ -177,29 +164,36 @@ internal static partial class PdfWriter {
                         continue;
                     }
 
-                    runs.Add(new TextRun(
-                        text,
-                        segment.Bold,
-                        segment.Underline,
-                        segment.Color,
-                        segment.Italic,
-                        segment.Strike,
-                        segment.FontSize,
-                        segment.Font,
-                        segment.Uri,
-                        segment.Contents,
-                        segment.Baseline,
-                        segment.DestinationName,
-                        backgroundColor: segment.BackgroundColor));
+                    runs.Add(BuildTextRunFromWrappedSegment(text, segment));
                 }
 
                 if (lineIndex + 1 < count) {
-                    runs.Add(TextRun.LineBreak());
+                    if (line.Count == 0 || line[line.Count - 1].EndsWithHardBreak) {
+                        runs.Add(TextRun.LineBreak());
+                    } else if (line[line.Count - 1].EndsWithTextSeparator) {
+                        runs.Add(BuildTextRunFromWrappedSegment(" ", line[line.Count - 1].WithoutLink()));
+                    }
                 }
             }
 
             return runs;
         }
+
+        private static TextRun BuildTextRunFromWrappedSegment(string text, RichSeg segment) =>
+            new TextRun(
+                text,
+                segment.Bold,
+                segment.Underline,
+                segment.Color,
+                segment.Italic,
+                segment.Strike,
+                segment.FontSize,
+                segment.Font,
+                segment.Uri,
+                segment.Contents,
+                segment.Baseline,
+                segment.DestinationName,
+                backgroundColor: segment.BackgroundColor);
 
         private double MeasureColumnBlock(IPdfBlock block, double columnWidth) =>
             MeasureKeepWithNextBlockHeight(block, currentOpts.MarginLeft, columnWidth, currentOpts.DefaultFontSize);

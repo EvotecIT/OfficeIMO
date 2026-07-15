@@ -1,3 +1,4 @@
+using System.Globalization;
 using OfficeIMO.Pdf;
 using Xunit;
 
@@ -165,6 +166,46 @@ public class PdfContainerAndColumnTests {
             Assert.Contains(marker, text, StringComparison.Ordinal);
             Assert.DoesNotContain(marker.Replace(" ", string.Empty), text, StringComparison.Ordinal);
         }
+    }
+
+    [Fact]
+    public void Columns_BalancedJustifiedParagraphPreservesSoftWrapJustification() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 300,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 40,
+                MarginBottom = 40,
+                DefaultFontSize = 10,
+                CompressContentStreams = false
+            })
+            .Columns(columns => columns.Paragraph(paragraph => paragraph.Text(
+                "Alpha bravo charlie delta echo foxtrot golf hotel india juliet kilo lima mike november oscar papa quebec romeo sierra tango uniform victor whiskey xray yankee zulu " +
+                "amber bronze copper denim emerald fuchsia garnet hazel ivory jade khaki lilac magenta navy ochre peach quartz ruby silver teal umber violet wheat yellow zinc"),
+                align: PdfAlign.Justify), new PdfMultiColumnOptions {
+                    ColumnCount = 2,
+                    Gap = 20,
+                    BalanceLastPage = true,
+                    BalanceParagraphLines = true
+                })
+            .ToBytes();
+
+        string raw = PdfEncoding.Latin1GetString(bytes);
+        double[] wordSpacings = raw
+            .Split('\n')
+            .Select(line => line.Trim())
+            .Where(line => line.EndsWith(" Tw", StringComparison.Ordinal))
+            .Select(line => double.TryParse(
+                line.Substring(0, line.Length - 3),
+                NumberStyles.Float,
+                CultureInfo.InvariantCulture,
+                out double spacing) ? spacing : 0D)
+            .ToArray();
+
+        Assert.Contains(wordSpacings, spacing => spacing > 0.001D);
+        Assert.Contains("1 0 0 1 40 ", raw, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 1 220 ", raw, StringComparison.Ordinal);
     }
 
     private static int CountOccurrences(string value, string token) {

@@ -247,6 +247,50 @@ public class PdfTextShapingProviderTests {
         Assert.Equal(fontProgram.UnitsPerEm, provider.LastRequest.UnitsPerEm);
     }
 
+    [Fact]
+    public void TextShapingProvider_PreservesSuperscriptRiseAroundPositionedGlyphs() {
+        string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        Assert.NotNull(fontPath);
+
+        byte[] fontData = File.ReadAllBytes(fontPath!);
+        PdfOpenTypeCffFontProgram fontProgram = PdfOpenTypeCffFontProgram.Parse(fontData, "OfficeIMO Positioned Superscript Font");
+        Assert.True(fontProgram.TryGetGlyphId('A', out int aGlyphId));
+        Assert.True(fontProgram.TryGetGlyphId('B', out int bGlyphId));
+        int offsetY = fontProgram.UnitsPerEm / 5;
+        var provider = new MappingTextShapingProvider(
+            "AB",
+            isOpenTypeCff: true,
+            new[] {
+                new PdfShapedGlyph(aGlyphId, "A", 0, fontProgram.UnitsPerEm),
+                new PdfShapedGlyph(bGlyphId, "B", 1, fontProgram.UnitsPerEm, 0, offsetY)
+            });
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                DefaultFontSize = 12D
+            }
+            .EmbedStandardFont(PdfStandardFont.Helvetica, fontData, "OfficeIMO Positioned Superscript Font")
+            .SetTextShapingProvider(provider);
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Superscript("AB").Text("C"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        const double baseRise = 12D * 0.35D;
+        const double runFontSize = 12D * 0.65D;
+        int offsetY1000 = checked((int)Math.Round(offsetY * 1000D / fontProgram.UnitsPerEm, MidpointRounding.AwayFromZero));
+        double positionedRise = baseRise + offsetY1000 * runFontSize / 1000D;
+        string baseRiseOperator = baseRise.ToString("0.###", CultureInfo.InvariantCulture) + " Ts";
+        string positionedRiseOperator = positionedRise.ToString("0.###", CultureInfo.InvariantCulture) + " Ts";
+        int positionedRiseIndex = raw.IndexOf(positionedRiseOperator, StringComparison.Ordinal);
+        int restoredBaseRiseIndex = raw.IndexOf(baseRiseOperator, positionedRiseIndex + positionedRiseOperator.Length, StringComparison.Ordinal);
+        int normalRiseIndex = raw.IndexOf("0 Ts", restoredBaseRiseIndex + baseRiseOperator.Length, StringComparison.Ordinal);
+
+        Assert.True(positionedRiseIndex >= 0, "Expected the shaped glyph offset to be added to the superscript rise.");
+        Assert.True(restoredBaseRiseIndex > positionedRiseIndex, "Expected the superscript rise to be restored after positioned glyphs.");
+        Assert.True(normalRiseIndex > restoredBaseRiseIndex, "Expected normal text to reset the restored superscript rise.");
+    }
+
     private static IReadOnlyList<PdfShapedGlyph> CreateGlyphMap(string text, PdfTrueTypeFontProgram fontProgram) {
         var glyphs = new List<PdfShapedGlyph>();
         for (int index = 0; index < text.Length;) {

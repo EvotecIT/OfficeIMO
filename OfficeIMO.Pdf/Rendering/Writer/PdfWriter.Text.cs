@@ -1767,18 +1767,18 @@ internal static partial class PdfWriter {
                         if (leader.Length > 0) {
                             content
                                 .TextMatrix(lineXOrigin + xCursor, lineY)
-                                .ShowText(EncodeTextShowCommand(leader, s.Font, opts), runFontSize);
+                                .ShowText(EncodeTextShowCommand(leader, s.Font, opts), runFontSize, textRise);
                         }
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else if (!s.LeadingSpaceIsExpandable) {
                         content
                             .TextMatrix(lineXOrigin + xCursor, lineY)
-                            .ShowText(EncodeTextShowCommand(" ", s.Font, opts), runFontSize);
+                            .ShowText(EncodeTextShowCommand(" ", s.Font, opts), runFontSize, textRise);
                         xCursor += gap;
                         content.TextMatrix(lineXOrigin + xCursor, lineY);
                     } else {
-                        content.ShowText(EncodeTextShowCommand(" ", s.Font, opts), runFontSize);
+                        content.ShowText(EncodeTextShowCommand(" ", s.Font, opts), runFontSize, textRise);
                         xCursor += gap;
                     }
                 }
@@ -1840,7 +1840,7 @@ internal static partial class PdfWriter {
 
                     content
                         .FillColor(color ?? PdfColor.Black)
-                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, opts), runFontSize)
+                        .ShowText(EncodeTextShowCommand(s.Text, s.Font, opts), runFontSize, textRise)
                         .EndText();
                     AppendMarkedContentEnd(sb, linkMarkedContentId);
                     content
@@ -1854,7 +1854,7 @@ internal static partial class PdfWriter {
 
                     currentTextRise = 0;
                 } else {
-                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, opts), runFontSize);
+                    content.ShowText(EncodeTextShowCommand(s.Text, s.Font, opts), runFontSize, textRise);
                 }
 
                 double baselineY = lineY + textRise;
@@ -1893,7 +1893,7 @@ internal static partial class PdfWriter {
                     currentTextRise = separatorTextRise;
                 }
 
-                content.ShowText(EncodeTextShowCommand(" ", last.Font, opts), separatorFontSize);
+                content.ShowText(EncodeTextShowCommand(" ", last.Font, opts), separatorFontSize, separatorTextRise);
             }
 
             if (Math.Abs(currentTextRise) > 0.0001) {
