@@ -115,8 +115,11 @@ internal static class MimeParser {
             string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase);
         bool calendarContent = string.Equals(contentType.Value, "text/calendar", StringComparison.OrdinalIgnoreCase);
         bool vcardContent = VCardCodec.IsVCardContentType(contentType.Value, contentType.GetParameter("profile"));
+        bool semanticBodyPart = (calendarContent || vcardContent) && !attachmentDisposition &&
+            string.IsNullOrWhiteSpace(fileName) && string.IsNullOrWhiteSpace(contentId) &&
+            string.IsNullOrWhiteSpace(contentLocation);
         bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage &&
-            !calendarContent && !vcardContent;
+            !semanticBodyPart;
         long decodedLength = isBody ? 0 : MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
             skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
         if (!isBody) {
@@ -176,7 +179,8 @@ internal static class MimeParser {
         state.CountAttachment(decoded.LongLength);
         EmailAttachment attachment = CreateAttachment(headers, contentType, disposition, fileName,
             inlineDisposition || additionalInlineBody, attachmentDisposition,
-            state.Options.IncludeAttachmentContent || calendarContent || vcardContent ? decoded : null, decoded.LongLength);
+            state.Options.IncludeAttachmentContent || semanticBodyPart ? decoded : null, decoded.LongLength);
+        if (semanticBodyPart) attachment.IsMimeBodyPart = true;
         string? semanticCharset = contentType.GetParameter("charset");
         if (calendarContent && attachment.IsMimeBodyPart && IcsCalendarCodec.TryProject(
                 MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location),

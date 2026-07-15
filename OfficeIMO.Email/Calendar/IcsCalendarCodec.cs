@@ -16,8 +16,10 @@ internal static partial class IcsCalendarCodec {
 
         IReadOnlyList<IcsProperty> activeProperties = SelectActiveComponentProperties(
             properties, activeComponent.Value);
+        IReadOnlyList<IcsProperty> alarmProperties = SelectActiveAlarmProperties(
+            properties, activeComponent.Value);
         document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(
-            properties, activeProperties, isEvent);
+            properties, activeProperties, alarmProperties, isEvent);
         if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location);
         else ProjectTask(activeProperties, document, diagnostics, location);
         document.MimeSemanticProjectionIsIncomplete |= diagnostics.Skip(projectionDiagnosticStart).Any(diagnostic =>
@@ -80,7 +82,7 @@ internal static partial class IcsCalendarCodec {
     }
 
     private static bool HasIncompleteStoreProjection(IEnumerable<IcsProperty> properties,
-        IEnumerable<IcsProperty> activeProperties, bool isEvent) {
+        IEnumerable<IcsProperty> activeProperties, IReadOnlyList<IcsProperty> alarmProperties, bool isEvent) {
         int calendarItems = properties.Count(property => property.Name == "BEGIN" &&
             (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
              property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
@@ -93,6 +95,7 @@ internal static partial class IcsCalendarCodec {
         bool hasUnsupportedComponent = properties.Any(property => property.Name == "BEGIN" &&
             !IsSupportedComponent(property.Value));
         return calendarRoots != 1 || calendarItems > 1 || alarms > 1 || hasTimeZone || hasUnsupportedComponent ||
+            HasIncompleteAlarmProjection(alarms, alarmProperties) ||
             activeProperties.Any(property =>
             property.Name == "RRULE" || property.Name == "RDATE" ||
             property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
@@ -101,6 +104,23 @@ internal static partial class IcsCalendarCodec {
             property.Name == "ATTACH" || property.Name == "TRIGGER" &&
             property.Parameters.TryGetValue("RELATED", out string? related) &&
             related.Equals("END", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool HasIncompleteAlarmProjection(int alarmCount,
+        IReadOnlyList<IcsProperty> alarmProperties) {
+        if (alarmCount == 0) return false;
+        if (alarmCount != 1) return true;
+        IcsProperty[] actions = alarmProperties.Where(property => property.Name == "ACTION").ToArray();
+        IcsProperty[] triggers = alarmProperties.Where(property => property.Name == "TRIGGER").ToArray();
+        if (actions.Length != 1 || !actions[0].Value.Trim().Equals("DISPLAY", StringComparison.OrdinalIgnoreCase) ||
+            triggers.Length != 1 || !IcsDurationCodec.Parse(triggers[0].Value).HasValue) return true;
+        if (triggers[0].Parameters.Any(parameter =>
+                parameter.Key.Equals("RELATED", StringComparison.OrdinalIgnoreCase)
+                    ? !parameter.Value.Equals("START", StringComparison.OrdinalIgnoreCase)
+                    : !parameter.Key.Equals("VALUE", StringComparison.OrdinalIgnoreCase) ||
+                      !parameter.Value.Equals("DURATION", StringComparison.OrdinalIgnoreCase))) return true;
+        return alarmProperties.Any(property => property.Name != "ACTION" && property.Name != "TRIGGER" &&
+            property.Name != "DESCRIPTION");
     }
 
     private static bool IsSupportedComponent(string value) =>
@@ -419,7 +439,7 @@ internal static partial class IcsCalendarCodec {
                 string.Equals(recipient.Address.Address, address, StringComparison.OrdinalIgnoreCase));
             if (existing == null) {
                 document.Recipients.Add(new EmailRecipient(kind, new EmailAddress(address!, name)));
-            } else if (kind == EmailRecipientKind.Room || kind == EmailRecipientKind.Resource) {
+            } else {
                 existing.Kind = kind;
             }
         }

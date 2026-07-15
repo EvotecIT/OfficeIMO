@@ -103,7 +103,10 @@ internal static class MimeWriter {
     private static void WriteRecipientHeader(Stream output, EmailDocument document, EmailRecipientKind kind, string name) {
         string[] addresses = document.Recipients.Where(item => item.Kind == kind)
             .Select(item => FormatAddress(item.Address)).ToArray();
-        if (addresses.Length == 0) {
+        bool hasProjectedRecipients = document.Recipients.Any(item =>
+            item.Kind == EmailRecipientKind.To || item.Kind == EmailRecipientKind.Cc ||
+            item.Kind == EmailRecipientKind.Bcc || item.Kind == EmailRecipientKind.ReplyTo);
+        if (addresses.Length == 0 && !hasProjectedRecipients) {
             var parsed = new List<string>();
             var diagnostics = new List<EmailDiagnostic>();
             foreach (EmailHeader header in document.Headers.Where(header =>

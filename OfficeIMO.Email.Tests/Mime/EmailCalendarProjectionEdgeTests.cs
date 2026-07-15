@@ -5,6 +5,25 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailCalendarProjectionEdgeTests {
+    [Theory]
+    [InlineData("text/calendar", OutlookItemKind.Appointment,
+        "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:inline@example.com\r\n" +
+        "DTSTART:20260801T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")]
+    [InlineData("text/vcard", OutlookItemKind.Contact,
+        "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nEMAIL:ada@example.com\r\nEND:VCARD\r\n")]
+    public void ProjectsInlineSemanticMimeParts(string contentType, OutlookItemKind expectedKind, string content) {
+        byte[] eml = Encoding.ASCII.GetBytes("Content-Type: " + contentType + "; charset=utf-8\r\n" +
+            "Content-Disposition: inline\r\n\r\n" + content);
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailAttachment semanticPart = Assert.Single(document.Attachments);
+        Assert.Equal(expectedKind, document.OutlookItemKind);
+        Assert.True(semanticPart.IsInline);
+        Assert.True(semanticPart.IsMimeBodyPart);
+        Assert.True(semanticPart.IsProjectedSemanticContent);
+    }
+
     [Fact]
     public void ProjectsVtodoAttendeesThroughStoreRecipients() {
         byte[] eml = Calendar(
@@ -17,6 +36,23 @@ public sealed class EmailCalendarProjectionEdgeTests {
 
         Assert.Contains(document.Recipients, recipient => recipient.Address.Address == "assignee@example.com");
         Assert.Contains(roundTrip.Recipients, recipient => recipient.Address.Address == "assignee@example.com");
+    }
+
+    [Fact]
+    public void CalendarOptionalRoleOverridesEnvelopeRecipientKind() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "To: Optional <optional@example.com>\r\nContent-Type: text/calendar; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:optional@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\n" +
+            "ATTENDEE;ROLE=OPT-PARTICIPANT;CN=Optional:mailto:optional@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Equal(EmailRecipientKind.Cc, Assert.Single(document.Recipients).Kind);
+        Assert.Equal(EmailRecipientKind.Cc, Assert.Single(roundTrip.Recipients).Kind);
     }
 
     [Fact]
@@ -74,6 +110,24 @@ public sealed class EmailCalendarProjectionEdgeTests {
         byte[] eml = Calendar(
             "BEGIN:VEVENT\r\nUID:status@example.com\r\nDTSTART:20260801T100000Z\r\nSTATUS:" + status +
             "\r\nEND:VEVENT\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            document, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+    }
+
+    [Theory]
+    [InlineData("ACTION:EMAIL\r\nATTENDEE:mailto:notify@example.com\r\n")]
+    [InlineData("ACTION:DISPLAY\r\nATTACH:https://example.com/reminder.wav\r\n")]
+    public void BlocksAlarmSemanticsThatOutlookReminderPropertiesCannotRepresent(string alarmProperties) {
+        byte[] eml = Calendar(
+            "BEGIN:VEVENT\r\nUID:alarm@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "BEGIN:VALARM\r\n" + alarmProperties + "TRIGGER:-PT15M\r\n" +
+            "END:VALARM\r\nEND:VEVENT\r\n");
         EmailDocument document = new EmailDocumentReader().Read(eml).Document;
 
         EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(

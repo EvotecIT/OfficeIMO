@@ -96,7 +96,7 @@ public sealed class EmailDocumentWriter {
             return Array.Empty<byte>();
         }
 
-        EmailOutputPreflight.EnsurePayloadsFit(document, _options.MaxOutputBytes);
+        EmailOutputPreflight.EnsurePayloadsFit(document, format, _options.MaxOutputBytes);
         byte[] data = format == EmailFileFormat.Eml
             ? MimeWriter.Write(document, _options, diagnostics)
             : format == EmailFileFormat.OutlookMsg

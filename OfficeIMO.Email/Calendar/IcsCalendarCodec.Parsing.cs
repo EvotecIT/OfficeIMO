@@ -61,6 +61,38 @@ internal static partial class IcsCalendarCodec {
         return selected;
     }
 
+    private static IReadOnlyList<IcsProperty> SelectActiveAlarmProperties(
+        IReadOnlyList<IcsProperty> properties, string componentName) {
+        var selected = new List<IcsProperty>();
+        var components = new List<string>();
+        int activeComponentDepth = -1;
+        int activeAlarmDepth = -1;
+        bool selectedComponent = false;
+        foreach (IcsProperty property in properties) {
+            if (property.Name == "BEGIN") {
+                components.Add(property.Value.Trim().ToUpperInvariant());
+                if (!selectedComponent && property.Value.Equals(componentName, StringComparison.OrdinalIgnoreCase)) {
+                    activeComponentDepth = components.Count;
+                    selectedComponent = true;
+                } else if (activeComponentDepth > 0 && components.Count == activeComponentDepth + 1 &&
+                           property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase)) {
+                    activeAlarmDepth = components.Count;
+                }
+                continue;
+            }
+            if (property.Name == "END") {
+                if (components.Count == activeAlarmDepth &&
+                    property.Value.Equals("VALARM", StringComparison.OrdinalIgnoreCase)) activeAlarmDepth = -1;
+                if (components.Count == activeComponentDepth &&
+                    property.Value.Equals(componentName, StringComparison.OrdinalIgnoreCase)) activeComponentDepth = -1;
+                if (components.Count > 0) components.RemoveAt(components.Count - 1);
+                continue;
+            }
+            if (activeAlarmDepth > 0 && components.Count == activeAlarmDepth) selected.Add(property);
+        }
+        return selected;
+    }
+
     private static int FindUnquotedSeparator(string value, char separator) {
         bool quoted = false;
         bool escaped = false;

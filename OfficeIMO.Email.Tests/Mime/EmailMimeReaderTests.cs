@@ -274,6 +274,28 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
+    public void OmitsOrdinaryCalendarAndVcardAttachmentContentWhenRequested() {
+        const string eml = "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/calendar; name=invite.ics\r\n" +
+            "Content-Disposition: attachment; filename=invite.ics\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nEND:VCALENDAR\r\n" +
+            "--x\r\nContent-Type: text/vcard; name=person.vcf\r\n" +
+            "Content-Disposition: attachment; filename=person.vcf\r\n\r\n" +
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n--x--\r\n";
+
+        EmailDocument document = new EmailDocumentReader(new EmailReaderOptions(includeAttachmentContent: false))
+            .Read(Encoding.ASCII.GetBytes(eml)).Document;
+
+        Assert.Equal(OutlookItemKind.Message, document.OutlookItemKind);
+        Assert.Equal(2, document.Attachments.Count);
+        Assert.All(document.Attachments, attachment => {
+            Assert.Null(attachment.Content);
+            Assert.False(attachment.IsProjectedSemanticContent);
+            Assert.True(attachment.Length > 0);
+        });
+    }
+
+    [Fact]
     public void ParsesAddressGroupsAndIgnoresEmptyGroups() {
         const string eml = "To: undisclosed-recipients:; (no recipients), Team: Alice <alice@example.com>, " +
             "Bob <bob@example.com>;\r\n\r\nbody";
