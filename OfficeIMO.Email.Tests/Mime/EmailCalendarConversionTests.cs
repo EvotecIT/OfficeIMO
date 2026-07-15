@@ -52,6 +52,51 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void ProjectsEventPropertiesWithoutUsingTimezoneComponentValues() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VTIMEZONE\r\nTZID:Example\r\nBEGIN:STANDARD\r\nDTSTART:20000101T020000\r\n" +
+            "END:STANDARD\r\nEND:VTIMEZONE\r\nBEGIN:VEVENT\r\nUID:event@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nDTEND:20260801T110000Z\r\nSUMMARY:Scoped event\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        Assert.Equal("Scoped event", document.Subject);
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 10, 0, 0, TimeSpan.Zero), document.Appointment!.Start);
+        Assert.Equal(new DateTimeOffset(2026, 8, 1, 11, 0, 0, TimeSpan.Zero), document.Appointment.End);
+    }
+
+    [Fact]
+    public void ParsesQuotedAttendeeParametersContainingDelimiters() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:event@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "ATTENDEE;ROLE=REQ-PARTICIPANT;CN=\"Doe; John: Sr.\":mailto:john@example.com\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        EmailRecipient attendee = Assert.Single(new EmailDocumentReader().Read(eml).Document.Recipients);
+
+        Assert.Equal("john@example.com", attendee.Address.Address);
+        Assert.Equal("Doe; John: Sr.", attendee.Address.DisplayName);
+    }
+
+    [Fact]
+    public void DecodesCalendarProjectionUsingTheDeclaredCharset() {
+        byte[] prefix = Encoding.ASCII.GetBytes("Content-Type: text/calendar; charset=windows-1252\r\n\r\n");
+        byte[] calendar = Encoding.ASCII.GetBytes(
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\nUID:event@example.com\r\n" +
+            "DTSTART:20260801T100000Z\r\nSUMMARY:Caf#\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+        for (int index = 0; index < calendar.Length; index++) {
+            if (calendar[index] == (byte)'#') calendar[index] = 0xe9;
+        }
+
+        EmailDocument document = new EmailDocumentReader().Read(prefix.Concat(calendar).ToArray()).Document;
+
+        Assert.Equal("Café", document.Subject);
+    }
+
+    [Fact]
     public void ConvertsTaskThroughVtodo() {
         DateTimeOffset start = new DateTimeOffset(2026, 9, 3, 8, 0, 0, TimeSpan.Zero);
         var source = new EmailDocument {
@@ -94,6 +139,38 @@ public sealed class EmailCalendarConversionTests {
         Assert.Equal("12 km", result.Task.Mileage);
         Assert.Equal("Ada Lovelace", Assert.Single(result.Task.Contacts));
         Assert.Equal("Analytical Engines", Assert.Single(result.Task.Companies));
+    }
+
+    [Theory]
+    [InlineData(2)]
+    [InlineData(4)]
+    public void PreservesNumericTaskStatusThroughVtodo(int status) {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            OutlookItemKind = OutlookItemKind.Task,
+            Subject = "Status",
+            Task = new OutlookTask { Status = status }
+        };
+
+        EmailDocument result = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Eml)).Document;
+
+        Assert.Equal(status, result.Task!.Status);
+    }
+
+    [Fact]
+    public void BlocksRecurringTaskWhenNoPortableRuleIsAvailable() {
+        var source = new EmailDocument {
+            Format = EmailFileFormat.OutlookMsg,
+            OutlookItemKind = OutlookItemKind.Task,
+            Task = new OutlookTask { IsRecurring = true }
+        };
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(source, EmailFileFormat.Eml);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE");
     }
 
     [Fact]
@@ -226,6 +303,53 @@ public sealed class EmailCalendarConversionTests {
     }
 
     [Fact]
+    public void RecomputesCalendarMethodWhenRegeneratingEditedContent() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Subject: Published\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: text/calendar; method=PUBLISH; charset=utf-8\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\n" +
+            "UID:method@example.com\r\nDTSTART:20260801T100000Z\r\nSUMMARY:Published\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+        document.Subject = "Requested";
+        document.Recipients.Add(new EmailRecipient(EmailRecipientKind.To,
+            new EmailAddress("attendee@example.com")));
+
+        byte[] output = new EmailDocumentWriter(new EmailWriterOptions(EmailConversionLossPolicy.Warn))
+            .ToBytes(document, EmailFileFormat.Eml);
+        EmailAttachment calendar = Assert.Single(new EmailDocumentReader().Read(output).Document.Attachments,
+            attachment => string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
+        string rewritten = Encoding.UTF8.GetString(Assert.IsType<byte[]>(calendar.Content));
+
+        Assert.Equal("REQUEST", calendar.ContentTypeParameters["method"]);
+        Assert.Contains("METHOD:REQUEST", rewritten, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void KeepsAttachedCalendarAsAnAttachment() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Subject: Attached invitation\r\nMIME-Version: 1.0\r\n" +
+            "Content-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/plain; charset=utf-8\r\n\r\nPlease review the attachment.\r\n" +
+            "--x\r\nContent-Type: text/calendar; method=PUBLISH; charset=utf-8\r\n" +
+            "Content-Disposition: attachment; filename=invite.ics\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nMETHOD:PUBLISH\r\nBEGIN:VEVENT\r\n" +
+            "UID:attached@example.com\r\nDTSTART:20260801T100000Z\r\nSUMMARY:Attached\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        byte[] output = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(output);
+        MimeMessage message = MimeMessage.Load(stream);
+        MimePart attachment = Assert.IsAssignableFrom<MimePart>(Assert.Single(message.Attachments));
+
+        Assert.Equal("Please review the attachment.", message.TextBody!.Trim());
+        Assert.Equal("text/calendar", attachment.ContentType.MimeType);
+        Assert.Equal("invite.ics", attachment.FileName);
+        Assert.True(attachment.IsAttachment);
+    }
+
+    [Fact]
     public void AccumulatesIncompleteStateAcrossMultipleSemanticParts() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Subject: Multiple\r\nMIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
@@ -242,5 +366,15 @@ public sealed class EmailCalendarConversionTests {
         Assert.False(report.CanWrite);
         Assert.Contains(report.Diagnostics,
             diagnostic => diagnostic.Code == "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE");
+
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        using var stream = new MemoryStream(rewritten);
+        MimePart calendar = Assert.Single(MimeMessage.Load(stream).BodyParts.OfType<MimePart>(),
+            part => part.ContentType.MimeType == "text/calendar");
+        using var content = new MemoryStream();
+        calendar.Content!.DecodeTo(content);
+        string calendarText = Encoding.UTF8.GetString(content.ToArray());
+        Assert.Contains("BEGIN:VCALENDAR", calendarText, StringComparison.Ordinal);
+        Assert.DoesNotContain("BEGIN:VCARD", calendarText, StringComparison.Ordinal);
     }
 }

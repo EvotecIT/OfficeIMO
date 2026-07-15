@@ -43,6 +43,13 @@ internal static class EmailConversionAnalyzer {
                         "The appointment has attendee display text but no recipient addresses from which valid iCalendar ATTENDEE values can be created.",
                         "appointment/attendees"));
                 }
+            } else if (document.OutlookItemKind == OutlookItemKind.Task && document.Task?.IsRecurring == true &&
+                !HasUnchangedMimeSemanticSource(document)) {
+                hasPotentialDataLoss = true;
+                diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                    "EMAIL_ICALENDAR_OPAQUE_TASK_RECURRENCE",
+                    "The task is recurring, but its recurrence rule is not available for a safe iCalendar VTODO representation.",
+                    "task/recurrence"));
             } else if (document.OutlookItemKind == OutlookItemKind.Contact &&
                 (document.Contact == null || VCardCodec.HasOpaqueContactState(document.Contact))) {
                 hasPotentialDataLoss = true;
@@ -74,7 +81,7 @@ internal static class EmailConversionAnalyzer {
             hasPotentialDataLoss = true;
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                 "EMAIL_STORE_SEMANTIC_PROJECTION_INCOMPLETE",
-                "The calendar or vCard contains recurrence, exception, photo, key, or relationship semantics that cannot be projected completely into MSG/TNEF properties.",
+                "The calendar or vCard contains recurrence, exception, time-zone, photo, key, or relationship semantics that cannot be projected completely into MSG/TNEF properties.",
                 "semantic-content"));
         }
 

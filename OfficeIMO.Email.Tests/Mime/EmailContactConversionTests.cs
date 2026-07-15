@@ -73,4 +73,31 @@ public sealed class EmailContactConversionTests {
         Assert.False(report.CanWrite);
         Assert.Contains(report.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_VCARD_OPAQUE_CONTACT_IDENTITY");
     }
+
+    [Fact]
+    public void AccumulatesRepeatedVcardTypeParameters() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "FN:Ada Lovelace\r\nTEL;TYPE=HOME;TYPE=VOICE:+44 20 0000 0000\r\nEND:VCARD\r\n");
+
+        EmailDocument document = new EmailDocumentReader().Read(eml).Document;
+
+        Assert.Equal("+44 20 0000 0000", document.Contact!.Phones.Home);
+        Assert.Null(document.Contact.Phones.Primary);
+    }
+
+    [Fact]
+    public void DecodesVcardProjectionUsingTheDeclaredCharset() {
+        byte[] prefix = Encoding.ASCII.GetBytes("Content-Type: text/vcard; charset=windows-1252\r\n\r\n");
+        byte[] vcard = Encoding.ASCII.GetBytes(
+            "BEGIN:VCARD\r\nVERSION:3.0\r\nFN:Andr#\r\nN:Example;Andr#;;;\r\nEND:VCARD\r\n");
+        for (int index = 0; index < vcard.Length; index++) {
+            if (vcard[index] == (byte)'#') vcard[index] = 0xe9;
+        }
+
+        EmailDocument document = new EmailDocumentReader().Read(prefix.Concat(vcard).ToArray()).Document;
+
+        Assert.Equal("André", document.Contact!.DisplayName);
+        Assert.Equal("André", document.Contact.GivenName);
+    }
 }

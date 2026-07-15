@@ -4,29 +4,58 @@ internal static class IcsCalendarCodec {
     private static readonly DateTimeOffset DeterministicEpoch =
         new DateTimeOffset(1970, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
-    internal static bool TryProject(byte[] content, EmailDocument document, IList<EmailDiagnostic> diagnostics,
+    internal static bool TryProject(string text, EmailDocument document, IList<EmailDiagnostic> diagnostics,
         string location) {
-        string text = Decode(content);
-        List<IcsProperty> properties = ParseProperties(text);
-        bool isEvent = properties.Any(property => property.Name == "BEGIN" &&
-            property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase));
-        bool isTask = properties.Any(property => property.Name == "BEGIN" &&
-            property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase));
-        if (!isEvent && !isTask) return false;
+        List<IcsProperty> properties = ParseProperties(text.TrimStart('\uFEFF'));
+        IcsProperty? activeComponent = properties.FirstOrDefault(property => property.Name == "BEGIN" &&
+            (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
+             property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
+        if (activeComponent == null) return false;
+        bool isEvent = activeComponent.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase);
 
-        document.MimeSemanticProjectionIsIncomplete |= HasStoreSpecificRecurrence(properties);
-
-        if (isEvent) ProjectEvent(properties, document, diagnostics, location);
-        else ProjectTask(properties, document, diagnostics, location);
+        IReadOnlyList<IcsProperty> activeProperties = SelectActiveComponentProperties(
+            properties, activeComponent.Value);
+        document.MimeSemanticProjectionIsIncomplete |= HasIncompleteStoreProjection(properties, activeProperties);
+        if (isEvent) ProjectEvent(activeProperties, document, diagnostics, location);
+        else ProjectTask(activeProperties, document, diagnostics, location);
         return true;
     }
 
     internal static EmailAttachment? FindSemanticAttachment(EmailDocument document) {
         if (document.OutlookItemKind != OutlookItemKind.Appointment &&
             document.OutlookItemKind != OutlookItemKind.Task) return null;
-        return document.Attachments.FirstOrDefault(attachment => attachment.IsProjectedSemanticContent) ??
+        return document.Attachments.FirstOrDefault(attachment => attachment.IsProjectedSemanticContent &&
+            string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase)) ??
             document.Attachments.FirstOrDefault(attachment =>
                 string.Equals(attachment.ContentType, "text/calendar", StringComparison.OrdinalIgnoreCase));
+    }
+
+    internal static bool ShouldWriteAsAttachment(EmailAttachment attachment) => !attachment.IsMimeBodyPart;
+
+    internal static EmailAttachment CreateRegeneratedAttachment(EmailDocument document, EmailAttachment source) {
+        byte[] content = Create(document);
+        var attachment = new EmailAttachment {
+            FileName = source.FileName,
+            ContentType = "text/calendar",
+            ContentId = source.ContentId,
+            ContentLocation = source.ContentLocation,
+            IsInline = source.IsInline,
+            IsHidden = source.IsHidden,
+            RenderingPosition = source.RenderingPosition,
+            CreatedDate = source.CreatedDate,
+            ModifiedDate = source.ModifiedDate,
+            Content = content,
+            Length = content.LongLength,
+            IsProjectedSemanticContent = true,
+            IsMimeAttachment = source.IsMimeAttachment,
+            IsMimeBodyPart = false
+        };
+        foreach (KeyValuePair<string, string> parameter in source.ContentTypeParameters) {
+            attachment.ContentTypeParameters[parameter.Key] = parameter.Value;
+        }
+        attachment.ContentTypeParameters["charset"] = "utf-8";
+        attachment.ContentTypeParameters["method"] = GetMethod(document);
+        return attachment;
     }
 
     internal static byte[] Create(EmailDocument document) {
@@ -48,10 +77,15 @@ internal static class IcsCalendarCodec {
             appointment.RecurrenceType.HasValue || !string.IsNullOrWhiteSpace(appointment.RecurrencePattern);
     }
 
-    private static bool HasStoreSpecificRecurrence(IEnumerable<IcsProperty> properties) {
-        int events = properties.Count(property => property.Name == "BEGIN" &&
-            property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase));
-        return events > 1 || properties.Any(property => property.Name == "RRULE" || property.Name == "RDATE" ||
+    private static bool HasIncompleteStoreProjection(IEnumerable<IcsProperty> properties,
+        IEnumerable<IcsProperty> activeProperties) {
+        int calendarItems = properties.Count(property => property.Name == "BEGIN" &&
+            (property.Value.Equals("VEVENT", StringComparison.OrdinalIgnoreCase) ||
+             property.Value.Equals("VTODO", StringComparison.OrdinalIgnoreCase)));
+        bool hasTimeZone = properties.Any(property => property.Name == "BEGIN" &&
+            property.Value.Equals("VTIMEZONE", StringComparison.OrdinalIgnoreCase));
+        return calendarItems > 1 || hasTimeZone || activeProperties.Any(property =>
+            property.Name == "RRULE" || property.Name == "RDATE" ||
             property.Name == "EXDATE" || property.Name == "RECURRENCE-ID");
     }
 
@@ -199,7 +233,8 @@ internal static class IcsCalendarCodec {
         if (task.CompletedAt.HasValue) AppendLine(output, string.Concat("COMPLETED:", FormatUtc(task.CompletedAt.Value)));
         if (task.PercentComplete.HasValue) AppendLine(output, string.Concat("PERCENT-COMPLETE:",
             Math.Max(0, Math.Min(100, (int)Math.Round(task.PercentComplete.Value * 100d))).ToString(CultureInfo.InvariantCulture)));
-        if (task.IsComplete == true) AppendLine(output, "STATUS:COMPLETED");
+        if (task.IsComplete == true || task.Status == 2) AppendLine(output, "STATUS:COMPLETED");
+        else if (task.Status == 4) AppendLine(output, "STATUS:CANCELLED");
         else if (task.Status == 1) AppendLine(output, "STATUS:IN-PROCESS");
         else AppendLine(output, "STATUS:NEEDS-ACTION");
         if (task.EstimatedEffort.HasValue) AppendLine(output,
@@ -263,11 +298,6 @@ internal static class IcsCalendarCodec {
         }
     }
 
-    private static string Decode(byte[] content) {
-        int offset = content.Length >= 3 && content[0] == 0xef && content[1] == 0xbb && content[2] == 0xbf ? 3 : 0;
-        return Encoding.UTF8.GetString(content, offset, content.Length - offset);
-    }
-
     private static List<IcsProperty> ParseProperties(string text) {
         string normalized = text.Replace("\r\n", "\n").Replace('\r', '\n');
         var unfolded = new List<string>();
@@ -281,16 +311,82 @@ internal static class IcsCalendarCodec {
 
         var result = new List<IcsProperty>();
         foreach (string line in unfolded) {
-            int colon = line.IndexOf(':');
+            int colon = FindUnquotedSeparator(line, ':');
             if (colon <= 0) continue;
-            string[] tokens = line.Substring(0, colon).Split(';');
+            IReadOnlyList<string> tokens = SplitUnquoted(line.Substring(0, colon), ';');
             var property = new IcsProperty(tokens[0].Trim().ToUpperInvariant(), line.Substring(colon + 1));
-            for (int index = 1; index < tokens.Length; index++) {
-                int equals = tokens[index].IndexOf('=');
+            for (int index = 1; index < tokens.Count; index++) {
+                int equals = FindUnquotedSeparator(tokens[index], '=');
                 if (equals > 0) property.Parameters[tokens[index].Substring(0, equals).Trim()] =
                     tokens[index].Substring(equals + 1).Trim().Trim('"');
             }
             result.Add(property);
+        }
+        return result;
+    }
+
+    private static IReadOnlyList<IcsProperty> SelectActiveComponentProperties(
+        IReadOnlyList<IcsProperty> properties, string componentName) {
+        var selected = new List<IcsProperty>();
+        var components = new List<string>();
+        int activeDepth = -1;
+        bool selectedComponent = false;
+        foreach (IcsProperty property in properties) {
+            if (property.Name == "BEGIN") {
+                components.Add(property.Value.Trim().ToUpperInvariant());
+                if (!selectedComponent && property.Value.Equals(componentName, StringComparison.OrdinalIgnoreCase)) {
+                    activeDepth = components.Count;
+                    selectedComponent = true;
+                }
+                continue;
+            }
+            if (property.Name == "END") {
+                if (components.Count == activeDepth &&
+                    property.Value.Equals(componentName, StringComparison.OrdinalIgnoreCase)) activeDepth = -1;
+                if (components.Count > 0) components.RemoveAt(components.Count - 1);
+                continue;
+            }
+
+            bool calendarProperty = components.Count == 1 &&
+                components[0].Equals("VCALENDAR", StringComparison.OrdinalIgnoreCase);
+            bool componentProperty = activeDepth > 0 && components.Count == activeDepth;
+            bool alarmTrigger = activeDepth > 0 && components.Count == activeDepth + 1 &&
+                components[components.Count - 1].Equals("VALARM", StringComparison.OrdinalIgnoreCase) &&
+                property.Name == "TRIGGER";
+            if (calendarProperty || componentProperty || alarmTrigger) selected.Add(property);
+        }
+        return selected;
+    }
+
+    private static int FindUnquotedSeparator(string value, char separator) {
+        bool quoted = false;
+        bool escaped = false;
+        for (int index = 0; index < value.Length; index++) {
+            char character = value[index];
+            if (escaped) {
+                escaped = false;
+            } else if (character == '\\') {
+                escaped = true;
+            } else if (character == '"') {
+                quoted = !quoted;
+            } else if (!quoted && character == separator) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private static IReadOnlyList<string> SplitUnquoted(string value, char separator) {
+        var result = new List<string>();
+        int start = 0;
+        while (start <= value.Length) {
+            int relative = FindUnquotedSeparator(value.Substring(start), separator);
+            if (relative < 0) {
+                result.Add(value.Substring(start));
+                break;
+            }
+            result.Add(value.Substring(start, relative));
+            start += relative + 1;
         }
         return result;
     }
@@ -413,7 +509,7 @@ internal static class IcsCalendarCodec {
         string.Equals(method, "CANCEL", StringComparison.OrdinalIgnoreCase) ? "IPM.Schedule.Meeting.Canceled" :
         "IPM.Appointment";
 
-    private static string GetMethod(EmailDocument document) {
+    internal static string GetMethod(EmailDocument document) {
         string messageClass = document.MessageClass ?? string.Empty;
         if (messageClass.IndexOf("Canceled", StringComparison.OrdinalIgnoreCase) >= 0) return "CANCEL";
         if (messageClass.IndexOf("Request", StringComparison.OrdinalIgnoreCase) >= 0) return "REQUEST";

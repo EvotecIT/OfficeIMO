@@ -141,16 +141,26 @@ internal static class MimeWriter {
         EmailAttachment? calendarAttachment = IcsCalendarCodec.FindSemanticAttachment(document);
         bool semanticSourceUnchanged = document.MimeSemanticSourceModelFingerprint != null &&
             EmailDocumentStateFingerprint.Matches(document, document.MimeSemanticSourceModelFingerprint);
+        bool calendarIsAttachment = calendarAttachment != null &&
+            IcsCalendarCodec.ShouldWriteAsAttachment(calendarAttachment);
+        byte[]? retainedCalendarContent = calendarAttachment != null && semanticSourceUnchanged
+            ? EmailAttachmentContent.ReadOrNull(calendarAttachment, state.Options.MaxOutputBytes)
+            : null;
+        bool calendarSourceReused = retainedCalendarContent != null;
         byte[]? calendarContent = document.OutlookItemKind == OutlookItemKind.Appointment ||
             document.OutlookItemKind == OutlookItemKind.Task
-            ? calendarAttachment == null || !semanticSourceUnchanged
-                ? IcsCalendarCodec.Create(document)
-                : EmailAttachmentContent.ReadOrNull(calendarAttachment, state.Options.MaxOutputBytes) ??
-                  IcsCalendarCodec.Create(document)
+            ? calendarIsAttachment
+                ? null
+                : retainedCalendarContent ?? IcsCalendarCodec.Create(document)
             : null;
         EmailAttachment? vcardAttachment = VCardCodec.FindSemanticAttachment(document);
         var regularAttachmentList = document.Attachments.Where(attachment =>
             !ReferenceEquals(attachment, calendarAttachment) && !ReferenceEquals(attachment, vcardAttachment)).ToList();
+        if (calendarIsAttachment && calendarAttachment != null) {
+            regularAttachmentList.Add(calendarSourceReused
+                ? calendarAttachment
+                : IcsCalendarCodec.CreateRegeneratedAttachment(document, calendarAttachment));
+        }
         if (document.OutlookItemKind == OutlookItemKind.Contact && document.Contact != null) {
             regularAttachmentList.Add(VCardCodec.CreateAttachment(document, state.Options.MaxOutputBytes,
                 semanticSourceUnchanged ? vcardAttachment : null));
@@ -168,9 +178,10 @@ internal static class MimeWriter {
             WriteLine(output, string.Concat("--", boundary));
             if (hasRelatedResources) {
                 WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
-                    calendarAttachment, regularAttachments);
+                    calendarSourceReused ? calendarAttachment : null, regularAttachments);
             } else {
-                WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent, calendarAttachment);
+                WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
+                    calendarSourceReused ? calendarAttachment : null);
             }
             for (int i = 0; i < regularAttachments.Length; i++) {
                 if (IsRelatedResource(document, regularAttachments[i])) continue;
@@ -183,9 +194,10 @@ internal static class MimeWriter {
 
         if (hasRelatedResources) {
             WriteRelatedBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
-                calendarAttachment, regularAttachments);
+                calendarSourceReused ? calendarAttachment : null, regularAttachments);
         } else {
-            WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent, calendarAttachment);
+            WriteBodyEntity(output, document, state, depth, hasAlternative, calendarContent,
+                calendarSourceReused ? calendarAttachment : null);
         }
     }
 
@@ -295,11 +307,7 @@ internal static class MimeWriter {
         EmailAttachment? source, int base64LineLength) {
         string method = source != null && source.ContentTypeParameters.TryGetValue("method", out string? retainedMethod)
             ? retainedMethod
-            : document.MessageClass != null && document.MessageClass.IndexOf("Canceled", StringComparison.OrdinalIgnoreCase) >= 0
-                ? "CANCEL"
-                : document.Recipients.Any(recipient => recipient.Kind == EmailRecipientKind.To || recipient.Kind == EmailRecipientKind.Cc)
-                    ? "REQUEST"
-                    : "PUBLISH";
+            : IcsCalendarCodec.GetMethod(document);
         WriteLine(output, string.Concat("Content-Type: text/calendar; method=", SanitizeToken(method), "; charset=utf-8"));
         WriteLine(output, "Content-Transfer-Encoding: base64");
         WriteLine(output, string.Empty);
@@ -346,7 +354,8 @@ internal static class MimeWriter {
         string? fileName = attachment.FileName;
         WriteLine(output, string.Concat("Content-Type: ", SanitizeToken(contentType),
             FormatContentTypeParameters(attachment.ContentTypeParameters), FormatFileNameParameter("name", fileName)));
-        WriteLine(output, string.Concat("Content-Disposition: ", attachment.IsInline ? "inline" : "attachment",
+        WriteLine(output, string.Concat("Content-Disposition: ",
+            attachment.IsMimeAttachment ? "attachment" : attachment.IsInline ? "inline" : "attachment",
             FormatFileNameParameter("filename", fileName)));
         if (!string.IsNullOrWhiteSpace(attachment.ContentId)) {
             WriteLine(output, string.Concat("Content-ID: <", SanitizeMessageId(attachment.ContentId!), ">"));

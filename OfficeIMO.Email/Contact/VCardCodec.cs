@@ -1,8 +1,8 @@
 namespace OfficeIMO.Email;
 
 internal static class VCardCodec {
-    internal static bool TryProject(byte[] content, EmailDocument document) {
-        List<VCardProperty> properties = Parse(Decode(content));
+    internal static bool TryProject(string text, EmailDocument document) {
+        List<VCardProperty> properties = Parse(text.TrimStart('\uFEFF'));
         if (!properties.Any(property => property.Name == "BEGIN" &&
             property.Value.Equals("VCARD", StringComparison.OrdinalIgnoreCase))) return false;
 
@@ -309,19 +309,22 @@ internal static class VCardCodec {
             var property = new VCardProperty(name.Trim().ToUpperInvariant(), line.Substring(colon + 1));
             for (int index = 1; index < tokens.Length; index++) {
                 int equals = tokens[index].IndexOf('=');
-                if (equals > 0) property.Parameters[tokens[index].Substring(0, equals).Trim()] =
-                    tokens[index].Substring(equals + 1).Trim().Trim('"');
+                if (equals > 0) {
+                    string parameterName = tokens[index].Substring(0, equals).Trim();
+                    string parameterValue = tokens[index].Substring(equals + 1).Trim().Trim('"');
+                    if (parameterName.Equals("TYPE", StringComparison.OrdinalIgnoreCase) &&
+                        property.Parameters.TryGetValue(parameterName, out string? priorType)) {
+                        property.Parameters[parameterName] = string.Concat(priorType, ",", parameterValue);
+                    } else {
+                        property.Parameters[parameterName] = parameterValue;
+                    }
+                }
                 else property.Parameters["TYPE"] = property.Parameters.TryGetValue("TYPE", out string? prior)
                     ? string.Concat(prior, ",", tokens[index]) : tokens[index];
             }
             result.Add(property);
         }
         return result;
-    }
-
-    private static string Decode(byte[] content) {
-        int offset = content.Length >= 3 && content[0] == 0xef && content[1] == 0xbb && content[2] == 0xbf ? 3 : 0;
-        return Encoding.UTF8.GetString(content, offset, content.Length - offset);
     }
 
     private static string? GetValue(IEnumerable<VCardProperty> properties, string name) =>

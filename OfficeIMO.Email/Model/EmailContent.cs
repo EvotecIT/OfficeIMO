@@ -25,6 +25,8 @@ public sealed class EmailAttachment {
     private readonly Dictionary<string, byte[]> _structuredStorageStreams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
     private readonly List<TnefAttribute> _tnefAttributes = new List<TnefAttribute>();
     internal bool IsProjectedSemanticContent { get; set; }
+    internal bool IsMimeAttachment { get; set; }
+    internal bool IsMimeBodyPart { get; set; }
     /// <summary>Attachment filename.</summary>
     public string? FileName { get; set; }
 
