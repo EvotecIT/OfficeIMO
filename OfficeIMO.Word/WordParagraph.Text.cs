@@ -29,7 +29,6 @@ namespace OfficeIMO.Word {
         // Non text-wrapping breaks (for example, page or column breaks) are surfaced as the Unicode line
         // separator so that they remain discoverable during text operations and can be restored exactly.
         private const char NonTextBreakPlaceholder = '\u2028';
-        private const string MathNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/math";
 
         private static bool IsTextWrappingBreak(Break breakNode) {
             return breakNode.Type is null || breakNode.Type.Value == BreakValues.TextWrapping;
@@ -97,12 +96,12 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (_officeMath != null) {
-                    SetMathElementText(_officeMath, value);
+                    WordMath.SetText(_officeMath, value);
                     return;
                 }
 
                 if (_mathParagraph != null) {
-                    SetMathElementText(_mathParagraph, value);
+                    WordMath.SetText(_mathParagraph, value);
                     return;
                 }
 
@@ -330,23 +329,6 @@ namespace OfficeIMO.Word {
             return resultRuns.Count > 0 ? resultRuns : runs;
         }
 
-        private static void SetMathElementText(OpenXmlElement element, string? value) {
-            var normalized = (value ?? string.Empty)
-                .Replace("\r\n", NormalizedLineFeed)
-                .Replace("\r", NormalizedLineFeed);
-
-            if (element is M.Paragraph mathParagraph) {
-                mathParagraph.RemoveAllChildren();
-                mathParagraph.Append(new M.OfficeMath(new M.Run(new M.Text(normalized))));
-                return;
-            }
-
-            if (element is OpenXmlCompositeElement composite) {
-                composite.RemoveAllChildren();
-                composite.Append(new M.Run(new M.Text(normalized)));
-            }
-        }
-
         private static string ReadVisibleText(OpenXmlElement element) {
             var builder = new StringBuilder();
             AppendVisibleText(builder, element);
@@ -387,7 +369,8 @@ namespace OfficeIMO.Word {
                     return;
             }
 
-            if (element.NamespaceUri == MathNamespace && TryAppendMathText(builder, element)) {
+            if (element.NamespaceUri == WordMath.MathNamespace) {
+                builder.Append(WordMath.GetText(element));
                 return;
             }
 
@@ -401,305 +384,6 @@ namespace OfficeIMO.Word {
             return vanish != null &&
                    (vanish.Val == null || vanish.Val.Value) &&
                    run.Elements<CommentReference>().Any();
-        }
-
-        private static bool TryAppendMathText(StringBuilder builder, OpenXmlElement element) {
-            switch (element.LocalName) {
-                case "f":
-                    AppendDelimitedMath(builder, element, "num", "den", "(", ")/(", ")");
-                    return true;
-                case "sSup":
-                    AppendMathChildText(builder, element, "e");
-                    AppendMathScript(builder, "^", ReadMathChildText(element, "sup"));
-                    return true;
-                case "sSub":
-                    AppendMathChildText(builder, element, "e");
-                    AppendMathScript(builder, "_", ReadMathChildText(element, "sub"));
-                    return true;
-                case "sSubSup":
-                    AppendMathChildText(builder, element, "e");
-                    AppendMathScript(builder, "_", ReadMathChildText(element, "sub"));
-                    AppendMathScript(builder, "^", ReadMathChildText(element, "sup"));
-                    return true;
-                case "sPre":
-                    AppendMathScript(builder, "^", ReadMathChildText(element, "sup"));
-                    AppendMathScript(builder, "_", ReadMathChildText(element, "sub"));
-                    AppendMathChildText(builder, element, "e");
-                    return true;
-                case "rad":
-                    string degree = ReadMathChildText(element, "deg");
-                    string radicand = ReadMathChildText(element, "e");
-                    if (degree.Length == 0) {
-                        builder.Append("sqrt(");
-                        builder.Append(radicand);
-                        builder.Append(')');
-                    } else {
-                        builder.Append("root(");
-                        builder.Append(degree);
-                        builder.Append(',');
-                        builder.Append(radicand);
-                        builder.Append(')');
-                    }
-
-                    return true;
-                case "nary":
-                case "int":
-                    AppendNaryMathText(builder, element);
-                    return true;
-                case "func":
-                    string functionName = ReadMathChildText(element, "fName");
-                    string argument = ReadMathChildText(element, "e");
-                    if (functionName.Length > 0) {
-                        builder.Append(functionName);
-                        builder.Append('(');
-                        builder.Append(argument);
-                        builder.Append(')');
-                    } else {
-                        builder.Append(argument);
-                    }
-
-                    return true;
-                case "acc":
-                    AppendAccentMathText(builder, element);
-                    return true;
-                case "bar":
-                    AppendFunctionMathText(builder, "bar", ReadMathChildText(element, "e"));
-                    return true;
-                case "d":
-                    AppendDelimiterMathText(builder, element);
-                    return true;
-                case "groupChr":
-                    AppendGroupCharMathText(builder, element);
-                    return true;
-                case "m":
-                    AppendMatrixMathText(builder, element);
-                    return true;
-                case "eqArr":
-                    AppendEquationArrayMathText(builder, element);
-                    return true;
-                case "limLow":
-                    AppendMathChildText(builder, element, "e");
-                    AppendMathScript(builder, "_", ReadMathChildText(element, "lim"));
-                    return true;
-                case "limUpp":
-                    AppendMathChildText(builder, element, "e");
-                    AppendMathScript(builder, "^", ReadMathChildText(element, "lim"));
-                    return true;
-            }
-
-            return false;
-        }
-
-        private static void AppendDelimitedMath(StringBuilder builder, OpenXmlElement element, string leftChild, string rightChild, string prefix, string separator, string suffix) {
-            builder.Append(prefix);
-            AppendMathChildText(builder, element, leftChild);
-            builder.Append(separator);
-            AppendMathChildText(builder, element, rightChild);
-            builder.Append(suffix);
-        }
-
-        private static void AppendAccentMathText(StringBuilder builder, OpenXmlElement element) {
-            string expression = ReadMathChildText(element, "e");
-            string accent = ReadMathCharacterValue(element, "chr");
-            string functionName = accent switch {
-                "^" => "hat",
-                "\u0302" => "hat",
-                "~" => "tilde",
-                "\u0303" => "tilde",
-                "." => "dot",
-                "\u0307" => "dot",
-                "\u00a8" => "ddot",
-                "\u0308" => "ddot",
-                _ => string.Empty
-            };
-
-            if (functionName.Length > 0) {
-                AppendFunctionMathText(builder, functionName, expression);
-                return;
-            }
-
-            builder.Append("accent(");
-            builder.Append(accent);
-            builder.Append(',');
-            builder.Append(expression);
-            builder.Append(')');
-        }
-
-        private static void AppendDelimiterMathText(StringBuilder builder, OpenXmlElement element) {
-            string begin = ReadMathCharacterValue(element, "begChr");
-            string end = ReadMathCharacterValue(element, "endChr");
-            builder.Append(begin.Length == 0 ? "(" : begin);
-            AppendJoinedMathChildText(builder, element, "e", ",");
-            builder.Append(end.Length == 0 ? ")" : end);
-        }
-
-        private static void AppendGroupCharMathText(StringBuilder builder, OpenXmlElement element) {
-            string expression = ReadMathChildText(element, "e");
-            string character = ReadMathCharacterValue(element, "chr");
-            string functionName = character switch {
-                "\u23de" => "overbrace",
-                "\u23df" => "underbrace",
-                "\u23b4" => "overbracket",
-                "\u23b5" => "underbracket",
-                _ => "group"
-            };
-            AppendFunctionMathText(builder, functionName, expression);
-        }
-
-        private static void AppendMatrixMathText(StringBuilder builder, OpenXmlElement element) {
-            builder.Append("matrix(");
-            bool firstRow = true;
-            foreach (OpenXmlElement row in FindMathChildren(element, "mr")) {
-                if (!firstRow) {
-                    builder.Append(';');
-                }
-
-                bool firstCell = true;
-                foreach (OpenXmlElement cell in FindMathChildren(row, "e")) {
-                    if (!firstCell) {
-                        builder.Append(',');
-                    }
-
-                    AppendVisibleText(builder, cell);
-                    firstCell = false;
-                }
-
-                firstRow = false;
-            }
-
-            builder.Append(')');
-        }
-
-        private static void AppendEquationArrayMathText(StringBuilder builder, OpenXmlElement element) {
-            builder.Append("eqarray(");
-            AppendJoinedMathChildText(builder, element, "e", ";");
-            builder.Append(')');
-        }
-
-        private static void AppendFunctionMathText(StringBuilder builder, string functionName, string expression) {
-            builder.Append(functionName);
-            builder.Append('(');
-            builder.Append(expression);
-            builder.Append(')');
-        }
-
-        private static void AppendNaryMathText(StringBuilder builder, OpenXmlElement element) {
-            string operatorText = element.LocalName == "int" ? "int" : ReadNaryOperatorText(element);
-            string subscript = ReadMathChildText(element, "sub");
-            string superscript = ReadMathChildText(element, "sup");
-            string expression = ReadMathChildText(element, "e");
-            builder.Append(operatorText);
-            AppendMathScript(builder, "_", subscript);
-            AppendMathScript(builder, "^", superscript);
-            if (expression.Length > 0) {
-                builder.Append('(');
-                builder.Append(expression);
-                builder.Append(')');
-            }
-        }
-
-        private static void AppendJoinedMathChildText(StringBuilder builder, OpenXmlElement element, string localName, string separator) {
-            bool first = true;
-            foreach (OpenXmlElement child in FindMathChildren(element, localName)) {
-                if (!first) {
-                    builder.Append(separator);
-                }
-
-                AppendVisibleText(builder, child);
-                first = false;
-            }
-        }
-
-        private static string ReadMathCharacterValue(OpenXmlElement element, string localName) {
-            OpenXmlElement? character = FindFirstMathDescendant(element, localName);
-            string? value = character?.GetAttribute("val", MathNamespace).Value;
-            if (string.IsNullOrEmpty(value)) {
-                value = character?.GetAttribute("val", string.Empty).Value;
-            }
-
-            return value ?? string.Empty;
-        }
-
-        private static string ReadNaryOperatorText(OpenXmlElement element) {
-            OpenXmlElement? chr = FindFirstMathDescendant(element, "chr");
-            string? value = chr?.GetAttribute("val", MathNamespace).Value;
-            if (string.IsNullOrEmpty(value)) {
-                value = chr?.GetAttribute("val", string.Empty).Value;
-            }
-
-            if (string.IsNullOrEmpty(value)) {
-                return "sum";
-            }
-
-            string operatorText = value ?? "sum";
-            return operatorText switch {
-                "\u2211" => "sum",
-                "\u220F" => "prod",
-                "\u222B" => "int",
-                _ => operatorText
-            };
-        }
-
-        private static void AppendMathScript(StringBuilder builder, string marker, string value) {
-            if (value.Length == 0) {
-                return;
-            }
-
-            builder.Append(marker);
-            builder.Append('(');
-            builder.Append(value);
-            builder.Append(')');
-        }
-
-        private static void AppendMathChildText(StringBuilder builder, OpenXmlElement element, string localName) {
-            OpenXmlElement? child = FindFirstMathChild(element, localName);
-            if (child != null) {
-                AppendVisibleText(builder, child);
-            }
-        }
-
-        private static string ReadMathChildText(OpenXmlElement element, string localName) {
-            OpenXmlElement? child = FindFirstMathChild(element, localName);
-            if (child == null) {
-                return string.Empty;
-            }
-
-            var builder = new StringBuilder();
-            AppendVisibleText(builder, child);
-            return builder.ToString();
-        }
-
-        private static IEnumerable<OpenXmlElement> FindMathChildren(OpenXmlElement element, string localName) {
-            foreach (OpenXmlElement child in element.ChildElements) {
-                if (child.NamespaceUri == MathNamespace && child.LocalName == localName) {
-                    yield return child;
-                }
-            }
-        }
-
-        private static OpenXmlElement? FindFirstMathChild(OpenXmlElement element, string localName) {
-            foreach (OpenXmlElement child in element.ChildElements) {
-                if (child.NamespaceUri == MathNamespace && child.LocalName == localName) {
-                    return child;
-                }
-            }
-
-            return null;
-        }
-
-        private static OpenXmlElement? FindFirstMathDescendant(OpenXmlElement element, string localName) {
-            foreach (OpenXmlElement child in element.ChildElements) {
-                if (child.NamespaceUri == MathNamespace && child.LocalName == localName) {
-                    return child;
-                }
-
-                OpenXmlElement? descendant = FindFirstMathDescendant(child, localName);
-                if (descendant != null) {
-                    return descendant;
-                }
-            }
-
-            return null;
         }
 
         private static string ReadComplexFieldResultText(IReadOnlyList<Run> runs) {

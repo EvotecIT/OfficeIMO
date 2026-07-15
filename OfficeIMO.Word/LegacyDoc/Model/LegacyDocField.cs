@@ -170,6 +170,31 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return IsDocumentPropertyInstruction(instruction);
         }
 
+        internal static bool TryReadEquationField(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out string instruction,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            instruction = string.Empty;
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+
+            if (!TryReadField(
+                characters,
+                startIndex,
+                out instruction,
+                out resultStartIndex,
+                out resultEndIndex,
+                out fieldEndIndex)) {
+                return false;
+            }
+
+            return IsInstruction(instruction.Trim(), "EQ");
+        }
+
         internal static bool TryReadDisplayField(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,

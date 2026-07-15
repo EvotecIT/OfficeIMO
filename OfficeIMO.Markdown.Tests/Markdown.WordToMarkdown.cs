@@ -312,7 +312,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordToMarkdown_Preserves_Unsupported_Content_In_List_Item() {
+        public void WordToMarkdown_Projects_Equation_To_Math_Fence_In_List_Item() {
             const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>x=1</m:t></m:r></m:oMath></m:oMathPara>";
             using var doc = WordDocument.Create();
             WordList list = doc.AddList(WordListStyle.Bulleted);
@@ -324,7 +324,21 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.Contains("- Formula:", markdown, StringComparison.Ordinal);
-            Assert.Contains("Unsupported Word content: equation", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("x=1", markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain("Unsupported Word content: equation", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordToMarkdown_Projects_Structured_Equation_To_Latex() {
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
+            using var doc = WordDocument.Create();
+            doc.AddEquation(omml);
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Contains("\\frac{a}{b}", markdown, StringComparison.Ordinal);
         }
 
         [Fact]

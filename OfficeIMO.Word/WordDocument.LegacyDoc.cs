@@ -911,7 +911,9 @@ namespace OfficeIMO.Word {
             LegacyDocTextRun firstRun = sourceParagraph.Runs[0];
             WordParagraph paragraph;
             int remainingRunStartIndex;
-            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text) || firstRun.HyperlinkTarget.HasValue) {
+            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text)
+                || firstRun.HyperlinkTarget.HasValue
+                || firstRun.FieldKind != LegacyDocFieldKind.None) {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
                 remainingRunStartIndex = 0;
             } else {
@@ -1428,6 +1430,7 @@ namespace OfficeIMO.Word {
                 LegacyDocFieldKind.SaveDate => " SAVEDATE  ",
                 LegacyDocFieldKind.PrintDate => " PRINTDATE  ",
                 LegacyDocFieldKind.DocumentProperty => throw new NotSupportedException("Legacy DOC document-property field projection requires the source field instruction."),
+                LegacyDocFieldKind.Equation => " EQ ",
                 _ => " DATE  "
             };
         }

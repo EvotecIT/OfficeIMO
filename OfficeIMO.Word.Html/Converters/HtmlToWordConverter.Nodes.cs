@@ -15,6 +15,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Html {
     internal partial class HtmlToWordConverter {
@@ -86,6 +87,13 @@ namespace OfficeIMO.Word.Html {
                 ApplyCssToElement(element);
                 ReportAccessibilityDiagnostics(element);
                 switch (element.TagName.ToLowerInvariant()) {
+                    case "math": {
+                            WordParagraph paragraph = currentParagraph ?? AddParagraphInScope(section, cell, headerFooter);
+                            string equationText = element.GetAttribute("aria-label") ?? element.TextContent ?? string.Empty;
+                            var officeMath = new M.OfficeMath(new M.Run(new M.Text(equationText)));
+                            paragraph.AddEquation(officeMath.OuterXml);
+                            break;
+                        }
                     case "body": {
                             var fmt = formatting;
                             var bodyStyle = element.GetAttribute("style");

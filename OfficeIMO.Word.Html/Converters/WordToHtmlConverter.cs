@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using System.Threading;
 using System.Threading.Tasks;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Html {
     /// <summary>
@@ -63,11 +64,43 @@ namespace OfficeIMO.Word.Html {
 
             void AppendRuns(IElement parent, WordParagraph para, bool processNotes = true) {
                 var runs = para.GetRuns().ToList();
+                var paragraphChildren = para._paragraph.ChildElements.ToList();
+                var equationChildren = paragraphChildren
+                    .Select((element, index) => (Element: element, Index: index))
+                    .Where(item => item.Element is M.OfficeMath
+                        || item.Element is M.Paragraph
+                        || item.Element is SimpleField simpleField
+                            && new WordParagraph(para._document, para._paragraph, simpleField).Equation != null)
+                    .ToList();
                 List<INode> nodes = new();
+                int nextEquation = 0;
                 bool inQuote = false;
                 IElement? quote = null;
+
+                void AppendEquationNodesBefore(int childIndex) {
+                    while (nextEquation < equationChildren.Count && equationChildren[nextEquation].Index < childIndex) {
+                        DocumentFormat.OpenXml.OpenXmlElement child = equationChildren[nextEquation++].Element;
+                        WordEquation? equation = child is SimpleField simpleField
+                            ? new WordParagraph(para._document, para._paragraph, simpleField).Equation
+                            : null;
+                        string mathMl = equation?.ToMathMl() ?? WordMath.ToMathMl(child);
+                        IElement? mathNode = new HtmlParser()
+                            .ParseFragment(mathMl, parent)
+                            .OfType<IElement>()
+                            .FirstOrDefault();
+                        if (mathNode == null) continue;
+                        mathNode.SetAttribute("aria-label", equation?.Text ?? WordMath.GetText(child));
+                        nodes.Add(mathNode);
+                    }
+                }
+
                 for (int i = 0; i < runs.Count; i++) {
                     var run = runs[i];
+                    DocumentFormat.OpenXml.OpenXmlElement? runContainer = run._hyperlink
+                        ?? (DocumentFormat.OpenXml.OpenXmlElement?)run._stdRun
+                        ?? run._run;
+                    int runIndex = runContainer == null ? int.MaxValue : paragraphChildren.IndexOf(runContainer);
+                    AppendEquationNodesBefore(runIndex < 0 ? int.MaxValue : runIndex);
                     if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(run)) {
                         continue;
                     }
@@ -370,6 +403,8 @@ namespace OfficeIMO.Word.Html {
                         nodes.Add(node);
                     }
                 }
+
+                AppendEquationNodesBefore(int.MaxValue);
                 foreach (var node in nodes) {
                     cancellationToken.ThrowIfCancellationRequested();
                     parent.AppendChild(node);

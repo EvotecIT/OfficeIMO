@@ -143,6 +143,19 @@ public static partial class WordRtfConverterExtensions {
     }
 
     private static void AddWordToRtfDiagnostics(WordDocument document, RtfConversionReport report) {
+        int equationCount = EnumerateWordElements(document.Elements)
+            .Concat(EnumerateHeaderFooterElements(document))
+            .Count(element => element is WordEquation);
+        if (equationCount > 0) {
+            report.Add(
+                RtfConversionSeverity.Information,
+                "WordRtfEquationsMappedToEqFields",
+                "Word equations were mapped to native RTF EQ fields with cached visible text.",
+                RtfConversionAction.Substituted,
+                feature: "equation",
+                count: equationCount);
+        }
+
         var unsupported = EnumerateWordElements(document.Elements)
             .Concat(EnumerateHeaderFooterElements(document))
             .Where(IsUnsupportedWordElement)
@@ -201,6 +214,5 @@ public static partial class WordRtfConverterExtensions {
         || element is WordChart
         || element is WordSmartArt
         || element is WordTextBox
-        || element is WordEquation
         || element is WordStructuredDocumentTag;
 }

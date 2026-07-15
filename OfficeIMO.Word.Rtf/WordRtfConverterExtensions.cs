@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
+using M = DocumentFormat.OpenXml.Math;
 
 namespace OfficeIMO.Word.Rtf;
 
@@ -192,6 +193,16 @@ public static partial class WordRtfConverterExtensions {
                     AppendSimpleField(wordParagraph, simpleField, paragraph, rtfDocument, revisionAuthorIndexes);
                     hasRuns = true;
                     break;
+                case M.OfficeMath officeMath:
+                    AppendEquationField(paragraph, officeMath);
+                    hasRuns = true;
+                    previousRun = null;
+                    break;
+                case M.Paragraph mathParagraph:
+                    AppendEquationField(paragraph, mathParagraph);
+                    hasRuns = true;
+                    previousRun = null;
+                    break;
             }
         }
 
@@ -335,6 +346,12 @@ public static partial class WordRtfConverterExtensions {
         foreach (Run childRun in simpleField.Elements<Run>()) {
             AppendWordRun(new WordParagraph(wordParagraph._document, wordParagraph._paragraph, childRun), field.Result, ref previousRun, rtfDocument, revisionAuthorIndexes);
         }
+    }
+
+    private static void AppendEquationField(RtfParagraph paragraph, OpenXmlElement mathElement) {
+        paragraph.AddEquationField(
+            WordMath.ToEquationFieldInstruction(mathElement),
+            WordMath.GetText(mathElement));
     }
 
     private static bool AppendWordRun(WordParagraph wordRun, RtfParagraph paragraph, ref RtfRun? previousRun, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, RtfRevisionKind revisionKind = RtfRevisionKind.None, int? revisionAuthorIndex = null) {

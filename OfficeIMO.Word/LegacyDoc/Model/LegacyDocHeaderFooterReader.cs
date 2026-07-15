@@ -202,6 +202,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadEquationField(
+                    storyCharacters,
+                    index,
+                    out string equationInstruction,
+                    out int equationResultStartIndex,
+                    out int equationResultEndIndex,
+                    out int equationFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.Equation, equationInstruction, equationResultStartIndex, equationResultEndIndex);
+                    index = equationFieldEndIndex;
+                    continue;
+                }
+
                 if (LegacyDocField.TryReadDisplayField(
                     storyCharacters,
                     index,

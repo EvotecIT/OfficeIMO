@@ -18,7 +18,7 @@ public partial class Word {
         string docPath = Path.Combine(_directoryWithFiles, "PdfNativeSimpleEquations.docx");
         string pdfPath = Path.Combine(_directoryWithFiles, "PdfNativeSimpleEquations.pdf");
         const string headerOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>h=2</m:t></m:r></m:oMath></m:oMathPara>";
-        const string bodyOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>b=3</m:t></m:r></m:oMath></m:oMathPara>";
+        const string bodyOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f></m:oMath></m:oMathPara>";
         const string tableOmml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:r><m:t>c=4</m:t></m:r></m:oMath></m:oMathPara>";
         var options = new PdfSaveOptions {
             IncludePageNumbers = false
@@ -47,7 +47,7 @@ public partial class Word {
         Assert.Contains("Native header equation:", text);
         Assert.Contains("h=2", text);
         Assert.Contains("Native body equation:", text);
-        Assert.Contains("b=3", text);
+        Assert.Contains("(a)/(b)", NormalizePdfText(text));
         string normalizedText = NormalizePdfText(text);
         Assert.Contains("Native table equation:", normalizedText);
         Assert.Contains("c=4", normalizedText);

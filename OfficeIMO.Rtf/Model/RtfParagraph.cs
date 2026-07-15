@@ -159,6 +159,17 @@ public sealed partial class RtfParagraph : IRtfBlock {
         return field;
     }
 
+    /// <summary>Adds a Word <c>EQ</c> equation field with cached visible fallback text.</summary>
+    public RtfField AddEquationField(string equationInstruction, string resultText) {
+        if (equationInstruction == null) throw new ArgumentNullException(nameof(equationInstruction));
+        string trimmed = equationInstruction.Trim();
+        bool hasEqPrefix = trimmed.StartsWith("EQ", StringComparison.OrdinalIgnoreCase)
+            && (trimmed.Length == 2 || char.IsWhiteSpace(trimmed[2]));
+        RtfField field = AddField(hasEqPrefix ? trimmed : "EQ " + trimmed);
+        field.AddText(resultText ?? string.Empty);
+        return field;
+    }
+
     /// <summary>Adds a generated text marker at the current paragraph position.</summary>
     public RtfGeneratedText AddGeneratedText(RtfGeneratedTextKind kind, string? fallbackText = null) {
         var generatedText = new RtfGeneratedText(kind, fallbackText);

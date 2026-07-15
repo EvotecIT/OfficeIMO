@@ -881,6 +881,10 @@ namespace OfficeIMO.Word.Markdown {
         }
 
         private IMarkdownBlock? CreateUnsupportedParagraphContentBlock(WordParagraph paragraph, WordToMarkdownOptions options) {
+            if (TryCreateEquationBlock(paragraph, out IMarkdownBlock? equationBlock)) {
+                return equationBlock;
+            }
+
             if (!TryGetUnsupportedParagraphContentKind(paragraph, out var unsupportedParagraphKind)) {
                 return null;
             }
@@ -890,6 +894,21 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             return CreateUnsupportedContentBlock(options, unsupportedParagraphKind);
+        }
+
+        private static bool TryCreateEquationBlock(WordParagraph paragraph, out IMarkdownBlock? block) {
+            DocumentFormat.OpenXml.OpenXmlElement? math = paragraph._paragraph.Descendants<M.Paragraph>().FirstOrDefault()
+                ?? (DocumentFormat.OpenXml.OpenXmlElement?)paragraph._paragraph.Descendants<M.OfficeMath>().FirstOrDefault();
+            string? latex = math != null
+                ? WordMath.ToLatex(math)
+                : paragraph.Equation?.ToLatex();
+            if (string.IsNullOrWhiteSpace(latex)) {
+                block = null;
+                return false;
+            }
+
+            block = new CodeBlock("math", latex!);
+            return true;
         }
 
         private static IMarkdownBlock? CreateUnsupportedContentBlock(WordToMarkdownOptions options, string contentKind) {

@@ -324,6 +324,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, text, bookmarks, simpleField, kind);
                         break;
+                    case DocumentFormat.OpenXml.Math.OfficeMath officeMath:
+                        AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, text, officeMath);
+                        break;
+                    case DocumentFormat.OpenXml.Math.Paragraph mathParagraph:
+                        AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, text, mathParagraph);
+                        break;
                     case SdtRun sdtRun:
                         AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, text, bookmarks, sdtRun, relationshipOwner, kind);
                         break;
@@ -387,6 +393,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (storyText.Length > before) {
                 paragraphText.Append(storyText.ToString(before, storyText.Length - before));
             }
+        }
+
+        private static void AppendFormattedHeaderFooterMathEquation(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, OpenXmlElement mathElement) {
+            int before = storyText.Length;
+            AppendMathEquationField(storyText, formattedRuns, mathElement, LegacyDocWritableFormatting.Plain);
+            paragraphText.Append(storyText.ToString(before, storyText.Length - before));
         }
 
         private static void AppendFormattedHeaderFooterComplexPageNumberField(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, LegacyDocWritableBookmarksBuilder bookmarks, IReadOnlyList<OpenXmlElement> paragraphChildren, ref int childIndex, string kind) {
