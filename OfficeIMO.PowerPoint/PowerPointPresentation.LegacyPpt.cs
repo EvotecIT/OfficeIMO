@@ -73,6 +73,7 @@ namespace OfficeIMO.PowerPoint {
                     ? projected.AddSlide(target.MasterIndex, target.LayoutIndex)
                     : projected.AddSlide();
                 slide.Hidden = legacySlide.Hidden;
+                ProjectLegacySlideDesign(slide, legacySlide);
                 foreach (LegacyPptShape shape in legacySlide.Shapes) {
                     ProjectLegacyShape(slide, shape);
                 }

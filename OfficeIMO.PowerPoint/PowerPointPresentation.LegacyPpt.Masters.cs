@@ -72,6 +72,10 @@ namespace OfficeIMO.PowerPoint {
             slideMaster.CommonSlideData = new CommonSlideData(CreateLegacyShapeTree(master.Shapes)) {
                 Name = GetLegacyMasterName(master)
             };
+            if (master.ColorScheme != null) {
+                ApplyLegacyColorScheme(masterPart, master.ColorScheme);
+                ApplyLegacyBackground(slideMaster.CommonSlideData, master.ColorScheme.Background);
+            }
             SlideLayoutPart blankLayout = masterPart.SlideLayoutParts.First();
             if (blankLayout.SlideLayout?.CommonSlideData != null) {
                 blankLayout.SlideLayout.CommonSlideData.Name = GetLegacyMasterName(master);
@@ -86,6 +90,17 @@ namespace OfficeIMO.PowerPoint {
             layoutPart.SlideLayout = CreateLegacyLayout(GetLegacyMasterName(titleMaster),
                 SlideLayoutValues.Title, titleMaster.Shapes);
             layoutPart.AddPart(masterPart);
+            if (!titleMaster.FollowsMasterObjects && layoutPart.SlideLayout.CommonSlideData != null) {
+                SetShowsMasterShapes(layoutPart.SlideLayout.CommonSlideData, false);
+            }
+            if (!titleMaster.FollowsMasterColorScheme && titleMaster.ColorScheme != null) {
+                ApplyLegacyColorScheme(layoutPart, titleMaster.ColorScheme);
+            }
+            if (!titleMaster.FollowsMasterBackground && titleMaster.ColorScheme != null
+                && layoutPart.SlideLayout.CommonSlideData != null) {
+                ApplyLegacyBackground(layoutPart.SlideLayout.CommonSlideData,
+                    titleMaster.ColorScheme.Background);
+            }
 
             SlideMaster slideMaster = masterPart.SlideMaster
                 ?? throw new InvalidDataException("The projected PowerPoint package has no slide master.");
@@ -102,6 +117,77 @@ namespace OfficeIMO.PowerPoint {
 
         private static string GetLegacyMasterName(LegacyPptMaster master) =>
             $"Binary {(master.IsMainMaster ? "Main" : "Title")} Master {master.MasterId:X8}";
+
+        private static void ProjectLegacySlideDesign(PowerPointSlide slide, LegacyPptSlide source) {
+            Slide slideRoot = slide.SlidePart.Slide ??= new Slide();
+            CommonSlideData commonSlideData = slideRoot.CommonSlideData ??= new CommonSlideData();
+            if (!source.FollowsMasterObjects) SetShowsMasterShapes(commonSlideData, false);
+            if (!source.FollowsMasterColorScheme && source.ColorScheme != null) {
+                ApplyLegacyColorScheme(slide.SlidePart, source.ColorScheme);
+            }
+            if (!source.FollowsMasterBackground && source.ColorScheme != null) {
+                ApplyLegacyBackground(commonSlideData, source.ColorScheme.Background);
+            }
+        }
+
+        private static void SetShowsMasterShapes(CommonSlideData commonSlideData, bool value) {
+            commonSlideData.SetAttribute(new OpenXmlAttribute(string.Empty, "showMasterSp", string.Empty,
+                value ? "1" : "0"));
+        }
+
+        private static void ApplyLegacyBackground(CommonSlideData commonSlideData, string color) {
+            commonSlideData.Background = new Background(
+                new BackgroundProperties(
+                    new A.SolidFill(new A.RgbColorModelHex { Val = color })));
+        }
+
+        private static void ApplyLegacyColorScheme(SlideMasterPart masterPart, LegacyPptColorScheme source) {
+            A.ColorScheme target = EnsureColorScheme(masterPart);
+            SetLegacyThemeColors(target, source);
+            masterPart.ThemePart?.Theme?.Save();
+        }
+
+        private static void ApplyLegacyColorScheme(SlideLayoutPart layoutPart, LegacyPptColorScheme source) {
+            A.ColorScheme target = CloneMasterColorScheme(layoutPart.SlideMasterPart);
+            SetLegacyThemeColors(target, source);
+            ThemeOverridePart overridePart = layoutPart.ThemeOverridePart
+                ?? layoutPart.AddNewPart<ThemeOverridePart>();
+            overridePart.ThemeOverride = new A.ThemeOverride(target);
+            overridePart.ThemeOverride.Save();
+        }
+
+        private static void ApplyLegacyColorScheme(SlidePart slidePart, LegacyPptColorScheme source) {
+            A.ColorScheme target = CloneMasterColorScheme(slidePart.SlideLayoutPart?.SlideMasterPart);
+            SetLegacyThemeColors(target, source);
+            ThemeOverridePart overridePart = slidePart.ThemeOverridePart
+                ?? slidePart.AddNewPart<ThemeOverridePart>();
+            overridePart.ThemeOverride = new A.ThemeOverride(target);
+            overridePart.ThemeOverride.Save();
+        }
+
+        private static A.ColorScheme CloneMasterColorScheme(SlideMasterPart? masterPart) {
+            A.ColorScheme? source = masterPart?.ThemePart?.Theme?.ThemeElements?.ColorScheme;
+            return source?.CloneNode(true) as A.ColorScheme
+                ?? new A.ColorScheme { Name = "Binary PowerPoint" };
+        }
+
+        private static void SetLegacyThemeColors(A.ColorScheme target, LegacyPptColorScheme source) {
+            SetThemeColor(target, PowerPointThemeColor.Light1, source.Background);
+            SetThemeColor(target, PowerPointThemeColor.Dark1, source.Text);
+            SetThemeColor(target, PowerPointThemeColor.Accent4, source.Shadow);
+            SetThemeColor(target, PowerPointThemeColor.Dark2, source.TitleText);
+            SetThemeColor(target, PowerPointThemeColor.Light2, source.Fill);
+            SetThemeColor(target, PowerPointThemeColor.Accent1, source.Accent1);
+            SetThemeColor(target, PowerPointThemeColor.Accent2, source.Accent2);
+            SetThemeColor(target, PowerPointThemeColor.Accent3, source.Accent3);
+        }
+
+        private static void SetThemeColor(A.ColorScheme scheme, PowerPointThemeColor color, string value) {
+            OpenXmlCompositeElement element = GetOrCreateColorElement(scheme, color);
+            element.RemoveAllChildren<A.RgbColorModelHex>();
+            element.RemoveAllChildren<A.SystemColor>();
+            element.Append(new A.RgbColorModelHex { Val = value });
+        }
 
         private static SlideLayout CreateLegacyLayout(string name, SlideLayoutValues type,
             IReadOnlyList<LegacyPptShape> shapes) => new(

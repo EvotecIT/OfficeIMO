@@ -15,6 +15,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordSlidePersistAtom = 0x03F3;
         private const ushort RecordMainMaster = 0x03F8;
         private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
+        private const ushort RecordColorSchemeAtom = 0x07F0;
         private const ushort RecordDrawing = 0x040C;
         private const ushort RecordPlaceholder = 0x0BC3;
         private const ushort RecordTextChars = 0x0FA0;
@@ -144,9 +145,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private void ParseSlide(LegacyPptRecord slideRecord, LegacyPptSlide slide, LegacyPptImportOptions options) {
             LegacyPptRecord? slideAtom = slideRecord.Children.FirstOrDefault(record => record.Type == RecordSlideAtom);
-            if (slideAtom != null && slideAtom.PayloadLength >= 16) {
+            if (slideAtom != null && slideAtom.PayloadLength >= 24) {
+                slide.LayoutType = slideAtom.ReadUInt32(0);
                 slide.MasterId = slideAtom.ReadUInt32(12);
+                ushort flags = slideAtom.ReadUInt16(20);
+                slide.FollowsMasterObjects = (flags & 0x0001) != 0;
+                slide.FollowsMasterColorScheme = (flags & 0x0002) != 0;
+                slide.FollowsMasterBackground = (flags & 0x0004) != 0;
             }
+            slide.ColorScheme = ReadColorScheme(slideRecord);
             LegacyPptRecord? slideShowInfo = slideRecord.Children.FirstOrDefault(record =>
                 record.Type == RecordSlideShowSlideInfoAtom);
             if (slideShowInfo != null && slideShowInfo.PayloadLength >= 11) {
@@ -192,6 +199,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     ? slideAtom.ReadUInt32(12)
                     : 0U;
                 var master = new LegacyPptMaster(masterId, persistId, isMainMaster, parentMasterId);
+                if (slideAtom != null && slideAtom.PayloadLength >= 22) {
+                    ushort flags = slideAtom.ReadUInt16(20);
+                    master.FollowsMasterObjects = (flags & 0x0001) != 0;
+                    master.FollowsMasterColorScheme = (flags & 0x0002) != 0;
+                    master.FollowsMasterBackground = (flags & 0x0004) != 0;
+                }
+                master.ColorScheme = ReadColorScheme(masterRecord);
                 ParseShapes(masterRecord, master.AddShape, isMainMaster ? "main master" : "title master", options);
                 _masters.Add(master);
             }
@@ -292,6 +306,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 return CreateBounds(left, top, right, bottom);
             }
             throw new InvalidDataException("The OfficeArt anchor is too short.");
+        }
+
+        private static LegacyPptColorScheme? ReadColorScheme(LegacyPptRecord ownerRecord) {
+            LegacyPptRecord? atom = ownerRecord.Children.LastOrDefault(record =>
+                record.Type == RecordColorSchemeAtom && record.Instance == 1 && record.PayloadLength >= 32);
+            if (atom == null) return null;
+            var colors = new string[8];
+            for (int index = 0; index < colors.Length; index++) {
+                int offset = index * 4;
+                colors[index] = string.Concat(
+                    atom.ReadByte(offset).ToString("X2"),
+                    atom.ReadByte(offset + 1).ToString("X2"),
+                    atom.ReadByte(offset + 2).ToString("X2"));
+            }
+            return new LegacyPptColorScheme(colors);
         }
 
         private static LegacyPptBounds CreateBounds(int left, int top, int right, int bottom) =>

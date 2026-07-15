@@ -22,6 +22,15 @@ namespace OfficeIMO.Tests {
             Assert.Equal(legacy.Masters[0].MasterId, slide.MasterId);
             Assert.Contains(legacy.Masters[0].Shapes,
                 shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.MasterTitle);
+            LegacyPptColorScheme masterScheme = Assert.IsType<LegacyPptColorScheme>(
+                legacy.Masters[0].ColorScheme);
+            Assert.Equal("FFFFFF", masterScheme.Background);
+            Assert.Equal("000000", masterScheme.Text);
+            Assert.Equal("3333CC", masterScheme.Accent1);
+            Assert.True(slide.FollowsMasterObjects);
+            Assert.True(slide.FollowsMasterColorScheme);
+            Assert.True(slide.FollowsMasterBackground);
+            Assert.NotNull(slide.ColorScheme);
             Assert.Equal(3, slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.TextBox));
             Assert.Contains(slide.Shapes, shape => shape.Text == "OfficeIMO PowerPoint Basics");
             Assert.Contains(slide.Shapes, shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.Title);
@@ -159,6 +168,13 @@ namespace OfficeIMO.Tests {
                 presentation.OpenXmlDocument.PresentationPart!.SlideMasterParts.Count());
             Assert.Empty(presentation.ValidateDocument());
             PowerPointSlide slide = Assert.Single(presentation.Slides);
+            Assert.Equal("FFFFFF", presentation.GetThemeColor(PowerPointThemeColor.Light1));
+            Assert.Equal("000000", presentation.GetThemeColor(PowerPointThemeColor.Dark1));
+            Assert.Equal("3333CC", presentation.GetThemeColor(PowerPointThemeColor.Accent1));
+            Assert.Null(slide.SlidePart.ThemeOverridePart);
+            PowerPointSlideBackground background = slide.GetBackground();
+            Assert.Equal(PowerPointSlideBackgroundKind.SolidColor, background.Kind);
+            Assert.Equal("FFFFFF", background.Color);
             var masterShapes = slide.SlidePart.SlideLayoutPart!.SlideMasterPart!.SlideMaster!
                 .CommonSlideData!.ShapeTree!.Elements<DocumentFormat.OpenXml.Presentation.Shape>().ToArray();
             Assert.Contains(masterShapes, shape => shape.TextBody?.InnerText == "Click to edit the title text format");

@@ -23,6 +23,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the legacy master identifier referenced by this slide.</summary>
         public uint MasterId { get; internal set; }
 
+        /// <summary>Gets the legacy layout hint stored on this slide.</summary>
+        public uint LayoutType { get; internal set; }
+
+        /// <summary>Gets whether the slide inherits shapes from its master.</summary>
+        public bool FollowsMasterObjects { get; internal set; }
+
+        /// <summary>Gets whether the slide inherits its master's color scheme.</summary>
+        public bool FollowsMasterColorScheme { get; internal set; }
+
+        /// <summary>Gets whether the slide inherits its master's background.</summary>
+        public bool FollowsMasterBackground { get; internal set; }
+
+        /// <summary>Gets the color scheme stored on this slide.</summary>
+        public LegacyPptColorScheme? ColorScheme { get; internal set; }
+
         /// <summary>Gets the projected shapes in drawing order.</summary>
         public IReadOnlyList<LegacyPptShape> Shapes => _shapes;
 

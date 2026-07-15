@@ -22,6 +22,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the main master identifier inherited by a title master, or zero when absent.</summary>
         public uint ParentMasterId { get; }
 
+        /// <summary>Gets whether this title master inherits its parent's color scheme.</summary>
+        public bool FollowsMasterColorScheme { get; internal set; }
+
+        /// <summary>Gets whether this title master inherits its parent's shapes.</summary>
+        public bool FollowsMasterObjects { get; internal set; }
+
+        /// <summary>Gets whether this title master inherits its parent's background.</summary>
+        public bool FollowsMasterBackground { get; internal set; }
+
+        /// <summary>Gets the color scheme stored on this master.</summary>
+        public LegacyPptColorScheme? ColorScheme { get; internal set; }
+
         /// <summary>Gets the projected shapes in drawing order.</summary>
         public IReadOnlyList<LegacyPptShape> Shapes => _shapes;
 
