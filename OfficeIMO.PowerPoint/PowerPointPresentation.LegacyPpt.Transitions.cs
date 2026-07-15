@@ -1,3 +1,4 @@
+using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 
 namespace OfficeIMO.PowerPoint {
@@ -5,7 +6,8 @@ namespace OfficeIMO.PowerPoint {
         private static void ProjectLegacyTransition(PowerPointSlide slide,
             LegacyPptTransition? source) {
             if (source == null) return;
-            SlideTransition? transition = MapLegacyTransition(source);
+            SlideTransition? transition =
+                LegacyPptTransitionMapping.ToSlideTransition(source);
             if (!transition.HasValue) return;
             slide.Transition = transition.Value;
             slide.TransitionSpeed = source.Speed switch {
@@ -19,24 +21,5 @@ namespace OfficeIMO.PowerPoint {
                 : null;
         }
 
-        private static SlideTransition? MapLegacyTransition(
-            LegacyPptTransition source) => source.Effect switch {
-                LegacyPptTransitionEffect.Cut => SlideTransition.Cut,
-                LegacyPptTransitionEffect.Fade => SlideTransition.Fade,
-                LegacyPptTransitionEffect.Wipe => SlideTransition.Wipe,
-                LegacyPptTransitionEffect.Blinds => source.EffectDirection == 0
-                    ? SlideTransition.BlindsVertical
-                    : SlideTransition.BlindsHorizontal,
-                LegacyPptTransitionEffect.Comb => source.EffectDirection == 0
-                    ? SlideTransition.CombHorizontal
-                    : SlideTransition.CombVertical,
-                LegacyPptTransitionEffect.Push => source.EffectDirection switch {
-                    1 => SlideTransition.PushUp,
-                    2 => SlideTransition.PushRight,
-                    3 => SlideTransition.PushDown,
-                    _ => SlideTransition.PushLeft
-                },
-                _ => null
-            };
     }
 }

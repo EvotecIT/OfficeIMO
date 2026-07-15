@@ -679,16 +679,31 @@ namespace OfficeIMO.PowerPoint {
 
             var supportedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase) {
                 "blinds",
+                "checker",
+                "circle",
                 "comb",
+                "cover",
                 "cut",
+                "diamond",
+                "dissolve",
                 "fade",
                 "ferris",
                 "flash",
                 "morph",
+                "newsflash",
+                "plus",
                 "prism",
+                "pull",
                 "push",
+                "random",
+                "randomBar",
+                "split",
+                "strips",
+                "wedge",
+                "wheel",
                 "warp",
-                "wipe"
+                "wipe",
+                "zoom"
             };
 
             return supportedNames.Contains(element.LocalName);
@@ -721,11 +736,25 @@ namespace OfficeIMO.PowerPoint {
         private static HashSet<string> GetSupportedTransitionEffectAttributes(OpenXmlElement element) {
             switch (element.LocalName) {
                 case "blinds":
+                case "checker":
                 case "comb":
+                case "cover":
                 case "ferris":
+                case "pull":
                 case "push":
+                case "randomBar":
+                case "strips":
                 case "warp":
+                case "wipe":
+                case "zoom":
                     return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dir" };
+                case "split":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "dir", "orient" };
+                case "cut":
+                case "fade":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "thruBlk" };
+                case "wheel":
+                    return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "spokes" };
                 case "prism":
                     return new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "isContent" };
                 case "morph":

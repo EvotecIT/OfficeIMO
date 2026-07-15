@@ -109,6 +109,8 @@ namespace OfficeIMO.Tests {
                         Assert.Equal(transitions[i], slides[i].Transition);
                     }
 
+                    Assert.Empty(presentation.InspectFeatures()
+                        .FindFeatures("Unsupported transition markup"));
                     Assert.Empty(presentation.ValidateDocument());
                 }
             } finally {

@@ -122,5 +122,20 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Blocked,
                 modern.PptxToBinary);
         }
+
+        [Fact]
+        public void CapabilityContract_ReportsNativeClassicAndBlockedModernTransitions() {
+            LegacyPptCapability transitions = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Transitions);
+
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                transitions.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                transitions.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                transitions.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Blocked,
+                transitions.PptxToBinary);
+        }
     }
 }

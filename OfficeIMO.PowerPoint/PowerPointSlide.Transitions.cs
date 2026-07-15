@@ -21,48 +21,9 @@ namespace OfficeIMO.PowerPoint {
                     return SlideTransition.None;
                 }
 
-                if (t.GetFirstChild<FadeTransition>() != null) {
-                    return SlideTransition.Fade;
-                }
-
-                if (t.GetFirstChild<WipeTransition>() != null) {
-                    return SlideTransition.Wipe;
-                }
-
-                BlindsTransition? blinds = t.GetFirstChild<BlindsTransition>();
-                if (blinds != null) {
-                    return blinds.Direction?.Value == DirectionValues.Vertical
-                        ? SlideTransition.BlindsVertical
-                        : SlideTransition.BlindsHorizontal;
-                }
-
-                CombTransition? comb = t.GetFirstChild<CombTransition>();
-                if (comb != null) {
-                    return comb.Direction?.Value == DirectionValues.Vertical
-                        ? SlideTransition.CombVertical
-                        : SlideTransition.CombHorizontal;
-                }
-
-                PushTransition? push = t.GetFirstChild<PushTransition>();
-                if (push != null) {
-                    TransitionSlideDirectionValues? direction = push.Direction?.Value;
-                    if (direction == TransitionSlideDirectionValues.Up) {
-                        return SlideTransition.PushUp;
-                    }
-
-                    if (direction == TransitionSlideDirectionValues.Down) {
-                        return SlideTransition.PushDown;
-                    }
-
-                    if (direction == TransitionSlideDirectionValues.Right) {
-                        return SlideTransition.PushRight;
-                    }
-
-                    return SlideTransition.PushLeft;
-                }
-
-                if (t.GetFirstChild<CutTransition>() != null) {
-                    return SlideTransition.Cut;
+                SlideTransition? classicTransition = GetClassicTransition(t);
+                if (classicTransition.HasValue) {
+                    return classicTransition.Value;
                 }
 
                 if (t.GetFirstChild<P14.FlashTransition>() != null) {
@@ -110,64 +71,36 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 Transition transition = new();
-                switch (value) {
-                    case SlideTransition.Fade:
-                        transition.Append(new FadeTransition());
-                        break;
-                    case SlideTransition.Wipe:
-                        transition.Append(new WipeTransition());
-                        break;
-                    case SlideTransition.BlindsVertical:
-                        transition.Append(new BlindsTransition { Direction = DirectionValues.Vertical });
-                        break;
-                    case SlideTransition.BlindsHorizontal:
-                        transition.Append(new BlindsTransition { Direction = DirectionValues.Horizontal });
-                        break;
-                    case SlideTransition.CombHorizontal:
-                        transition.Append(new CombTransition { Direction = DirectionValues.Horizontal });
-                        break;
-                    case SlideTransition.CombVertical:
-                        transition.Append(new CombTransition { Direction = DirectionValues.Vertical });
-                        break;
-                    case SlideTransition.PushUp:
-                        transition.Append(new PushTransition { Direction = TransitionSlideDirectionValues.Up });
-                        break;
-                    case SlideTransition.PushDown:
-                        transition.Append(new PushTransition { Direction = TransitionSlideDirectionValues.Down });
-                        break;
-                    case SlideTransition.PushLeft:
-                        transition.Append(new PushTransition { Direction = TransitionSlideDirectionValues.Left });
-                        break;
-                    case SlideTransition.PushRight:
-                        transition.Append(new PushTransition { Direction = TransitionSlideDirectionValues.Right });
-                        break;
-                    case SlideTransition.Cut:
-                        transition.Append(new CutTransition());
-                        break;
-                    case SlideTransition.Flash:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.FlashTransition());
-                        break;
-                    case SlideTransition.WarpIn:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.In });
-                        break;
-                    case SlideTransition.WarpOut:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.Out });
-                        break;
-                    case SlideTransition.Prism:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.PrismTransition { IsContent = true });
-                        break;
-                    case SlideTransition.FerrisLeft:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Left });
-                        break;
-                    case SlideTransition.FerrisRight:
-                        transition.AddNamespaceDeclaration("p14", P14Namespace);
-                        transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Right });
-                        break;
+                OpenXmlElement? classicTransition = CreateClassicTransition(value);
+                if (classicTransition != null) {
+                    transition.Append(classicTransition);
+                } else {
+                    switch (value) {
+                        case SlideTransition.Flash:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.FlashTransition());
+                            break;
+                        case SlideTransition.WarpIn:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.In });
+                            break;
+                        case SlideTransition.WarpOut:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.WarpTransition { Direction = TransitionInOutDirectionValues.Out });
+                            break;
+                        case SlideTransition.Prism:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.PrismTransition { IsContent = true });
+                            break;
+                        case SlideTransition.FerrisLeft:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Left });
+                            break;
+                        case SlideTransition.FerrisRight:
+                            transition.AddNamespaceDeclaration("p14", P14Namespace);
+                            transition.Append(new P14.FerrisTransition { Direction = P14.TransitionLeftRightDirectionTypeValues.Right });
+                            break;
+                    }
                 }
 
                 SlideRoot.Transition = transition;

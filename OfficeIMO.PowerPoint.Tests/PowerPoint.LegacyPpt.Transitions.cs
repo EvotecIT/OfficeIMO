@@ -6,17 +6,64 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public class PowerPointLegacyPptTransitionTests {
         [Theory]
-        [InlineData(SlideTransition.Cut, 0, 1)]
-        [InlineData(SlideTransition.Fade, 6, 0)]
+        [InlineData(SlideTransition.Cut, 0, 0)]
+        [InlineData(SlideTransition.CutThroughBlack, 0, 1)]
+        [InlineData(SlideTransition.Random, 1, 0)]
+        [InlineData(SlideTransition.Fade, 23, 0)]
+        [InlineData(SlideTransition.FadeThroughBlack, 6, 0)]
         [InlineData(SlideTransition.Wipe, 10, 0)]
+        [InlineData(SlideTransition.WipeUp, 10, 1)]
+        [InlineData(SlideTransition.WipeRight, 10, 2)]
+        [InlineData(SlideTransition.WipeDown, 10, 3)]
         [InlineData(SlideTransition.BlindsVertical, 2, 0)]
         [InlineData(SlideTransition.BlindsHorizontal, 2, 1)]
+        [InlineData(SlideTransition.CheckerHorizontal, 3, 0)]
+        [InlineData(SlideTransition.CheckerVertical, 3, 1)]
+        [InlineData(SlideTransition.CoverLeft, 4, 0)]
+        [InlineData(SlideTransition.CoverUp, 4, 1)]
+        [InlineData(SlideTransition.CoverRight, 4, 2)]
+        [InlineData(SlideTransition.CoverDown, 4, 3)]
+        [InlineData(SlideTransition.CoverLeftUp, 4, 4)]
+        [InlineData(SlideTransition.CoverRightUp, 4, 5)]
+        [InlineData(SlideTransition.CoverLeftDown, 4, 6)]
+        [InlineData(SlideTransition.CoverRightDown, 4, 7)]
+        [InlineData(SlideTransition.Dissolve, 5, 0)]
+        [InlineData(SlideTransition.UncoverLeft, 7, 0)]
+        [InlineData(SlideTransition.UncoverUp, 7, 1)]
+        [InlineData(SlideTransition.UncoverRight, 7, 2)]
+        [InlineData(SlideTransition.UncoverDown, 7, 3)]
+        [InlineData(SlideTransition.UncoverLeftUp, 7, 4)]
+        [InlineData(SlideTransition.UncoverRightUp, 7, 5)]
+        [InlineData(SlideTransition.UncoverLeftDown, 7, 6)]
+        [InlineData(SlideTransition.UncoverRightDown, 7, 7)]
+        [InlineData(SlideTransition.RandomBarsHorizontal, 8, 0)]
+        [InlineData(SlideTransition.RandomBarsVertical, 8, 1)]
+        [InlineData(SlideTransition.StripsLeftUp, 9, 4)]
+        [InlineData(SlideTransition.StripsRightUp, 9, 5)]
+        [InlineData(SlideTransition.StripsLeftDown, 9, 6)]
+        [InlineData(SlideTransition.StripsRightDown, 9, 7)]
+        [InlineData(SlideTransition.BoxOut, 11, 0)]
+        [InlineData(SlideTransition.BoxIn, 11, 1)]
+        [InlineData(SlideTransition.SplitHorizontalOut, 13, 0)]
+        [InlineData(SlideTransition.SplitHorizontalIn, 13, 1)]
+        [InlineData(SlideTransition.SplitVerticalOut, 13, 2)]
+        [InlineData(SlideTransition.SplitVerticalIn, 13, 3)]
+        [InlineData(SlideTransition.Diamond, 17, 0)]
+        [InlineData(SlideTransition.Plus, 18, 0)]
+        [InlineData(SlideTransition.Wedge, 19, 0)]
         [InlineData(SlideTransition.CombHorizontal, 21, 0)]
         [InlineData(SlideTransition.CombVertical, 21, 1)]
         [InlineData(SlideTransition.PushLeft, 20, 0)]
         [InlineData(SlideTransition.PushUp, 20, 1)]
         [InlineData(SlideTransition.PushRight, 20, 2)]
         [InlineData(SlideTransition.PushDown, 20, 3)]
+        [InlineData(SlideTransition.Newsflash, 22, 0)]
+        [InlineData(SlideTransition.WheelOneSpoke, 26, 1)]
+        [InlineData(SlideTransition.WheelTwoSpokes, 26, 2)]
+        [InlineData(SlideTransition.WheelThreeSpokes, 26, 3)]
+        [InlineData(SlideTransition.WheelFourSpokes, 26, 4)]
+        [InlineData(SlideTransition.WheelEightSpokes, 26, 8)]
+        [InlineData(SlideTransition.Circle, 27, 0)]
         public void NativeWriter_AuthorsSupportedTransitionAndAdvanceSettings(
             SlideTransition transition, byte effectType, byte effectDirection) {
             byte[] bytes;
@@ -79,7 +126,7 @@ namespace OfficeIMO.Tests {
             using (var input = new MemoryStream(sourceBytes, writable: false))
             using (PowerPointPresentation imported = PowerPointPresentation.Load(input)) {
                 PowerPointSlide slide = imported.Slides[0];
-                slide.Transition = SlideTransition.PushDown;
+                slide.Transition = SlideTransition.WheelEightSpokes;
                 slide.TransitionSpeed = SlideTransitionSpeed.Fast;
                 slide.TransitionAdvanceOnClick = false;
                 slide.TransitionAdvanceAfterSeconds = 7.5;
@@ -91,8 +138,8 @@ namespace OfficeIMO.Tests {
             LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
             LegacyPptTransition transition = Assert.IsType<LegacyPptTransition>(
                 Assert.Single(saved.Slides).Transition);
-            Assert.Equal(LegacyPptTransitionEffect.Push, transition.Effect);
-            Assert.Equal(3, transition.EffectDirection);
+            Assert.Equal(LegacyPptTransitionEffect.Wheel, transition.Effect);
+            Assert.Equal(8, transition.EffectDirection);
             Assert.Equal(2, transition.Speed);
             Assert.False(transition.ManualAdvance);
             Assert.True(transition.AutoAdvance);

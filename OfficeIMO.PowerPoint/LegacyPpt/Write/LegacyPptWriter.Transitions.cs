@@ -1,5 +1,3 @@
-using Model = OfficeIMO.PowerPoint.LegacyPpt.Model;
-
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         internal static bool TryReadTransition(PowerPointSlide slide,
@@ -8,56 +6,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             reason = null;
             if (slide.Transition == SlideTransition.None) return true;
 
-            byte effectType;
-            byte effectDirection;
-            switch (slide.Transition) {
-                case SlideTransition.Cut:
-                    effectType = 0;
-                    effectDirection = 1;
-                    break;
-                case SlideTransition.Fade:
-                    effectType = 6;
-                    effectDirection = 0;
-                    break;
-                case SlideTransition.Wipe:
-                    effectType = 10;
-                    effectDirection = 0;
-                    break;
-                case SlideTransition.BlindsVertical:
-                    effectType = 2;
-                    effectDirection = 0;
-                    break;
-                case SlideTransition.BlindsHorizontal:
-                    effectType = 2;
-                    effectDirection = 1;
-                    break;
-                case SlideTransition.CombHorizontal:
-                    effectType = 21;
-                    effectDirection = 0;
-                    break;
-                case SlideTransition.CombVertical:
-                    effectType = 21;
-                    effectDirection = 1;
-                    break;
-                case SlideTransition.PushLeft:
-                    effectType = 20;
-                    effectDirection = 0;
-                    break;
-                case SlideTransition.PushUp:
-                    effectType = 20;
-                    effectDirection = 1;
-                    break;
-                case SlideTransition.PushRight:
-                    effectType = 20;
-                    effectDirection = 2;
-                    break;
-                case SlideTransition.PushDown:
-                    effectType = 20;
-                    effectDirection = 3;
-                    break;
-                default:
-                    reason = $"The {slide.Transition} transition has no PowerPoint 97-2003 representation.";
-                    return false;
+            if (!LegacyPptTransitionMapping.TryGetBinary(slide.Transition,
+                    out byte effectType, out byte effectDirection)) {
+                reason = $"The {slide.Transition} transition has no PowerPoint 97-2003 representation.";
+                return false;
             }
 
             byte speed = slide.TransitionSpeed switch {
@@ -164,38 +116,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal static LegacyPptWriterTransition? FromLegacyProjection(
                 OfficeIMO.PowerPoint.LegacyPpt.Model.LegacyPptTransition? source) {
                 if (source == null) return null;
-                byte effectType;
-                byte effectDirection;
-                switch (source.Effect) {
-                    case Model.LegacyPptTransitionEffect.Cut:
-                        effectType = 0;
-                        effectDirection = 1;
-                        break;
-                    case Model.LegacyPptTransitionEffect.Fade:
-                        effectType = 6;
-                        effectDirection = 0;
-                        break;
-                    case Model.LegacyPptTransitionEffect.Wipe:
-                        effectType = 10;
-                        effectDirection = 0;
-                        break;
-                    case Model.LegacyPptTransitionEffect.Blinds:
-                        effectType = 2;
-                        effectDirection = source.EffectDirection == 0 ? (byte)0 : (byte)1;
-                        break;
-                    case Model.LegacyPptTransitionEffect.Comb:
-                        effectType = 21;
-                        effectDirection = source.EffectDirection == 0 ? (byte)0 : (byte)1;
-                        break;
-                    case Model.LegacyPptTransitionEffect.Push:
-                        effectType = 20;
-                        effectDirection = source.EffectDirection <= 3
-                            ? source.EffectDirection
-                            : (byte)0;
-                        break;
-                    default:
-                        return null;
-                }
+                SlideTransition? projected =
+                    LegacyPptTransitionMapping.ToSlideTransition(source);
+                if (!projected.HasValue
+                    || !LegacyPptTransitionMapping.TryGetBinary(projected.Value,
+                        out byte effectType, out byte effectDirection)) return null;
                 byte speed = source.Speed <= 2 ? source.Speed : (byte)1;
                 return new LegacyPptWriterTransition(effectType, effectDirection,
                     speed, source.ManualAdvance, source.AutoAdvance,

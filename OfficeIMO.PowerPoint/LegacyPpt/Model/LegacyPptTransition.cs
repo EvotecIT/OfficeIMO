@@ -13,7 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         Cover = 4,
         /// <summary>Dissolve.</summary>
         Dissolve = 5,
-        /// <summary>Fade.</summary>
+        /// <summary>Fade through black.</summary>
         Fade = 6,
         /// <summary>Uncover toward a direction.</summary>
         Uncover = 7,
@@ -39,7 +39,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         Comb = 21,
         /// <summary>Newsflash.</summary>
         Newsflash = 22,
-        /// <summary>Alpha fade.</summary>
+        /// <summary>Smooth alpha fade directly between slides.</summary>
         AlphaFade = 23,
         /// <summary>Wheel with radial divisions.</summary>
         Wheel = 26,
