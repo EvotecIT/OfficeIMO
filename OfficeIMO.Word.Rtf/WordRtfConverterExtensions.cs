@@ -213,12 +213,12 @@ public static partial class WordRtfConverterExtensions {
                     hasRuns = true;
                     break;
                 case M.OfficeMath officeMath:
-                    AppendEquationField(paragraph, officeMath);
+                    AppendEquationField(paragraph, officeMath, complexFields);
                     hasRuns = true;
                     previousRun = null;
                     break;
                 case M.Paragraph mathParagraph:
-                    AppendEquationField(paragraph, mathParagraph);
+                    AppendEquationField(paragraph, mathParagraph, complexFields);
                     hasRuns = true;
                     previousRun = null;
                     break;
@@ -286,12 +286,12 @@ public static partial class WordRtfConverterExtensions {
                         revisionAuthorIndexes);
                     break;
                 case M.OfficeMath officeMath:
-                    AppendEquationField(paragraph, officeMath);
+                    AppendEquationField(paragraph, officeMath, complexFields);
                     previousRun = null;
                     hasContent = true;
                     break;
                 case M.Paragraph mathParagraph:
-                    AppendEquationField(paragraph, mathParagraph);
+                    AppendEquationField(paragraph, mathParagraph, complexFields);
                     previousRun = null;
                     hasContent = true;
                     break;
@@ -413,12 +413,12 @@ public static partial class WordRtfConverterExtensions {
                         authorIndex);
                     break;
                 case M.OfficeMath officeMath:
-                    AppendEquationField(paragraph, officeMath, revisionKind, authorIndex);
+                    AppendEquationField(paragraph, officeMath, complexFields, revisionKind, authorIndex);
                     previousRun = null;
                     hasContent = true;
                     break;
                 case M.Paragraph mathParagraph:
-                    AppendEquationField(paragraph, mathParagraph, revisionKind, authorIndex);
+                    AppendEquationField(paragraph, mathParagraph, complexFields, revisionKind, authorIndex);
                     previousRun = null;
                     hasContent = true;
                     break;
@@ -602,6 +602,26 @@ public static partial class WordRtfConverterExtensions {
                 revisionKind,
                 revisionAuthorIndex);
         }
+    }
+
+    private static void AppendEquationField(
+        RtfParagraph paragraph,
+        OpenXmlElement mathElement,
+        Stack<ComplexFieldCapture> captures,
+        RtfRevisionKind revisionKind = RtfRevisionKind.None,
+        int? revisionAuthorIndex = null) {
+        if (captures.Count == 0) {
+            AppendEquationField(paragraph, mathElement, revisionKind, revisionAuthorIndex);
+            return;
+        }
+
+        ComplexFieldCapture capture = captures.Peek();
+        if (!capture.CapturingResult) {
+            return;
+        }
+
+        AppendEquationField(capture.Result, mathElement, revisionKind, revisionAuthorIndex);
+        capture.PreviousRun = null;
     }
 
     private static void AppendEquationField(

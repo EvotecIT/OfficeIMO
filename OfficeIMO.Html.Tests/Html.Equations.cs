@@ -201,6 +201,82 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordToHtml_PreservesInnerHyperlinkOnEquationInsideInlineControl() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph._paragraph.Append(new SdtRun(
+                new SdtProperties(new SdtId { Val = 2079 }),
+                new SdtContentRun(
+                    new Hyperlink(
+                        new Run(new Text("inner-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("inner-linked"))),
+                        new Run(new Text(" inner-suffix"))) {
+                        Anchor = "inner-equation-target"
+                    })));
+
+            IDocument parsed = HtmlDocumentParser.ParseDocument(document.ToHtml());
+            IElement linkedMath = Assert.IsAssignableFrom<IElement>(
+                parsed.QuerySelector("a[href='#inner-equation-target'] math[aria-label='inner-linked']"));
+
+            Assert.Equal("a", linkedMath.ParentElement?.LocalName);
+            Assert.Equal("#inner-equation-target", linkedMath.ParentElement?.GetAttribute("href"));
+        }
+
+        [Fact]
+        public void WordToHtml_PreservesSemanticRunTagsBesideEquation() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph();
+            paragraph._paragraph.Append(new Hyperlink(
+                new Run(new RunProperties(new RunStyle { Val = "HtmlCode" }), new Text("code")),
+                new Run(new RunProperties(new RunStyle { Val = "HtmlDeletedText" }, new Strike()), new Text("deleted")),
+                new M.OfficeMath(new M.Run(new M.Text("semantic-equation"))),
+                new Run(new RunProperties(new RunStyle { Val = "HtmlInsertedText" }, new Underline { Val = UnderlineValues.Single }), new Text("inserted")),
+                new Run(new RunProperties(new RunStyle { Val = "HtmlMarkedText" }, new Highlight { Val = HighlightColorValues.Yellow }), new Text("marked")),
+                new Run(new RunProperties(new RunStyle { Val = "HtmlCite" }), new Text("citation")),
+                new Run(new RunProperties(new RunStyle { Val = "HtmlDfn" }), new Text("definition"))) {
+                Anchor = "semantic-equation-target"
+            });
+
+            IElement anchor = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(document.ToHtml()).QuerySelector("a[href='#semantic-equation-target']"));
+
+            Assert.Equal("code", anchor.QuerySelector("code")?.TextContent);
+            Assert.Equal("deleted", anchor.QuerySelector("del")?.TextContent);
+            Assert.NotNull(anchor.QuerySelector("math[aria-label='semantic-equation']"));
+            Assert.Equal("inserted", anchor.QuerySelector("ins")?.TextContent);
+            Assert.Equal("marked", anchor.QuerySelector("mark")?.TextContent);
+            Assert.Equal("citation", anchor.QuerySelector("cite")?.TextContent);
+            Assert.Equal("definition", anchor.QuerySelector("dfn")?.TextContent);
+            Assert.Null(anchor.QuerySelector("del s"));
+            Assert.Null(anchor.QuerySelector("ins u"));
+        }
+
+        [Fact]
+        public void WordToHtml_ExpandsVisibleRevisionTextAroundEquation() {
+            using WordDocument document = WordDocument.Create();
+            WordParagraph paragraph = document.AddParagraph("before ");
+            paragraph._paragraph.Append(new InsertedRun(
+                new Run(new Text("revision-prefix ")),
+                new M.OfficeMath(new M.Run(new M.Text("revision-equation"))),
+                new Run(new Text(" revision-suffix"))) {
+                Id = "2078",
+                Author = "Reviewer"
+            });
+            paragraph.AddText(" after");
+
+            IElement output = Assert.IsAssignableFrom<IElement>(
+                HtmlDocumentParser.ParseDocument(document.ToHtml()).QuerySelector("p"));
+            int prefix = output.InnerHtml.IndexOf("revision-prefix", StringComparison.Ordinal);
+            int math = output.InnerHtml.IndexOf("<math", StringComparison.OrdinalIgnoreCase);
+            int suffix = output.InnerHtml.IndexOf("revision-suffix", StringComparison.Ordinal);
+
+            Assert.True(prefix >= 0 && prefix < math && math < suffix, output.InnerHtml);
+            Assert.Contains("before revision-prefix revision-equation revision-suffix after", output.TextContent, StringComparison.Ordinal);
+            Assert.Equal(1, output.TextContent.Split(new[] { "revision-prefix" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, output.TextContent.Split(new[] { "revision-suffix" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
         public void WordToHtml_ExportsComplexEqFieldsAsMathMlWithoutCachedTextDuplication() {
             using WordDocument document = WordDocument.Create();
             WordParagraph paragraph = document.AddParagraph("before ");

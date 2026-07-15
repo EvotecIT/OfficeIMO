@@ -243,6 +243,12 @@ namespace OfficeIMO.Word {
             sdtRun.SdtProperties?.Elements<SdtContentDate>().Any() == true ||
             sdtRun.SdtProperties?.Elements<SdtContentPicture>().Any() == true;
 
+        internal static bool IsVisibleEquationContentContainer(OpenXmlElement element) =>
+            element is Hyperlink ||
+            element is SdtRun ||
+            element is InsertedRun ||
+            element is MoveToRun;
+
         private static bool IsInsideEquationBackingElement(
             OpenXmlElement element,
             IReadOnlyList<WordEquationOccurrence> occurrences) {

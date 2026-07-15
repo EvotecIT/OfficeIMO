@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using M = DocumentFormat.OpenXml.Math;
 using OfficeIMO.Markdown;
@@ -416,6 +417,33 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, markdown.Split(new[] { "linked" }, StringSplitOptions.None).Length - 1);
             Assert.Equal(1, markdown.Split(new[] { "link-prefix" }, StringSplitOptions.None).Length - 1);
             Assert.Equal(1, markdown.Split(new[] { "link-suffix" }, StringSplitOptions.None).Length - 1);
+        }
+
+        [Fact]
+        public void WordToMarkdown_ExpandsHyperlinkWhoseEquationContentIsWrappedByInlineControl() {
+            using var doc = WordDocument.Create();
+            WordParagraph paragraph = doc.AddParagraph("before ");
+            HyperlinkRelationship relationship = doc._wordprocessingDocument.MainDocumentPart!
+                .AddHyperlinkRelationship(new Uri("https://officeimo.net/wrapped-equation"), true);
+            paragraph._paragraph.Append(new Hyperlink(
+                new SdtRun(
+                    new SdtProperties(new SdtId { Val = 2078 }),
+                    new SdtContentRun(
+                        new Run(new Text("wrapped-prefix ")),
+                        new M.OfficeMath(new M.Run(new M.Text("nested-math-value"))),
+                        new Run(new Text(" wrapped-suffix"))))) {
+                Id = relationship.Id
+            });
+            paragraph.AddText(" after");
+
+            string markdown = doc.ToMarkdown();
+
+            Assert.Contains("[wrapped-prefix](https://officeimo.net/wrapped-equation)", markdown, StringComparison.Ordinal);
+            Assert.Contains("[wrapped-suffix](https://officeimo.net/wrapped-equation)", markdown, StringComparison.Ordinal);
+            Assert.Contains("```math", markdown, StringComparison.Ordinal);
+            Assert.Equal(1, markdown.Split(new[] { "wrapped-prefix" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "wrapped-suffix" }, StringSplitOptions.None).Length - 1);
+            Assert.Equal(1, markdown.Split(new[] { "nested-math-value" }, StringSplitOptions.None).Length - 1);
         }
 
         [Fact]

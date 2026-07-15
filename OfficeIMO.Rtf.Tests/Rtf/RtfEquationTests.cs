@@ -197,6 +197,31 @@ public sealed class RtfEquationTests {
     }
 
     [Fact]
+    public void WordToRtf_CapturesOmmlInsideActiveComplexHyperlinkResult() {
+        using WordDocument word = WordDocument.Create();
+        WordParagraph paragraph = word.AddParagraph();
+        paragraph._paragraph.Append(
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+            new Run(new FieldCode(" HYPERLINK \\l \"target\" ")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+            new Run(new Text("prefix ")),
+            new M.OfficeMath(new M.Run(new M.Text("captured-equation"))),
+            new Run(new Text(" suffix")),
+            new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+        RtfParagraph rtfParagraph = Assert.Single(word.ToRtfDocument().Paragraphs);
+        RtfField hyperlinkField = Assert.Single(rtfParagraph.Inlines.OfType<RtfField>());
+        RtfField equationField = Assert.Single(hyperlinkField.Result.Inlines.OfType<RtfField>());
+
+        Assert.NotNull(hyperlinkField.HyperlinkField);
+        Assert.Equal("target", hyperlinkField.HyperlinkField!.SubAddress);
+        Assert.True(equationField.IsEquation);
+        Assert.Equal("captured-equation", equationField.ToPlainText());
+        Assert.Equal("prefix captured-equation suffix", hyperlinkField.ToPlainText());
+        Assert.Empty(rtfParagraph.Inlines.Skip(1));
+    }
+
+    [Fact]
     public void WordToRtf_MapsTopLevelInlineContentControlWithoutDroppingNestedEquation() {
         using WordDocument word = WordDocument.Create();
         WordParagraph paragraph = word.AddParagraph("before ");

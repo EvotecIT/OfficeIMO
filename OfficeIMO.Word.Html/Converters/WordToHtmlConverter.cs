@@ -210,16 +210,27 @@ namespace OfficeIMO.Word.Html {
                         : null;
 
                     foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(container, coveringEquations)) {
-                        if (segment.Equation != null) {
-                            IElement? mathNode = CreateEquationNode(segment.Equation);
-                            if (mathNode != null) expandedNodes.Add(mathNode);
-                            continue;
-                        }
-
                         WordParagraph sourceRun = segment.CreateSourceParagraph(
                             para._document,
                             para._paragraph,
                             fallbackRun);
+                        if (segment.Equation != null) {
+                            IElement? mathNode = CreateEquationNode(segment.Equation);
+                            if (mathNode != null &&
+                                hyperlinkNode == null &&
+                                sourceRun.IsHyperLink &&
+                                sourceRun.Hyperlink != null) {
+                                IElement? sourceAnchor = CreateEquationHyperlinkNode(htmlDoc, sourceRun.Hyperlink);
+                                if (sourceAnchor != null) {
+                                    sourceAnchor.AppendChild(mathNode);
+                                    expandedNodes.Add(sourceAnchor);
+                                    continue;
+                                }
+                            }
+                            if (mathNode != null) expandedNodes.Add(mathNode);
+                            continue;
+                        }
+
                         if (HtmlSemanticMetadata.IsTimeDateTimeMetadataRun(sourceRun)) {
                             continue;
                         }
@@ -270,7 +281,7 @@ namespace OfficeIMO.Word.Html {
                         if (equationChildIndex >= 0 &&
                             equationChildIndex < paragraphChildren.Count &&
                             paragraphChildren[equationChildIndex] is DocumentFormat.OpenXml.OpenXmlElement container &&
-                            (container is Hyperlink || container is SdtRun)) {
+                            WordEquation.IsVisibleEquationContentContainer(container)) {
                             List<WordEquationOccurrence> coveringEquations = equations
                                 .Where(equation => equation.ContainsChildIndex(equationChildIndex))
                                 .ToList();
@@ -396,51 +407,12 @@ namespace OfficeIMO.Word.Html {
                         // if href is null/empty, fall back to plain text       
                     }
 
-                    bool handledHtmlStyle = false;
-                    if (isHtmlDeletedText) {
-                        var del = htmlDoc.CreateElement("del");
-                        del.AppendChild(node);
-                        node = del;
-                        handledHtmlStyle = true;
-                    } else if (isHtmlInsertedText) {
-                        var ins = htmlDoc.CreateElement("ins");
-                        ins.AppendChild(node);
-                        node = ins;
-                        handledHtmlStyle = true;
-                    } else if (isHtmlMarkedText) {
-                        var mark = htmlDoc.CreateElement("mark");
-                        mark.AppendChild(node);
-                        node = mark;
-                        handledHtmlStyle = true;
-                    } else if (string.Equals(run.CharacterStyleId, "HtmlCite", StringComparison.OrdinalIgnoreCase)) {
-                        var cite = htmlDoc.CreateElement("cite");
-                        cite.AppendChild(node);
-                        node = cite;
-                        handledHtmlStyle = true;
-                    } else if (string.Equals(run.CharacterStyleId, "HtmlDfn", StringComparison.OrdinalIgnoreCase)) {
-                        var dfn = htmlDoc.CreateElement("dfn");
-                        dfn.AppendChild(node);
-                        node = dfn;
-                        handledHtmlStyle = true;
-                    } else if (string.Equals(run.CharacterStyleId, "HtmlTime", StringComparison.OrdinalIgnoreCase)) {
-                        var time = htmlDoc.CreateElement("time");
-                        bool hasImportedDateTime = HtmlSemanticMetadata.TryGetTimeDateTime(run, out var dt);
-                        if (!hasImportedDateTime) {
-                            dt = run.Text ?? string.Empty;
-                        }
-                        if (!hasImportedDateTime && DateTime.TryParse(run.Text, out var parsed)) {
-                            dt = parsed.ToString("o");
-                        }
-                        time.SetAttribute("datetime", dt);
-                        time.AppendChild(node);
-                        node = time;
-                        handledHtmlStyle = true;
-                    } else if (string.Equals(run.CharacterStyleId, "HtmlCode", StringComparison.OrdinalIgnoreCase)) {
-                        var code = htmlDoc.CreateElement("code");
-                        code.AppendChild(node);
-                        node = code;
-                        handledHtmlStyle = true;
-                    }
+                    node = ApplyHtmlSemanticCharacterStyle(
+                        htmlDoc,
+                        run,
+                        run.Text ?? string.Empty,
+                        node,
+                        out bool handledHtmlStyle);
 
                     if (options.IncludeFontStyles) {
                         var font = run.FontFamily ?? options.FontFamily;

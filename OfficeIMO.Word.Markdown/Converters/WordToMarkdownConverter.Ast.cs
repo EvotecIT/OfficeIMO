@@ -568,6 +568,11 @@ namespace OfficeIMO.Word.Markdown {
                     ?? run._run;
                 OpenXmlElement? runContainer = WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
                 int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
+                if (runIndex >= 0) {
+                    AppendUnexpandedEquationContainersBefore(
+                        segment, paragraph, paragraphChildren, equations, expandedEquationContainers,
+                        runIndex, run, options, preferredCodeFont, implicitCodeFont);
+                }
                 List<WordEquationOccurrence> coveringEquations = equations
                     .Where(equation => equation.ContainsChildIndex(runIndex))
                     .ToList();
@@ -575,25 +580,15 @@ namespace OfficeIMO.Word.Markdown {
                     if (runContainer != null &&
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
-                        foreach (WordEquationContentSegment equationSegment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
-                            if (equationSegment.Equation != null) continue;
-                            WordParagraph sourceRun = equationSegment.CreateSourceParagraph(
-                                paragraph._document,
-                                paragraph._paragraph,
-                                run);
-                            if (equationSegment.IsRunArtifact) {
-                                AppendEquationArtifact(segment, sourceRun, equationSegment, options);
-                                continue;
-                            }
-                            if (string.IsNullOrEmpty(equationSegment.Text)) continue;
-                            AppendRunInlines(
-                                segment,
-                                sourceRun,
-                                options,
-                                preferredCodeFont,
-                                implicitCodeFont,
-                                equationSegment.Text);
-                        }
+                        AppendEquationContainerText(
+                            segment,
+                            paragraph,
+                            runContainer,
+                            coveringEquations,
+                            run,
+                            options,
+                            preferredCodeFont,
+                            implicitCodeFont);
                     }
                     continue;
                 }
@@ -631,6 +626,10 @@ namespace OfficeIMO.Word.Markdown {
 
                 AppendRunInlines(segment, run, options, preferredCodeFont, implicitCodeFont);
             }
+
+            AppendUnexpandedEquationContainersBefore(
+                segment, paragraph, paragraphChildren, equations, expandedEquationContainers,
+                int.MaxValue, paragraph, options, preferredCodeFont, implicitCodeFont);
 
             AppendParagraphBlocksFromSegment(
                 blocks,
@@ -789,6 +788,11 @@ namespace OfficeIMO.Word.Markdown {
                     ?? run._run;
                 OpenXmlElement? runContainer = WordEquation.GetDirectParagraphChild(run._paragraph, runContentContainer);
                 int runIndex = runContainer == null ? -1 : paragraphChildren.IndexOf(runContainer);
+                if (runIndex >= 0) {
+                    AppendUnexpandedEquationContainersBefore(
+                        sequence, paragraph, paragraphChildren, equations, expandedEquationContainers,
+                        runIndex, run, options, preferredCodeFont, implicitCodeFont);
+                }
                 List<WordEquationOccurrence> coveringEquations = equations
                     .Where(equation => equation.ContainsChildIndex(runIndex))
                     .ToList();
@@ -796,19 +800,15 @@ namespace OfficeIMO.Word.Markdown {
                     if (runContainer != null &&
                         coveringEquations.Any(equation => equation.StartChildIndex == runIndex) &&
                         expandedEquationContainers.Add(runContainer)) {
-                        foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(runContainer, coveringEquations)) {
-                            if (segment.Equation != null) continue;
-                            WordParagraph sourceRun = segment.CreateSourceParagraph(
-                                paragraph._document,
-                                paragraph._paragraph,
-                                run);
-                            if (segment.IsRunArtifact) {
-                                AppendEquationArtifact(sequence, sourceRun, segment, options);
-                                continue;
-                            }
-                            if (string.IsNullOrEmpty(segment.Text)) continue;
-                            AppendRunInlines(sequence, sourceRun, options, preferredCodeFont, implicitCodeFont, segment.Text);
-                        }
+                        AppendEquationContainerText(
+                            sequence,
+                            paragraph,
+                            runContainer,
+                            coveringEquations,
+                            run,
+                            options,
+                            preferredCodeFont,
+                            implicitCodeFont);
                     }
                     continue;
                 }
@@ -816,11 +816,80 @@ namespace OfficeIMO.Word.Markdown {
                 AppendRunInlines(sequence, run, options, preferredCodeFont, implicitCodeFont);
             }
 
+            AppendUnexpandedEquationContainersBefore(
+                sequence, paragraph, paragraphChildren, equations, expandedEquationContainers,
+                int.MaxValue, paragraph, options, preferredCodeFont, implicitCodeFont);
+
             if (trimBoundaryWhitespace) {
                 TrimBoundaryWhitespace(sequence);
             }
 
             return sequence;
+        }
+
+        private void AppendUnexpandedEquationContainersBefore(
+            InlineSequence sequence,
+            WordParagraph paragraph,
+            IReadOnlyList<OpenXmlElement> paragraphChildren,
+            IReadOnlyList<WordEquationOccurrence> equations,
+            ISet<OpenXmlElement> expandedEquationContainers,
+            int childIndex,
+            WordParagraph fallbackRun,
+            WordToMarkdownOptions options,
+            string? preferredCodeFont,
+            string? implicitCodeFont) {
+            foreach (WordEquationOccurrence occurrence in equations.Where(equation => equation.StartChildIndex < childIndex)) {
+                int equationChildIndex = occurrence.StartChildIndex;
+                if (equationChildIndex < 0 || equationChildIndex >= paragraphChildren.Count) continue;
+                OpenXmlElement container = paragraphChildren[equationChildIndex];
+                if (!WordEquation.IsVisibleEquationContentContainer(container) ||
+                    !expandedEquationContainers.Add(container)) {
+                    continue;
+                }
+
+                IReadOnlyList<WordEquationOccurrence> coveringEquations = equations
+                    .Where(equation => equation.ContainsChildIndex(equationChildIndex))
+                    .ToList();
+                AppendEquationContainerText(
+                    sequence,
+                    paragraph,
+                    container,
+                    coveringEquations,
+                    fallbackRun,
+                    options,
+                    preferredCodeFont,
+                    implicitCodeFont);
+            }
+        }
+
+        private void AppendEquationContainerText(
+            InlineSequence sequence,
+            WordParagraph paragraph,
+            OpenXmlElement container,
+            IReadOnlyList<WordEquationOccurrence> coveringEquations,
+            WordParagraph fallbackRun,
+            WordToMarkdownOptions options,
+            string? preferredCodeFont,
+            string? implicitCodeFont) {
+            foreach (WordEquationContentSegment segment in WordEquation.GetVisibleContentSegments(container, coveringEquations)) {
+                if (segment.Equation != null) continue;
+                WordParagraph sourceRun = segment.CreateSourceParagraph(
+                    paragraph._document,
+                    paragraph._paragraph,
+                    fallbackRun);
+                if (segment.IsRunArtifact) {
+                    AppendEquationArtifact(sequence, sourceRun, segment, options);
+                    continue;
+                }
+                if (string.IsNullOrEmpty(segment.Text)) continue;
+                AppendRunInlines(
+                    sequence,
+                    sourceRun,
+                    options,
+                    preferredCodeFont,
+                    implicitCodeFont,
+                    segment.Text);
+            }
         }
 
         private void AppendRunInlines(
