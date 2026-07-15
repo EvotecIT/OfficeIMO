@@ -16,6 +16,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning);
             ErrorCount = presentation.Diagnostics.Count(diagnostic =>
                 diagnostic.Severity == LegacyPptDiagnosticSeverity.Error);
+            UserEditCount = presentation.Package.UserEdits.Count;
+            PersistObjectCount = presentation.Package.PersistObjects.Count;
+            CompoundStreamCount = presentation.Package.CompoundStreamCount;
         }
 
         /// <summary>Gets the presentation slide count.</summary>
@@ -38,6 +41,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the error count.</summary>
         public int ErrorCount { get; }
+
+        /// <summary>Gets the number of UserEditAtom revisions retained from the source.</summary>
+        public int UserEditCount { get; }
+
+        /// <summary>Gets the number of live persist objects retained from the source.</summary>
+        public int PersistObjectCount { get; }
+
+        /// <summary>Gets the number of exact compound streams retained from the source.</summary>
+        public int CompoundStreamCount { get; }
 
         /// <summary>Gets whether projection to PPTX has known conversion loss.</summary>
         public bool HasConversionLoss => WarningCount > 0 || UnsupportedShapeCount > 0;

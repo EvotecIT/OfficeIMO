@@ -68,9 +68,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                     LegacyPptRepresentability.Opaque,
                     "Unmodified signatures can be preserved; edits invalidate signature integrity."),
                 Planned(LegacyPptFeature.AccessibilityMetadata, "Accessibility", "Alternative text and object names."),
-                Planned(LegacyPptFeature.UnknownRecordsAndStreams, "Preservation", "Unknown live records and compound streams.",
-                    LegacyPptRepresentability.Opaque,
-                    "Preservation-aware package retention is required before binary-to-binary editing is safe.")
+                new LegacyPptCapability(LegacyPptFeature.UnknownRecordsAndStreams, "Preservation",
+                    "Unknown live records and compound streams.", LegacyPptRepresentability.Opaque,
+                    LegacyPptCapabilityState.Preserved, LegacyPptCapabilityState.Blocked,
+                    LegacyPptCapabilityState.Planned, LegacyPptCapabilityState.Blocked,
+                    "The original package is retained exactly for no-op binary saves; edited preservation remains planned.")
             });
 
         private static readonly IReadOnlyDictionary<LegacyPptFeature, LegacyPptCapability> CapabilityByFeature =

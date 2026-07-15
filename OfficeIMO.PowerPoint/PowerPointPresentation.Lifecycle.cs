@@ -52,6 +52,7 @@ namespace OfficeIMO.PowerPoint {
                 _packageStream = null;
                 _sourceStream = null;
                 _signedPackageOpenFingerprint = null;
+                ClearLegacyPptPackageState();
                 _discardChangesOnDispose = false;
                 _disposed = true;
                 GC.SuppressFinalize(this);
@@ -100,6 +101,7 @@ namespace OfficeIMO.PowerPoint {
                 _packageStream = null;
                 _sourceStream = null;
                 _signedPackageOpenFingerprint = null;
+                ClearLegacyPptPackageState();
                 _discardChangesOnDispose = false;
                 _disposed = true;
                 GC.SuppressFinalize(this);
@@ -388,6 +390,21 @@ namespace OfficeIMO.PowerPoint {
                     content.Append('|').Append(relationship.RelationshipId).Append('=').Append(relationship.OpenXmlPart.Uri);
                 }
             }
+
+            var properties = document.PackageProperties;
+            content.Append("|core|")
+                .Append(properties.Creator).Append('|')
+                .Append(properties.Title).Append('|')
+                .Append(properties.Description).Append('|')
+                .Append(properties.Category).Append('|')
+                .Append(properties.Keywords).Append('|')
+                .Append(properties.Subject).Append('|')
+                .Append(properties.Revision).Append('|')
+                .Append(properties.LastModifiedBy).Append('|')
+                .Append(properties.Version).Append('|')
+                .Append(properties.Created?.ToUniversalTime().Ticks).Append('|')
+                .Append(properties.Modified?.ToUniversalTime().Ticks).Append('|')
+                .Append(properties.LastPrinted?.ToUniversalTime().Ticks);
 
             using SHA256 sha = SHA256.Create();
             return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(content.ToString())));

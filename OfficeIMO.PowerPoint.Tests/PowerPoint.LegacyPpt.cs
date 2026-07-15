@@ -22,6 +22,34 @@ namespace OfficeIMO.Tests {
             Assert.Contains(slide.Shapes, shape => shape.PlaceholderKind == LegacyPptPlaceholderKind.Title);
             Assert.True(legacy.CreateImportReport().HasConversionLoss);
             Assert.Contains(legacy.Diagnostics, diagnostic => diagnostic.Code == "PPT-TEXT-FORMATTING-FLATTENED");
+            Assert.NotEmpty(legacy.Package.UserEdits);
+            Assert.NotEmpty(legacy.Package.PersistObjects);
+            Assert.True(legacy.CreateImportReport().CompoundStreamCount >= 2);
+        }
+
+        [Fact]
+        public void UnmodifiedBinarySave_PreservesTheOriginalPackageExactly() {
+            byte[] source = File.ReadAllBytes(FixturePath);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            byte[] saved = presentation.ToBytes(PowerPointFileFormat.Ppt);
+
+            Assert.True(preflight.CanWrite);
+            Assert.Equal(source, saved);
+        }
+
+        [Fact]
+        public void BinaryPreservationFingerprint_DetectsCorePropertyChanges() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+
+            presentation.BuiltinDocumentProperties.Title = "Changed title";
+
+            LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings,
+                finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
         }
 
         [Fact]

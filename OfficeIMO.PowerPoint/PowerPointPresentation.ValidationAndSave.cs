@@ -254,6 +254,9 @@ namespace OfficeIMO.PowerPoint {
             if (AccessMode == DocumentAccessMode.ReadOnly) {
                 throw new InvalidOperationException("The presentation is read-only and cannot be saved.");
             }
+            if (TryCopyOriginalLegacyPackage(out byte[] originalBytes)) {
+                return originalBytes;
+            }
             foreach (PowerPointSlide slide in _slides) slide.Save();
             PresentationRoot.Save();
             _document!.Save();

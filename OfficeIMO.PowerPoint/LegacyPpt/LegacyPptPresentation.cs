@@ -19,21 +19,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort RecordStyleTextPropAtom = 0x0FA1;
         private const ushort RecordTextBytes = 0x0FA8;
         private const ushort RecordSlideListWithText = 0x0FF0;
-        private const ushort RecordCurrentUser = 0x0FF6;
-        private const ushort RecordUserEdit = 0x0FF5;
-        private const ushort RecordPersistDirectory = 0x1772;
         private const ushort OfficeArtSpContainer = 0xF004;
         private const ushort OfficeArtFsp = 0xF00A;
         private const ushort OfficeArtFopt = 0xF00B;
         private const ushort OfficeArtClientTextbox = 0xF00D;
         private const ushort OfficeArtChildAnchor = 0xF00F;
         private const ushort OfficeArtClientAnchor = 0xF010;
-        private const uint UnencryptedCurrentUserToken = 0xE391C05F;
 
         private readonly List<LegacyPptSlide> _slides = new();
         private readonly List<LegacyPptImportDiagnostic> _diagnostics = new();
 
         private LegacyPptPresentation() { }
+
+        internal LegacyPptPackage Package { get; private set; } = null!;
 
         /// <summary>Gets the slide width in PowerPoint master units (576 units per inch).</summary>
         public int SlideWidth { get; private set; } = 7200;
@@ -64,33 +62,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         public static LegacyPptPresentation Load(byte[] bytes, LegacyPptImportOptions? options = null) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             options ??= new LegacyPptImportOptions();
-            if (!OfficeCompoundFileReader.TryRead(bytes, out OfficeCompoundFile? compound, out string? error)
-                || compound == null) {
-                throw new InvalidDataException(error ?? "The input is not a valid OLE compound file.");
-            }
-            if (!compound.Streams.TryGetValue("PowerPoint Document", out byte[]? documentStream)) {
-                throw new InvalidDataException("The OLE compound file does not contain a PowerPoint Document stream.");
-            }
-            if (!compound.Streams.TryGetValue("Current User", out byte[]? currentUserStream)) {
-                throw new InvalidDataException("The OLE compound file does not contain a Current User stream.");
-            }
-            if (documentStream.Length > options.MaxInputBytes) {
-                throw new InvalidDataException($"The PowerPoint Document stream exceeds {options.MaxInputBytes} bytes.");
-            }
-
-            var presentation = new LegacyPptPresentation();
-            presentation.AddCompoundFeatureDiagnostics(compound, options);
-            presentation.Parse(documentStream, currentUserStream, options);
+            LegacyPptPackage package = LegacyPptPackage.Read(bytes, options);
+            var presentation = new LegacyPptPresentation { Package = package };
+            presentation.AddCompoundFeatureDiagnostics(package.CompoundFile, options);
+            presentation.Parse(package, options);
             return presentation;
         }
 
         /// <summary>Creates a compact import inventory.</summary>
         public LegacyPptImportReport CreateImportReport() => new LegacyPptImportReport(this);
 
-        private void Parse(byte[] documentStream, byte[] currentUserStream, LegacyPptImportOptions options) {
-            uint currentEditOffset = ReadCurrentEditOffset(currentUserStream, options);
-            Dictionary<uint, uint> persistOffsets = ReadPersistObjectOffsets(documentStream, currentEditOffset, options,
-                out uint documentPersistId);
+        private void Parse(LegacyPptPackage package, LegacyPptImportOptions options) {
+            byte[] documentStream = package.DocumentStream;
+            IReadOnlyDictionary<uint, uint> persistOffsets = package.PersistObjectOffsets;
+            uint documentPersistId = package.DocumentPersistId;
             if (!persistOffsets.TryGetValue(documentPersistId, out uint documentOffset)) {
                 throw new InvalidDataException($"The document persist object {documentPersistId} is missing.");
             }
@@ -222,71 +207,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             } catch (InvalidDataException exception) {
                 AddDiagnostic("PPT-NOTES-READ", LegacyPptDiagnosticSeverity.Warning,
                     $"Speaker notes could not be decoded: {exception.Message}", notesOffset);
-            }
-        }
-
-        private static uint ReadCurrentEditOffset(byte[] currentUserStream, LegacyPptImportOptions options) {
-            LegacyPptRecord currentUser = LegacyPptRecordReader.ReadSingle(currentUserStream, 0, options);
-            if (currentUser.Type != RecordCurrentUser || currentUser.PayloadLength < 12) {
-                throw new InvalidDataException("The Current User stream does not contain a valid CurrentUserAtom.");
-            }
-            uint token = currentUser.ReadUInt32(4);
-            if (token != UnencryptedCurrentUserToken) {
-                throw new NotSupportedException("Encrypted PowerPoint 97-2003 binary presentations are not supported.");
-            }
-            return currentUser.ReadUInt32(8);
-        }
-
-        private static Dictionary<uint, uint> ReadPersistObjectOffsets(byte[] documentStream, uint currentEditOffset,
-            LegacyPptImportOptions options, out uint documentPersistId) {
-            var offsets = new Dictionary<uint, uint>();
-            var visitedEdits = new HashSet<uint>();
-            documentPersistId = 0;
-            uint editOffset = currentEditOffset;
-            while (editOffset != 0) {
-                if (!visitedEdits.Add(editOffset)) {
-                    throw new InvalidDataException("The UserEditAtom chain contains a cycle.");
-                }
-                LegacyPptRecord edit = LegacyPptRecordReader.ReadSingle(documentStream,
-                    ToBoundedOffset(editOffset, documentStream.Length, "UserEditAtom"), options);
-                if (edit.Type != RecordUserEdit || edit.PayloadLength < 20) {
-                    throw new InvalidDataException("The current edit pointer does not reference a valid UserEditAtom.");
-                }
-                if (documentPersistId == 0) documentPersistId = edit.ReadUInt32(16);
-                uint directoryOffset = edit.ReadUInt32(12);
-                ReadPersistDirectory(documentStream, directoryOffset, options, offsets);
-                editOffset = edit.ReadUInt32(8);
-            }
-            if (documentPersistId == 0) throw new InvalidDataException("The UserEditAtom has no document persist id.");
-            return offsets;
-        }
-
-        private static void ReadPersistDirectory(byte[] documentStream, uint offset,
-            LegacyPptImportOptions options, IDictionary<uint, uint> destination) {
-            LegacyPptRecord directory = LegacyPptRecordReader.ReadSingle(documentStream,
-                ToBoundedOffset(offset, documentStream.Length, "PersistDirectoryAtom"), options);
-            if (directory.Type != RecordPersistDirectory) {
-                throw new InvalidDataException("The UserEditAtom does not point to a PersistDirectoryAtom.");
-            }
-            int position = 0;
-            while (position < directory.PayloadLength) {
-                if (directory.PayloadLength - position < 4) {
-                    throw new InvalidDataException("A PersistDirectoryEntry header is truncated.");
-                }
-                uint packed = directory.ReadUInt32(position);
-                position += 4;
-                uint persistId = packed & 0x000FFFFF;
-                int count = unchecked((int)(packed >> 20));
-                if (count == 0 || count > (directory.PayloadLength - position) / 4) {
-                    throw new InvalidDataException("A PersistDirectoryEntry has an invalid object count.");
-                }
-                for (int index = 0; index < count; index++) {
-                    uint objectOffset = directory.ReadUInt32(position);
-                    position += 4;
-                    if (!destination.ContainsKey(persistId + unchecked((uint)index))) {
-                        destination.Add(persistId + unchecked((uint)index), objectOffset);
-                    }
-                }
             }
         }
 
