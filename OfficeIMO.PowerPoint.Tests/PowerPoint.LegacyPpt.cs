@@ -273,6 +273,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedBinarySlideOrder_ReordersPersistGroupsIncrementally() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation created = PowerPointPresentation.Create()) {
+                created.AddSlide().AddTextBox("First");
+                created.AddSlide().AddTextBox("Second");
+                created.AddSlide().AddTextBox("Third");
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);
+
+            using var input = new MemoryStream(sourceBytes);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            presentation.MoveSlide(0, 2);
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(new[] { "Second", "Third", "First" }, saved.Slides.Select(slide =>
+                slide.Shapes.Single(shape => shape.Kind == LegacyPptShapeKind.TextBox).Text));
+            Assert.Equal(source.Package.UserEdits.Count + 1, saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0, source.Package.DocumentStream.Length)
+                .SequenceEqual(source.Package.DocumentStream));
+        }
+
+        [Fact]
+        public void ImportedBinarySlideDeletion_RemovesPersistGroupIncrementally() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation created = PowerPointPresentation.Create()) {
+                created.AddSlide().AddTextBox("Keep first");
+                created.AddSlide().AddTextBox("Delete middle");
+                created.AddSlide().AddTextBox("Keep last");
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation source = LegacyPptPresentation.Load(sourceBytes);
+
+            using var input = new MemoryStream(sourceBytes);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(input);
+            presentation.RemoveSlide(1);
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(new[] { "Keep first", "Keep last" }, saved.Slides.Select(slide =>
+                slide.Shapes.Single(shape => shape.Kind == LegacyPptShapeKind.TextBox).Text));
+            Assert.Equal(source.Package.UserEdits.Count + 1, saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0, source.Package.DocumentStream.Length)
+                .SequenceEqual(source.Package.DocumentStream));
+        }
+
+        [Fact]
         public void NativeWriter_BlocksKnownLossUnlessExplicitlyAllowed() {
             string image = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             using PowerPointPresentation presentation = PowerPointPresentation.Create();

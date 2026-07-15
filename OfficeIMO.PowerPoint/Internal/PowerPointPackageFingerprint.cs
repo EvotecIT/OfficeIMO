@@ -7,13 +7,16 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>Creates deterministic fingerprints over a presentation package and its relationships.</summary>
     internal static class PowerPointPackageFingerprint {
         internal static string Create(PresentationDocument document,
-            Action<OpenXmlPart, OpenXmlElement>? normalizeRoot = null) {
+            Action<OpenXmlPart, OpenXmlElement>? normalizeRoot = null,
+            Func<OpenXmlPart, bool>? includePart = null,
+            Func<OpenXmlPart, IdPartPair, bool>? includeRelationship = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var parts = new HashSet<OpenXmlPart>();
             foreach (IdPartPair pair in document.Parts) CollectParts(pair.OpenXmlPart, parts);
 
             var content = new StringBuilder();
             foreach (OpenXmlPart part in parts.OrderBy(item => item.Uri.ToString(), StringComparer.Ordinal)) {
+                if (includePart != null && !includePart(part)) continue;
                 content.Append(part.Uri).Append('|').Append(part.ContentType).Append('|');
                 try {
                     OpenXmlPartRootElement? root = part.RootElement;
@@ -36,6 +39,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 foreach (IdPartPair relationship in part.Parts.OrderBy(item => item.RelationshipId,
                              StringComparer.Ordinal)) {
+                    if (includeRelationship != null && !includeRelationship(part, relationship)) continue;
                     content.Append('|').Append(relationship.RelationshipId).Append('=')
                         .Append(relationship.OpenXmlPart.Uri);
                 }

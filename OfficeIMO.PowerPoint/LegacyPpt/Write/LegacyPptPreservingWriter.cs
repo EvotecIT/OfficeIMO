@@ -10,10 +10,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     /// Appends a binary PowerPoint incremental edit for changes that can be represented without rebuilding
     /// or discarding the source persist graph. The original document stream remains an exact prefix.
     /// </summary>
-    internal static class LegacyPptPreservingWriter {
+    internal static partial class LegacyPptPreservingWriter {
         private const ushort RecordPersistDirectory = 0x1772;
+        private const ushort RecordSlidePersistAtom = 0x03F3;
         private const ushort RecordSlideAtom = 0x03EF;
         private const ushort RecordSlideShowSlideInfoAtom = 0x03F9;
+        private const ushort RecordNamedShows = 0x0410;
+        private const ushort RecordSlideListWithText = 0x0FF0;
         private const ushort RecordTextHeader = 0x0F9F;
         private const ushort RecordTextChars = 0x0FA0;
         private const ushort RecordTextBytes = 0x0FA8;
@@ -25,23 +28,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool CanWritePresentation(PowerPointPresentation presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            return TryBuildModifiedSlides(presentation, out _);
+            return TryBuildModifiedPersistObjects(presentation, out _);
         }
 
         internal static bool TryWritePresentation(PowerPointPresentation presentation, out byte[] bytes) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             bytes = Array.Empty<byte>();
-            if (!TryBuildModifiedSlides(presentation, out IReadOnlyDictionary<uint, byte[]> modifiedSlides)) {
+            if (!TryBuildModifiedPersistObjects(presentation,
+                    out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects)) {
                 return false;
             }
 
             LegacyPptPackage package = presentation.LegacyPptPackage!;
-            if (modifiedSlides.Count == 0) {
+            if (modifiedPersistObjects.Count == 0) {
                 bytes = package.CopyOriginalBytes();
                 return true;
             }
 
-            byte[] documentStream = AppendIncrementalEdit(package, modifiedSlides, out uint editOffset);
+            IReadOnlyList<uint> currentSlideIds = GetCurrentSlideIds(presentation,
+                presentation.LegacyPptProjectionMap!);
+            byte[] documentStream = AppendIncrementalEdit(package, modifiedPersistObjects, currentSlideIds,
+                out uint editOffset);
             byte[] currentUserStream = PatchCurrentEditOffset(package.CurrentUserStream, editOffset);
             bytes = OfficeCompoundFileWriter.Rewrite(package.CompoundFile,
                 new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
@@ -51,18 +58,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static bool TryBuildModifiedSlides(PowerPointPresentation presentation,
-            out IReadOnlyDictionary<uint, byte[]> modifiedSlides) {
+        private static bool TryBuildModifiedPersistObjects(PowerPointPresentation presentation,
+            out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects) {
             var rewritten = new Dictionary<uint, byte[]>();
-            modifiedSlides = rewritten;
+            modifiedPersistObjects = rewritten;
             LegacyPptPackage? package = presentation.LegacyPptPackage;
             LegacyPptProjectionMap? projectionMap = presentation.LegacyPptProjectionMap;
             if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptProjectedShapeChanges
-                || presentation.Slides.Count != projectionMap.Slides.Count) {
+                || presentation.Slides.Count > projectionMap.Slides.Count) {
                 return false;
             }
 
             try {
+                var currentSlideOrder = new List<LegacyPptSlideProjection>(presentation.Slides.Count);
                 foreach (PowerPointSlide slide in presentation.Slides) {
                     if (!projectionMap.TryGetSlide(slide, out LegacyPptSlideProjection? slideProjection)
                         || slideProjection == null
@@ -70,6 +78,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             out LegacyPptPersistObject? persistObject)) {
                         return false;
                     }
+                    currentSlideOrder.Add(slideProjection);
 
                     PowerPointShape[] shapes = slide.Shapes.ToArray();
                     if (shapes.Length != slideProjection.Shapes.Count) return false;
@@ -109,6 +118,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (!TryRewriteSlide(slideRecord, editsByOfficeArtId, hidden, out RecordRewrite result)
                         || !result.Changed || result.PatchedShapeCount != editsByOfficeArtId.Count) return false;
                     rewritten.Add(slideProjection.PersistId, result.Bytes);
+                }
+                if (!currentSlideOrder.Select(slide => slide.PersistId)
+                        .SequenceEqual(projectionMap.Slides.Select(slide => slide.PersistId))) {
+                    if (!TryRewriteDocumentSlideOrder(package, projectionMap, currentSlideOrder,
+                            out byte[] documentRecord)) {
+                        return false;
+                    }
+                    rewritten.Add(package.DocumentPersistId, documentRecord);
                 }
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException
@@ -290,13 +307,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] AppendIncrementalEdit(LegacyPptPackage package,
-            IReadOnlyDictionary<uint, byte[]> modifiedSlides, out uint editOffset) {
+            IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects, IReadOnlyList<uint> currentSlideIds,
+            out uint editOffset) {
             using var output = new MemoryStream();
             output.Write(package.DocumentStream, 0, package.DocumentStream.Length);
             var offsets = new SortedDictionary<uint, uint>();
-            foreach (KeyValuePair<uint, byte[]> slide in modifiedSlides.OrderBy(pair => pair.Key)) {
-                offsets.Add(slide.Key, checked((uint)output.Position));
-                output.Write(slide.Value, 0, slide.Value.Length);
+            foreach (KeyValuePair<uint, byte[]> persistObject in modifiedPersistObjects.OrderBy(pair => pair.Key)) {
+                offsets.Add(persistObject.Key, checked((uint)output.Position));
+                output.Write(persistObject.Value, 0, persistObject.Value.Length);
             }
 
             uint directoryOffset = checked((uint)output.Position);
@@ -309,6 +327,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             byte[] edit = currentEdit.CopyRecordBytes();
             if (currentEdit.PayloadLength < 20) {
                 throw new InvalidDataException("The current UserEditAtom is too short for an incremental edit.");
+            }
+            uint lastViewedSlideId = ReadUInt32(edit, 8);
+            if (lastViewedSlideId != 0 && !currentSlideIds.Contains(lastViewedSlideId)) {
+                WriteUInt32(edit, 8, currentSlideIds.Count == 0 ? 0U : currentSlideIds[currentSlideIds.Count - 1]);
             }
             WriteUInt32(edit, 16, package.CurrentEditOffset);
             WriteUInt32(edit, 20, directoryOffset);
@@ -448,6 +470,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static void WriteInt16(byte[] bytes, int offset, short value) =>
             WriteUInt16(bytes, offset, unchecked((ushort)value));
+
+        private static uint ReadUInt32(byte[] bytes, int offset) => unchecked((uint)(bytes[offset]
+            | bytes[offset + 1] << 8 | bytes[offset + 2] << 16 | bytes[offset + 3] << 24));
 
         private static void WriteUInt16(byte[] bytes, int offset, ushort value) {
             bytes[offset] = unchecked((byte)value);

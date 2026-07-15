@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint {
         private LegacyPptPackage? _legacyPptPackage;
         private LegacyPptProjectionMap? _legacyPptProjectionMap;
         private string? _legacyPptProjectionFingerprint;
-        private string? _legacyPptPreservationFingerprint;
+        private LegacyPptProjectionFingerprint? _legacyPptPreservationFingerprint;
 
         /// <summary>Gets the detected physical format of the presentation source.</summary>
         public PowerPointFileFormat SourceFormat { get; private set; } = PowerPointFileFormat.Pptx;
@@ -52,9 +52,7 @@ namespace OfficeIMO.PowerPoint {
 
         internal bool HasOnlyLegacyPptProjectedShapeChanges => _legacyPptProjectionMap != null
             && _legacyPptPreservationFingerprint != null
-            && string.Equals(_legacyPptPreservationFingerprint,
-                LegacyPptProjectionFingerprint.Create(_document!, _legacyPptProjectionMap),
-                StringComparison.Ordinal);
+            && _legacyPptPreservationFingerprint.Matches(_document!, _legacyPptProjectionMap);
 
         internal bool TryCopyOriginalLegacyPackage(out byte[] bytes) {
             if (CanPreserveOriginalLegacyPackage) {

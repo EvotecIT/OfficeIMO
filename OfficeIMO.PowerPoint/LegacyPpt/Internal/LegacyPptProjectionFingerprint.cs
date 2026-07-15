@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -5,25 +6,75 @@ using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>
-    /// Fingerprints the projected package while normalizing geometry fields that the preservation writer owns.
-    /// Any other package mutation prevents the conservative incremental-edit path.
+    /// Retains a global package guard and independent normalized slide guards. Existing projected slides can be
+    /// reordered or removed, while any unsupported mutation to a retained slide or shared package part is rejected.
     /// </summary>
-    internal static class LegacyPptProjectionFingerprint {
-        internal static string Create(PresentationDocument document, LegacyPptProjectionMap projectionMap) {
-            if (document == null) throw new ArgumentNullException(nameof(document));
-            if (projectionMap == null) throw new ArgumentNullException(nameof(projectionMap));
+    internal sealed class LegacyPptProjectionFingerprint {
+        private readonly IReadOnlyDictionary<string, string> _slides;
 
-            return PowerPointPackageFingerprint.Create(document, (part, root) => {
-                if (part is SlidePart) NormalizeProjectedShapeGeometry(root, part.Uri, projectionMap);
-            });
+        private LegacyPptProjectionFingerprint(string global, IReadOnlyDictionary<string, string> slides) {
+            Global = global;
+            _slides = new ReadOnlyDictionary<string, string>(slides.ToDictionary(
+                pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
         }
 
-        private static void NormalizeProjectedShapeGeometry(OpenXmlElement root, Uri partUri,
+        internal string Global { get; }
+
+        internal static LegacyPptProjectionFingerprint Create(PresentationDocument document,
+            LegacyPptProjectionMap projectionMap) {
+            if (document == null) throw new ArgumentNullException(nameof(document));
+            if (projectionMap == null) throw new ArgumentNullException(nameof(projectionMap));
+            var slides = new Dictionary<string, string>(StringComparer.Ordinal);
+            foreach (SlidePart slidePart in document.PresentationPart?.SlideParts ?? Enumerable.Empty<SlidePart>()) {
+                if (projectionMap.Slides.Any(slide => string.Equals(slide.SlidePartUri,
+                        slidePart.Uri.ToString(), StringComparison.Ordinal))) {
+                    slides.Add(slidePart.Uri.ToString(), CreateSlide(document, slidePart, projectionMap));
+                }
+            }
+            if (slides.Count != projectionMap.Slides.Count) {
+                throw new InvalidDataException("The projected slide fingerprint set is incomplete.");
+            }
+            return new LegacyPptProjectionFingerprint(CreateGlobal(document), slides);
+        }
+
+        internal bool Matches(PresentationDocument document, LegacyPptProjectionMap projectionMap) {
+            if (!string.Equals(Global, CreateGlobal(document), StringComparison.Ordinal)) return false;
+            SlidePart[] currentSlides = document.PresentationPart?.SlideParts.ToArray() ?? Array.Empty<SlidePart>();
+            if (currentSlides.Length > _slides.Count) return false;
+            foreach (SlidePart slidePart in currentSlides) {
+                string uri = slidePart.Uri.ToString();
+                if (!_slides.TryGetValue(uri, out string? expected)
+                    || !string.Equals(expected, CreateSlide(document, slidePart, projectionMap),
+                        StringComparison.Ordinal)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        private static string CreateGlobal(PresentationDocument document) =>
+            PowerPointPackageFingerprint.Create(document,
+                (part, root) => {
+                    if (part is PresentationPart) NormalizePresentationTopology(root);
+                },
+                part => !(part is SlidePart),
+                (owner, relationship) => !(relationship.OpenXmlPart is SlidePart));
+
+        private static string CreateSlide(PresentationDocument document, SlidePart slidePart,
+            LegacyPptProjectionMap projectionMap) => PowerPointPackageFingerprint.Create(document,
+            (part, root) => NormalizeProjectedSlide(root, part.Uri, projectionMap),
+            part => string.Equals(part.Uri.ToString(), slidePart.Uri.ToString(), StringComparison.Ordinal));
+
+        private static void NormalizePresentationTopology(OpenXmlElement root) {
+            if (root is not P.Presentation presentation || presentation.SlideIdList == null) return;
+            presentation.SlideIdList.RemoveAllChildren<P.SlideId>();
+        }
+
+        private static void NormalizeProjectedSlide(OpenXmlElement root, Uri partUri,
             LegacyPptProjectionMap projectionMap) {
             LegacyPptSlideProjection? slideProjection = projectionMap.Slides.FirstOrDefault(slide =>
                 string.Equals(slide.SlidePartUri, partUri.ToString(), StringComparison.Ordinal));
             if (slideProjection == null) return;
-
             if (root is P.Slide slideRoot) slideRoot.Show = null;
 
             foreach (P.Shape shape in root.Descendants<P.Shape>()) {
