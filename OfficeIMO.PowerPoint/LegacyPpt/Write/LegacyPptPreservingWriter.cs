@@ -21,6 +21,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordTextChars = 0x0FA0;
         private const ushort RecordTextBytes = 0x0FA8;
         private const ushort OfficeArtSpContainer = 0xF004;
+        private const ushort OfficeArtDgg = 0xF006;
         private const ushort OfficeArtFsp = 0xF00A;
         private const ushort OfficeArtClientTextbox = 0xF00D;
         private const ushort OfficeArtChildAnchor = 0xF00F;
@@ -28,14 +29,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool CanWritePresentation(PowerPointPresentation presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            return TryBuildModifiedPersistObjects(presentation, out _);
+            return TryBuildModifiedPersistObjects(presentation, out _, out _);
         }
 
         internal static bool TryWritePresentation(PowerPointPresentation presentation, out byte[] bytes) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
             bytes = Array.Empty<byte>();
             if (!TryBuildModifiedPersistObjects(presentation,
-                    out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects)) {
+                    out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,
+                    out IReadOnlyList<uint> currentSlideIds)) {
                 return false;
             }
 
@@ -45,8 +47,6 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return true;
             }
 
-            IReadOnlyList<uint> currentSlideIds = GetCurrentSlideIds(presentation,
-                presentation.LegacyPptProjectionMap!);
             byte[] documentStream = AppendIncrementalEdit(package, modifiedPersistObjects, currentSlideIds,
                 out uint editOffset);
             byte[] currentUserStream = PatchCurrentEditOffset(package.CurrentUserStream, editOffset);
@@ -59,26 +59,39 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryBuildModifiedPersistObjects(PowerPointPresentation presentation,
-            out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects) {
+            out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,
+            out IReadOnlyList<uint> currentSlideIds) {
             var rewritten = new Dictionary<uint, byte[]>();
+            var slideIds = new List<uint>(presentation.Slides.Count);
             modifiedPersistObjects = rewritten;
+            currentSlideIds = slideIds;
             LegacyPptPackage? package = presentation.LegacyPptPackage;
             LegacyPptProjectionMap? projectionMap = presentation.LegacyPptProjectionMap;
             if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptProjectedShapeChanges
-                || presentation.Slides.Count > projectionMap.Slides.Count) {
+                || presentation.Slides.Count > 4082) {
                 return false;
             }
 
             try {
                 var currentSlideOrder = new List<LegacyPptSlideProjection>(presentation.Slides.Count);
+                var addedSlides = new List<PowerPointSlide>();
+                bool encounteredAddedSlide = false;
                 foreach (PowerPointSlide slide in presentation.Slides) {
                     if (!projectionMap.TryGetSlide(slide, out LegacyPptSlideProjection? slideProjection)
-                        || slideProjection == null
+                        || slideProjection == null) {
+                        if (!LegacyPptWritePreflight.CanWriteSlideLosslessly(slide)) return false;
+                        encounteredAddedSlide = true;
+                        addedSlides.Add(slide);
+                        continue;
+                    }
+                    if (encounteredAddedSlide
                         || !package.PersistObjects.TryGetValue(slideProjection.PersistId,
-                            out LegacyPptPersistObject? persistObject)) {
+                            out LegacyPptPersistObject? persistObject)
+                        || persistObject == null) {
                         return false;
                     }
                     currentSlideOrder.Add(slideProjection);
+                    slideIds.Add(slideProjection.SlideId);
 
                     PowerPointShape[] shapes = slide.Shapes.ToArray();
                     if (shapes.Length != slideProjection.Shapes.Count) return false;
@@ -119,8 +132,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         || !result.Changed || result.PatchedShapeCount != editsByOfficeArtId.Count) return false;
                     rewritten.Add(slideProjection.PersistId, result.Bytes);
                 }
-                if (!currentSlideOrder.Select(slide => slide.PersistId)
-                        .SequenceEqual(projectionMap.Slides.Select(slide => slide.PersistId))) {
+                bool originalTopologyChanged = !currentSlideOrder.Select(slide => slide.PersistId)
+                    .SequenceEqual(projectionMap.Slides.Select(slide => slide.PersistId));
+                if (addedSlides.Count > 0) {
+                    if (originalTopologyChanged || currentSlideOrder.Count != projectionMap.Slides.Count
+                        || !TryAppendNewSlides(package, projectionMap, addedSlides, rewritten,
+                            out IReadOnlyList<uint> addedSlideIds)) {
+                        return false;
+                    }
+                    slideIds.AddRange(addedSlideIds);
+                } else if (originalTopologyChanged) {
                     if (!TryRewriteDocumentSlideOrder(package, projectionMap, currentSlideOrder,
                             out byte[] documentRecord)) {
                         return false;
@@ -335,6 +356,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             WriteUInt32(edit, 16, package.CurrentEditOffset);
             WriteUInt32(edit, 20, directoryOffset);
             WriteUInt32(edit, 24, package.DocumentPersistId);
+            if (currentEdit.PayloadLength >= 24 && offsets.Count > 0) {
+                WriteUInt32(edit, 28, Math.Max(currentEdit.ReadUInt32(20), offsets.Keys.Max()));
+            }
             output.Write(edit, 0, edit.Length);
             return output.ToArray();
         }

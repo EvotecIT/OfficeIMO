@@ -323,6 +323,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedBinarySlideAddition_AppendsPersistAndDrawingClusters() {
+            LegacyPptPresentation source = LegacyPptPresentation.Load(FixturePath);
+            using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
+            PowerPointSlide added = presentation.AddSlide();
+            added.AddTextBox("Incremental new slide", 200000, 200000, 4000000, 700000);
+            added.AddRectangle(300000, 1200000, 1200000, 600000);
+            added.Hidden = true;
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+
+            Assert.Equal(2, saved.Slides.Count);
+            Assert.Contains(saved.Slides[0].Shapes, shape => shape.Text == "OfficeIMO PowerPoint Basics");
+            Assert.Contains(saved.Slides[1].Shapes, shape => shape.Text == "Incremental new slide");
+            Assert.Contains(saved.Slides[1].Shapes, shape => shape.Kind == LegacyPptShapeKind.Rectangle);
+            Assert.True(saved.Slides[1].Hidden);
+            Assert.Equal(source.Package.UserEdits.Count + 1, saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0, source.Package.DocumentStream.Length)
+                .SequenceEqual(source.Package.DocumentStream));
+        }
+
+        [Fact]
         public void NativeWriter_BlocksKnownLossUnlessExplicitlyAllowed() {
             string image = Path.Combine(AppContext.BaseDirectory, "Images", "EvotecLogo.png");
             using PowerPointPresentation presentation = PowerPointPresentation.Create();

@@ -41,12 +41,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 for (int shapeIndex = 0; shapeIndex < slide.Shapes.Count; shapeIndex++) {
                     PowerPointShape shape = slide.Shapes[shapeIndex];
-                    bool supportedShape = shape is PowerPointTextBox
-                        || shape is PowerPointAutoShape autoShape
-                        && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
-                            || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
-                            || autoShape.ShapeType == A.ShapeTypeValues.Line);
-                    if (!supportedShape) {
+                    if (!IsSupportedShape(shape)) {
                         findings.Add(new LegacyPptWriteFinding(MapShapeFeature(shape), "PPT-WRITE-SHAPE",
                             $"{shape.ShapeContentType} content is outside the native writer's text/rectangle/ellipse/line subset.",
                             slideIndex, shapeIndex));
@@ -74,6 +69,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             return new LegacyPptWritePreflightReport(findings);
         }
+
+        internal static bool CanWriteSlideLosslessly(PowerPointSlide slide) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            if (slide.SlidePart.NotesSlidePart != null && !string.IsNullOrWhiteSpace(slide.Notes.Text)) return false;
+            P.Slide? slideRoot = slide.SlidePart.Slide;
+            if (slide.Transition != SlideTransition.None || slideRoot?.Timing != null
+                || slideRoot?.CommonSlideData?.Background != null) {
+                return false;
+            }
+            foreach (PowerPointShape shape in slide.Shapes) {
+                if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)) return false;
+                if (shape is PowerPointTextBox textBox && HasRichTextFormatting(textBox)) return false;
+            }
+            return true;
+        }
+
+        private static bool IsSupportedShape(PowerPointShape shape) => shape is PowerPointTextBox
+            || shape is PowerPointAutoShape autoShape
+            && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
+                || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
+                || autoShape.ShapeType == A.ShapeTypeValues.Line);
 
         private static LegacyPptFeature MapShapeFeature(PowerPointShape shape) {
             switch (shape.ShapeContentType) {

@@ -52,7 +52,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 PowerPointSlide slide = presentation.Slides[index];
                 IReadOnlyList<PowerPointShape> supportedShapes = slide.Shapes.Where(IsSupportedShape).ToArray();
                 slideShapeCounts.Add(supportedShapes.Count);
-                slideRecords.Add(BuildSlideRecord(template.SlidePrototype, slide, supportedShapes, index));
+                slideRecords.Add(BuildSlideRecord(template.SlidePrototype, slide, supportedShapes,
+                    unchecked((uint)(13 + index)), masterIdRef: null));
             }
 
             var persistObjects = new List<byte[]>(13 + slideRecords.Count) {
@@ -76,6 +77,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 && (autoShape.ShapeType == A.ShapeTypeValues.Rectangle
                     || autoShape.ShapeType == A.ShapeTypeValues.Ellipse
                     || autoShape.ShapeType == A.ShapeTypeValues.Line);
+        }
+
+        internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide, uint drawingId,
+            uint masterIdRef) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            IReadOnlyList<PowerPointShape> shapes = slide.Shapes.Where(IsSupportedShape).ToArray();
+            if (shapes.Count != slide.Shapes.Count) {
+                throw new InvalidOperationException("The incremental slide contains an unsupported shape.");
+            }
+            return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId, masterIdRef);
         }
 
         private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,
@@ -161,16 +172,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildSlideRecord(LegacyPptRecord prototype, PowerPointSlide slide,
-            IReadOnlyList<PowerPointShape> shapes, int slideIndex) {
+            IReadOnlyList<PowerPointShape> shapes, uint drawingId, uint? masterIdRef) {
             var children = new List<byte[]>();
             bool hasSlideShowInfo = false;
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordSlideAtom) {
                     byte[] atom = child.CopyRecordBytes();
+                    if (masterIdRef.HasValue) WriteUInt32(atom, 12, masterIdRef.Value);
                     WriteUInt32(atom, 16, 0);
                     children.Add(atom);
                 } else if (child.Type == RecordDrawing) {
-                    children.Add(BuildDrawingRecord(prototype, shapes, slideIndex));
+                    children.Add(BuildDrawingRecord(prototype, shapes, drawingId));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     children.Add(PatchHiddenState(child.CopyRecordBytes(), slide.Hidden));
                     hasSlideShowInfo = true;
@@ -202,14 +214,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildDrawingRecord(LegacyPptRecord slidePrototype,
-            IReadOnlyList<PowerPointShape> shapes, int slideIndex) {
+            IReadOnlyList<PowerPointShape> shapes, uint drawingId) {
             LegacyPptRecord baseDrawing = slidePrototype.Children.First(record => record.Type == RecordDrawing);
             LegacyPptRecord baseDgContainer = baseDrawing.Children.First(record => record.Type == OfficeArtDgContainer);
             LegacyPptRecord baseSpgr = baseDgContainer.Children.First(record => record.Type == OfficeArtSpgrContainer);
             LegacyPptRecord baseRootShape = baseSpgr.Children.First(record => record.Type == OfficeArtSpContainer);
             LegacyPptRecord baseBackground = baseDgContainer.Children.Last(record => record.Type == OfficeArtSpContainer);
 
-            uint drawingId = unchecked((uint)(13 + slideIndex));
             uint baseShapeId = drawingId << 10;
             var spgrChildren = new List<byte[]> { PatchShapeId(baseRootShape.CopyRecordBytes(), baseShapeId) };
             for (int index = 0; index < shapes.Count; index++) {

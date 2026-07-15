@@ -40,11 +40,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool Matches(PresentationDocument document, LegacyPptProjectionMap projectionMap) {
             if (!string.Equals(Global, CreateGlobal(document), StringComparison.Ordinal)) return false;
             SlidePart[] currentSlides = document.PresentationPart?.SlideParts.ToArray() ?? Array.Empty<SlidePart>();
-            if (currentSlides.Length > _slides.Count) return false;
             foreach (SlidePart slidePart in currentSlides) {
                 string uri = slidePart.Uri.ToString();
-                if (!_slides.TryGetValue(uri, out string? expected)
-                    || !string.Equals(expected, CreateSlide(document, slidePart, projectionMap),
+                if (_slides.TryGetValue(uri, out string? expected)
+                    && !string.Equals(expected, CreateSlide(document, slidePart, projectionMap),
                         StringComparison.Ordinal)) {
                     return false;
                 }

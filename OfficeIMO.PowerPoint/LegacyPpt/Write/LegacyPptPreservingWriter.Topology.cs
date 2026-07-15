@@ -2,6 +2,134 @@ using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
+        private static bool TryAppendNewSlides(LegacyPptPackage package,
+            LegacyPptProjectionMap projectionMap, IReadOnlyList<PowerPointSlide> addedSlides,
+            IDictionary<uint, byte[]> rewritten, out IReadOnlyList<uint> addedSlideIds) {
+            var slideIds = new List<uint>(addedSlides.Count);
+            addedSlideIds = slideIds;
+            if (addedSlides.Count == 0 || projectionMap.Slides.Count == 0
+                || !TryReadDocumentAndMaster(package, projectionMap,
+                    out LegacyPptRecord? document, out uint masterIdRef)
+                || document == null) {
+                return false;
+            }
+
+            LegacyPptRecord? slideList = document.Children.FirstOrDefault(child =>
+                child.Type == RecordSlideListWithText && child.Instance == 0);
+            LegacyPptRecord? dgg = document.DescendantsAndSelf().FirstOrDefault(record =>
+                record.Type == OfficeArtDgg);
+            if (slideList == null || dgg == null || !TryReadDggClusters(dgg,
+                    out List<KeyValuePair<uint, uint>> clusters)) {
+                return false;
+            }
+
+            uint persistId = package.PersistObjects.Count == 0 ? 1U : package.PersistObjects.Keys.Max();
+            uint slideId = projectionMap.Slides.Max(slide => slide.SlideId);
+            uint drawingId = clusters.Count == 0 ? 0U : clusters.Max(cluster => cluster.Key);
+            var appendedSlideAtoms = new List<byte[]>(addedSlides.Count);
+            foreach (PowerPointSlide slide in addedSlides) {
+                if (persistId >= 0x000FFFFE || slideId >= 0x7FFFFFFF || drawingId >= 0x003FFFFF) {
+                    return false;
+                }
+                persistId++;
+                slideId++;
+                drawingId++;
+                uint nextShapeIndex = checked(unchecked((uint)slide.Shapes.Count) + 2U);
+                clusters.Add(new KeyValuePair<uint, uint>(drawingId, nextShapeIndex));
+                rewritten.Add(persistId,
+                    LegacyPptWriter.BuildIncrementalSlideRecord(slide, drawingId, masterIdRef));
+                appendedSlideAtoms.Add(BuildSlidePersistAtom(persistId, slideId));
+                slideIds.Add(slideId);
+            }
+
+            byte[] rewrittenDgg = BuildDggWithAppendedClusters(dgg, clusters, addedSlides.Count);
+            var slideListChildren = slideList.Children.Select(child => child.CopyRecordBytes()).ToList();
+            slideListChildren.AddRange(appendedSlideAtoms);
+            byte[] rewrittenSlideList = BuildRecord(slideList.Version, slideList.Instance, slideList.Type,
+                Concat(slideListChildren));
+
+            bool patchedDgg = false;
+            var documentChildren = new List<byte[]>(document.Children.Count);
+            foreach (LegacyPptRecord child in document.Children) {
+                if (ReferenceEquals(child, slideList)) {
+                    documentChildren.Add(rewrittenSlideList);
+                } else if (!patchedDgg && child.DescendantsAndSelf().Any(record => ReferenceEquals(record, dgg))) {
+                    if (!TryReplaceDescendant(child, dgg.Offset, rewrittenDgg, out byte[] rewrittenChild)) {
+                        return false;
+                    }
+                    documentChildren.Add(rewrittenChild);
+                    patchedDgg = true;
+                } else {
+                    documentChildren.Add(child.CopyRecordBytes());
+                }
+            }
+            if (!patchedDgg) return false;
+            rewritten.Add(package.DocumentPersistId, BuildRecord(document.Version, document.Instance,
+                document.Type, Concat(documentChildren)));
+            return true;
+        }
+
+        private static bool TryReadDocumentAndMaster(LegacyPptPackage package,
+            LegacyPptProjectionMap projectionMap, out LegacyPptRecord? document, out uint masterIdRef) {
+            document = null;
+            masterIdRef = 0;
+            if (!package.PersistObjects.TryGetValue(package.DocumentPersistId,
+                    out LegacyPptPersistObject? documentObject) || documentObject == null
+                || !package.PersistObjects.TryGetValue(projectionMap.Slides[0].PersistId,
+                    out LegacyPptPersistObject? slideObject) || slideObject == null) {
+                return false;
+            }
+            document = LegacyPptRecordReader.ReadSingle(documentObject.RecordBytes, 0,
+                new LegacyPptImportOptions());
+            LegacyPptRecord sourceSlide = LegacyPptRecordReader.ReadSingle(slideObject.RecordBytes, 0,
+                new LegacyPptImportOptions());
+            LegacyPptRecord? slideAtom = sourceSlide.Children.FirstOrDefault(child => child.Type == RecordSlideAtom);
+            if (slideAtom == null || slideAtom.PayloadLength < 8) return false;
+            masterIdRef = slideAtom.ReadUInt32(4);
+            return masterIdRef != 0;
+        }
+
+        private static bool TryReadDggClusters(LegacyPptRecord dgg,
+            out List<KeyValuePair<uint, uint>> clusters) {
+            clusters = new List<KeyValuePair<uint, uint>>();
+            if (dgg.PayloadLength < 16) return false;
+            uint storedClusterCount = dgg.ReadUInt32(4);
+            if (storedClusterCount == 0 || storedClusterCount - 1U > int.MaxValue) return false;
+            int clusterCount = unchecked((int)(storedClusterCount - 1U));
+            if (dgg.PayloadLength < checked(16 + clusterCount * 8)) return false;
+            for (int index = 0; index < clusterCount; index++) {
+                clusters.Add(new KeyValuePair<uint, uint>(dgg.ReadUInt32(16 + index * 8),
+                    dgg.ReadUInt32(20 + index * 8)));
+            }
+            return true;
+        }
+
+        private static byte[] BuildDggWithAppendedClusters(LegacyPptRecord dgg,
+            IReadOnlyList<KeyValuePair<uint, uint>> clusters, int addedDrawingCount) {
+            var payload = new byte[checked(16 + clusters.Count * 8)];
+            uint lastDrawingId = clusters.Count == 0 ? 0U : clusters[clusters.Count - 1].Key;
+            uint lastNextShapeIndex = clusters.Count == 0 ? 1U : clusters[clusters.Count - 1].Value;
+            WriteUInt32(payload, 0, checked((lastDrawingId << 10) + lastNextShapeIndex));
+            WriteUInt32(payload, 4, checked(unchecked((uint)clusters.Count) + 1U));
+            uint addedShapeCount = unchecked((uint)clusters.Skip(clusters.Count - addedDrawingCount)
+                .Sum(cluster => checked((int)cluster.Value - 1)));
+            WriteUInt32(payload, 8, checked(dgg.ReadUInt32(8) + addedShapeCount));
+            WriteUInt32(payload, 12, checked(dgg.ReadUInt32(12) + unchecked((uint)addedDrawingCount)));
+            for (int index = 0; index < clusters.Count; index++) {
+                WriteUInt32(payload, 16 + index * 8, clusters[index].Key);
+                WriteUInt32(payload, 20 + index * 8, clusters[index].Value);
+            }
+            return BuildRecord(dgg.Version, dgg.Instance, dgg.Type, payload);
+        }
+
+        private static byte[] BuildSlidePersistAtom(uint persistId, uint slideId) {
+            var payload = new byte[20];
+            WriteUInt32(payload, 0, persistId);
+            WriteUInt32(payload, 4, 4);
+            WriteUInt32(payload, 12, slideId);
+            return BuildRecord(version: 0, instance: 0, RecordSlidePersistAtom, payload);
+        }
+
         private static bool TryRewriteDocumentSlideOrder(LegacyPptPackage package,
             LegacyPptProjectionMap projectionMap, IReadOnlyList<LegacyPptSlideProjection> slideOrder,
             out byte[] bytes) {
@@ -86,17 +214,5 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return true;
         }
 
-        private static IReadOnlyList<uint> GetCurrentSlideIds(PowerPointPresentation presentation,
-            LegacyPptProjectionMap projectionMap) {
-            var slideIds = new List<uint>(presentation.Slides.Count);
-            foreach (PowerPointSlide slide in presentation.Slides) {
-                if (!projectionMap.TryGetSlide(slide, out LegacyPptSlideProjection? projection)
-                    || projection == null) {
-                    throw new InvalidOperationException("The projected slide map changed during binary saving.");
-                }
-                slideIds.Add(projection.SlideId);
-            }
-            return slideIds;
-        }
     }
 }
