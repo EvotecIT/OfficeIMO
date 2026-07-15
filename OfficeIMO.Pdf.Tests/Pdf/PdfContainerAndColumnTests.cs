@@ -132,6 +132,47 @@ public class PdfContainerAndColumnTests {
     }
 
     [Fact]
+    public void Columns_DefaultKeepTogetherParagraphIsNotSplitByLineBalancing() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 300,
+                MarginLeft = 40,
+                MarginRight = 40,
+                MarginTop = 40,
+                MarginBottom = 40,
+                DefaultFontSize = 10,
+                DefaultParagraphStyle = new PdfParagraphStyle {
+                    KeepTogether = true
+                },
+                CompressContentStreams = false
+            })
+            .Columns(columns => columns.Paragraph(paragraph => paragraph
+                .Text("KeepLine01").LineBreak()
+                .Text("KeepLine02").LineBreak()
+                .Text("KeepLine03").LineBreak()
+                .Text("KeepLine04").LineBreak()
+                .Text("KeepLine05").LineBreak()
+                .Text("KeepLine06").LineBreak()
+                .Text("KeepLine07").LineBreak()
+                .Text("KeepLine08")), new PdfMultiColumnOptions {
+                    ColumnCount = 2,
+                    Gap = 20,
+                    BalanceLastPage = true,
+                    BalanceParagraphLines = true
+                })
+            .ToBytes();
+
+        string raw = PdfEncoding.Latin1GetString(bytes);
+        PdfReadDocument read = PdfReadDocument.Load(bytes);
+
+        Assert.Single(read.Pages);
+        Assert.Contains("KeepLine01", read.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("KeepLine08", read.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("1 0 0 1 40 ", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("1 0 0 1 220 ", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Columns_BalancedRichLinesPreserveSpaceBeforeInlineElements() {
         byte[] bytes = PdfDocument.Create(new PdfOptions {
                 PageWidth = 420,

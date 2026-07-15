@@ -79,12 +79,14 @@ internal static partial class PdfWriter {
             out RichParagraphBlock? remainder) {
             first = null;
             remainder = null;
-            if (availableHeight <= 0.001D || paragraph.Runs.Any(run => run.Text.Contains('\t'))) {
+            PdfParagraphStyle? sourceStyle = EffectiveParagraphStyle(paragraph);
+            if (availableHeight <= 0.001D ||
+                sourceStyle?.KeepTogether == true ||
+                paragraph.Runs.Any(run => run.Text.Contains('\t'))) {
                 return false;
             }
 
             double fontSize = currentOpts.DefaultFontSize;
-            PdfParagraphStyle? sourceStyle = EffectiveParagraphStyle(paragraph);
             double leading = GetParagraphLeading(sourceStyle, fontSize);
             var textFrame = GetParagraphTextFrame(sourceStyle, currentOpts.MarginLeft, columnWidth);
             var wrapped = WrapRichRunsCoreWithFirstLineOrigin(
