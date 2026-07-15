@@ -558,7 +558,9 @@ public static class OfficeImageReader {
     private static bool HasSvgXmlPrefix(byte[] data) {
         string prefix;
         try {
-            prefix = Encoding.UTF8.GetString(data, 0, Math.Min(data.Length, 4096));
+            Encoding encoding = ResolveXmlPrefixEncoding(data, out int byteOffset);
+            int maximumPrefixBytes = encoding is UnicodeEncoding ? 8192 : 4096;
+            prefix = encoding.GetString(data, byteOffset, Math.Min(data.Length - byteOffset, maximumPrefixBytes));
         } catch (ArgumentException) {
             return false;
         }
@@ -580,6 +582,39 @@ public static class OfficeImageReader {
             }
             return StartsWith(prefix, offset, "<svg", StringComparison.OrdinalIgnoreCase);
         }
+    }
+
+    private static Encoding ResolveXmlPrefixEncoding(byte[] data, out int offset) {
+        offset = 0;
+        if (data.Length >= 4) {
+            if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0xFE && data[3] == 0xFF) {
+                offset = 4;
+                return new UTF32Encoding(bigEndian: true, byteOrderMark: true, throwOnInvalidCharacters: true);
+            }
+            if (data[0] == 0xFF && data[1] == 0xFE && data[2] == 0x00 && data[3] == 0x00) {
+                offset = 4;
+                return new UTF32Encoding(bigEndian: false, byteOrderMark: true, throwOnInvalidCharacters: true);
+            }
+            if (data[0] == 0x3C && data[1] == 0x00 && data[2] != 0x00 && data[3] == 0x00) {
+                return Encoding.Unicode;
+            }
+            if (data[0] == 0x00 && data[1] == 0x3C && data[2] == 0x00 && data[3] != 0x00) {
+                return Encoding.BigEndianUnicode;
+            }
+        }
+        if (data.Length >= 3 && data[0] == 0xEF && data[1] == 0xBB && data[2] == 0xBF) {
+            offset = 3;
+            return Encoding.UTF8;
+        }
+        if (data.Length >= 2 && data[0] == 0xFF && data[1] == 0xFE) {
+            offset = 2;
+            return Encoding.Unicode;
+        }
+        if (data.Length >= 2 && data[0] == 0xFE && data[1] == 0xFF) {
+            offset = 2;
+            return Encoding.BigEndianUnicode;
+        }
+        return Encoding.UTF8;
     }
 
     private static bool StartsWith(string value, int offset, string expected, StringComparison comparison = StringComparison.Ordinal) {

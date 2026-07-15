@@ -82,6 +82,19 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_IdentifiesContentVerifiedUtf16Svg() {
+        const string svg = "\uFEFF<?xml version=\"1.0\" encoding=\"UTF-16\"?><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"4\" height=\"3\"/>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.Unicode.GetBytes(svg), "image.svg");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal("image/svg+xml", asset.MediaType);
+        Assert.Equal(4, asset.Width);
+        Assert.Equal(3, asset.Height);
+    }
+
+    [Fact]
     public void NotebookAdapter_ProjectsMarkdownCodeAndTextOutputsInCellOrder() {
         const string notebook = """
             {
@@ -187,6 +200,59 @@ public sealed class ReaderMediaAdapterTests {
         Assert.Contains("1234", chunk.Text, StringComparison.Ordinal);
         Assert.DoesNotContain("omitted", chunk.Text, StringComparison.Ordinal);
         Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxOutputCharactersPerCell", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void NotebookAdapter_FallsBackToPlainTextWhenMarkdownOutputIsEmpty() {
+        const string notebook = """
+            {
+              "cells": [
+                {
+                  "cell_type": "code",
+                  "source": "display(value)",
+                  "outputs": [
+                    {
+                      "output_type": "display_data",
+                      "data": { "text/markdown": [], "text/plain": ["plain fallback"] }
+                    }
+                  ]
+                }
+              ],
+              "metadata": {},
+              "nbformat": 4,
+              "nbformat_minor": 5
+            }
+            """;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddNotebookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(notebook), "fallback.ipynb");
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Contains("plain fallback", chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("plain fallback", chunk.Markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NotebookAdapter_SplitsCellProjectionAtReaderMaxChars() {
+        string source = new string('a', 600);
+        string notebook = "{\"cells\":[{\"cell_type\":\"markdown\",\"source\":\"" + source +
+            "\"}],\"metadata\":{},\"nbformat\":4,\"nbformat_minor\":5}";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddNotebookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            Encoding.UTF8.GetBytes(notebook),
+            "split.ipynb",
+            new ReaderOptions { MaxChars = 256 });
+
+        Assert.Equal(3, result.Chunks.Count);
+        Assert.All(result.Chunks, chunk => {
+            Assert.InRange(chunk.Text.Length, 1, 256);
+            Assert.InRange(chunk.Markdown.Length, 1, 256);
+            Assert.Equal(0, chunk.Location.SourceBlockIndex);
+            Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxChars", StringComparison.Ordinal));
+        });
+        Assert.Equal(source, string.Concat(result.Chunks.Select(chunk => chunk.Text)));
+        Assert.Equal(source, string.Concat(result.Chunks.Select(chunk => chunk.Markdown)));
     }
 
     [Fact]

@@ -65,24 +65,34 @@ internal static class NotebookReaderAdapter {
             string text = BuildPlainText(source, outputs);
             if (string.IsNullOrWhiteSpace(markdown) && string.IsNullOrWhiteSpace(text)) continue;
 
-            string anchor = "notebook-cell-" + cellIndex.ToString("D4", CultureInfo.InvariantCulture);
-            var location = new ReaderLocation {
-                Path = input.Source.Path,
-                BlockIndex = includedCells,
-                SourceBlockIndex = cellIndex,
-                SourceBlockKind = "notebook-" + cellType + "-cell",
-                BlockAnchor = anchor
-            };
-            var chunk = new ReaderChunk {
-                Id = anchor,
-                Kind = ReaderInputKind.Json,
-                Location = location,
-                Text = text,
-                Markdown = markdown,
-                Warnings = warnings.Count == 0 ? null : warnings.ToArray()
-            };
-            DocumentReaderEngine.ApplyAdapterSource(chunk, input, readerOptions.ComputeHashes);
-            chunks.Add(chunk);
+            IReadOnlyList<string> textParts = SplitProjection(text, readerOptions.MaxChars);
+            IReadOnlyList<string> markdownParts = SplitProjection(markdown, readerOptions.MaxChars);
+            int partCount = Math.Max(textParts.Count, markdownParts.Count);
+            bool wasSplit = partCount > 1;
+            string[]? chunkWarnings = BuildChunkWarnings(warnings, wasSplit);
+            string baseAnchor = "notebook-cell-" + cellIndex.ToString("D4", CultureInfo.InvariantCulture);
+            for (int partIndex = 0; partIndex < partCount; partIndex++) {
+                string anchor = partIndex == 0
+                    ? baseAnchor
+                    : baseAnchor + "-part-" + partIndex.ToString("D4", CultureInfo.InvariantCulture);
+                var location = new ReaderLocation {
+                    Path = input.Source.Path,
+                    BlockIndex = chunks.Count,
+                    SourceBlockIndex = cellIndex,
+                    SourceBlockKind = "notebook-" + cellType + "-cell",
+                    BlockAnchor = anchor
+                };
+                var chunk = new ReaderChunk {
+                    Id = anchor,
+                    Kind = ReaderInputKind.Json,
+                    Location = location,
+                    Text = partIndex < textParts.Count ? textParts[partIndex] : string.Empty,
+                    Markdown = partIndex < markdownParts.Count ? markdownParts[partIndex] : string.Empty,
+                    Warnings = chunkWarnings
+                };
+                DocumentReaderEngine.ApplyAdapterSource(chunk, input, readerOptions.ComputeHashes);
+                chunks.Add(chunk);
+            }
             includedCells++;
         }
 
@@ -161,10 +171,12 @@ internal static class NotebookReaderAdapter {
         }
         if (output.TryGetProperty("data", out JsonElement data) && data.ValueKind == JsonValueKind.Object) {
             if (data.TryGetProperty("text/markdown", out JsonElement markdown)) {
-                return new NotebookOutput(GetMultilineText(markdown), true);
+                string markdownText = GetMultilineText(markdown);
+                if (!string.IsNullOrWhiteSpace(markdownText)) return new NotebookOutput(markdownText, true);
             }
             if (data.TryGetProperty("text/plain", out JsonElement plain)) {
-                return new NotebookOutput(GetMultilineText(plain), false);
+                string plainText = GetMultilineText(plain);
+                if (!string.IsNullOrWhiteSpace(plainText)) return new NotebookOutput(plainText, false);
             }
         }
         return null;
@@ -209,6 +221,26 @@ internal static class NotebookReaderAdapter {
             new[] { source }.Concat(outputs.Select(static output => output.Text))
                 .Where(static value => !string.IsNullOrWhiteSpace(value)))
             .TrimEnd();
+    }
+
+    private static IReadOnlyList<string> SplitProjection(string value, int maxChars) {
+        if (value.Length == 0) return Array.Empty<string>();
+        int limit = Math.Max(1, maxChars);
+        if (value.Length <= limit) return new[] { value };
+
+        var parts = new List<string>((value.Length + limit - 1) / limit);
+        for (int offset = 0; offset < value.Length; offset += limit) {
+            parts.Add(value.Substring(offset, Math.Min(limit, value.Length - offset)));
+        }
+        return parts;
+    }
+
+    private static string[]? BuildChunkWarnings(IReadOnlyList<string> warnings, bool wasSplit) {
+        if (!wasSplit) return warnings.Count == 0 ? null : warnings.ToArray();
+        return warnings
+            .Concat(new[] { "Notebook content was split due to MaxChars." })
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
     }
 
     private static string BuildFence(string value) {
