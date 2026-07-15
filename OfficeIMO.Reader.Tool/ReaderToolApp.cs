@@ -8,6 +8,7 @@ OfficeIMO.Reader.Tool
 
 Usage:
   officeimo-reader read <path|-> [--name <source-name>] [--format markdown|json] [--output <file|->] [--assets <directory>]
+                                [--max-input-bytes <bytes>]
   officeimo-reader folder <path> --output <directory> [--format markdown|json] [--assets <directory>] [--concurrency <1-64>]
                           [--max-files <count>] [--max-total-bytes <bytes>] [--no-recursive]
   officeimo-reader capabilities [--format text|json]
@@ -82,18 +83,20 @@ The dependency-bounded tool does not configure OCR or hosted providers.
         Stream standardInput,
         TextWriter standardOutput,
         CancellationToken cancellationToken) {
+        var readerOptions = new ReaderOptions { MaxInputBytes = options.MaxInputBytes };
         OfficeDocumentReadResult document;
         if (options.InputPath == "-") {
             document = await reader.ReadDocumentAsync(
                 standardInput,
                 options.SourceName,
+                readerOptions,
                 cancellationToken: cancellationToken).ConfigureAwait(false);
         } else {
             string inputPath = Path.GetFullPath(options.InputPath!);
             if (!File.Exists(inputPath)) {
                 throw new FileNotFoundException("Input file '" + inputPath + "' does not exist.", inputPath);
             }
-            document = await reader.ReadDocumentAsync(inputPath, cancellationToken: cancellationToken)
+            document = await reader.ReadDocumentAsync(inputPath, readerOptions, cancellationToken)
                 .ConfigureAwait(false);
         }
 

@@ -14,9 +14,10 @@ dotnet tool install --global OfficeIMO.Reader.Tool
 officeimo-reader read policy.docx --format markdown --output policy.md
 officeimo-reader read report.pdf --format json --output report.reader.json --assets report-assets
 Get-Content notes.md -Raw | officeimo-reader read - --name notes.md
+Get-Content archive.json -Raw | officeimo-reader read - --name archive.json --max-input-bytes 134217728
 ```
 
-`--output -` or an omitted output path writes to standard output. `--name` gives piped bytes an extension so Reader can choose the intended handler; its default is `stdin.txt`.
+`--output -` or an omitted output path writes to standard output. `--name` gives piped bytes an extension so Reader can choose the intended handler; its default is `stdin.txt`. The `read` command bounds files and standard input to 64 MiB by default; use `--max-input-bytes` for an explicit positive-byte override.
 
 ## Convert a folder
 

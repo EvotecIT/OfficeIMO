@@ -24,6 +24,25 @@ public sealed class ReaderToolTests {
     }
 
     [Fact]
+    public async Task StandardInputUsesABoundedDefaultAndSupportsAnExplicitLimit() {
+        ReaderToolArguments defaults = ReaderToolArguments.Parse(new[] { "read", "-" });
+        Assert.Equal(ReaderToolArguments.DefaultMaxInputBytes, defaults.MaxInputBytes);
+
+        await using var input = new ReaderToolNonSeekableStream(Encoding.UTF8.GetBytes("0123456789abcdefg"));
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "read", "-", "--name", "input.txt", "--max-input-bytes", "16" },
+            input,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.ReadFailed, exitCode);
+        Assert.Contains("MaxInputBytes", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task EmitsStableV5Json() {
         await using var input = new MemoryStream(Encoding.UTF8.GetBytes("plain text"));
         using var output = new StringWriter();
@@ -281,4 +300,32 @@ internal sealed class ReaderToolUnsupportedStream : Stream {
     public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
     public override void SetLength(long value) => throw new NotSupportedException();
     public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+}
+
+internal sealed class ReaderToolNonSeekableStream : Stream {
+    private readonly MemoryStream _stream;
+
+    internal ReaderToolNonSeekableStream(byte[] bytes) {
+        _stream = new MemoryStream(bytes, writable: false);
+    }
+
+    public override bool CanRead => true;
+    public override bool CanSeek => false;
+    public override bool CanWrite => false;
+    public override long Length => throw new NotSupportedException();
+    public override long Position {
+        get => throw new NotSupportedException();
+        set => throw new NotSupportedException();
+    }
+
+    public override void Flush() { }
+    public override int Read(byte[] buffer, int offset, int count) => _stream.Read(buffer, offset, count);
+    public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+    public override void SetLength(long value) => throw new NotSupportedException();
+    public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+    protected override void Dispose(bool disposing) {
+        if (disposing) _stream.Dispose();
+        base.Dispose(disposing);
+    }
 }

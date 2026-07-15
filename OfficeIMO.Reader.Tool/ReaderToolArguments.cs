@@ -16,6 +16,8 @@ internal enum ReaderToolOutputFormat {
 }
 
 internal sealed class ReaderToolArguments {
+    internal const long DefaultMaxInputBytes = 64L * 1024L * 1024L;
+
     internal ReaderToolCommand Command { get; private set; }
     internal ReaderToolOutputFormat Format { get; private set; }
     internal string? InputPath { get; private set; }
@@ -25,9 +27,11 @@ internal sealed class ReaderToolArguments {
     internal int Concurrency { get; private set; } = 4;
     internal int MaxFiles { get; private set; } = 500;
     internal long? MaxTotalBytes { get; private set; }
+    internal long MaxInputBytes { get; private set; } = DefaultMaxInputBytes;
     internal bool Recurse { get; private set; } = true;
     private bool ConcurrencySpecified { get; set; }
     private bool FolderLimitSpecified { get; set; }
+    private bool ReadLimitSpecified { get; set; }
     private bool RecursionSpecified { get; set; }
 
     internal static ReaderToolArguments Parse(string[] args) {
@@ -76,6 +80,10 @@ internal sealed class ReaderToolArguments {
                     parsed.MaxTotalBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
                     parsed.FolderLimitSpecified = true;
                     break;
+                case "--max-input-bytes":
+                    parsed.MaxInputBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
+                    parsed.ReadLimitSpecified = true;
+                    break;
                 case "--recursive":
                     parsed.Recurse = true;
                     parsed.RecursionSpecified = true;
@@ -103,7 +111,7 @@ internal sealed class ReaderToolArguments {
     private void Validate() {
         if (Command == ReaderToolCommand.Capabilities) {
             if (InputPath != null || SourceName != null || AssetsPath != null || OutputPath != null ||
-                ConcurrencySpecified || FolderLimitSpecified || RecursionSpecified) {
+                ConcurrencySpecified || FolderLimitSpecified || ReadLimitSpecified || RecursionSpecified) {
                 throw new ReaderToolUsageException("The capabilities command does not accept input or output paths.");
             }
             if (Format == ReaderToolOutputFormat.Markdown) {
@@ -139,6 +147,9 @@ internal sealed class ReaderToolArguments {
         }
         if (SourceName != null) {
             throw new ReaderToolUsageException("--name is only valid when reading standard input.");
+        }
+        if (ReadLimitSpecified) {
+            throw new ReaderToolUsageException("--max-input-bytes is only valid with the read command.");
         }
     }
 
