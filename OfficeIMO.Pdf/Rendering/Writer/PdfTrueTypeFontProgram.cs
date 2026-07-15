@@ -50,12 +50,12 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return width;
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) {
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, string? language = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
-        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).TotalAdvanceWidth1000 * fontSize / 1000D;
+        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language)).TotalAdvanceWidth1000 * fontSize / 1000D;
     }
 
     public double GetAscender(double fontSize) =>
@@ -85,9 +85,9 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).ToGlyphHex();
     }
 
-    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IPdfTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder) {
+    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IPdfTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder, string? language = null) {
         Guard.NotNull(text, nameof(text));
-        return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder)).ToGlyphHex();
+        return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder, language)).ToGlyphHex();
     }
 
     internal PdfGlyphRun ShapeText(string text) {

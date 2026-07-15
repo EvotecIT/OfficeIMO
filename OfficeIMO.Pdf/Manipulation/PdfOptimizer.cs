@@ -53,7 +53,13 @@ public static partial class PdfOptimizer {
             RemoveUnreferencedObjects(optimizedObjects, catalogObjectNumber, actions);
         }
 
-        byte[] candidate = RewriteAllObjects(optimizedObjects, catalogObjectNumber, PdfReadDocument.Load(pdf).Metadata, pdf, effectiveOptions);
+        byte[] candidate = RewriteAllObjects(
+            optimizedObjects,
+            catalogObjectNumber,
+            PdfReadDocument.Load(pdf).Metadata,
+            pdf,
+            PdfIncrementalObjectWriter.ReadTrailerIdEntry(trailerRaw),
+            effectiveOptions);
         if (effectiveOptions.Linearize) actions.Add(new PdfOptimizationAction("Linearize", 0, pdf.LongLength, candidate.LongLength, "Reordered the document into two cross-reference sections with page and shared-object hint tables for Fast Web View."));
         if (effectiveOptions.UseObjectStreams) actions.Add(new PdfOptimizationAction("PackObjectStreams", 0, 0, 0, "Packed eligible non-stream objects into PDF 1.5 object streams."));
         if (effectiveOptions.XrefFormat == PdfOptimizationXrefFormat.XrefStream) actions.Add(new PdfOptimizationAction("WriteXrefStream", 0, 0, 0, "Emitted a PDF 1.5 cross-reference stream."));
@@ -331,9 +337,9 @@ public static partial class PdfOptimizer {
         }
     }
 
-    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf, PdfOptimizationOptions options) {
+    private static byte[] RewriteAllObjects(Dictionary<int, PdfIndirectObject> objects, int catalogObjectNumber, PdfMetadata metadata, byte[] sourcePdf, string trailerIdEntry, PdfOptimizationOptions options) {
         if (options.Linearize) {
-            return PdfLinearizationFileAssembler.Assemble(objects, catalogObjectNumber, metadata, sourcePdf);
+            return PdfLinearizationFileAssembler.Assemble(objects, catalogObjectNumber, metadata, sourcePdf, trailerIdEntry);
         }
 
         int[] sourceIds = objects.Keys.OrderBy(static id => id).ToArray();
@@ -355,7 +361,7 @@ public static partial class PdfOptimizer {
         objectStreamEligibility.Add(false);
 
         PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(sourcePdf));
-        return PdfOptimizationFileAssembler.Assemble(bodies, objectStreamEligibility, numberMap[catalogObjectNumber], infoId, fileVersion, options);
+        return PdfOptimizationFileAssembler.Assemble(bodies, objectStreamEligibility, numberMap[catalogObjectNumber], infoId, fileVersion, options, trailerIdEntry);
     }
 
     private static void RemoveUnreferencedObjects(

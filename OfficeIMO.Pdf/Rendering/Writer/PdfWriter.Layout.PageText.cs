@@ -210,7 +210,7 @@ internal static partial class PdfWriter {
     private static double MeasurePageTextLineRuns(System.Collections.Generic.IReadOnlyList<TextRun> runs, PdfStandardFont baseFont, double fontSize, PdfOptions opts) {
         double width = 0D;
         foreach (TextRun run in runs) {
-            width += MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize ?? fontSize, run.Baseline, opts);
+            width += run.InlineElement?.Width ?? MeasureRichText(run.Text ?? string.Empty, ResolvePageTextRunFont(run, baseFont), run.FontSize ?? fontSize, run.Baseline, opts);
         }
 
         return width;
@@ -222,6 +222,11 @@ internal static partial class PdfWriter {
         lines.Add(current);
 
         foreach (TextRun run in runs) {
+            if (run.InlineElement != null) {
+                current.Add(run);
+                continue;
+            }
+
             string text = run.Text ?? string.Empty;
             if (text.Length == 0) {
                 continue;
@@ -300,7 +305,7 @@ internal static partial class PdfWriter {
                 double runFontSize = run.FontSize ?? fontSize;
                 content
                     .Font(fontResource, runFontSize)
-                    .ShowHexText(EncodeTextHex(text, runFont, opts));
+                    .ShowText(EncodeTextShowCommand(text, runFont, opts), runFontSize);
             }
         }
 
@@ -334,7 +339,7 @@ internal static partial class PdfWriter {
 
         content
             .TextMatrix(x, y)
-            .ShowHexText(EncodeTextHex(text, font, opts))
+            .ShowText(EncodeTextShowCommand(text, font, opts), fontSize)
             .EndText();
     }
 

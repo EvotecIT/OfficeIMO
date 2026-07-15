@@ -16,6 +16,11 @@ internal static partial class PdfWriter {
 
         var normalized = new System.Collections.Generic.List<TextRun>();
         foreach (TextRun run in runs) {
+            if (run.InlineElement != null) {
+                normalized.Add(run);
+                continue;
+            }
+
             if (CanWriteRunWithSelectedFont(run, baseFont, options)) {
                 normalized.Add(run);
                 continue;

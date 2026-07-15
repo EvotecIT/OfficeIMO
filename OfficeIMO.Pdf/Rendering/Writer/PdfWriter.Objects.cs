@@ -204,7 +204,7 @@ internal static partial class PdfWriter {
         public bool AllowsMultipleSelection { get; set; }
     }
 
-    private sealed class FormWidgetStructureReference {
+    private sealed class AnnotationStructureReference {
         public int StructParentIndex { get; set; }
         public int StructElementIndex { get; set; }
         public int ObjectId { get; set; }

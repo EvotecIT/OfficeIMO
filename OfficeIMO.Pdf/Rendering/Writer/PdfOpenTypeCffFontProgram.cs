@@ -161,76 +161,64 @@ internal sealed partial class PdfOpenTypeCffFontProgram {
         return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) {
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, string? language = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
-        if (PdfExternalTextShaper.TryShapeText(text!, this, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider), out PdfGlyphRun glyphRun)) {
-            return glyphRun.TotalAdvanceWidth1000 * fontSize / 1000D;
-        }
-
-        double width = 0D;
-        for (int index = 0; index < text!.Length;) {
-            int scalarStart = index;
-            if (shapingMode == PdfTextShapingMode.LatinLigatures &&
-                PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
-                TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
-                ligatureGlyphId > 0) {
-                width += GetGlyphWidth1000(ligatureGlyphId) * fontSize / 1000D;
-                index += ligatureLength;
-                continue;
-            }
-
-            int scalar = ReadScalar(text, ref index);
-            if (!TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
-                throw CreateUnsupportedGlyphException(text, scalarStart, scalar);
-            }
-
-            width += GetGlyphWidth1000(glyphId) * fontSize / 1000D;
-        }
-
-        return width;
+        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, language: language)).TotalAdvanceWidth1000 * fontSize / 1000D;
     }
 
     public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) {
         Guard.NotNull(text, nameof(text));
-        if (PdfExternalTextShaper.TryShapeText(text, this, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider), out PdfGlyphRun glyphRun)) {
-            return glyphRun.ToGlyphHex();
+        return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).ToGlyphHex();
+    }
+
+    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IPdfTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder, string? language = null) {
+        Guard.NotNull(text, nameof(text));
+        return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder, language)).ToGlyphHex();
+    }
+
+    internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
+        Guard.NotNull(text, nameof(text));
+        if (PdfExternalTextShaper.TryShapeText(text, this, options, out PdfGlyphRun glyphRun)) {
+            return glyphRun;
         }
 
-        var sb = new StringBuilder(text.Length * 4);
+        var glyphs = new List<PdfGlyphInfo>();
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
-            if (shapingMode == PdfTextShapingMode.LatinLigatures &&
+            if (options.ShapingMode == PdfTextShapingMode.LatinLigatures &&
                 PdfLatinLigatureSubstitution.TryGetPresentationLigature(text, scalarStart, out int ligatureScalar, out int ligatureLength) &&
                 TryGetGlyphId(ligatureScalar, out int ligatureGlyphId) &&
                 ligatureGlyphId > 0) {
-                RecordGlyphUsage(ligatureGlyphId, text.Substring(scalarStart, ligatureLength));
-                sb.Append(ligatureGlyphId.ToString("X4", CultureInfo.InvariantCulture));
+                string unicodeText = text.Substring(scalarStart, ligatureLength);
+                if (options.RecordGlyphUsage) {
+                    RecordGlyphUsage(ligatureGlyphId, unicodeText);
+                }
+
+                glyphs.Add(new PdfGlyphInfo(ligatureGlyphId, unicodeText, scalarStart, GetGlyphWidth1000(ligatureGlyphId)));
                 index += ligatureLength;
                 continue;
             }
 
             int scalar = ReadScalar(text, ref index);
             if (!TryGetGlyphId(scalar, out int glyphId) || glyphId <= 0) {
-                throw CreateUnsupportedGlyphException(text, scalarStart, scalar);
+                if (options.ThrowOnMissingGlyph) {
+                    throw CreateUnsupportedGlyphException(text, scalarStart, scalar);
+                }
+
+                continue;
             }
 
-            RecordGlyphUsage(glyphId, scalar);
-            sb.Append(glyphId.ToString("X4", CultureInfo.InvariantCulture));
+            if (options.RecordGlyphUsage) {
+                RecordGlyphUsage(glyphId, scalar);
+            }
+
+            glyphs.Add(new PdfGlyphInfo(glyphId, scalar, scalarStart, GetGlyphWidth1000(glyphId)));
         }
 
-        return sb.ToString();
-    }
-
-    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IPdfTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder) {
-        Guard.NotNull(text, nameof(text));
-        if (PdfExternalTextShaper.TryShapeText(text, this, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder), out PdfGlyphRun glyphRun)) {
-            return glyphRun.ToGlyphHex();
-        }
-
-        return EncodeTextAsGlyphHex(text, shapingMode, shapingProvider);
+        return new PdfGlyphRun(glyphs);
     }
 
     public double GetAscender(double fontSize) =>

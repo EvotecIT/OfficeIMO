@@ -24,6 +24,12 @@ public sealed partial class PdfDocument {
         AssessComplianceProof(_options.ComplianceProfile, externalValidations);
 
     /// <summary>
+    /// Combines generated-document readiness with external validator evidence bound to the exact supplied PDF bytes.
+    /// </summary>
+    public PdfComplianceProofReport AssessComplianceProof(byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) =>
+        AssessComplianceProof(_options.ComplianceProfile, artifact, externalValidations);
+
+    /// <summary>
     /// Combines generated-document compliance readiness for a formal profile with external validator evidence.
     /// </summary>
     /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
@@ -31,6 +37,17 @@ public sealed partial class PdfDocument {
     public PdfComplianceProofReport AssessComplianceProof(PdfComplianceProfile profile, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
         PdfComplianceReadinessReport readiness = AssessCompliance(profile);
         return PdfComplianceAnalyzer.AssessProof(readiness, externalValidations);
+    }
+
+    /// <summary>
+    /// Combines generated-document readiness with external validator evidence bound to the exact supplied PDF bytes.
+    /// </summary>
+    /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
+    /// <param name="artifact">The exact PDF bytes supplied to each external validator.</param>
+    /// <param name="externalValidations">External validator results for the same exact artifact.</param>
+    public PdfComplianceProofReport AssessComplianceProof(PdfComplianceProfile profile, byte[] artifact, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
+        PdfComplianceReadinessReport readiness = AssessCompliance(profile);
+        return PdfComplianceAnalyzer.AssessProof(readiness, artifact, externalValidations);
     }
 
     /// <summary>

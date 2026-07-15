@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Security.Cryptography;
 
 namespace OfficeIMO.Pdf;
 
@@ -102,13 +103,14 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
         return _entries[index].Length;
     }
 
-    internal void CopyTo(int index, Stream destination) {
+    internal void CopyTo(int index, Stream destination, HashAlgorithm? hash = null) {
         ThrowIfDisposed();
         Guard.NotNull(destination, nameof(destination));
         if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
 
         Entry entry = _entries[index];
         if (entry.Bytes != null) {
+            hash?.TransformBlock(entry.Bytes, 0, entry.Bytes.Length, entry.Bytes, 0);
             destination.Write(entry.Bytes, 0, entry.Bytes.Length);
             return;
         }
@@ -120,6 +122,7 @@ internal sealed class PdfObjectStore : IList<byte[]>, IReadOnlyList<byte[]>, IDi
         while (remaining > 0) {
             int read = source.Read(buffer, 0, Math.Min(buffer.Length, remaining));
             if (read == 0) throw new EndOfStreamException("PDF object spill storage ended unexpectedly.");
+            hash?.TransformBlock(buffer, 0, read, buffer, 0);
             destination.Write(buffer, 0, read);
             remaining -= read;
         }

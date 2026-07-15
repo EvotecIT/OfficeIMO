@@ -39,11 +39,50 @@ internal static class PdfComplianceValidator {
         Guard.NotNull(options, nameof(options));
         Guard.ComplianceProfile(options.ComplianceProfile, nameof(options.ComplianceProfile));
 
-        if (options.ComplianceProfile == PdfComplianceProfile.None) {
+        if (options.ComplianceProfile == PdfComplianceProfile.None ||
+            options.ComplianceProfile == PdfComplianceProfile.PdfA2B ||
+            options.ComplianceProfile == PdfComplianceProfile.PdfA3B ||
+            options.ComplianceProfile == PdfComplianceProfile.PdfUa1 ||
+            options.ComplianceProfile == PdfComplianceProfile.FacturX ||
+            options.ComplianceProfile == PdfComplianceProfile.Zugferd) {
             return;
         }
 
         throw new NotSupportedException(BuildUnsupportedProfileMessage(options.ComplianceProfile));
+    }
+
+    internal static void ValidateGeneratedDocument(PdfOptions options, string? documentTitle, PdfGeneratedDocumentComplianceEvidence evidence) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(evidence, nameof(evidence));
+        if (options.ComplianceProfile != PdfComplianceProfile.PdfA2B &&
+            options.ComplianceProfile != PdfComplianceProfile.PdfA3B &&
+            options.ComplianceProfile != PdfComplianceProfile.PdfUa1 &&
+            options.ComplianceProfile != PdfComplianceProfile.FacturX &&
+            options.ComplianceProfile != PdfComplianceProfile.Zugferd) {
+            return;
+        }
+
+        PdfComplianceReadinessReport readiness = PdfComplianceAnalyzer.AssessDocument(
+            options.ComplianceProfile,
+            options,
+            evidence.StandardFonts,
+            evidence.FontUsages,
+            documentTitle,
+            evidence.Images,
+            evidence.Drawings,
+            evidence.Forms);
+        PdfComplianceRequirement[] gaps = readiness.Requirements
+            .Where(requirement =>
+                !PdfComplianceProofReport.IsExternalValidationRequirement(requirement.Id) &&
+                requirement.Status != PdfComplianceRequirementStatus.Satisfied)
+            .ToArray();
+        if (gaps.Length == 0) {
+            return;
+        }
+
+        throw new InvalidOperationException(
+            GetDisplayName(options.ComplianceProfile) + " generation requirements are not satisfied: " +
+            string.Join("; ", gaps.Select(static requirement => requirement.Id + ": " + requirement.Diagnostic)));
     }
 
     private static string BuildUnsupportedProfileMessage(PdfComplianceProfile profile) {

@@ -10,7 +10,9 @@ public sealed class PdfComplianceProofReport {
     internal PdfComplianceProofReport(
         PdfComplianceReadinessReport readiness,
         IReadOnlyList<PdfExternalValidatorKind> requiredExternalValidators,
-        IReadOnlyList<PdfExternalValidationResult> externalValidations) {
+        IReadOnlyList<PdfExternalValidationResult> externalValidations,
+        string? artifactSha256 = null,
+        long? artifactSizeBytes = null) {
         Guard.NotNull(readiness, nameof(readiness));
         Guard.NotNull(requiredExternalValidators, nameof(requiredExternalValidators));
         Guard.NotNull(externalValidations, nameof(externalValidations));
@@ -18,6 +20,8 @@ public sealed class PdfComplianceProofReport {
         Readiness = readiness;
         _requiredExternalValidators = requiredExternalValidators;
         _externalValidations = externalValidations;
+        ArtifactSha256 = PdfArtifactFingerprint.NormalizeSha256(artifactSha256, nameof(artifactSha256));
+        ArtifactSizeBytes = artifactSizeBytes;
     }
 
     /// <summary>Requested compliance profile.</summary>
@@ -34,6 +38,15 @@ public sealed class PdfComplianceProofReport {
 
     /// <summary>Caller-supplied external validation results.</summary>
     public IReadOnlyList<PdfExternalValidationResult> ExternalValidations => _externalValidations;
+
+    /// <summary>SHA-256 of the exact PDF artifact represented by this proof report.</summary>
+    public string? ArtifactSha256 { get; }
+
+    /// <summary>Size of the exact PDF artifact represented by this proof report, in bytes.</summary>
+    public long? ArtifactSizeBytes { get; }
+
+    /// <summary>True when the report represents one exact PDF artifact.</summary>
+    public bool HasArtifactEvidence => ArtifactSha256 != null && ArtifactSizeBytes.HasValue;
 
     /// <summary>One machine-readable proof row for each external validator family required by the requested profile.</summary>
     public IReadOnlyList<PdfExternalValidatorProof> ExternalValidatorProofs {
@@ -82,6 +95,7 @@ public sealed class PdfComplianceProofReport {
     /// <summary>True only when internal readiness is satisfied, every required external validator passed, and no required validator failed.</summary>
     public bool CanClaimConformance =>
         Profile != PdfComplianceProfile.None &&
+        HasArtifactEvidence &&
         IsInternallyReady &&
         HasRequiredExternalValidation &&
         FailedExternalValidations.Count == 0;
@@ -89,6 +103,7 @@ public sealed class PdfComplianceProofReport {
     /// <summary>True when OfficeIMO.Pdf readiness is complete and the remaining proof work is external validation.</summary>
     public bool ReadyForExternalValidation =>
         Profile != PdfComplianceProfile.None &&
+        HasArtifactEvidence &&
         IsInternallyReady &&
         RequiresExternalValidation &&
         !HasRequiredExternalValidation &&
@@ -109,7 +124,7 @@ public sealed class PdfComplianceProofReport {
     /// <summary>True when the profile requires external validation before conformance can be claimed.</summary>
     public bool RequiresExternalValidation => RequiredExternalValidatorCount > 0;
 
-    /// <summary>Stable proof state for automation: None, InternalGaps, MissingExternalValidation, ExternalValidationFailed, or Claimable.</summary>
+    /// <summary>Stable proof state for automation: None, InternalGaps, MissingArtifactEvidence, MissingExternalValidation, ExternalValidationFailed, or Claimable.</summary>
     public string ProofStatus {
         get {
             if (Profile == PdfComplianceProfile.None) {
@@ -118,6 +133,10 @@ public sealed class PdfComplianceProofReport {
 
             if (!IsInternallyReady) {
                 return "InternalGaps";
+            }
+
+            if (!HasArtifactEvidence) {
+                return "MissingArtifactEvidence";
             }
 
             if (FailedExternalValidationCount > 0) {
@@ -173,7 +192,8 @@ public sealed class PdfComplianceProofReport {
             for (int i = 0; i < _externalValidations.Count; i++) {
                 PdfExternalValidationResult result = _externalValidations[i];
                 if (!_requiredExternalValidators.Contains(result.ValidatorKind) ||
-                    !IsExternalValidationForRequestedProfile(result)) {
+                    !IsExternalValidationForRequestedProfile(result) ||
+                    !IsExternalValidationForArtifact(result)) {
                     continue;
                 }
 
@@ -192,7 +212,8 @@ public sealed class PdfComplianceProofReport {
         for (int i = 0; i < _externalValidations.Count; i++) {
             PdfExternalValidationResult result = _externalValidations[i];
             if (result.ValidatorKind == validatorKind &&
-                IsExternalValidationForRequestedProfile(result)) {
+                IsExternalValidationForRequestedProfile(result) &&
+                IsExternalValidationForArtifact(result)) {
                 return result;
             }
         }
@@ -221,6 +242,7 @@ public sealed class PdfComplianceProofReport {
             PdfExternalValidationResult result = _externalValidations[i];
             if (result.ValidatorKind == validatorKind &&
                 IsExternalValidationForRequestedProfile(result) &&
+                IsExternalValidationForArtifact(result) &&
                 result.Status == PdfExternalValidationStatus.Passed) {
                 return true;
             }
@@ -234,7 +256,8 @@ public sealed class PdfComplianceProofReport {
         for (int i = 0; i < _externalValidations.Count; i++) {
             PdfExternalValidationResult result = _externalValidations[i];
             if (result.ValidatorKind == validatorKind &&
-                IsExternalValidationForRequestedProfile(result)) {
+                IsExternalValidationForRequestedProfile(result) &&
+                IsExternalValidationForArtifact(result)) {
                 matches.Add(result);
             }
         }
@@ -248,6 +271,7 @@ public sealed class PdfComplianceProofReport {
             PdfExternalValidationResult result = _externalValidations[i];
             if (_requiredExternalValidators.Contains(result.ValidatorKind) &&
                 IsExternalValidationForRequestedProfile(result) &&
+                IsExternalValidationForArtifact(result) &&
                 result.Status == status) {
                 count++;
             }
@@ -261,6 +285,7 @@ public sealed class PdfComplianceProofReport {
             PdfExternalValidationResult result = _externalValidations[i];
             if (result.ValidatorKind == validatorKind &&
                 IsExternalValidationForRequestedProfile(result) &&
+                IsExternalValidationForArtifact(result) &&
                 (result.Status == PdfExternalValidationStatus.Failed ||
                  result.Status == PdfExternalValidationStatus.Error)) {
                 return true;
@@ -269,6 +294,12 @@ public sealed class PdfComplianceProofReport {
 
         return false;
     }
+
+    private bool IsExternalValidationForArtifact(PdfExternalValidationResult result) =>
+        HasArtifactEvidence &&
+        result.HasArtifactBinding &&
+        string.Equals(result.ArtifactSha256, ArtifactSha256, StringComparison.OrdinalIgnoreCase) &&
+        result.ArtifactSizeBytes == ArtifactSizeBytes;
 
     private bool IsExternalValidationForRequestedProfile(PdfExternalValidationResult result) {
         if (Profile == PdfComplianceProfile.None) {

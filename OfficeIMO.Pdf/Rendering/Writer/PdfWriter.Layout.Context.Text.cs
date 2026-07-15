@@ -28,7 +28,7 @@ internal static partial class PdfWriter {
                 if (align == PdfAlign.Center) dx = Math.Max(0, (widthUsed - estWidth) / 2);
                 else if (align == PdfAlign.Right) dx = Math.Max(0, (widthUsed - estWidth));
                 if (Math.Abs(dx) > 0.0001) content.MoveText(dx, 0);
-                content.ShowHexText(EncodeTextHex(line, lineFont, currentOpts));
+                content.ShowText(EncodeTextShowCommand(line, lineFont, currentOpts), fontSize);
                 if (Math.Abs(dx) > 0.0001) content.MoveText(-dx, 0);
                 if (i != lines.Count - 1) content.NextTextLine();
             }
@@ -123,6 +123,10 @@ internal static partial class PdfWriter {
         private void MarkRichFonts(System.Collections.Generic.IEnumerable<TextRun> runs) {
             System.Collections.Generic.IReadOnlyList<TextRun> effectiveRuns = NormalizeFallbackRuns(runs, ChooseNormal(currentOpts.DefaultFont), currentOpts);
             foreach (TextRun run in effectiveRuns) {
+                if (run.InlineElement != null) {
+                    continue;
+                }
+
                 PdfStandardFont runBaseFont = ChooseNormal(run.Font ?? currentOpts.DefaultFont);
                 PdfStandardFont runFont = run.Bold && run.Italic
                     ? ChooseBoldItalic(runBaseFont)

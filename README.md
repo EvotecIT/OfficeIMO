@@ -149,12 +149,12 @@ _Dependency footprint:_ `System.IO.Packaging` plus `OfficeIMO.Drawing`; the VSDX
 
 #### [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md)
 
-- [x] Create PDFs with page setup, rich text, multilingual font fallback, links, lists, styled containers, block-flow columns, tables, and images
+- [x] Create PDFs with page setup, rich text, TrueType/OpenType-CFF subsetting, shaping-provider positioning, multilingual font fallback, dictionary hyphenation, mixed inline visuals, styled multipage containers, balanced block-flow columns, tables, and images
 - [x] Conditional and replayable flow, position capture, semantic sections, generated TOCs, named destinations, outlines, and generated optional-content layers
 - [x] Vector drawings, chart scenes, backgrounds, page decorations, headers, first/even footers, watermarks, metadata, and viewer preferences
 - [x] AcroForm creation, field values, choice fields, appearance generation, filling, flattening, and validation
 - [x] Annotations, bookmarks/outlines, named destinations, attachments/associated files, optional-content layers, and structured/tagged output
-- [x] PDF/A, PDF/UA, Factur-X, output-intent, XMP, identification-metadata, and compliance-readiness analysis
+- [x] Exact-artifact validator-backed generation and proof for PDF/A-2b, PDF/A-3b, PDF/UA-1, Factur-X, and ZUGFeRD, plus fail-closed readiness analysis for other formal profiles
 - [x] Text extraction by page/range, layout-aware Markdown, logical paragraphs/headings/lists/tables, links, forms, images, and navigation
 - [x] Inspect pages, boxes, fonts, images, attachments, outlines, forms, actions, layers, tags, catalog metadata, security, signatures, and revisions
 - [x] Extract, split, merge, import, crop, delete, duplicate, reorder, move, rotate, and overlay/underlay complete source pages

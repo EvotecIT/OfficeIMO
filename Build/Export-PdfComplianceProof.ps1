@@ -41,12 +41,20 @@ function Get-ValidatorProfileFromFileName {
         [string] $FileName
     )
 
-    if ($FileName -like '*pdfa3*') {
-        return 'PDF/A-3b'
+    if ($FileName -like '*facturx*') {
+        return 'Factur-X'
     }
 
-    if ($FileName -like '*einvoice*') {
-        return 'Factur-X/ZUGFeRD groundwork'
+    if ($FileName -like '*zugferd*') {
+        return 'ZUGFeRD'
+    }
+
+    if ($FileName -like '*pdfa2b*') {
+        return 'PDF/A-2b'
+    }
+
+    if ($FileName -like '*pdfa3b*') {
+        return 'PDF/A-3b'
     }
 
     if ($FileName -like '*pdfua*') {
@@ -123,22 +131,79 @@ function Get-ExpectedValidatorStatus {
         [string] $ValidatorKind,
 
         [Parameter(Mandatory = $true)]
-        $ValidatorConfiguration
+        $ValidatorConfiguration,
+
+        [Parameter(Mandatory = $true)]
+        [string] $DiagnosticFileName
     )
 
     if ($ValidatorKind -eq 'VeraPdf' -and $ValidatorConfiguration.veraPdfExecutableConfigured) {
-        return 'Failed'
+        return 'Passed'
     }
 
     if ($ValidatorKind -eq 'PdfUaValidator' -and $ValidatorConfiguration.pdfUaValidatorExecutableConfigured) {
-        return 'Failed'
+        return 'Passed'
     }
 
     if ($ValidatorKind -eq 'Mustang' -and $ValidatorConfiguration.mustangExecutableConfigured) {
-        return 'Failed'
+        return 'Passed'
     }
 
     return 'NotRun'
+}
+
+function Get-ValidatorVersionFromText {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Text,
+
+        [Parameter(Mandatory = $true)]
+        [string] $ValidatorKind
+    )
+
+    if ($Text -match '(?i)veraPDF\s+([0-9]+(?:\.[0-9]+)+)') {
+        return $Matches[1]
+    }
+
+    if ($Text -match '(?i)<releaseDetails\s+id=["'']core["'']\s+version=["'']([0-9]+(?:\.[0-9]+)+)["'']') {
+        return $Matches[1]
+    }
+
+    if ($ValidatorKind -eq 'Mustang' -and $Text -match '(?i)<validator\s+version=["'']([0-9]+(?:\.[0-9]+)+)["'']') {
+        return $Matches[1]
+    }
+
+    if ($ValidatorKind -eq 'VeraPdf' -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_VERSION)) {
+        return $env:OFFICEIMO_VERAPDF_VERSION
+    }
+
+    if ($ValidatorKind -eq 'VeraPdf' -and $env:VERAPDF_CLI_IMAGE -match ':v([^@]+)') {
+        return $Matches[1]
+    }
+
+    if ($Text -match '(?i)\bversion\s+([0-9]+(?:\.[0-9]+)+)') {
+        return $Matches[1]
+    }
+
+    return 'unknown'
+}
+
+function Get-ArtifactFileFromDiagnosticFileName {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $DiagnosticFileName
+    )
+
+    switch ($DiagnosticFileName) {
+        'verapdf-pdfa2b.txt' { return 'officeimo-pdfa2b.pdf' }
+        'verapdf-pdfa3b.txt' { return 'officeimo-pdfa3b.pdf' }
+        'verapdf-facturx.txt' { return 'officeimo-facturx.pdf' }
+        'mustang-facturx.txt' { return 'officeimo-facturx.pdf' }
+        'verapdf-zugferd.txt' { return 'officeimo-zugferd.pdf' }
+        'mustang-zugferd.txt' { return 'officeimo-zugferd.pdf' }
+        'pdfua-pdfua1.txt' { return 'officeimo-pdfua1.pdf' }
+        default { return $null }
+    }
 }
 
 function Test-AnyCommandAvailable {
@@ -167,44 +232,81 @@ function Get-ProofProfileRows {
 
     $definitions = @(
         [ordered] @{
-            profileId = 'pdfa-3b-groundwork'
-            displayName = 'PDF/A-3b groundwork'
-            fixtureFile = 'officeimo-pdfa3-groundwork.pdf'
+            profileId = 'pdfa-2b'
+            displayName = 'PDF/A-2b'
+            fixtureFile = 'officeimo-pdfa2b.pdf'
             validatorKind = 'VeraPdf'
-            validatorDiagnosticFileName = 'verapdf-pdfa3-groundwork.txt'
+            validatorDiagnosticFileName = 'verapdf-pdfa2b.txt'
             readinessRequirementId = 'verapdf-validation'
-            formalClaimStatus = 'BlockedUntilFormalPdfAProfileGeneration'
-            nextAction = 'Implement profile-specific PDF/A generation and flip the veraPDF gate only after validator success is intentional.'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'ValidatorBackedFormalGeneration'
+            nextAction = 'Keep the exact-artifact veraPDF gate green for every change to PDF/A generation.'
         },
         [ordered] @{
-            profileId = 'pdfua-1-groundwork'
-            displayName = 'PDF/UA-1 groundwork'
-            fixtureFile = 'officeimo-pdfua-groundwork.pdf'
-            validatorKind = 'PdfUaValidator'
-            validatorDiagnosticFileName = 'pdfua-groundwork.txt'
-            readinessRequirementId = 'pdfua-validation'
-            formalClaimStatus = 'BlockedUntilFormalPdfUaProfileGeneration'
-            nextAction = 'Implement full tagged structure, reading order, alternate text, font mapping, and flip the PDF/UA validator gate only after validator success is intentional.'
-        },
-        [ordered] @{
-            profileId = 'einvoice-pdfa3-groundwork'
-            displayName = 'Factur-X/ZUGFeRD PDF/A-3 groundwork'
-            fixtureFile = 'officeimo-einvoice-groundwork.pdf'
+            profileId = 'pdfa-3b'
+            displayName = 'PDF/A-3b'
+            fixtureFile = 'officeimo-pdfa3b.pdf'
             validatorKind = 'VeraPdf'
-            validatorDiagnosticFileName = 'verapdf-einvoice-groundwork.txt'
-            readinessRequirementId = 'einvoice-verapdf-validation'
-            formalClaimStatus = 'BlockedUntilFormalEinvoiceProfileGeneration'
-            nextAction = 'Validate the actual e-invoice PDF/A-3 carrier with veraPDF before any Factur-X/ZUGFeRD claim.'
+            validatorDiagnosticFileName = 'verapdf-pdfa3b.txt'
+            readinessRequirementId = 'verapdf-validation'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'ValidatorBackedFormalGeneration'
+            nextAction = 'Keep the exact-artifact veraPDF gate green for every change to PDF/A-3 generation.'
         },
         [ordered] @{
-            profileId = 'einvoice-groundwork'
-            displayName = 'Factur-X/ZUGFeRD groundwork'
-            fixtureFile = 'officeimo-einvoice-groundwork.pdf'
+            profileId = 'pdfua-1'
+            displayName = 'PDF/UA-1'
+            fixtureFile = 'officeimo-pdfua1.pdf'
+            validatorKind = 'PdfUaValidator'
+            validatorDiagnosticFileName = 'pdfua-pdfua1.txt'
+            readinessRequirementId = 'pdfua-validation'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'ValidatorBackedFormalGeneration'
+            nextAction = 'Keep the exact-artifact PDF/UA-1 validator gate green across text, links, annotations, forms, and figures.'
+        },
+        [ordered] @{
+            profileId = 'facturx-pdfa3'
+            displayName = 'Factur-X PDF/A-3 carrier'
+            fixtureFile = 'officeimo-facturx.pdf'
+            validatorKind = 'VeraPdf'
+            validatorDiagnosticFileName = 'verapdf-facturx.txt'
+            readinessRequirementId = 'einvoice-verapdf-validation'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'ValidatorBackedFormalGeneration'
+            nextAction = 'Keep the exact Factur-X PDF/A-3 carrier validation green.'
+        },
+        [ordered] @{
+            profileId = 'facturx'
+            displayName = 'Factur-X invoice'
+            fixtureFile = 'officeimo-facturx.pdf'
             validatorKind = 'Mustang'
-            validatorDiagnosticFileName = 'mustang-einvoice-groundwork.txt'
+            validatorDiagnosticFileName = 'mustang-facturx.txt'
             readinessRequirementId = 'einvoice-mustang-validation'
-            formalClaimStatus = 'BlockedUntilFormalEinvoiceProfileGeneration'
-            nextAction = 'Implement profile-specific XML, XMP, PDF/A-3 output, and flip the Mustang gate only after validator success is intentional.'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'ValidatorBackedFormalGeneration'
+            nextAction = 'Keep the exact Factur-X invoice validation green.'
+        },
+        [ordered] @{
+            profileId = 'zugferd-pdfa3'
+            displayName = 'ZUGFeRD PDF/A-3 carrier'
+            fixtureFile = 'officeimo-zugferd.pdf'
+            validatorKind = 'VeraPdf'
+            validatorDiagnosticFileName = 'verapdf-zugferd.txt'
+            readinessRequirementId = 'einvoice-verapdf-validation'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'ValidatorBackedFormalGeneration'
+            nextAction = 'Keep the exact ZUGFeRD PDF/A-3 carrier validation green.'
+        },
+        [ordered] @{
+            profileId = 'zugferd'
+            displayName = 'ZUGFeRD invoice'
+            fixtureFile = 'officeimo-zugferd.pdf'
+            validatorKind = 'Mustang'
+            validatorDiagnosticFileName = 'mustang-zugferd.txt'
+            readinessRequirementId = 'einvoice-mustang-validation'
+            canBecomeClaimable = $true
+            formalClaimStatus = 'ValidatorBackedFormalGeneration'
+            nextAction = 'Keep the exact ZUGFeRD invoice validation green.'
         }
     )
 
@@ -225,7 +327,7 @@ function Get-ProofProfileRows {
             expectedStatus = if ($diagnostic) { $diagnostic.expectedStatus } else { 'Error' }
             matchesExpectedStatus = if ($diagnostic) { $diagnostic.matchesExpectedStatus } else { $false }
             readinessRequirementId = $definition.readinessRequirementId
-            canClaimConformance = $false
+            canClaimConformance = [bool] $definition.canBecomeClaimable -and $diagnostic -and $diagnostic.status -eq 'Passed' -and $diagnostic.artifactSha256 -eq $fixture.sha256
             formalClaimStatus = $definition.formalClaimStatus
             nextAction = $definition.nextAction
         }
@@ -244,23 +346,37 @@ function Get-ProductProofDiagnosticFileName {
     )
 
     switch ([string] $Profile.profile) {
+        'PdfA2B' {
+            if ($ValidatorKind -eq 'VeraPdf') {
+                return 'verapdf-pdfa2b.txt'
+            }
+        }
         'PdfA3B' {
             if ($ValidatorKind -eq 'VeraPdf') {
-                return 'verapdf-pdfa3-groundwork.txt'
+                return 'verapdf-pdfa3b.txt'
             }
         }
         'PdfUa1' {
             if ($ValidatorKind -eq 'PdfUaValidator') {
-                return 'pdfua-groundwork.txt'
+                return 'pdfua-pdfua1.txt'
             }
         }
-        { $_ -eq 'FacturX' -or $_ -eq 'Zugferd' } {
+        'FacturX' {
             if ($ValidatorKind -eq 'VeraPdf') {
-                return 'verapdf-einvoice-groundwork.txt'
+                return 'verapdf-facturx.txt'
             }
 
             if ($ValidatorKind -eq 'Mustang') {
-                return 'mustang-einvoice-groundwork.txt'
+                return 'mustang-facturx.txt'
+            }
+        }
+        'Zugferd' {
+            if ($ValidatorKind -eq 'VeraPdf') {
+                return 'verapdf-zugferd.txt'
+            }
+
+            if ($ValidatorKind -eq 'Mustang') {
+                return 'mustang-zugferd.txt'
             }
         }
     }
@@ -274,10 +390,27 @@ function Update-ProductProofContractWithDiagnostics {
         $ProductProofContract,
 
         [Parameter(Mandatory = $true)]
-        [array] $DiagnosticRows
+        [array] $DiagnosticRows,
+
+        [Parameter(Mandatory = $true)]
+        [array] $PdfRows
     )
 
     foreach ($profile in @($ProductProofContract.profiles)) {
+        $profileFixture = switch ([string] $profile.profile) {
+            'PdfA2B' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-pdfa2b.pdf' }) | Select-Object -First 1 }
+            'PdfA3B' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-pdfa3b.pdf' }) | Select-Object -First 1 }
+            'PdfUa1' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-pdfua1.pdf' }) | Select-Object -First 1 }
+            'FacturX' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-facturx.pdf' }) | Select-Object -First 1 }
+            'Zugferd' { @($PdfRows | Where-Object { $_.file -eq 'officeimo-zugferd.pdf' }) | Select-Object -First 1 }
+            default { $null }
+        }
+        if ($profileFixture) {
+            $profile.hasArtifactEvidence = $true
+            $profile.artifactSha256 = $profileFixture.sha256
+            $profile.artifactSizeBytes = $profileFixture.sizeBytes
+        }
+
         $hasRequiredExternalValidation = $true
         $missingExternalValidators = [System.Collections.Generic.List[string]]::new()
         $failedExternalValidationCount = 0
@@ -298,6 +431,11 @@ function Update-ProductProofContractWithDiagnostics {
                 $validatorProof.diagnostic = 'Missing external validation.'
                 $validatorProof.profile = $null
                 $validatorProof.exitCode = $null
+                $validatorProof.validatorVersion = $null
+                $validatorProof.artifactSha256 = $null
+                $validatorProof.artifactSizeBytes = $null
+                $validatorProof.validatedAtUtc = $null
+                $validatorProof.warnings = @()
             } else {
                 $validatorProof.status = $diagnosticRow.status
                 $validatorProof.isSatisfied = $diagnosticRow.status -eq 'Passed'
@@ -306,6 +444,20 @@ function Update-ProductProofContractWithDiagnostics {
                 $validatorProof.diagnostic = "Validator diagnostic status $($diagnosticRow.status) matched expected status $($diagnosticRow.expectedStatus): $($diagnosticRow.file)."
                 $validatorProof.profile = $diagnosticRow.profile
                 $validatorProof.exitCode = $diagnosticRow.exitCode
+                $validatorProof.validatorVersion = $diagnosticRow.validatorVersion
+                $validatorProof.artifactSha256 = $diagnosticRow.artifactSha256
+                $validatorProof.artifactSizeBytes = $diagnosticRow.artifactSizeBytes
+                $validatorProof.validatedAtUtc = $diagnosticRow.validatedAtUtc
+                $validatorProof.warnings = @($diagnosticRow.warnings)
+
+                if ($validatorProof.isSatisfied -and
+                    (-not $profile.hasArtifactEvidence -or
+                     $validatorProof.artifactSha256 -ne $profile.artifactSha256 -or
+                     $validatorProof.artifactSizeBytes -ne $profile.artifactSizeBytes)) {
+                    $validatorProof.isSatisfied = $false
+                    $validatorProof.blocksConformanceClaim = $true
+                    $validatorProof.diagnostic = 'Validator passed, but its artifact identity does not match the profile proof artifact.'
+                }
             }
 
             if (-not $validatorProof.isSatisfied) {
@@ -320,6 +472,17 @@ function Update-ProductProofContractWithDiagnostics {
 
         $profile.hasRequiredExternalValidation = $hasRequiredExternalValidation
         $profile.canClaimConformance = [bool] $profile.isInternallyReady -and $hasRequiredExternalValidation -and $failedExternalValidationCount -eq 0
+        $profile.proofStatus = if (-not $profile.isInternallyReady) {
+            'InternalGaps'
+        } elseif (-not $profile.hasArtifactEvidence) {
+            'MissingArtifactEvidence'
+        } elseif ($failedExternalValidationCount -gt 0) {
+            'ExternalValidationFailed'
+        } elseif (-not $hasRequiredExternalValidation) {
+            'MissingExternalValidation'
+        } else {
+            'Claimable'
+        }
         $profile.missingExternalValidators = @($missingExternalValidators)
         $profile.failedExternalValidationCount = $failedExternalValidationCount
     }
@@ -336,12 +499,27 @@ New-Item -ItemType Directory -Path $outputPath -Force | Out-Null
 $resolvedOutputPath = (Resolve-Path -LiteralPath $outputPath).Path
 
 $generatedProofPdfFileNames = @(
-    'officeimo-pdfa3-groundwork.pdf',
-    'officeimo-einvoice-groundwork.pdf',
-    'officeimo-pdfua-groundwork.pdf'
+    'officeimo-pdfa2b.pdf',
+    'officeimo-pdfa3b.pdf',
+    'officeimo-facturx.pdf',
+    'officeimo-zugferd.pdf',
+    'officeimo-pdfua1.pdf'
 )
 
 $generatedProofDiagnosticFileNames = @(
+    'verapdf-pdfa2b.txt',
+    'verapdf-pdfa3b.txt',
+    'verapdf-facturx.txt',
+    'mustang-facturx.txt',
+    'verapdf-zugferd.txt',
+    'mustang-zugferd.txt',
+    'pdfua-pdfua1.txt'
+)
+
+$legacyGeneratedProofFileNames = @(
+    'officeimo-pdfa3-groundwork.pdf',
+    'officeimo-einvoice-groundwork.pdf',
+    'officeimo-pdfua-groundwork.pdf',
     'verapdf-pdfa3-groundwork.txt',
     'verapdf-einvoice-groundwork.txt',
     'mustang-einvoice-groundwork.txt',
@@ -351,6 +529,7 @@ $generatedProofDiagnosticFileNames = @(
 $generatedProofFileNames = @(
     $generatedProofPdfFileNames
     $generatedProofDiagnosticFileNames
+    $legacyGeneratedProofFileNames
     'officeimo-profile-proof-contract.json',
     'index.md',
     'proof.json'
@@ -375,6 +554,21 @@ $previousMustangExecutable = $env:OFFICEIMO_MUSTANG
 $previousMustangPath = $env:OFFICEIMO_MUSTANG_PATH
 $previousMustangArgs = $env:OFFICEIMO_MUSTANG_ARGS
 $validatorConfiguration = $null
+$resolvedVeraPdfPath = if (-not [string]::IsNullOrWhiteSpace($VeraPdfPath) -and (Test-Path -LiteralPath $VeraPdfPath)) {
+    (Resolve-Path -LiteralPath $VeraPdfPath).Path
+} else {
+    $VeraPdfPath
+}
+$resolvedPdfUaValidatorPath = if (-not [string]::IsNullOrWhiteSpace($PdfUaValidatorPath) -and (Test-Path -LiteralPath $PdfUaValidatorPath)) {
+    (Resolve-Path -LiteralPath $PdfUaValidatorPath).Path
+} else {
+    $PdfUaValidatorPath
+}
+$resolvedMustangPath = if (-not [string]::IsNullOrWhiteSpace($MustangPath) -and (Test-Path -LiteralPath $MustangPath)) {
+    (Resolve-Path -LiteralPath $MustangPath).Path
+} else {
+    $MustangPath
+}
 
 $testExitCode = 0
 try {
@@ -385,27 +579,27 @@ try {
         $env:OFFICEIMO_REQUIRE_PDF_COMPLIANCE_VALIDATORS = $null
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($VeraPdfPath)) {
-        $env:OFFICEIMO_VERAPDF = $VeraPdfPath
-        $env:OFFICEIMO_VERAPDF_PATH = $VeraPdfPath
+    if (-not [string]::IsNullOrWhiteSpace($resolvedVeraPdfPath)) {
+        $env:OFFICEIMO_VERAPDF = $resolvedVeraPdfPath
+        $env:OFFICEIMO_VERAPDF_PATH = $resolvedVeraPdfPath
     }
 
     if (-not [string]::IsNullOrWhiteSpace($VeraPdfArgs)) {
         $env:OFFICEIMO_VERAPDF_ARGS = $VeraPdfArgs
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($PdfUaValidatorPath)) {
-        $env:OFFICEIMO_PDFUA_VALIDATOR = $PdfUaValidatorPath
-        $env:OFFICEIMO_PDFUA_VALIDATOR_PATH = $PdfUaValidatorPath
+    if (-not [string]::IsNullOrWhiteSpace($resolvedPdfUaValidatorPath)) {
+        $env:OFFICEIMO_PDFUA_VALIDATOR = $resolvedPdfUaValidatorPath
+        $env:OFFICEIMO_PDFUA_VALIDATOR_PATH = $resolvedPdfUaValidatorPath
     }
 
     if (-not [string]::IsNullOrWhiteSpace($PdfUaValidatorArgs)) {
         $env:OFFICEIMO_PDFUA_VALIDATOR_ARGS = $PdfUaValidatorArgs
     }
 
-    if (-not [string]::IsNullOrWhiteSpace($MustangPath)) {
-        $env:OFFICEIMO_MUSTANG = $MustangPath
-        $env:OFFICEIMO_MUSTANG_PATH = $MustangPath
+    if (-not [string]::IsNullOrWhiteSpace($resolvedMustangPath)) {
+        $env:OFFICEIMO_MUSTANG = $resolvedMustangPath
+        $env:OFFICEIMO_MUSTANG_PATH = $resolvedMustangPath
     }
 
     if (-not [string]::IsNullOrWhiteSpace($MustangArgs)) {
@@ -536,10 +730,11 @@ $lines.Add('```')
 $lines.Add('')
 $lines.Add('## Current Contract')
 $lines.Add('')
-$lines.Add('- Generated PDFs are groundwork fixtures, not formal conformance claims.')
-$lines.Add('- `ComplianceProfile` values other than `None` must still fail closed until validator-backed profile generation is implemented.')
-$lines.Add('- veraPDF, PDF/UA validator, and Mustang diagnostics are proof inputs; a matching expected status today means the current non-conformance guardrails are still honest.')
-$lines.Add('- Validator `Failed` status is expected when the validator runs against these groundwork fixtures; formal conformance must not pass until profile generation is intentionally implemented.')
+$lines.Add('- PDF/A-2b, PDF/A-3b, Factur-X, and ZUGFeRD are formal engine profiles only when their exact generated artifacts pass every required validator.')
+$lines.Add('- PDF/UA-1 is formal only when the exact generated artifact passes the accessibility validator across tagged text, links, annotations, forms, figures, language, title, and embedded Unicode fonts.')
+$lines.Add('- Unsupported profiles, including PDF/UA-2, remain fail-closed.')
+$lines.Add('- External validators are CI/test proof tools and are not runtime dependencies of OfficeIMO.Pdf.')
+$lines.Add('- Artifact SHA-256 and byte length bind each validator result to the exact generated PDF used for the conformance decision.')
 $lines.Add('- Product proof contract rows are emitted by `PdfComplianceAnalyzer.AssessProof(...)`; they are the engine-level claimability signal for this proof pack.')
 $lines.Add('')
 $lines.Add('## Validator Configuration')
@@ -585,8 +780,15 @@ if ($diagnosticFiles.Count -eq 0) {
         $validatorKind = Get-ValidatorKindFromFileName -FileName $file.Name
         $profile = Get-ValidatorProfileFromFileName -FileName $file.Name
         $validatorStatus = Get-ValidatorStatusFromText -Text $diagnosticText -ValidatorKind $validatorKind
-        $expectedStatus = Get-ExpectedValidatorStatus -ValidatorKind $validatorKind -ValidatorConfiguration $validatorConfiguration
+        $expectedStatus = Get-ExpectedValidatorStatus -ValidatorKind $validatorKind -ValidatorConfiguration $validatorConfiguration -DiagnosticFileName $file.Name
         $matchesExpectedStatus = $validatorStatus -eq $expectedStatus
+        $artifactFileName = Get-ArtifactFileFromDiagnosticFileName -DiagnosticFileName $file.Name
+        $artifactRow = if ([string]::IsNullOrWhiteSpace($artifactFileName)) {
+            $null
+        } else {
+            @($pdfRows | Where-Object { $_.file -eq $artifactFileName }) | Select-Object -First 1
+        }
+        $warnings = @($diagnosticText -split "`r?`n" | Where-Object { $_ -match '(?i)\bwarning\b' })
         $name = $file.Name.Replace('|', '\|')
         $lines.Add("| $validatorKind | $profile | $validatorStatus | $expectedStatus | $matchesExpectedStatus | [$name]($name) | $($file.Length) bytes | ``$hash`` |")
         $diagnosticRows += [ordered] @{
@@ -597,6 +799,12 @@ if ($diagnosticFiles.Count -eq 0) {
             expectedStatus = $expectedStatus
             matchesExpectedStatus = $matchesExpectedStatus
             exitCode = if ($diagnosticText -match 'exited with code\s+(\d+)\b') { [int] $Matches[1] } else { $null }
+            validatorVersion = Get-ValidatorVersionFromText -Text $diagnosticText -ValidatorKind $validatorKind
+            artifactFile = $artifactFileName
+            artifactSha256 = if ($artifactRow) { $artifactRow.sha256 } else { $null }
+            artifactSizeBytes = if ($artifactRow) { $artifactRow.sizeBytes } else { $null }
+            validatedAtUtc = $generatedAt
+            warnings = $warnings
             sizeBytes = $file.Length
             sha256 = $hash
         }
@@ -604,7 +812,7 @@ if ($diagnosticFiles.Count -eq 0) {
 }
 
 $profileRows = @(Get-ProofProfileRows -PdfRows $pdfRows -DiagnosticRows $diagnosticRows)
-Update-ProductProofContractWithDiagnostics -ProductProofContract $productProofContract -DiagnosticRows $diagnosticRows
+Update-ProductProofContractWithDiagnostics -ProductProofContract $productProofContract -DiagnosticRows $diagnosticRows -PdfRows $pdfRows
 $productProofContract | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $productProofContractPath -Encoding UTF8
 $lines.Add('')
 $lines.Add('## Profile Proof Matrix')
@@ -668,7 +876,7 @@ if (-not [string]::IsNullOrWhiteSpace($status)) {
 
 [System.IO.File]::WriteAllLines($indexPath, $lines, [System.Text.Encoding]::UTF8)
 $proof = [ordered] @{
-    schemaVersion = 3
+    schemaVersion = 4
     generatedUtc = $generatedAt
     commit = $commit
     outputDirectory = $resolvedOutputPath
@@ -677,9 +885,14 @@ $proof = [ordered] @{
     strictValidatorMode = [bool] $RequireValidators
     validatorConfiguration = $validatorConfiguration
     contract = [ordered] @{
-        formalProfilesFailClosed = $true
-        generatedPdfsAreGroundworkFixtures = $true
+        unsupportedFormalProfilesFailClosed = $true
+        formalPdfA2BGenerationEnabled = $true
+        formalPdfA3BGenerationEnabled = $true
+        formalPdfUa1GenerationEnabled = $true
+        formalElectronicInvoiceGenerationEnabled = $true
+        allGeneratedPdfsAreGroundworkFixtures = $false
         externalValidationRequiredForClaims = $true
+        externalValidationBoundToExactArtifact = $true
     }
     pdfFixtures = @($pdfRows)
     validatorDiagnostics = @($diagnosticRows)

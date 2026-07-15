@@ -664,15 +664,17 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
         Assert.Contains("006600660069", raw, StringComparison.Ordinal);
-        PdfCore.PdfConversionWarning cffWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
-        Assert.True(
-            int.Parse(cffWarning.Details["embeddedFontFileLength"], System.Globalization.CultureInfo.InvariantCulture) <
-            int.Parse(cffWarning.Details["fontFileLength"], System.Globalization.CultureInfo.InvariantCulture));
-        Assert.Equal("true", cffWarning.Details["cffCharstringsRetained"]);
-        Assert.Equal(cffWarning.Details["glyphCount"], cffWarning.Details["retainedCffGlyphCount"]);
-        Assert.True(int.Parse(cffWarning.Details["unusedCffGlyphCount"], System.Globalization.CultureInfo.InvariantCulture) > 0);
-        Assert.Contains("GSUB", cffWarning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
-        Assert.Contains("GPOS", cffWarning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
+        Assert.True(options.TryGetEmbeddedStandardOpenTypeCffFontProgram(PdfCore.PdfStandardFont.TimesRoman, out PdfCore.PdfOpenTypeCffFontProgram? cffProgram));
+        Assert.NotNull(cffProgram);
+        PdfCore.PdfOpenTypeCffCompactFontFile cffPlan = cffProgram!.BuildCompactOpenTypeFontFilePlan();
+        PdfCore.PdfCffCharStringSubset cffSubset = Assert.IsType<PdfCore.PdfCffCharStringSubset>(cffPlan.CharStringSubset);
+        Assert.True(cffPlan.Data.Length < cffBytes.Length);
+        Assert.True(cffSubset.IsSubset);
+        Assert.True(cffSubset.PrunedGlyphCount > 0);
+        Assert.True(cffSubset.SubsetProgramBytes < cffSubset.OriginalProgramBytes);
+        Assert.Contains("GSUB", cffPlan.RemovedTables, StringComparer.Ordinal);
+        Assert.Contains("GPOS", cffPlan.RemovedLayoutTables, StringComparer.Ordinal);
 
         var summary = new {
             scenario = "pdf-provider-shaped-text",
@@ -682,18 +684,20 @@ public sealed class PdfConversionScenarioManifestTests {
             extractedMarkers = new[] { complexText, "office" },
             suppressedWarnings = new[] { "unsupported-complex-script-shaping", "unsupported-bidirectional-text-layout" },
             cffLigatureMappedToUnicode = raw.Contains("006600660069", StringComparison.Ordinal),
-            cffCharstringsSubset = cffWarning.Details["cffCharstringsSubset"],
-            cffCharstringsRetained = cffWarning.Details["cffCharstringsRetained"],
+            cffCharstringsSubset = cffSubset.IsSubset,
+            cffCharstringsRetained = false,
             compactCffEmbedding = new {
-                originalFontFileLength = cffWarning.Details["fontFileLength"],
-                embeddedFontFileLength = cffWarning.Details["embeddedFontFileLength"],
-                cffTableLength = cffWarning.Details["cffTableLength"],
-                retainedCffGlyphCount = cffWarning.Details["retainedCffGlyphCount"],
-                usedGlyphCount = cffWarning.Details["usedGlyphCount"],
-                unusedCffGlyphCount = cffWarning.Details["unusedCffGlyphCount"],
-                openTypeTablesEmbedded = cffWarning.Details["openTypeTablesEmbedded"],
-                openTypeTablesRemoved = cffWarning.Details["openTypeTablesRemoved"],
-                openTypeLayoutTablesRemoved = cffWarning.Details["openTypeLayoutTablesRemoved"]
+                originalFontFileLength = cffBytes.Length,
+                embeddedFontFileLength = cffPlan.Data.Length,
+                cffTableLength = cffProgram.CffTableLength,
+                retainedCffGlyphCount = cffSubset.RetainedGlyphCount,
+                usedGlyphCount = cffProgram.GetUsedGlyphIds().Count,
+                unusedCffGlyphCount = cffSubset.PrunedGlyphCount,
+                originalCharStringBytes = cffSubset.OriginalProgramBytes,
+                subsetCharStringBytes = cffSubset.SubsetProgramBytes,
+                openTypeTablesEmbedded = cffPlan.EmbeddedTables,
+                openTypeTablesRemoved = cffPlan.RemovedTables,
+                openTypeLayoutTablesRemoved = cffPlan.RemovedLayoutTables
             },
             warningCodes = report.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray()
         };

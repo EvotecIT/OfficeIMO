@@ -227,11 +227,16 @@ public static partial class PdfComplianceAnalyzer {
             "The saved PDF contains " + (tagged?.MarkedContentReferenceCount ?? 0).ToString(System.Globalization.CultureInfo.InvariantCulture) + " structure-tree marked-content reference(s).",
             "The saved PDF structure tree must contain marked-content references that connect structure elements to page content.");
 
-        requirements.Add(new PdfComplianceRequirement(
-            "tagged-structure",
-            "Tagged PDF structure tree",
-            PdfComplianceRequirementStatus.Unsupported,
-            "OfficeIMO.Pdf readback can verify tagged groundwork markers, but full external PDF/UA/PDF/A-a structure validation is still required before claiming conformance."));
+        bool hasReadableStructureEvidence = tagged?.Marked == true &&
+            tagged.StructTreeRootObjectNumber.HasValue &&
+            tagged.ParentTreeNextKey.HasValue &&
+            hasDocumentElement &&
+            tagged.StructureElementCount > 0 &&
+            tagged.MarkedContentReferenceCount > 0;
+        Add(requirements, "readback-tagged-structure-evidence", "Readback tagged-structure evidence",
+            hasReadableStructureEvidence,
+            "The saved PDF exposes a marked catalog, structure root, parent tree, document element, structure elements, and marked-content references for exact-artifact validation.",
+            "The saved PDF must expose a marked catalog, structure root, parent tree, document element, structure elements, and marked-content references before external PDF/UA validation.");
     }
 
     private static void AddElectronicInvoiceReadbackRequirements(List<PdfComplianceRequirement> requirements, PdfDocumentInfo info, IReadOnlyList<PdfExtractedAttachment>? extractedAttachments) {

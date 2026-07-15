@@ -69,6 +69,11 @@ public static class PdfFontDiagnostics {
         Guard.NotNull(font, nameof(font));
         Guard.NotNull(compactFontFile, nameof(compactFontFile));
         IReadOnlyList<int> usedGlyphIds = font.GetUsedGlyphIds();
+        PdfCffCharStringSubset? charStringSubset = compactFontFile.CharStringSubset;
+        if (charStringSubset?.IsSubset == true) {
+            return Array.Empty<PdfFontEmbeddingDiagnostic>();
+        }
+
         var details = new Dictionary<string, string> {
             ["glyphCount"] = font.GlyphCount.ToString(CultureInfo.InvariantCulture),
             ["usedGlyphCount"] = usedGlyphIds.Count.ToString(CultureInfo.InvariantCulture),
@@ -84,12 +89,16 @@ public static class PdfFontDiagnostics {
             ["openTypeLayoutTablesRemoved"] = JoinTags(compactFontFile.RemovedLayoutTables),
             ["cffCharstringsSubset"] = "false",
             ["cffCharstringsRetained"] = "true",
+            ["cffCharstringsSubsetUnsupportedReason"] = charStringSubset?.UnsupportedReason ?? string.Empty,
             ["usedGlyphIdsPreview"] = BuildGlyphIdPreview(usedGlyphIds),
             ["usedGlyphIdsPreviewTruncated"] = (usedGlyphIds.Count > 16).ToString().ToLowerInvariant()
         };
 
         string modeDescription = compactFontFile.IsCompact ? "compact" : "full";
-        string message = "OpenType/CFF font '" + font.FontName + "' is embedded as a " + modeDescription + " /FontFile3 OpenType stream, but the CFF charstrings are still kept intact because OfficeIMO.Pdf does not yet rewrite CFF charstrings. Used-glyph widths and /ToUnicode mappings remain limited to the generated glyph usage.";
+        string failureReason = string.IsNullOrWhiteSpace(charStringSubset?.UnsupportedReason)
+            ? "the font did not contain any unused glyph programs"
+            : charStringSubset!.UnsupportedReason!;
+        string message = "OpenType/CFF font '" + font.FontName + "' is embedded as a " + modeDescription + " /FontFile3 OpenType stream without charstring subsetting because " + failureReason + ". Used-glyph widths and /ToUnicode mappings remain limited to the generated glyph usage.";
         return new[] {
             new PdfFontEmbeddingDiagnostic(
                 source,

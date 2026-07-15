@@ -285,6 +285,8 @@ public class PdfPageCompose {
     public PdfPageCompose TextLineBreaks(PdfTextLineBreakCallback? callback) { Options.SetTextLineBreaks(callback); return this; }
     /// <summary>Sets or clears the page-scoped generated text hyphenation callback used for long unspaced tokens.</summary>
     public PdfPageCompose TextHyphenation(PdfTextHyphenationCallback? callback) { Options.SetTextHyphenation(callback); return this; }
+    /// <summary>Uses or clears an immutable first-party word hyphenation dictionary.</summary>
+    public PdfPageCompose TextHyphenationDictionary(PdfHyphenationLexicon? dictionary) { Options.UseTextHyphenationDictionary(dictionary); return this; }
     /// <summary>Configures default text style for the page.</summary>
     public PdfPageCompose DefaultTextStyle(System.Action<PdfTextStyleCompose> style) { Guard.NotNull(style, nameof(style)); var s = new PdfTextStyleCompose(Options); style(s); return this; }
     /// <summary>Configures default text style for the page from a reusable text style object.</summary>
