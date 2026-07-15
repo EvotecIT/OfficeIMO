@@ -35,30 +35,38 @@ internal static class SubtitleReaderAdapter {
         for (int index = 0; index < parsed.Cues.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();
             SubtitleCue cue = parsed.Cues[index];
-            string anchor = "subtitle-cue-" + index.ToString("D6", CultureInfo.InvariantCulture);
-            var location = new ReaderLocation {
-                Path = input.Source.Path,
-                BlockIndex = index,
-                SourceBlockIndex = index,
-                StartLine = cue.StartLine,
-                EndLine = cue.EndLine,
-                SourceBlockKind = "subtitle-cue",
-                BlockAnchor = anchor
-            };
-            string markdown = subtitleOptions.IncludeTimestampsInMarkdown
+            string baseAnchor = "subtitle-cue-" + index.ToString("D6", CultureInfo.InvariantCulture);
+            string markdownPrefix = subtitleOptions.IncludeTimestampsInMarkdown
                 ? "**" + SubtitleParser.FormatTimestamp(cue.Start) + " → " + SubtitleParser.FormatTimestamp(cue.End) + "**" +
-                    Environment.NewLine + Environment.NewLine + cue.Text
-                : cue.Text;
-            var chunk = new ReaderChunk {
-                Id = anchor,
-                Kind = ReaderInputKind.Text,
-                Location = location,
-                Text = cue.Text,
-                Markdown = markdown,
-                Warnings = cue.Truncated ? new[] { "Subtitle cue text was truncated at MaxCueCharacters." } : null
-            };
-            DocumentReaderEngine.ApplyAdapterSource(chunk, input, readerOptions.ComputeHashes);
-            chunks.Add(chunk);
+                    Environment.NewLine + Environment.NewLine
+                : string.Empty;
+            IReadOnlyList<string> cueParts = SplitCueText(cue.Text, readerOptions.MaxChars, markdownPrefix.Length);
+            string[]? warnings = BuildCueWarnings(cue.Truncated, cueParts.Count > 1);
+            for (int partIndex = 0; partIndex < cueParts.Count; partIndex++) {
+                string anchor = partIndex == 0
+                    ? baseAnchor
+                    : baseAnchor + "-part-" + partIndex.ToString("D4", CultureInfo.InvariantCulture);
+                var location = new ReaderLocation {
+                    Path = input.Source.Path,
+                    BlockIndex = chunks.Count,
+                    SourceBlockIndex = index,
+                    StartLine = cue.StartLine,
+                    EndLine = cue.EndLine,
+                    SourceBlockKind = "subtitle-cue",
+                    BlockAnchor = anchor
+                };
+                string text = cueParts[partIndex];
+                var chunk = new ReaderChunk {
+                    Id = anchor,
+                    Kind = ReaderInputKind.Text,
+                    Location = location,
+                    Text = text,
+                    Markdown = partIndex == 0 ? markdownPrefix + text : text,
+                    Warnings = warnings
+                };
+                DocumentReaderEngine.ApplyAdapterSource(chunk, input, readerOptions.ComputeHashes);
+                chunks.Add(chunk);
+            }
         }
 
         OfficeDocumentReadResult result = DocumentReaderEngine.CreateDocumentResult(
@@ -84,6 +92,32 @@ internal static class SubtitleReaderAdapter {
                 })).ToArray();
         }
         return result;
+    }
+
+    private static IReadOnlyList<string> SplitCueText(string value, int maxChars, int firstPartPrefixLength) {
+        int limit = Math.Max(1, maxChars);
+        int firstLimit = Math.Max(1, limit - firstPartPrefixLength);
+        if (value.Length <= firstLimit) return new[] { value };
+
+        var parts = new List<string>((value.Length + limit - 1) / limit + 1);
+        int offset = 0;
+        int partLimit = firstLimit;
+        while (offset < value.Length) {
+            int length = Math.Min(partLimit, value.Length - offset);
+            parts.Add(value.Substring(offset, length));
+            offset += length;
+            partLimit = limit;
+        }
+        return parts;
+    }
+
+    private static string[]? BuildCueWarnings(bool cueTruncated, bool wasSplit) {
+        if (!cueTruncated && !wasSplit) return null;
+
+        var warnings = new List<string>(2);
+        if (cueTruncated) warnings.Add("Subtitle cue text was truncated at MaxCueCharacters.");
+        if (wasSplit) warnings.Add("Subtitle cue projection was split due to MaxChars.");
+        return warnings.ToArray();
     }
 
     private static IEnumerable<OfficeDocumentMetadataEntry> BuildMetadata(SubtitleParseResult result, string? path) {

@@ -534,8 +534,12 @@ public static class OfficeImageReader {
                 hasHeight = true;
             }
 
-            int pixelWidth = hasWidth ? Math.Max(1, (int)Math.Round(width)) : 0;
-            int pixelHeight = hasHeight ? Math.Max(1, (int)Math.Round(height)) : 0;
+            int pixelWidth = hasWidth && TryConvertSvgPixelDimension(width, out int convertedWidth)
+                ? convertedWidth
+                : 0;
+            int pixelHeight = hasHeight && TryConvertSvgPixelDimension(height, out int convertedHeight)
+                ? convertedHeight
+                : 0;
             info = new OfficeImageInfo(OfficeImageFormat.Svg, pixelWidth, pixelHeight, 96D, 96D, aspectRatio);
             return true;
         } catch (XmlException) {
@@ -551,6 +555,16 @@ public static class OfficeImageReader {
             info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
             return false;
         }
+    }
+
+    private static bool TryConvertSvgPixelDimension(double value, out int dimension) {
+        dimension = 0;
+        if (double.IsNaN(value) || double.IsInfinity(value) || value <= 0D) return false;
+
+        double rounded = Math.Round(value);
+        if (rounded > int.MaxValue) return false;
+        dimension = Math.Max(1, (int)rounded);
+        return true;
     }
 
     private static bool HasSvgXmlPrefix(byte[] data) {

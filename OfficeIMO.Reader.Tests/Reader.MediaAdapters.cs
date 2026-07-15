@@ -108,6 +108,18 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_LeavesOversizedSvgDimensionsUnknown() {
+        const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"3000000000\" height=\"4\"/>";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(svg), "oversized.svg");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Null(asset.Width);
+        Assert.Equal(4, asset.Height);
+    }
+
+    [Fact]
     public void NotebookAdapter_ProjectsMarkdownCodeAndTextOutputsInCellOrder() {
         const string notebook = """
             {
@@ -306,6 +318,29 @@ public sealed class ReaderMediaAdapterTests {
         OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(srt), "literal.srt");
 
         Assert.Equal(expected, Assert.Single(result.Chunks).Text);
+    }
+
+    [Fact]
+    public void SubtitleAdapter_SplitsCueProjectionAtReaderMaxChars() {
+        string cueText = new string('x', 1_000);
+        string srt = "1\n00:00:00,000 --> 00:00:01,000\n" + cueText + "\n";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(
+            Encoding.UTF8.GetBytes(srt),
+            "bounded.srt",
+            new ReaderOptions { MaxChars = 256 });
+
+        Assert.True(result.Chunks.Count > 1);
+        Assert.Equal(cueText, string.Concat(result.Chunks.Select(chunk => chunk.Text)));
+        Assert.All(result.Chunks, chunk => {
+            Assert.True(chunk.Text.Length <= 256);
+            Assert.True((chunk.Markdown?.Length ?? 0) <= 256);
+            Assert.Equal(0, chunk.Location.SourceBlockIndex);
+            Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxChars", StringComparison.Ordinal));
+        });
+        Assert.StartsWith("**00:00:00.000 → 00:00:01.000**", result.Chunks[0].Markdown, StringComparison.Ordinal);
+        Assert.Equal(result.Chunks.Count, result.Chunks.Select(chunk => chunk.Id).Distinct(StringComparer.Ordinal).Count());
     }
 
     [Fact]
