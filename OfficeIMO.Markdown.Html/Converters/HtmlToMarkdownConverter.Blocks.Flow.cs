@@ -69,12 +69,34 @@ internal sealed partial class HtmlToMarkdownConverter {
     private static IMarkdownBlock ConvertListElement(IElement element, bool ordered, ConversionContext context) {
         if (ordered) {
             var list = new OrderedListBlock();
-            if (int.TryParse(element.GetAttribute("start"), out int start) && start > 0) {
-                list.Start = start;
+            list.MarkerStyle = ParseOrderedListMarkerStyle(element.GetAttribute("type"));
+            IElement[] itemElements = element.Children
+                .Where(child => HasEffectiveTagName(child, context, "LI"))
+                .ToArray();
+            bool reversed = element.HasAttribute("reversed");
+            int currentValue = reversed ? itemElements.Length : 1;
+            if (int.TryParse(
+                    element.GetAttribute("start"),
+                    System.Globalization.NumberStyles.Integer,
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    out int start)) {
+                currentValue = start;
             }
+            list.Start = currentValue;
+            int step = reversed ? -1 : 1;
 
-            foreach (var item in element.Children.Where(child => HasEffectiveTagName(child, context, "LI"))) {
-                list.Items.Add(ConvertListItem(item, context));
+            foreach (IElement itemElement in itemElements) {
+                if (int.TryParse(
+                        itemElement.GetAttribute("value"),
+                        System.Globalization.NumberStyles.Integer,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        out int itemValue)) {
+                    currentValue = itemValue;
+                }
+                ListItem item = ConvertListItem(itemElement, context);
+                item.MarkerText = FormatOrderedListMarker(currentValue, list.MarkerStyle);
+                list.Items.Add(item);
+                currentValue += step;
             }
 
             return list;
@@ -240,14 +262,83 @@ internal sealed partial class HtmlToMarkdownConverter {
 
     private static CodeBlock ConvertPreElement(IElement element) {
         var codeElement = element.QuerySelector("code");
-        string language = string.Empty;
-        if (codeElement != null) {
-            language = ExtractCodeLanguage(codeElement.GetAttribute("class"));
-        }
+        string language = ExtractCodeLanguage(codeElement?.GetAttribute("class"));
+        if (language.Length == 0) language = ReadCodeLanguageAttribute(codeElement);
+        if (language.Length == 0) language = ExtractCodeLanguage(element.GetAttribute("class"));
+        if (language.Length == 0) language = ReadCodeLanguageAttribute(element);
 
         string content = codeElement?.TextContent ?? element.TextContent ?? string.Empty;
         content = content.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd('\n');
         return new CodeBlock(language, content);
+    }
+
+    private static MarkdownOrderedListMarkerStyle ParseOrderedListMarkerStyle(string? value) {
+        switch (value?.Trim()) {
+            case "a": return MarkdownOrderedListMarkerStyle.LowerAlpha;
+            case "A": return MarkdownOrderedListMarkerStyle.UpperAlpha;
+            case "i": return MarkdownOrderedListMarkerStyle.LowerRoman;
+            case "I": return MarkdownOrderedListMarkerStyle.UpperRoman;
+            default: return MarkdownOrderedListMarkerStyle.Decimal;
+        }
+    }
+
+    private static string FormatOrderedListMarker(int value, MarkdownOrderedListMarkerStyle style) {
+        string marker;
+        switch (style) {
+            case MarkdownOrderedListMarkerStyle.LowerAlpha:
+                marker = FormatOrderedListAlpha(value, uppercase: false);
+                break;
+            case MarkdownOrderedListMarkerStyle.UpperAlpha:
+                marker = FormatOrderedListAlpha(value, uppercase: true);
+                break;
+            case MarkdownOrderedListMarkerStyle.LowerRoman:
+                marker = FormatOrderedListRoman(value, uppercase: false);
+                break;
+            case MarkdownOrderedListMarkerStyle.UpperRoman:
+                marker = FormatOrderedListRoman(value, uppercase: true);
+                break;
+            default:
+                marker = value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                break;
+        }
+        return marker + ".";
+    }
+
+    private static string FormatOrderedListAlpha(int value, bool uppercase) {
+        if (value <= 0) return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        var builder = new StringBuilder();
+        int remaining = value;
+        while (remaining > 0) {
+            remaining--;
+            builder.Insert(0, (char)((uppercase ? 'A' : 'a') + remaining % 26));
+            remaining /= 26;
+        }
+        return builder.ToString();
+    }
+
+    private static string FormatOrderedListRoman(int value, bool uppercase) {
+        if (value <= 0 || value > 3999) return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        int[] values = { 1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1 };
+        string[] symbols = { "m", "cm", "d", "cd", "c", "xc", "l", "xl", "x", "ix", "v", "iv", "i" };
+        var builder = new StringBuilder();
+        int remaining = value;
+        for (int index = 0; index < values.Length; index++) {
+            while (remaining >= values[index]) {
+                builder.Append(symbols[index]);
+                remaining -= values[index];
+            }
+        }
+        string marker = builder.ToString();
+        return uppercase ? marker.ToUpperInvariant() : marker;
+    }
+
+    private static string ReadCodeLanguageAttribute(IElement? element) {
+        if (element == null) return string.Empty;
+        foreach (string name in new[] { "data-language", "data-lang", "lang" }) {
+            string? value = element.GetAttribute(name);
+            if (!string.IsNullOrWhiteSpace(value)) return value!.Trim();
+        }
+        return string.Empty;
     }
 
     private static string ExtractCodeLanguage(string? classValue) {

@@ -650,4 +650,56 @@ public sealed class ReaderHtmlModularTests {
         Assert.Contains(chunks, c =>
             ((c.Markdown ?? c.Text).Contains("https://example.com/docs/guide/getting-started", StringComparison.OrdinalIgnoreCase)));
     }
+
+    [Fact]
+    public void DocumentReaderHtml_ProjectsAccessibilityAndFootnoteCapabilitiesThroughJson() {
+        const string html = """
+<html>
+  <head><base href="https://example.test/book/"></head>
+  <body>
+    <div role="heading" aria-level="4">Accessible section</div>
+    <p><a href="note.xhtml" aria-label="Open note"></a></p>
+    <blockquote><p>Quoted text</p></blockquote>
+    <pre data-language="csharp">Console.WriteLine(1);</pre>
+    <ol type="A" start="3"><li>Third choice</li></ol>
+    <span id="cover-label">Cover chart</span>
+    <img src="images/cover.png" aria-labelledby="cover-label">
+    <aside id="note" epub:type="footnote" role="doc-footnote"><p>Footnote body</p></aside>
+  </body>
+</html>
+""";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "chapter.xhtml");
+
+        OfficeDocumentBlock heading = Assert.Single(result.Blocks, block => block.Kind == "heading");
+        OfficeDocumentLink link = Assert.Single(result.Links);
+        OfficeDocumentAsset image = Assert.Single(result.Assets);
+        ReaderVisual visual = Assert.Single(result.Visuals, item => item.Kind == "image");
+        OfficeDocumentBlock quote = Assert.Single(result.Blocks, block => block.Kind == "quote");
+        OfficeDocumentBlock code = Assert.Single(result.Blocks, block => block.Kind == "code");
+        OfficeDocumentBlock footnote = Assert.Single(result.Blocks, block => block.Kind == "footnote");
+        OfficeDocumentBlock listItem = Assert.Single(result.Blocks, block => block.Kind == "list-item");
+
+        Assert.Equal(4, heading.Level);
+        Assert.Equal("Accessible section", heading.Text);
+        Assert.Equal("Open note", link.Text);
+        Assert.Equal("https://example.test/book/note.xhtml", link.Uri);
+        Assert.Equal("Cover chart", image.AltText);
+        Assert.Equal("https://example.test/book/images/cover.png", image.SourceObjectId);
+        Assert.Equal("Cover chart", visual.Content);
+        Assert.Equal("Quoted text", quote.Text);
+        Assert.Equal("Console.WriteLine(1);", code.Text);
+        Assert.Equal("Footnote body", footnote.Text);
+        Assert.Equal("C.", listItem.Marker);
+        Assert.Contains("officeimo.html.accessibility", result.CapabilitiesUsed);
+        Assert.Contains("officeimo.html.footnotes", result.CapabilitiesUsed);
+        Assert.Contains("officeimo.html.quotes", result.CapabilitiesUsed);
+        Assert.Contains("officeimo.html.code", result.CapabilitiesUsed);
+
+        OfficeDocumentReadResult roundTrip = OfficeDocumentReadResultJson.Deserialize(
+            HtmlReaderAdapter.ReadContentDocumentJson(html, "chapter.xhtml"));
+        Assert.Equal("Cover chart", Assert.Single(roundTrip.Assets).AltText);
+        Assert.Contains("officeimo.html.accessibility", roundTrip.CapabilitiesUsed);
+        Assert.Contains("officeimo.html.footnotes", roundTrip.CapabilitiesUsed);
+    }
 }

@@ -17,6 +17,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         public HtmlToMarkdownOptions Options { get; }
         public int SavedBase64ImageCount { get; set; }
         public Dictionary<string, string> SavedBase64ImagesBySource { get; } = new(StringComparer.Ordinal);
+        internal HtmlFootnoteConversionState Footnotes { get; set; } = HtmlFootnoteConversionState.Empty;
     }
 
     /// <summary>
@@ -56,6 +57,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         var context = new ConversionContext(effectiveOptions);
 
         INode root = HtmlDocumentParser.GetConversionRoot(document, effectiveOptions.UseBodyContentsOnly);
+        context.Footnotes = HtmlFootnoteConversionState.Create(root);
 
         var markdown = MarkdownDoc.Create();
         foreach (var block in ConvertNodesToBlocks(root.ChildNodes, context)) {

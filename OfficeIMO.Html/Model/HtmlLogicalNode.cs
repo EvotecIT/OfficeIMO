@@ -20,8 +20,11 @@ public sealed class HtmlLogicalNode {
     /// <summary>Original element name, or <c>#text</c> for text nodes.</summary>
     public string Name { get; }
 
-    /// <summary>Trimmed node text for text and small semantic nodes.</summary>
+    /// <summary>Normalized node text, or preserved preformatted text for code nodes.</summary>
     public string Text { get; }
+
+    /// <summary>ARIA or host-language accessible name resolved from the source element.</summary>
+    public string? AccessibleName { get; internal set; }
 
     /// <summary>Attributes captured from the source element.</summary>
     public IReadOnlyDictionary<string, string> Attributes => _attributes;

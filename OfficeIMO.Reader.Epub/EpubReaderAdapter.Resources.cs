@@ -58,7 +58,11 @@ internal static partial class EpubReaderAdapter {
                 string? resourceLocation = BuildEpubResolvedLocation(sourcePath, reference, includeFragment: true);
                 if (!string.IsNullOrWhiteSpace(resourceLocation)) {
                     mappedAsset = FindEpubAsset(sourcePath, reference, documentAssets);
-                    if (mappedAsset == null) htmlAsset.Location.Path = resourceLocation;
+                    if (mappedAsset == null) {
+                        htmlAsset.Location.Path = resourceLocation;
+                    } else {
+                        ApplyEpubOccurrenceMetadata(mappedAsset, htmlAsset);
+                    }
                 }
             }
 
@@ -68,6 +72,13 @@ internal static partial class EpubReaderAdapter {
             }
             if (!chapterAssets.Contains(mappedAsset)) chapterAssets.Add(mappedAsset);
         }
+    }
+
+    private static void ApplyEpubOccurrenceMetadata(OfficeDocumentAsset packageAsset, OfficeDocumentAsset occurrenceAsset) {
+        if (packageAsset.AltText == null && occurrenceAsset.AltText != null) packageAsset.AltText = occurrenceAsset.AltText;
+        if (packageAsset.Title == null && occurrenceAsset.Title != null) packageAsset.Title = occurrenceAsset.Title;
+        if (!packageAsset.Width.HasValue && occurrenceAsset.Width.HasValue) packageAsset.Width = occurrenceAsset.Width;
+        if (!packageAsset.Height.HasValue && occurrenceAsset.Height.HasValue) packageAsset.Height = occurrenceAsset.Height;
     }
 
     private static string? GetEpubAssetKind(string? mediaType) {

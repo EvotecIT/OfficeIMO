@@ -9,6 +9,7 @@ It owns the reusable parts that should behave consistently across HTML-to-Markdo
 - DOM traversal facts and node/depth limit tracking
 - image source discovery for `img`, lazy-loading attributes, `srcset`, and `picture/source`
 - image data URI parsing and media-type extension mapping
+- deterministic accessible-name, ARIA heading, EPUB structural-semantic, and logical quote/code/footnote projection
 - dependency-free HTML layout for continuous and paged output
 - direct PNG and SVG export over `OfficeIMO.Drawing`
 - semantic HTML to/from RTF conversion over the dependency-free `OfficeIMO.Rtf` model

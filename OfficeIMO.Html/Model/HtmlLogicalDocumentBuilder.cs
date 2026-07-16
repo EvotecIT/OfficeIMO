@@ -40,6 +40,8 @@ internal static class HtmlLogicalDocumentBuilder {
         HtmlLogicalNode node = CreateNode(source);
 
         if (source is IElement element) {
+            string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(element);
+            node.AccessibleName = accessibleName.Length == 0 ? null : accessibleName;
             foreach (IAttr attribute in element.Attributes) {
                 node.AddAttribute(attribute.Name, attribute.Value);
             }
@@ -102,11 +104,29 @@ internal static class HtmlLogicalDocumentBuilder {
 
         string name = element.TagName.ToLowerInvariant();
         HtmlLogicalNodeKind kind = MapKind(name, element);
-        string capturedText = kind == HtmlLogicalNodeKind.Text ? NormalizeText(element.TextContent) : CaptureText(name, element);
+        string capturedText = kind == HtmlLogicalNodeKind.Text
+            ? NormalizeText(element.TextContent)
+            : CaptureText(name, element, kind);
         return new HtmlLogicalNode(kind, name, capturedText);
     }
 
     private static HtmlLogicalNodeKind MapKind(string name, IElement element) {
+        if (HtmlAccessibilitySemantics.TryGetHeadingLevel(element, out _)) {
+            return HtmlLogicalNodeKind.Heading;
+        }
+        if (IsFootnoteDefinition(element)) return HtmlLogicalNodeKind.Footnote;
+        if (HtmlAccessibilitySemantics.HasRole(element, "list")) return HtmlLogicalNodeKind.List;
+        if (HtmlAccessibilitySemantics.HasRole(element, "listitem")) return HtmlLogicalNodeKind.ListItem;
+        if (HtmlAccessibilitySemantics.HasRole(element, "table")) return HtmlLogicalNodeKind.Table;
+        if (HtmlAccessibilitySemantics.HasRole(element, "row")) return HtmlLogicalNodeKind.TableRow;
+        if (HtmlAccessibilitySemantics.HasRole(element, "cell")
+            || HtmlAccessibilitySemantics.HasRole(element, "columnheader")
+            || HtmlAccessibilitySemantics.HasRole(element, "rowheader")) {
+            return HtmlLogicalNodeKind.TableCell;
+        }
+        if (HtmlAccessibilitySemantics.HasRole(element, "img")) return HtmlLogicalNodeKind.Image;
+        if (HtmlAccessibilitySemantics.HasRole(element, "link")) return HtmlLogicalNodeKind.Link;
+
         if (name == "body" || name == "main" || name == "article" || name == "section" || name == "aside" || name == "header" || name == "footer") {
             return HtmlLogicalNodeKind.Section;
         }
@@ -117,9 +137,11 @@ internal static class HtmlLogicalDocumentBuilder {
 
         switch (name) {
             case "p":
-            case "blockquote":
-            case "pre":
                 return HtmlLogicalNodeKind.Paragraph;
+            case "pre":
+                return HtmlLogicalNodeKind.Code;
+            case "blockquote":
+                return HtmlLogicalNodeKind.Quote;
             case "ul":
             case "ol":
             case "dl":
@@ -190,7 +212,11 @@ internal static class HtmlLogicalDocumentBuilder {
         }
     }
 
-    private static string CaptureText(string name, IElement element) {
+    private static string CaptureText(string name, IElement element, HtmlLogicalNodeKind kind) {
+        if (kind == HtmlLogicalNodeKind.Heading) return NormalizeText(element.TextContent);
+        if (kind == HtmlLogicalNodeKind.Code) return NormalizePreformattedText(element.TextContent);
+        if (kind == HtmlLogicalNodeKind.Quote) return NormalizeText(element.TextContent);
+        if (kind == HtmlLogicalNodeKind.Footnote) return CaptureFootnoteText(element);
         switch (name) {
             case "h1":
             case "h2":
@@ -210,9 +236,25 @@ internal static class HtmlLogicalDocumentBuilder {
     }
 
     private static IEnumerable<string> InferCapabilities(HtmlLogicalNode node) {
+        if (!string.IsNullOrWhiteSpace(node.AccessibleName)
+            || node.Attributes.ContainsKey("role")
+            || node.Attributes.Keys.Any(static key => key.StartsWith("aria-", StringComparison.OrdinalIgnoreCase))) {
+            yield return "accessibility";
+        }
+        if (HasFootnoteSemantic(node)) yield return "footnotes";
+
         switch (node.Kind) {
             case HtmlLogicalNodeKind.Heading:
                 yield return "headings";
+                break;
+            case HtmlLogicalNodeKind.Code:
+                yield return "code";
+                break;
+            case HtmlLogicalNodeKind.Quote:
+                yield return "quotes";
+                break;
+            case HtmlLogicalNodeKind.Footnote:
+                yield return "footnotes";
                 break;
             case HtmlLogicalNodeKind.Table:
             case HtmlLogicalNodeKind.TableCell:
@@ -240,6 +282,55 @@ internal static class HtmlLogicalDocumentBuilder {
                 yield return "figures";
                 break;
         }
+    }
+
+    private static bool HasFootnoteSemantic(HtmlLogicalNode node) {
+        if (node.Attributes.TryGetValue("role", out string? role)
+            && (HtmlAccessibilitySemantics.ContainsToken(role, "doc-noteref")
+                || HtmlAccessibilitySemantics.ContainsToken(role, "doc-footnote")
+                || HtmlAccessibilitySemantics.ContainsToken(role, "doc-endnote")
+                || HtmlAccessibilitySemantics.ContainsToken(role, "doc-endnotes")
+                || HtmlAccessibilitySemantics.ContainsToken(role, "doc-backlink"))) {
+            return true;
+        }
+        return node.Attributes.TryGetValue("epub:type", out string? epubType)
+               && new[] { "noteref", "footnote", "footnotes", "endnote", "endnotes", "rearnote", "rearnotes", "backlink" }
+                   .Any(token => HtmlAccessibilitySemantics.ContainsToken(epubType, token));
+    }
+
+    private static bool IsFootnoteDefinition(IElement element) =>
+        HtmlAccessibilitySemantics.HasRole(element, "doc-footnote")
+        || HtmlAccessibilitySemantics.HasRole(element, "doc-endnote")
+        || HtmlAccessibilitySemantics.HasEpubType(element, "footnote")
+        || HtmlAccessibilitySemantics.HasEpubType(element, "endnote")
+        || HtmlAccessibilitySemantics.HasEpubType(element, "rearnote")
+        || HtmlAccessibilitySemantics.HasEpubType(element, "note");
+
+    private static string CaptureFootnoteText(IElement element) {
+        var builder = new StringBuilder();
+        AppendFootnoteText(element, builder);
+        return NormalizeText(builder.ToString());
+    }
+
+    private static void AppendFootnoteText(INode node, StringBuilder builder) {
+        foreach (INode child in node.ChildNodes) {
+            if (child is IElement element) {
+                if (HtmlAccessibilitySemantics.HasRole(element, "doc-backlink")
+                    || HtmlAccessibilitySemantics.HasEpubType(element, "backlink")
+                    || element.HasAttribute("data-footnote-backref")
+                    || element.ClassList.Contains("footnote-backref")) {
+                    continue;
+                }
+                AppendFootnoteText(element, builder);
+            } else if (child is IText text) {
+                builder.Append(text.Data);
+            }
+        }
+    }
+
+    private static string NormalizePreformattedText(string? text) {
+        if (string.IsNullOrEmpty(text)) return string.Empty;
+        return text!.Replace("\r\n", "\n").Replace('\r', '\n').Trim('\n');
     }
 
     private static void Count(IDictionary<HtmlLogicalNodeKind, int> counts, HtmlLogicalNodeKind kind) {
