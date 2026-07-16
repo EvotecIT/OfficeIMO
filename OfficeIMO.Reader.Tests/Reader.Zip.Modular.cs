@@ -224,9 +224,9 @@ public sealed class ReaderZipModularTests {
         var tempDirectory = Path.Combine(Path.GetTempPath(), "officeimo-reader-zip-canonical-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(tempDirectory);
         var zipPath = Path.Combine(tempDirectory, "canonical.zip");
-        var originalCurrentDirectory = Environment.CurrentDirectory;
 
         lock (ReaderCurrentDirectoryLock.Gate) {
+            var originalCurrentDirectory = Environment.CurrentDirectory;
             try {
                 File.WriteAllBytes(zipPath, BuildSimpleZipBytes());
 

@@ -35,6 +35,10 @@ namespace OfficeIMO.Excel {
                 var workbookPart = WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is missing.");
                 var workbook = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook is missing.");
                 var styleContext = StyleInspectionContext.Create(workbookPart, workbookPart.WorkbookStylesPart?.Stylesheet);
+                var sharedStringItems = workbookPart.SharedStringTablePart?
+                    .SharedStringTable?
+                    .Elements<SharedStringItem>()
+                    .ToList();
                 snapshot.SlicerPartCount = CountPackagePartsByContentType(workbookPart, "slicer");
                 snapshot.TimelinePartCount = CountPackagePartsByContentType(workbookPart, "timeline");
                 snapshot.ConnectionPartCount = CountPackagePartsByContentType(workbookPart, "connections");
@@ -155,6 +159,7 @@ namespace OfficeIMO.Excel {
                                     Hyperlink = hyperlinkMap.TryGetValue(cellReference, out var hyperlink) ? hyperlink : null,
                                     Comment = commentMap.TryGetValue(cellReference, out var comment) ? comment : null,
                                     ThreadedComment = threadedCommentMap.TryGetValue(cellReference, out var threadedComments) ? threadedComments[0] : null,
+                                    RichTextRuns = BuildRichTextRuns(cell, sharedStringItems),
                                 });
                             }
                         }
@@ -232,6 +237,46 @@ namespace OfficeIMO.Excel {
             }
 
             return snapshot;
+        }
+
+        private static IReadOnlyList<ExcelRichTextRun> BuildRichTextRuns(
+            Cell cell,
+            IReadOnlyList<SharedStringItem>? sharedStringItems) {
+            IEnumerable<Run> runs;
+            if (cell.InlineString != null) {
+                runs = cell.InlineString.Elements<Run>();
+            } else if (cell.DataType?.Value == CellValues.SharedString
+                && int.TryParse(cell.CellValue?.InnerText, out int sharedStringIndex)
+                && sharedStringIndex >= 0
+                && sharedStringIndex < (sharedStringItems?.Count ?? 0)) {
+                runs = sharedStringItems![sharedStringIndex].Elements<Run>();
+            } else {
+                return Array.Empty<ExcelRichTextRun>();
+            }
+
+            var result = new List<ExcelRichTextRun>();
+            foreach (Run run in runs) {
+                RunProperties? properties = run.RunProperties;
+                result.Add(new ExcelRichTextRun(run.Text?.Text ?? string.Empty) {
+                    Bold = properties?.GetFirstChild<Bold>() != null,
+                    Italic = properties?.GetFirstChild<Italic>() != null,
+                    Underline = properties?.GetFirstChild<Underline>() != null,
+                    Strikethrough = properties?.GetFirstChild<Strike>() != null,
+                    UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
+                    FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
+                    FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
+                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
+                    VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
+                    Outline = properties?.GetFirstChild<Outline>() != null,
+                    Shadow = properties?.GetFirstChild<Shadow>() != null,
+                    Condense = properties?.GetFirstChild<Condense>() != null,
+                    Extend = properties?.GetFirstChild<Extend>() != null,
+                    FontFamily = ExcelRichTextRun.GetFontFamily(properties),
+                    FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties),
+                });
+            }
+
+            return result;
         }
 
         private static int CountPackagePartsByContentType(OpenXmlPartContainer container, string marker) {
@@ -326,6 +371,7 @@ namespace OfficeIMO.Excel {
                 Bold = font?.Bold != null,
                 Italic = font?.Italic != null,
                 Underline = font?.Underline != null,
+                Strikethrough = font?.Strike != null,
                 FontName = font?.FontName?.Val?.Value,
                 FontSize = font?.FontSize?.Val?.Value,
                 FontColorArgb = context.GetColorArgb(font?.Color),

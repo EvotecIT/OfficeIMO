@@ -1,16 +1,13 @@
 using OfficeIMO.GoogleWorkspace;
-using System.Net.Http.Headers;
+using OfficeIMO.GoogleWorkspace.Drive;
 using System.IO;
-using System.Text;
-using System.Text.Json;
 
 namespace OfficeIMO.Word.GoogleDocs {
     public sealed partial class GoogleDocsExporter : IGoogleDocsExporter {
         private static async Task<IReadOnlyDictionary<GoogleDocsInlineImage, string>> UploadInlineImagesAsync(
-            HttpClient client,
-            string accessToken,
+            GoogleDriveClient driveClient,
             GoogleDocsBatch batch,
-            GoogleWorkspaceRetryOptions retryOptions,
+            IList<GoogleDriveTemporaryContentLease> leases,
             CancellationToken cancellationToken) {
             var imageUris = new Dictionary<GoogleDocsInlineImage, string>();
             foreach (var image in EnumerateInlineImages(batch)) {
@@ -22,20 +19,45 @@ namespace OfficeIMO.Word.GoogleDocs {
                     continue;
                 }
 
-                var fileId = await UploadDriveFileAsync(
-                    client,
-                    accessToken,
-                    uploadName,
-                    mimeType,
+                var lease = await GoogleDriveTemporaryContentLease.CreatePublicReadLeaseAsync(
+                    driveClient,
                     bytes,
-                    retryOptions,
+                    new GoogleDriveUploadOptions {
+                        Name = uploadName,
+                        ContentType = mimeType,
+                    },
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
-                await CreatePublicReadPermissionAsync(client, accessToken, fileId, retryOptions, batch.Report, cancellationToken).ConfigureAwait(false);
-                imageUris[image] = BuildDrivePublicImageUri(fileId);
+                leases.Add(lease);
+                imageUris[image] = lease.PublicUri;
             }
 
             return imageUris;
+        }
+
+        private static async Task CleanupTemporaryInlineImagesAsync(
+            IReadOnlyList<GoogleDriveTemporaryContentLease> leases,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            if (leases.Count == 0) {
+                return;
+            }
+
+            int deletedCount = 0;
+            foreach (var lease in leases.Reverse()) {
+                var cleanup = await lease.CleanupAsync(cancellationToken).ConfigureAwait(false);
+                deletedCount += cleanup.Entries.Count(entry => entry.Status == GoogleDriveCleanupStatus.Deleted);
+            }
+
+            if (deletedCount > 0) {
+                report.Add(
+                    TranslationSeverity.Info,
+                    "InlineImages",
+                    $"Deleted {deletedCount} temporary public Drive staging file(s) after Google Docs fetched the inline images.",
+                    code: "DOCS.IMAGE.TEMPORARY_LEASE_CLEANED",
+                    action: TranslationAction.Preserve,
+                    count: deletedCount);
+            }
         }
 
 
@@ -132,6 +154,11 @@ namespace OfficeIMO.Word.GoogleDocs {
                     return false;
                 }
 
+                if (!IsSupportedGoogleDocsImageMimeType(mimeType)) {
+                    diagnosticMessage = $"Inline image '{fileName}' uses content type '{mimeType}', which Google Docs insertInlineImage does not accept, so export kept the readable placeholder.";
+                    return false;
+                }
+
                 return true;
             }
 
@@ -140,6 +167,11 @@ namespace OfficeIMO.Word.GoogleDocs {
                 fileName = string.IsNullOrWhiteSpace(fileName) ? Path.GetFileName(existingFilePath) : fileName;
                 if (string.IsNullOrWhiteSpace(mimeType) && !TryGetImageMimeType(existingFilePath, out mimeType)) {
                     diagnosticMessage = $"Inline image '{existingFilePath}' uses an unsupported extension for the current Google Docs image upload slice, so export kept the readable placeholder.";
+                    return false;
+                }
+
+                if (!IsSupportedGoogleDocsImageMimeType(mimeType)) {
+                    diagnosticMessage = $"Inline image '{existingFilePath}' uses content type '{mimeType}', which Google Docs insertInlineImage does not accept, so export kept the readable placeholder.";
                     return false;
                 }
 
@@ -168,79 +200,16 @@ namespace OfficeIMO.Word.GoogleDocs {
                 case ".gif":
                     mimeType = "image/gif";
                     return true;
-                case ".bmp":
-                    mimeType = "image/bmp";
-                    return true;
                 default:
                     mimeType = string.Empty;
                     return false;
             }
         }
 
-        private static async Task<string> UploadDriveFileAsync(
-            HttpClient client,
-            string accessToken,
-            string fileName,
-            string mimeType,
-            byte[] fileBytes,
-            GoogleWorkspaceRetryOptions retryOptions,
-            TranslationReport report,
-            CancellationToken cancellationToken) {
-            var response = await SendAsync<GoogleDriveFileMetadataResponse>(
-                client,
-                accessToken,
-                HttpMethod.Post,
-                "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id",
-                () => {
-                    var boundary = "officeimo-" + Guid.NewGuid().ToString("N");
-                    var metadataJson = JsonSerializer.Serialize(new {
-                        name = fileName,
-                        mimeType,
-                    }, JsonOptions);
-
-                    var content = new MultipartContent("related", boundary);
-                    var metadataContent = new StringContent(metadataJson, Encoding.UTF8, "application/json");
-                    content.Add(metadataContent);
-
-                    var fileContent = new ByteArrayContent(fileBytes);
-                    fileContent.Headers.ContentType = new MediaTypeHeaderValue(mimeType);
-                    content.Add(fileContent);
-                    return content;
-                },
-                retryOptions,
-                report,
-                cancellationToken).ConfigureAwait(false);
-
-            if (string.IsNullOrWhiteSpace(response.Id)) {
-                throw new InvalidOperationException("Drive image upload did not return a file id.");
-            }
-
-            return response.Id!;
-        }
-
-        private static Task<object> CreatePublicReadPermissionAsync(
-            HttpClient client,
-            string accessToken,
-            string fileId,
-            GoogleWorkspaceRetryOptions retryOptions,
-            TranslationReport report,
-            CancellationToken cancellationToken) {
-            return SendAsync<object>(
-                client,
-                accessToken,
-                HttpMethod.Post,
-                $"https://www.googleapis.com/drive/v3/files/{fileId}/permissions?supportsAllDrives=true",
-                new {
-                    role = "reader",
-                    type = "anyone",
-                },
-                retryOptions,
-                report,
-                cancellationToken);
-        }
-
-        private static string BuildDrivePublicImageUri(string fileId) {
-            return "https://drive.google.com/uc?export=download&id=" + Uri.EscapeDataString(fileId);
+        private static bool IsSupportedGoogleDocsImageMimeType(string? mimeType) {
+            return string.Equals(mimeType, "image/png", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mimeType, "image/jpeg", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(mimeType, "image/gif", StringComparison.OrdinalIgnoreCase);
         }
 
     }

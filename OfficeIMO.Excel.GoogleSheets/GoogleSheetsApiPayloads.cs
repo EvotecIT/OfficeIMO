@@ -12,6 +12,18 @@ namespace OfficeIMO.Excel.GoogleSheets {
     internal sealed class GoogleSheetsApiSpreadsheetPropertiesPayload {
         [JsonPropertyName("title")]
         public string? Title { get; set; }
+
+        [JsonPropertyName("locale")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? Locale { get; set; }
+
+        [JsonPropertyName("timeZone")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? TimeZone { get; set; }
+
+        [JsonPropertyName("autoRecalc")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? AutoRecalc { get; set; }
     }
 
     internal sealed class GoogleSheetsApiSheetPayload {
@@ -46,6 +58,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     internal sealed class GoogleSheetsApiGridPropertiesPayload {
+        [JsonPropertyName("rowCount")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? RowCount { get; set; }
+
+        [JsonPropertyName("columnCount")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? ColumnCount { get; set; }
+
         [JsonPropertyName("frozenRowCount")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? FrozenRowCount { get; set; }
@@ -53,6 +73,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("frozenColumnCount")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public int? FrozenColumnCount { get; set; }
+
+        [JsonPropertyName("hideGridlines")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
+        public bool HideGridlines { get; set; }
     }
 
     internal sealed class GoogleSheetsApiBatchUpdatePayload {
@@ -71,6 +95,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("updateCells")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiUpdateCellsRequestPayload? UpdateCells { get; set; }
+
+        [JsonPropertyName("setDataValidation")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiSetDataValidationRequestPayload? SetDataValidation { get; set; }
 
         [JsonPropertyName("mergeCells")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -107,6 +135,26 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("addTable")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiAddTableRequestPayload? AddTable { get; set; }
+
+        [JsonPropertyName("addConditionalFormatRule")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiAddConditionalFormatRuleRequestPayload? AddConditionalFormatRule { get; set; }
+
+        [JsonPropertyName("addChart")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiAddChartRequestPayload? AddChart { get; set; }
+
+        [JsonPropertyName("addDimensionGroup")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiAddDimensionGroupRequestPayload? AddDimensionGroup { get; set; }
+
+        [JsonPropertyName("createDeveloperMetadata")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiCreateDeveloperMetadataRequestPayload? CreateDeveloperMetadata { get; set; }
+
+        [JsonPropertyName("deleteDeveloperMetadata")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiDeleteDeveloperMetadataRequestPayload? DeleteDeveloperMetadata { get; set; }
     }
 
     internal sealed class GoogleSheetsApiAddSheetRequestPayload {
@@ -123,6 +171,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
         [JsonPropertyName("fields")]
         public string Fields { get; set; } = "userEnteredValue";
+    }
+
+    internal sealed class GoogleSheetsApiSetDataValidationRequestPayload {
+        [JsonPropertyName("range")]
+        public GoogleSheetsApiGridRangePayload Range { get; set; } = new GoogleSheetsApiGridRangePayload();
+
+        [JsonPropertyName("rule")]
+        public GoogleSheetsApiDataValidationRulePayload Rule { get; set; } = new GoogleSheetsApiDataValidationRulePayload();
     }
 
     internal sealed class GoogleSheetsApiGridCoordinatePayload {
@@ -157,6 +213,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("note")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? Note { get; set; }
+
+        [JsonPropertyName("textFormatRuns")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<GoogleSheetsApiTextFormatRunPayload>? TextFormatRuns { get; set; }
+
+        [JsonPropertyName("pivotTable")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiPivotTablePayload? PivotTable { get; set; }
     }
 
     internal sealed class GoogleSheetsApiExtendedValuePayload {
@@ -205,6 +269,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("wrapStrategy")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public string? WrapStrategy { get; set; }
+
+        [JsonPropertyName("padding")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiPaddingPayload? Padding { get; set; }
+
+        [JsonPropertyName("textRotation")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiTextRotationPayload? TextRotation { get; set; }
     }
 
     internal sealed class GoogleSheetsApiNumberFormatPayload {
@@ -229,9 +301,64 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? Underline { get; set; }
 
+        [JsonPropertyName("strikethrough")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? Strikethrough { get; set; }
+
+        [JsonPropertyName("fontFamily")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public string? FontFamily { get; set; }
+
+        [JsonPropertyName("fontSize")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? FontSize { get; set; }
+
         [JsonPropertyName("foregroundColor")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiColorPayload? ForegroundColor { get; set; }
+    }
+
+    internal sealed class GoogleSheetsApiBatchUpdateValuesPayload {
+        [JsonPropertyName("valueInputOption")]
+        public string ValueInputOption { get; set; } = "USER_ENTERED";
+
+        [JsonPropertyName("data")]
+        public List<GoogleSheetsApiValueRangePayload> Data { get; } = new List<GoogleSheetsApiValueRangePayload>();
+    }
+
+    internal sealed class GoogleSheetsApiValueRangePayload {
+        [JsonPropertyName("range")]
+        public string Range { get; set; } = string.Empty;
+
+        [JsonPropertyName("majorDimension")]
+        public string MajorDimension { get; set; } = "ROWS";
+
+        [JsonPropertyName("values")]
+        public List<List<object?>> Values { get; } = new List<List<object?>>();
+    }
+
+    internal sealed class GoogleSheetsApiPaddingPayload {
+        [JsonPropertyName("top")]
+        public int Top { get; set; }
+
+        [JsonPropertyName("right")]
+        public int Right { get; set; }
+
+        [JsonPropertyName("bottom")]
+        public int Bottom { get; set; }
+
+        [JsonPropertyName("left")]
+        public int Left { get; set; }
+    }
+
+    internal sealed class GoogleSheetsApiTextRotationPayload {
+        [JsonPropertyName("angle")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public int? Angle { get; set; }
+
+        [JsonPropertyName("vertical")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public bool? Vertical { get; set; }
     }
 
     internal sealed class GoogleSheetsApiBordersPayload {
@@ -414,8 +541,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     internal sealed class GoogleSheetsApiTableColumnPropertiesPayload {
-        [JsonPropertyName("name")]
-        public string Name { get; set; } = string.Empty;
+        [JsonPropertyName("columnIndex")]
+        public int ColumnIndex { get; set; }
+
+        [JsonPropertyName("columnName")]
+        public string ColumnName { get; set; } = string.Empty;
 
         [JsonPropertyName("columnType")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
@@ -458,6 +588,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonPropertyName("warningOnly")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingDefault)]
         public bool WarningOnly { get; set; }
+
+        [JsonPropertyName("editors")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleSheetsApiEditorsPayload? Editors { get; set; }
+
+        [JsonPropertyName("unprotectedRanges")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public List<GoogleSheetsApiGridRangePayload>? UnprotectedRanges { get; set; }
     }
 
     internal sealed class GoogleSheetsApiUpdateDimensionPropertiesRequestPayload {

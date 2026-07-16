@@ -67,7 +67,9 @@ namespace OfficeIMO.GoogleWorkspace {
                     TranslationSeverity.Error,
                     "DomainWideDelegation",
                     message,
-                    failureKind: GoogleWorkspaceFailureKind.DomainWideDelegation);
+                    failureKind: GoogleWorkspaceFailureKind.DomainWideDelegation,
+                    code: "WORKSPACE.AUTH.DOMAIN_DELEGATION_FAILED",
+                    action: TranslationAction.Fail);
 
                 return new GoogleWorkspaceExportException(
                     message,
@@ -87,7 +89,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 TranslationSeverity.Error,
                 "Authentication",
                 messageWithScopes,
-                failureKind: GoogleWorkspaceFailureKind.TokenAcquisition);
+                failureKind: GoogleWorkspaceFailureKind.TokenAcquisition,
+                code: GoogleWorkspaceDiagnosticCodes.AuthenticationFailed,
+                action: TranslationAction.Fail);
 
             return new GoogleWorkspaceExportException(
                 messageWithScopes,
@@ -112,7 +116,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 TranslationSeverity.Error,
                 "ApiFailures",
                 message,
-                failureKind: GoogleWorkspaceFailureKind.ApiRequest);
+                failureKind: GoogleWorkspaceFailureKind.ApiRequest,
+                code: GoogleWorkspaceDiagnosticCodes.RequestFailed,
+                action: TranslationAction.Fail);
 
             return new GoogleWorkspaceExportException(
                 message,
@@ -137,7 +143,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 TranslationSeverity.Error,
                 "RequestTimeout",
                 message,
-                failureKind: GoogleWorkspaceFailureKind.RequestTimeout);
+                failureKind: GoogleWorkspaceFailureKind.RequestTimeout,
+                code: GoogleWorkspaceDiagnosticCodes.RequestTimedOut,
+                action: TranslationAction.Fail);
 
             return new GoogleWorkspaceExportException(
                 message,
@@ -162,7 +170,9 @@ namespace OfficeIMO.GoogleWorkspace {
                 TranslationSeverity.Warning,
                 "Cancellation",
                 message,
-                failureKind: GoogleWorkspaceFailureKind.Canceled);
+                failureKind: GoogleWorkspaceFailureKind.Canceled,
+                code: GoogleWorkspaceDiagnosticCodes.RequestCanceled,
+                action: TranslationAction.Fail);
 
             return new GoogleWorkspaceExportCanceledException(
                 message,

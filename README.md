@@ -279,11 +279,35 @@ _Dependency footprint:_ only `OfficeIMO.Drawing`; archive traversal uses platfor
 #### [OfficeIMO.GoogleWorkspace](OfficeIMO.GoogleWorkspace/README.md)
 
 - [x] Application-owned OAuth/service-account credential abstraction and domain-wide delegation support
-- [x] Shared session, retry, timeout, diagnostics, and failure classification
-- [x] Drive folder, shared-drive, and existing-file targeting
-- [x] Translation reports shared by Google Docs and Google Sheets exporters
+- [x] Shared session, safety-aware retry, timeout, diagnostics, scopes, normalized errors, and failure classification
+- [x] Drive folder, shared-drive, and existing-file targeting contracts
+- [x] Fidelity preflight and translation reports shared by Docs, Sheets, and Slides translators
 
 _Dependency footprint:_ `System.Text.Json` and platform HTTP/cryptography; no Google client SDK.
+
+#### [OfficeIMO.GoogleWorkspace.Drive](OfficeIMO.GoogleWorkspace.Drive/README.md)
+
+- [x] Typed files, folders, metadata, capabilities, shared drives, copy/move/delete, and permissions
+- [x] Import/export discovery, download/export, multipart/resumable upload, progress, and cancellation
+- [x] Comments/replies, revisions, change tokens, and temporary public-content leases with cleanup reporting
+
+_Dependency footprint:_ only OfficeIMO GoogleWorkspace plus `System.Text.Json` on compatibility targets.
+
+#### [OfficeIMO.GoogleWorkspace.Auth.GoogleApis](OfficeIMO.GoogleWorkspace.Auth.GoogleApis/README.md)
+
+- [x] Optional `GoogleCredential`, `UserCredential`, and `ITokenAccess` adapters
+- [x] Installed-application authorization with PKCE
+- [x] Application-owned token-store boundary; no default plaintext refresh-token persistence
+
+_Dependency footprint:_ Google authentication libraries plus OfficeIMO GoogleWorkspace; not required by the core packages.
+
+#### [OfficeIMO.GoogleWorkspace.Sync](OfficeIMO.GoogleWorkspace.Sync/README.md)
+
+- [x] User and per-shared-drive change-feed consumption with independent checkpoint advancement
+- [x] Minimal cursors and stable identity/version evidence without document-content storage
+- [x] Dry-run, lossy approval, conflicts, cancellation, and item-level partial-failure outcomes
+
+_Dependency footprint:_ only OfficeIMO GoogleWorkspace and Drive.
 
 ### Conversion and cloud bridges
 
@@ -329,9 +353,9 @@ _Dependency footprint:_ only OfficeIMO Word and RTF packages.
 
 #### [OfficeIMO.Word.GoogleDocs](OfficeIMO.Word.GoogleDocs/README.md)
 
-- [x] Build a translation plan before network export
-- [x] Create a Google Docs document or replace an existing document
-- [x] Drive placement, retry, warnings, and structured failure diagnostics
+- [x] Plan, create, tab-aware revision-safe replace, native import, and Drive DOCX fallback
+- [x] Core Word structures, links, comments, renderer-owned fallbacks, and explicit unsupported-feature policy
+- [x] Format-specific checkpoints/diff plans plus Drive placement and structured diagnostics
 
 _Dependency footprint:_ OfficeIMO Word and GoogleWorkspace plus `System.Text.Json`; no Google client SDK.
 
@@ -361,11 +385,19 @@ _Dependency footprint:_ only OfficeIMO Excel and OpenDocument packages.
 
 #### [OfficeIMO.Excel.GoogleSheets](OfficeIMO.Excel.GoogleSheets/README.md)
 
-- [x] Build a translation plan before network export
-- [x] Create a Google Sheets spreadsheet or replace an existing spreadsheet
-- [x] Drive placement, retry, warnings, and structured failure diagnostics
+- [x] Plan, create, version-safe replace, native/range import, and Drive XLSX fallback
+- [x] Formula policy, values batching, styles, validation, filters, protection, conditional rules, charts, pivots, outlines, and tables at documented levels
+- [x] Format-specific checkpoints/diff plans plus Drive placement and structured diagnostics
 
 _Dependency footprint:_ OfficeIMO Excel and GoogleWorkspace plus `System.Text.Json`; no Google client SDK.
+
+#### [OfficeIMO.PowerPoint.GoogleSlides](OfficeIMO.PowerPoint.GoogleSlides/README.md)
+
+- [x] Plan, create, template-copy, revision-safe replace, native import, and Drive PPTX fallback
+- [x] Editable text, tables, pictures, basic shapes, backgrounds, links, and speaker notes
+- [x] Renderer-owned full-slide fallback for complex content plus explicit support catalog and diff plan
+
+_Dependency footprint:_ OfficeIMO PowerPoint, GoogleWorkspace, and Drive plus `System.Text.Json` on compatibility targets; no Google client SDK.
 
 #### [OfficeIMO.PowerPoint.Html](OfficeIMO.PowerPoint.Html/README.md)
 

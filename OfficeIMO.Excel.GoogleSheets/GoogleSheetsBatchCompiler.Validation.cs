@@ -4,11 +4,10 @@ using System.IO;
 
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
-        private static void AppendValidationOnlyCells(
+        private static void AppendValidationRanges(
             ExcelWorkbookSnapshot workbookSnapshot,
             ExcelWorksheetSnapshot worksheet,
-            GoogleSheetsUpdateCellsRequest updateCells,
-            ISet<string> emittedCellKeys,
+            GoogleSheetsBatch batch,
             TranslationReport report,
             ref bool cellValidationNoticeAdded) {
             foreach (var validation in worksheet.Validations) {
@@ -16,13 +15,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     continue;
                 }
 
-                foreach (var (row, column) in EnumerateValidationCells(validation)) {
-                    var cellKey = CreateCellKey(row, column);
-                    if (emittedCellKeys.Contains(cellKey)) {
+                foreach (var a1Range in validation.A1Ranges) {
+                    if (!TryParseValidationRange(a1Range, out int startRow, out int startColumn, out int endRow, out int endColumn)) {
                         continue;
                     }
 
-                    var validationRule = BuildDirectCellValidationRule(workbookSnapshot, worksheet, validation, row, column);
+                    var validationRule = BuildDirectCellValidationRule(workbookSnapshot, worksheet, validation, startRow, startColumn);
                     if (validationRule == null) {
                         continue;
                     }
@@ -31,19 +29,42 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         report.Add(
                             TranslationSeverity.Info,
                             "CellValidations",
-                            "List, whole-number, decimal, date, and text-length Excel data validations now compile into native Google Sheets cell validation rules for populated and empty target cells within explicit ranges.");
+                            "List, whole-number, decimal, date, and text-length Excel data validations compile into native Google Sheets range validation rules without materializing empty target cells.");
                         cellValidationNoticeAdded = true;
                     }
 
-                    emittedCellKeys.Add(cellKey);
-                    updateCells.AddCell(new GoogleSheetsCellData {
-                        RowIndex = row - 1,
-                        ColumnIndex = column - 1,
-                        Value = GoogleSheetsCellValue.Blank(),
-                        DataValidationRule = validationRule,
+                    batch.Add(new GoogleSheetsSetDataValidationRequest {
+                        SheetName = worksheet.Name,
+                        A1Range = a1Range,
+                        StartRowIndex = startRow - 1,
+                        EndRowIndexExclusive = endRow,
+                        StartColumnIndex = startColumn - 1,
+                        EndColumnIndexExclusive = endColumn,
+                        Rule = validationRule,
                     });
                 }
             }
+        }
+
+        private static bool TryParseValidationRange(
+            string? a1Range,
+            out int startRow,
+            out int startColumn,
+            out int endRow,
+            out int endColumn) {
+            startRow = startColumn = endRow = endColumn = 0;
+            if (string.IsNullOrWhiteSpace(a1Range)) {
+                return false;
+            }
+
+            var normalizedRange = a1Range!.Replace("$", string.Empty);
+            if (!A1.TryParseRange(normalizedRange, out startRow, out startColumn, out endRow, out endColumn)) {
+                var (singleRow, singleColumn) = A1.ParseCellRef(normalizedRange);
+                startRow = endRow = singleRow;
+                startColumn = endColumn = singleColumn;
+            }
+
+            return startRow > 0 && startColumn > 0 && endRow >= startRow && endColumn >= startColumn;
         }
 
         private static bool IsSupportedDirectCellValidation(ExcelDataValidationSnapshot validation) {
@@ -141,13 +162,13 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     return null;
                 }
 
-                if (!TryParseValidationDate(validation.Formula1, out var firstDateValue)) {
+                if (!TryParseValidationDate(validation.Formula1, workbookSnapshot.DateSystem, out var firstDateValue)) {
                     return null;
                 }
 
                 var dateValues = new List<string> { firstDateValue };
                 if (dateRequiresSecondValue) {
-                    if (!TryParseValidationDate(validation.Formula2, out var secondDateValue)) {
+                    if (!TryParseValidationDate(validation.Formula2, workbookSnapshot.DateSystem, out var secondDateValue)) {
                         return null;
                     }
 
@@ -242,40 +263,6 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 && string.Equals(validation.A1Ranges[0], expectedRange, StringComparison.OrdinalIgnoreCase));
         }
 
-        private static IEnumerable<(int Row, int Column)> EnumerateValidationCells(ExcelDataValidationSnapshot validation) {
-            foreach (var a1Range in validation.A1Ranges) {
-                if (string.IsNullOrWhiteSpace(a1Range)) {
-                    continue;
-                }
-
-                var normalizedRange = a1Range.Replace("$", string.Empty);
-                int startRow;
-                int startColumn;
-                int endRow;
-                int endColumn;
-
-                if (!A1.TryParseRange(normalizedRange, out startRow, out startColumn, out endRow, out endColumn)) {
-                    var (singleRow, singleColumn) = A1.ParseCellRef(normalizedRange);
-                    if (singleRow <= 0 || singleColumn <= 0) {
-                        continue;
-                    }
-
-                    startRow = endRow = singleRow;
-                    startColumn = endColumn = singleColumn;
-                }
-
-                if (startRow <= 0 || startColumn <= 0 || endRow < startRow || endColumn < startColumn) {
-                    continue;
-                }
-
-                for (var row = startRow; row <= endRow; row++) {
-                    for (var column = startColumn; column <= endColumn; column++) {
-                        yield return (row, column);
-                    }
-                }
-            }
-        }
-
         private static bool ValidationAppliesToCell(ExcelDataValidationSnapshot validation, int row, int column) {
             foreach (var a1Range in validation.A1Ranges) {
                 if (TryRangeContainsCell(a1Range, row, column)) {
@@ -284,10 +271,6 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             return false;
-        }
-
-        private static string CreateCellKey(int row, int column) {
-            return row.ToString(CultureInfo.InvariantCulture) + ":" + column.ToString(CultureInfo.InvariantCulture);
         }
 
         private static bool TryRangeContainsCell(string a1Range, int row, int column) {
@@ -406,7 +389,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return true;
         }
 
-        private static bool TryParseValidationDate(string? value, out string normalizedDate) {
+        private static bool TryParseValidationDate(
+            string? value,
+            ExcelDateSystem dateSystem,
+            out string normalizedDate) {
             normalizedDate = string.Empty;
             if (string.IsNullOrWhiteSpace(value)) {
                 return false;
@@ -417,7 +403,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
             }
 
             try {
-                normalizedDate = DateTime.FromOADate(serialDate).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+                normalizedDate = ExcelDateSystemConverter.FromSerial(serialDate, dateSystem)
+                    .ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
                 return true;
             } catch (ArgumentException) {
                 return false;

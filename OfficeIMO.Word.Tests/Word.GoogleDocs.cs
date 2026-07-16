@@ -113,6 +113,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_GoogleDocsBatchCompiler_RasterizesEveryEstimatedPage() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsMultiPageFallback.docx");
+            try {
+                using var document = WordDocument.Create(filePath);
+                document.AddParagraph("Page one");
+                document.AddPageBreak();
+                document.AddParagraph("Page two");
+                document.AddStructuredDocumentTag("Unsupported control");
+                var options = new GoogleDocsSaveOptions {
+                    InlineImageMode = GoogleDocsInlineImageMode.TemporaryPublicDriveLease,
+                };
+                options.UnsupportedFeatures.ContentControls = UnsupportedFeatureMode.Rasterize;
+
+                GoogleDocsBatch batch = document.BuildGoogleDocsBatch(options);
+
+                Assert.Equal(2, document.GetEstimatedImagePageCount());
+                GoogleDocsInlineImage[] fallbacks = batch.Requests
+                    .OfType<GoogleDocsInsertParagraphRequest>()
+                    .SelectMany(request => request.Paragraph.Runs)
+                    .Select(run => run.InlineImage)
+                    .Where(image => image?.FileName.StartsWith("officeimo-word-fallback-page-", StringComparison.Ordinal) == true)
+                    .Cast<GoogleDocsInlineImage>()
+                    .ToArray();
+                Assert.Equal(2, fallbacks.Length);
+                Assert.Equal("officeimo-word-fallback-page-1.png", fallbacks[0].FileName);
+                Assert.Equal("officeimo-word-fallback-page-2.png", fallbacks[1].FileName);
+                Assert.Contains("page 1 of 2", fallbacks[0].Description, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("page 2 of 2", fallbacks[1].Description, StringComparison.OrdinalIgnoreCase);
+                Assert.All(fallbacks, image => Assert.True(image.Bytes.Length > 0));
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.FALLBACK.RENDERED_PAGES" && notice.Count == 2);
+            } finally {
+                if (File.Exists(filePath)) File.Delete(filePath);
+            }
+        }
+
+        [Fact]
         public void Test_GoogleDocsApiPayloadBuilder_EmitsParagraphStyleAndTableRequests() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsPayload.docx");
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -259,7 +295,7 @@ namespace OfficeIMO.Tests {
                 var paragraphRequest = Assert.IsType<GoogleDocsInsertParagraphRequest>(batch.Requests[0]);
                 Assert.Contains(paragraphRequest.Paragraph.Runs, run => string.Equals(run.CapsStyle, "SmallCaps", StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(paragraphRequest.Paragraph.Runs, run => string.Equals(run.CapsStyle, "Caps", StringComparison.OrdinalIgnoreCase));
-                Assert.Contains(batch.Report.Notices, notice => notice.Feature == "TextStyles" && notice.Message.Contains("smallCaps", StringComparison.OrdinalIgnoreCase));
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.TEXT.ALL_CAPS_FLATTENED");
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
                 var smallCapsStyle = Assert.Single(payload.Requests, request => request.UpdateTextStyle?.TextStyle.SmallCaps == true);
@@ -433,12 +469,15 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, paragraphRequest.SectionStyle.PageNumberStart);
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
-                var sectionStyle = Assert.Single(payload.Requests, request => request.UpdateSectionStyle?.SectionStyle.PageSize != null);
+                var documentStyle = Assert.Single(payload.Requests, request => request.UpdateDocumentStyle?.DocumentStyle.PageSize != null);
+                Assert.Equal("pageSize", documentStyle.UpdateDocumentStyle!.Fields);
+                Assert.Equal(419.55d, documentStyle.UpdateDocumentStyle.DocumentStyle.PageSize!.Width!.Magnitude);
+                Assert.Equal(595.3d, documentStyle.UpdateDocumentStyle.DocumentStyle.PageSize.Height!.Magnitude);
+
+                var sectionStyle = Assert.Single(payload.Requests, request => request.UpdateSectionStyle?.SectionStyle.FlipPageOrientation == true);
                 Assert.Equal(
-                    "flipPageOrientation,marginBottom,marginFooter,marginHeader,marginLeft,marginRight,marginTop,pageNumberStart,pageSize,useFirstPageHeaderFooter",
+                    "flipPageOrientation,marginBottom,marginFooter,marginHeader,marginLeft,marginRight,marginTop,pageNumberStart,useFirstPageHeaderFooter",
                     string.Join(",", sectionStyle.UpdateSectionStyle!.Fields.Split(',').OrderBy(value => value, StringComparer.Ordinal)));
-                Assert.Equal(595.3d, sectionStyle.UpdateSectionStyle.SectionStyle.PageSize!.Width!.Magnitude);
-                Assert.Equal(419.55d, sectionStyle.UpdateSectionStyle.SectionStyle.PageSize.Height!.Magnitude);
                 Assert.Equal(36d, sectionStyle.UpdateSectionStyle.SectionStyle.MarginTop!.Magnitude);
                 Assert.Equal(18d, sectionStyle.UpdateSectionStyle.SectionStyle.MarginHeader!.Magnitude);
                 Assert.True(sectionStyle.UpdateSectionStyle.SectionStyle.FlipPageOrientation);
@@ -831,9 +870,18 @@ namespace OfficeIMO.Tests {
                     .Single(request => request.SectionIndex == 1);
                 Assert.True(secondSectionParagraph.Paragraph.StartsNewSectionBefore);
                 Assert.Equal("NextPage", secondSectionParagraph.Paragraph.SectionBreakType);
+                Assert.Single(secondSectionParagraph.Paragraph.Runs).Bold = true;
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
                 var sectionBreakRequest = Assert.Single(payload.Requests, request => request.InsertSectionBreak != null);
+                var sectionBreakIndex = payload.Requests.IndexOf(sectionBreakRequest);
+                var secondSectionStyleIndex = payload.Requests.FindIndex(request =>
+                    request.UpdateSectionStyle?.Range.StartIndex == sectionBreakRequest.InsertSectionBreak!.Location.Index + 1);
+                Assert.True(secondSectionStyleIndex > sectionBreakIndex);
+                var secondSectionTextStyle = Assert.Single(payload.Requests, request =>
+                    request.UpdateTextStyle?.TextStyle.Bold == true
+                    && request.UpdateTextStyle.Range.StartIndex == sectionBreakRequest.InsertSectionBreak!.Location.Index + 1);
+                Assert.True(payload.Requests.IndexOf(secondSectionTextStyle) > sectionBreakIndex);
                 Assert.Equal("NEXT_PAGE", sectionBreakRequest.InsertSectionBreak!.SectionType);
                 Assert.Equal(1, sectionBreakRequest.InsertSectionBreak.Location.Index);
                 Assert.Contains(batch.Report.Notices, notice => notice.Feature == "SectionBreaks");
@@ -976,6 +1024,8 @@ namespace OfficeIMO.Tests {
                 var footerSegment = Assert.Single(batch.Segments, segment => segment.Kind == "footer");
                 Assert.Equal("first", footerSegment.Variant);
                 Assert.Equal("First footer text", footerSegment.Paragraphs[0].Text);
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-header");
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1004,8 +1054,11 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
                 var documentStyle = Assert.Single(payload.Requests, request => request.UpdateDocumentStyle != null);
-                Assert.Equal("useEvenPageHeaderFooter", documentStyle.UpdateDocumentStyle!.Fields);
+                Assert.Equal("pageSize,useEvenPageHeaderFooter", documentStyle.UpdateDocumentStyle!.Fields);
+                Assert.NotNull(documentStyle.UpdateDocumentStyle.DocumentStyle.PageSize);
                 Assert.True(documentStyle.UpdateDocumentStyle.DocumentStyle.UseEvenPageHeaderFooter);
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
+                Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1215,11 +1268,15 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-table-image\",\"title\":\"Table Image Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"img-table-123\"}");
                     }
 
-                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img-table-123/permissions?supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/img-table-123/permissions?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"public-reader\",\"type\":\"anyone\",\"role\":\"reader\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Delete && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img-table-123?supportsAllDrives=true") {
                         return CreateJsonResponse("{}");
                     }
 
@@ -1228,7 +1285,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image?includeTabsContent=true") {
                         return CreateJsonResponse(CreateBodyTableDocumentStateJson("doc-table-image", "Table Image Export"));
                     }
 
@@ -1245,21 +1302,23 @@ namespace OfficeIMO.Tests {
 
                 var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Title = "Table Image Export",
+                    InlineImageMode = GoogleDocsInlineImageMode.TemporaryPublicDriveLease,
                 });
 
                 Assert.Equal("doc-table-image", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(10, recordedRequests.Count);
                 Assert.Equal(3, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
-                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri == "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id");
-                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img-table-123/permissions?supportsAllDrives=true");
+                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri.StartsWith("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", StringComparison.Ordinal));
+                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/img-table-123/permissions?", StringComparison.Ordinal));
+                Assert.Contains(recordedRequests, request => request.Method == "DELETE" && request.Uri.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img-table-123?supportsAllDrives=true");
 
                 var tableBatchRequest = recordedRequests.Single(request =>
                     request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image:batchUpdate"
                     && request.Body != null
                     && request.Body.Contains("\"insertInlineImage\"", StringComparison.Ordinal));
-                Assert.Contains("\"text\":\"Cell \\n\"", tableBatchRequest.Body!);
+                Assert.Contains("\"text\":\"\\n\"", tableBatchRequest.Body!);
                 Assert.Contains("\"insertInlineImage\"", tableBatchRequest.Body!);
                 var tableStyleBatchRequest = recordedRequests.Single(request =>
                     request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-image:batchUpdate"
@@ -1325,7 +1384,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-footnote", result.DocumentId);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.Equal(2, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -1378,7 +1437,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-highlight", result.DocumentId);
-                Assert.Equal(2, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 var batchRequest = Assert.Single(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-highlight:batchUpdate");
                 Assert.Contains("\"backgroundColor\"", batchRequest.Body!);
                 Assert.Contains("\"red\":1", batchRequest.Body!);
@@ -1844,7 +1903,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("doc-section-layout", result.DocumentId);
                 var batchRequest = Assert.Single(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-section-layout:batchUpdate");
                 Assert.Contains("\"updateSectionStyle\":{", batchRequest.Body!);
-                Assert.Contains("\"pageSize\":{", batchRequest.Body!);
+                Assert.Contains("\"updateDocumentStyle\":{\"documentStyle\":{\"pageSize\":{", batchRequest.Body!);
+                Assert.DoesNotContain("\"sectionStyle\":{\"pageSize\":{", batchRequest.Body!);
                 Assert.Contains("\"marginLeft\":{\"magnitude\":54", batchRequest.Body!);
                 Assert.Contains("\"flipPageOrientation\":true", batchRequest.Body!);
                 Assert.Contains("\"useFirstPageHeaderFooter\":true", batchRequest.Body!);
@@ -1989,7 +2049,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-bookmark", result.DocumentId);
-                Assert.Equal(2, recordedRequests.Count);
+                Assert.Equal(3, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatchRequest = Assert.Single(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-bookmark:batchUpdate");
@@ -2018,7 +2078,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-header-bookmark\",\"title\":\"Header Bookmark Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-bookmark") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-bookmark?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc-header-bookmark\",\"title\":\"Header Bookmark Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -2136,7 +2196,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-footnote") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-table-footnote?includeTabsContent=true") {
                         return CreateJsonResponse(CreateSingleCellBodyTableDocumentStateJson("doc-table-footnote", "Table Footnote Export"));
                     }
 
@@ -2156,7 +2216,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-table-footnote", result.DocumentId);
-                Assert.Equal(6, recordedRequests.Count);
+                Assert.Equal(8, recordedRequests.Count);
                 Assert.Equal(4, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -2215,13 +2275,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_ReplaysMergedTableCells() {
+        public async Task Test_GoogleDocsExporter_RefreshesTableStateBeforeReplayingMergedCells() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterMergedTable.docx");
 
             try {
-                using var document = BuildGoogleDocsMergedTableDocument(filePath);
+                using var document = BuildGoogleDocsShiftedMergedTableDocument(filePath);
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body, string? Authorization)>();
                 int batchUpdateCount = 0;
+                int documentReadCount = 0;
 
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
                     string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -2236,8 +2297,12 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-merge-table") {
-                        return CreateJsonResponse(CreateBodyTableDocumentStateJson("doc-merge-table", "Merged Table Export"));
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-merge-table?includeTabsContent=true") {
+                        documentReadCount++;
+                        return CreateJsonResponse(CreateTwoBodyTableDocumentStateJson(
+                            "doc-merge-table",
+                            "Merged Table Export",
+                            documentReadCount == 1 ? 20 : 35));
                     }
 
                     return new HttpResponseMessage(HttpStatusCode.NotFound) {
@@ -2256,8 +2321,9 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-merge-table", result.DocumentId);
-                Assert.Equal(6, recordedRequests.Count);
+                Assert.Equal(8, recordedRequests.Count);
                 Assert.Equal(4, batchUpdateCount);
+                Assert.Equal(2, documentReadCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var mergeBatchRequest = recordedRequests.Single(request =>
@@ -2267,11 +2333,33 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("\"mergeTableCells\"", mergeBatchRequest.Body!);
                 Assert.Contains("\"rowSpan\":1", mergeBatchRequest.Body!);
                 Assert.Contains("\"columnSpan\":2", mergeBatchRequest.Body!);
+                using (var mergeJson = JsonDocument.Parse(mergeBatchRequest.Body!)) {
+                    JsonElement merge = mergeJson.RootElement.GetProperty("requests").EnumerateArray()
+                        .Single(request => request.TryGetProperty("mergeTableCells", out _))
+                        .GetProperty("mergeTableCells");
+                    Assert.Equal(
+                        35,
+                        merge.GetProperty("tableRange")
+                            .GetProperty("tableCellLocation")
+                            .GetProperty("tableStartLocation")
+                            .GetProperty("index")
+                            .GetInt32());
+                }
                 var tableStyleBatchRequest = recordedRequests.Single(request =>
                     request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-merge-table:batchUpdate"
                     && request.Body != null
                     && request.Body.Contains("\"updateTableColumnProperties\"", StringComparison.Ordinal));
                 Assert.Contains("\"widthType\":\"FIXED_WIDTH\"", tableStyleBatchRequest.Body!);
+                using (var styleJson = JsonDocument.Parse(tableStyleBatchRequest.Body!)) {
+                    int[] tableStartIndexes = styleJson.RootElement.GetProperty("requests").EnumerateArray()
+                        .Where(request => request.TryGetProperty("updateTableColumnProperties", out _))
+                        .Select(request => request.GetProperty("updateTableColumnProperties")
+                            .GetProperty("tableStartLocation")
+                            .GetProperty("index")
+                            .GetInt32())
+                        .ToArray();
+                    Assert.Contains(35, tableStartIndexes);
+                }
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2297,11 +2385,15 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc123\",\"title\":\"Create Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"img123\"}");
                     }
 
-                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img123/permissions?supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/img123/permissions?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"public-reader\",\"type\":\"anyone\",\"role\":\"reader\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Delete && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img123?supportsAllDrives=true") {
                         return CreateJsonResponse("{}");
                     }
 
@@ -2310,7 +2402,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc123") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc123?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc123\",\"title\":\"Create Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}},{\"startIndex\":20,\"endIndex\":60,\"table\":{\"tableRows\":[{\"tableCells\":[{\"content\":[{\"startIndex\":25,\"endIndex\":26,\"paragraph\":{}}]},{\"content\":[{\"startIndex\":30,\"endIndex\":31,\"paragraph\":{}}]}]},{\"tableCells\":[{\"content\":[{\"startIndex\":35,\"endIndex\":36,\"paragraph\":{}}]},{\"content\":[{\"startIndex\":40,\"endIndex\":41,\"paragraph\":{}}]}]}]}},{\"startIndex\":60,\"endIndex\":80,\"paragraph\":{}}]}}");
                     }
 
@@ -2327,11 +2419,12 @@ namespace OfficeIMO.Tests {
 
                 var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Title = "Create Export",
+                    InlineImageMode = GoogleDocsInlineImageMode.TemporaryPublicDriveLease,
                 });
 
                 Assert.Equal("doc123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/doc123/edit", result.WebViewLink);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(10, recordedRequests.Count);
                 Assert.Equal(3, batchUpdateCount);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
@@ -2340,8 +2433,9 @@ namespace OfficeIMO.Tests {
                     Assert.Equal("Create Export", json.RootElement.GetProperty("title").GetString());
                 }
 
-                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri == "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&fields=id");
-                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img123/permissions?supportsAllDrives=true");
+                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri.StartsWith("https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart", StringComparison.Ordinal));
+                Assert.Contains(recordedRequests, request => request.Uri.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/img123/permissions?", StringComparison.Ordinal));
+                Assert.Contains(recordedRequests, request => request.Method == "DELETE" && request.Uri.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/img123?supportsAllDrives=true");
 
                 var initialBatchRequest = recordedRequests.First(request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc123:batchUpdate" && request.Body!.Contains("insertTable", StringComparison.Ordinal));
                 Assert.Contains("Intro Bold Portal", initialBatchRequest.Body!);
@@ -2392,12 +2486,20 @@ namespace OfficeIMO.Tests {
                     string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
                     recordedRequests.Add((request.RequestUri!, request.Method.Method, body, request.Headers.Authorization?.ToString()));
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-123") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-123?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"existing-doc-123\",\"title\":\"Old Title\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-123:batchUpdate") {
                         return CreateJsonResponse("{}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsolutePath.EndsWith("/comments", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"comments\":[]}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return CreateJsonResponse("{\"id\":\"existing-doc-123\",\"name\":\"Old Title\",\"mimeType\":\"application/vnd.google-apps.document\"}");
                     }
 
                     return new HttpResponseMessage(HttpStatusCode.NotFound) {
@@ -2413,6 +2515,9 @@ namespace OfficeIMO.Tests {
 
                 var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
                     Title = "Replacement Export",
+                    Replace = new GoogleDocsReplaceOptions {
+                        ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest,
+                    },
                     Location = new GoogleDriveFileLocation {
                         ExistingFileId = "existing-doc-123",
                     }
@@ -2420,15 +2525,20 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("existing-doc-123", result.DocumentId);
                 Assert.Equal("https://docs.google.com/document/d/existing-doc-123/edit", result.WebViewLink);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(7, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
-                Assert.Equal("POST", recordedRequests[1].Method);
+                Assert.Contains("/drive/v3/files/existing-doc-123", recordedRequests[0].Uri.AbsoluteUri, StringComparison.Ordinal);
+                Assert.Equal("GET", recordedRequests[1].Method);
                 Assert.Equal("POST", recordedRequests[2].Method);
+                Assert.Equal("POST", recordedRequests[3].Method);
+                Assert.Equal("GET", recordedRequests[4].Method);
+                Assert.EndsWith("/comments?includeDeleted=true&fields=nextPageToken,comments(id,content,anchor,resolved,deleted,createdTime,modifiedTime,replies(id,content,action,deleted,createdTime))", recordedRequests[5].Uri.AbsoluteUri, StringComparison.Ordinal);
+                Assert.Equal("GET", recordedRequests[6].Method);
                 Assert.DoesNotContain(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents");
                 Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingDocument");
 
-                Assert.Contains("\"deleteContentRange\"", recordedRequests[1].Body!);
-                Assert.Contains("\"backgroundColor\"", recordedRequests[2].Body!);
+                Assert.Contains("\"deleteContentRange\"", recordedRequests[2].Body!);
+                Assert.Contains("\"backgroundColor\"", recordedRequests[3].Body!);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2437,7 +2547,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_RetriesTransientCreateFailures() {
+        public async Task Test_GoogleDocsExporter_DoesNotRetryAmbiguousCreateFailures() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterRetryCreate.docx");
 
             try {
@@ -2472,13 +2582,14 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
-                    Title = "Retry Export",
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                        Title = "Retry Export",
+                    }));
 
-                Assert.Equal("doc-retry", result.DocumentId);
-                Assert.Equal(2, createAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://docs.googleapis.com/v1/documents", StringComparison.Ordinal) && n.Message.Contains("exponential backoff", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, createAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2487,7 +2598,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_RetriesTransientExistingDocumentResetFailures() {
+        public async Task Test_GoogleDocsExporter_DoesNotRetryAmbiguousExistingDocumentResetFailures() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterRetryReplace.docx");
 
             try {
@@ -2497,7 +2608,7 @@ namespace OfficeIMO.Tests {
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
                     string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-retry-123") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/existing-doc-retry-123?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"existing-doc-retry-123\",\"title\":\"Old Title\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -2526,17 +2637,20 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
-                    Title = "Retry Replacement Export",
-                    Location = new GoogleDriveFileLocation {
-                        ExistingFileId = "existing-doc-retry-123",
-                    }
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleDocsAsync(session, new GoogleDocsSaveOptions {
+                        Title = "Retry Replacement Export",
+                        Replace = new GoogleDocsReplaceOptions {
+                            ConflictMode = GoogleDocsRevisionConflictMode.OverwriteLatest,
+                        },
+                        Location = new GoogleDriveFileLocation {
+                            ExistingFileId = "existing-doc-retry-123",
+                        }
+                    }));
 
-                Assert.Equal("existing-doc-retry-123", result.DocumentId);
-                Assert.Equal(2, resetAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingDocument");
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://docs.googleapis.com/v1/documents/existing-doc-retry-123:batchUpdate", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, resetAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2564,7 +2678,11 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/doc-default-folder?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/sessionFolder123?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"sessionFolder123\",\"name\":\"Session Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/doc-default-folder?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"doc-default-folder\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/document/d/doc-default-folder/edit\"}");
                     }
 
@@ -2589,7 +2707,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-default-folder", result.DocumentId);
-                Assert.Equal(4, recordedRequests.Count);
+                Assert.Equal(5, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
                 var patchRequest = Assert.Single(recordedRequests, request => request.Method == "PATCH");
                 Assert.Contains("addParents=sessionFolder123", patchRequest.Uri.Query);
@@ -2618,7 +2736,11 @@ namespace OfficeIMO.Tests {
                         return Task.FromResult(CreateJsonResponse("{}"));
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/doc-retry-drive?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/folder123?", StringComparison.Ordinal)) {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"folder123\",\"name\":\"Requested Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}"));
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/doc-retry-drive?", StringComparison.Ordinal)) {
                         return Task.FromResult(CreateJsonResponse("{\"id\":\"doc-retry-drive\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/document/d/doc-retry-drive/edit\"}"));
                     }
 
@@ -2680,7 +2802,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-hf\",\"title\":\"Header Footer Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-hf") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-hf?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc-hf\",\"title\":\"Header Footer Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -2712,7 +2834,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-hf", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(8, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
@@ -2749,13 +2871,17 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-header-table\",\"title\":\"Header Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-header-table\",\"title\":\"Header Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                         }
 
-                        return CreateJsonResponse(CreateHeaderTableDocumentStateJson("headerTable123", "doc-header-table", "Header Table Export"));
+                        return CreateJsonResponse(CreateHeaderTableDocumentStateJson(
+                            "headerTable123",
+                            "doc-header-table",
+                            "Header Table Export",
+                            getCount == 2 ? 1 : 15));
                     }
 
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table:batchUpdate") {
@@ -2782,7 +2908,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-header-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(10, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
@@ -2809,6 +2935,18 @@ namespace OfficeIMO.Tests {
                     && request.Body.Contains("\"updateTableCellStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"backgroundColor\"", headerTableStyle.Body!);
                 Assert.Contains("\"borderRight\"", headerTableStyle.Body!);
+                using (var styleJson = JsonDocument.Parse(headerTableStyle.Body!)) {
+                    JsonElement style = styleJson.RootElement.GetProperty("requests").EnumerateArray()
+                        .Single(request => request.TryGetProperty("updateTableCellStyle", out _))
+                        .GetProperty("updateTableCellStyle");
+                    Assert.Equal(
+                        15,
+                        style.GetProperty("tableRange")
+                            .GetProperty("tableCellLocation")
+                            .GetProperty("tableStartLocation")
+                            .GetProperty("index")
+                            .GetInt32());
+                }
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2832,7 +2970,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-footer-table\",\"title\":\"Footer Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-footer-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-footer-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-footer-table\",\"title\":\"Footer Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -2865,7 +3003,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-footer-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(10, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
@@ -2900,7 +3038,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_ReplaysEvenHeaderTableCells() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenHeaderTablesWhenNativeSegmentBindingIsUnavailable() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenHeaderTable.docx");
 
             try {
@@ -2915,7 +3053,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-header-table\",\"title\":\"Even Header Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-header-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-header-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-even-header-table\",\"title\":\"Even Header Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -2948,36 +3086,13 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-header-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", headerCreate.Body!);
-
-                var headerInsertTable = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"insertTable\"", StringComparison.Ordinal));
-                Assert.Contains("\"rows\":2", headerInsertTable.Body!);
-                Assert.Contains("\"columns\":2", headerInsertTable.Body!);
-
-                var headerTableReplay = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"H1\\n\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"H4\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"text\":\"H2\\n\"", headerTableReplay.Body!);
-                Assert.Contains("\"text\":\"H3\\n\"", headerTableReplay.Body!);
-
-                var headerTableStyle = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"updateTableCellStyle\"", StringComparison.Ordinal));
-                Assert.Contains("\"backgroundColor\"", headerTableStyle.Body!);
-                Assert.Contains("\"borderRight\"", headerTableStyle.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -2986,7 +3101,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_ReplaysFirstFooterTableCells() {
+        public async Task Test_GoogleDocsExporter_SkipsFirstFooterTablesWhenNativeSegmentBindingIsUnavailable() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterFirstFooterTable.docx");
 
             try {
@@ -3001,7 +3116,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-first-footer-table\",\"title\":\"First Footer Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-first-footer-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-first-footer-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-first-footer-table\",\"title\":\"First Footer Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3034,30 +3149,11 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-first-footer-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"FIRST_PAGE\"", footerCreate.Body!);
-
-                var footerInsertTable = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"firstFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"insertTable\"", StringComparison.Ordinal));
-                Assert.Contains("\"rows\":2", footerInsertTable.Body!);
-
-                var footerTableReplay = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"firstFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F1\\n\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F4\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"text\":\"F2\\n\"", footerTableReplay.Body!);
-
-                var footerTableStyle = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"firstFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"updateTableCellStyle\"", StringComparison.Ordinal));
-                Assert.Contains("\"backgroundColor\"", footerTableStyle.Body!);
+                Assert.Contains(recordedRequests, request => request.Body?.Contains("\"useFirstPageHeaderFooter\":true", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3066,7 +3162,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_ReplaysEvenFooterTableCells() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenFooterTablesWhenNativeSegmentBindingIsUnavailable() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenFooterTable.docx");
 
             try {
@@ -3081,7 +3177,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-footer-table\",\"title\":\"Even Footer Table Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-footer-table") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-footer-table?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-even-footer-table\",\"title\":\"Even Footer Table Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3114,33 +3210,13 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-footer-table", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", footerCreate.Body!);
-
-                var footerInsertTable = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"insertTable\"", StringComparison.Ordinal));
-                Assert.Contains("\"rows\":2", footerInsertTable.Body!);
-
-                var footerTableReplay = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F1\\n\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F4\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"text\":\"F2\\n\"", footerTableReplay.Body!);
-
-                var footerTableStyle = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTable123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"updateTableCellStyle\"", StringComparison.Ordinal));
-                Assert.Contains("\"backgroundColor\"", footerTableStyle.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3149,7 +3225,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_CreatesFirstPageHeaderAndFooterSegments() {
+        public async Task Test_GoogleDocsExporter_SkipsFirstPageSegmentsThatTheApiCannotBind() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterFirstPageHeaderFooter.docx");
 
             try {
@@ -3164,7 +3240,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-first-hf\",\"title\":\"First Page Header Footer Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-first-hf") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-first-hf?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc-first-hf\",\"title\":\"First Page Header Footer Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -3196,20 +3272,13 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-first-hf", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
-
-                var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"FIRST_PAGE\"", headerCreate.Body!);
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"FIRST_PAGE\"", footerCreate.Body!);
-
-                var headerWrite = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("header-first-123", StringComparison.Ordinal) && request.Body.Contains("First header text", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"header-first-123\"", headerWrite.Body!);
-
-                var footerWrite = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("footer-first-123", StringComparison.Ordinal) && request.Body.Contains("First footer text", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"footer-first-123\"", footerWrite.Body!);
+                Assert.Contains(recordedRequests, request => request.Body?.Contains("\"useFirstPageHeaderFooter\":true", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-header");
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/first-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3218,7 +3287,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_CreatesEvenPageHeaderAndFooterSegments() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenPageSegmentsThatTheApiCannotBind() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenPageHeaderFooter.docx");
 
             try {
@@ -3233,7 +3302,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-hf\",\"title\":\"Even Page Header Footer Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-hf") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-hf?includeTabsContent=true") {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-hf\",\"title\":\"Even Page Header Footer Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
                     }
 
@@ -3265,23 +3334,15 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-hf", result.DocumentId);
-                Assert.Equal(7, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", headerCreate.Body!);
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", footerCreate.Body!);
-
-                var headerWrite = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("header-even-123", StringComparison.Ordinal) && request.Body.Contains("Even header text", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"header-even-123\"", headerWrite.Body!);
-
-                var footerWrite = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("footer-even-123", StringComparison.Ordinal) && request.Body.Contains("Even footer text", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"footer-even-123\"", footerWrite.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3305,7 +3366,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-header-table-bookmark\",\"title\":\"Header Table Bookmark Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table-bookmark") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-header-table-bookmark?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-header-table-bookmark\",\"title\":\"Header Table Bookmark Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3352,7 +3413,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_CreatesNamedRangesForEvenHeaderTableBookmarks() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenHeaderTableBookmarksWithTheirSegment() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenHeaderTableBookmark.docx");
 
             try {
@@ -3367,7 +3428,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-header-table-bookmark\",\"title\":\"Even Header Table Bookmark Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-header-table-bookmark") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-header-table-bookmark?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-even-header-table-bookmark\",\"title\":\"Even Header Table Bookmark Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3404,27 +3465,14 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-header-table-bookmark", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var headerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createHeader\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", headerCreate.Body!);
-
-                var headerTableWrite = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTableBookmark123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"H1\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"insertText\"", headerTableWrite.Body!);
-
-                var namedRangeWrite = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenHeaderTableBookmark123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"createNamedRange\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"name\":\"HeaderCellBookmark\"", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"evenHeaderTableBookmark123\"", namedRangeWrite.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createHeader\"", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createNamedRange\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3433,7 +3481,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleDocsExporter_CreatesNamedRangesForEvenFooterTableBookmarks() {
+        public async Task Test_GoogleDocsExporter_SkipsEvenFooterTableBookmarksWithTheirSegment() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleDocsExporterEvenFooterTableBookmark.docx");
 
             try {
@@ -3448,7 +3496,7 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{\"documentId\":\"doc-even-footer-table-bookmark\",\"title\":\"Even Footer Table Bookmark Export\"}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-footer-table-bookmark") {
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-even-footer-table-bookmark?includeTabsContent=true") {
                         int getCount = recordedRequests.Count(entry => entry.Uri.AbsoluteUri == request.RequestUri.AbsoluteUri && entry.Method == HttpMethod.Get.Method);
                         if (getCount == 1) {
                             return CreateJsonResponse("{\"documentId\":\"doc-even-footer-table-bookmark\",\"title\":\"Even Footer Table Bookmark Export\",\"body\":{\"content\":[{\"startIndex\":1,\"endIndex\":20,\"paragraph\":{}}]}}");
@@ -3485,27 +3533,14 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("doc-even-footer-table-bookmark", result.DocumentId);
-                Assert.Equal(8, recordedRequests.Count);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, request => Assert.Equal("Bearer fake-access-token", request.Authorization));
 
                 var initialBatch = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"updateDocumentStyle\"", StringComparison.Ordinal));
                 Assert.Contains("\"useEvenPageHeaderFooter\":true", initialBatch.Body!);
-
-                var footerCreate = Assert.Single(recordedRequests, request => request.Body != null && request.Body.Contains("\"createFooter\"", StringComparison.Ordinal));
-                Assert.Contains("\"type\":\"EVEN_PAGE\"", footerCreate.Body!);
-
-                var footerTableWrite = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTableBookmark123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"text\":\"F1\\n\"", StringComparison.Ordinal));
-                Assert.Contains("\"insertText\"", footerTableWrite.Body!);
-
-                var namedRangeWrite = Assert.Single(recordedRequests, request =>
-                    request.Body != null
-                    && request.Body.Contains("\"segmentId\":\"evenFooterTableBookmark123\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"createNamedRange\"", StringComparison.Ordinal)
-                    && request.Body.Contains("\"name\":\"FooterCellBookmark\"", StringComparison.Ordinal));
-                Assert.Contains("\"segmentId\":\"evenFooterTableBookmark123\"", namedRangeWrite.Body!);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createFooter\"", StringComparison.Ordinal) == true);
+                Assert.DoesNotContain(recordedRequests, request => request.Body?.Contains("\"createNamedRange\"", StringComparison.Ordinal) == true);
+                Assert.Contains(result.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -3864,7 +3899,6 @@ namespace OfficeIMO.Tests {
 
             var table = document.AddTable(1, 1, WordTableStyle.TableGrid);
             var paragraph = table.Rows[0].Cells[0].Paragraphs[0];
-            paragraph.Text = "Cell ";
             var image = paragraph.InsertImage(imagePath, width: 1, height: 1, description: "CellLogo");
             image.Title = "CellBrand";
 
@@ -3893,6 +3927,23 @@ namespace OfficeIMO.Tests {
             table.Rows[1].Cells[0].Paragraphs[0].Text = "Alpha";
             table.Rows[1].Cells[1].Paragraphs[0].Text = "42";
             table.Rows[0].Cells[0].MergeHorizontally(1);
+
+            return document;
+        }
+
+        private WordDocument BuildGoogleDocsShiftedMergedTableDocument(string filePath) {
+            var document = WordDocument.Create(filePath);
+            document.BuiltinDocumentProperties.Title = "Google Docs Shifted Merged Table";
+
+            var prefix = document.AddTable(1, 1, WordTableStyle.TableGrid);
+            prefix.Rows[0].Cells[0].Paragraphs[0].Text = "Prefix content that shifts the later table";
+
+            var merged = document.AddTable(2, 2, WordTableStyle.TableGrid);
+            merged.Rows[0].Cells[0].Paragraphs[0].Text = "Merged";
+            merged.Rows[0].Cells[1].Paragraphs[0].Text = "Hidden";
+            merged.Rows[1].Cells[0].Paragraphs[0].Text = "Alpha";
+            merged.Rows[1].Cells[1].Paragraphs[0].Text = "42";
+            merged.Rows[0].Cells[0].MergeHorizontally(1);
 
             return document;
         }
@@ -4031,7 +4082,8 @@ namespace OfficeIMO.Tests {
         private static string CreateHeaderTableDocumentStateJson(
             string headerId,
             string documentId = "doc-header-table",
-            string title = "Header Table Export") {
+            string title = "Header Table Export",
+            int tableStartIndex = 1) {
             return JsonSerializer.Serialize(new {
                 documentId,
                 title,
@@ -4048,8 +4100,8 @@ namespace OfficeIMO.Tests {
                     [headerId] = new {
                         content = new object[] {
                             new {
-                                startIndex = 1,
-                                endIndex = 40,
+                                startIndex = tableStartIndex,
+                                endIndex = tableStartIndex + 39,
                                 table = new {
                                     tableRows = new object[] {
                                         new {
@@ -4057,8 +4109,8 @@ namespace OfficeIMO.Tests {
                                                 new {
                                                     content = new object[] {
                                                         new {
-                                                            startIndex = 5,
-                                                            endIndex = 6,
+                                                            startIndex = tableStartIndex + 4,
+                                                            endIndex = tableStartIndex + 5,
                                                             paragraph = new { }
                                                         }
                                                     }
@@ -4066,8 +4118,8 @@ namespace OfficeIMO.Tests {
                                                 new {
                                                     content = new object[] {
                                                         new {
-                                                            startIndex = 10,
-                                                            endIndex = 11,
+                                                            startIndex = tableStartIndex + 9,
+                                                            endIndex = tableStartIndex + 10,
                                                             paragraph = new { }
                                                         }
                                                     }
@@ -4079,8 +4131,8 @@ namespace OfficeIMO.Tests {
                                                 new {
                                                     content = new object[] {
                                                         new {
-                                                            startIndex = 15,
-                                                            endIndex = 16,
+                                                            startIndex = tableStartIndex + 14,
+                                                            endIndex = tableStartIndex + 15,
                                                             paragraph = new { }
                                                         }
                                                     }
@@ -4088,8 +4140,8 @@ namespace OfficeIMO.Tests {
                                                 new {
                                                     content = new object[] {
                                                         new {
-                                                            startIndex = 20,
-                                                            endIndex = 21,
+                                                            startIndex = tableStartIndex + 19,
+                                                            endIndex = tableStartIndex + 20,
                                                             paragraph = new { }
                                                         }
                                                     }
@@ -4247,6 +4299,73 @@ namespace OfficeIMO.Tests {
             });
         }
 
+        private static string CreateTwoBodyTableDocumentStateJson(
+            string documentId,
+            string title,
+            int secondTableStartIndex) {
+            return JsonSerializer.Serialize(new {
+                documentId,
+                title,
+                body = new {
+                    content = new object[] {
+                        new {
+                            startIndex = 1,
+                            endIndex = 19,
+                            table = new {
+                                tableRows = new object[] {
+                                    new {
+                                        tableCells = new object[] {
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = 5, endIndex = 6, paragraph = new { } }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        },
+                        new {
+                            startIndex = secondTableStartIndex,
+                            endIndex = secondTableStartIndex + 59,
+                            table = new {
+                                tableRows = new object[] {
+                                    new {
+                                        tableCells = new object[] {
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = secondTableStartIndex + 24, endIndex = secondTableStartIndex + 25, paragraph = new { } }
+                                                }
+                                            },
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = secondTableStartIndex + 29, endIndex = secondTableStartIndex + 30, paragraph = new { } }
+                                                }
+                                            }
+                                        }
+                                    },
+                                    new {
+                                        tableCells = new object[] {
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = secondTableStartIndex + 34, endIndex = secondTableStartIndex + 35, paragraph = new { } }
+                                                }
+                                            },
+                                            new {
+                                                content = new object[] {
+                                                    new { startIndex = secondTableStartIndex + 39, endIndex = secondTableStartIndex + 40, paragraph = new { } }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
         private static string CreateSingleCellBodyTableDocumentStateJson(
             string documentId = "doc-table-footnote",
             string title = "Table Footnote Export") {
@@ -4354,7 +4473,8 @@ namespace OfficeIMO.Tests {
                     }));
 
                 Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
-                Assert.IsType<HttpRequestException>(exception.InnerException);
+                var apiException = Assert.IsType<GoogleWorkspaceApiException>(exception.InnerException);
+                Assert.Equal(HttpStatusCode.Forbidden, apiException.ResponseStatusCode);
                 Assert.Contains(exception.Report.Notices, n =>
                     n.Severity == TranslationSeverity.Error
                     && n.Feature == "ApiFailures"
@@ -4383,8 +4503,16 @@ namespace OfficeIMO.Tests {
                 _handler = handler ?? throw new ArgumentNullException(nameof(handler));
             }
 
-            protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
-                return _handler(request);
+            protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
+                HttpResponseMessage response = await _handler(request).ConfigureAwait(false);
+                if (response.StatusCode == HttpStatusCode.NotFound
+                    && request.Method == HttpMethod.Get
+                    && string.Equals(request.RequestUri?.Host, "www.googleapis.com", StringComparison.Ordinal)
+                    && request.RequestUri.AbsolutePath.StartsWith("/drive/v3/files/", StringComparison.Ordinal)) {
+                    response.Dispose();
+                    return CreateJsonResponse("{\"id\":\"test-document\",\"mimeType\":\"application/vnd.google-apps.document\",\"version\":1,\"modifiedTime\":\"2026-01-01T00:00:00Z\"}");
+                }
+                return response;
             }
         }
     }

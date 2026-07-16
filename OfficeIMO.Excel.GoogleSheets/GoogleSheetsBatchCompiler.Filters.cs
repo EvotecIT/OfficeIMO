@@ -4,7 +4,7 @@ using System.IO;
 
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
-        private static IReadOnlyList<GoogleSheetsRequest> BuildFilterRequests(
+        internal static IReadOnlyList<GoogleSheetsRequest> BuildFilterRequests(
             ExcelWorksheetSnapshot worksheet,
             TranslationReport report,
             ref bool multipleFilterNoticeAdded,
@@ -113,7 +113,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 }
 
                 criteria.Add(new GoogleSheetsFilterColumnCriteria {
-                    ColumnId = filterColumn.ColumnId,
+                    ColumnId = filter.StartColumn + filterColumn.ColumnId - 1,
                     HiddenValues = hiddenValues,
                     Condition = condition,
                 });

@@ -5,6 +5,8 @@ using System.IO;
 namespace OfficeIMO.Excel.GoogleSheets {
     internal static partial class GoogleSheetsBatchCompiler {
         private const string DefaultTableFooterColorArgb = "FFE8EAED";
+        private const int DefaultGoogleSheetsRowCount = 1000;
+        private const int DefaultGoogleSheetsColumnCount = 26;
 
         internal static GoogleSheetsBatch Build(ExcelDocument document, GoogleSheetsSaveOptions options) {
             var plan = GoogleSheetsPlanBuilder.Build(document, options);
@@ -16,9 +18,21 @@ namespace OfficeIMO.Excel.GoogleSheets {
             });
             var title = ResolveTitle(document, workbookSnapshot, options);
             var batch = new GoogleSheetsBatch(title, plan, report);
+            batch.ChartDataSheetName = BuildUniqueChartDataSheetName(workbookSnapshot.Worksheets.Select(worksheet => worksheet.Name));
+
+            batch.Add(new GoogleSheetsUpdateSpreadsheetPropertiesRequest {
+                Locale = options.Spreadsheet.Locale,
+                TimeZone = options.Spreadsheet.TimeZone,
+                RecalculationInterval = options.Spreadsheet.RecalculationInterval,
+            });
+            if (options.Identity.WriteDeveloperMetadata) {
+                batch.Add(new GoogleSheetsDeleteDeveloperMetadataRequest { Key = options.Identity.SourceKey });
+                batch.Add(new GoogleSheetsCreateDeveloperMetadataRequest { Key = options.Identity.SourceKey, Value = options.Identity.SourceValue });
+                batch.Add(new GoogleSheetsDeleteDeveloperMetadataRequest { Key = options.Identity.SchemaKey });
+                batch.Add(new GoogleSheetsCreateDeveloperMetadataRequest { Key = options.Identity.SchemaKey, Value = options.Identity.SchemaValue });
+            }
 
             bool styleNoticeAdded = false;
-            bool formulaNoticeAdded = false;
             bool builtInNameNoticeAdded = false;
             bool tableStyleNoticeAdded = false;
             bool multipleFilterNoticeAdded = false;
@@ -29,14 +43,22 @@ namespace OfficeIMO.Excel.GoogleSheets {
             bool cellValidationNoticeAdded = false;
 
             foreach (var worksheet in workbookSnapshot.Worksheets) {
+                ExcelSheet? sourceSheet = document.Sheets.FirstOrDefault(sheet => string.Equals(sheet.Name, worksheet.Name, StringComparison.OrdinalIgnoreCase));
+                IReadOnlyList<NativePivotCompilation> nativePivots = sourceSheet == null
+                    ? Array.Empty<NativePivotCompilation>()
+                    : CompilePivotTables(sourceSheet, workbookSnapshot, report, options.UnsupportedFeatures.PivotTables);
+                ResolveGridSize(worksheet, sourceSheet, workbookSnapshot.NamedRanges, nativePivots, options, out int rowCount, out int columnCount);
                 batch.Add(new GoogleSheetsAddSheetRequest {
                     SheetName = worksheet.Name,
                     SheetIndex = worksheet.Index,
                     Hidden = worksheet.Hidden,
                     RightToLeft = worksheet.RightToLeft,
                     TabColorArgb = worksheet.TabColorArgb,
+                    RowCount = rowCount,
+                    ColumnCount = columnCount,
                     FrozenRowCount = worksheet.FrozenRowCount,
                     FrozenColumnCount = worksheet.FrozenColumnCount,
+                    HideGridlines = !worksheet.ShowGridlines,
                 });
 
                 if (worksheet.Protection != null) {
@@ -59,7 +81,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     batch.Add(new GoogleSheetsAddProtectedRangeRequest {
                         SheetName = worksheet.Name,
                         Description = BuildProtectionDescription(worksheet.Name, worksheet.Protection),
-                        WarningOnly = false,
+                        WarningOnly = options.Protection.WarningOnly,
+                        DomainUsersCanEdit = options.Protection.DomainUsersCanEdit,
+                        EditorEmailAddresses = options.Protection.EditorEmailAddresses.ToArray(),
+                        UnprotectedA1Ranges = options.Protection.UnprotectedRangesBySheet.TryGetValue(worksheet.Name, out var unprotectedRanges)
+                            ? unprotectedRanges.ToArray()
+                            : Array.Empty<string>(),
                     });
                 }
 
@@ -71,6 +98,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         EndIndexExclusive = column.EndIndex,
                         PixelSize = column.Width.HasValue ? ConvertExcelColumnWidthToPixels(column.Width.Value) : null,
                         Hidden = column.Hidden,
+                        OutlineLevel = column.OutlineLevel,
                     });
                 }
 
@@ -82,8 +110,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         EndIndexExclusive = row.Index,
                         PixelSize = row.Height.HasValue ? ConvertPointsToPixels(row.Height.Value) : null,
                         Hidden = row.Hidden,
+                        OutlineLevel = row.OutlineLevel,
                     });
                 }
+
+                AppendDimensionGroups(batch, worksheet);
 
                 foreach (var table in worksheet.Tables) {
                     if (!tableStyleNoticeAdded && !string.IsNullOrWhiteSpace(table.StyleName)) {
@@ -129,9 +160,12 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 var updateCells = new GoogleSheetsUpdateCellsRequest {
                     SheetName = worksheet.Name
                 };
-                var emittedCellKeys = new HashSet<string>(StringComparer.Ordinal);
 
                 foreach (var cell in worksheet.Cells) {
+                    if (nativePivots.Any(pivot => TryRangeContainsCell(pivot.OutputRange, cell.Row, cell.Column))) {
+                        continue;
+                    }
+
                     if (!styleNoticeAdded && cell.Style != null) {
                         report.Add(
                             TranslationSeverity.Info,
@@ -140,8 +174,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         styleNoticeAdded = true;
                     }
 
-                    var cellValue = BuildCellValue(cell, options, report, ref formulaNoticeAdded);
-                    emittedCellKeys.Add(CreateCellKey(cell.Row, cell.Column));
+                    var cellValue = BuildCellValue(cell, options.Formulas);
                     updateCells.AddCell(new GoogleSheetsCellData {
                         RowIndex = cell.Row - 1,
                         ColumnIndex = cell.Column - 1,
@@ -151,14 +184,15 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         DataValidationRule = BuildCellValidationRule(workbookSnapshot, worksheet, cell.Row, cell.Column, report, ref cellValidationNoticeAdded),
                         Hyperlink = BuildHyperlink(cell.Hyperlink),
                         Comment = BuildComment(cell.Comment),
+                        TextFormatRuns = BuildTextFormatRuns(cell.RichTextRuns),
                     });
                 }
-
-                AppendValidationOnlyCells(workbookSnapshot, worksheet, updateCells, emittedCellKeys, report, ref cellValidationNoticeAdded);
 
                 if (updateCells.Cells.Count > 0) {
                     batch.Add(updateCells);
                 }
+
+                AppendValidationRanges(workbookSnapshot, worksheet, batch, report, ref cellValidationNoticeAdded);
 
                 foreach (var mergedRange in worksheet.MergedRanges) {
                     batch.Add(new GoogleSheetsMergeCellsRequest {
@@ -170,8 +204,21 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         EndColumnIndexExclusive = mergedRange.EndColumn,
                     });
                 }
+
+                if (sourceSheet != null) {
+                    AppendConditionalFormatting(batch, sourceSheet, report);
+                    AppendCharts(batch, sourceSheet, worksheet, report, options.UnsupportedFeatures.Charts);
+                    foreach (NativePivotCompilation pivot in nativePivots) {
+                        batch.Add(pivot.Request);
+                    }
+                }
             }
 
+            var reservedNamedRangeNames = new HashSet<string>(
+                workbookSnapshot.NamedRanges
+                    .Where(namedRange => !namedRange.IsBuiltIn && string.IsNullOrWhiteSpace(namedRange.SheetName))
+                    .Select(namedRange => namedRange.Name),
+                StringComparer.OrdinalIgnoreCase);
             foreach (var namedRange in workbookSnapshot.NamedRanges) {
                 if (namedRange.IsBuiltIn) {
                     if (!builtInNameNoticeAdded) {
@@ -184,14 +231,125 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     continue;
                 }
 
+                string targetName = string.IsNullOrWhiteSpace(namedRange.SheetName)
+                    ? namedRange.Name
+                    : BuildSheetScopedNamedRangeName(namedRange, reservedNamedRangeNames, report);
                 batch.Add(new GoogleSheetsAddNamedRangeRequest {
-                    Name = namedRange.Name,
+                    Name = targetName,
+                    SourceName = namedRange.Name,
                     SheetName = namedRange.SheetName,
                     A1Range = namedRange.ReferenceA1,
                 });
             }
 
             return batch;
+        }
+
+        private static void ResolveGridSize(
+            ExcelWorksheetSnapshot worksheet,
+            ExcelSheet? sourceSheet,
+            IReadOnlyList<ExcelNamedRangeSnapshot> namedRanges,
+            IReadOnlyList<NativePivotCompilation> nativePivots,
+            GoogleSheetsSaveOptions options,
+            out int rowCount,
+            out int columnCount) {
+            rowCount = DefaultGoogleSheetsRowCount;
+            columnCount = DefaultGoogleSheetsColumnCount;
+            string usedRange = worksheet.UsedRangeA1.Replace("$", string.Empty);
+            if (A1.TryParseRange(usedRange, out _, out _, out int lastRow, out int lastColumn)) {
+                rowCount = Math.Max(rowCount, lastRow);
+                columnCount = Math.Max(columnCount, lastColumn);
+            }
+
+            foreach (ExcelDataValidationSnapshot validation in worksheet.Validations) {
+                foreach (string a1Range in validation.A1Ranges) {
+                    ExpandGridToInclude(a1Range, ref rowCount, ref columnCount);
+                }
+            }
+
+            foreach (ExcelMergedRangeSnapshot mergedRange in worksheet.MergedRanges) {
+                ExpandGridToInclude(mergedRange.A1Range, ref rowCount, ref columnCount);
+            }
+
+            foreach (ExcelTableSnapshot table in worksheet.Tables) {
+                ExpandGridToInclude(table.A1Range, ref rowCount, ref columnCount);
+            }
+
+            foreach (NativePivotCompilation pivot in nativePivots) {
+                ExpandGridToInclude(pivot.OutputRange, ref rowCount, ref columnCount);
+            }
+
+            if (worksheet.AutoFilter != null) {
+                ExpandGridToInclude(worksheet.AutoFilter.A1Range, ref rowCount, ref columnCount);
+            }
+
+            if (sourceSheet != null) {
+                foreach (ExcelConditionalFormattingInfo rule in sourceSheet.GetConditionalFormattingRules()) {
+                    ExpandGridToInclude(rule.Range, ref rowCount, ref columnCount);
+                }
+
+                foreach (ExcelChart chart in sourceSheet.Charts) {
+                    if (chart.TryGetSnapshot(out ExcelChartSnapshot snapshot)) {
+                        rowCount = Math.Max(rowCount, snapshot.RowIndex);
+                        columnCount = Math.Max(columnCount, snapshot.ColumnIndex);
+                    }
+                }
+            }
+
+            foreach (ExcelRowSnapshot row in worksheet.Rows) {
+                rowCount = Math.Max(rowCount, row.Index);
+            }
+
+            foreach (ExcelColumnSnapshot column in worksheet.Columns) {
+                columnCount = Math.Max(columnCount, column.EndIndex);
+            }
+
+            if (worksheet.Protection != null
+                && options.Protection.UnprotectedRangesBySheet.TryGetValue(worksheet.Name, out var unprotectedRanges)) {
+                foreach (string a1Range in unprotectedRanges) {
+                    ExpandGridToInclude(a1Range, ref rowCount, ref columnCount);
+                }
+            }
+
+            foreach (ExcelNamedRangeSnapshot namedRange in namedRanges.Where(range => !range.IsBuiltIn)) {
+                string? targetSheetName = namedRange.SheetName;
+                string rangeText = namedRange.ReferenceA1.TrimStart('=').Replace("$", string.Empty);
+                if (TrySplitSheetQualifiedRange(rangeText, out string? explicitSheetName, out string unqualifiedRange)) {
+                    targetSheetName = explicitSheetName;
+                    rangeText = unqualifiedRange;
+                }
+
+                if (string.Equals(targetSheetName, worksheet.Name, StringComparison.OrdinalIgnoreCase)) {
+                    ExpandGridToIncludeNamedRange(rangeText, ref rowCount, ref columnCount);
+                }
+            }
+
+            rowCount = Math.Max(rowCount, worksheet.FrozenRowCount);
+            columnCount = Math.Max(columnCount, worksheet.FrozenColumnCount);
+        }
+
+        private static void ExpandGridToInclude(string a1Range, ref int rowCount, ref int columnCount) {
+            string normalizedRange = a1Range.Replace("$", string.Empty);
+            if (!A1.TryParseRange(normalizedRange, out _, out _, out int lastRow, out int lastColumn)) {
+                return;
+            }
+
+            rowCount = Math.Max(rowCount, lastRow);
+            columnCount = Math.Max(columnCount, lastColumn);
+        }
+
+        private static void ExpandGridToIncludeNamedRange(string a1Range, ref int rowCount, ref int columnCount) {
+            string normalizedRange = a1Range.Replace("$", string.Empty);
+            if (!A1.TryParseRange(normalizedRange, out int firstRow, out int firstColumn, out int lastRow, out int lastColumn)) {
+                return;
+            }
+
+            if (firstRow != 1 || lastRow != A1.MaxRows) {
+                rowCount = Math.Max(rowCount, lastRow);
+            }
+            if (firstColumn != 1 || lastColumn != A1.MaxColumns) {
+                columnCount = Math.Max(columnCount, lastColumn);
+            }
         }
 
         private static string ResolveTitle(ExcelDocument document, ExcelWorkbookSnapshot workbookSnapshot, GoogleSheetsSaveOptions options) {

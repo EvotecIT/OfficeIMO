@@ -308,9 +308,6 @@ namespace OfficeIMO.Word.GoogleDocs {
             }
 
             var payload = new GoogleDocsApiSectionStylePayload();
-            if (TryBuildSize(source.PageWidthPoints, source.PageHeightPoints, out var pageSize)) {
-                payload.PageSize = pageSize;
-            }
 
             if (TryBuildParagraphDimension(source.MarginTopPoints, out var marginTop)) {
                 payload.MarginTop = marginTop;
@@ -361,7 +358,6 @@ namespace OfficeIMO.Word.GoogleDocs {
 
         private static List<string> BuildSectionStyleFields(GoogleDocsApiSectionStylePayload style) {
             var fields = new List<string>();
-            if (style.PageSize != null) fields.Add("pageSize");
             if (style.MarginTop != null) fields.Add("marginTop");
             if (style.MarginBottom != null) fields.Add("marginBottom");
             if (style.MarginLeft != null) fields.Add("marginLeft");
@@ -402,20 +398,75 @@ namespace OfficeIMO.Word.GoogleDocs {
                 return;
             }
 
+            var documentStyle = new GoogleDocsApiDocumentStylePayload();
+            var fields = new List<string>();
+            var firstSection = batch.Snapshot.Sections.FirstOrDefault();
+            if (firstSection != null
+                && TryBuildDocumentPageSize(
+                    firstSection.PageWidthPoints,
+                    firstSection.PageHeightPoints,
+                    firstSection.Orientation,
+                    out var pageSize)) {
+                documentStyle.PageSize = pageSize;
+                fields.Add("pageSize");
+
+                bool hasDifferentPaperSize = batch.Snapshot.Sections.Skip(1).Any(section =>
+                    !HasSameDocumentPageSize(
+                        pageSize,
+                        section.PageWidthPoints,
+                        section.PageHeightPoints,
+                        section.Orientation));
+                if (hasDifferentPaperSize) {
+                    AddReportNoticeOnce(
+                        batch.Report,
+                        TranslationSeverity.Warning,
+                        "SectionLayout",
+                        "Google Docs uses one document-wide page size. The first Word section's paper size is preserved, while later sections with a different paper size retain their orientation and margins but use that document-wide size.");
+                }
+            }
+
             bool useEvenPageHeaderFooter = batch.Snapshot.Sections.Any(section => section.DifferentOddAndEvenPages)
                 || batch.Segments.Any(segment => string.Equals(segment.Variant, "even", StringComparison.OrdinalIgnoreCase));
-            if (!useEvenPageHeaderFooter) {
+            if (useEvenPageHeaderFooter) {
+                documentStyle.UseEvenPageHeaderFooter = true;
+                fields.Add("useEvenPageHeaderFooter");
+            }
+
+            if (fields.Count == 0) {
                 return;
             }
 
             payload.Requests.Add(new GoogleDocsApiRequestPayload {
                 UpdateDocumentStyle = new GoogleDocsApiUpdateDocumentStyleRequestPayload {
-                    DocumentStyle = new GoogleDocsApiDocumentStylePayload {
-                        UseEvenPageHeaderFooter = true,
-                    },
-                    Fields = "useEvenPageHeaderFooter",
+                    DocumentStyle = documentStyle,
+                    Fields = string.Join(",", fields),
                 }
             });
+        }
+
+        private static bool TryBuildDocumentPageSize(
+            double? widthPoints,
+            double? heightPoints,
+            string? orientation,
+            out GoogleDocsApiSizePayload size) {
+            if (string.Equals(orientation, "Landscape", StringComparison.OrdinalIgnoreCase)) {
+                return TryBuildSize(heightPoints, widthPoints, out size);
+            }
+
+            return TryBuildSize(widthPoints, heightPoints, out size);
+        }
+
+        private static bool HasSameDocumentPageSize(
+            GoogleDocsApiSizePayload expected,
+            double? widthPoints,
+            double? heightPoints,
+            string? orientation) {
+            if (!TryBuildDocumentPageSize(widthPoints, heightPoints, orientation, out var actual)) {
+                return true;
+            }
+
+            return Math.Abs(expected.Width!.Magnitude - actual.Width!.Magnitude) < 0.01d
+                && Math.Abs(expected.Height!.Magnitude - actual.Height!.Magnitude) < 0.01d;
         }
 
         private static List<GoogleDocsApiSectionColumnPropertiesPayload>? BuildSectionColumnProperties(int? columnCount, double? columnSpacingPoints) {

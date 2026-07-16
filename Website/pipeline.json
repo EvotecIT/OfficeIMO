@@ -128,6 +128,13 @@
         { "id": "officeimo.visio", "name": "OfficeIMO.Visio", "order": 60 },
         { "id": "officeimo.reader", "name": "OfficeIMO.Reader", "order": 70 },
         { "id": "pswriteoffice", "name": "PSWriteOffice", "order": 80 },
+        { "id": "officeimo.googleworkspace", "name": "OfficeIMO.GoogleWorkspace", "order": 81 },
+        { "id": "officeimo.googleworkspace.drive", "name": "OfficeIMO.GoogleWorkspace.Drive", "order": 82 },
+        { "id": "officeimo.googleworkspace.auth.googleapis", "name": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis", "order": 83 },
+        { "id": "officeimo.googleworkspace.sync", "name": "OfficeIMO.GoogleWorkspace.Sync", "order": 84 },
+        { "id": "officeimo.word.googledocs", "name": "OfficeIMO.Word.GoogleDocs", "order": 85 },
+        { "id": "officeimo.excel.googlesheets", "name": "OfficeIMO.Excel.GoogleSheets", "order": 86 },
+        { "id": "officeimo.powerpoint.googleslides", "name": "OfficeIMO.PowerPoint.GoogleSlides", "order": 87 },
         {
           "id": "officeimo.word.html",
           "name": "OfficeIMO.Word.Html",
@@ -161,6 +168,41 @@
         { "id": "officeimo.pdf", "name": "OfficeIMO.Pdf", "order": 150 }
       ],
       "assetRules": [
+        {
+          "product": "officeimo.googleworkspace.auth.googleapis",
+          "label": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
+          "match": ["*OfficeIMO.GoogleWorkspace.Auth.GoogleApis*.nupkg"]
+        },
+        {
+          "product": "officeimo.googleworkspace.drive",
+          "label": "OfficeIMO.GoogleWorkspace.Drive",
+          "match": ["*OfficeIMO.GoogleWorkspace.Drive*.nupkg"]
+        },
+        {
+          "product": "officeimo.googleworkspace.sync",
+          "label": "OfficeIMO.GoogleWorkspace.Sync",
+          "match": ["*OfficeIMO.GoogleWorkspace.Sync*.nupkg"]
+        },
+        {
+          "product": "officeimo.word.googledocs",
+          "label": "OfficeIMO.Word.GoogleDocs",
+          "match": ["*OfficeIMO.Word.GoogleDocs*.nupkg"]
+        },
+        {
+          "product": "officeimo.excel.googlesheets",
+          "label": "OfficeIMO.Excel.GoogleSheets",
+          "match": ["*OfficeIMO.Excel.GoogleSheets*.nupkg"]
+        },
+        {
+          "product": "officeimo.powerpoint.googleslides",
+          "label": "OfficeIMO.PowerPoint.GoogleSlides",
+          "match": ["*OfficeIMO.PowerPoint.GoogleSlides*.nupkg"]
+        },
+        {
+          "product": "officeimo.googleworkspace",
+          "label": "OfficeIMO.GoogleWorkspace",
+          "match": ["*OfficeIMO.GoogleWorkspace*.nupkg"]
+        },
         {
           "product": "officeimo.word.html",
           "label": "OfficeIMO.Word.Html",

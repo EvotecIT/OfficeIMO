@@ -6,6 +6,9 @@ namespace OfficeIMO.GoogleWorkspace {
     /// </summary>
     public sealed class GoogleWorkspaceSessionOptions {
         public string ApplicationName { get; set; } = "OfficeIMO";
+        public string? QuotaUser { get; set; }
+        public string? QuotaProject { get; set; }
+        public Func<string>? RequestIdFactory { get; set; }
         public string? DefaultDriveId { get; set; }
         public string? DefaultFolderId { get; set; }
         public string? SubjectUser { get; set; }

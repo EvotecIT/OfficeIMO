@@ -195,7 +195,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 if (anyCurrency) {
                     return "CURRENCY";
                 }
-                return "NUMBER";
+                return "DOUBLE";
             }
 
             return "TEXT";

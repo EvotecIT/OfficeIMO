@@ -41,12 +41,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 columnStart = columnEnd = column;
             }
 
+            bool allRows = rowStart == 1 && rowEnd == A1.MaxRows;
+            bool allColumns = columnStart == 1 && columnEnd == A1.MaxColumns;
             payload.Range = new GoogleSheetsApiGridRangePayload {
                 SheetId = sheetId,
-                StartRowIndex = rowStart - 1,
-                EndRowIndex = rowEnd,
-                StartColumnIndex = columnStart - 1,
-                EndColumnIndex = columnEnd,
+                StartRowIndex = allRows ? null : rowStart - 1,
+                EndRowIndex = allRows ? null : rowEnd,
+                StartColumnIndex = allColumns ? null : columnStart - 1,
+                EndColumnIndex = allColumns ? null : columnEnd,
             };
             return true;
         }
@@ -139,10 +141,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
             return true;
         }
 
-        private static string BuildUpdateCellsFields(bool includeFormat, bool includeNote, bool includeValidation) {
-            var fields = new List<string> { "userEnteredValue" };
+        private static string BuildUpdateCellsFields(bool includeValue, bool includeFormat, bool includeNote, bool includeValidation) {
+            var fields = new List<string>();
+            if (includeValue) {
+                fields.Add("userEnteredValue");
+            }
             if (includeFormat) {
                 fields.Add("userEnteredFormat");
+                fields.Add("textFormatRuns");
             }
             if (includeValidation) {
                 fields.Add("dataValidationRule");

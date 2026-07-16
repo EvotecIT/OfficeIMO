@@ -6,6 +6,9 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
+        internal static int EstimatePageCount(WordDocument document) =>
+            Math.Max(1, EstimateSectionPageCounts(document).Sum());
+
         private static IReadOnlyList<int> EstimateSectionPageCounts(WordDocument document) {
             int sectionCount = Math.Max(1, document.Sections.Count);
             int[] pageCounts = new int[sectionCount];

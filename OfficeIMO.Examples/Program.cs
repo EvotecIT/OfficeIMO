@@ -143,6 +143,21 @@ namespace OfficeIMO.Examples {
             string templatesPath = Path.Combine(baseFolder, "Templates");
             string folderPath = Path.Combine(baseFolder, "Documents");
             Setup(folderPath);
+            string? googleSupportMatrixPath = GetArgumentValue(args, "--google-support-matrix");
+            if (!string.IsNullOrWhiteSpace(googleSupportMatrixPath)) {
+                Google.GoogleWorkspaceSupportMatrixWriter.WriteTo(googleSupportMatrixPath!);
+                Console.WriteLine($"Google Workspace support matrix written to {Path.GetFullPath(googleSupportMatrixPath!)}");
+                return;
+            }
+            if (HasArgument(args, "--google-workspace")) {
+                Google.GoogleDocsExamples.Example_Plan(folderPath);
+                Google.GoogleSheetsExamples.Example_Plan(folderPath);
+                Google.GoogleSlidesExamples.Example_Plan(folderPath);
+                Google.GoogleDocsExamples.Example_ExportAsync(folderPath).GetAwaiter().GetResult();
+                Google.GoogleSheetsExamples.Example_ExportAsync(folderPath).GetAwaiter().GetResult();
+                Google.GoogleSlidesExamples.Example_ExportAsync(folderPath).GetAwaiter().GetResult();
+                return;
+            }
             if (HasArgument(args, "--opendocument")) {
                 OpenDocument.OpenDocumentMilestones.Example(folderPath);
                 return;

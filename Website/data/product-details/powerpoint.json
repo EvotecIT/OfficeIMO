@@ -16,5 +16,7 @@
     { "title": "Charts", "description": "Editable column/bar, line, scatter, pie, and doughnut charts with formatting, legends, labels, and axes.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10'/></svg>" },
     { "title": "Tables", "description": "Tables with merged cells, styling presets, and borders.", "icon_svg": "<svg viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'><path d='M3 10h18M3 14h18m-9-4v8m-7 0h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z'/></svg>" }
   ],
-  "relatedPackages": []
+  "relatedPackages": [
+    { "name": "OfficeIMO.PowerPoint.GoogleSlides", "description": "Translate PowerPoint presentations to and from Google Slides", "install": "dotnet add package OfficeIMO.PowerPoint.GoogleSlides" }
+  ]
 }

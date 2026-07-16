@@ -3,6 +3,13 @@ namespace OfficeIMO.Word.GoogleDocs {
     /// Helpers for Word to Google Docs planning and batch compilation.
     /// </summary>
     public static class WordGoogleDocsExtensions {
+        public static Task<GoogleDocsImportResult> ImportGoogleDocAsync(
+            this GoogleWorkspace.GoogleWorkspaceSession session,
+            string documentId,
+            GoogleDocsImportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            return new GoogleDocsImporter().ImportAsync(documentId, session, options, cancellationToken);
+        }
         private static readonly IGoogleDocsExporter DefaultExporter = new GoogleDocsExporter();
 
         public static GoogleDocsTranslationPlan BuildGoogleDocsPlan(

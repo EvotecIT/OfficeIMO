@@ -14,18 +14,53 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 HorizontalAlignment = NormalizeHorizontalAlignment(style.HorizontalAlignment),
                 VerticalAlignment = NormalizeVerticalAlignment(style.VerticalAlignment),
                 WrapStrategy = style.WrapText ? "WRAP" : null,
+                Padding = BuildPadding(style.TextIndent),
+                TextRotation = BuildTextRotation(style.TextRotation),
             };
 
-            if (style.Bold || style.Italic || style.Underline || !string.IsNullOrWhiteSpace(style.FontColorArgb)) {
+            if (style.Bold || style.Italic || style.Underline || style.Strikethrough
+                || !string.IsNullOrWhiteSpace(style.FontName) || style.FontSize.HasValue
+                || !string.IsNullOrWhiteSpace(style.FontColorArgb)) {
                 payload.TextFormat = new GoogleSheetsApiTextFormatPayload {
                     Bold = style.Bold ? true : (bool?)null,
                     Italic = style.Italic ? true : (bool?)null,
                     Underline = style.Underline ? true : (bool?)null,
+                    Strikethrough = style.Strikethrough ? true : (bool?)null,
+                    FontFamily = style.FontName,
+                    FontSize = style.FontSize.HasValue ? Math.Max(1, (int)Math.Round(style.FontSize.Value)) : (int?)null,
                     ForegroundColor = BuildColor(style.FontColorArgb),
                 };
             }
 
             return payload;
+        }
+
+        private static GoogleSheetsApiPaddingPayload? BuildPadding(uint? indent) {
+            if (!indent.HasValue || indent.Value == 0) {
+                return null;
+            }
+
+            return new GoogleSheetsApiPaddingPayload {
+                Top = 2,
+                Right = 2,
+                Bottom = 2,
+                Left = checked((int)Math.Min(indent.Value * 10U, 250U)),
+            };
+        }
+
+        private static GoogleSheetsApiTextRotationPayload? BuildTextRotation(int? excelRotation) {
+            if (!excelRotation.HasValue) {
+                return null;
+            }
+
+            if (excelRotation.Value == 255) {
+                return new GoogleSheetsApiTextRotationPayload { Vertical = true };
+            }
+
+            int angle = excelRotation.Value <= 90
+                ? excelRotation.Value
+                : 90 - excelRotation.Value;
+            return new GoogleSheetsApiTextRotationPayload { Angle = Math.Max(-90, Math.Min(90, angle)) };
         }
 
         private static GoogleSheetsApiBordersPayload? BuildBorders(GoogleSheetsCellBorders? borders) {
@@ -117,13 +152,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         private static GoogleSheetsApiColorPayload? BuildColor(string? argb) {
-            if (string.IsNullOrWhiteSpace(argb) || argb!.Length != 8) {
+            if (string.IsNullOrWhiteSpace(argb) || (argb!.Length != 8 && argb.Length != 6)) {
                 return null;
             }
 
-            var red = int.Parse(argb.Substring(2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255d;
-            var green = int.Parse(argb.Substring(4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255d;
-            var blue = int.Parse(argb.Substring(6, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255d;
+            int offset = argb.Length == 8 ? 2 : 0;
+            var red = int.Parse(argb.Substring(offset, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255d;
+            var green = int.Parse(argb.Substring(offset + 2, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255d;
+            var blue = int.Parse(argb.Substring(offset + 4, 2), NumberStyles.HexNumber, CultureInfo.InvariantCulture) / 255d;
 
             return new GoogleSheetsApiColorPayload {
                 Red = red,
@@ -182,6 +218,14 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 Strict = rule.Strict,
                 ShowCustomUi = rule.ShowCustomUi,
             };
+        }
+
+        private static List<GoogleSheetsApiTextFormatRunPayload>? BuildTextFormatRuns(IReadOnlyList<GoogleSheetsTextFormatRun> runs) {
+            if (runs == null || runs.Count == 0) return null;
+            return runs.Select(run => new GoogleSheetsApiTextFormatRunPayload {
+                StartIndex = run.StartIndex,
+                Format = BuildCellFormat(run.Format)?.TextFormat ?? new GoogleSheetsApiTextFormatPayload(),
+            }).ToList();
         }
 
         private static string? NormalizeHorizontalAlignment(string? value) {

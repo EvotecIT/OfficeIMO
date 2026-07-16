@@ -1,0 +1,62 @@
+name: Google Workspace Contract Drift
+
+on:
+  schedule:
+    - cron: "15 4 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: google-workspace-contract-drift
+  cancel-in-progress: false
+
+jobs:
+  discovery-and-contracts:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: |
+            8.0.x
+            10.0.x
+
+      - name: Verify official discovery contracts
+        shell: pwsh
+        run: ./Build/Test-GoogleWorkspaceDiscovery.ps1
+
+      - name: Restore focused projects
+        run: |
+          dotnet restore OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj
+          dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
+          dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
+          dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
+          dotnet restore OfficeIMO.Examples/OfficeIMO.Examples.csproj
+
+      - name: Run Google payload and workflow contracts
+        run: |
+          dotnet test OfficeIMO.GoogleWorkspace.Tests/OfficeIMO.GoogleWorkspace.Tests.csproj -c Release -f net10.0 --no-restore
+          dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj -c Release -f net10.0 --no-restore --filter "FullyQualifiedName~GoogleDocs"
+          dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj -c Release -f net10.0 --no-restore --filter "FullyQualifiedName~GoogleSheets"
+          dotnet test OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj -c Release -f net10.0 --no-restore --filter "FullyQualifiedName~GoogleSlides"
+
+      - name: Verify generated support matrix
+        shell: pwsh
+        run: |
+          dotnet build OfficeIMO.Examples/OfficeIMO.Examples.csproj -c Release -f net10.0 --no-restore
+          $output = Join-Path $PWD "Website/content/docs/google-workspace/support/index.md"
+          dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -c Release -f net10.0 --no-build -- --google-support-matrix $output
+          git diff --exit-code -- $output
+
+      - name: Link official release notes
+        shell: bash
+        run: |
+          echo "Review current Google Workspace API release notes when this job detects drift:" >> "$GITHUB_STEP_SUMMARY"
+          echo "- https://developers.google.com/workspace/release-notes" >> "$GITHUB_STEP_SUMMARY"
+          echo "- https://developers.google.com/drive/api/guides/about-sdk" >> "$GITHUB_STEP_SUMMARY"

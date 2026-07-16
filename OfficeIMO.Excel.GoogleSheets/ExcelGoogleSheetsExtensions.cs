@@ -4,6 +4,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
     /// </summary>
     public static class ExcelGoogleSheetsExtensions {
         private static readonly IGoogleSheetsExporter DefaultExporter = new GoogleSheetsExporter();
+        private static readonly IGoogleSheetsImporter DefaultImporter = new GoogleSheetsImporter();
 
         public static GoogleSheetsTranslationPlan BuildGoogleSheetsPlan(
             this ExcelDocument document,
@@ -26,6 +27,15 @@ namespace OfficeIMO.Excel.GoogleSheets {
             CancellationToken cancellationToken = default) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return DefaultExporter.ExportAsync(document, session, options, cancellationToken);
+        }
+
+        public static Task<GoogleSheetsImportResult> ImportGoogleSheetAsync(
+            this GoogleWorkspace.GoogleWorkspaceSession session,
+            string spreadsheetId,
+            GoogleSheetsImportOptions? options = null,
+            CancellationToken cancellationToken = default) {
+            if (session == null) throw new ArgumentNullException(nameof(session));
+            return DefaultImporter.ImportAsync(spreadsheetId, session, options, cancellationToken);
         }
     }
 }
