@@ -86,11 +86,8 @@ public sealed class OneNoteAuthor {
     /// <summary>Display name.</summary>
     public string? Name { get; set; }
 
-    /// <summary>Initials.</summary>
-    public string? Initials { get; set; }
-
-    /// <summary>Author identity when available.</summary>
-    public Guid? Id { get; set; }
+    /// <summary>Native author-object identity. Serialization assigns and retains it for new author metadata.</summary>
+    public OneNoteExtendedGuid? ObjectId { get; set; }
 }
 
 /// <summary>

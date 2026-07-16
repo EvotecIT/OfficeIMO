@@ -44,7 +44,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 (ulong)Math.Min(byte.MaxValue, Math.Max(1, wrapper.WrapperList.Level + 1))));
         }
         if (!string.IsNullOrWhiteSpace(wrapper.Author?.Name)) {
-            properties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(space, wrapper.Author!.Name!)));
+            properties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(space, wrapper.Author!)));
         }
         AddTags(space, properties, wrapper.Tags);
 
@@ -115,7 +115,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             properties.Add(Scalar(OneNoteSchema.OutlineElementChildLevel, (ulong)Math.Min(byte.MaxValue, Math.Max(1, paragraph.List.Level + 1))));
         }
         if (!string.IsNullOrWhiteSpace(paragraph.Author?.Name)) {
-            properties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(space, paragraph.Author!.Name!)));
+            properties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(space, paragraph.Author!)));
         }
         space.Objects.Add(new OneNoteWriteObject(elementId, OneNoteSchema.JcidOutlineElementNode, properties));
         return elementId;
@@ -258,9 +258,19 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         return id;
     }
 
-    private OneNoteExtendedGuid BuildAuthor(OneNoteWriteObjectSpace space, string name) {
-        OneNoteExtendedGuid id = _ids.New();
-        space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidAuthor, new[] { Data(OneNoteSchema.Author, Unicode(name)) }));
+    private OneNoteExtendedGuid BuildAuthor(OneNoteWriteObjectSpace space, OneNoteAuthor author) {
+        var properties = new[] { Data(OneNoteSchema.Author, Unicode(author.Name!)) };
+        OneNoteExtendedGuid id = IdOrNew(author.ObjectId);
+        OneNoteWriteObject? existing = space.Objects.FirstOrDefault(item => item.Id.Equals(id));
+        if (existing != null) {
+            if (existing.Jcid == OneNoteSchema.JcidAuthor && PropertiesEqual(existing.Properties, properties)) {
+                author.ObjectId = id;
+                return id;
+            }
+            id = _ids.New();
+        }
+        author.ObjectId = id;
+        space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidAuthor, properties));
         return id;
     }
 
@@ -289,7 +299,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteExtendedGuid id = IdOrNew(run.StyleObjectId);
         OneNoteWriteObject? existing = space.Objects.FirstOrDefault(item => item.Id.Equals(id));
         if (existing != null) {
-            if (existing.Jcid == OneNoteSchema.JcidTextStyle && TextStylePropertiesEqual(existing.Properties, properties)) {
+            if (existing.Jcid == OneNoteSchema.JcidTextStyle && PropertiesEqual(existing.Properties, properties)) {
                 run.StyleObjectId = id;
                 return id;
             }
@@ -300,7 +310,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         return id;
     }
 
-    private static bool TextStylePropertiesEqual(
+    private static bool PropertiesEqual(
         IReadOnlyList<OneNoteWriteProperty> left,
         IReadOnlyList<OneNoteWriteProperty> right) {
         if (left.Count != right.Count) return false;

@@ -61,13 +61,13 @@ public sealed class OutlineElementPreservationTests {
         pageSpace.Objects[pageNodeIndex] = new OneNoteWriteObject(pageNode.Id, pageNode.Jcid, pageProperties);
 
         OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteRevisionStoreWriter.Write(graph)));
-        AssertWrapper(loaded);
+        AssertWrapper(loaded, authorId);
 
         byte[] rewritten = OneNoteSectionWriter.Write(loaded, new OneNoteWriterOptions { PreserveUnknownData = false });
-        AssertWrapper(OneNoteSectionReader.Read(new MemoryStream(rewritten)));
+        AssertWrapper(OneNoteSectionReader.Read(new MemoryStream(rewritten)), authorId);
     }
 
-    private static void AssertWrapper(OneNoteSection section) {
+    private static void AssertWrapper(OneNoteSection section, OneNoteExtendedGuid expectedAuthorId) {
         OneNotePage page = Assert.Single(section.Pages);
         Assert.Empty(page.Outlines);
         OneNoteOutline wrapper = Assert.IsType<OneNoteOutline>(Assert.Single(page.DirectContent));
@@ -75,6 +75,7 @@ public sealed class OutlineElementPreservationTests {
         Assert.Equal(12.5, wrapper.Layout!.X);
         Assert.Equal(7.25, wrapper.Layout.Y);
         Assert.Equal("Wrapper author", wrapper.Author!.Name);
+        Assert.Equal(expectedAuthorId, wrapper.Author.ObjectId);
         Assert.True(wrapper.WrapperList!.Ordered);
         Assert.Equal(1, wrapper.WrapperList.Level);
         Assert.Collection(wrapper.Children,

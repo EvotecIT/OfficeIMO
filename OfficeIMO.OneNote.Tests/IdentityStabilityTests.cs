@@ -49,6 +49,40 @@ public sealed class IdentityStabilityTests {
         Assert.Equal(assignedPackage, CaptureNotebookIdentities(secondRead));
     }
 
+    [Theory]
+    [InlineData(OneNoteStorageFormat.RevisionStore)]
+    [InlineData(OneNoteStorageFormat.FileSynchronizationPackage)]
+    public void IndependentlyEditedSharedAuthorsReceiveStableDistinctIdentities(OneNoteStorageFormat storageFormat) {
+        var section = new OneNoteSection { Name = "Authors" };
+        var page = new OneNotePage { Title = "Authors" };
+        var shared = new OneNoteAuthor { Name = "Shared author" };
+        OneNoteParagraph first = Paragraph("First");
+        first.Author = shared;
+        OneNoteParagraph second = Paragraph("Second");
+        second.Author = shared;
+        page.DirectContent.Add(first);
+        page.DirectContent.Add(second);
+        section.Pages.Add(page);
+        var options = new OneNoteWriterOptions { StorageFormat = storageFormat };
+
+        OneNoteSection loaded = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section, options)));
+        OneNoteParagraph loadedFirst = Assert.IsType<OneNoteParagraph>(loaded.Pages[0].DirectContent[0]);
+        OneNoteParagraph loadedSecond = Assert.IsType<OneNoteParagraph>(loaded.Pages[0].DirectContent[1]);
+        Assert.Equal(loadedFirst.Author!.ObjectId, loadedSecond.Author!.ObjectId);
+
+        loadedSecond.Author.Name = "Edited author";
+        OneNoteSection edited = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(loaded, options)));
+        OneNoteParagraph editedFirst = Assert.IsType<OneNoteParagraph>(edited.Pages[0].DirectContent[0]);
+        OneNoteParagraph editedSecond = Assert.IsType<OneNoteParagraph>(edited.Pages[0].DirectContent[1]);
+        Assert.Equal("Shared author", editedFirst.Author!.Name);
+        Assert.Equal("Edited author", editedSecond.Author!.Name);
+        Assert.NotEqual(editedFirst.Author.ObjectId, editedSecond.Author.ObjectId);
+
+        OneNoteSection repeated = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(edited, options)));
+        Assert.Equal(editedFirst.Author.ObjectId, Assert.IsType<OneNoteParagraph>(repeated.Pages[0].DirectContent[0]).Author!.ObjectId);
+        Assert.Equal(editedSecond.Author.ObjectId, Assert.IsType<OneNoteParagraph>(repeated.Pages[0].DirectContent[1]).Author!.ObjectId);
+    }
+
     private static OneNoteSection CreateSection(string name) {
         DateTime created = new DateTime(2026, 7, 16, 8, 0, 0, DateTimeKind.Utc);
         var section = new OneNoteSection { Name = name };
@@ -67,6 +101,7 @@ public sealed class IdentityStabilityTests {
         listed.Runs[1].Hyperlink = "https://example.invalid/item";
         listed.List = new OneNoteListInfo { Ordered = true, Level = 1, DisplayIndex = 2 };
         listed.Style.Alignment = OneNoteParagraphAlignment.Center;
+        listed.Author = new OneNoteAuthor { Name = "Stable author" };
         listed.Tags.Add(new OneNoteTag {
             ActionItemType = 0,
             Label = "Important",
@@ -174,6 +209,7 @@ public sealed class IdentityStabilityTests {
 
     private static void AssertElementIdentitiesAssigned(OneNoteElement element) {
         Assert.NotNull(element.Id);
+        if (element.Author != null) Assert.NotNull(element.Author.ObjectId);
         foreach (OneNoteTag tag in element.Tags.Where(tag => tag.ActionItemType < 100)) Assert.NotNull(tag.DefinitionId);
         if (element is OneNoteOutline outline) {
             if (outline.WrapperList != null) Assert.NotNull(outline.WrapperList.ObjectId);
@@ -270,6 +306,7 @@ public sealed class IdentityStabilityTests {
 
     private static void AddElement(ICollection<string> result, string path, OneNoteElement element) {
         Add(result, path, element.Id);
+        Add(result, path + "/author", element.Author?.ObjectId);
         for (int index = 0; index < element.Tags.Count; index++) {
             Add(result, path + "/tag[" + index + "]", element.Tags[index].DefinitionId);
         }

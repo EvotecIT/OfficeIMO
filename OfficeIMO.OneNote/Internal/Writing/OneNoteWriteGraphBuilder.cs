@@ -198,7 +198,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             Scalar(OneNoteSchema.LastModifiedTimestamp, FileTime(page.LastModifiedUtc?.ToUniversalTime() ?? creationUtc))
         };
         if (!string.IsNullOrWhiteSpace(page.MostRecentAuthor)) {
-            revisionProperties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(space, page.MostRecentAuthor!)));
+            revisionProperties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(space, new OneNoteAuthor { Name = page.MostRecentAuthor })));
         }
         space.Objects.Add(new OneNoteWriteObject(revisionMetadataId, OneNoteSchema.JcidRevisionMetadata, revisionProperties));
         space.Roots[1] = manifestId;
@@ -278,7 +278,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 ContextReferences(OneNoteSchema.VersionHistoryGraphSpaceContextNodes, versionContextIds[index])
             };
             if (!string.IsNullOrWhiteSpace(version.MostRecentAuthor)) {
-                properties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(historySpace, version.MostRecentAuthor!)));
+                properties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(historySpace, new OneNoteAuthor { Name = version.MostRecentAuthor })));
             }
             OneNoteExtendedGuid proxyId = IdOrNew(version.PreservationIds.VersionProxyId);
             version.PreservationIds.VersionProxyId = proxyId;

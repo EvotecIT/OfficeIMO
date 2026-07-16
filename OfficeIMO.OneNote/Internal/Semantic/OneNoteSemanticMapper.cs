@@ -263,9 +263,8 @@ internal static partial class OneNoteSemanticMapper {
         OneNoteParagraph paragraph = primary as OneNoteParagraph ?? new OneNoteParagraph();
         paragraph.Id = item.Id;
         paragraph.Layout = ReadLayout(item);
-        paragraph.Author = new OneNoteAuthor {
-            Name = ReadReferencedAuthor(space, item, AuthorMostRecent) ?? ReadReferencedAuthor(space, item, AuthorOriginal)
-        };
+        paragraph.Author = ReadReferencedAuthorMetadata(space, item, AuthorMostRecent) ??
+            ReadReferencedAuthorMetadata(space, item, AuthorOriginal);
         paragraph.List = BuildListInfo(space, item);
         foreach (OneNoteExtendedGuid childId in GetReferences(item, ElementChildNodes)) {
             OneNoteElement? child = BuildElement(space, childId, materializer, options, depth + 1, path);
@@ -613,8 +612,19 @@ internal static partial class OneNoteSemanticMapper {
     }
 
     private static string? ReadReferencedAuthor(OneNoteMaterializedObjectSpace space, OneNoteRevisionStoreObject? item, uint propertyId) {
-        OneNoteRevisionStoreObject? author = GetReferences(item, propertyId).Select(space.GetObject).FirstOrDefault(value => value?.Jcid.Value == JcidAuthor);
-        return ReadString(author, Author);
+        return ReadReferencedAuthorMetadata(space, item, propertyId)?.Name;
+    }
+
+    private static OneNoteAuthor? ReadReferencedAuthorMetadata(
+        OneNoteMaterializedObjectSpace space,
+        OneNoteRevisionStoreObject? item,
+        uint propertyId) {
+        OneNoteRevisionStoreObject? author = GetReferences(item, propertyId)
+            .Select(space.GetObject)
+            .FirstOrDefault(value => value?.Jcid.Value == JcidAuthor);
+        return author == null
+            ? null
+            : new OneNoteAuthor { ObjectId = author.Id, Name = ReadString(author, Author) };
     }
 
     internal static IReadOnlyList<OneNoteExtendedGuid> GetReferences(OneNoteRevisionStoreObject? item, uint propertyId) {
