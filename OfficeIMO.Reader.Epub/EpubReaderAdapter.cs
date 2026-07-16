@@ -120,6 +120,15 @@ internal static partial class EpubReaderAdapter {
                 blockIndex++;
                 chunkPart++;
             }
+            if (chunkPart == 0 && chapter.HasStructuredContent) {
+                yield return BuildStructuredOnlyChapterChunk(
+                    chapter,
+                    source,
+                    options,
+                    blockIndex,
+                    warnings: null);
+                blockIndex++;
+            }
         }
     }
 

@@ -45,6 +45,11 @@ public sealed class EpubChapter {
     public string Text { get; internal set; } = string.Empty;
 
     /// <summary>
+    /// Whether the chapter contains structured elements such as images, tables, forms, or media.
+    /// </summary>
+    public bool HasStructuredContent { get; internal set; }
+
+    /// <summary>
     /// Optional raw HTML content.
     /// </summary>
     public string? Html { get; internal set; }

@@ -1,10 +1,13 @@
 using OfficeIMO.Epub;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
+using System.Linq;
 
 namespace OfficeIMO.Reader.Epub;
 
 internal static partial class EpubReaderAdapter {
+    private const string HtmlNoMarkdownWarning = "HTML content produced no markdown text.";
+
     /// <summary>
     /// Projects chapter XHTML through the shared HTML adapter while retaining EPUB source identity.
     /// </summary>
@@ -17,12 +20,21 @@ internal static partial class EpubReaderAdapter {
         string virtualPath = BuildVirtualPath(source.Path, chapter.Path);
         string fileName = Path.GetFileName(source.Path);
         var chunks = new List<ReaderChunk>();
+        var nonContentWarnings = new List<string>();
         foreach (ReaderChunk htmlChunk in HtmlReaderAdapter.ReadContent(
                      chapter.Html!,
                      virtualPath,
                      options,
                      cancellationToken: cancellationToken)) {
             cancellationToken.ThrowIfCancellationRequested();
+            if (IsHtmlNoMarkdownWarningChunk(htmlChunk)) {
+                if (htmlChunk.Warnings == null || htmlChunk.Warnings.Count == 0) {
+                    nonContentWarnings.Add(HtmlNoMarkdownWarning);
+                } else {
+                    nonContentWarnings.AddRange(htmlChunk.Warnings);
+                }
+                continue;
+            }
             int chunkPart = chunks.Count;
             string markdown = htmlChunk.Markdown ?? htmlChunk.Text;
             if (chunkPart == 0) {
@@ -51,7 +63,49 @@ internal static partial class EpubReaderAdapter {
             ApplyVirtualSourceMetadata(chunk, virtualPath, options.ComputeHashes);
             chunks.Add(chunk);
         }
+        if (chunks.Count == 0 && nonContentWarnings.Count > 0) {
+            chunks.Add(BuildStructuredOnlyChapterChunk(
+                chapter,
+                source,
+                options,
+                firstBlockIndex,
+                nonContentWarnings));
+        }
         return chunks;
+    }
+
+    private static bool IsHtmlNoMarkdownWarningChunk(ReaderChunk chunk) {
+        return string.Equals(chunk.Id, "html-warning-0000", StringComparison.Ordinal) &&
+               chunk.Warnings?.Any(warning => string.Equals(warning, HtmlNoMarkdownWarning, StringComparison.Ordinal)) == true;
+    }
+
+    private static ReaderChunk BuildStructuredOnlyChapterChunk(
+        EpubChapter chapter,
+        SourceMetadata source,
+        ReaderOptions options,
+        int blockIndex,
+        IEnumerable<string>? warnings) {
+        string virtualPath = BuildVirtualPath(source.Path, chapter.Path);
+        string? displayHeading = string.IsNullOrWhiteSpace(chapter.Title) ? null : chapter.Title!.Trim();
+        var location = new ReaderLocation {
+            Path = virtualPath,
+            BlockIndex = blockIndex,
+            SourceBlockIndex = chapter.Order > 0 ? chapter.Order - 1 : null,
+            HeadingPath = displayHeading,
+            SourceBlockKind = "chapter"
+        };
+        ReaderHeadingPath.SetHierarchyPath(location, ReaderHeadingPath.Combine(new[] { displayHeading }));
+        var chunk = new ReaderChunk {
+            Id = BuildId(Path.GetFileName(source.Path), chapter.Order, 0),
+            Kind = ReaderInputKind.Epub,
+            Location = location,
+            Text = string.Empty,
+            Markdown = BuildMarkdown(chapter.Title, string.Empty),
+            Warnings = warnings?.Distinct(StringComparer.Ordinal).ToArray()
+        };
+        EnrichChunk(chunk, source, options.ComputeHashes);
+        ApplyVirtualSourceMetadata(chunk, virtualPath, options.ComputeHashes);
+        return chunk;
     }
 
     private static ReaderLocation MapStructuredChapterLocation(

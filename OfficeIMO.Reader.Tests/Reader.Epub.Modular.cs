@@ -13,7 +13,7 @@ internal static class ReaderCurrentDirectoryLock {
     internal static readonly object Gate = new();
 }
 
-public sealed class ReaderEpubModularTests {
+public sealed partial class ReaderEpubModularTests {
     [Fact]
     public async Task EpubDocument_LoadAsync_MatchesSynchronousFileSharing() {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-shared-" + Guid.NewGuid().ToString("N") + ".epub");

@@ -59,6 +59,7 @@ internal static class EpubReader {
             }
 
             var text = ExtractVisibleText(chapterDocument);
+            bool hasStructuredContent = HasStructuredChapterContent(chapterDocument);
             string? retainedHtml = null;
             if (effective.IncludeRawHtml) {
                 if (candidate.Entry.Length > effective.MaxTotalRawHtmlBytes - totalRawHtmlBytes) {
@@ -68,7 +69,7 @@ internal static class EpubReader {
                     totalRawHtmlBytes += candidate.Entry.Length;
                 }
             }
-            if (text.Length == 0 && (retainedHtml == null || !HasStructuredChapterContent(chapterDocument))) {
+            if (text.Length == 0 && !hasStructuredContent) {
                 continue;
             }
 
@@ -85,6 +86,7 @@ internal static class EpubReader {
                 IsLinear = candidate.IsLinear,
                 Title = title,
                 Text = text,
+                HasStructuredContent = hasStructuredContent,
                 Html = retainedHtml
             });
         }
