@@ -117,7 +117,8 @@ internal static class EmailConversionAnalyzer {
                 "semantic-content"));
         }
 
-        if (targetFormat == EmailFileFormat.OutlookMsg && TnefWriter.HasUnmanagedRawAttributes(document)) {
+        if ((targetFormat == EmailFileFormat.OutlookMsg || targetFormat == EmailFileFormat.OutlookTemplate) &&
+            TnefWriter.HasUnmanagedRawAttributes(document)) {
             hasPotentialDataLoss = true;
             diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
                 "EMAIL_TNEF_ATTRIBUTES_NOT_REPRESENTED_IN_MSG",

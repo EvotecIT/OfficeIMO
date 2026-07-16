@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
         /// <summary>
-        /// Exports workbook sheets as PNG or SVG images.
+        /// Exports workbook sheets as supported raster formats or SVG images.
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format, ExcelWorkbookImageExportOptions? options = null) {
             ExcelWorkbookImageExportOptions resolved = NormalizeWorkbookOptions(options);
@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel {
                 var sheetOptions = new ExcelWorksheetImageExportOptions {
                     Scale = resolved.Scale,
                     BackgroundColor = resolved.BackgroundColor,
+                    RasterEncoding = resolved.RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
                     GridlineColor = resolved.GridlineColor,
                     ShowGridlines = resolved.ShowGridlines,
                     IncludeHidden = resolved.IncludeHidden,
@@ -62,12 +63,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath, OfficeImageExportFormat format, ExcelWorkbookImageExportOptions? options = null) {
             ExcelWorkbookImageExportBuilder builder = new ExcelWorkbookImageExportBuilder(this, options);
-            if (format == OfficeImageExportFormat.Svg) {
-                builder.AsSvg();
-            } else {
-                builder.AsPng();
-            }
-
+            builder.As(format);
             return builder.Save(folderPath);
         }
 
@@ -98,6 +94,7 @@ namespace OfficeIMO.Excel {
             ExcelWorkbookImageExportOptions resolved = new ExcelWorkbookImageExportOptions {
                 Scale = source.Scale,
                 BackgroundColor = source.BackgroundColor,
+                RasterEncoding = source.RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
                 GridlineColor = source.GridlineColor,
                 ShowGridlines = source.ShowGridlines,
                 IncludeHidden = source.IncludeHidden,

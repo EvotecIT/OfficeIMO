@@ -40,6 +40,24 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
         return This;
     }
 
+    /// <summary>Configures JPEG output.</summary>
+    public TBuilder AsJpeg() {
+        _format = OfficeImageExportFormat.Jpeg;
+        return This;
+    }
+
+    /// <summary>Configures TIFF output.</summary>
+    public TBuilder AsTiff() {
+        _format = OfficeImageExportFormat.Tiff;
+        return This;
+    }
+
+    /// <summary>Configures lossless WebP output.</summary>
+    public TBuilder AsWebp() {
+        _format = OfficeImageExportFormat.Webp;
+        return This;
+    }
+
     /// <summary>Configures the output image format.</summary>
     public TBuilder As(OfficeImageExportFormat format) {
         if (!Enum.IsDefined(typeof(OfficeImageExportFormat), format)) {
@@ -65,6 +83,15 @@ public abstract class OfficeImageExportBuilder<TBuilder, TOptions>
 
     /// <summary>Sets the export background from a named color or hexadecimal color value.</summary>
     public TBuilder WithBackground(string color) => WithBackground(OfficeColor.Parse(color));
+
+    /// <summary>Configures format-specific raster encoding settings.</summary>
+    public TBuilder WithRasterEncoding(Action<OfficeRasterEncodingOptions> configure) {
+        if (configure == null) throw new ArgumentNullException(nameof(configure));
+        OfficeRasterEncodingOptions settings = Options.RasterEncoding ?? new OfficeRasterEncodingOptions();
+        configure(settings);
+        Options.RasterEncoding = settings;
+        return This;
+    }
 
     /// <summary>Configures a standard preview profile: PNG, 1x scale, white background.</summary>
     public TBuilder ForPreview() {

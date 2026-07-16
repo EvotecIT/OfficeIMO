@@ -477,7 +477,7 @@ namespace OfficeIMO.Word {
                     AddImageDiagnostic(
                         diagnostics,
                         "unsupported-word-image-raster",
-                        "Skipped a Word image in PNG output because dependency-free raster export currently decodes " + OfficeRasterImageDecoder.SupportedFormatDescription + " only.",
+                        "Skipped a Word image in raster output because dependency-free rendering currently decodes " + OfficeRasterImageDecoder.SupportedFormatDescription + " only.",
                         image);
                 }
             }

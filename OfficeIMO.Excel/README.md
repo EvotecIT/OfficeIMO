@@ -397,6 +397,28 @@ document.Compose("Report", composer => {
 document.Save();
 ```
 
+## Managed image export
+
+Ranges, worksheets, and workbook batches can be exported as PNG, JPEG, TIFF, lossless WebP, or SVG:
+
+```csharp
+using OfficeIMO.Drawing;
+
+byte[] tiff = sheet.Range("A1:F20").ToTiff(new ExcelImageExportOptions {
+    ShowGridlines = false,
+    RasterEncoding = new OfficeRasterEncodingOptions {
+        Tiff = new OfficeTiffEncodeOptions { Compression = OfficeTiffCompression.PackBits }
+    }
+});
+
+document.ToImages()
+    .ForSheets("Summary", "Data")
+    .AsWebp()
+    .Save("preview-images");
+```
+
+Excel layout, print-title, page-setup, and header/footer composition stays in `OfficeIMO.Excel`; final raster encoding is delegated once to `OfficeIMO.Drawing`.
+
 ## Adjacent packages
 
 | Package | Use it for |
@@ -421,6 +443,6 @@ document.Save();
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.xlsx` package mechanics. Microsoft BCL/JSON compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Drawing`. The workbook API, BIFF8 `.xls` reader/writer, large-data paths, validation, and PNG/SVG export are first-party.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The workbook API, BIFF8 `.xls` reader/writer, large-data paths, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

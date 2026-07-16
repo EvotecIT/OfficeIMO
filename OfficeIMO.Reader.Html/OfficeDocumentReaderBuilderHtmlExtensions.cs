@@ -26,9 +26,9 @@ public static class OfficeDocumentReaderBuilderHtmlExtensions {
         return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "HTML Reader Adapter",
-            Description = "Modular HTML adapter using OfficeIMO.Markdown.Html.",
+            Description = "Modular HTML and MHTML adapter using OfficeIMO.Html.",
             Kind = ReaderInputKind.Html,
-            Extensions = new[] { ".html", ".htm", ".xhtml" },
+            Extensions = new[] { ".html", ".htm", ".xhtml", ".mht", ".mhtml" },
             ReadPath = (path, readerOptions, ct) => HtmlReaderAdapter.Read(
                 htmlPath: path,
                 readerOptions: readerOptions,

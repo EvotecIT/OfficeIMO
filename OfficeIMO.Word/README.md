@@ -232,6 +232,24 @@ string markdown = document.ToMarkdown(new WordToMarkdownOptions());
 document.SaveAsPdf("report.pdf");
 ```
 
+## Managed image export
+
+Word page previews use the shared Drawing renderer and can be returned as PNG, JPEG, TIFF, lossless WebP, or SVG without Office automation:
+
+```csharp
+using OfficeIMO.Drawing;
+
+byte[] webp = document.ToWebp(new WordImageExportOptions { PageIndex = 0, Scale = 1.5 });
+
+document.ToImage()
+    .Page(0)
+    .AsJpeg()
+    .WithRasterEncoding(raster => raster.Jpeg.Quality = 90)
+    .Save("page-1.jpg");
+```
+
+The document package owns Word pagination and diagnostics; `OfficeIMO.Drawing` owns pixels and encoding. `SaveAsJpeg`, `SaveAsTiff`, and `SaveAsWebp` are thin convenience wrappers over the same builder.
+
 ## Adjacent packages
 
 `OfficeIMO.Word` owns the Word model. Conversion and export packages stay separate so consumers only take the dependencies they need:
@@ -260,6 +278,6 @@ Runnable samples live under [OfficeIMO.Examples/Word](../OfficeIMO.Examples/Word
 ## Dependency footprint
 
 - **External:** Open XML SDK for `.docx` package mechanics. Microsoft BCL compatibility packages are used on older targets.
-- **OfficeIMO:** `OfficeIMO.Drawing`. The fluent model, legacy `.doc` reader/writer, lifecycle, validation, and PNG/SVG export are first-party.
+- **OfficeIMO:** `OfficeIMO.Drawing`. The fluent model, legacy `.doc` reader/writer, lifecycle, validation, and PNG/JPEG/TIFF/WebP/SVG export are first-party.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

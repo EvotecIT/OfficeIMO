@@ -11,7 +11,7 @@ namespace OfficeIMO.Drawing;
 /// </remarks>
 public class OfficeImageExportOptions {
     /// <summary>
-    /// Output scale multiplier. A value of 2 creates a 2x PNG/SVG surface.
+    /// Output scale multiplier. A value of 2 creates a 2x raster or SVG surface.
     /// </summary>
     public double Scale { get; set; } = 1D;
 
@@ -19,6 +19,11 @@ public class OfficeImageExportOptions {
     /// Background color used behind rendered document content.
     /// </summary>
     public OfficeColor BackgroundColor { get; set; } = OfficeColor.White;
+
+    /// <summary>
+    /// Format-specific settings used when the selected output is raster-based.
+    /// </summary>
+    public OfficeRasterEncodingOptions RasterEncoding { get; set; } = new OfficeRasterEncodingOptions();
 
     /// <summary>
     /// Validates that an export scale is finite and positive.

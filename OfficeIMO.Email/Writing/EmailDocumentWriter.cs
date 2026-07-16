@@ -70,7 +70,8 @@ public sealed class EmailDocumentWriter {
 
     internal byte[] ToBytes(EmailDocument document, EmailFileFormat format, out EmailWriteResult result) {
         if (document == null) throw new ArgumentNullException(nameof(document));
-        if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg && format != EmailFileFormat.Tnef) {
+        if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg &&
+            format != EmailFileFormat.OutlookTemplate && format != EmailFileFormat.Tnef) {
             throw new NotSupportedException("The requested email artifact format cannot be serialized.");
         }
 
@@ -99,8 +100,8 @@ public sealed class EmailDocumentWriter {
         EmailOutputPreflight.EnsurePayloadsFit(document, format, _options.MaxOutputBytes);
         byte[] data = format == EmailFileFormat.Eml
             ? MimeWriter.Write(document, _options, diagnostics)
-            : format == EmailFileFormat.OutlookMsg
-                ? MsgWriter.Write(document, _options, diagnostics)
+            : format == EmailFileFormat.OutlookMsg || format == EmailFileFormat.OutlookTemplate
+                ? MsgWriter.Write(document, _options, diagnostics, format == EmailFileFormat.OutlookTemplate)
                 : TnefWriter.Write(document, _options, diagnostics);
         EnsureOutputLimit(data.LongLength);
         result = new EmailWriteResult(data.LongLength, diagnostics.AsReadOnly(), false);
@@ -116,7 +117,8 @@ public sealed class EmailDocumentWriter {
     /// <summary>Analyzes known fidelity implications without producing output.</summary>
     public EmailConversionReport AnalyzeConversion(EmailDocument document,
         EmailFileFormat format = EmailFileFormat.Eml) {
-        if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg && format != EmailFileFormat.Tnef) {
+        if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg &&
+            format != EmailFileFormat.OutlookTemplate && format != EmailFileFormat.Tnef) {
             throw new NotSupportedException("The requested email artifact format cannot be serialized.");
         }
         return EmailConversionAnalyzer.Analyze(document, format, _options);

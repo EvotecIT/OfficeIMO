@@ -45,6 +45,41 @@ public partial class DrawingTests {
         Assert.Contains("<svg", System.Text.Encoding.UTF8.GetString(svg.ToArray()), StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Jpeg)]
+    [InlineData(OfficeImageExportFormat.Tiff)]
+    [InlineData(OfficeImageExportFormat.Webp)]
+    public void OfficeImageExportBuilder_ExposesSharedRasterFormats(OfficeImageExportFormat format) {
+        var options = new TestImageExportOptions();
+        var builder = new TestImageExportBuilder(options);
+
+        OfficeImageExportResult result = format switch {
+            OfficeImageExportFormat.Jpeg => builder.AsJpeg().Export(),
+            OfficeImageExportFormat.Tiff => builder.AsTiff().Export(),
+            OfficeImageExportFormat.Webp => builder.AsWebp().Export(),
+            _ => throw new ArgumentOutOfRangeException(nameof(format))
+        };
+
+        Assert.Equal(format, result.Format);
+        Assert.Equal(format.GetMimeType(), OfficeImageReader.Identify(result.Bytes).MimeType);
+    }
+
+    [Fact]
+    public void OfficeImageExportBuilder_ConfiguresRasterEncodingWithoutExposingOptions() {
+        var options = new TestImageExportOptions();
+
+        new TestImageExportBuilder(options)
+            .WithRasterEncoding(settings => {
+                settings.Jpeg.Quality = 73;
+                settings.Tiff.Compression = OfficeTiffCompression.None;
+            })
+            .AsJpeg()
+            .Export();
+
+        Assert.Equal(73, options.RasterEncoding.Jpeg.Quality);
+        Assert.Equal(OfficeTiffCompression.None, options.RasterEncoding.Tiff.Compression);
+    }
+
     [Fact]
     public void OfficeImageExportBatchBuilder_SavesTheConfiguredFormat() {
         string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
@@ -64,6 +99,25 @@ public partial class DrawingTests {
             if (Directory.Exists(folder)) {
                 Directory.Delete(folder, recursive: true);
             }
+        }
+    }
+
+    [Theory]
+    [InlineData(OfficeImageExportFormat.Jpeg, "batch.jpg")]
+    [InlineData(OfficeImageExportFormat.Tiff, "batch.tiff")]
+    [InlineData(OfficeImageExportFormat.Webp, "batch.webp")]
+    public void OfficeImageExportBatchBuilder_UsesTheConfiguredRasterExtension(
+        OfficeImageExportFormat format,
+        string expectedFileName) {
+        string folder = Path.Combine(Path.GetTempPath(), "OfficeIMO-" + Guid.NewGuid().ToString("N"));
+        try {
+            var builder = new TestImageExportBatchBuilder(new TestImageExportOptions());
+
+            builder.As(format).Save(folder);
+
+            Assert.True(File.Exists(Path.Combine(folder, expectedFileName)));
+        } finally {
+            if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
     }
 

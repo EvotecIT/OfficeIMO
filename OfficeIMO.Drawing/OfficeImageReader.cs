@@ -68,6 +68,7 @@ public static class OfficeImageReader {
             TryReadJpeg(data, out info) ||
             TryReadGif(data, out info) ||
             TryReadBmp(data, out info) ||
+            TryReadWebp(data, out info) ||
             TryReadTiff(data, out info) ||
             TryReadIcon(data, out info) ||
             TryReadPcx(data, out info) ||
@@ -344,6 +345,47 @@ public static class OfficeImageReader {
 
         info = new OfficeImageInfo(OfficeImageFormat.Tiff, width, height, dpiX, dpiY);
         return width > 0 && height > 0;
+    }
+
+    private static bool TryReadWebp(byte[] data, out OfficeImageInfo info) {
+        info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
+        if (data.Length < 20 || GetAscii(data, 0, 4) != "RIFF" || GetAscii(data, 8, 4) != "WEBP") {
+            return false;
+        }
+
+        int offset = 12;
+        while (offset + 8 <= data.Length) {
+            string chunkType = GetAscii(data, offset, 4);
+            int chunkLength = ReadInt32LittleEndian(data, offset + 4);
+            int payloadOffset = offset + 8;
+            if (chunkLength < 0 || (long)payloadOffset + chunkLength > data.Length) return false;
+
+            int width = 0;
+            int height = 0;
+            if (chunkType == "VP8L" && chunkLength >= 5 && data[payloadOffset] == 0x2F) {
+                int packed = ReadInt32LittleEndian(data, payloadOffset + 1);
+                width = (packed & 0x3FFF) + 1;
+                height = ((packed >> 14) & 0x3FFF) + 1;
+            } else if (chunkType == "VP8X" && chunkLength >= 10) {
+                width = ReadUInt24LittleEndian(data, payloadOffset + 4) + 1;
+                height = ReadUInt24LittleEndian(data, payloadOffset + 7) + 1;
+            } else if (chunkType == "VP8 " && chunkLength >= 10 &&
+                       data[payloadOffset + 3] == 0x9D && data[payloadOffset + 4] == 0x01 && data[payloadOffset + 5] == 0x2A) {
+                width = ReadUInt16LittleEndian(data, payloadOffset + 6) & 0x3FFF;
+                height = ReadUInt16LittleEndian(data, payloadOffset + 8) & 0x3FFF;
+            }
+
+            if (width > 0 && height > 0) {
+                info = new OfficeImageInfo(OfficeImageFormat.Webp, width, height);
+                return true;
+            }
+
+            long next = (long)payloadOffset + chunkLength + (chunkLength & 1);
+            if (next > int.MaxValue) return false;
+            offset = (int)next;
+        }
+
+        return false;
     }
 
     private static bool TryReadIcon(byte[] data, out OfficeImageInfo info) {
@@ -641,6 +683,9 @@ public static class OfficeImageReader {
 
     private static int ReadUInt16BigEndian(byte[] data, int offset) =>
         offset + 2 <= data.Length ? (data[offset] << 8) | data[offset + 1] : 0;
+
+    private static int ReadUInt24LittleEndian(byte[] data, int offset) =>
+        offset + 3 <= data.Length ? data[offset] | (data[offset + 1] << 8) | (data[offset + 2] << 16) : 0;
 
     private static short ReadInt16LittleEndian(byte[] data, int offset) =>
         offset + 2 <= data.Length ? unchecked((short)(data[offset] | (data[offset + 1] << 8))) : (short)0;

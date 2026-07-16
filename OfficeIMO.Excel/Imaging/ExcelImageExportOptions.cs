@@ -69,6 +69,7 @@ namespace OfficeIMO.Excel {
         internal ExcelImageExportOptions Clone() => new ExcelImageExportOptions {
             Scale = Scale,
             BackgroundColor = BackgroundColor,
+            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
             GridlineColor = GridlineColor,
             ShowGridlines = ShowGridlines,
             IncludeHidden = IncludeHidden,
@@ -113,6 +114,7 @@ namespace OfficeIMO.Excel {
         internal ExcelWorksheetImageExportOptions CloneWorksheet() => new ExcelWorksheetImageExportOptions {
             Scale = Scale,
             BackgroundColor = BackgroundColor,
+            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
             GridlineColor = GridlineColor,
             ShowGridlines = ShowGridlines,
             IncludeHidden = IncludeHidden,
@@ -166,6 +168,7 @@ namespace OfficeIMO.Excel {
         internal ExcelWorkbookImageExportOptions CloneWorkbook() => new ExcelWorkbookImageExportOptions {
             Scale = Scale,
             BackgroundColor = BackgroundColor,
+            RasterEncoding = RasterEncoding?.Clone() ?? new OfficeRasterEncodingOptions(),
             GridlineColor = GridlineColor,
             ShowGridlines = ShowGridlines,
             IncludeHidden = IncludeHidden,

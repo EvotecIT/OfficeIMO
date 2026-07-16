@@ -8,21 +8,36 @@ namespace OfficeIMO.Excel {
             ExcelWorksheetImageExportOptions options,
             int pageNumber,
             int pageCount) {
+            OfficeImageExportFormat workingFormat = format == OfficeImageExportFormat.Svg
+                ? OfficeImageExportFormat.Svg
+                : OfficeImageExportFormat.Png;
             OfficeImageExportResult result;
             if (options.SplitByManualPageBreaks &&
                 TryCreatePrintTitleLayout(range.Range, out PrintTitleLayout layout)) {
-                result = RenderPrintTitleLayout(format, range, options, layout);
+                result = RenderPrintTitleLayout(workingFormat, range, options, layout);
             } else {
                 ExcelRangeVisualSnapshot snapshot = ExcelRangeVisualSnapshotBuilder.Build(this, range.Range, options, range.Diagnostics);
-                result = ExcelRangeImageRenderer.Render(snapshot, format, options);
+                result = ExcelRangeImageRenderer.Render(snapshot, workingFormat, options);
             }
 
-            if (!options.SplitByManualPageBreaks) {
-                return result;
+            if (options.SplitByManualPageBreaks) {
+                result = ApplyPageSetupCanvas(workingFormat, result, options);
+                result = ApplyHeaderFooterTextChrome(workingFormat, result, options, pageNumber, pageCount);
             }
 
-            result = ApplyPageSetupCanvas(format, result, options);
-            return ApplyHeaderFooterTextChrome(format, result, options, pageNumber, pageCount);
+            if (format == workingFormat) return result;
+            if (!OfficeRasterImageDecoder.TryDecode(result.Bytes, out OfficeRasterImage? image) || image == null) {
+                throw new InvalidOperationException("The worksheet raster composition could not be decoded for final image encoding.");
+            }
+
+            return new OfficeImageExportResult(
+                format,
+                result.Width,
+                result.Height,
+                OfficeRasterImageEncoder.Encode(image, format, options.RasterEncoding),
+                result.Name,
+                result.Source,
+                result.Diagnostics);
         }
 
         private OfficeImageExportResult RenderPrintTitleLayout(
