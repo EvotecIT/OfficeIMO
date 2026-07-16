@@ -108,9 +108,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             if (run.BulletHasColor == false) {
                 properties.Append(new A.BulletColorText());
-            } else if (run.BulletHasColor == true && run.BulletColor != null) {
-                properties.Append(new A.BulletColor(
-                    new A.RgbColorModelHex { Val = run.BulletColor }));
+            } else if (run.BulletHasColor == true) {
+                OpenXmlElement? color = run.BulletColorSchemeIndex.HasValue
+                    ? CreateSchemeColor(run.BulletColorSchemeIndex.Value)
+                    : run.BulletColor != null
+                        ? new A.RgbColorModelHex { Val = run.BulletColor }
+                        : null;
+                if (color != null) properties.Append(new A.BulletColor(color));
             }
             if (run.BulletHasSize == false) {
                 properties.Append(new A.BulletSizeText());
@@ -290,8 +294,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (source.BaselinePositionPercent.HasValue) {
                 properties.Baseline = checked(source.BaselinePositionPercent.Value * 1000);
             }
-            if (source.Color != null) {
-                properties.Append(new A.SolidFill(new A.RgbColorModelHex { Val = source.Color }));
+            if (source.ColorSchemeIndex.HasValue) {
+                properties.Append(new A.SolidFill(
+                    CreateSchemeColor(source.ColorSchemeIndex.Value)));
+            } else if (source.Color != null) {
+                properties.Append(new A.SolidFill(
+                    new A.RgbColorModelHex { Val = source.Color }));
             }
             string? latinTypeface = source.AnsiTypeface ?? source.Typeface;
             if (latinTypeface != null) properties.Append(new A.LatinFont { Typeface = latinTypeface });
@@ -302,5 +310,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 properties.Append(new A.SymbolFont { Typeface = source.SymbolTypeface });
             }
         }
+
+        private static A.SchemeColor CreateSchemeColor(byte index) => new() {
+            Val = index switch {
+                0 => A.SchemeColorValues.Background1,
+                1 => A.SchemeColorValues.Text1,
+                2 => A.SchemeColorValues.Accent4,
+                3 => A.SchemeColorValues.Text2,
+                4 => A.SchemeColorValues.Background2,
+                5 => A.SchemeColorValues.Accent1,
+                6 => A.SchemeColorValues.Accent2,
+                7 => A.SchemeColorValues.Accent3,
+                _ => throw new ArgumentOutOfRangeException(nameof(index))
+            }
+        };
     }
 }

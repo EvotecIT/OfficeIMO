@@ -71,7 +71,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             LegacyPptWriterTemplate template = Template.Value;
             LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
-                template.MainMasterPrototypes, template.NotesMasterPrototype);
+                template.Document, template.MainMasterPrototypes,
+                template.NotesMasterPrototype);
             var notes = new List<LegacyPptWriterNote>();
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
@@ -113,7 +114,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var persistObjects = new List<byte[]>(13 + slideRecords.Count + notesRecords.Length) {
                 BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes,
                     interactionCatalog, customShows, soundCatalog, masters.Count,
-                    masters.DrawingShapeCounts)
+                    masters.DrawingShapeCounts, masters.Fonts)
             };
             persistObjects.AddRange(masters.PersistObjects);
             persistObjects.Add(masters.NotesMasterPersistObject);
@@ -185,11 +186,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterCustomShowCatalog customShows,
             LegacyPptWriterSoundCatalog soundCatalog,
             int masterCount,
-            IReadOnlyDictionary<uint, int> masterDrawingShapeCounts) {
+            IReadOnlyDictionary<uint, int> masterDrawingShapeCounts,
+            LegacyPptWriterFontCatalog fonts) {
             var children = new List<byte[]>();
             bool wroteSounds = false;
+            bool wroteFonts = false;
             foreach (LegacyPptRecord child in document.Children) {
-                if (child.Type == RecordDocumentAtom) {
+                if (!wroteFonts && fonts.HasAddedFonts
+                    && fonts.TryRewriteCollection(child,
+                        out byte[] rewrittenFontOwner)) {
+                    children.Add(rewrittenFontOwner);
+                    wroteFonts = true;
+                } else if (child.Type == RecordDocumentAtom) {
                     byte[] atom = child.CopyRecordBytes();
                     WriteInt32(atom, 8, ToMasterUnits(presentation.SlideSize.WidthEmus));
                     WriteInt32(atom, 12, ToMasterUnits(presentation.SlideSize.HeightEmus));
@@ -205,6 +213,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         wroteSounds = true;
                     }
                 } else if (child.Type == RecordDrawingGroup) {
+                    if (!wroteFonts && fonts.HasAddedFonts
+                        && !fonts.HasPrototype) {
+                        children.Add(fonts.BuildCollection());
+                        wroteFonts = true;
+                    }
                     if (!wroteSounds && soundCatalog.Sounds.Count > 0) {
                         children.Add(BuildSoundCollectionRecord(soundCatalog));
                         wroteSounds = true;
@@ -227,6 +240,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (!wroteSounds && soundCatalog.Sounds.Count > 0) {
                 children.Add(BuildSoundCollectionRecord(soundCatalog));
+            }
+            if (!wroteFonts && fonts.HasAddedFonts) {
+                if (fonts.HasPrototype) {
+                    throw new InvalidDataException(
+                        "The embedded document template font collection could not be extended in place.");
+                }
+                children.Add(fonts.BuildCollection());
             }
             byte[] rebuilt = BuildContainer(RecordDocument, instance: 0, children);
             LegacyPptRecord rebuiltRecord = LegacyPptRecordReader.ReadSingle(rebuilt, 0,

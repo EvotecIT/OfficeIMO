@@ -308,6 +308,180 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_RoundTripsMainMasterBaseTextStylesAndFonts() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            SlideMasterPart masterPart = presentation.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.First();
+            var titleLevel = new A.Level1ParagraphProperties {
+                Alignment = A.TextAlignmentTypeValues.Center,
+                LeftMargin = 317500,
+                Indent = -158750,
+                DefaultTabSize = 635000,
+                FontAlignment = A.TextFontAlignmentValues.Center,
+                RightToLeft = true,
+                EastAsianLineBreak = true,
+                LatinLineBreak = false,
+                Height = true
+            };
+            titleLevel.Append(
+                new A.LineSpacing(new A.SpacingPercent { Val = 125000 }),
+                new A.SpaceBefore(new A.SpacingPoints { Val = 1250 }),
+                new A.SpaceAfter(new A.SpacingPoints { Val = 13 }),
+                new A.BulletColor(
+                    new A.RgbColorModelHex { Val = "123456" }),
+                new A.BulletSizePercentage { Val = 120000 },
+                new A.BulletFont { Typeface = "OfficeIMO Bullet" },
+                new A.CharacterBullet { Char = "•" },
+                new A.TabStopList(new A.TabStop {
+                    Position = 476250,
+                    Alignment = A.TextTabAlignmentValues.Decimal
+                }),
+                new A.DefaultRunProperties(
+                    new A.SolidFill(
+                        new A.RgbColorModelHex { Val = "654321" }),
+                    new A.LatinFont { Typeface = "OfficeIMO Latin" },
+                    new A.EastAsianFont { Typeface = "OfficeIMO East" },
+                    new A.SymbolFont { Typeface = "OfficeIMO Symbol" }) {
+                    Bold = true,
+                    Italic = true,
+                    Underline = A.TextUnderlineValues.Single,
+                    Kumimoji = true,
+                    FontSize = 3200,
+                    Baseline = 10000
+                });
+            masterPart.SlideMaster!.TextStyles = new P.TextStyles(
+                new P.TitleStyle(
+                    titleLevel,
+                    new A.Level2ParagraphProperties(
+                        new A.DefaultRunProperties(
+                            new A.SolidFill(new A.SchemeColor {
+                                Val = A.SchemeColorValues.Accent1
+                            }))),
+                    new A.Level3ParagraphProperties(),
+                    new A.Level4ParagraphProperties(),
+                    new A.Level5ParagraphProperties()),
+                new P.BodyStyle(),
+                new P.OtherStyle());
+            presentation.AddSlide(P.SlideLayoutValues.Blank);
+
+            LegacyPptWritePreflightReport preflight = presentation
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptMaster binaryMaster = Assert.Single(binary.Masters);
+            Assert.Equal(3, binaryMaster.TextMasterStyles.Count);
+            LegacyPptTextMasterStyle style = Assert.Single(
+                binaryMaster.TextMasterStyles,
+                candidate => candidate.TextType == LegacyPptTextType.Title);
+            Assert.Equal(5, style.Levels.Count);
+            LegacyPptTextMasterStyleLevel level = style.Levels[0];
+            LegacyPptParagraphRun paragraph = level.ParagraphProperties;
+            LegacyPptCharacterRun character = level.CharacterProperties;
+
+            Assert.False(style.IsTruncated);
+            Assert.False(style.HasUnprojectedFormatting,
+                $"paragraph={paragraph.HasUnprojectedFormatting}; "
+                + $"character={character.HasUnprojectedFormatting}; "
+                + $"fonts={string.Join(",", binary.Fonts.Select(font => $"{font.Index}:{font.Typeface}"))}");
+            Assert.True(paragraph.HasBullet);
+            Assert.True(paragraph.BulletHasFont);
+            Assert.True(paragraph.BulletHasColor);
+            Assert.True(paragraph.BulletHasSize);
+            Assert.Equal('•', paragraph.BulletCharacter);
+            Assert.Equal("OfficeIMO Bullet", paragraph.BulletTypeface);
+            Assert.Equal((short)120, paragraph.BulletSize);
+            Assert.Equal("123456", paragraph.BulletColor);
+            Assert.Equal(LegacyPptTextAlignment.Center, paragraph.Alignment);
+            Assert.Equal((short)125, paragraph.LineSpacing);
+            Assert.Equal((short)-100, paragraph.SpaceBefore);
+            Assert.Equal((short)-1, paragraph.SpaceAfter);
+            Assert.Equal((short)200, paragraph.LeftMargin);
+            Assert.Equal((short)-100, paragraph.Indent);
+            Assert.Equal((short)400, paragraph.DefaultTabSize);
+            Assert.Equal(LegacyPptFontAlignment.Center,
+                paragraph.FontAlignment);
+            Assert.True(paragraph.CharacterWrap);
+            Assert.True(paragraph.WordWrap);
+            Assert.True(paragraph.Overflow);
+            Assert.Equal(LegacyPptTextDirection.RightToLeft,
+                paragraph.TextDirection);
+            LegacyPptTabStop tab = Assert.Single(paragraph.TabStops);
+            Assert.Equal((short)300, tab.Position);
+            Assert.Equal(LegacyPptTabAlignment.Decimal, tab.Alignment);
+            Assert.True(character.Bold);
+            Assert.True(character.Italic);
+            Assert.True(character.Underline);
+            Assert.True(character.Kumi);
+            Assert.Equal((short)32, character.FontSizePoints);
+            Assert.Equal((short)10, character.BaselinePositionPercent);
+            Assert.Equal("654321", character.Color);
+            Assert.Equal("OfficeIMO Latin", character.Typeface);
+            Assert.Equal("OfficeIMO East", character.OldEastAsianTypeface);
+            Assert.Equal("OfficeIMO Symbol", character.SymbolTypeface);
+            Assert.Equal((byte)5,
+                style.Levels[1].CharacterProperties.ColorSchemeIndex);
+            Assert.All(new[] { "OfficeIMO Bullet", "OfficeIMO Latin",
+                    "OfficeIMO East", "OfficeIMO Symbol" }, typeface =>
+                Assert.Contains(binary.Fonts, font => font.Typeface == typeface));
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+                stream);
+            A.Level1ParagraphProperties projected = Assert.IsType<
+                A.Level1ParagraphProperties>(reopened.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.Single().SlideMaster!
+                .TextStyles!.TitleStyle!.FirstChild);
+            Assert.Equal(317500, projected.LeftMargin!.Value);
+            Assert.Equal(-158750, projected.Indent!.Value);
+            Assert.Equal(635000, projected.DefaultTabSize!.Value);
+            Assert.Equal(A.TextAlignmentTypeValues.Center,
+                projected.Alignment!.Value);
+            Assert.Equal("OfficeIMO Bullet",
+                projected.GetFirstChild<A.BulletFont>()!.Typeface!.Value);
+            Assert.Equal("•",
+                projected.GetFirstChild<A.CharacterBullet>()!.Char!.Value);
+            A.DefaultRunProperties projectedRun = projected
+                .GetFirstChild<A.DefaultRunProperties>()!;
+            Assert.Equal("OfficeIMO Latin",
+                projectedRun.GetFirstChild<A.LatinFont>()!.Typeface!.Value);
+            Assert.Equal("OfficeIMO East", projectedRun
+                .GetFirstChild<A.EastAsianFont>()!.Typeface!.Value);
+            Assert.Equal("OfficeIMO Symbol", projectedRun
+                .GetFirstChild<A.SymbolFont>()!.Typeface!.Value);
+            A.Level2ParagraphProperties projectedSecond = Assert.IsType<
+                A.Level2ParagraphProperties>(reopened.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.Single().SlideMaster!
+                .TextStyles!.TitleStyle!.ChildElements[1]);
+            Assert.Equal(A.SchemeColorValues.Accent1, projectedSecond
+                .GetFirstChild<A.DefaultRunProperties>()!
+                .GetFirstChild<A.SolidFill>()!.SchemeColor!.Val!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_RejectsUnrepresentableMainMasterTextStyle() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            SlideMasterPart masterPart = presentation.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.First();
+            var titleLevel = new A.Level1ParagraphProperties(
+                new A.DefaultRunProperties { FontSize = 3250 });
+            masterPart.SlideMaster!.TextStyles = new P.TextStyles(
+                new P.TitleStyle(titleLevel),
+                new P.BodyStyle(),
+                new P.OtherStyle());
+            presentation.AddSlide(P.SlideLayoutValues.Blank);
+
+            LegacyPptWritePreflightReport preflight = presentation
+                .AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-MASTER-TEXT-STYLE");
+        }
+
+        [Fact]
         public void NativeWriter_RoundTripsSolidGradientAndNoFillSlideBackgrounds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide solid = presentation.AddSlide(P.SlideLayoutValues.Blank);

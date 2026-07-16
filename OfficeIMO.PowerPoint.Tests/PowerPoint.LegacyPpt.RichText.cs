@@ -254,7 +254,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(A.TextUnderlineValues.None, runs[0].RunProperties.Underline!.Value);
             Assert.Equal(1800, runs[0].RunProperties.FontSize!.Value);
             Assert.Equal(-25000, runs[0].RunProperties.Baseline!.Value);
-            Assert.Equal("ABCDEF", GetRunColor(runs[0]));
+            Assert.Equal(A.SchemeColorValues.Accent1, runs[0].RunProperties
+                .GetFirstChild<A.SolidFill>()!.SchemeColor!.Val!.Value);
             Assert.True(runs[1].RunProperties!.Bold!.Value);
         }
 

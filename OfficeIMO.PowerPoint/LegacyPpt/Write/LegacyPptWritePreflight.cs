@@ -37,6 +37,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ? "The presentation has no slide master to encode."
                         : $"The native binary writer currently supports at most {LegacyPptWriter.MaxNativeMasterCount} slide masters; the presentation contains {masterCount}."));
             }
+            if (!LegacyPptWriter.CanWriteMasterTextStyles(presentation,
+                    out string? masterTextStyleReason)) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.ParagraphFormatting,
+                    "PPT-WRITE-MASTER-TEXT-STYLE",
+                    masterTextStyleReason
+                    ?? "A slide-master text style cannot be encoded by the native binary writer."));
+            }
             for (int masterIndex = 0; masterIndex < masterParts.Length;
                  masterIndex++) {
                 SlideMasterPart masterPart = masterParts[masterIndex];
