@@ -11,11 +11,19 @@ internal static partial class OneNotePackageStoreReader {
 
     internal static OneNoteRevisionStore Read(Stream stream, OneNoteFileHeader header, OneNoteReaderOptions options) {
         FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, options);
-        FssHttpStreamObject package = packaging.Children.SingleOrDefault(item => item.Type == DataElementPackage)
-            ?? throw new OneNoteFormatException("ONENOTE_PACKAGE_DATA_ELEMENTS", "The package does not contain a data-element package.", packaging.HeaderOffset);
+        FssHttpStreamObject package = RequireExactlyOne(
+            packaging.Children,
+            item => item.Type == DataElementPackage,
+            "ONENOTE_PACKAGE_DATA_ELEMENTS",
+            "The package does not contain exactly one data-element package.",
+            packaging.HeaderOffset);
         List<PackageDataElement> elements = ReadDataElements(stream, package, options);
-        PackageDataElement storageIndex = elements.SingleOrDefault(item => item.Type == StorageIndexType)
-            ?? throw new OneNoteFormatException("ONENOTE_PACKAGE_STORAGE_INDEX", "The package does not contain exactly one storage-index data element.", package.HeaderOffset);
+        PackageDataElement storageIndex = RequireExactlyOne(
+            elements,
+            item => item.Type == StorageIndexType,
+            "ONENOTE_PACKAGE_STORAGE_INDEX",
+            "The package does not contain exactly one storage-index data element.",
+            package.HeaderOffset);
         PackageIndex index = ReadStorageIndex(stream, storageIndex, options);
         PackageGraph graph = ReconstructGraph(stream, elements, index, options);
 
@@ -128,8 +136,12 @@ internal static partial class OneNotePackageStoreReader {
     }
 
     private static OneNoteExtendedGuid ReadCellManifest(Stream stream, PackageDataElement element, OneNoteReaderOptions options) {
-        FssHttpStreamObject current = element.Node.Children.SingleOrDefault(item => item.Type == 0x0B)
-            ?? throw new OneNoteFormatException("ONENOTE_PACKAGE_CELL_MANIFEST", "A cell manifest does not declare its current revision.", element.Node.HeaderOffset);
+        FssHttpStreamObject current = RequireExactlyOne(
+            element.Node.Children,
+            item => item.Type == 0x0B,
+            "ONENOTE_PACKAGE_CELL_MANIFEST",
+            "A cell manifest must declare exactly one current revision.",
+            element.Node.HeaderOffset);
         byte[] data = FssHttpStreamObjectReader.ReadData(stream, current, 32, "cell-manifest current revision");
         var cursor = new FssHttpDataCursor(data, current.DataOffset);
         OneNoteExtendedGuid revision = cursor.ReadExtendedGuid();
@@ -138,8 +150,12 @@ internal static partial class OneNotePackageStoreReader {
     }
 
     private static PackageRevisionElement ReadRevisionManifest(Stream stream, PackageDataElement element, OneNoteReaderOptions options) {
-        FssHttpStreamObject revisionNode = element.Node.Children.SingleOrDefault(item => item.Type == 0x1A)
-            ?? throw new OneNoteFormatException("ONENOTE_PACKAGE_REVISION_MANIFEST", "A revision-manifest data element has no revision declaration.", element.Node.HeaderOffset);
+        FssHttpStreamObject revisionNode = RequireExactlyOne(
+            element.Node.Children,
+            item => item.Type == 0x1A,
+            "ONENOTE_PACKAGE_REVISION_MANIFEST",
+            "A revision-manifest data element must contain exactly one revision declaration.",
+            element.Node.HeaderOffset);
         byte[] data = FssHttpStreamObjectReader.ReadData(stream, revisionNode, 64, "revision manifest");
         var cursor = new FssHttpDataCursor(data, revisionNode.DataOffset);
         OneNoteExtendedGuid revisionId = cursor.ReadExtendedGuid();
@@ -167,6 +183,19 @@ internal static partial class OneNotePackageStoreReader {
     }
 
     private static bool IsNull(OneNoteExtendedGuid value) => value.Identifier == Guid.Empty && value.Value == 0;
+
+    private static T RequireExactlyOne<T>(
+        IEnumerable<T> source,
+        Func<T, bool> predicate,
+        string code,
+        string message,
+        long offset) {
+        using IEnumerator<T> matches = source.Where(predicate).GetEnumerator();
+        if (!matches.MoveNext()) throw new OneNoteFormatException(code, message, offset);
+        T value = matches.Current;
+        if (matches.MoveNext()) throw new OneNoteFormatException(code, message, offset);
+        return value;
+    }
 
     private sealed class PackageDataElement {
         internal PackageDataElement(OneNoteExtendedGuid id, ulong type, FssHttpStreamObject node) { Id = id; Type = type; Node = node; }

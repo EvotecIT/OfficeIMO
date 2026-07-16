@@ -56,6 +56,21 @@ public sealed class FssHttpPackageTests {
         Assert.Equal("ONENOTE_PACKAGE_REVISION_ID", exception.Code);
     }
 
+    [Fact]
+    public void DuplicateStorageIndexesAreBoundedFormatErrors() {
+        OneNoteExtendedGuid rootSpaceId = Id();
+        var graph = new OneNoteWriteGraph(Guid.NewGuid(), OneNoteFileKind.Section, rootSpaceId, Guid.Empty, 0);
+        graph.ObjectSpaces.Add(new OneNoteWriteObjectSpace(rootSpaceId, Id()));
+
+        byte[] data = OneNotePackageStoreWriter.Write(graph);
+        ChangeFirstNonStorageElementToStorageIndex(data);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() =>
+            OneNoteRevisionStoreReader.Read(new MemoryStream(data)));
+
+        Assert.Equal("ONENOTE_PACKAGE_STORAGE_INDEX", exception.Code);
+    }
+
     private static string FixturePath(string fileName) => Path.Combine(AppContext.BaseDirectory, "Fixtures", fileName);
 
     private static OneNoteExtendedGuid Id() => new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17);
@@ -79,6 +94,20 @@ public sealed class FssHttpPackageTests {
             data,
             checked((int)revisionDeclarations[1].DataOffset),
             encodedGuidBytes);
+    }
+
+    private static void ChangeFirstNonStorageElementToStorageIndex(byte[] data) {
+        using var stream = new MemoryStream(data);
+        FssHttpStreamObject packaging = FssHttpStreamObjectReader.ReadPackaging(stream, new OneNoteReaderOptions());
+        FssHttpStreamObject package = Assert.Single(packaging.Children, item => item.Type == 0x15);
+        FssHttpStreamObject element = Assert.Single(
+            package.Children.Where(item => DataElementType(stream, item) != 1).Take(1));
+        byte[] prefix = FssHttpStreamObjectReader.ReadData(stream, element, 128, "data-element prefix");
+        var cursor = new FssHttpDataCursor(prefix, element.DataOffset);
+        cursor.ReadExtendedGuid();
+        cursor.SkipSerialNumber();
+
+        data[checked((int)element.DataOffset + cursor.Position)] = 0x03; // compact uint64 value 1
     }
 
     private static ulong DataElementType(Stream stream, FssHttpStreamObject element) {

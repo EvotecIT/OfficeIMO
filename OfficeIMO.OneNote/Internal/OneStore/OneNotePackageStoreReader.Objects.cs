@@ -9,10 +9,18 @@ internal static partial class OneNotePackageStoreReader {
         PackageGraph graph,
         HashSet<PackageGuidKey> seenObjects,
         OneNoteReaderOptions options) {
-        FssHttpStreamObject declarationsNode = group.Node.Children.SingleOrDefault(item => item.Type == 0x1D)
-            ?? throw new OneNoteFormatException("ONENOTE_PACKAGE_OBJECT_DECLARATIONS", "An object group has no declarations container.", group.Node.HeaderOffset);
-        FssHttpStreamObject dataNode = group.Node.Children.SingleOrDefault(item => item.Type == 0x1E)
-            ?? throw new OneNoteFormatException("ONENOTE_PACKAGE_OBJECT_DATA", "An object group has no data container.", group.Node.HeaderOffset);
+        FssHttpStreamObject declarationsNode = RequireExactlyOne(
+            group.Node.Children,
+            item => item.Type == 0x1D,
+            "ONENOTE_PACKAGE_OBJECT_DECLARATIONS",
+            "An object group must contain exactly one declarations container.",
+            group.Node.HeaderOffset);
+        FssHttpStreamObject dataNode = RequireExactlyOne(
+            group.Node.Children,
+            item => item.Type == 0x1E,
+            "ONENOTE_PACKAGE_OBJECT_DATA",
+            "An object group must contain exactly one data container.",
+            group.Node.HeaderOffset);
         PackageObjectDeclaration[] declarations = declarationsNode.Children
             .Where(item => item.Type == 0x18 || item.Type == 0x05)
             .Select(item => ReadDeclaration(stream, item, options))
@@ -91,8 +99,12 @@ internal static partial class OneNotePackageStoreReader {
                 TryParseFileDataGuid(record.FileDataReference, out Guid fileDataId) &&
                 !graph.FileDataObjects.Any(item => item.Id == fileDataId) &&
                 blobs.TryGetValue(new PackageGuidKey(accumulator.BlobElementId), out PackageDataElement? blobElement)) {
-                FssHttpStreamObject blobNode = blobElement.Node.Children.SingleOrDefault(item => item.Type == 0x02)
-                    ?? throw new OneNoteFormatException("ONENOTE_PACKAGE_BLOB", "An object-data BLOB element contains no BLOB payload.", blobElement.Node.HeaderOffset);
+                FssHttpStreamObject blobNode = RequireExactlyOne(
+                    blobElement.Node.Children,
+                    item => item.Type == 0x02,
+                    "ONENOTE_PACKAGE_BLOB",
+                    "An object-data BLOB element must contain exactly one BLOB payload.",
+                    blobElement.Node.HeaderOffset);
                 if (blobNode.DataLength > (ulong)options.MaxAssetBytes ||
                     graph.TotalAssetBytes > options.MaxTotalAssetBytes - (long)blobNode.DataLength) {
                     throw new OneNoteFormatException("ONENOTE_ASSET_LIMIT", "An embedded OneNote asset exceeds the configured materialization limits.", blobNode.DataOffset);

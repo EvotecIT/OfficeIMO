@@ -18,6 +18,16 @@ public static class OneNoteMarkdownProjection {
         return builder.ToString().Trim();
     }
 
+    /// <summary>Projects one semantic element and its descendants to Markdown.</summary>
+    public static string ToMarkdown(
+        OneNoteElement element,
+        Func<OneNoteBinaryElement, string?>? assetUriResolver = null) {
+        if (element == null) throw new ArgumentNullException(nameof(element));
+        var builder = new StringBuilder();
+        AppendMarkdown(builder, element, assetUriResolver);
+        return builder.ToString().TrimEnd();
+    }
+
     /// <summary>Projects one page to plain text.</summary>
     public static string ToText(OneNotePage page) {
         if (page == null) throw new ArgumentNullException(nameof(page));
@@ -273,6 +283,8 @@ public static class OneNoteMarkdownProjection {
         .Replace("[", "\\[")
         .Replace("]", "\\]")
         .Replace("|", "\\|")
+        .Replace("<", "&lt;")
+        .Replace(">", "&gt;")
         .Replace("\r\n", "<br>")
         .Replace("\r", "<br>")
         .Replace("\n", "<br>");

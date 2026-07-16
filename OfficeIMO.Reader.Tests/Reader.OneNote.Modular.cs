@@ -47,6 +47,31 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
+    public void OneNoteAdapter_ChunksTextAndMarkdownAtSharedSemanticBoundaries() {
+        var section = new OneNoteSection { Name = "Chunked" };
+        var page = new OneNotePage { Title = "Chunked page" };
+        page.DirectContent.Add(BoldParagraph("ALPHA " + new string('a', 32)));
+        page.DirectContent.Add(BoldParagraph("BETA " + new string('b', 32)));
+        section.Pages.Add(page);
+
+        OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(
+            section,
+            readerOptions: new ReaderOptions { MaxChars = 60 });
+
+        Assert.Equal(2, result.Chunks.Count);
+        Assert.All(result.Chunks, chunk => {
+            Assert.True(chunk.Text.Length <= 60);
+            Assert.True(chunk.Markdown!.Length <= 60);
+            Assert.Equal(
+                chunk.Text.Contains("ALPHA", StringComparison.Ordinal),
+                chunk.Markdown.Contains("ALPHA", StringComparison.Ordinal));
+            Assert.Equal(
+                chunk.Text.Contains("BETA", StringComparison.Ordinal),
+                chunk.Markdown.Contains("BETA", StringComparison.Ordinal));
+        });
+    }
+
+    [Fact]
     public void OneNoteAdapter_ReadDocument_ProjectsEmbeddedAssetWithOptionalPayload() {
         OfficeDocumentReadResult metadataOnly = OneNoteReaderAdapter.ReadDocument(FixturePath("testOneNoteEmbeddedWordDoc.one"));
         OfficeDocumentAsset metadataAsset = Assert.Single(metadataOnly.Assets, asset => asset.Kind == "embedded-file");
@@ -306,6 +331,14 @@ public sealed class ReaderOneNoteModularTests {
         section.Pages.Add(page);
         notebook.Sections.Add(section);
         return OneNotePackageWriter.Write(notebook);
+    }
+
+    private static OneNoteParagraph BoldParagraph(string text) {
+        var paragraph = new OneNoteParagraph();
+        var run = new OneNoteTextRun { Text = text };
+        run.Style.Bold = true;
+        paragraph.Runs.Add(run);
+        return paragraph;
     }
 
     private static string FixturePath(string fileName) => Path.Combine(AppContext.BaseDirectory, "OneNoteFixtures", fileName);

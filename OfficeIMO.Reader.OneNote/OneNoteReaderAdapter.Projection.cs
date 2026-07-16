@@ -15,8 +15,6 @@ internal static partial class OneNoteReaderAdapter {
         for (int pageIndex = 0; pageIndex < section.Pages.Count; pageIndex++) {
             cancellationToken.ThrowIfCancellationRequested();
             OneNotePage page = section.Pages[pageIndex];
-            string text = BuildPageText(page);
-            string markdown = BuildPageMarkdown(page, pageIndex);
             ReaderTable[] tables = BuildTables(page, source, pageIndex, options.MaxTableRows).ToArray();
             string[] warnings = section.Diagnostics.Concat(page.Diagnostics)
                 .Where(static diagnostic => diagnostic.Severity != OneNoteDiagnosticSeverity.Information)
@@ -24,10 +22,10 @@ internal static partial class OneNoteReaderAdapter {
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
 
-            IReadOnlyList<string> textParts = SplitByMaxChars(text, options.MaxChars);
-            IReadOnlyList<string> markdownParts = SplitByMaxChars(markdown, options.MaxChars);
-            int partCount = Math.Max(textParts.Count, markdownParts.Count);
+            IReadOnlyList<ProjectionPart> parts = BuildProjectionParts(page, pageIndex, options.MaxChars);
+            int partCount = parts.Count;
             for (int partIndex = 0; partIndex < partCount; partIndex++) {
+                ProjectionPart part = parts[partIndex];
                 string anchor = "page-" + (pageIndex + 1).ToString(CultureInfo.InvariantCulture) +
                     (partCount == 1 ? string.Empty : "-part-" + (partIndex + 1).ToString(CultureInfo.InvariantCulture));
                 var chunk = new ReaderChunk {
@@ -39,8 +37,8 @@ internal static partial class OneNoteReaderAdapter {
                     SourceHash = source.SourceHash,
                     SourceLastWriteUtc = source.LastWriteUtc,
                     SourceLengthBytes = source.LengthBytes,
-                    Text = partIndex < textParts.Count ? textParts[partIndex] : string.Empty,
-                    Markdown = partIndex < markdownParts.Count ? markdownParts[partIndex] : string.Empty,
+                    Text = part.Text,
+                    Markdown = part.Markdown,
                     Tables = partIndex == 0 && tables.Length > 0 ? tables : null,
                     Warnings = partIndex == 0 && warnings.Length > 0 ? warnings : null
                 };
@@ -65,19 +63,6 @@ internal static partial class OneNoteReaderAdapter {
             if (stack.Count > level + 1) stack.RemoveRange(level + 1, stack.Count - level - 1);
         }
         return result;
-    }
-
-    private static string BuildPageText(OneNotePage page) {
-        return OneNoteMarkdownProjection.ToText(page);
-    }
-
-    private static string BuildPageMarkdown(OneNotePage page, int pageIndex) {
-        int assetIndex = 0;
-        int headingLevel = Math.Min(6, Math.Max(1, page.Level + 1));
-        return OneNoteMarkdownProjection.ToMarkdown(
-            page,
-            headingLevel,
-            _ => BuildAssetId(pageIndex, assetIndex++));
     }
 
     private static IEnumerable<ReaderTable> BuildTables(OneNotePage page, SourceInfo source, int pageIndex, int maxRows) {
@@ -147,31 +132,6 @@ internal static partial class OneNoteReaderAdapter {
             HierarchyHeadingPath = hierarchy,
             TableIndex = tableIndex
         };
-    }
-
-    private static IReadOnlyList<string> SplitByMaxChars(string value, int maxChars) {
-        maxChars = Math.Max(1, maxChars);
-        if (string.IsNullOrEmpty(value)) return new[] { string.Empty };
-        var parts = new List<string>();
-        int offset = 0;
-        while (offset < value.Length) {
-            int length = Math.Min(maxChars, value.Length - offset);
-            int cut = length;
-            if (offset + length < value.Length) {
-                int newline = value.LastIndexOf('\n', offset + length - 1, length);
-                if (newline > offset) cut = newline - offset + 1;
-                else {
-                    int space = value.LastIndexOf(' ', offset + length - 1, length);
-                    if (space > offset) cut = space - offset + 1;
-                }
-            }
-            string part = value.Substring(offset, cut).Trim();
-            if (part.Length == 0) part = value.Substring(offset, cut);
-            parts.Add(part);
-            offset += cut;
-            while (offset < value.Length && char.IsWhiteSpace(value[offset])) offset++;
-        }
-        return parts;
     }
 
     private static string EscapeMarkdown(string? value) {

@@ -110,10 +110,28 @@ public sealed class ConverterTests {
         string html = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
 
         Assert.Contains("## Title<br># literal heading", markdown);
-        Assert.Contains("Text<br>> literal quote<br>- literal item<br>1. literal ordered item", markdown);
+        Assert.Contains("Text<br>&gt; literal quote<br>- literal item<br>1. literal ordered item", markdown);
         Assert.DoesNotContain("\n# literal heading", markdown);
         Assert.DoesNotContain("<blockquote", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<li", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkdownAndHtmlProjectionEscapeSourceHtmlAsLiteralText() {
+        var section = new OneNoteSection { Name = "Projection" };
+        var page = new OneNotePage { Title = "<script>alert('title')</script>" };
+        page.DirectContent.Add(Paragraph("<img src=x onerror=alert('body')>"));
+        section.Pages.Add(page);
+
+        string markdown = section.ToMarkdown();
+        string html = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+
+        Assert.Contains("&lt;script&gt;", markdown, StringComparison.Ordinal);
+        Assert.Contains("&lt;img", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("<script", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<img src=x", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("&lt;script&gt;", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("&lt;img", html, StringComparison.OrdinalIgnoreCase);
     }
 
     private static OneNoteNotebook CreateNotebook() {
