@@ -10,6 +10,43 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderMediaAdapterTests {
     [Fact]
+    public void DependencyFreeMediaAdapters_PopulateTokenEstimates() {
+        OfficeDocumentReadResult[] results = {
+            new OfficeDocumentReaderBuilder().AddImageHandler().Build()
+                .ReadDocument(CreatePng(1, 1), "token.png"),
+            new OfficeDocumentReaderBuilder().AddNotebookHandler().Build()
+                .ReadDocument(
+                    Encoding.UTF8.GetBytes(
+                        "{\"cells\":[{\"cell_type\":\"markdown\",\"source\":\"Token estimate\"}]," +
+                        "\"metadata\":{},\"nbformat\":4,\"nbformat_minor\":5}"),
+                    "token.ipynb"),
+            new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build()
+                .ReadDocument(
+                    Encoding.UTF8.GetBytes("1\n00:00:00,000 --> 00:00:01,000\nToken estimate\n"),
+                    "token.srt")
+        };
+
+        Assert.All(results, result => Assert.All(result.Chunks, chunk => {
+            string projection = chunk.Markdown ?? chunk.Text;
+            int expected = projection.Length == 0 ? 0 : Math.Max(1, (projection.Length + 3) / 4);
+            Assert.Equal(expected, chunk.TokenEstimate);
+        }));
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void AdapterProjection_DoesNotSplitSurrogatePairsAtBoundaries(int maxChars) {
+        const string value = "a😀b";
+
+        IReadOnlyList<string> parts = DocumentReaderEngine.SplitAdapterProjection(value, maxChars);
+
+        Assert.Equal(value, string.Concat(parts));
+        Assert.All(parts, AssertContainsOnlyCompleteSurrogatePairs);
+        Assert.Contains("😀", parts);
+    }
+
+    [Fact]
     public void ImageAdapter_EmitsMetadataAssetAndOcrCandidateWithoutRunningOcr() {
         byte[] png = CreatePng(3, 2);
         using var stream = new MemoryStream(png, writable: false);
@@ -676,6 +713,17 @@ public sealed class ReaderMediaAdapterTests {
             rgba[index + 3] = 255;
         }
         return OfficePngWriter.EncodeRgba(width, height, rgba);
+    }
+
+    private static void AssertContainsOnlyCompleteSurrogatePairs(string value) {
+        for (int index = 0; index < value.Length; index++) {
+            if (char.IsHighSurrogate(value[index])) {
+                Assert.True(index + 1 < value.Length && char.IsLowSurrogate(value[index + 1]));
+                index++;
+            } else {
+                Assert.False(char.IsLowSurrogate(value[index]));
+            }
+        }
     }
 
     private static byte[] CreateWebpExtendedHeader(int width, int height) {

@@ -126,6 +126,7 @@ internal static partial class DocumentReaderEngine {
         chunk.SourceHash = computeHashes ? input.Source.SourceHash : null;
         chunk.SourceLastWriteUtc = input.Source.LastWriteUtc;
         chunk.SourceLengthBytes = input.Source.LengthBytes;
+        chunk.TokenEstimate ??= EstimateTokenCount(chunk.Markdown ?? chunk.Text);
         chunk.ChunkHash = computeHashes ? ComputeChunkHash(chunk) : null;
         return chunk;
     }

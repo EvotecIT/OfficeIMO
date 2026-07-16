@@ -98,18 +98,7 @@ internal static class SubtitleReaderAdapter {
     private static IReadOnlyList<string> SplitCueText(string value, int maxChars, int firstPartPrefixLength) {
         int limit = Math.Max(1, maxChars);
         int firstLimit = Math.Max(1, limit - firstPartPrefixLength);
-        if (value.Length <= firstLimit) return new[] { value };
-
-        var parts = new List<string>((value.Length + limit - 1) / limit + 1);
-        int offset = 0;
-        int partLimit = firstLimit;
-        while (offset < value.Length) {
-            int length = Math.Min(partLimit, value.Length - offset);
-            parts.Add(value.Substring(offset, length));
-            offset += length;
-            partLimit = limit;
-        }
-        return parts;
+        return DocumentReaderEngine.SplitAdapterProjection(value, firstLimit, limit);
     }
 
     private static string[]? BuildCueWarnings(bool cueTruncated, bool wasSplit) {
