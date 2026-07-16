@@ -19,6 +19,7 @@
   "relatedPackages": [
     { "name": "OfficeIMO.Word.Html", "description": "Convert Word documents to HTML", "install": "dotnet add package OfficeIMO.Word.Html" },
     { "name": "OfficeIMO.Word.Markdown", "description": "Convert Word documents to Markdown", "install": "dotnet add package OfficeIMO.Word.Markdown" },
-    { "name": "OfficeIMO.Word.Pdf", "description": "Convert Word documents to PDF", "install": "dotnet add package OfficeIMO.Word.Pdf" }
+    { "name": "OfficeIMO.Word.Pdf", "description": "Convert Word documents to PDF", "install": "dotnet add package OfficeIMO.Word.Pdf" },
+    { "name": "OfficeIMO.Word.GoogleDocs", "description": "Translate Word documents to and from Google Docs", "install": "dotnet add package OfficeIMO.Word.GoogleDocs" }
   ]
 }

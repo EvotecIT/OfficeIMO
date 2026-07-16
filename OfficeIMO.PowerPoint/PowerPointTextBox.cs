@@ -26,7 +26,17 @@ namespace OfficeIMO.PowerPoint {
 
         private Shape Shape => (Shape)Element;
 
-        internal A.ShapeTypeValues? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value;
+        /// <summary>
+        /// Gets the preset geometry used by this text-bearing shape.
+        /// </summary>
+        public A.ShapeTypeValues? ShapeType => Shape.ShapeProperties?.GetFirstChild<A.PresetGeometry>()?.Preset?.Value;
+
+        /// <summary>
+        /// Gets whether this shape represents a conventional text box or placeholder rather than a text-bearing preset shape.
+        /// </summary>
+        public bool UsesTextBoxGeometry =>
+            Shape.NonVisualShapeProperties?.NonVisualShapeDrawingProperties?.TextBox?.Value == true
+            || Shape.NonVisualShapeProperties?.ApplicationNonVisualDrawingProperties?.GetFirstChild<PlaceholderShape>() != null;
 
         private IEnumerable<A.Run> Runs => EnsureTextBody().Elements<A.Paragraph>().SelectMany(p => p.Elements<A.Run>());
 

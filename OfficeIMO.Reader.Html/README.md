@@ -107,8 +107,9 @@ foreach (OfficeDocumentLink link in document.Links) {
 - Table extraction with `ReaderTable.ColumnProfiles`.
 - Heading-aware chunk metadata when `ReaderOptions.MarkdownChunkByHeadings` is enabled.
 - HTML-to-Markdown profile, transform, converter, and visual round-trip option pass-through.
-- A schema-v5 rich result containing semantic blocks, figures, tables, links, form controls, media visuals, metadata, and bounded data-URI image assets.
+- A schema-v5 rich result containing semantic headings, quotes, code, footnotes, list markers, figures, tables, links, form controls, media visuals, metadata, and bounded data-URI image assets.
 - MHTML root HTML, decoded related resources, archive diagnostics, and stable `officeimo.html.mhtml` capability evidence.
+- ARIA heading levels and accessible link/image names in rich blocks, links, assets, visuals, JSON, and `officeimo.html.*` capability identifiers.
 
 ## Boundaries
 

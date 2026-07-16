@@ -18,6 +18,6 @@
   ],
   "relatedPackages": [
     { "name": "OfficeIMO.Excel.Pdf", "description": "Export Excel workbooks to PDF", "install": "dotnet add package OfficeIMO.Excel.Pdf" },
-    { "name": "OfficeIMO.Excel.GoogleSheets", "description": "Plan and export Excel workbooks to Google Sheets", "install": "dotnet add package OfficeIMO.Excel.GoogleSheets" }
+    { "name": "OfficeIMO.Excel.GoogleSheets", "description": "Translate Excel workbooks to and from Google Sheets", "install": "dotnet add package OfficeIMO.Excel.GoogleSheets" }
   ]
 }

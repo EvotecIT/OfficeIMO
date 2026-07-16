@@ -74,6 +74,22 @@
     ]
   },
   {
+    "title": "Google Workspace",
+    "items": [
+      { "title": "Google Workspace Overview", "path": "google-workspace/index.md", "href": "/docs/google-workspace/" },
+      { "title": "Word and Google Docs", "path": "google-workspace/docs/index.md", "href": "/docs/google-workspace/docs/" },
+      { "title": "Excel and Google Sheets", "path": "google-workspace/sheets/index.md", "href": "/docs/google-workspace/sheets/" },
+      { "title": "PowerPoint and Google Slides", "path": "google-workspace/slides/index.md", "href": "/docs/google-workspace/slides/" },
+      { "title": "Google Drive", "path": "google-workspace/drive/index.md", "href": "/docs/google-workspace/drive/" },
+      { "title": "Authentication", "path": "google-workspace/authentication/index.md", "href": "/docs/google-workspace/authentication/" },
+      { "title": "Shared drives", "path": "google-workspace/shared-drives/index.md", "href": "/docs/google-workspace/shared-drives/" },
+      { "title": "Synchronization", "path": "google-workspace/sync/index.md", "href": "/docs/google-workspace/sync/" },
+      { "title": "Live tests", "path": "google-workspace/live-tests/index.md", "href": "/docs/google-workspace/live-tests/" },
+      { "title": "Support matrix", "path": "google-workspace/support/index.md", "href": "/docs/google-workspace/support/" },
+      { "title": "Preview migration", "path": "google-workspace/migration/index.md", "href": "/docs/google-workspace/migration/" }
+    ]
+  },
+  {
     "title": "Converters",
     "items": [
       { "title": "Word to HTML", "path": "converters/word-html/index.md", "href": "/docs/converters/word-html/" },

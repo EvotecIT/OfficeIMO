@@ -1,19 +1,11 @@
 using OfficeIMO.GoogleWorkspace;
-using System.Net.Http.Headers;
-using System.Text;
-using System.Text.Json;
+using OfficeIMO.GoogleWorkspace.Drive;
 
 namespace OfficeIMO.Excel.GoogleSheets {
     /// <summary>
     /// Default Excel to Google Sheets exporter implementation.
     /// </summary>
     public sealed class GoogleSheetsExporter : IGoogleSheetsExporter {
-        private static readonly JsonSerializerOptions JsonOptions = new JsonSerializerOptions {
-            DefaultIgnoreCondition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull,
-            PropertyNamingPolicy = null,
-            WriteIndented = false,
-        };
-
         public GoogleSheetsTranslationPlan BuildPlan(ExcelDocument document, GoogleSheetsSaveOptions? options = null) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             return GoogleSheetsPlanBuilder.Build(document, options ?? new GoogleSheetsSaveOptions());
@@ -33,7 +25,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
             if (session == null) throw new ArgumentNullException(nameof(session));
 
             var effectiveOptions = options ?? new GoogleSheetsSaveOptions();
+            ValidateExecutionOptions(effectiveOptions.Execution);
             var batch = BuildBatch(document, effectiveOptions);
+            GoogleWorkspacePreflight.Validate(batch.Report, effectiveOptions.FidelityPolicy);
             var effectiveLocation = session.ResolveLocationDefaults(effectiveOptions.Location);
             if (string.IsNullOrWhiteSpace(effectiveLocation.FolderId) && !string.IsNullOrWhiteSpace(effectiveLocation.DriveId)) {
                 GoogleWorkspaceDiagnosticsDispatcher.Add(
@@ -68,63 +62,78 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     ex);
             }
 
-            var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(session.Options);
-
-            bool disposeClient = session.Options.HttpClient == null;
-            var client = session.Options.HttpClient ?? new HttpClient();
+            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
-                client.Timeout = session.Options.RequestTimeout;
+                await ValidateDrivePlacementAsync(
+                    driveClient,
+                    effectiveLocation,
+                    batch.Report,
+                    cancellationToken).ConfigureAwait(false);
 
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
-                    var existingResponse = await SendAsync<GoogleSheetsApiSpreadsheetMetadataResponse>(
-                        client,
-                        accessToken.AccessToken,
-                        HttpMethod.Get,
-                        $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}?fields=spreadsheetId,spreadsheetUrl,properties.title,sheets.properties.sheetId",
-                        null,
-                        retryOptions,
+                    await ValidateReplaceTargetAsync(
+                        driveClient,
+                        effectiveLocation.ExistingFileId!,
+                        effectiveOptions.Replace,
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
-                    var existingSheetIds = existingResponse.Sheets
-                        .Select(sheet => sheet.Properties?.SheetId ?? 0)
-                        .Where(sheetId => sheetId > 0)
-                        .ToList();
-                    var sheetIdMap = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch, existingSheetIds);
-                    var replacePayload = GoogleSheetsApiPayloadBuilder.BuildReplaceSpreadsheetPayload(batch, existingSheetIds, sheetIdMap);
+                    var existingResponse = await transport.SendJsonAsync<GoogleSheetsApiSpreadsheetMetadataResponse>(
+                        accessToken.AccessToken,
+                        HttpMethod.Get,
+                        $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}?fields=spreadsheetId,spreadsheetUrl,properties.title,sheets(properties(sheetId,title))",
+                        null,
+                        GoogleWorkspaceRequestSafety.Safe,
+                        "Google Sheets API",
+                        batch.Report,
+                        cancellationToken).ConfigureAwait(false);
 
-                    await SendAsync<object>(
-                        client,
+                    var existingSheets = existingResponse.Sheets
+                        .Where(sheet => sheet.Properties?.SheetId.HasValue == true)
+                        .ToDictionary(
+                            sheet => sheet.Properties!.SheetId.GetValueOrDefault(),
+                            sheet => sheet.Properties!.Title ?? string.Empty);
+                    var sheetIdMap = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch, existingSheets.Keys);
+                    var replacePayload = GoogleSheetsApiPayloadBuilder.BuildReplaceSpreadsheetPayload(batch, existingSheets, sheetIdMap);
+
+                    await transport.SendJsonAsync<object>(
                         accessToken.AccessToken,
                         HttpMethod.Post,
                         $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}:batchUpdate",
                         replacePayload,
-                        retryOptions,
+                        GoogleWorkspaceRequestSafety.NonIdempotent,
+                        "Google Sheets API",
                         batch.Report,
+                        cancellationToken).ConfigureAwait(false);
+
+                    await SendValuesAsync(
+                        transport,
+                        accessToken.AccessToken,
+                        existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId!,
+                        batch,
+                        sheetIdMap,
+                        effectiveOptions.Execution,
                         cancellationToken).ConfigureAwait(false);
 
                     var contentPayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
                         batch,
                         sheetIdMap,
-                        existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId);
-                    if (contentPayload.Requests.Count > 0) {
-                        await SendAsync<object>(
-                            client,
-                            accessToken.AccessToken,
-                            HttpMethod.Post,
-                            $"https://sheets.googleapis.com/v4/spreadsheets/{effectiveLocation.ExistingFileId}:batchUpdate",
-                            contentPayload,
-                            retryOptions,
-                            batch.Report,
-                            cancellationToken).ConfigureAwait(false);
-                    }
+                        existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId,
+                        includeCellValues: !effectiveOptions.Execution.UseValuesBatchUpdate);
+                    await SendStructuralBatchesAsync(
+                        transport,
+                        accessToken.AccessToken,
+                        effectiveLocation.ExistingFileId!,
+                        contentPayload,
+                        effectiveOptions.Execution,
+                        batch.Report,
+                        cancellationToken).ConfigureAwait(false);
 
                     var updatedDriveMetadata = await ApplyDrivePlacementAsync(
-                        client,
-                        accessToken.AccessToken,
+                        driveClient,
                         existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId!,
                         effectiveLocation,
-                        retryOptions,
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
@@ -142,6 +151,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                             ?? (!string.IsNullOrWhiteSpace(existingResponse.SpreadsheetUrl)
                                 ? existingResponse.SpreadsheetUrl
                                 : BuildSpreadsheetWebViewLink(existingResponse.SpreadsheetId ?? effectiveLocation.ExistingFileId)),
+                        DriveVersion = updatedDriveMetadata?.Version,
+                        ModifiedTime = updatedDriveMetadata?.ModifiedTime,
                         Location = effectiveLocation,
                         Report = batch.Report,
                     };
@@ -149,39 +160,46 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
                 var sheetIdMapForCreate = GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch);
                 var createPayload = GoogleSheetsApiPayloadBuilder.BuildCreateSpreadsheetPayload(batch, sheetIdMapForCreate);
-                var createResponse = await SendAsync<GoogleSheetsApiCreateSpreadsheetResponse>(
-                    client,
+                var createResponse = await transport.SendJsonAsync<GoogleSheetsApiCreateSpreadsheetResponse>(
                     accessToken.AccessToken,
                     HttpMethod.Post,
                     "https://sheets.googleapis.com/v4/spreadsheets",
                     createPayload,
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Sheets API",
                     batch.Report,
+                    cancellationToken).ConfigureAwait(false);
+
+                await SendValuesAsync(
+                    transport,
+                    accessToken.AccessToken,
+                    createResponse.SpreadsheetId!,
+                    batch,
+                    sheetIdMapForCreate,
+                    effectiveOptions.Execution,
                     cancellationToken).ConfigureAwait(false);
 
                 var updatePayload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
                     batch,
                     sheetIdMapForCreate,
-                    createResponse.SpreadsheetId);
+                    createResponse.SpreadsheetId,
+                    includeCellValues: !effectiveOptions.Execution.UseValuesBatchUpdate);
 
                 if (!string.IsNullOrWhiteSpace(createResponse.SpreadsheetId) && updatePayload.Requests.Count > 0) {
-                    await SendAsync<object>(
-                        client,
+                    await SendStructuralBatchesAsync(
+                        transport,
                         accessToken.AccessToken,
-                        HttpMethod.Post,
-                        $"https://sheets.googleapis.com/v4/spreadsheets/{createResponse.SpreadsheetId}:batchUpdate",
+                        createResponse.SpreadsheetId!,
                         updatePayload,
-                        retryOptions,
+                        effectiveOptions.Execution,
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
                 }
 
                 var createdDriveMetadata = await ApplyDrivePlacementAsync(
-                    client,
-                    accessToken.AccessToken,
+                    driveClient,
                     createResponse.SpreadsheetId,
                     effectiveLocation,
-                    retryOptions,
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -194,10 +212,16 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         ?? (!string.IsNullOrWhiteSpace(createResponse.SpreadsheetUrl)
                             ? createResponse.SpreadsheetUrl
                             : BuildSpreadsheetWebViewLink(createResponse.SpreadsheetId)),
+                    DriveVersion = createdDriveMetadata?.Version,
+                    ModifiedTime = createdDriveMetadata?.ModifiedTime,
                     Location = effectiveLocation,
                     Report = batch.Report,
                 };
             } catch (GoogleWorkspaceExportException) {
+                throw;
+            } catch (GoogleWorkspaceConflictException) {
+                throw;
+            } catch (GoogleWorkspacePreflightException) {
                 throw;
             } catch (GoogleWorkspaceExportCanceledException) {
                 throw;
@@ -219,120 +243,177 @@ namespace OfficeIMO.Excel.GoogleSheets {
                     session.Options,
                     batch.Report,
                     ex);
-            } finally {
-                if (disposeClient) {
-                    client.Dispose();
-                }
+            }
+            }
             }
         }
 
-        private static async Task<GoogleDriveFileMetadataResponse?> ApplyDrivePlacementAsync(
-            HttpClient client,
-            string accessToken,
+        private static async Task<GoogleDriveFile?> ApplyDrivePlacementAsync(
+            GoogleDriveClient driveClient,
             string? fileId,
             GoogleDriveFileLocation location,
-            GoogleWorkspaceRetryOptions retryOptions,
             TranslationReport report,
             CancellationToken cancellationToken) {
-            if (string.IsNullOrWhiteSpace(fileId) || string.IsNullOrWhiteSpace(location.FolderId)) {
+            if (string.IsNullOrWhiteSpace(fileId)) {
                 return null;
             }
 
-            var supportsAllDrives = location.SharedDriveAware || !string.IsNullOrWhiteSpace(location.DriveId);
-            var supportsAllDrivesQuery = supportsAllDrives ? "&supportsAllDrives=true" : string.Empty;
-            var currentMetadata = await SendAsync<GoogleDriveFileMetadataResponse>(
-                client,
-                accessToken,
-                HttpMethod.Get,
-                $"https://www.googleapis.com/drive/v3/files/{fileId}?fields=id,parents,webViewLink{supportsAllDrivesQuery}",
-                null,
-                retryOptions,
-                report,
-                cancellationToken).ConfigureAwait(false);
-
-            var desiredFolderId = location.FolderId!;
-            if (currentMetadata.Parents.Count == 1 && string.Equals(currentMetadata.Parents[0], desiredFolderId, StringComparison.OrdinalIgnoreCase)) {
-                return currentMetadata;
+            if (!string.IsNullOrWhiteSpace(location.FolderId)) {
+                return await driveClient.MoveFileAsync(fileId!, location.FolderId!, report, cancellationToken).ConfigureAwait(false);
             }
 
-            var query = new List<string> {
-                "supportsAllDrives=" + (supportsAllDrives ? "true" : "false"),
-                "addParents=" + Uri.EscapeDataString(desiredFolderId),
-                "fields=id,parents,webViewLink"
-            };
-
-            if (currentMetadata.Parents.Count > 0) {
-                query.Add("removeParents=" + Uri.EscapeDataString(string.Join(",", currentMetadata.Parents)));
-            }
-
-            return await SendAsync<GoogleDriveFileMetadataResponse>(
-                client,
-                accessToken,
-                new HttpMethod("PATCH"),
-                $"https://www.googleapis.com/drive/v3/files/{fileId}?{string.Join("&", query)}",
-                new { },
-                retryOptions,
-                report,
-                cancellationToken).ConfigureAwait(false);
+            return await driveClient.GetFileAsync(fileId!, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
-        private static async Task<TResponse> SendAsync<TResponse>(
-            HttpClient client,
-            string accessToken,
-            HttpMethod method,
-            string uri,
-            object? payload,
-            GoogleWorkspaceRetryOptions retryOptions,
+        private static async Task ValidateDrivePlacementAsync(
+            GoogleDriveClient driveClient,
+            GoogleDriveFileLocation location,
             TranslationReport report,
             CancellationToken cancellationToken) {
-            using (var response = await GoogleWorkspaceRetryPolicy.SendAsync(
-                client,
-                () => {
-                    var request = new HttpRequestMessage(method, uri);
-                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-                    if (payload != null) {
-                        var json = JsonSerializer.Serialize(payload, JsonOptions);
-                        request.Content = new StringContent(json, Encoding.UTF8, "application/json");
-                    }
-
-                    return request;
-                },
-                retryOptions,
-                cancellationToken,
-                retryEvent => ReportRetry(report, retryOptions.SessionOptions, "Google Sheets API", retryEvent)).ConfigureAwait(false)) {
-                var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
-                if (!response.IsSuccessStatusCode) {
-                    string formattedError = GoogleWorkspaceApiErrorFormatter.Format(body) ?? body;
-                    throw new HttpRequestException($"Google Sheets API request to '{uri}' failed with {(int)response.StatusCode}: {formattedError}");
-                }
-
-                if (typeof(TResponse) == typeof(object) || string.IsNullOrWhiteSpace(body)) {
-                    return default!;
-                }
-
-                var result = JsonSerializer.Deserialize<TResponse>(body, JsonOptions);
-                if (result == null) {
-                    throw new InvalidOperationException($"Google Sheets API response from '{uri}' could not be deserialized.");
-                }
-
-                return result;
-            }
+            if (string.IsNullOrWhiteSpace(location.FolderId)) return;
+            await driveClient.ResolveFolderAsync(location.FolderId!, location.DriveId, report, cancellationToken).ConfigureAwait(false);
         }
 
-        private static void ReportRetry(TranslationReport report, GoogleWorkspaceSessionOptions? sessionOptions, string serviceName, GoogleWorkspaceRetryEvent retryEvent) {
-            GoogleWorkspaceDiagnosticsDispatcher.AddUnique(
-                report,
-                sessionOptions,
-                TranslationSeverity.Info,
-                "ApiRetries",
-                $"{serviceName} retried {retryEvent.Method} {retryEvent.Uri} after transient {retryEvent.Trigger} using {retryEvent.DelayStrategy} ({retryEvent.Delay.TotalMilliseconds:0} ms, retry {retryEvent.RetryAttempt} of {retryEvent.MaxRetryCount}).",
-                $"{retryEvent.Method} {retryEvent.Uri}");
+        private static async Task ValidateReplaceTargetAsync(
+            GoogleDriveClient driveClient,
+            string fileId,
+            GoogleSheetsReplaceOptions replace,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            if (replace == null) throw new ArgumentNullException(nameof(replace));
+            if (replace.ConflictMode == GoogleSheetsReplaceConflictMode.RequireMatchingDriveVersion
+                && !replace.ExpectedDriveVersion.HasValue) {
+                report.Add(
+                    TranslationSeverity.Error,
+                    "ReplaceConflict",
+                    "Destructive spreadsheet replacement requires the Drive version observed by a prior read/import.",
+                    code: "SHEETS.REPLACE.EXPECTED_VERSION_REQUIRED",
+                    action: TranslationAction.Fail,
+                    targetId: fileId);
+                throw new GoogleWorkspacePreflightException(
+                    "Google Sheets replacement requires Replace.ExpectedDriveVersion unless ConflictMode is explicitly Overwrite.",
+                    report,
+                    report.Notices.Where(notice => notice.Code == "SHEETS.REPLACE.EXPECTED_VERSION_REQUIRED").ToArray());
+            }
+
+            GoogleDriveFile remote = await driveClient.GetFileAsync(fileId, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
+            if (remote.Capabilities != null && !remote.Capabilities.CanEdit) {
+                throw new InvalidOperationException($"Drive file '{fileId}' cannot be edited by the current principal.");
+            }
+
+            if (replace.ConflictMode == GoogleSheetsReplaceConflictMode.RequireMatchingDriveVersion
+                && remote.Version != replace.ExpectedDriveVersion) {
+                string expected = replace.ExpectedDriveVersion!.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string actual = remote.Version?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "<unknown>";
+                report.Add(
+                    TranslationSeverity.Error,
+                    "ReplaceConflict",
+                    $"Drive version changed from {expected} to {actual}; the spreadsheet was not mutated.",
+                    code: "SHEETS.REPLACE.VERSION_CONFLICT",
+                    action: TranslationAction.Fail,
+                    targetId: fileId);
+                throw new GoogleWorkspaceConflictException(
+                    $"Google spreadsheet '{fileId}' changed after it was read.",
+                    fileId,
+                    expected,
+                    actual,
+                    report);
+            }
+
+            report.Add(
+                replace.ConflictMode == GoogleSheetsReplaceConflictMode.Overwrite ? TranslationSeverity.Warning : TranslationSeverity.Info,
+                "ReplaceConflict",
+                replace.ConflictMode == GoogleSheetsReplaceConflictMode.Overwrite
+                    ? "Destructive replacement was explicitly configured to overwrite the current remote version."
+                    : "The current Drive version matches the caller's expected version.",
+                code: replace.ConflictMode == GoogleSheetsReplaceConflictMode.Overwrite
+                    ? "SHEETS.REPLACE.OVERWRITE"
+                    : "SHEETS.REPLACE.VERSION_MATCH",
+                action: TranslationAction.Preserve,
+                targetId: fileId);
         }
 
         private static string? BuildSpreadsheetWebViewLink(string? spreadsheetId) {
             return string.IsNullOrWhiteSpace(spreadsheetId)
                 ? null
                 : $"https://docs.google.com/spreadsheets/d/{spreadsheetId}/edit";
+        }
+
+        private static async Task SendValuesAsync(
+            GoogleWorkspaceHttpTransport transport,
+            string accessToken,
+            string spreadsheetId,
+            GoogleSheetsBatch batch,
+            IReadOnlyDictionary<string, int> sheetIds,
+            GoogleSheetsExecutionOptions execution,
+            CancellationToken cancellationToken) {
+            if (!execution.UseValuesBatchUpdate || string.IsNullOrWhiteSpace(spreadsheetId)) return;
+            GoogleSheetsApiBatchUpdateValuesPayload allValues = GoogleSheetsApiPayloadBuilder.BuildValuesBatchUpdatePayload(batch, sheetIds, spreadsheetId);
+            int total = allValues.Data.Count;
+            if (total == 0) return;
+
+            int completed = 0;
+            while (completed < total) {
+                var payload = new GoogleSheetsApiBatchUpdateValuesPayload();
+                payload.Data.AddRange(allValues.Data.Skip(completed).Take(execution.MaxValueRangesPerRequest));
+                await transport.SendJsonAsync<object>(
+                    accessToken,
+                    HttpMethod.Post,
+                    $"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}/values:batchUpdate",
+                    payload,
+                    GoogleWorkspaceRequestSafety.Idempotent,
+                    "Google Sheets API",
+                    batch.Report,
+                    cancellationToken).ConfigureAwait(false);
+                completed += payload.Data.Count;
+                execution.Progress?.Report(new GoogleSheetsExportProgress("values", completed, total));
+            }
+
+            batch.Report.Add(
+                TranslationSeverity.Info,
+                "ValueBatching",
+                $"Wrote {total} sparse value ranges through spreadsheets.values.batchUpdate.",
+                code: "SHEETS.VALUES.BATCH_UPDATE",
+                action: TranslationAction.Preserve,
+                count: total,
+                targetId: spreadsheetId);
+        }
+
+        private static async Task SendStructuralBatchesAsync(
+            GoogleWorkspaceHttpTransport transport,
+            string accessToken,
+            string spreadsheetId,
+            GoogleSheetsApiBatchUpdatePayload allRequests,
+            GoogleSheetsExecutionOptions execution,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            int total = allRequests.Requests.Count;
+            int completed = 0;
+            while (completed < total) {
+                var payload = new GoogleSheetsApiBatchUpdatePayload();
+                payload.Requests.AddRange(allRequests.Requests.Skip(completed).Take(execution.MaxStructuralRequestsPerBatch));
+                await transport.SendJsonAsync<object>(
+                    accessToken,
+                    HttpMethod.Post,
+                    $"https://sheets.googleapis.com/v4/spreadsheets/{spreadsheetId}:batchUpdate",
+                    payload,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Sheets API",
+                    report,
+                    cancellationToken).ConfigureAwait(false);
+                completed += payload.Requests.Count;
+                execution.Progress?.Report(new GoogleSheetsExportProgress("structure", completed, total));
+            }
+        }
+
+        private static void ValidateExecutionOptions(GoogleSheetsExecutionOptions execution) {
+            if (execution == null) throw new ArgumentNullException(nameof(execution));
+            if (execution.MaxValueRangesPerRequest <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(execution.MaxValueRangesPerRequest));
+            }
+            if (execution.MaxStructuralRequestsPerBatch <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(execution.MaxStructuralRequestsPerBatch));
+            }
         }
     }
 
@@ -368,17 +449,10 @@ namespace OfficeIMO.Excel.GoogleSheets {
 
     internal sealed class GoogleSheetsApiSheetMetadataPropertiesResponse {
         [System.Text.Json.Serialization.JsonPropertyName("sheetId")]
-        public int SheetId { get; set; }
+        public int? SheetId { get; set; }
+
+        [System.Text.Json.Serialization.JsonPropertyName("title")]
+        public string? Title { get; set; }
     }
 
-    internal sealed class GoogleDriveFileMetadataResponse {
-        [System.Text.Json.Serialization.JsonPropertyName("id")]
-        public string? Id { get; set; }
-
-        [System.Text.Json.Serialization.JsonPropertyName("parents")]
-        public List<string> Parents { get; set; } = new List<string>();
-
-        [System.Text.Json.Serialization.JsonPropertyName("webViewLink")]
-        public string? WebViewLink { get; set; }
-    }
 }

@@ -162,10 +162,25 @@ namespace OfficeIMO.Word.GoogleDocs {
                 });
             }
 
+            if (paragraph.StartsNewSectionBefore && segmentId == null && allowStructuralBreaks) {
+                payload.Requests.Add(new GoogleDocsApiRequestPayload {
+                    InsertSectionBreak = new GoogleDocsApiInsertSectionBreakRequestPayload {
+                        SectionType = ResolveSectionBreakType(paragraph.SectionBreakType, report),
+                        Location = new GoogleDocsApiLocationPayload {
+                            Index = insertionIndex,
+                        }
+                    }
+                });
+            }
+
+            int contentInsertionIndex = paragraph.StartsNewSectionBefore && segmentId == null && allowStructuralBreaks
+                ? insertionIndex + 1
+                : insertionIndex;
+
             AppendSectionStyleRequest(
                 payload,
-                insertionIndex,
-                insertionIndex + materialized.InsertedText.Length,
+                contentInsertionIndex,
+                contentInsertionIndex + materialized.InsertedText.Length,
                 segmentId,
                 sectionStyle);
 
@@ -178,8 +193,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 payload.Requests.Add(new GoogleDocsApiRequestPayload {
                     UpdateTextStyle = new GoogleDocsApiUpdateTextStyleRequestPayload {
                         Range = new GoogleDocsApiRangePayload {
-                            StartIndex = insertionIndex + run.StartOffset,
-                            EndIndex = insertionIndex + run.EndOffset,
+                            StartIndex = contentInsertionIndex + run.StartOffset,
+                            EndIndex = contentInsertionIndex + run.EndOffset,
                             SegmentId = segmentId,
                         },
                         TextStyle = textStyle,
@@ -192,8 +207,8 @@ namespace OfficeIMO.Word.GoogleDocs {
                 payload.Requests.Add(new GoogleDocsApiRequestPayload {
                     CreateParagraphBullets = new GoogleDocsApiCreateParagraphBulletsRequestPayload {
                         Range = new GoogleDocsApiRangePayload {
-                            StartIndex = insertionIndex,
-                            EndIndex = insertionIndex + materialized.InsertedText.Length,
+                            StartIndex = contentInsertionIndex,
+                            EndIndex = contentInsertionIndex + materialized.InsertedText.Length,
                             SegmentId = segmentId,
                         },
                         BulletPreset = ResolveListPreset(paragraph, report),
@@ -206,7 +221,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                     payload.Requests.Add(new GoogleDocsApiRequestPayload {
                         CreateFootnote = new GoogleDocsApiCreateFootnoteRequestPayload {
                             Location = new GoogleDocsApiLocationPayload {
-                                Index = insertionIndex + footnote.InsertOffset,
+                                Index = contentInsertionIndex + footnote.InsertOffset,
                                 SegmentId = segmentId,
                             }
                         }
@@ -231,7 +246,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                         Uri = image.Uri,
                         ObjectSize = BuildImageSize(image.Source),
                         Location = new GoogleDocsApiLocationPayload {
-                            Index = insertionIndex + image.InsertOffset,
+                            Index = contentInsertionIndex + image.InsertOffset,
                             SegmentId = segmentId,
                         }
                     }
@@ -242,7 +257,7 @@ namespace OfficeIMO.Word.GoogleDocs {
                 payload.Requests.Add(new GoogleDocsApiRequestPayload {
                     InsertPageBreak = new GoogleDocsApiInsertPageBreakRequestPayload {
                         Location = new GoogleDocsApiLocationPayload {
-                            Index = insertionIndex,
+                            Index = contentInsertionIndex,
                         }
                     }
                 });
@@ -268,17 +283,6 @@ namespace OfficeIMO.Word.GoogleDocs {
                     TranslationSeverity.Warning,
                     segmentId == null ? "Tables" : "HeadersAndFooters",
                     "PageBreakBefore inside a table cell is ignored in the current Google Docs slice because insertPageBreak is only emitted for top-level document flow.");
-            }
-
-            if (paragraph.StartsNewSectionBefore && segmentId == null && allowStructuralBreaks) {
-                payload.Requests.Add(new GoogleDocsApiRequestPayload {
-                    InsertSectionBreak = new GoogleDocsApiInsertSectionBreakRequestPayload {
-                        SectionType = ResolveSectionBreakType(paragraph.SectionBreakType, report),
-                        Location = new GoogleDocsApiLocationPayload {
-                            Index = insertionIndex,
-                        }
-                    }
-                });
             }
 
             if (paragraph.StartsNewSectionBefore && segmentId != null) {
@@ -427,7 +431,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             if (!string.IsNullOrWhiteSpace(source.ForegroundColorHex)) {
                 style.ForegroundColor = BuildOptionalColor(source.ForegroundColorHex);
-                hasStyle = style.ForegroundColor != null;
+                hasStyle |= style.ForegroundColor != null;
             }
 
             if (!string.IsNullOrWhiteSpace(source.HighlightColor)) {

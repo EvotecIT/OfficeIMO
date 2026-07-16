@@ -1,7 +1,5 @@
 using OfficeIMO.GoogleWorkspace;
-using System.Net.Http.Headers;
-using System.IO;
-using System.Text;
+using OfficeIMO.GoogleWorkspace.Drive;
 using System.Text.Json;
 
 namespace OfficeIMO.Word.GoogleDocs {
@@ -35,6 +33,7 @@ namespace OfficeIMO.Word.GoogleDocs {
 
             var effectiveOptions = options ?? new GoogleDocsSaveOptions();
             var batch = BuildBatch(document, effectiveOptions);
+            GoogleWorkspacePreflight.Validate(batch.Report, effectiveOptions.FidelityPolicy);
             var effectiveLocation = session.ResolveLocationDefaults(effectiveOptions.Location);
             if (string.IsNullOrWhiteSpace(effectiveLocation.FolderId) && !string.IsNullOrWhiteSpace(effectiveLocation.DriveId)) {
                 GoogleWorkspaceDiagnosticsDispatcher.Add(
@@ -69,51 +68,71 @@ namespace OfficeIMO.Word.GoogleDocs {
                     ex);
             }
 
-            var retryOptions = GoogleWorkspaceRetryOptions.FromSessionOptions(session.Options);
-
-            bool disposeClient = session.Options.HttpClient == null;
-            var client = session.Options.HttpClient ?? new HttpClient();
+            using (var transport = new GoogleWorkspaceHttpTransport(session.Options)) {
+            using (var driveClient = new GoogleDriveClient(session, GoogleDriveClientOptions.ForFileAuthoring())) {
             try {
-                client.Timeout = session.Options.RequestTimeout;
+                await ValidateDrivePlacementAsync(
+                    driveClient,
+                    effectiveLocation,
+                    batch.Report,
+                    cancellationToken).ConfigureAwait(false);
 
                 if (!string.IsNullOrWhiteSpace(effectiveLocation.ExistingFileId)) {
-                    var existingDocument = await SendAsync<GoogleDocsApiDocumentResponse>(
-                        client,
-                        accessToken.AccessToken,
-                        HttpMethod.Get,
-                        $"https://docs.googleapis.com/v1/documents/{effectiveLocation.ExistingFileId}",
-                        null,
-                        retryOptions,
+                    await ValidateExistingDocumentDriveAccessAsync(
+                        driveClient,
+                        effectiveLocation.ExistingFileId!,
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
-                    var resetPayload = GoogleDocsApiPayloadBuilder.BuildResetDocumentPayload(existingDocument);
+                    var existingDocument = await transport.SendJsonAsync<GoogleDocsApiDocumentResponse>(
+                        accessToken.AccessToken,
+                        HttpMethod.Get,
+                        $"https://docs.googleapis.com/v1/documents/{effectiveLocation.ExistingFileId}?includeTabsContent=true",
+                        null,
+                        GoogleWorkspaceRequestSafety.Safe,
+                        "Google Docs API",
+                        batch.Report,
+                        cancellationToken).ConfigureAwait(false);
+
+                    ConfigureExistingDocumentWrite(batch, existingDocument, effectiveOptions);
+
+                    var resetPayload = GoogleDocsApiPayloadBuilder.BuildResetDocumentPayload(existingDocument, effectiveOptions.Tabs);
                     if (resetPayload.Requests.Count > 0) {
-                        await SendAsync<object>(
-                            client,
-                            accessToken.AccessToken,
-                            HttpMethod.Post,
-                            $"https://docs.googleapis.com/v1/documents/{effectiveLocation.ExistingFileId}:batchUpdate",
-                            resetPayload,
-                            retryOptions,
-                            batch.Report,
-                            cancellationToken).ConfigureAwait(false);
+                        await SendBatchUpdateAsync(transport, accessToken.AccessToken, effectiveLocation.ExistingFileId!, batch, resetPayload, cancellationToken).ConfigureAwait(false);
                     }
 
                     await ApplyDocumentContentAsync(
-                        client,
+                        transport,
                         accessToken.AccessToken,
                         effectiveLocation.ExistingFileId!,
                         batch,
-                        retryOptions,
+                        effectiveOptions,
+                        driveClient,
                         cancellationToken).ConfigureAwait(false);
 
+                    GoogleDocsApiDocumentResponse? refreshedDocument = null;
+                    if (batch.WriteControlState?.RequiresRevisionRefresh == true) {
+                        refreshedDocument = await GetDocumentAsync(
+                            transport,
+                            accessToken.AccessToken,
+                            effectiveLocation.ExistingFileId!,
+                            batch,
+                            cancellationToken).ConfigureAwait(false);
+                    }
+
+                    await ApplyCommentsAsync(
+                        document,
+                        driveClient,
+                        effectiveLocation.ExistingFileId!,
+                        effectiveOptions,
+                        reconcileExistingComments: true,
+                        report: batch.Report,
+                        cancellationToken: cancellationToken).ConfigureAwait(false);
+
                     var updatedDriveMetadata = await ApplyDrivePlacementAsync(
-                        client,
-                        accessToken.AccessToken,
+                        driveClient,
                         effectiveLocation.ExistingFileId!,
                         effectiveLocation,
-                        retryOptions,
                         batch.Report,
                         cancellationToken).ConfigureAwait(false);
 
@@ -129,17 +148,20 @@ namespace OfficeIMO.Word.GoogleDocs {
                         MimeType = "application/vnd.google-apps.document",
                         WebViewLink = updatedDriveMetadata?.WebViewLink ?? BuildDocumentWebViewLink(effectiveLocation.ExistingFileId),
                         Location = effectiveLocation,
+                        RevisionId = refreshedDocument?.RevisionId ?? batch.WriteControlState?.RevisionId ?? existingDocument.RevisionId,
+                        DriveVersion = updatedDriveMetadata?.Version,
+                        ModifiedTime = updatedDriveMetadata?.ModifiedTime,
                         Report = batch.Report,
                     };
                 }
 
-                var createResponse = await SendAsync<GoogleDocsApiCreateDocumentResponse>(
-                    client,
+                var createResponse = await transport.SendJsonAsync<GoogleDocsApiCreateDocumentResponse>(
                     accessToken.AccessToken,
                     HttpMethod.Post,
                     "https://docs.googleapis.com/v1/documents",
                     GoogleDocsApiPayloadBuilder.BuildCreateDocumentPayload(batch),
-                    retryOptions,
+                    GoogleWorkspaceRequestSafety.NonIdempotent,
+                    "Google Docs API",
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -148,21 +170,30 @@ namespace OfficeIMO.Word.GoogleDocs {
                 }
 
                 var documentId = createResponse.DocumentId!;
+                ConfigureCreatedDocumentWrite(batch, createResponse);
 
                 await ApplyDocumentContentAsync(
-                    client,
+                    transport,
                     accessToken.AccessToken,
                     documentId,
                     batch,
-                    retryOptions,
+                    effectiveOptions,
+                    driveClient,
                     cancellationToken).ConfigureAwait(false);
 
+                await ApplyCommentsAsync(
+                    document,
+                    driveClient,
+                    documentId,
+                    effectiveOptions,
+                    reconcileExistingComments: false,
+                    report: batch.Report,
+                    cancellationToken: cancellationToken).ConfigureAwait(false);
+
                 var createdDriveMetadata = await ApplyDrivePlacementAsync(
-                    client,
-                    accessToken.AccessToken,
+                    driveClient,
                     documentId,
                     effectiveLocation,
-                    retryOptions,
                     batch.Report,
                     cancellationToken).ConfigureAwait(false);
 
@@ -173,9 +204,16 @@ namespace OfficeIMO.Word.GoogleDocs {
                     MimeType = "application/vnd.google-apps.document",
                     WebViewLink = createdDriveMetadata?.WebViewLink ?? BuildDocumentWebViewLink(documentId),
                     Location = effectiveLocation,
+                    RevisionId = batch.WriteControlState?.RevisionId ?? createResponse.RevisionId,
+                    DriveVersion = createdDriveMetadata?.Version,
+                    ModifiedTime = createdDriveMetadata?.ModifiedTime,
                     Report = batch.Report,
                 };
             } catch (GoogleWorkspaceExportException) {
+                throw;
+            } catch (GoogleWorkspaceConflictException) {
+                throw;
+            } catch (GoogleWorkspacePreflightException) {
                 throw;
             } catch (GoogleWorkspaceExportCanceledException) {
                 throw;
@@ -197,10 +235,102 @@ namespace OfficeIMO.Word.GoogleDocs {
                     session.Options,
                     batch.Report,
                     ex);
-            } finally {
-                if (disposeClient) {
-                    client.Dispose();
-                }
+            }
+            }
+            }
+        }
+
+        private static void ConfigureExistingDocumentWrite(
+            GoogleDocsBatch batch,
+            GoogleDocsApiDocumentResponse document,
+            GoogleDocsSaveOptions options) {
+            if (options.Tabs.Strategy == GoogleDocsTabStrategy.SelectedTab && string.IsNullOrWhiteSpace(options.Tabs.TabId)) {
+                throw new ArgumentException("Tabs.TabId is required when SelectedTab is used.", nameof(options));
+            }
+            IReadOnlyList<GoogleDocsApiTabResponse> targets = GoogleDocsApiPayloadBuilder.SelectTabs(document, options.Tabs);
+            GoogleDocsApiTabResponse? target = targets.FirstOrDefault();
+            batch.TargetTabIds = options.Tabs.Strategy == GoogleDocsTabStrategy.ReplaceEveryTab
+                ? targets
+                    .Select(tab => tab.Properties.TabId)
+                    .Where(tabId => !string.IsNullOrWhiteSpace(tabId))
+                    .Select(tabId => tabId!)
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray()
+                : Array.Empty<string>();
+            batch.TargetTabId = options.Tabs.Strategy == GoogleDocsTabStrategy.ReplaceEveryTab
+                ? null
+                : target?.Properties.TabId;
+
+            string? expected = options.Replace.ExpectedRevisionId;
+            if (options.Replace.ConflictMode != GoogleDocsRevisionConflictMode.OverwriteLatest && string.IsNullOrWhiteSpace(expected)) {
+                batch.Report.Add(TranslationSeverity.Error, "ReplaceConflict", "Replacing a Google document requires the revision observed by a prior read/import.",
+                    code: "DOCS.REPLACE.EXPECTED_REVISION_REQUIRED", action: TranslationAction.Fail, targetId: document.DocumentId);
+                throw new GoogleWorkspacePreflightException(
+                    "Google Docs replacement requires Replace.ExpectedRevisionId unless OverwriteLatest is explicitly selected.",
+                    batch.Report,
+                    batch.Report.Notices.Where(notice => notice.Code == "DOCS.REPLACE.EXPECTED_REVISION_REQUIRED").ToArray());
+            }
+            if (options.Replace.ConflictMode == GoogleDocsRevisionConflictMode.RequireRevision
+                && !string.IsNullOrWhiteSpace(expected)
+                && !string.Equals(expected, document.RevisionId, StringComparison.Ordinal)) {
+                batch.Report.Add(TranslationSeverity.Error, "ReplaceConflict", "The Google document revision changed after it was read.",
+                    code: "DOCS.REPLACE.REVISION_CONFLICT", action: TranslationAction.Fail, targetId: document.DocumentId);
+                throw new GoogleWorkspaceConflictException(
+                    $"Google document '{document.DocumentId}' changed after it was read.",
+                    document.DocumentId ?? "document",
+                    expected,
+                    document.RevisionId,
+                    batch.Report);
+            }
+            string? writeRevision = options.Replace.ConflictMode == GoogleDocsRevisionConflictMode.OverwriteLatest
+                ? document.RevisionId
+                : expected;
+            batch.WriteControlState = new GoogleDocsWriteControlState(options.Replace.ConflictMode, writeRevision);
+        }
+
+        private static void ConfigureCreatedDocumentWrite(
+            GoogleDocsBatch batch,
+            GoogleDocsApiCreateDocumentResponse document) {
+            batch.TargetTabId = GoogleDocsApiPayloadBuilder.FlattenTabs(document.Tabs).FirstOrDefault()?.Properties.TabId;
+            batch.WriteControlState = new GoogleDocsWriteControlState(GoogleDocsRevisionConflictMode.RequireRevision, document.RevisionId);
+        }
+
+        private static async Task ValidateExistingDocumentDriveAccessAsync(
+            GoogleDriveClient driveClient,
+            string documentId,
+            TranslationReport report,
+            CancellationToken cancellationToken) {
+            GoogleDriveFile metadata;
+            try {
+                metadata = await driveClient.GetFileAsync(documentId, report: report, cancellationToken: cancellationToken).ConfigureAwait(false);
+            } catch (GoogleWorkspaceApiException exception) when (
+                exception.ResponseStatusCode == System.Net.HttpStatusCode.Forbidden
+                || exception.ResponseStatusCode == System.Net.HttpStatusCode.NotFound) {
+                report.Add(
+                    TranslationSeverity.Error,
+                    "ExistingDocument",
+                    "The existing Google document is not available through the configured Drive authoring grant. Open or create it through this app, or provide credentials with a Drive scope that covers the target before replacing it.",
+                    code: "DOCS.REPLACE.DRIVE_ACCESS_REQUIRED",
+                    action: TranslationAction.Fail,
+                    targetId: documentId);
+                throw new GoogleWorkspacePreflightException(
+                    $"Google Docs replacement was blocked before mutation because Drive metadata for '{documentId}' is not accessible.",
+                    report,
+                    report.Notices.Where(notice => notice.Code == "DOCS.REPLACE.DRIVE_ACCESS_REQUIRED").ToArray());
+            }
+
+            if (metadata.Capabilities != null && !metadata.Capabilities.CanEdit) {
+                report.Add(
+                    TranslationSeverity.Error,
+                    "ExistingDocument",
+                    "The configured Google identity cannot edit the existing Drive file.",
+                    code: "DOCS.REPLACE.DRIVE_EDIT_REQUIRED",
+                    action: TranslationAction.Fail,
+                    targetId: documentId);
+                throw new GoogleWorkspacePreflightException(
+                    $"Google Docs replacement was blocked before mutation because '{documentId}' is not editable.",
+                    report,
+                    report.Notices.Where(notice => notice.Code == "DOCS.REPLACE.DRIVE_EDIT_REQUIRED").ToArray());
             }
         }
 

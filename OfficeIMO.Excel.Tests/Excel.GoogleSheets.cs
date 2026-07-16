@@ -393,17 +393,17 @@ namespace OfficeIMO.Tests {
                 var basicFilter = Assert.Single(batch.Requests.OfType<GoogleSheetsSetBasicFilterRequest>(), r => r.SheetName == "Summary");
                 Assert.Equal("G1:J4", basicFilter.A1Range);
                 Assert.Equal(4, basicFilter.Criteria.Count);
-                var basicFilterValueCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 0);
+                var basicFilterValueCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 6);
                 Assert.Equal(new[] { "Closed" }, basicFilterValueCriteria.HiddenValues);
-                var basicFilterContainsCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 1);
+                var basicFilterContainsCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 7);
                 Assert.NotNull(basicFilterContainsCriteria.Condition);
                 Assert.Equal("TEXT_CONTAINS", basicFilterContainsCriteria.Condition!.Type);
                 Assert.Equal(new[] { "or" }, basicFilterContainsCriteria.Condition.Values);
-                var basicFilterNumericCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 2);
+                var basicFilterNumericCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 8);
                 Assert.NotNull(basicFilterNumericCriteria.Condition);
                 Assert.Equal("NUMBER_GREATER_THAN_EQ", basicFilterNumericCriteria.Condition!.Type);
                 Assert.Equal(new[] { "15" }, basicFilterNumericCriteria.Condition.Values);
-                var basicFilterBetweenCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 3);
+                var basicFilterBetweenCriteria = Assert.Single(basicFilter.Criteria, c => c.ColumnId == 9);
                 Assert.NotNull(basicFilterBetweenCriteria.Condition);
                 Assert.Equal("NUMBER_BETWEEN", basicFilterBetweenCriteria.Condition!.Type);
                 Assert.Equal(new[] { "10", "20" }, basicFilterBetweenCriteria.Condition.Values);
@@ -421,7 +421,7 @@ namespace OfficeIMO.Tests {
                 var namedRanges = batch.Requests.OfType<GoogleSheetsAddNamedRangeRequest>().ToList();
                 Assert.Equal(2, namedRanges.Count);
                 Assert.Contains(namedRanges, r => r.Name == "GlobalData" && r.SheetName == null && r.A1Range == "'Summary'!$A$1:$B$2");
-                Assert.Contains(namedRanges, r => r.Name == "LocalData" && r.SheetName == "Summary" && r.A1Range == "'Summary'!$A$2:$B$2");
+                Assert.Contains(namedRanges, r => r.Name == "Summary_LocalData" && r.SourceName == "LocalData" && r.SheetName == "Summary" && r.A1Range == "'Summary'!$A$2:$B$2");
                 Assert.Contains(batch.Report.Notices, n => n.Feature == "SheetProtection");
                 Assert.Contains(batch.Report.Notices, n => n.Feature == "SheetProtectionPermissions");
                 Assert.Contains(batch.Report.Notices, n => n.Feature == "TableTotals");
@@ -666,7 +666,7 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 var apiTableRequest = Assert.Single(payload.Requests, r => r.AddTable != null);
-                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.Name == "Status");
+                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.ColumnName == "Status");
                 Assert.Equal("DROPDOWN", apiStatusColumn.ColumnType);
                 Assert.NotNull(apiStatusColumn.DataValidationRule);
                 Assert.Equal("ONE_OF_LIST", apiStatusColumn.DataValidationRule!.Condition.Type);
@@ -727,7 +727,7 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 var apiTableRequest = Assert.Single(payload.Requests, r => r.AddTable != null);
-                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.Name == "Status");
+                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.ColumnName == "Status");
                 Assert.Equal("DROPDOWN", apiStatusColumn.ColumnType);
                 Assert.NotNull(apiStatusColumn.DataValidationRule);
                 Assert.Equal("ONE_OF_LIST", apiStatusColumn.DataValidationRule!.Condition.Type);
@@ -785,7 +785,7 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 var apiTableRequest = Assert.Single(payload.Requests, r => r.AddTable != null);
-                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.Name == "Status");
+                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.ColumnName == "Status");
                 Assert.Equal("DROPDOWN", apiStatusColumn.ColumnType);
                 Assert.NotNull(apiStatusColumn.DataValidationRule);
                 Assert.Equal("ONE_OF_LIST", apiStatusColumn.DataValidationRule!.Condition.Type);
@@ -842,7 +842,7 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
                 var apiTableRequest = Assert.Single(payload.Requests, r => r.AddTable != null);
-                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.Name == "Status");
+                var apiStatusColumn = Assert.Single(apiTableRequest.AddTable!.Table.ColumnProperties!, column => column.ColumnName == "Status");
                 Assert.Equal("DROPDOWN", apiStatusColumn.ColumnType);
                 Assert.NotNull(apiStatusColumn.DataValidationRule);
                 Assert.Equal("ONE_OF_LIST", apiStatusColumn.DataValidationRule!.Condition.Type);
@@ -1061,7 +1061,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_GoogleSheetsBatchCompiler_AndApiPayloadBuilder_EmitValidationOnlyEmptyCells() {
+        public void Test_GoogleSheetsBatchCompiler_AndApiPayloadBuilder_EmitRangeValidationForPopulatedAndEmptyCells() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsValidationOnlyEmptyCells.xlsx");
 
             try {
@@ -1070,7 +1070,7 @@ namespace OfficeIMO.Tests {
 
                     data.CellValue(1, 1, "Quantity");
                     data.CellValue(2, 1, 2);
-                    data.ValidationWholeNumber("A2:A4", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+                    data.ValidationWholeNumber("A2:A2000", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
 
                     document.Save();
                 }
@@ -1087,42 +1087,56 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("NUMBER_BETWEEN", populatedValidatedCell.DataValidationRule!.ConditionType);
                 Assert.Equal(new[] { "1", "10" }, populatedValidatedCell.DataValidationRule.Values);
 
-                var emptyValidatedCellOne = Assert.Single(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
-                Assert.Equal(GoogleSheetsCellValueKind.Blank, emptyValidatedCellOne.Value.Kind);
-                Assert.NotNull(emptyValidatedCellOne.DataValidationRule);
-                Assert.Equal("NUMBER_BETWEEN", emptyValidatedCellOne.DataValidationRule!.ConditionType);
-                Assert.Equal(new[] { "1", "10" }, emptyValidatedCellOne.DataValidationRule.Values);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 1999 && cell.ColumnIndex == 0);
 
-                var emptyValidatedCellTwo = Assert.Single(updateRequest.Cells, cell => cell.RowIndex == 3 && cell.ColumnIndex == 0);
-                Assert.Equal(GoogleSheetsCellValueKind.Blank, emptyValidatedCellTwo.Value.Kind);
-                Assert.NotNull(emptyValidatedCellTwo.DataValidationRule);
-                Assert.Equal("NUMBER_BETWEEN", emptyValidatedCellTwo.DataValidationRule!.ConditionType);
-                Assert.Equal(new[] { "1", "10" }, emptyValidatedCellTwo.DataValidationRule.Values);
+                GoogleSheetsSetDataValidationRequest rangeValidation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
+                Assert.Equal("A2:A2000", rangeValidation.A1Range);
+                Assert.Equal(1, rangeValidation.StartRowIndex);
+                Assert.Equal(2000, rangeValidation.EndRowIndexExclusive);
+                Assert.Equal("NUMBER_BETWEEN", rangeValidation.Rule.ConditionType);
+                Assert.Equal(new[] { "1", "10" }, rangeValidation.Rule.Values);
+
+                GoogleSheetsAddSheetRequest addSheet = Assert.Single(batch.Requests.OfType<GoogleSheetsAddSheetRequest>(), request => request.SheetName == "Data");
+                Assert.Equal(2000, addSheet.RowCount);
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
-                var validationPayloads = payload.Requests
-                    .Where(request => request.UpdateCells != null
-                        && request.UpdateCells.Fields.Contains("dataValidationRule")
-                        && request.UpdateCells.Start.ColumnIndex == 0
-                        && request.UpdateCells.Start.RowIndex >= 1
-                        && request.UpdateCells.Start.RowIndex <= 3)
-                    .Select(request => request.UpdateCells!)
-                    .OrderBy(request => request.Start.RowIndex)
-                    .ToList();
-
-                Assert.Equal(3, validationPayloads.Count);
-                Assert.Equal(1, validationPayloads[0].Start.RowIndex);
-                Assert.Equal(2, validationPayloads[1].Start.RowIndex);
-                Assert.Equal(3, validationPayloads[2].Start.RowIndex);
-
-                foreach (var validationPayload in validationPayloads) {
-                    var validationRule = Assert.IsType<GoogleSheetsApiDataValidationRulePayload>(validationPayload.Rows[0].Values[0].DataValidationRule);
-                    var validationCondition = Assert.IsType<GoogleSheetsApiBooleanConditionPayload>(validationRule.Condition);
-                    Assert.Equal("NUMBER_BETWEEN", validationCondition.Type);
-                    Assert.Equal(new[] { "1", "10" }, Assert.IsAssignableFrom<IEnumerable<GoogleSheetsApiConditionValuePayload>>(validationCondition.Values).Select(value => value.UserEnteredValue).ToArray());
-                }
+                GoogleSheetsApiSetDataValidationRequestPayload validationPayload = Assert.Single(payload.Requests, request => request.SetDataValidation != null).SetDataValidation!;
+                Assert.Equal(1, validationPayload.Range.StartRowIndex);
+                Assert.Equal(2000, validationPayload.Range.EndRowIndex);
+                Assert.Equal(0, validationPayload.Range.StartColumnIndex);
+                Assert.Equal(1, validationPayload.Range.EndColumnIndex);
+                Assert.Equal("NUMBER_BETWEEN", validationPayload.Rule.Condition.Type);
+                Assert.Equal(new[] { "1", "10" }, validationPayload.Rule.Condition.Values!.Select(value => value.UserEnteredValue).ToArray());
 
                 Assert.Contains(batch.Report.Notices, notice => notice.Feature == "CellValidations");
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void Test_GoogleSheetsBatchCompiler_FullColumnValidationRemainsOneRangeRequest() {
+            string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsFullColumnValidation.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var data = document.AddWorksheet("Data");
+                    data.CellValue(1, 1, "Quantity");
+                    data.ValidationWholeNumber("A1:A1048576", DocumentFormat.OpenXml.Spreadsheet.DataValidationOperatorValues.Between, 1, 10);
+                    document.Save();
+                }
+
+                using var reloadedDocument = ExcelDocument.Load(filePath);
+                GoogleSheetsBatch batch = reloadedDocument.BuildGoogleSheetsBatch();
+
+                GoogleSheetsSetDataValidationRequest validation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
+                Assert.Equal(0, validation.StartRowIndex);
+                Assert.Equal(1048576, validation.EndRowIndexExclusive);
+                Assert.True(batch.Requests.Count < 20);
+                Assert.Single(batch.Requests.OfType<GoogleSheetsUpdateCellsRequest>().Single().Cells);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1158,37 +1172,18 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "Open", "Closed", "Pending" }, populatedDropdownCell.DataValidationRule.Values);
                 Assert.True(populatedDropdownCell.DataValidationRule.ShowCustomUi);
 
-                var emptyDropdownCellOne = Assert.Single(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
-                Assert.Equal(GoogleSheetsCellValueKind.Blank, emptyDropdownCellOne.Value.Kind);
-                Assert.NotNull(emptyDropdownCellOne.DataValidationRule);
-                Assert.Equal("ONE_OF_LIST", emptyDropdownCellOne.DataValidationRule!.ConditionType);
-                Assert.Equal(new[] { "Open", "Closed", "Pending" }, emptyDropdownCellOne.DataValidationRule.Values);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 2 && cell.ColumnIndex == 0);
+                Assert.DoesNotContain(updateRequest.Cells, cell => cell.RowIndex == 3 && cell.ColumnIndex == 0);
 
-                var emptyDropdownCellTwo = Assert.Single(updateRequest.Cells, cell => cell.RowIndex == 3 && cell.ColumnIndex == 0);
-                Assert.Equal(GoogleSheetsCellValueKind.Blank, emptyDropdownCellTwo.Value.Kind);
-                Assert.NotNull(emptyDropdownCellTwo.DataValidationRule);
-                Assert.Equal("ONE_OF_LIST", emptyDropdownCellTwo.DataValidationRule!.ConditionType);
-                Assert.Equal(new[] { "Open", "Closed", "Pending" }, emptyDropdownCellTwo.DataValidationRule.Values);
+                GoogleSheetsSetDataValidationRequest rangeValidation = Assert.Single(batch.Requests.OfType<GoogleSheetsSetDataValidationRequest>());
+                Assert.Equal("A2:A4", rangeValidation.A1Range);
+                Assert.Equal("ONE_OF_LIST", rangeValidation.Rule.ConditionType);
+                Assert.Equal(new[] { "Open", "Closed", "Pending" }, rangeValidation.Rule.Values);
 
                 var payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(batch, GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
-                var validationPayloads = payload.Requests
-                    .Where(request => request.UpdateCells != null
-                        && request.UpdateCells.Fields.Contains("dataValidationRule")
-                        && request.UpdateCells.Start.ColumnIndex == 0
-                        && request.UpdateCells.Start.RowIndex >= 1
-                        && request.UpdateCells.Start.RowIndex <= 3)
-                    .Select(request => request.UpdateCells!)
-                    .OrderBy(request => request.Start.RowIndex)
-                    .ToList();
-
-                Assert.Equal(3, validationPayloads.Count);
-
-                foreach (var validationPayload in validationPayloads) {
-                    var validationRule = Assert.IsType<GoogleSheetsApiDataValidationRulePayload>(validationPayload.Rows[0].Values[0].DataValidationRule);
-                    var validationCondition = Assert.IsType<GoogleSheetsApiBooleanConditionPayload>(validationRule.Condition);
-                    Assert.Equal("ONE_OF_LIST", validationCondition.Type);
-                    Assert.Equal(new[] { "Open", "Closed", "Pending" }, Assert.IsAssignableFrom<IEnumerable<GoogleSheetsApiConditionValuePayload>>(validationCondition.Values).Select(value => value.UserEnteredValue).ToArray());
-                }
+                GoogleSheetsApiSetDataValidationRequestPayload validationPayload = Assert.Single(payload.Requests, request => request.SetDataValidation != null).SetDataValidation!;
+                Assert.Equal("ONE_OF_LIST", validationPayload.Rule.Condition.Type);
+                Assert.Equal(new[] { "Open", "Closed", "Pending" }, validationPayload.Rule.Condition.Values!.Select(value => value.UserEnteredValue).ToArray());
 
                 Assert.Contains(batch.Report.Notices, notice => notice.Feature == "CellValidations");
             } finally {
@@ -1304,13 +1299,13 @@ namespace OfficeIMO.Tests {
                 var basicFilterRequest = Assert.Single(batchPayload.Requests, r => r.SetBasicFilter != null);
                 Assert.Equal(1, basicFilterRequest.SetBasicFilter!.Filter.Range.SheetId);
                 Assert.Equal(6, basicFilterRequest.SetBasicFilter.Filter.Range.StartColumnIndex);
-                Assert.Contains("Closed", basicFilterRequest.SetBasicFilter.Filter.Criteria!["0"].HiddenValues!);
-                Assert.Equal("TEXT_CONTAINS", basicFilterRequest.SetBasicFilter.Filter.Criteria["1"].Condition!.Type);
-                Assert.Equal("or", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["1"].Condition!.Values!).UserEnteredValue);
-                Assert.Equal("NUMBER_GREATER_THAN_EQ", basicFilterRequest.SetBasicFilter.Filter.Criteria["2"].Condition!.Type);
-                Assert.Equal("15", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["2"].Condition!.Values!).UserEnteredValue);
-                Assert.Equal("NUMBER_BETWEEN", basicFilterRequest.SetBasicFilter.Filter.Criteria["3"].Condition!.Type);
-                Assert.Equal(new[] { "10", "20" }, basicFilterRequest.SetBasicFilter.Filter.Criteria["3"].Condition!.Values!.Select(v => v.UserEnteredValue).ToArray());
+                Assert.Contains("Closed", basicFilterRequest.SetBasicFilter.Filter.Criteria!["6"].HiddenValues!);
+                Assert.Equal("TEXT_CONTAINS", basicFilterRequest.SetBasicFilter.Filter.Criteria["7"].Condition!.Type);
+                Assert.Equal("or", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["7"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("NUMBER_GREATER_THAN_EQ", basicFilterRequest.SetBasicFilter.Filter.Criteria["8"].Condition!.Type);
+                Assert.Equal("15", Assert.Single(basicFilterRequest.SetBasicFilter.Filter.Criteria["8"].Condition!.Values!).UserEnteredValue);
+                Assert.Equal("NUMBER_BETWEEN", basicFilterRequest.SetBasicFilter.Filter.Criteria["9"].Condition!.Type);
+                Assert.Equal(new[] { "10", "20" }, basicFilterRequest.SetBasicFilter.Filter.Criteria["9"].Condition!.Values!.Select(v => v.UserEnteredValue).ToArray());
 
                 var filterViewRequest = Assert.Single(batchPayload.Requests, r => r.AddFilterView != null);
                 Assert.Equal("SummaryTable Filter", filterViewRequest.AddFilterView!.Filter.Title);
@@ -1325,8 +1320,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(footerColor.Red > 0.84d);
                 Assert.True(footerColor.Green > 0.91d);
                 Assert.True(footerColor.Blue > 0.82d);
-                Assert.Equal("Name", tableRequest.AddTable.Table.ColumnProperties![0].Name);
+                Assert.Equal(0, tableRequest.AddTable.Table.ColumnProperties![0].ColumnIndex);
+                Assert.Equal("Name", tableRequest.AddTable.Table.ColumnProperties[0].ColumnName);
+                Assert.Equal(1, tableRequest.AddTable.Table.ColumnProperties[1].ColumnIndex);
                 Assert.Equal("PERCENT", tableRequest.AddTable.Table.ColumnProperties[1].ColumnType);
+                string serializedBatchPayload = JsonSerializer.Serialize(batchPayload);
+                Assert.Contains("\"columnIndex\":0", serializedBatchPayload, StringComparison.Ordinal);
+                Assert.Contains("\"columnName\":\"Name\"", serializedBatchPayload, StringComparison.Ordinal);
 
                 var protectedRange = Assert.Single(batchPayload.Requests, r => r.AddProtectedRange != null);
                 Assert.Equal(1, protectedRange.AddProtectedRange!.ProtectedRange.Range.SheetId);
@@ -1412,6 +1412,14 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spread123/values:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/spread123?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"spread123\",\"name\":\"Create Export\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":11,\"modifiedTime\":\"2026-07-15T12:00:00Z\",\"webViewLink\":\"https://docs.google.com/spreadsheets/d/spread123/edit\"}");
+                    }
+
                     return new HttpResponseMessage(HttpStatusCode.NotFound) {
                         Content = new StringContent("unexpected request", Encoding.UTF8, "text/plain")
                     };
@@ -1429,7 +1437,9 @@ namespace OfficeIMO.Tests {
 
                 Assert.Equal("spread123", result.SpreadsheetId);
                 Assert.Equal("https://docs.google.com/spreadsheets/d/spread123/edit", result.WebViewLink);
-                Assert.Equal(2, recordedRequests.Count);
+                Assert.Equal(11, result.DriveVersion);
+                Assert.Equal(DateTimeOffset.Parse("2026-07-15T12:00:00Z"), result.ModifiedTime);
+                Assert.Equal(4, recordedRequests.Count);
                 Assert.All(recordedRequests, r => Assert.Equal("Bearer fake-access-token", r.Authorization));
 
                 var createRequest = Assert.Single(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets");
@@ -1439,11 +1449,12 @@ namespace OfficeIMO.Tests {
                 }
 
                 var updateRequest = Assert.Single(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spread123:batchUpdate");
+                var valuesRequest = Assert.Single(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spread123/values:batchUpdate");
                 Assert.Equal("POST", updateRequest.Method);
-                Assert.Contains("HYPERLINK", updateRequest.Body!);
-                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=2", updateRequest.Body!);
+                Assert.Contains("HYPERLINK", valuesRequest.Body!);
+                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=2", valuesRequest.Body!);
                 Assert.Contains("OfficeIMO internal link target: Target!B5", updateRequest.Body!);
-                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=1", updateRequest.Body!);
+                Assert.Contains("docs.google.com/spreadsheets/d/spread123/edit#gid=1", valuesRequest.Body!);
                 Assert.Contains("Tester (TT): Jump note", updateRequest.Body!);
                 Assert.Contains("OfficeIMO internal link target: LocalData -\\u003E Summary!B2:B3", updateRequest.Body!);
             } finally {
@@ -1454,7 +1465,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_RetriesTransientCreateFailures() {
+        public async Task Test_GoogleSheetsExporter_DoesNotRetryAmbiguousCreateFailures() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsExporterRetryCreate.xlsx");
 
             try {
@@ -1492,13 +1503,14 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
-                    Title = "Retry Export",
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
+                        Title = "Retry Export",
+                    }));
 
-                Assert.Equal("spreadRetry", result.SpreadsheetId);
-                Assert.Equal(2, createAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://sheets.googleapis.com/v4/spreadsheets", StringComparison.Ordinal) && n.Message.Contains("exponential backoff", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, createAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1507,7 +1519,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_ReportsServerRetryAfterDelays() {
+        public async Task Test_GoogleSheetsExporter_DoesNotUseRetryAfterForAmbiguousCreates() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsExporterRetryAfter.xlsx");
 
             try {
@@ -1547,13 +1559,14 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
-                    Title = "Retry-After Export",
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
+                        Title = "Retry-After Export",
+                    }));
 
-                Assert.Equal("spreadRetryAfter", result.SpreadsheetId);
-                Assert.Equal(2, createAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("server Retry-After", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, createAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);
@@ -1584,7 +1597,15 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/spreadMove?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spreadMove/values:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/folder123?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"folder123\",\"name\":\"Requested Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/spreadMove?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"spreadMove\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/spreadsheets/d/spreadMove/edit\"}");
                     }
 
@@ -1612,7 +1633,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("spreadMove", result.SpreadsheetId);
-                Assert.Equal(4, recordedRequests.Count);
+                Assert.Equal(5, recordedRequests.Count);
                 Assert.Contains(recordedRequests, r => r.Method == "GET" && r.Uri.AbsoluteUri.Contains("/drive/v3/files/spreadMove?", StringComparison.Ordinal));
                 var patchRequest = Assert.Single(recordedRequests, r => r.Method == "PATCH");
                 Assert.Contains("addParents=folder123", patchRequest.Uri.Query);
@@ -1645,7 +1666,15 @@ namespace OfficeIMO.Tests {
                         return Task.FromResult(CreateJsonResponse("{}"));
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/spreadRetryDrive?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spreadRetryDrive/values:batchUpdate") {
+                        return Task.FromResult(CreateJsonResponse("{}"));
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/folder123?", StringComparison.Ordinal)) {
+                        return Task.FromResult(CreateJsonResponse("{\"id\":\"folder123\",\"name\":\"Requested Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}"));
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/spreadRetryDrive?", StringComparison.Ordinal)) {
                         driveMetadataAttempts++;
                         if (driveMetadataAttempts == 1) {
                             return Task.FromResult(new HttpResponseMessage(HttpStatusCode.ServiceUnavailable) {
@@ -1714,7 +1743,15 @@ namespace OfficeIMO.Tests {
                         return CreateJsonResponse("{}");
                     }
 
-                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri == "https://www.googleapis.com/drive/v3/files/spreadDefaultFolder?fields=id,parents,webViewLink&supportsAllDrives=true") {
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/spreadDefaultFolder/values:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/sessionFolder123?", StringComparison.Ordinal)) {
+                        return CreateJsonResponse("{\"id\":\"sessionFolder123\",\"name\":\"Session Folder\",\"mimeType\":\"application/vnd.google-apps.folder\"}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.StartsWith("https://www.googleapis.com/drive/v3/files/spreadDefaultFolder?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"id\":\"spreadDefaultFolder\",\"parents\":[\"oldParent\"],\"webViewLink\":\"https://docs.google.com/spreadsheets/d/spreadDefaultFolder/edit\"}");
                     }
 
@@ -1739,7 +1776,7 @@ namespace OfficeIMO.Tests {
                 });
 
                 Assert.Equal("spreadDefaultFolder", result.SpreadsheetId);
-                Assert.Equal(4, recordedRequests.Count);
+                Assert.Equal(5, recordedRequests.Count);
                 var patchRequest = Assert.Single(recordedRequests, r => r.Method == "PATCH");
                 Assert.Contains("addParents=sessionFolder123", patchRequest.Uri.Query);
                 Assert.Equal("sessionFolder123", result.Location?.FolderId);
@@ -1762,15 +1799,27 @@ namespace OfficeIMO.Tests {
                 summary.SetColumnWidth(1, 18);
 
                 var recordedRequests = new List<(Uri Uri, string Method, string? Body)>();
+                int driveMetadataReads = 0;
                 using var httpClient = new HttpClient(new FakeHttpMessageHandler(async request => {
                     string? body = request.Content == null ? null : await request.Content.ReadAsStringAsync().ConfigureAwait(false);
                     recordedRequests.Add((request.RequestUri!, request.Method.Method, body));
 
                     if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.Contains("/v4/spreadsheets/existing123?", StringComparison.Ordinal)) {
-                        return CreateJsonResponse("{\"spreadsheetId\":\"existing123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":7}},{\"properties\":{\"sheetId\":8}}]}");
+                        return CreateJsonResponse("{\"spreadsheetId\":\"existing123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":0,\"title\":\"Summary\"}},{\"properties\":{\"sheetId\":8,\"title\":\"Legacy\"}}]}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        driveMetadataReads++;
+                        return driveMetadataReads == 1
+                            ? CreateJsonResponse("{\"id\":\"existing123\",\"name\":\"Old Title\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":5,\"capabilities\":{\"canEdit\":true}}")
+                            : CreateJsonResponse("{\"id\":\"existing123\",\"name\":\"Replacement Export\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":6,\"modifiedTime\":\"2026-07-15T13:00:00Z\",\"webViewLink\":\"https://docs.google.com/spreadsheets/d/existing123/edit\",\"capabilities\":{\"canEdit\":true}}");
                     }
 
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/existing123:batchUpdate") {
+                        return CreateJsonResponse("{}");
+                    }
+
+                    if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/existing123/values:batchUpdate") {
                         return CreateJsonResponse("{}");
                     }
 
@@ -1789,19 +1838,26 @@ namespace OfficeIMO.Tests {
                     Title = "Replacement Export",
                     Location = new GoogleDriveFileLocation {
                         ExistingFileId = "existing123",
-                    }
+                    },
+                    Replace = new GoogleSheetsReplaceOptions { ExpectedDriveVersion = 5 },
                 });
 
                 Assert.Equal("existing123", result.SpreadsheetId);
                 Assert.Equal("https://docs.google.com/spreadsheets/d/existing123/edit", result.WebViewLink);
-                Assert.Equal(3, recordedRequests.Count);
+                Assert.Equal(6, result.DriveVersion);
+                Assert.Equal(DateTimeOffset.Parse("2026-07-15T13:00:00Z"), result.ModifiedTime);
+                Assert.Equal(6, recordedRequests.Count);
                 Assert.Equal("GET", recordedRequests[0].Method);
-                Assert.Equal("POST", recordedRequests[1].Method);
+                Assert.Equal("GET", recordedRequests[1].Method);
+                Assert.Contains("sheets(properties(sheetId,title))", recordedRequests[1].Uri.Query, StringComparison.Ordinal);
                 Assert.Equal("POST", recordedRequests[2].Method);
+                Assert.Equal("POST", recordedRequests[3].Method);
+                Assert.Equal("POST", recordedRequests[4].Method);
+                Assert.Equal("GET", recordedRequests[5].Method);
                 Assert.DoesNotContain(recordedRequests, r => r.Uri.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets");
                 Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingSpreadsheet");
 
-                using (var resetJson = JsonDocument.Parse(recordedRequests[1].Body!)) {
+                using (var resetJson = JsonDocument.Parse(recordedRequests[2].Body!)) {
                     var requests = resetJson.RootElement.GetProperty("requests");
                     Assert.True(requests.GetArrayLength() >= 3);
                     var requestKinds = requests.EnumerateArray()
@@ -1810,6 +1866,9 @@ namespace OfficeIMO.Tests {
                     Assert.Contains("deleteSheet", requestKinds);
                     Assert.Contains("addSheet", requestKinds);
                     Assert.Contains("updateSpreadsheetProperties", requestKinds);
+                    Assert.Contains(requests.EnumerateArray(), request =>
+                        request.TryGetProperty("deleteSheet", out JsonElement deleteSheet)
+                        && deleteSheet.GetProperty("sheetId").GetInt32() == 0);
                 }
             } finally {
                 if (File.Exists(filePath)) {
@@ -1819,7 +1878,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public async Task Test_GoogleSheetsExporter_RetriesTransientExistingSpreadsheetReplaceFailures() {
+        public async Task Test_GoogleSheetsExporter_DoesNotRetryAmbiguousExistingSpreadsheetReplaceFailures() {
             string filePath = Path.Combine(_directoryWithFiles, "GoogleSheetsExporterRetryUpdate.xlsx");
 
             try {
@@ -1834,6 +1893,10 @@ namespace OfficeIMO.Tests {
 
                     if (request.Method == HttpMethod.Get && request.RequestUri!.AbsoluteUri.Contains("/v4/spreadsheets/existingRetry123?", StringComparison.Ordinal)) {
                         return CreateJsonResponse("{\"spreadsheetId\":\"existingRetry123\",\"spreadsheetUrl\":\"https://docs.google.com/spreadsheets/d/existingRetry123/edit\",\"properties\":{\"title\":\"Old Title\"},\"sheets\":[{\"properties\":{\"sheetId\":7}}]}");
+                    }
+
+                    if (request.Method == HttpMethod.Get && request.RequestUri!.Host == "www.googleapis.com") {
+                        return CreateJsonResponse("{\"id\":\"existingRetry123\",\"name\":\"Old Title\",\"mimeType\":\"application/vnd.google-apps.spreadsheet\",\"version\":9,\"capabilities\":{\"canEdit\":true}}");
                     }
 
                     if (request.Method == HttpMethod.Post && request.RequestUri!.AbsoluteUri == "https://sheets.googleapis.com/v4/spreadsheets/existingRetry123:batchUpdate") {
@@ -1861,17 +1924,18 @@ namespace OfficeIMO.Tests {
                         MaxRetryCount = 1,
                     });
 
-                var result = await document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
-                    Title = "Retry Replacement Export",
-                    Location = new GoogleDriveFileLocation {
-                        ExistingFileId = "existingRetry123",
-                    }
-                });
+                var exception = await Assert.ThrowsAsync<GoogleWorkspaceExportException>(() =>
+                    document.ExportToGoogleSheetsAsync(session, new GoogleSheetsSaveOptions {
+                        Title = "Retry Replacement Export",
+                        Location = new GoogleDriveFileLocation {
+                            ExistingFileId = "existingRetry123",
+                        },
+                        Replace = new GoogleSheetsReplaceOptions { ExpectedDriveVersion = 9 },
+                    }));
 
-                Assert.Equal("existingRetry123", result.SpreadsheetId);
-                Assert.Equal(2, replaceAttempts);
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ExistingSpreadsheet");
-                Assert.Contains(result.Report.Notices, n => n.Feature == "ApiRetries" && n.Message.Contains("https://sheets.googleapis.com/v4/spreadsheets/existingRetry123:batchUpdate", StringComparison.Ordinal));
+                Assert.Equal(GoogleWorkspaceFailureKind.ApiRequest, exception.FailureKind);
+                Assert.Equal(1, replaceAttempts);
+                Assert.DoesNotContain(exception.Report.Notices, n => n.Code == GoogleWorkspaceDiagnosticCodes.ApiRetry);
             } finally {
                 if (File.Exists(filePath)) {
                     File.Delete(filePath);

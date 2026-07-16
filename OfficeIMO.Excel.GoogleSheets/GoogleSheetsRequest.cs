@@ -1,4 +1,12 @@
 namespace OfficeIMO.Excel.GoogleSheets {
+    /// <summary>Updates target spreadsheet locale, time zone, and calculation settings.</summary>
+    public sealed class GoogleSheetsUpdateSpreadsheetPropertiesRequest : GoogleSheetsRequest {
+        public GoogleSheetsUpdateSpreadsheetPropertiesRequest() : base("updateSpreadsheetProperties") { }
+        public string? Locale { get; set; }
+        public string? TimeZone { get; set; }
+        public GoogleSheetsRecalculationInterval RecalculationInterval { get; set; }
+    }
+
     /// <summary>
     /// Base request emitted by the Google Sheets batch compiler.
     /// </summary>
@@ -22,8 +30,11 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public bool Hidden { get; set; }
         public bool RightToLeft { get; set; }
         public string? TabColorArgb { get; set; }
+        public int RowCount { get; set; }
+        public int ColumnCount { get; set; }
         public int FrozenRowCount { get; set; }
         public int FrozenColumnCount { get; set; }
+        public bool HideGridlines { get; set; }
     }
 
     /// <summary>
@@ -45,6 +56,22 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     /// <summary>
+    /// Applies one validation rule to an entire worksheet range without materializing every target cell.
+    /// </summary>
+    public sealed class GoogleSheetsSetDataValidationRequest : GoogleSheetsRequest {
+        public GoogleSheetsSetDataValidationRequest() : base("setDataValidation") {
+        }
+
+        public string SheetName { get; set; } = string.Empty;
+        public string A1Range { get; set; } = string.Empty;
+        public int StartRowIndex { get; set; }
+        public int EndRowIndexExclusive { get; set; }
+        public int StartColumnIndex { get; set; }
+        public int EndColumnIndexExclusive { get; set; }
+        public GoogleSheetsDataValidationRule Rule { get; set; } = new GoogleSheetsDataValidationRule();
+    }
+
+    /// <summary>
     /// Adds a named range to the target spreadsheet.
     /// </summary>
     public sealed class GoogleSheetsAddNamedRangeRequest : GoogleSheetsRequest {
@@ -52,6 +79,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
         }
 
         public string Name { get; set; } = string.Empty;
+        /// <summary>Original Excel defined name used to resolve source hyperlinks after target-name qualification.</summary>
+        public string SourceName { get; set; } = string.Empty;
         public string? SheetName { get; set; }
         public string A1Range { get; set; } = string.Empty;
     }
@@ -66,6 +95,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string SheetName { get; set; } = string.Empty;
         public string? Description { get; set; }
         public bool WarningOnly { get; set; }
+        public bool DomainUsersCanEdit { get; set; }
+        public IReadOnlyList<string> EditorEmailAddresses { get; set; } = Array.Empty<string>();
+        public IReadOnlyList<string> UnprotectedA1Ranges { get; set; } = Array.Empty<string>();
     }
 
     /// <summary>
@@ -153,6 +185,79 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public int EndIndexExclusive { get; set; }
         public int? PixelSize { get; set; }
         public bool Hidden { get; set; }
+        public byte? OutlineLevel { get; set; }
+    }
+
+    /// <summary>Adds a row or column outline group.</summary>
+    public sealed class GoogleSheetsAddDimensionGroupRequest : GoogleSheetsRequest {
+        public GoogleSheetsAddDimensionGroupRequest() : base("addDimensionGroup") { }
+        public string SheetName { get; set; } = string.Empty;
+        public GoogleSheetsDimensionKind DimensionKind { get; set; }
+        public int StartIndex { get; set; }
+        public int EndIndexExclusive { get; set; }
+    }
+
+    /// <summary>Adds one supported conditional-formatting rule.</summary>
+    public sealed class GoogleSheetsAddConditionalFormatRuleRequest : GoogleSheetsRequest {
+        public GoogleSheetsAddConditionalFormatRuleRequest() : base("addConditionalFormatRule") { }
+        public string SheetName { get; set; } = string.Empty;
+        public string A1Range { get; set; } = string.Empty;
+        public int Index { get; set; }
+        public string ConditionType { get; set; } = string.Empty;
+        public IReadOnlyList<string> Values { get; set; } = Array.Empty<string>();
+        public GoogleSheetsCellStyle? Format { get; set; }
+    }
+
+    /// <summary>Adds a chart backed by a generated hidden data range.</summary>
+    public sealed class GoogleSheetsAddChartRequest : GoogleSheetsRequest {
+        public GoogleSheetsAddChartRequest() : base("addChart") { }
+        public string SheetName { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public string ChartType { get; set; } = string.Empty;
+        public string DataSheetName { get; set; } = string.Empty;
+        public int DataStartRowIndex { get; set; }
+        public int DataRowCount { get; set; }
+        public int SeriesCount { get; set; }
+        public int AnchorRowIndex { get; set; }
+        public int AnchorColumnIndex { get; set; }
+    }
+
+    /// <summary>Adds a supported pivot table at a destination cell.</summary>
+    public sealed class GoogleSheetsAddPivotTableRequest : GoogleSheetsRequest {
+        public GoogleSheetsAddPivotTableRequest() : base("addPivotTable") { }
+        public string SheetName { get; set; } = string.Empty;
+        public int DestinationRowIndex { get; set; }
+        public int DestinationColumnIndex { get; set; }
+        public string SourceSheetName { get; set; } = string.Empty;
+        public string SourceA1Range { get; set; } = string.Empty;
+        public IReadOnlyList<GoogleSheetsPivotGroup> Rows { get; set; } = Array.Empty<GoogleSheetsPivotGroup>();
+        public IReadOnlyList<GoogleSheetsPivotGroup> Columns { get; set; } = Array.Empty<GoogleSheetsPivotGroup>();
+        public IReadOnlyList<GoogleSheetsPivotValue> Values { get; set; } = Array.Empty<GoogleSheetsPivotValue>();
+    }
+
+    public sealed class GoogleSheetsPivotGroup {
+        public int SourceColumnOffset { get; set; }
+        public bool ShowTotals { get; set; } = true;
+        public string SortOrder { get; set; } = "ASCENDING";
+    }
+
+    public sealed class GoogleSheetsPivotValue {
+        public int SourceColumnOffset { get; set; }
+        public string SummarizeFunction { get; set; } = "SUM";
+        public string? Name { get; set; }
+    }
+
+    /// <summary>Deletes spreadsheet-scoped developer metadata matching a key.</summary>
+    public sealed class GoogleSheetsDeleteDeveloperMetadataRequest : GoogleSheetsRequest {
+        public GoogleSheetsDeleteDeveloperMetadataRequest() : base("deleteDeveloperMetadata") { }
+        public string Key { get; set; } = string.Empty;
+    }
+
+    /// <summary>Creates spreadsheet-scoped developer metadata.</summary>
+    public sealed class GoogleSheetsCreateDeveloperMetadataRequest : GoogleSheetsRequest {
+        public GoogleSheetsCreateDeveloperMetadataRequest() : base("createDeveloperMetadata") { }
+        public string Key { get; set; } = string.Empty;
+        public string Value { get; set; } = string.Empty;
     }
 
     /// <summary>
@@ -176,6 +281,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public GoogleSheetsDataValidationRule? DataValidationRule { get; set; }
         public GoogleSheetsHyperlink? Hyperlink { get; set; }
         public GoogleSheetsComment? Comment { get; set; }
+        public IReadOnlyList<GoogleSheetsTextFormatRun> TextFormatRuns { get; set; } = Array.Empty<GoogleSheetsTextFormatRun>();
     }
 
     /// <summary>
@@ -221,12 +327,23 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public bool Bold { get; set; }
         public bool Italic { get; set; }
         public bool Underline { get; set; }
+        public bool Strikethrough { get; set; }
+        public string? FontName { get; set; }
+        public double? FontSize { get; set; }
         public string? FontColorArgb { get; set; }
         public string? FillColorArgb { get; set; }
         public GoogleSheetsCellBorders? Borders { get; set; }
         public string? HorizontalAlignment { get; set; }
         public string? VerticalAlignment { get; set; }
         public bool WrapText { get; set; }
+        public int? TextRotation { get; set; }
+        public uint? TextIndent { get; set; }
+    }
+
+    /// <summary>Rich-text run formatting beginning at a UTF-16 character index.</summary>
+    public sealed class GoogleSheetsTextFormatRun {
+        public int StartIndex { get; set; }
+        public GoogleSheetsCellStyle Format { get; set; } = new GoogleSheetsCellStyle();
     }
 
     /// <summary>
@@ -256,7 +373,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
     }
 
     /// <summary>
-    /// Filter criteria for one relative column within a Google Sheets filter range.
+    /// Filter criteria keyed by the absolute zero-based sheet column index required by the Google Sheets API.
     /// </summary>
     public sealed class GoogleSheetsFilterColumnCriteria {
         public int ColumnId { get; set; }

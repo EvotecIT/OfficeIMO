@@ -168,20 +168,9 @@ namespace OfficeIMO.Word.GoogleDocs {
             return payload.Requests;
         }
 
-
-        private static string BuildCellText(GoogleDocsTableCell cell) {
-            var paragraphs = cell.Paragraphs
-                .Select(paragraph => {
-                    var text = string.Concat(paragraph.Runs.Select(run => SanitizeText(run.Text)));
-                    if (string.IsNullOrWhiteSpace(text)) {
-                        text = SanitizeText(paragraph.Text);
-                    }
-                    return text;
-                })
-                .Where(text => !string.IsNullOrWhiteSpace(text))
-                .ToList();
-
-            return paragraphs.Count == 0 ? string.Empty : string.Join("\n", paragraphs);
+        private static bool HasMeaningfulCellContentRequests(IReadOnlyList<GoogleDocsApiRequestPayload> requests) {
+            return requests.Any(request => request.InsertText == null
+                || !string.Equals(request.InsertText.Text, "\n", StringComparison.Ordinal));
         }
 
         private static int GetBodyEndIndex(GoogleDocsApiDocumentResponse documentState) {

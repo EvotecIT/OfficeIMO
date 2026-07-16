@@ -46,6 +46,16 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
+        /// Applies strikethrough font styling to a single cell.
+        /// </summary>
+        public void CellStrikethrough(int row, int column, bool strikethrough = true) {
+            WriteLockConditional(() => {
+                var cell = GetCell(row, column);
+                ApplyFontStrikethrough(cell, strikethrough);
+            });
+        }
+
+        /// <summary>
         /// Applies or clears wrap text on a single cell.
         /// </summary>
         /// <param name="row">The 1-based row index of the cell to modify.</param>
@@ -730,6 +740,22 @@ namespace OfficeIMO.Excel {
             var underlineFontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetUnderline(font, underline));
             ApplyCellFormatOverride(stylesheet, cell, format => {
                 format.FontId = underlineFontId;
+                format.ApplyFont = true;
+            });
+            stylesPart.Stylesheet.Save();
+        }
+
+        private void ApplyFontStrikethrough(Cell cell, bool strikethrough) {
+            var workbookPart = _excelDocument.WorkbookPartRoot ?? throw new InvalidOperationException("WorkbookPart is null");
+            var stylesPart = workbookPart.WorkbookStylesPart ?? workbookPart.AddNewPart<WorkbookStylesPart>();
+            var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
+            EnsureDefaultStylePrimitives(stylesheet);
+
+            uint baseIndex = cell.StyleIndex?.Value ?? 0U;
+            var baseFormat = GetBaseCellFormat(stylesheet, baseIndex);
+            var fontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(baseFormat.FontId), font => SetStrike(font, strikethrough));
+            ApplyCellFormatOverride(stylesheet, cell, format => {
+                format.FontId = fontId;
                 format.ApplyFont = true;
             });
             stylesPart.Stylesheet.Save();

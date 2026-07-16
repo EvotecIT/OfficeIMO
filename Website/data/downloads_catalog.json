@@ -408,8 +408,8 @@
     {
       "id": "google-bridges",
       "eyebrow": "Google Workspace bridges",
-      "title": "Planning and export scaffolding for Google surfaces",
-      "description": "Use these companion packages when OfficeIMO output needs to line up with Google Docs or Sheets workflows.",
+      "title": "Bidirectional Office and Google Workspace libraries",
+      "description": "Translate Word, Excel, and PowerPoint content, share Drive/authentication infrastructure, and add explicit synchronization when an application needs it.",
       "packages": [
         {
           "registry": "nuget",
@@ -417,11 +417,51 @@
           "registry_package": "OfficeIMO.GoogleWorkspace",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace",
           "title": "OfficeIMO.GoogleWorkspace",
-          "summary": "Shared Google Workspace abstractions for OfficeIMO extension packages.",
-          "best_for": "common Google Workspace models used by Docs and Sheets bridge packages",
+          "summary": "Shared sessions, transport, scopes, diagnostics, and fidelity contracts.",
+          "best_for": "the dependency-light foundation used by every OfficeIMO Google package",
           "install": "dotnet add package OfficeIMO.GoogleWorkspace",
-          "docs_url": "/docs/getting-started/",
+          "product_url": "/products/google-workspace/",
+          "docs_url": "/docs/google-workspace/",
           "accent": "#0ea5e9"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.GoogleWorkspace.Drive",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Drive",
+          "title": "OfficeIMO.GoogleWorkspace.Drive",
+          "summary": "Typed Drive files, conversion, collaboration, media, shared drives, and change tokens.",
+          "best_for": "applications and translators that need one reusable Drive owner",
+          "install": "dotnet add package OfficeIMO.GoogleWorkspace.Drive",
+          "product_url": "/products/google-workspace/",
+          "docs_url": "/docs/google-workspace/drive/",
+          "accent": "#fbbc04"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
+          "title": "OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
+          "summary": "Optional Google client credential, installed-app PKCE, and token-store adapters.",
+          "best_for": "applications already using Google.Apis.Auth",
+          "install": "dotnet add package OfficeIMO.GoogleWorkspace.Auth.GoogleApis",
+          "product_url": "/products/google-workspace/",
+          "docs_url": "/docs/google-workspace/authentication/",
+          "accent": "#ea4335"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.GoogleWorkspace.Sync",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.GoogleWorkspace.Sync",
+          "title": "OfficeIMO.GoogleWorkspace.Sync",
+          "summary": "Drive change feeds, minimal checkpoints, and explicit dry-run/approval/apply outcomes.",
+          "best_for": "applications implementing repeatable cross-format synchronization",
+          "install": "dotnet add package OfficeIMO.GoogleWorkspace.Sync",
+          "product_url": "/products/google-workspace/",
+          "docs_url": "/docs/google-workspace/sync/",
+          "accent": "#a855f7"
         },
         {
           "registry": "nuget",
@@ -429,11 +469,11 @@
           "registry_package": "OfficeIMO.Word.GoogleDocs",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.Word.GoogleDocs",
           "title": "OfficeIMO.Word.GoogleDocs",
-          "summary": "Google Docs planning and export scaffolding for OfficeIMO.Word.",
-          "best_for": "Word-oriented flows that need Google Docs planning or export shapes",
+          "summary": "Bidirectional Word and Google Docs translation with revision-safe replacement.",
+          "best_for": "Word-oriented create, import, replace, and diff workflows",
           "install": "dotnet add package OfficeIMO.Word.GoogleDocs",
           "product_url": "/products/word/",
-          "docs_url": "/docs/word/",
+          "docs_url": "/docs/google-workspace/docs/",
           "accent": "#60a5fa"
         },
         {
@@ -442,12 +482,25 @@
           "registry_package": "OfficeIMO.Excel.GoogleSheets",
           "registry_url": "https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets",
           "title": "OfficeIMO.Excel.GoogleSheets",
-          "summary": "Google Sheets planning and export scaffolding for OfficeIMO.Excel.",
-          "best_for": "workbook-oriented flows that need Google Sheets planning or export shapes",
+          "summary": "Bidirectional Excel and Google Sheets translation with advanced object support.",
+          "best_for": "workbook-oriented create, import, replace, and diff workflows",
           "install": "dotnet add package OfficeIMO.Excel.GoogleSheets",
           "product_url": "/products/excel/",
-          "docs_url": "/docs/excel/",
+          "docs_url": "/docs/google-workspace/sheets/",
           "accent": "#34d399"
+        },
+        {
+          "registry": "nuget",
+          "registry_label": "NuGet",
+          "registry_package": "OfficeIMO.PowerPoint.GoogleSlides",
+          "registry_url": "https://www.nuget.org/packages/OfficeIMO.PowerPoint.GoogleSlides",
+          "title": "OfficeIMO.PowerPoint.GoogleSlides",
+          "summary": "Bidirectional PowerPoint and Google Slides translation with native and visual fallbacks.",
+          "best_for": "presentation create, template, import, replace, and diff workflows",
+          "install": "dotnet add package OfficeIMO.PowerPoint.GoogleSlides",
+          "product_url": "/products/powerpoint/",
+          "docs_url": "/docs/google-workspace/slides/",
+          "accent": "#f59e0b"
         }
       ]
     }

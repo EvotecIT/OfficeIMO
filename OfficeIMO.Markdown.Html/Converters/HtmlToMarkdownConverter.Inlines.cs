@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 
 namespace OfficeIMO.Markdown.Html;
 
@@ -45,6 +46,18 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         if (TryConvertConfiguredInlineElementConverters(sequence, element, context)) {
+            return;
+        }
+
+        if (context != null && element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            if (context.Footnotes.IsBacklink(element)) return;
+            if (context.Footnotes.TryGetReferenceLabel(element, out string footnoteLabel)) {
+                sequence.FootnoteRef(footnoteLabel);
+                return;
+            }
+        }
+        if (context != null && context.Footnotes.TryGetWrappedReferenceLabel(element, out string wrappedFootnoteLabel)) {
+            sequence.FootnoteRef(wrappedFootnoteLabel);
             return;
         }
 
@@ -156,6 +169,16 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ConvertInlineElementToMarkdown(IElement element, ConversionContext? context) {
+        if (context != null && element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            if (context.Footnotes.IsBacklink(element)) return string.Empty;
+            if (context.Footnotes.TryGetReferenceLabel(element, out string footnoteLabel)) {
+                return "[^" + footnoteLabel + "]";
+            }
+        }
+        if (context != null && context.Footnotes.TryGetWrappedReferenceLabel(element, out string wrappedFootnoteLabel)) {
+            return "[^" + wrappedFootnoteLabel + "]";
+        }
+
         string tag = GetEffectiveTagName(element, context);
         switch (tag) {
             case "BR":
@@ -233,7 +256,8 @@ internal sealed partial class HtmlToMarkdownConverter {
             : ResolveUrl(element.GetAttribute("href"), context);
         string label = ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim();
         if (label.Length == 0) {
-            return string.Empty;
+            label = EscapeInlineText(HtmlAccessibilitySemantics.GetAccessibleName(element, includeTextFallback: true));
+            if (label.Length == 0) return string.Empty;
         }
         if (href.Length == 0) {
             return label;
@@ -256,7 +280,9 @@ internal sealed partial class HtmlToMarkdownConverter {
             : ResolveUrl(element.GetAttribute("href"), context);
         var label = ConvertInlineNodesToInlineSequence(element.ChildNodes, context);
         if (label.Nodes.Count == 0) {
-            return;
+            string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(element, includeTextFallback: true);
+            if (accessibleName.Length == 0) return;
+            label.Text(accessibleName);
         }
 
         if (href.Length == 0) {
@@ -361,13 +387,14 @@ internal sealed partial class HtmlToMarkdownConverter {
         if (context != null
             && context.Options.Base64Images != HtmlBase64ImageHandling.Include
             && ResolveImageSourceCandidates(element, context).Any(IsBase64ImageDataUri)) {
-            return (string.Empty, element.GetAttribute("alt"), element.GetAttribute("title"), element.GetAttribute("alt"));
+            string? accessibleName = GetAccessibleImageName(element);
+            return (string.Empty, accessibleName, element.GetAttribute("title"), accessibleName);
         }
 
         string src = context == null
             ? element.GetAttribute("src") ?? string.Empty
             : ResolveUrl(element.GetAttribute("src"), context);
-        string? alt = element.GetAttribute("alt");
+        string? alt = GetAccessibleImageName(element);
         return (src, alt, element.GetAttribute("title"), alt);
     }
 

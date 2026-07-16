@@ -93,6 +93,8 @@ foreach (OfficeDocumentAsset asset in document.Assets) {
 
 The rich reader requests bounded chapter HTML and manifest payloads from `OfficeIMO.Epub` so it can reuse the HTML semantic mapping. Images, audio, video, fonts, stylesheets, scripts, media overlays, and other manifest resources are projected as assets; content documents and navigation files are not duplicated as assets. Remote resources retain metadata but are never fetched. Audio and video are exposed for downstream processing, not played or transcribed.
 
+Manifest assets keep their package identity and payload while inheriting useful metadata from chapter placements, such as accessible image names, titles, and dimensions. The first available placement supplies missing metadata; each visual still retains its own placement content and source path.
+
 ## What it emits
 
 - Chapter-to-chunk projection.
@@ -103,6 +105,8 @@ The rich reader requests bounded chapter HTML and manifest payloads from `Office
 - Path and stream dispatch, including non-seekable stream support.
 - A schema-v5 rich result with chapter pages, HTML blocks, tables, links, forms, bounded manifest assets, metadata, and structured parser diagnostics.
 - Chapter-relative, query-only, fragment-only, encoded, root-relative, external, and HTML-base URL projection through the shared EPUB reference contract.
+- Structured chapter Markdown for native and ARIA headings, quotes, portable decimal ordered-list markers with preserved starts and value resets, code-language hints, tables, and local EPUB/DPUB-ARIA footnotes.
+- Rich `quote`, `code`, and `footnote` blocks, accessible link/image names, exact ordered-list markers, and propagated `officeimo.html.*` capabilities.
 - Recoverable diagnostics for unsafe or non-conforming chapter references.
 
 ## Boundaries
@@ -110,6 +114,9 @@ The rich reader requests bounded chapter HTML and manifest payloads from `Office
 - Reader adapter configuration belongs here.
 - EPUB parsing belongs in `OfficeIMO.Epub`.
 - Shared extraction contracts belong in `OfficeIMO.Reader`.
+- Local footnotes become typed Markdown footnotes. Cross-document note targets remain resolved EPUB links.
+- Fixed-layout publications are identified and diagnosed; this reader extracts their content and resources but does not emulate a reading-system viewport.
+- Unsupported encryption is reported as a security diagnostic and is not decrypted.
 
 ## Targets and license
 
@@ -120,5 +127,6 @@ The rich reader requests bounded chapter HTML and manifest payloads from `Office
 
 - **External:** None beyond the dependencies of its OfficeIMO format packages.
 - **OfficeIMO:** `OfficeIMO.Reader`, `OfficeIMO.Reader.Html`, and `OfficeIMO.Epub`; EPUB parsing stays in the native package.
+- The EPUB semantics and resource projection layer adds no new package or process dependency.
 
 See the [complete OfficeIMO package map](../README.md) for related formats and conversion paths.

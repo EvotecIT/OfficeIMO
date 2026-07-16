@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using OfficeIMO.Html;
 using OfficeIMO.Markdown;
 
 namespace OfficeIMO.Markdown.Html;
@@ -65,6 +66,12 @@ internal sealed partial class HtmlToMarkdownConverter {
     }
 
     private static bool ShouldTreatAsBlockElement(IElement element, ConversionContext context) {
+        if (context.Footnotes.TryGetDefinitionLabel(element, out _)
+            || context.Footnotes.ShouldConvertContainer(element)
+            || HtmlAccessibilitySemantics.TryGetHeadingLevel(element, out _)) {
+            return true;
+        }
+
         if (IsBlockElement(element, context)) {
             return true;
         }
@@ -193,6 +200,14 @@ internal sealed partial class HtmlToMarkdownConverter {
 
         if (TryConvertConfiguredElementConverters(element, context, out var customBlocks)) {
             return customBlocks;
+        }
+
+        if (TryConvertFootnoteElement(element, context, out IReadOnlyList<IMarkdownBlock> footnoteBlocks)) {
+            return footnoteBlocks;
+        }
+
+        if (HtmlAccessibilitySemantics.TryGetHeadingLevel(element, out int accessibleHeadingLevel)) {
+            return new IMarkdownBlock[] { ConvertHeadingElement(element, accessibleHeadingLevel, context) };
         }
 
         string tag = GetEffectiveTagName(element, context);

@@ -1,9 +1,9 @@
-# OfficeIMO.Excel.GoogleSheets - Excel to Google Sheets export
+# OfficeIMO.Excel.GoogleSheets - Excel and Google Sheets translation
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel.GoogleSheets)](https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel.GoogleSheets?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel.GoogleSheets)
 
-`OfficeIMO.Excel.GoogleSheets` builds translation plans and export requests for sending `OfficeIMO.Excel` workbooks to Google Sheets through `OfficeIMO.GoogleWorkspace`.
+`OfficeIMO.Excel.GoogleSheets` provides bidirectional Excel and Google Sheets translation with formula compatibility policy, sparse/chunked writes, native advanced objects, import, fidelity preflight, and format-specific diff planning.
 
 ## Install
 
@@ -48,6 +48,10 @@ Console.WriteLine(result.WebViewLink);
 
 - Builds a translation plan before network export.
 - Exports to a new Google Sheets spreadsheet or replaces an existing spreadsheet through `Location.ExistingFileId`.
+- Imports through native Sheets resources or Drive-exported XLSX.
+- Maps supported formulas, styles, filters, validation, protection, conditional formatting, charts, pivots, outlines, and native tables with explicit support boundaries.
+- Uses values batching for value-heavy writes and structural batches for formats and objects.
+- Supports range/field-mask native import, version evidence, and pre-apply diff planning.
 - Uses session-level default Drive and folder placement.
 - Preserves retry, warning, and failure detail through `TranslationReport`.
 - Throws Google Workspace export exceptions that retain failure category and diagnostics.
@@ -56,11 +60,11 @@ Console.WriteLine(result.WebViewLink);
 
 - Workbook modeling belongs in `OfficeIMO.Excel`.
 - Credentials, sessions, retry, Drive placement, and report primitives belong in `OfficeIMO.GoogleWorkspace`.
-- This package owns Excel-to-Google-Sheets mapping and export request construction.
+- This package owns Excel/Google Sheets mapping, import, safe replacement, and format-specific diff planning.
 
 ## Targets and license
 
-- Targets: `netstandard2.0`, `net8.0`, `net10.0`.
+- Targets: `netstandard2.0`, `net8.0`, `net10.0`, plus `net472` on Windows.
 - License: MIT.
 - Repository: [EvotecIT/OfficeIMO](https://github.com/EvotecIT/OfficeIMO)
 
