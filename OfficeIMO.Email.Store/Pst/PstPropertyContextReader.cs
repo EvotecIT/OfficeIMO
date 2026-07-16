@@ -18,7 +18,7 @@ internal sealed class PstPropertyContextReader {
         _cancellationToken = cancellationToken;
     }
 
-    internal List<MapiProperty> ReadProperties() {
+    internal List<MapiProperty> ReadProperties(IDictionary<ushort, uint>? sourceHnids = null) {
         if (_heap.ClientSignature != 0xBC) {
             throw new InvalidDataException("The PST node is not a Property Context.");
         }
@@ -41,7 +41,7 @@ internal sealed class PstPropertyContextReader {
                 ushort id = PstBinary.UInt16(record, 0);
                 var type = (MapiPropertyType)PstBinary.UInt16(record, 2);
                 uint rawValue = PstBinary.UInt32(record, 4);
-                MapiProperty property = DecodeProperty(id, type, rawValue, ref decodedBytes);
+                MapiProperty property = DecodeProperty(id, type, rawValue, ref decodedBytes, sourceHnids);
                 properties.Add(property);
             }
         }
@@ -55,7 +55,8 @@ internal sealed class PstPropertyContextReader {
         return properties;
     }
 
-    private MapiProperty DecodeProperty(ushort id, MapiPropertyType type, uint rawValue, ref long decodedBytes) {
+    private MapiProperty DecodeProperty(ushort id, MapiPropertyType type, uint rawValue, ref long decodedBytes,
+        IDictionary<ushort, uint>? sourceHnids) {
         object? value;
         byte[]? rawData = null;
         switch (type) {
@@ -76,6 +77,7 @@ internal sealed class PstPropertyContextReader {
                 value = (rawValue & 0xFF) != 0;
                 break;
             default:
+                if (sourceHnids != null) sourceHnids[id] = rawValue;
                 rawData = _heap.ResolveHnid(rawValue, _options.MaxDecodedPropertyBytesPerItem);
                 decodedBytes = checked(decodedBytes + rawData.Length);
                 if (decodedBytes > _options.MaxDecodedPropertyBytesPerItem) {

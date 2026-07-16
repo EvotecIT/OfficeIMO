@@ -5,7 +5,7 @@ namespace OfficeIMO.Email.Store;
 internal static class PstAttachmentProjection {
     internal static EmailAttachment Create(IReadOnlyList<MapiProperty> properties,
         EmailStoreReaderOptions options, ref long totalAttachmentBytes) {
-        byte[]? content = GetBytes(properties, 0x3701);
+        byte[]? content = GetBinary(properties, 0x3701);
         long length = content?.LongLength ?? 0;
         if (length > options.MaxAttachmentBytes) {
             throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxAttachmentBytes),
@@ -39,8 +39,10 @@ internal static class PstAttachmentProjection {
     private static string? GetString(IEnumerable<MapiProperty> properties, ushort id) =>
         properties.FirstOrDefault(property => property.PropertyId == id)?.Value as string;
 
-    private static byte[]? GetBytes(IEnumerable<MapiProperty> properties, ushort id) =>
-        properties.FirstOrDefault(property => property.PropertyId == id)?.Value as byte[];
+    private static byte[]? GetBinary(IEnumerable<MapiProperty> properties, ushort id) {
+        MapiProperty? property = properties.FirstOrDefault(item => item.PropertyId == id);
+        return property?.PropertyType == MapiPropertyType.Binary ? property.Value as byte[] : null;
+    }
 
     private static int? GetInt(IEnumerable<MapiProperty> properties, ushort id) {
         object? value = properties.FirstOrDefault(property => property.PropertyId == id)?.Value;

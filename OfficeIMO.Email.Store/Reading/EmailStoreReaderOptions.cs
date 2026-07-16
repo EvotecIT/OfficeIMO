@@ -18,7 +18,8 @@ public sealed class EmailStoreReaderOptions {
         string? pstPassword = null,
         Encoding? pstPasswordEncoding = null,
         bool includeAssociatedMessages = false,
-        bool includeOrphanedMessages = false) {
+        bool includeOrphanedMessages = false,
+        int maxNestedMessageDepth = 16) {
         MaxInputBytes = Positive(maxInputBytes, nameof(maxInputBytes));
         MaxNodeCount = Positive(maxNodeCount, nameof(maxNodeCount));
         MaxBTreeDepth = Positive(maxBTreeDepth, nameof(maxBTreeDepth));
@@ -34,6 +35,8 @@ public sealed class EmailStoreReaderOptions {
         PstPasswordEncoding = pstPasswordEncoding ?? Encoding.ASCII;
         IncludeAssociatedMessages = includeAssociatedMessages;
         IncludeOrphanedMessages = includeOrphanedMessages;
+        if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
+        MaxNestedMessageDepth = maxNestedMessageDepth;
     }
 
     /// <summary>Default bounded options.</summary>
@@ -69,6 +72,8 @@ public sealed class EmailStoreReaderOptions {
     public bool IncludeAssociatedMessages { get; }
     /// <summary>Whether NBT message nodes absent from folder contents tables are recovered using their parent links.</summary>
     public bool IncludeOrphanedMessages { get; }
+    /// <summary>Maximum embedded-message recursion depth. Zero preserves the attachment without projecting its item.</summary>
+    public int MaxNestedMessageDepth { get; }
 
     private static int Positive(int value, string name) {
         if (value <= 0) throw new ArgumentOutOfRangeException(name);

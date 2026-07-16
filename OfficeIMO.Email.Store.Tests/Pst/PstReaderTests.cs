@@ -1,3 +1,5 @@
+using OfficeIMO.Email;
+
 namespace OfficeIMO.Email.Store.Tests;
 
 public sealed class PstReaderTests {
@@ -76,6 +78,39 @@ public sealed class PstReaderTests {
             Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages);
         Assert.Equal("Synthetic PST message", message.Document.Subject);
         Assert.Equal("Body from the PST property context", message.Document.Body.Text);
+    }
+
+    [Fact]
+    public void ProjectsEmbeddedPstMessagesFromAttachmentSubnodes() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(includeEmbeddedMessage: true));
+
+        EmailStoreReadResult result = new EmailStoreReader().Read(stream, "mailbox.pst");
+
+        Assert.False(result.HasErrors);
+        EmailStoreMessage message = Assert.Single(
+            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages);
+        EmailAttachment attachment = Assert.Single(message.Document.Attachments);
+        Assert.Equal(5, attachment.MapiAttachMethod);
+        Assert.Equal("forwarded.msg", attachment.FileName);
+        Assert.Null(attachment.Content);
+        Assert.Equal(0, attachment.Length);
+        Assert.NotNull(attachment.EmbeddedDocument);
+        Assert.Equal("Embedded PST message", attachment.EmbeddedDocument!.Subject);
+        Assert.Equal("Body from the embedded PST item", attachment.EmbeddedDocument.Body.Text);
+    }
+
+    [Fact]
+    public void PreservesEmbeddedAttachmentMetadataWhenDepthLimitIsZero() {
+        using var stream = new MemoryStream(PstTestFileBuilder.Create(includeEmbeddedMessage: true));
+        var reader = new EmailStoreReader(new EmailStoreReaderOptions(maxNestedMessageDepth: 0));
+
+        EmailStoreReadResult result = reader.Read(stream, "mailbox.pst");
+
+        EmailAttachment attachment = Assert.Single(
+            Assert.Single(result.Store.Folders, folder => folder.Name == "Inbox").Messages.Single().Document.Attachments);
+        Assert.Null(attachment.EmbeddedDocument);
+        Assert.Contains(result.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_PST_EMBEDDED_DEPTH_LIMIT");
     }
 
     [Fact]

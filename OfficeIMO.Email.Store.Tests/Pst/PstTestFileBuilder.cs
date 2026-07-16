@@ -5,7 +5,7 @@ internal static class PstTestFileBuilder {
     private const int NbtOffset = 1536;
 
     internal static byte[] Create(bool ost = false, bool ansi = false, byte cryptMethod = 0,
-        bool fourK = false, bool compressBlocks = false) {
+        bool fourK = false, bool compressBlocks = false, bool includeEmbeddedMessage = false) {
         if (fourK && (!ost || ansi)) throw new ArgumentException("4K test stores must use the Unicode OST variant.");
         if (compressBlocks && !fourK) throw new ArgumentException("Only 4K test blocks can be compressed.");
         if (compressBlocks && cryptMethod != 0) throw new ArgumentException("The fixture does not combine compression and encoding.");
@@ -19,30 +19,35 @@ internal static class PstTestFileBuilder {
                 (0x1000, "Body from the PST property context")))
         };
 
+        var blocks = nodes.Select(node => node.DataBlock).ToList();
+        if (includeEmbeddedMessage) AddEmbeddedMessageBlocks(nodes[3], blocks, ansi);
+
         int bbtOffset = fourK ? 4096 : BbtOffset;
         int nbtOffset = fourK ? 8192 : NbtOffset;
         int blockOffset = fourK ? 12288 : 2048;
         int blockTrailerSize = ansi ? 12 : fourK ? 24 : 16;
         int blockAlignment = fourK ? 512 : 64;
         for (int index = 0; index < nodes.Length; index++) {
-            nodes[index].Bid = (ulong)(0x100 + index * 4);
-            nodes[index].StoredData = compressBlocks ? Compress(nodes[index].Data) : nodes[index].Data.ToArray();
-            nodes[index].Offset = blockOffset;
-            blockOffset += Align(nodes[index].StoredData.Length + blockTrailerSize, blockAlignment);
+            nodes[index].DataBlock.Bid = (ulong)(0x100 + index * 4);
+        }
+        foreach (TestBlock block in blocks) {
+            block.StoredData = compressBlocks ? Compress(block.Data) : block.Data.ToArray();
+            block.Offset = blockOffset;
+            blockOffset += Align(block.StoredData.Length + blockTrailerSize, blockAlignment);
         }
         var file = new byte[blockOffset];
         WriteHeader(file, ost, ansi, fourK, cryptMethod, bbtOffset, nbtOffset);
-        WriteBbt(file, nodes, ansi, fourK, bbtOffset);
+        WriteBbt(file, blocks, ansi, fourK, bbtOffset);
         WriteNbt(file, nodes, ansi, fourK, nbtOffset);
-        foreach (TestNode node in nodes) {
-            byte[] data = node.StoredData.ToArray();
-            if (cryptMethod != 0) PstCrypt.Decode(data, cryptMethod, node.Bid);
-            Buffer.BlockCopy(data, 0, file, node.Offset, data.Length);
+        foreach (TestBlock block in blocks) {
+            byte[] data = block.StoredData.ToArray();
+            if (cryptMethod != 0 && (block.Bid & 0x02) == 0) PstCrypt.Decode(data, cryptMethod, block.Bid);
+            Buffer.BlockCopy(data, 0, file, block.Offset, data.Length);
             if (compressBlocks) {
                 int allocated = Align(data.Length + blockTrailerSize, blockAlignment);
-                int trailerOffset = node.Offset + allocated - blockTrailerSize;
+                int trailerOffset = block.Offset + allocated - blockTrailerSize;
                 WriteUInt16(file, trailerOffset, data.Length);
-                WriteUInt16(file, trailerOffset + 18, node.Data.Length);
+                WriteUInt16(file, trailerOffset + 18, block.Data.Length);
             }
         }
         return file;
@@ -73,25 +78,25 @@ internal static class PstTestFileBuilder {
         }
     }
 
-    private static void WriteBbt(byte[] file, IReadOnlyList<TestNode> nodes, bool ansi, bool fourK,
+    private static void WriteBbt(byte[] file, IReadOnlyList<TestBlock> blocks, bool ansi, bool fourK,
         int bbtOffset) {
         int entrySize = ansi ? 12 : 24;
-        for (int index = 0; index < nodes.Count; index++) {
+        for (int index = 0; index < blocks.Count; index++) {
             int offset = bbtOffset + index * entrySize;
-            TestNode node = nodes[index];
+            TestBlock block = blocks[index];
             if (ansi) {
-                WriteUInt32(file, offset, checked((uint)node.Bid));
-                WriteUInt32(file, offset + 4, checked((uint)node.Offset));
-                WriteUInt16(file, offset + 8, node.StoredData.Length);
+                WriteUInt32(file, offset, checked((uint)block.Bid));
+                WriteUInt32(file, offset + 4, checked((uint)block.Offset));
+                WriteUInt16(file, offset + 8, block.StoredData.Length);
                 WriteUInt16(file, offset + 10, 1);
             } else {
-                WriteUInt64(file, offset, node.Bid);
-                WriteUInt64(file, offset + 8, node.Offset);
-                WriteUInt16(file, offset + 16, node.StoredData.Length);
+                WriteUInt64(file, offset, block.Bid);
+                WriteUInt64(file, offset + 8, block.Offset);
+                WriteUInt16(file, offset + 16, block.StoredData.Length);
                 WriteUInt16(file, offset + 18, 1);
             }
         }
-        WriteBTreePageMetadata(file, bbtOffset, nodes.Count, entrySize, 0x80, ansi, fourK);
+        WriteBTreePageMetadata(file, bbtOffset, blocks.Count, entrySize, 0x80, ansi, fourK);
     }
 
     private static void WriteNbt(byte[] file, IReadOnlyList<TestNode> nodes, bool ansi, bool fourK,
@@ -102,12 +107,12 @@ internal static class PstTestFileBuilder {
             TestNode node = nodes[index];
             WriteUInt32(file, offset, node.Nid);
             if (ansi) {
-                WriteUInt32(file, offset + 4, checked((uint)node.Bid));
-                WriteUInt32(file, offset + 8, 0);
+                WriteUInt32(file, offset + 4, checked((uint)node.DataBlock.Bid));
+                WriteUInt32(file, offset + 8, checked((uint)node.SubnodeBid));
                 WriteUInt32(file, offset + 12, node.ParentNid);
             } else {
-                WriteUInt64(file, offset + 8, node.Bid);
-                WriteUInt64(file, offset + 16, 0);
+                WriteUInt64(file, offset + 8, node.DataBlock.Bid);
+                WriteUInt64(file, offset + 16, node.SubnodeBid);
                 WriteUInt32(file, offset + 24, node.ParentNid);
             }
         }
@@ -173,6 +178,85 @@ internal static class PstTestFileBuilder {
         return block;
     }
 
+    private static void AddEmbeddedMessageBlocks(TestNode messageNode, ICollection<TestBlock> blocks, bool ansi) {
+        const uint attachmentNid = 0x205;
+        const uint embeddedMessageNid = 0x224;
+        var attachment = new TestBlock(0x110, CreateAttachmentPropertyContext(embeddedMessageNid));
+        var embedded = new TestBlock(0x114, CreatePropertyContext(
+            (0x001A, "IPM.Note"),
+            (0x0037, "Embedded PST message"),
+            (0x1000, "Body from the embedded PST item")));
+        var attachmentSubnodes = new TestBlock(0x11A,
+            CreateSubnodeBlock(embeddedMessageNid, embedded.Bid, 0, ansi));
+        var messageSubnodes = new TestBlock(0x11E,
+            CreateSubnodeBlock(attachmentNid, attachment.Bid, attachmentSubnodes.Bid, ansi));
+        messageNode.SubnodeBid = messageSubnodes.Bid;
+        blocks.Add(attachment);
+        blocks.Add(embedded);
+        blocks.Add(attachmentSubnodes);
+        blocks.Add(messageSubnodes);
+    }
+
+    private static byte[] CreateAttachmentPropertyContext(uint embeddedMessageNid) {
+        byte[] fileName = Encoding.Unicode.GetBytes("forwarded.msg\0");
+        var allocations = new List<byte[]> {
+            new byte[] { 0xB5, 0x02, 0x06, 0x00, 0x40, 0x00, 0x00, 0x00 },
+            new byte[24],
+            fileName
+        };
+        byte[] records = allocations[1];
+        WriteUInt16(records, 0, 0x3701);
+        WriteUInt16(records, 2, 0x000D);
+        WriteUInt32(records, 4, embeddedMessageNid);
+        WriteUInt16(records, 8, 0x3705);
+        WriteUInt16(records, 10, 0x0003);
+        WriteUInt32(records, 12, 5);
+        WriteUInt16(records, 16, 0x3707);
+        WriteUInt16(records, 18, 0x001F);
+        WriteUInt32(records, 20, 0x60);
+        return CreateHeapBlock(allocations);
+    }
+
+    private static byte[] CreateHeapBlock(IReadOnlyList<byte[]> allocations) {
+        int dataEnd = 12 + allocations.Sum(item => item.Length);
+        int mapOffset = (dataEnd + 1) & ~1;
+        int mapLength = 4 + (allocations.Count + 1) * 2;
+        var block = new byte[mapOffset + mapLength];
+        WriteUInt16(block, 0, mapOffset);
+        block[2] = 0xEC;
+        block[3] = 0xBC;
+        WriteUInt32(block, 4, 0x20);
+        int cursor = 12;
+        var boundaries = new List<int> { cursor };
+        foreach (byte[] allocation in allocations) {
+            Buffer.BlockCopy(allocation, 0, block, cursor, allocation.Length);
+            cursor += allocation.Length;
+            boundaries.Add(cursor);
+        }
+        WriteUInt16(block, mapOffset, allocations.Count);
+        for (int index = 0; index < boundaries.Count; index++) {
+            WriteUInt16(block, mapOffset + 4 + index * 2, boundaries[index]);
+        }
+        return block;
+    }
+
+    private static byte[] CreateSubnodeBlock(uint nid, ulong dataBid, ulong subnodeBid, bool ansi) {
+        var block = new byte[ansi ? 16 : 32];
+        block[0] = 0x02;
+        block[1] = 0x00;
+        WriteUInt16(block, 2, 1);
+        int offset = ansi ? 4 : 8;
+        WriteUInt32(block, offset, nid);
+        if (ansi) {
+            WriteUInt32(block, offset + 4, checked((uint)dataBid));
+            WriteUInt32(block, offset + 8, checked((uint)subnodeBid));
+        } else {
+            WriteUInt64(block, offset + 8, dataBid);
+            WriteUInt64(block, offset + 16, subnodeBid);
+        }
+        return block;
+    }
+
     private static byte[] Compress(byte[] data) {
         using (var output = new MemoryStream()) {
             using (var deflate = new System.IO.Compression.DeflateStream(
@@ -208,14 +292,24 @@ internal static class PstTestFileBuilder {
         internal TestNode(uint nid, uint parentNid, byte[] data) {
             Nid = nid;
             ParentNid = parentNid;
-            Data = data;
+            DataBlock = new TestBlock(0, data);
         }
 
         internal uint Nid { get; }
         internal uint ParentNid { get; }
+        internal TestBlock DataBlock { get; }
+        internal ulong SubnodeBid { get; set; }
+    }
+
+    private sealed class TestBlock {
+        internal TestBlock(ulong bid, byte[] data) {
+            Bid = bid;
+            Data = data;
+        }
+
+        internal ulong Bid { get; set; }
         internal byte[] Data { get; }
         internal byte[] StoredData { get; set; } = Array.Empty<byte>();
-        internal ulong Bid { get; set; }
         internal int Offset { get; set; }
     }
 }
