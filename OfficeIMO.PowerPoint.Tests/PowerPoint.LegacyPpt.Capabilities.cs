@@ -103,6 +103,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("all twelve colors", themes.Note);
             Assert.Contains("Imported main-, title-, notes-, and handout-master theme edits plus edits to existing imported slide and notes-page theme overrides",
                 themes.Note);
+            Assert.Contains("Ordinary imported layout theme overrides materialize into every affected slide",
+                themes.Note);
         }
 
         [Fact]

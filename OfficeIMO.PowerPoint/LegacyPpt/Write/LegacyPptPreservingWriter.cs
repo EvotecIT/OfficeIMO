@@ -283,8 +283,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     bool commentsChanged = !CommentsEqual(slideProjection.Comments,
                         currentComments);
                     bool themeChanged = !slideProjection.ThemeMatches(slide);
-                    if (themeChanged && slide.SlidePart.ThemeOverridePart?
-                            .ThemeOverride == null) {
+                    if (themeChanged && (slide.SlidePart.ThemeOverridePart
+                            ?? slide.SlidePart.SlideLayoutPart?
+                                .ThemeOverridePart)?.ThemeOverride == null) {
                         return false;
                     }
                     bool backgroundChanged = !slideProjection.BackgroundMatches(slide);

@@ -259,7 +259,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<int> changedClassicColorSlots) {
             if (prototype == null) throw new ArgumentNullException(nameof(prototype));
             if (source == null) throw new ArgumentNullException(nameof(source));
-            A.ThemeOverride theme = source.ThemeOverridePart?.ThemeOverride
+            A.ThemeOverride theme = (source.ThemeOverridePart
+                    ?? source.SlideLayoutPart?.ThemeOverridePart)?.ThemeOverride
                 ?? throw new InvalidDataException(
                     "A projected binary slide has no DrawingML theme override to preserve.");
             if (changedClassicColorSlots == null) {
@@ -271,7 +272,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             byte[] bytes = BuildMasterRecord(prototype,
                 ReadColorScheme(effectiveColors), background: null,
                 roundTripThemeRecords: BuildRoundTripThemeRecords(theme,
-                    source.Slide?.ColorMapOverride),
+                    source.Slide?.ColorMapOverride
+                        ?? source.SlideLayoutPart?.SlideLayout?
+                            .ColorMapOverride),
                 rewriteColorScheme: changedClassicColorSlots.Count > 0,
                 colorSchemeSlotsToRewrite: changedClassicColorSlots);
             if (changedClassicColorSlots.Count == 0) return bytes;

@@ -288,6 +288,77 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedLayoutThemeEdit_MaterializesIntoAffectedSlides() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                created.AddSlide(P.SlideLayoutValues.Blank);
+                created.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            using var input = new MemoryStream(sourceBytes);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            SlideLayoutPart layoutPart = imported.Slides[0].SlidePart
+                .SlideLayoutPart!;
+            Assert.All(imported.Slides, slide => Assert.Same(layoutPart,
+                slide.SlidePart.SlideLayoutPart));
+            Assert.True(imported.LegacyPptProjectionMap!
+                .IsEditableProjectedLayoutThemePart(
+                    layoutPart.Uri.ToString()));
+            A.ThemeElements sourceElements = layoutPart.SlideMasterPart!
+                .ThemePart!.Theme!.ThemeElements!;
+            A.ColorScheme colors = (A.ColorScheme)sourceElements.ColorScheme!
+                .CloneNode(true);
+            SetThemeColor<A.Accent5Color>(colors, "5A6B7C");
+            SetThemeColor<A.Accent1Color>(colors, "102938");
+            ThemeOverridePart overridePart = layoutPart
+                .AddNewPart<ThemeOverridePart>();
+            overridePart.ThemeOverride = new A.ThemeOverride(
+                colors,
+                sourceElements.FontScheme!.CloneNode(true),
+                sourceElements.FormatScheme!.CloneNode(true));
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+
+            Assert.Equal(2, saved.Slides.Count);
+            Assert.All(saved.Slides, slide => {
+                Assert.Equal("5A6B7C", slide.RoundTripTheme?
+                    .Colors[PowerPointThemeColor.Accent5]);
+                Assert.Equal("102938", slide.ColorScheme?.Accent1);
+                Assert.False(slide.FollowsMasterColorScheme);
+            });
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var reopenedInput = new MemoryStream(savedBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            Assert.All(reopened.Slides, slide => {
+                A.ThemeOverride theme = Assert.IsType<A.ThemeOverride>(
+                    slide.SlidePart.ThemeOverridePart?.ThemeOverride);
+                Assert.Equal("5A6B7C", theme.ColorScheme!
+                    .GetFirstChild<A.Accent5Color>()!
+                    .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+                Assert.Equal("102938", theme.ColorScheme!
+                    .GetFirstChild<A.Accent1Color>()!
+                    .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
+            });
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void BinaryImport_ReportsMalformedRoundTripThemePackage() {
             LegacyPptPresentation source = LegacyPptPresentation.Load(
                 AccessibilityFixture);

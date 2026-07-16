@@ -60,8 +60,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static string CreateGlobal(PresentationDocument document,
-            LegacyPptProjectionMap projectionMap) =>
-            PowerPointPackageFingerprint.Create(document,
+            LegacyPptProjectionMap projectionMap) {
+            ISet<string> materializedLayoutThemePartUris = new HashSet<string>(
+                document.PresentationPart?.SlideMasterParts
+                    .SelectMany(master => master.SlideLayoutParts)
+                    .Where(layout => projectionMap
+                        .IsEditableProjectedLayoutThemePart(
+                            layout.Uri.ToString()))
+                    .Select(layout => layout.ThemeOverridePart?.Uri.ToString())
+                    .Where(uri => uri != null).Cast<string>()
+                ?? Enumerable.Empty<string>(), StringComparer.Ordinal);
+            return PowerPointPackageFingerprint.Create(document,
                 (part, root) => {
                     if (part is PresentationPart) NormalizePresentationTopology(root);
                     if (part is SlideMasterPart masterPart
@@ -91,6 +100,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         NormalizeProjectedBackground(
                             normalizedLayout.CommonSlideData);
                     }
+                    if (part is SlideLayoutPart themeLayout
+                        && projectionMap.IsEditableProjectedLayoutThemePart(
+                            themeLayout.Uri.ToString())) {
+                        NormalizeProjectedLayoutTheme(root);
+                    }
                     if (part is SlideLayoutPart titlePart
                         && projectionMap.TryGetTitleMaster(titlePart,
                             out LegacyPptMasterProjection? titleProjection)
@@ -99,9 +113,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     }
                 },
                 part => !(part is SlidePart or NotesSlidePart or SlideCommentsPart
-                    or CommentAuthorsPart),
+                    or CommentAuthorsPart)
+                    && !materializedLayoutThemePartUris.Contains(
+                        part.Uri.ToString()),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
-                    or SlideCommentsPart or CommentAuthorsPart));
+                    or SlideCommentsPart or CommentAuthorsPart)
+                    && !(owner is SlideLayoutPart layout
+                        && relationship.OpenXmlPart is ThemeOverridePart
+                        && projectionMap.IsEditableProjectedLayoutThemePart(
+                            layout.Uri.ToString())));
+        }
 
         private static void NormalizeProjectedMaster(OpenXmlElement root,
             LegacyPptMasterProjection projection) {
@@ -197,6 +218,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     && type != P.PlaceholderValues.SlideNumber) continue;
                 shape.TextBody?.RemoveAllChildren<A.Paragraph>();
             }
+        }
+
+        private static void NormalizeProjectedLayoutTheme(OpenXmlElement root) {
+            if (root is not P.SlideLayout layout) return;
+            layout.ColorMapOverride?.Remove();
         }
 
         private static void NormalizeProjectedSlide(OpenXmlElement root, Uri partUri,

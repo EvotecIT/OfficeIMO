@@ -109,6 +109,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 && string.Equals(slide.LayoutPartUri, partUri,
                     StringComparison.Ordinal));
 
+        internal bool IsEditableProjectedLayoutThemePart(string partUri) =>
+            partUri != null && !_titleMastersByPartUri.ContainsKey(partUri)
+            && Slides.Any(slide => slide.ThemePartUri == null
+                && string.Equals(slide.LayoutPartUri, partUri,
+                    StringComparison.Ordinal));
+
         internal bool TryGetMaster(SlideMasterPart masterPart,
             out LegacyPptMasterProjection? projection) {
             if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
@@ -704,9 +710,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static string CreateThemeFingerprint(
             PowerPointSlide slide) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
-            string theme = slide.SlidePart.ThemeOverridePart?.ThemeOverride?
-                .OuterXml ?? string.Empty;
-            string colorMap = slide.SlidePart.Slide?.ColorMapOverride?.OuterXml
+            string theme = (slide.SlidePart.ThemeOverridePart
+                    ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart)?
+                .ThemeOverride?.OuterXml ?? string.Empty;
+            string colorMap = (slide.SlidePart.Slide?.ColorMapOverride
+                    ?? slide.SlidePart.SlideLayoutPart?.SlideLayout?
+                        .ColorMapOverride)?.OuterXml
                 ?? string.Empty;
             return theme + "\n" + colorMap;
         }
@@ -714,7 +723,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static IReadOnlyList<string>
             CreateClassicColorFingerprints(PowerPointSlide slide) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
-            A.ColorScheme? colors = slide.SlidePart.ThemeOverridePart?
+            A.ColorScheme? colors = (slide.SlidePart.ThemeOverridePart
+                    ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart)?
                 .ThemeOverride?.ColorScheme
                 ?? slide.SlidePart.SlideLayoutPart?.SlideMasterPart?.ThemePart?
                     .Theme?.ThemeElements?.ColorScheme;
