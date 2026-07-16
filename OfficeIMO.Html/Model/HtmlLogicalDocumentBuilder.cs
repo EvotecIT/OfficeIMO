@@ -40,7 +40,9 @@ internal static class HtmlLogicalDocumentBuilder {
         HtmlLogicalNode node = CreateNode(source);
 
         if (source is IElement element) {
-            string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(element);
+            string accessibleName = HtmlAccessibilitySemantics.GetAccessibleName(
+                element,
+                includeTextFallback: node.Kind == HtmlLogicalNodeKind.Link);
             node.AccessibleName = accessibleName.Length == 0 ? null : accessibleName;
             foreach (IAttr attribute in element.Attributes) {
                 node.AddAttribute(attribute.Name, attribute.Value);
@@ -303,7 +305,35 @@ internal static class HtmlLogicalDocumentBuilder {
         || HtmlAccessibilitySemantics.HasRole(element, "doc-endnote")
         || HtmlAccessibilitySemantics.HasEpubType(element, "footnote")
         || HtmlAccessibilitySemantics.HasEpubType(element, "endnote")
-        || HtmlAccessibilitySemantics.HasEpubType(element, "rearnote");
+        || HtmlAccessibilitySemantics.HasEpubType(element, "rearnote")
+        || IsFootnoteCollectionMember(element);
+
+    private static bool IsFootnoteCollectionMember(IElement element) {
+        if (!element.TagName.Equals("LI", StringComparison.OrdinalIgnoreCase)) return false;
+
+        string? id = element.Id;
+        if (string.IsNullOrWhiteSpace(id)) return false;
+
+        string footnoteId = id!;
+        if (!footnoteId.StartsWith("fn:", StringComparison.OrdinalIgnoreCase)
+            && !footnoteId.StartsWith("fn-", StringComparison.OrdinalIgnoreCase)) {
+            return false;
+        }
+
+        for (IElement? current = element.ParentElement; current != null; current = current.ParentElement) {
+            if (IsFootnoteCollection(current)) return true;
+        }
+        return false;
+    }
+
+    private static bool IsFootnoteCollection(IElement element) =>
+        element.HasAttribute("data-footnotes")
+        || element.ClassList.Contains("footnotes")
+        || element.ClassList.Contains("endnotes")
+        || HtmlAccessibilitySemantics.HasEpubType(element, "footnotes")
+        || HtmlAccessibilitySemantics.HasEpubType(element, "endnotes")
+        || HtmlAccessibilitySemantics.HasEpubType(element, "rearnotes")
+        || HtmlAccessibilitySemantics.HasRole(element, "doc-endnotes");
 
     private static string CaptureFootnoteText(IElement element) {
         var builder = new StringBuilder();

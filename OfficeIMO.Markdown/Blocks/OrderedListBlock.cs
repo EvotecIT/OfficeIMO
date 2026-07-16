@@ -24,6 +24,8 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
     public List<ListItem> Items { get; } = new List<ListItem>();
     /// <summary>Starting number (default 1).</summary>
     public int Start { get; set; } = 1;
+    /// <summary>Whether top-level item numbering descends from <see cref="Start"/>.</summary>
+    public bool Reversed { get; set; }
     /// <summary>Ordered list marker family.</summary>
     public MarkdownOrderedListMarkerStyle MarkerStyle { get; set; } = MarkdownOrderedListMarkerStyle.Decimal;
     /// <summary>Marker delimiter used when writing generated list markers.</summary>
@@ -36,7 +38,7 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
             Items,
             (item, topLevelIndex) => {
                 string markerText = item.MarkerText ?? (item.Level == 0
-                    ? FormatMarker(Start + topLevelIndex, MarkerStyle, MarkerDelimiter)
+                    ? FormatMarker(Reversed ? Start - topLevelIndex : Start + topLevelIndex, MarkerStyle, MarkerDelimiter)
                     : FormatMarker(1, MarkerStyle, MarkerDelimiter));
                 string baseMarker = markerText + " ";
                 return item.IsTask
@@ -75,8 +77,12 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
             attributes.Append(" type=\"").Append(type).Append('"');
         }
 
-        if (Start != 1) {
+        if (Start != 1 || Reversed) {
             attributes.Append(" start=\"").Append(Start.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append('"');
+        }
+
+        if (Reversed) {
+            attributes.Append(" reversed");
         }
 
         return attributes.ToString();

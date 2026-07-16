@@ -74,6 +74,7 @@ internal sealed partial class HtmlToMarkdownConverter {
                 .Where(child => HasEffectiveTagName(child, context, "LI"))
                 .ToArray();
             bool reversed = element.HasAttribute("reversed");
+            list.Reversed = reversed;
             int currentValue = reversed ? itemElements.Length : 1;
             if (int.TryParse(
                     element.GetAttribute("start"),

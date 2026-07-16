@@ -83,6 +83,17 @@ public sealed class HtmlAccessibleNameTests {
         Assert.Contains("code", logical.Capabilities);
     }
 
+    [Fact]
+    public void LogicalDocument_LinkNamesPreferAriaThenVisibleTextBeforeTitle() {
+        HtmlLogicalDocument visible = HtmlLogicalDocumentBuilder.FromHtml(
+            "<a href=\"guide\" title=\"Open guide\">Read more</a>");
+        HtmlLogicalDocument aria = HtmlLogicalDocumentBuilder.FromHtml(
+            "<a href=\"report\" aria-label=\"Download annual report\">Download</a>");
+
+        Assert.Equal("Read more", Find(visible.Root, HtmlLogicalNodeKind.Link).AccessibleName);
+        Assert.Equal("Download annual report", Find(aria.Root, HtmlLogicalNodeKind.Link).AccessibleName);
+    }
+
     private static HtmlLogicalNode Find(HtmlLogicalNode node, HtmlLogicalNodeKind kind) {
         if (node.Kind == kind) return node;
         foreach (HtmlLogicalNode child in node.Children) {

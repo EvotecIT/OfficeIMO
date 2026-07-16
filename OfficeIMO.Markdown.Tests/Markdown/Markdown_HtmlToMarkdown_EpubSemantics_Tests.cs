@@ -113,6 +113,7 @@ public sealed class MarkdownHtmlToMarkdownEpubSemanticsTests {
         OrderedListBlock[] lists = document.Blocks.OfType<OrderedListBlock>().ToArray();
 
         Assert.Equal(2, lists.Length);
+        Assert.True(lists[0].Reversed);
         Assert.Equal(new[] { "3.", "7.", "6." }, lists[0].Items.Select(item => item.MarkerText));
         Assert.Equal(MarkdownOrderedListMarkerStyle.UpperAlpha, lists[1].MarkerStyle);
         Assert.Equal(new[] { "27.", "28." }, lists[1].Items.Select(item => item.MarkerText));
@@ -122,6 +123,7 @@ public sealed class MarkdownHtmlToMarkdownEpubSemanticsTests {
         Assert.Contains("6. Six", markdown, StringComparison.Ordinal);
         Assert.Contains("27. Twenty seven", markdown, StringComparison.Ordinal);
         Assert.Contains("28. Twenty eight", markdown, StringComparison.Ordinal);
+        Assert.Contains("<ol start=\"3\" reversed>", ((IMarkdownBlock)lists[0]).RenderHtml(), StringComparison.Ordinal);
         MarkdownDoc parsed = MarkdownReader.Parse(markdown);
         OrderedListBlock parsedList = Assert.Single(parsed.Blocks.OfType<OrderedListBlock>());
         Assert.Equal(5, parsedList.Items.Count);
