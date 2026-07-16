@@ -5,6 +5,7 @@ using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
+using OfficeIMO.Tests.Pdf;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using Xunit;
@@ -365,6 +366,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void ImportedTitleMasterShapeThemeAndBackgroundEdit_AppendsPreservingRecord() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(33, 99, 165);
             byte[] sourceBytes = CreateBinaryWithEditableTitleMaster();
             LegacyPptPresentation original = LegacyPptPresentation.Load(sourceBytes);
             LegacyPptMaster mainMaster = Assert.Single(original.Masters,
@@ -401,8 +403,8 @@ namespace OfficeIMO.Tests {
                 theme.ColorScheme?.GetFirstChild<A.Accent5Color>());
             accent5.RemoveAllChildren();
             accent5.Append(new A.RgbColorModelHex { Val = "5A6B7C" });
-            titlePart.SlideLayout!.CommonSlideData!.Background =
-                CreateSolidBackground("102938");
+            SetPictureBackground(titlePart,
+                titlePart.SlideLayout!.CommonSlideData!, imageBytes);
 
             LegacyPptWritePreflightReport preflight = imported
                 .AnalyzeLegacyPptWrite();
@@ -419,8 +421,16 @@ namespace OfficeIMO.Tests {
                 savedTitleMaster.Shapes[0].Bounds.Left);
             Assert.Equal("5A6B7C", savedTitleMaster.RoundTripTheme?
                 .Colors[PowerPointThemeColor.Accent5]);
-            Assert.Equal("102938", Assert.IsType<LegacyPptBackground>(
-                savedTitleMaster.Background).ForegroundColor);
+            LegacyPptBackground savedBackground = Assert.IsType<
+                LegacyPptBackground>(savedTitleMaster.Background);
+            Assert.Equal(LegacyPptBackgroundKind.Picture,
+                savedBackground.Kind);
+            Assert.Equal(imageBytes, savedBackground.Picture!.ImageBytes);
+            Assert.Equal(1U, Assert.Single(saved.BlipStoreEntries)
+                .ReferenceCount);
+            LegacyPptSlide savedTitleSlide = Assert.Single(saved.Slides,
+                slide => slide.MasterId == originalTitleMaster.MasterId);
+            Assert.True(savedTitleSlide.FollowsMasterBackground);
             Assert.Equal(original.Package.UserEdits.Count + 1,
                 saved.Package.UserEdits.Count);
             Assert.True(saved.Package.DocumentStream.AsSpan(0,
@@ -445,9 +455,81 @@ namespace OfficeIMO.Tests {
             Assert.Equal("5A6B7C", reopenedTitlePart.ThemeOverridePart!
                 .ThemeOverride!.ColorScheme!.GetFirstChild<A.Accent5Color>()!
                 .GetFirstChild<A.RgbColorModelHex>()!.Val!.Value);
-            Assert.Equal("102938", reopenedTitlePart.SlideLayout!
+            Assert.NotNull(reopenedTitlePart.SlideLayout!.CommonSlideData!
+                .Background!.BackgroundProperties!
+                .GetFirstChild<A.BlipFill>());
+            PowerPointSlide reopenedTitleSlide = Assert.Single(reopened.Slides,
+                slide => ReferenceEquals(slide.SlidePart.SlideLayoutPart,
+                    reopenedTitlePart));
+            Assert.Null(reopenedTitleSlide.SlidePart.Slide!.CommonSlideData!
+                .Background);
+            Assert.Equal(imageBytes,
+                reopenedTitleSlide.GetBackground().ImageBytes);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedTitleMasterSlidePictureBackgroundEdit_RemainsSlideSpecific() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(85, 145, 205);
+            byte[] sourceBytes = CreateBinaryWithEditableTitleMaster();
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+            LegacyPptMaster titleMaster = Assert.Single(original.Masters,
+                master => !master.IsMainMaster);
+
+            using var input = new MemoryStream(sourceBytes, writable: false);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            string titleName = $"Binary Title Master {titleMaster.MasterId:X8}";
+            SlideLayoutPart titlePart = imported.OpenXmlDocument.PresentationPart!
+                .SlideMasterParts.SelectMany(master => master.SlideLayoutParts)
+                .Single(layout => string.Equals(layout.SlideLayout?
+                    .CommonSlideData?.Name?.Value, titleName,
+                    StringComparison.Ordinal));
+            PowerPointSlide titleSlide = Assert.Single(imported.Slides,
+                slide => ReferenceEquals(slide.SlidePart.SlideLayoutPart,
+                    titlePart));
+            Assert.Null(titleSlide.SlidePart.Slide!.CommonSlideData!.Background);
+            using (var image = new MemoryStream(imageBytes, writable: false)) {
+                titleSlide.SetBackgroundImage(image,
+                    OfficeIMO.PowerPoint.ImagePartType.Png);
+            }
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+            LegacyPptSlide savedTitleSlide = Assert.Single(saved.Slides,
+                slide => slide.MasterId == titleMaster.MasterId);
+
+            Assert.False(savedTitleSlide.FollowsMasterBackground);
+            LegacyPptBackground savedBackground = Assert.IsType<
+                LegacyPptBackground>(savedTitleSlide.Background);
+            Assert.Equal(LegacyPptBackgroundKind.Picture,
+                savedBackground.Kind);
+            Assert.Equal(imageBytes, savedBackground.Picture!.ImageBytes);
+            Assert.Equal(1U, Assert.Single(saved.BlipStoreEntries)
+                .ReferenceCount);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var reopenedInput = new MemoryStream(savedBytes,
+                writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            PowerPointSlide reopenedTitleSlide = Assert.Single(reopened.Slides,
+                slide => slide.SlidePart.SlideLayoutPart?.SlideLayout?
+                    .CommonSlideData?.Name?.Value == titleName);
+            Assert.NotNull(reopenedTitleSlide.SlidePart.Slide!
                 .CommonSlideData!.Background!.BackgroundProperties!
-                .GetFirstChild<A.SolidFill>()!.RgbColorModelHex!.Val!.Value);
+                .GetFirstChild<A.BlipFill>());
+            Assert.Equal(imageBytes,
+                reopenedTitleSlide.GetBackground().ImageBytes);
             Assert.Empty(reopened.ValidateDocument());
         }
 

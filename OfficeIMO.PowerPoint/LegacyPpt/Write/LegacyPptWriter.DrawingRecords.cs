@@ -58,7 +58,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             byte[] backgroundShape = PatchShapeId(background == null
                     ? baseBackground.CopyRecordBytes()
-                    : BuildBackgroundShapeRecord(baseBackground, background),
+                    : BuildBackgroundShapeRecord(baseBackground, background,
+                        pictureCatalog),
                 checked(baseShapeId + 1));
             var dgPayload = new byte[8];
             WriteUInt32(dgPayload, 0,

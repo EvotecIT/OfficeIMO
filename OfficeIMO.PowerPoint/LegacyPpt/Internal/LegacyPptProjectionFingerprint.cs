@@ -17,15 +17,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private const string ClassicAnimationExtensionUri =
             "{5BA743F1-2B69-4BB9-B2E0-4A418B7E7435}";
         private readonly IReadOnlyDictionary<string, string> _slides;
-        private readonly PictureBulletFingerprintScope _pictureBullets;
+        private readonly EditableImageFingerprintScope _editableImages;
 
         private LegacyPptProjectionFingerprint(string global,
             IReadOnlyDictionary<string, string> slides,
-            PictureBulletFingerprintScope pictureBullets) {
+            EditableImageFingerprintScope editableImages) {
             Global = global;
             _slides = new ReadOnlyDictionary<string, string>(slides.ToDictionary(
                 pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
-            _pictureBullets = pictureBullets;
+            _editableImages = editableImages;
         }
 
         internal string Global { get; }
@@ -34,36 +34,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptProjectionMap projectionMap) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (projectionMap == null) throw new ArgumentNullException(nameof(projectionMap));
-            PictureBulletFingerprintScope pictureBullets =
-                PictureBulletFingerprintScope.Create(document);
+            EditableImageFingerprintScope editableImages =
+                EditableImageFingerprintScope.Create(document, projectionMap);
             var slides = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (SlidePart slidePart in document.PresentationPart?.SlideParts ?? Enumerable.Empty<SlidePart>()) {
                 if (projectionMap.Slides.Any(slide => string.Equals(slide.SlidePartUri,
                         slidePart.Uri.ToString(), StringComparison.Ordinal))) {
                     slides.Add(slidePart.Uri.ToString(), CreateSlide(document,
-                        slidePart, projectionMap, pictureBullets));
+                        slidePart, projectionMap, editableImages));
                 }
             }
             if (slides.Count != projectionMap.Slides.Count) {
                 throw new InvalidDataException("The projected slide fingerprint set is incomplete.");
             }
             return new LegacyPptProjectionFingerprint(CreateGlobal(document,
-                projectionMap, pictureBullets), slides, pictureBullets);
+                projectionMap, editableImages), slides, editableImages);
         }
 
         internal bool Matches(PresentationDocument document, LegacyPptProjectionMap projectionMap) {
-            PictureBulletFingerprintScope pictureBullets =
-                PictureBulletFingerprintScope.Create(document)
-                    .Merge(_pictureBullets);
+            EditableImageFingerprintScope editableImages =
+                EditableImageFingerprintScope.Create(document, projectionMap)
+                    .Merge(_editableImages);
             if (!string.Equals(Global, CreateGlobal(document, projectionMap,
-                    pictureBullets),
+                    editableImages),
                     StringComparison.Ordinal)) return false;
             SlidePart[] currentSlides = document.PresentationPart?.SlideParts.ToArray() ?? Array.Empty<SlidePart>();
             foreach (SlidePart slidePart in currentSlides) {
                 string uri = slidePart.Uri.ToString();
                 if (_slides.TryGetValue(uri, out string? expected)
                     && !string.Equals(expected, CreateSlide(document,
-                        slidePart, projectionMap, pictureBullets),
+                        slidePart, projectionMap, editableImages),
                         StringComparison.Ordinal)) {
                     return false;
                 }
@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static string CreateGlobal(PresentationDocument document,
             LegacyPptProjectionMap projectionMap,
-            PictureBulletFingerprintScope pictureBullets) {
+            EditableImageFingerprintScope editableImages) {
             ISet<string> materializedLayoutThemePartUris = new HashSet<string>(
                 document.PresentationPart?.SlideMasterParts
                     .SelectMany(master => master.SlideLayoutParts)
@@ -141,10 +141,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         part.Uri.ToString())
                     && !materializedLayoutThemePartUris.Contains(
                         part.Uri.ToString())
-                    && !pictureBullets.IsExclusiveImagePart(part),
+                    && !editableImages.IsExclusiveImagePart(part),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
                     or SlideCommentsPart or CommentAuthorsPart or VbaProjectPart)
-                    && !pictureBullets.IsPictureBulletRelationship(owner,
+                    && !editableImages.IsEditableImageRelationship(owner,
                         relationship)
                     && !(owner is SlideLayoutPart layout
                         && relationship.OpenXmlPart is ThemeOverridePart
@@ -224,7 +224,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static string CreateSlide(PresentationDocument document, SlidePart slidePart,
             LegacyPptProjectionMap projectionMap,
-            PictureBulletFingerprintScope pictureBullets) =>
+            EditableImageFingerprintScope editableImages) =>
             PowerPointPackageFingerprint.Create(document,
             (part, root) => NormalizeProjectedSlide(root, slidePart.Uri, projectionMap),
             part => string.Equals(part.Uri.ToString(), slidePart.Uri.ToString(),
@@ -233,16 +233,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     && ReferenceEquals(notesPart.SlidePart, slidePart),
             (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart
                 and not SlidePart
-                && !pictureBullets.IsPictureBulletRelationship(owner,
-                    relationship),
+                    && !editableImages.IsEditableImageRelationship(owner,
+                        relationship),
             (owner, relationship) => relationship is not HyperlinkRelationship,
             includePackageProperties: false);
 
-        private sealed class PictureBulletFingerprintScope {
+        private sealed class EditableImageFingerprintScope {
             private readonly ISet<string> _relationshipKeys;
             private readonly ISet<string> _exclusiveImagePartUris;
 
-            private PictureBulletFingerprintScope(
+            private EditableImageFingerprintScope(
                 ISet<string> exclusiveImagePartUris,
                 ISet<string> relationshipKeys) {
                 _exclusiveImagePartUris = exclusiveImagePartUris;
@@ -252,16 +252,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             internal bool IsExclusiveImagePart(OpenXmlPart part) =>
                 _exclusiveImagePartUris.Contains(part.Uri.ToString());
 
-            internal bool IsPictureBulletRelationship(OpenXmlPart owner,
+            internal bool IsEditableImageRelationship(OpenXmlPart owner,
                 IdPartPair relationship) => _relationshipKeys.Contains(
                     CreateRelationshipKey(owner,
                         relationship.RelationshipId));
 
-            internal PictureBulletFingerprintScope Merge(
-                PictureBulletFingerprintScope other) {
+            internal EditableImageFingerprintScope Merge(
+                EditableImageFingerprintScope other) {
                 if (other == null) throw new ArgumentNullException(
                     nameof(other));
-                return new PictureBulletFingerprintScope(
+                return new EditableImageFingerprintScope(
                     new HashSet<string>(_exclusiveImagePartUris.Concat(
                         other._exclusiveImagePartUris),
                         StringComparer.Ordinal),
@@ -270,14 +270,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         StringComparer.Ordinal));
             }
 
-            internal static PictureBulletFingerprintScope Create(
-                PresentationDocument document) {
+            internal static EditableImageFingerprintScope Create(
+                PresentationDocument document,
+                LegacyPptProjectionMap projectionMap) {
                 var allParts = new HashSet<OpenXmlPart>();
                 foreach (IdPartPair pair in document.Parts) {
                     CollectParts(pair.OpenXmlPart, allParts);
                 }
                 var relationshipKeys = new HashSet<string>(
                     StringComparer.Ordinal);
+                ISet<OpenXmlPart> editableBackgroundOwners =
+                    CollectEditableBackgroundOwners(document, projectionMap);
                 var incoming = new Dictionary<ImagePart,
                     List<bool>>();
                 foreach (OpenXmlPart owner in allParts) {
@@ -285,15 +288,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         if (relationship.OpenXmlPart is not ImagePart image) {
                             continue;
                         }
-                        bool bulletOnly = IsUsedOnlyByPictureBullets(owner,
-                            relationship.RelationshipId);
+                        bool editableOnly = IsUsedOnlyByPictureBullets(owner,
+                                relationship.RelationshipId)
+                            || IsUsedOnlyByEditableBackgrounds(owner,
+                                relationship.RelationshipId,
+                                editableBackgroundOwners);
                         if (!incoming.TryGetValue(image,
                                 out List<bool>? usages)) {
                             usages = new List<bool>();
                             incoming.Add(image, usages);
                         }
-                        usages.Add(bulletOnly);
-                        if (bulletOnly) relationshipKeys.Add(
+                        usages.Add(editableOnly);
+                        if (editableOnly) relationshipKeys.Add(
                             CreateRelationshipKey(owner,
                                 relationship.RelationshipId));
                     }
@@ -303,8 +309,66 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                             && pair.Value.All(value => value))
                         .Select(pair => pair.Key.Uri.ToString()),
                     StringComparer.Ordinal);
-                return new PictureBulletFingerprintScope(exclusive,
+                return new EditableImageFingerprintScope(exclusive,
                     relationshipKeys);
+            }
+
+            private static bool IsUsedOnlyByEditableBackgrounds(
+                OpenXmlPart owner, string relationshipId,
+                ISet<OpenXmlPart> editableBackgroundOwners) {
+                if (!editableBackgroundOwners.Contains(owner)) {
+                    return false;
+                }
+                OpenXmlPartRootElement? root = owner.RootElement;
+                if (root == null) return false;
+                A.Blip[] references = root.Descendants<A.Blip>()
+                    .Where(blip => string.Equals(blip.Embed?.Value,
+                        relationshipId, StringComparison.Ordinal))
+                    .ToArray();
+                return references.Length > 0 && references.All(blip =>
+                    blip.Ancestors<P.Background>().Any());
+            }
+
+            private static ISet<OpenXmlPart> CollectEditableBackgroundOwners(
+                PresentationDocument document,
+                LegacyPptProjectionMap projectionMap) {
+                var result = new HashSet<OpenXmlPart>();
+                PresentationPart? presentationPart = document.PresentationPart;
+                if (presentationPart == null) return result;
+                foreach (SlidePart slidePart in presentationPart.SlideParts) {
+                    if (!projectionMap.Slides.Any(slide => string.Equals(
+                        slide.SlidePartUri, slidePart.Uri.ToString(),
+                        StringComparison.Ordinal))) continue;
+                    result.Add(slidePart);
+                    if (slidePart.NotesSlidePart != null) {
+                        result.Add(slidePart.NotesSlidePart);
+                    }
+                }
+                foreach (SlideMasterPart masterPart in presentationPart
+                             .SlideMasterParts) {
+                    if (projectionMap.TryGetMaster(masterPart, out _)) {
+                        result.Add(masterPart);
+                    }
+                    foreach (SlideLayoutPart layoutPart in masterPart
+                                 .SlideLayoutParts) {
+                        if (projectionMap.TryGetTitleMaster(layoutPart, out _)
+                            || projectionMap
+                                .IsEditableProjectedLayoutBackgroundPart(
+                                    layoutPart.Uri.ToString())) {
+                            result.Add(layoutPart);
+                        }
+                    }
+                }
+                if (presentationPart.NotesMasterPart is NotesMasterPart notes
+                    && projectionMap.TryGetSpecialMaster(notes, out _)) {
+                    result.Add(notes);
+                }
+                if (presentationPart.HandoutMasterPart
+                        is HandoutMasterPart handout
+                    && projectionMap.TryGetSpecialMaster(handout, out _)) {
+                    result.Add(handout);
+                }
+                return result;
             }
 
             private static bool IsUsedOnlyByPictureBullets(

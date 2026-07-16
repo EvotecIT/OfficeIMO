@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
+using OfficeIMO.Drawing.Binary;
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.OpenXml.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -107,7 +109,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 .Theme?.ThemeElements?.ColorScheme;
             A.SchemeColor? placeholderColor = source.BackgroundStyleReference?
                 .GetFirstChild<A.SchemeColor>();
-            OpenXmlElement? fill = GetBackgroundFill(ownerPart, source);
+            OpenXmlElement? fill = GetBackgroundFill(ownerPart, source,
+                out OpenXmlPart fillOwnerPart);
             if (fill == null || fill is A.GroupFill) {
                 background = null;
                 reason = null;
@@ -134,14 +137,100 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return TryReadGradientBackground(gradient, colorScheme,
                     placeholderColor, ownerName, out background, out reason);
             }
+            if (fill is A.BlipFill picture) {
+                return TryReadPictureBackground(fillOwnerPart, picture,
+                    ownerName, out background, out reason);
+            }
 
             background = null;
             reason = fill switch {
-                A.BlipFill => $"The {ownerName} image background is not yet encoded by the native binary writer.",
                 A.PatternFill => $"The {ownerName} pattern background is not yet encoded by the native binary writer.",
                 _ => $"The {ownerName} background fill type '{fill.LocalName}' is not supported by the native binary writer."
             };
             return false;
+        }
+
+        private static bool TryReadPictureBackground(OpenXmlPart ownerPart,
+            A.BlipFill fill, string ownerName,
+            out LegacyPptWriterBackground? background, out string? reason) {
+            background = null;
+            A.Blip? blip = fill.Blip;
+            string? relationshipId = blip?.Embed?.Value;
+            if (blip == null || string.IsNullOrWhiteSpace(relationshipId)) {
+                reason = $"The {ownerName} picture background has no embedded image relationship.";
+                return false;
+            }
+            if (!string.IsNullOrWhiteSpace(blip.Link?.Value)) {
+                reason = $"The {ownerName} picture background is linked; embedding it in binary PowerPoint would lose the link.";
+                return false;
+            }
+            if (blip.HasChildren) {
+                reason = $"The {ownerName} picture background uses image effects that have no lossless classic background-fill mapping.";
+                return false;
+            }
+            if (fill.SourceRectangle != null) {
+                reason = $"The {ownerName} picture background uses source cropping that is not yet encoded by the native binary writer.";
+                return false;
+            }
+            if (fill.GetFirstChild<A.Tile>() != null) {
+                reason = $"The {ownerName} picture background uses tiled placement and cannot be converted to one stretched classic picture fill without changing its appearance.";
+                return false;
+            }
+            A.Stretch? stretch = fill.GetFirstChild<A.Stretch>();
+            A.FillRectangle? fillRectangle = stretch?
+                .GetFirstChild<A.FillRectangle>();
+            if (stretch == null || fillRectangle == null
+                || fillRectangle.HasAttributes || fillRectangle.HasChildren
+                || fill.ChildElements.Any(child => child is not A.Blip
+                    && child is not A.Stretch)) {
+                reason = $"The {ownerName} picture background does not use the plain full-frame stretch mapping supported by classic binary PowerPoint.";
+                return false;
+            }
+
+            ImagePart? imagePart;
+            try {
+                imagePart = ownerPart.GetPartById(relationshipId!) as ImagePart;
+            } catch (ArgumentOutOfRangeException) {
+                reason = $"The {ownerName} picture background relationship cannot be resolved.";
+                return false;
+            }
+            if (imagePart == null) {
+                reason = $"The {ownerName} picture background relationship does not target an image part.";
+                return false;
+            }
+            if (imagePart.Parts.Any() || imagePart.ExternalRelationships.Any()
+                || imagePart.HyperlinkRelationships.Any()) {
+                reason = $"Related parts on the {ownerName} picture background have no binary PowerPoint mapping.";
+                return false;
+            }
+            string? contentType = NormalizePictureContentType(
+                imagePart.ContentType);
+            if (contentType == null) {
+                reason = $"The {ownerName} picture background content type '{imagePart.ContentType}' has no native OfficeArt BLIP mapping.";
+                return false;
+            }
+            byte[] imageBytes;
+            try {
+                using Stream stream = imagePart.GetStream(FileMode.Open,
+                    FileAccess.Read);
+                imageBytes = OfficeStreamReader.ReadAllBytes(stream,
+                    64 * 1024 * 1024);
+                _ = OfficeArtBlipStoreEntryWriter.CreateBlipRecord(imageBytes,
+                    contentType);
+            } catch (Exception exception) when (exception is IOException
+                                                or InvalidDataException
+                                                or InvalidOperationException
+                                                or NotSupportedException
+                                                or UnauthorizedAccessException
+                                                or ArgumentException
+                                                or OverflowException) {
+                reason = $"The {ownerName} picture background cannot be written as an OfficeArt BLIP: {exception.Message}";
+                return false;
+            }
+            background = LegacyPptWriterBackground.Picture(fill, imageBytes,
+                contentType);
+            reason = null;
+            return true;
         }
 
         private static bool TryReadGradientBackground(A.GradientFill gradient,
@@ -268,16 +357,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static OpenXmlElement? GetBackgroundFill(OpenXmlPart ownerPart,
-            P.Background source) {
+            P.Background source, out OpenXmlPart fillOwnerPart) {
+            fillOwnerPart = ownerPart;
             P.BackgroundProperties? properties = source.BackgroundProperties;
             if (properties != null && properties.HasChildren) {
                 return properties.ChildElements.FirstOrDefault();
             }
             P.BackgroundStyleReference? reference = source.BackgroundStyleReference;
             if (reference?.Index?.Value == null) return null;
-            A.FormatScheme? formatScheme = GetBackgroundThemePart(ownerPart)?
-                .Theme?.ThemeElements?.FormatScheme;
+            ThemePart? themePart = GetBackgroundThemePart(ownerPart);
+            A.FormatScheme? formatScheme = themePart?.Theme?.ThemeElements?
+                .FormatScheme;
             if (formatScheme == null) return null;
+            fillOwnerPart = themePart!;
             uint index = reference.Index.Value;
             if (index >= 1001U) {
                 return formatScheme.GetFirstChild<A.BackgroundFillStyleList>()?
@@ -301,7 +393,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             };
 
         private static byte[] BuildBackgroundDrawingRecord(LegacyPptRecord drawing,
-            LegacyPptWriterBackground background) {
+            LegacyPptWriterBackground background,
+            LegacyPptWriterPictureCatalog? pictureCatalog = null) {
             var children = new List<byte[]>(drawing.Children.Count);
             bool wroteBackground = false;
             foreach (LegacyPptRecord child in drawing.Children) {
@@ -312,8 +405,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 var drawingChildren = new List<byte[]>(child.Children.Count);
                 foreach (LegacyPptRecord drawingChild in child.Children) {
                     if (IsBackgroundShapeRecord(drawingChild)) {
-                        drawingChildren.Add(BuildBackgroundShapeRecord(drawingChild,
-                            background));
+                        drawingChildren.Add(BuildBackgroundShapeRecord(
+                            drawingChild, background, pictureCatalog));
                         wroteBackground = true;
                     } else {
                         drawingChildren.Add(drawingChild.CopyRecordBytes());
@@ -336,13 +429,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 && (fsp.ReadUInt32(4) & OfficeArtBackgroundShapeFlag) != 0;
         }
 
+        internal static int? ReadBackgroundPictureStoreIndex(
+            LegacyPptRecord prototype) {
+            if (prototype == null) throw new ArgumentNullException(
+                nameof(prototype));
+            LegacyPptRecord? drawing = prototype.Children.FirstOrDefault(child =>
+                child.Type == RecordDrawing);
+            LegacyPptRecord? backgroundShape = drawing?.DescendantsAndSelf()
+                .Where(record => record.Type == OfficeArtSpContainer)
+                .LastOrDefault(IsBackgroundShapeRecord);
+            LegacyPptRecord? fopt = backgroundShape?.Children.FirstOrDefault(
+                child => child.Type == OfficeArtFopt);
+            if (fopt == null) return null;
+            LegacyPptWriterFoptProperty? property = ReadFoptProperties(fopt)
+                .LastOrDefault(candidate => candidate.PropertyId == 0x0186
+                    && (candidate.OperationId & 0x4000) != 0);
+            return property == null || property.Value == 0
+                || property.Value > int.MaxValue
+                ? null
+                : checked((int)property.Value);
+        }
+
         private static byte[] BuildBackgroundShapeRecord(LegacyPptRecord prototype,
-            LegacyPptWriterBackground background) {
+            LegacyPptWriterBackground background,
+            LegacyPptWriterPictureCatalog? pictureCatalog = null) {
             var children = new List<byte[]>(prototype.Children.Count + 1);
             bool wroteFopt = false;
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == OfficeArtFopt) {
-                    children.Add(BuildBackgroundFoptRecord(child, background));
+                    children.Add(BuildBackgroundFoptRecord(child, background,
+                        pictureCatalog));
                     wroteFopt = true;
                 } else {
                     children.Add(child.CopyRecordBytes());
@@ -350,13 +466,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (!wroteFopt) {
                 children.Insert(Math.Min(1, children.Count),
-                    BuildBackgroundFoptRecord(null, background));
+                    BuildBackgroundFoptRecord(null, background,
+                        pictureCatalog));
             }
             return BuildContainer(OfficeArtSpContainer, prototype.Instance, children);
         }
 
         private static byte[] BuildBackgroundFoptRecord(LegacyPptRecord? prototype,
-            LegacyPptWriterBackground background) {
+            LegacyPptWriterBackground background,
+            LegacyPptWriterPictureCatalog? pictureCatalog) {
             List<LegacyPptWriterFoptProperty> properties = prototype == null
                 ? new List<LegacyPptWriterFoptProperty>()
                 : ReadFoptProperties(prototype).Where(property =>
@@ -364,7 +482,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     .ToList();
             properties.Add(new LegacyPptWriterFoptProperty(0x0180,
                 background.FillType));
-            if (background.Filled) {
+            if (background.PictureFill != null) {
+                LegacyPptWriterPicture picture = pictureCatalog?
+                    .Get(background.PictureFill)
+                    ?? throw new NotSupportedException(
+                        "A preservation-aware picture-background edit requires an updated binary BLIP store.");
+                properties.Add(new LegacyPptWriterFoptProperty(0x4186,
+                    picture.OneBasedStoreIndex));
+            } else if (background.Filled) {
                 LegacyPptWriterGradientStop first = background.Stops[0];
                 LegacyPptWriterGradientStop last = background.Stops[background.Stops.Count - 1];
                 properties.Add(new LegacyPptWriterFoptProperty(0x0181,
@@ -481,7 +606,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal sealed class LegacyPptWriterBackground {
             private LegacyPptWriterBackground(bool filled, uint fillType,
                 double angleDegrees, byte foregroundAlpha, byte backgroundAlpha,
-                IReadOnlyList<LegacyPptWriterGradientStop> stops) {
+                IReadOnlyList<LegacyPptWriterGradientStop> stops,
+                A.BlipFill? pictureFill = null, byte[]? pictureBytes = null,
+                string? pictureContentType = null) {
                 Filled = filled;
                 FillType = fillType;
                 AngleDegrees = angleDegrees;
@@ -489,6 +616,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 BackgroundAlpha = backgroundAlpha;
                 Stops = new ReadOnlyCollection<LegacyPptWriterGradientStop>(
                     stops.ToArray());
+                PictureFill = pictureFill;
+                PictureBytes = pictureBytes == null
+                    ? Array.Empty<byte>()
+                    : (byte[])pictureBytes.Clone();
+                PictureContentType = pictureContentType;
             }
 
             internal bool Filled { get; }
@@ -497,6 +629,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal byte ForegroundAlpha { get; }
             internal byte BackgroundAlpha { get; }
             internal IReadOnlyList<LegacyPptWriterGradientStop> Stops { get; }
+            internal A.BlipFill? PictureFill { get; }
+            internal byte[] PictureBytes { get; }
+            internal string? PictureContentType { get; }
+            internal bool RequiresPictureCatalog => PictureFill != null;
 
             internal static LegacyPptWriterBackground NoFill() =>
                 new(false, 0U, 0D, byte.MaxValue, byte.MaxValue,
@@ -511,6 +647,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 IReadOnlyList<LegacyPptWriterGradientStop> stops) =>
                 new(true, fillType, angleDegrees, foregroundAlpha,
                     backgroundAlpha, stops);
+
+            internal static LegacyPptWriterBackground Picture(A.BlipFill fill,
+                byte[] imageBytes, string contentType) =>
+                new(true, 3U, 0D, byte.MaxValue, byte.MaxValue,
+                    Array.Empty<LegacyPptWriterGradientStop>(), fill,
+                    imageBytes, contentType);
         }
 
         internal readonly struct LegacyPptWriterGradientStop {

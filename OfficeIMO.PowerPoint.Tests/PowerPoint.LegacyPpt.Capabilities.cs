@@ -410,6 +410,11 @@ namespace OfficeIMO.Tests {
                 backgrounds.Note);
             Assert.Contains("linearly interpolated gradient-stop opacity",
                 backgrounds.Note);
+            Assert.Contains("picture backgrounds", backgrounds.Note);
+            Assert.Contains("deduplicate identical payloads",
+                backgrounds.Note);
+            Assert.Contains("balance existing BLIP reference counts",
+                backgrounds.Note);
         }
 
         [Fact]

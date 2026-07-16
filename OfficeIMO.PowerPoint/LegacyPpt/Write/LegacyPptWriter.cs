@@ -78,7 +78,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? oleReason)) {
                 throw new NotSupportedException(oleReason);
             }
-            if (!TryReadPictureCatalog(presentation.Slides,
+            if (!TryReadPictureCatalog(presentation,
                     out LegacyPptWriterPictureCatalog pictureCatalog,
                     out _,
                     out string? pictureReason)) {
@@ -104,8 +104,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 NotesSlidePart? SourcePart)>();
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
-                if (!slide.Notes.TryGetText(out string noteText)
-                    || string.IsNullOrWhiteSpace(noteText)) continue;
+                if (!ShouldWriteNotesPage(slide, out string noteText)) continue;
                 noteSources.Add((slideIndex, noteText,
                     slide.SlidePart.NotesSlidePart));
             }
@@ -127,7 +126,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
                 template.Document, template.MainMasterPrototypes,
                 template.NotesMasterPrototype, topology,
-                pictureBullets);
+                pictureBullets, pictureCatalog);
             uint nextAdditionalPersistId = oleCatalog.AssignPersistIds(
                 topology.FirstAdditionalPersistId);
             uint? vbaProjectPersistId = vbaProjectBytes == null
@@ -163,7 +162,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId,
-                note.SourcePart)).ToArray();
+                note.SourcePart, pictureCatalog)).ToArray();
             uint handoutMasterPersistId = masters.HandoutMasterPersistObject == null
                 ? 0U
                 : topology.HandoutMasterPersistId;

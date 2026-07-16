@@ -17,7 +17,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<LegacyPptRecord> prototypes,
             LegacyPptRecord notesMasterPrototype,
             LegacyPptWriterTopology topology,
-            LegacyPptWriterPictureBulletCatalog pictureBullets) {
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            LegacyPptWriterPictureCatalog pictureCatalog) {
             SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
                 .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
             if (masterParts.Length == 0) {
@@ -67,7 +68,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         textStyles.Get(source),
                         textStyles.GetStyle9(source), roundTripThemeRecords,
                         fonts: textStyles.Fonts,
-                        pictureBullets: pictureBullets));
+                        pictureBullets: pictureBullets,
+                        pictureCatalog: pictureCatalog));
                     drawingShapeCounts.Add(drawingId,
                         CountDrawingShapes(supportedShapes));
                     masterIds.Add(masterParts[index].Uri.ToString(),
@@ -99,7 +101,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ?? masterParts[0].ThemePart?.Theme,
                     notesMasterPart?.NotesMaster?.ColorMap),
                 fonts: textStyles.Fonts,
-                pictureBullets: pictureBullets);
+                pictureBullets: pictureBullets,
+                pictureCatalog: pictureCatalog);
             if (notesShapes != null) {
                 drawingShapeCounts.Add(notesDrawingId,
                     CountDrawingShapes(notesShapes));
@@ -125,7 +128,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         handoutMasterPart.ThemePart?.Theme
                             ?? masterParts[0].ThemePart?.Theme,
                         handoutMasterPart.HandoutMaster?.ColorMap),
-                    textStyles.Fonts, pictureBullets);
+                    textStyles.Fonts, pictureBullets, pictureCatalog);
                 drawingShapeCounts.Add(topology.HandoutMasterDrawingId,
                     CountDrawingShapes(handoutShapes));
             }
@@ -141,7 +144,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<PowerPointShape> shapes, uint drawingId,
             IReadOnlyList<byte[]> roundTripThemeRecords,
             LegacyPptWriterFontCatalog fonts,
-            LegacyPptWriterPictureBulletCatalog pictureBullets) {
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            LegacyPptWriterPictureCatalog pictureCatalog) {
             LegacyPptRecord drawingPrototype = drawingPrototypeOwner.Children
                 .First(record => record.Type == RecordDrawing);
             var interactions = new LegacyPptWriterInteractionCatalog();
@@ -153,6 +157,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     BuildDrawingRecord(drawingPrototype, shapes, drawingId,
                         interactions, animations, fonts, background,
                         LegacyPptWriterShapeContext.HandoutMaster,
+                        pictureCatalog: pictureCatalog,
                         pictureBullets: pictureBullets),
                     BuildColorSchemeAtom(scheme)
                 }.Concat(roundTripThemeRecords));
@@ -171,7 +176,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool rewriteColorScheme = true,
             IReadOnlyList<int>? colorSchemeSlotsToRewrite = null,
             LegacyPptWriterFontCatalog? fonts = null,
-            LegacyPptWriterPictureBulletCatalog? pictureBullets = null) {
+            LegacyPptWriterPictureBulletCatalog? pictureBullets = null,
+            LegacyPptWriterPictureCatalog? pictureCatalog = null) {
             var children = new List<byte[]>(prototype.Children.Count);
             bool wroteScheme = false;
             bool wroteTextStyles = false;
@@ -195,13 +201,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 "Master shape text requires the document font catalog."),
                             background,
                             shapeContext,
+                            pictureCatalog: pictureCatalog,
                             pictureBullets: pictureBullets));
                     } else {
                         children.Add(RewriteDrawingId(child, drawingId.Value));
                     }
                 } else if (background != null && child.Type == RecordDrawing) {
                     children.Add(BuildBackgroundDrawingRecord(child,
-                        background));
+                        background, pictureCatalog));
                 } else if (child.Type == RecordTextMasterStyleAtomForWrite
                            && textStyleRecords != null) {
                     if (!wroteTextStyles) {
@@ -396,12 +403,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildPreservedBackgroundRecord(
             LegacyPptRecord prototype,
-            LegacyPptWriterBackground background) {
+            LegacyPptWriterBackground background,
+            LegacyPptWriterPictureCatalog? pictureCatalog = null) {
             if (prototype == null) throw new ArgumentNullException(nameof(prototype));
             if (background == null) throw new ArgumentNullException(nameof(background));
             byte[] bytes = BuildMasterRecord(prototype,
                 ReadColorScheme(themePart: null), background,
-                rewriteColorScheme: false);
+                rewriteColorScheme: false,
+                pictureCatalog: pictureCatalog);
             LegacyPptRecord record = LegacyPptRecordReader.ReadSingle(bytes, 0,
                 new LegacyPptImportOptions());
             LegacyPptRecord? slideAtom = record.Children.FirstOrDefault(child =>

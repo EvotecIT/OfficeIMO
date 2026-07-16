@@ -158,8 +158,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (masterCount > 0
                 && masterCount <= LegacyPptWriter.MaxNativeMasterCount) {
                 int notesCount = presentation.Slides.Count(slide =>
-                    slide.Notes.TryGetText(out string text)
-                    && !string.IsNullOrWhiteSpace(text));
+                    LegacyPptWriter.ShouldWriteNotesPage(slide, out _));
                 try {
                     topology = new LegacyPptWriter.LegacyPptWriterTopology(
                         masterCount, presentation.Slides.Count, notesCount,
@@ -240,7 +239,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         "PPT-WRITE-PERSIST-CAPACITY", exception.Message));
                 }
             }
-            if (!LegacyPptWriter.TryReadPictureCatalog(presentation.Slides,
+            if (!LegacyPptWriter.TryReadPictureCatalog(presentation,
                     out _, out LegacyPptFeature pictureFailureFeature,
                     out string? pictureReason)) {
                 findings.Add(new LegacyPptWriteFinding(
@@ -251,6 +250,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             ? "PPT-WRITE-TABLE"
                         : pictureFailureFeature == LegacyPptFeature.SmartArt
                             ? "PPT-WRITE-SMARTART"
+                        : pictureFailureFeature == LegacyPptFeature.Backgrounds
+                            ? "PPT-WRITE-BACKGROUND"
                         : "PPT-WRITE-PICTURE",
                     pictureReason
                     ?? "A visual cannot be encoded by the native binary writer."));
@@ -391,7 +392,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool CanWriteSlideLosslessly(PowerPointSlide slide) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
-            if (slide.SlidePart.NotesSlidePart != null && !string.IsNullOrWhiteSpace(slide.Notes.Text)) return false;
+            if (LegacyPptWriter.ShouldWriteNotesPage(slide, out _)) return false;
             P.Slide? slideRoot = slide.SlidePart.Slide;
             bool animationsSupported = slideRoot?.Timing == null
                 || LegacyPptWriter.TryReadClassicAnimations(new[] { slide },

@@ -2,12 +2,116 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.Tests.Pdf;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using Xunit;
 
 namespace OfficeIMO.Tests {
     public class PowerPointLegacyPptBackgroundPreservationTests {
+        [Fact]
+        public void NativeWriter_WritesDeduplicatedPictureBackgrounds() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(37, 99, 235);
+            byte[] binary;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                for (int index = 0; index < 2; index++) {
+                    PowerPointSlide slide = created.AddSlide(
+                        P.SlideLayoutValues.Blank);
+                    using var image = new MemoryStream(imageBytes,
+                        writable: false);
+                    slide.SetBackgroundImage(image,
+                        OfficeIMO.PowerPoint.ImagePartType.Png);
+                }
+
+                LegacyPptWritePreflightReport preflight = created
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                binary = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation neutral = LegacyPptPresentation.Load(binary);
+            Assert.Equal(2, neutral.Slides.Count);
+            Assert.All(neutral.Slides, slide => {
+                LegacyPptBackground background = Assert.IsType<
+                    LegacyPptBackground>(slide.Background);
+                Assert.Equal(LegacyPptBackgroundKind.Picture,
+                    background.Kind);
+                Assert.Equal(1, background.PictureStoreIndex);
+                Assert.Equal(imageBytes, background.Picture!.ImageBytes);
+            });
+            Assert.Equal(2U, Assert.Single(neutral.BlipStoreEntries)
+                .ReferenceCount);
+
+            using var input = new MemoryStream(binary, writable: false);
+            using PowerPointPresentation projected =
+                PowerPointPresentation.Load(input);
+            Assert.All(projected.Slides, slide => {
+                PowerPointSlideBackground background = slide.GetBackground();
+                Assert.Equal(PowerPointSlideBackgroundKind.Image,
+                    background.Kind);
+                Assert.Equal("image/png", background.ImageContentType);
+                Assert.Equal(imageBytes, background.ImageBytes);
+            });
+            Assert.Empty(projected.ValidateDocument());
+            Assert.Equal(binary,
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void NativeWriter_BlocksNonRepresentablePictureBackgroundPlacementAndEffects() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(37, 99, 235);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PowerPointSlide tiled = AddPictureBackgroundSlide(presentation,
+                imageBytes);
+            A.BlipFill tiledFill = tiled.SlidePart.Slide!.CommonSlideData!
+                .Background!.BackgroundProperties!
+                .GetFirstChild<A.BlipFill>()!;
+            tiledFill.RemoveAllChildren<A.Stretch>();
+            tiledFill.Append(new A.Tile());
+
+            PowerPointSlide cropped = AddPictureBackgroundSlide(presentation,
+                imageBytes);
+            cropped.SlidePart.Slide!.CommonSlideData!.Background!
+                .BackgroundProperties!.GetFirstChild<A.BlipFill>()!
+                .SourceRectangle = new A.SourceRectangle { Left = 10000 };
+
+            PowerPointSlide effected = AddPictureBackgroundSlide(presentation,
+                imageBytes);
+            effected.SlidePart.Slide!.CommonSlideData!.Background!
+                .BackgroundProperties!.GetFirstChild<A.BlipFill>()!.Blip!
+                .Append(new A.Grayscale());
+
+            LegacyPptWritePreflightReport preflight = presentation
+                .AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-BACKGROUND"
+                && finding.Description.Contains("tiled placement",
+                    StringComparison.Ordinal));
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-BACKGROUND"
+                && finding.Description.Contains("source cropping",
+                    StringComparison.Ordinal));
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-BACKGROUND"
+                && finding.Description.Contains("image effects",
+                    StringComparison.Ordinal));
+        }
+
+        private static PowerPointSlide AddPictureBackgroundSlide(
+            PowerPointPresentation presentation, byte[] imageBytes) {
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            using var image = new MemoryStream(imageBytes, writable: false);
+            slide.SetBackgroundImage(image,
+                OfficeIMO.PowerPoint.ImagePartType.Png);
+            return slide;
+        }
+
         [Fact]
         public void ImportedSlideBackgroundEdit_AppendsPreservingIncrementalRecord() {
             byte[] sourceBytes;
@@ -51,6 +155,177 @@ namespace OfficeIMO.Tests {
                 projected.Kind);
             Assert.Equal("445566", projected.Color);
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedSlidePictureBackgroundEdit_AppendsPreservingBlipStoreEdit() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(233, 113, 50);
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                created.AddSlide(P.SlideLayoutValues.Blank).BackgroundColor =
+                    "112233";
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            using var input = new MemoryStream(sourceBytes, writable: false);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            using (var image = new MemoryStream(imageBytes,
+                       writable: false)) {
+                imported.Slides[0].SetBackgroundImage(image,
+                    OfficeIMO.PowerPoint.ImagePartType.Png);
+            }
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                savedBytes);
+            LegacyPptBackground background = Assert.IsType<
+                LegacyPptBackground>(Assert.Single(saved.Slides).Background);
+            Assert.Equal(LegacyPptBackgroundKind.Picture, background.Kind);
+            Assert.Equal(1, background.PictureStoreIndex);
+            Assert.Equal(imageBytes, background.Picture!.ImageBytes);
+            Assert.Equal(1U, Assert.Single(saved.BlipStoreEntries)
+                .ReferenceCount);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+
+            using var reopenedInput = new MemoryStream(savedBytes,
+                writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            Assert.Equal(imageBytes,
+                Assert.Single(reopened.Slides).GetBackground().ImageBytes);
+            Assert.Empty(reopened.ValidateDocument());
+            Assert.Equal(savedBytes,
+                reopened.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedPictureBackgroundReplacementAndRemoval_BalanceBlipReferences() {
+            byte[] originalImage = PdfPngTestImages.CreateRgbPng(20, 80, 140);
+            byte[] replacementImage = PdfPngTestImages.CreateRgbPng(140, 80, 20);
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                AddPictureBackgroundSlide(created, originalImage);
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+            byte[] originalPictures = Assert.IsType<byte[]>(
+                original.Package.PicturesStream);
+
+            using (var replacementInput = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation replacement =
+                   PowerPointPresentation.Load(replacementInput)) {
+                using var image = new MemoryStream(replacementImage,
+                    writable: false);
+                replacement.Slides[0].SetBackgroundImage(image,
+                    OfficeIMO.PowerPoint.ImagePartType.Png);
+                LegacyPptWritePreflightReport preflight = replacement
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+
+                byte[] replacedBytes = replacement.ToBytes(
+                    PowerPointFileFormat.Ppt);
+                LegacyPptPresentation replaced = LegacyPptPresentation.Load(
+                    replacedBytes);
+                Assert.True(replaced.Package.DocumentStream.AsSpan(0,
+                        original.Package.DocumentStream.Length)
+                    .SequenceEqual(original.Package.DocumentStream));
+                Assert.True(replaced.Package.PicturesStream!.AsSpan(0,
+                        originalPictures.Length)
+                    .SequenceEqual(originalPictures));
+                Assert.Collection(replaced.BlipStoreEntries,
+                    entry => {
+                        Assert.Equal(0U, entry.ReferenceCount);
+                        Assert.Equal(originalImage, entry.ImageBytes);
+                    },
+                    entry => {
+                        Assert.Equal(1U, entry.ReferenceCount);
+                        Assert.Equal(replacementImage, entry.ImageBytes);
+                    });
+                LegacyPptBackground background = Assert.IsType<
+                    LegacyPptBackground>(Assert.Single(replaced.Slides)
+                    .Background);
+                Assert.Equal(2, background.PictureStoreIndex);
+                Assert.Equal(replacementImage,
+                    background.Picture!.ImageBytes);
+            }
+
+            using var removalInput = new MemoryStream(sourceBytes,
+                writable: false);
+            using PowerPointPresentation removal = PowerPointPresentation.Load(
+                removalInput);
+            removal.Slides[0].BackgroundColor = "445566";
+            LegacyPptWritePreflightReport removalPreflight = removal
+                .AnalyzeLegacyPptWrite();
+            Assert.True(removalPreflight.CanWrite,
+                string.Join(Environment.NewLine,
+                    removalPreflight.Findings));
+            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+                removal.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(originalPictures, removed.Package.PicturesStream);
+            Assert.Equal(0U, Assert.Single(removed.BlipStoreEntries)
+                .ReferenceCount);
+            LegacyPptBackground solid = Assert.IsType<LegacyPptBackground>(
+                Assert.Single(removed.Slides).Background);
+            Assert.Equal(LegacyPptBackgroundKind.Solid, solid.Kind);
+            Assert.Equal("445566", solid.ForegroundColor);
+        }
+
+        [Fact]
+        public void ImportedInPlaceBackgroundImagePartReplacement_IsNotSilentlyDiscarded() {
+            byte[] originalImage = PdfPngTestImages.CreateRgbPng(15, 45, 75);
+            byte[] replacementImage = PdfPngTestImages.CreateRgbPng(75, 45, 15);
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                AddPictureBackgroundSlide(created, originalImage);
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(sourceBytes, writable: false);
+            using PowerPointPresentation imported = PowerPointPresentation.Load(
+                input);
+            SlidePart slidePart = imported.Slides[0].SlidePart;
+            string relationshipId = slidePart.Slide!.CommonSlideData!
+                .Background!.BackgroundProperties!
+                .GetFirstChild<A.BlipFill>()!.Blip!.Embed!.Value!;
+            ImagePart imagePart = Assert.IsType<ImagePart>(
+                slidePart.GetPartById(relationshipId));
+            using (var replacement = new MemoryStream(replacementImage,
+                       writable: false)) {
+                imagePart.FeedData(replacement);
+            }
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                imported.ToBytes(PowerPointFileFormat.Ppt));
+
+            Assert.Collection(saved.BlipStoreEntries,
+                entry => Assert.Equal(0U, entry.ReferenceCount),
+                entry => {
+                    Assert.Equal(1U, entry.ReferenceCount);
+                    Assert.Equal(replacementImage, entry.ImageBytes);
+                });
+            Assert.Equal(replacementImage, Assert.IsType<LegacyPptBackground>(
+                Assert.Single(saved.Slides).Background).Picture!.ImageBytes);
         }
 
         [Fact]
@@ -110,6 +385,57 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("315274", background.Color);
             });
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedLayoutPictureBackgroundEdit_MaterializesAndDeduplicatesBlip() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(121, 51, 201);
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                created.AddSlide(P.SlideLayoutValues.Blank);
+                created.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            using var input = new MemoryStream(sourceBytes, writable: false);
+            using PowerPointPresentation imported = PowerPointPresentation.Load(
+                input);
+            SlideLayoutPart layoutPart = imported.Slides[0].SlidePart
+                .SlideLayoutPart!;
+            ImagePart imagePart = layoutPart.AddNewPart<ImagePart>("image/png");
+            using (var image = new MemoryStream(imageBytes, writable: false)) {
+                imagePart.FeedData(image);
+            }
+            layoutPart.SlideLayout!.CommonSlideData!.Background =
+                new P.Background(new P.BackgroundProperties(new A.BlipFill(
+                    new A.Blip {
+                        Embed = layoutPart.GetIdOfPart(imagePart)
+                    },
+                    new A.Stretch(new A.FillRectangle()))));
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            Assert.Equal(2U, Assert.Single(saved.BlipStoreEntries)
+                .ReferenceCount);
+            Assert.All(saved.Slides, slide => {
+                Assert.False(slide.FollowsMasterBackground);
+                LegacyPptBackground background = Assert.IsType<
+                    LegacyPptBackground>(slide.Background);
+                Assert.Equal(LegacyPptBackgroundKind.Picture,
+                    background.Kind);
+                Assert.Equal(imageBytes, background.Picture!.ImageBytes);
+            });
         }
 
         [Fact]

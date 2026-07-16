@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
@@ -12,13 +13,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort OfficeArtBStoreContainer = 0xF001;
 
         internal static bool TryReadPictureCatalog(
-            IEnumerable<PowerPointSlide> slides,
+            PowerPointPresentation presentation,
             out LegacyPptWriterPictureCatalog catalog,
             out LegacyPptFeature failureFeature,
             out string? reason) {
-            if (slides == null) throw new ArgumentNullException(nameof(slides));
+            if (presentation == null) throw new ArgumentNullException(
+                nameof(presentation));
             catalog = new LegacyPptWriterPictureCatalog();
-            foreach (PowerPointSlide slide in slides) {
+            foreach (PowerPointSlide slide in presentation.Slides) {
                 IReadOnlyList<PowerPointShape> shapes = ReadSlideShapesForWrite(
                     slide, out string? shapeReason);
                 if (shapeReason != null) {
@@ -84,10 +86,77 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                 }
+                if (!TryReadBackground(slide,
+                        out LegacyPptWriterBackground? slideBackground,
+                        out reason)
+                    || !TryAddBackgroundPicture(catalog, slideBackground,
+                        out reason)) {
+                    failureFeature = LegacyPptFeature.Backgrounds;
+                    return false;
+                }
+                NotesSlidePart? notesPart = slide.SlidePart.NotesSlidePart;
+                if (notesPart != null
+                    && ShouldWriteNotesPage(slide, out _)
+                    && (!TryReadBackground(notesPart,
+                            out LegacyPptWriterBackground? notesBackground,
+                            out reason)
+                        || !TryAddBackgroundPicture(catalog, notesBackground,
+                            out reason))) {
+                    failureFeature = LegacyPptFeature.Backgrounds;
+                    return false;
+                }
+            }
+
+            PresentationPart? presentationPart = presentation.OpenXmlDocument
+                .PresentationPart;
+            foreach (SlideMasterPart masterPart in presentationPart?
+                         .SlideMasterParts ?? Enumerable.Empty<SlideMasterPart>()) {
+                if (!TryReadBackground(masterPart,
+                        out LegacyPptWriterBackground? masterBackground,
+                        out reason)
+                    || !TryAddBackgroundPicture(catalog, masterBackground,
+                        out reason)) {
+                    failureFeature = LegacyPptFeature.Backgrounds;
+                    return false;
+                }
+            }
+            NotesMasterPart? notesMasterPart = presentationPart?
+                .NotesMasterPart;
+            if (notesMasterPart != null
+                && (!TryReadBackground(notesMasterPart,
+                        out LegacyPptWriterBackground? notesMasterBackground,
+                        out reason)
+                    || !TryAddBackgroundPicture(catalog,
+                        notesMasterBackground, out reason))) {
+                failureFeature = LegacyPptFeature.Backgrounds;
+                return false;
+            }
+            HandoutMasterPart? handoutMasterPart = presentationPart?
+                .HandoutMasterPart;
+            if (handoutMasterPart != null
+                && (!TryReadBackground(handoutMasterPart,
+                        out LegacyPptWriterBackground? handoutBackground,
+                        out reason)
+                    || !TryAddBackgroundPicture(catalog, handoutBackground,
+                        out reason))) {
+                failureFeature = LegacyPptFeature.Backgrounds;
+                return false;
             }
             failureFeature = LegacyPptFeature.RasterPictures;
             reason = null;
             return true;
+        }
+
+        private static bool TryAddBackgroundPicture(
+            LegacyPptWriterPictureCatalog catalog,
+            LegacyPptWriterBackground? background, out string? reason) {
+            if (background?.PictureFill == null) {
+                reason = null;
+                return true;
+            }
+            return catalog.TryAdd(background.PictureFill,
+                background.PictureBytes, background.PictureContentType!,
+                out reason);
         }
 
         internal static bool TryRenderChartPicture(PowerPointChart chart,
@@ -366,23 +435,50 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         internal sealed class LegacyPptWriterPictureCatalog {
+            private const int MaximumStoreEntryCount = 0x0FFF;
             private readonly Dictionary<OpenXmlElement, LegacyPptWriterPicture>
                 _pictures = new(ReferenceComparer.Instance);
             private readonly Dictionary<string, List<LegacyPptWriterPicture>>
                 _entriesByHash = new(StringComparer.Ordinal);
             private readonly List<LegacyPptWriterPicture> _entries = new();
+            private readonly int _baseStoreEntryCount;
+            private readonly uint _baseDelayedStreamOffset;
+
+            internal LegacyPptWriterPictureCatalog(int baseStoreEntryCount = 0,
+                uint baseDelayedStreamOffset = 0) {
+                if (baseStoreEntryCount < 0
+                    || baseStoreEntryCount > MaximumStoreEntryCount) {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(baseStoreEntryCount));
+                }
+                _baseStoreEntryCount = baseStoreEntryCount;
+                _baseDelayedStreamOffset = baseDelayedStreamOffset;
+            }
 
             internal IReadOnlyList<LegacyPptWriterPicture> Entries => _entries;
 
             internal LegacyPptWriterPicture Get(PowerPointShape shape) =>
-                _pictures.TryGetValue(shape.Element,
+                Get(shape.Element);
+
+            internal LegacyPptWriterPicture Get(OpenXmlElement element) =>
+                _pictures.TryGetValue(element,
                     out LegacyPptWriterPicture? value)
                     ? value
                     : throw new InvalidOperationException(
                         "The picture shape has no BLIP store catalog entry.");
 
             internal bool TryAdd(PowerPointShape shape, byte[] imageBytes,
+                string contentType, out string? reason) =>
+                TryAdd(shape.Element, imageBytes, contentType, out reason);
+
+            internal bool TryAdd(OpenXmlElement element, byte[] imageBytes,
                 string contentType, out string? reason) {
+                if (_pictures.TryGetValue(element,
+                        out LegacyPptWriterPicture? existing)) {
+                    existing.AddReference();
+                    reason = null;
+                    return true;
+                }
                 string hash = ComputePictureHash(contentType, imageBytes);
                 if (!_entriesByHash.TryGetValue(hash,
                         out List<LegacyPptWriterPicture>? candidates)) {
@@ -393,26 +489,39 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     candidate => candidate.ContentType == contentType
                         && candidate.ImageBytes.AsSpan().SequenceEqual(imageBytes));
                 if (entry == null) {
-                    if (_entries.Count >= ushort.MaxValue) {
-                        reason = "A binary PowerPoint drawing group cannot contain more than 65,535 distinct picture-store entries.";
+                    if (_baseStoreEntryCount + _entries.Count
+                        >= MaximumStoreEntryCount) {
+                        reason = "A binary PowerPoint drawing group cannot contain more than 4,095 distinct picture-store entries.";
                         return false;
                     }
                     entry = new LegacyPptWriterPicture(
-                        checked((uint)_entries.Count + 1U), imageBytes,
+                        checked((uint)(_baseStoreEntryCount
+                            + _entries.Count) + 1U), imageBytes,
                         contentType);
                     _entries.Add(entry);
                     candidates.Add(entry);
                 } else {
                     entry.AddReference();
                 }
-                _pictures.Add(shape.Element, entry);
+                _pictures.Add(element, entry);
                 reason = null;
                 return true;
             }
 
             internal byte[] BuildStore() {
+                if (_baseStoreEntryCount != 0
+                    || _baseDelayedStreamOffset != 0) {
+                    throw new InvalidOperationException(
+                        "A picture catalog based on an existing BLIP store can build only appended FBSE records.");
+                }
+                byte[][] entries = BuildDelayedStoreEntries();
+                return BuildContainer(OfficeArtBStoreContainer,
+                    checked((ushort)entries.Length), entries);
+            }
+
+            internal byte[][] BuildDelayedStoreEntries() {
                 var entries = new byte[_entries.Count][];
-                uint delayedStreamOffset = 0;
+                uint delayedStreamOffset = _baseDelayedStreamOffset;
                 for (int index = 0; index < _entries.Count; index++) {
                     LegacyPptWriterPicture entry = _entries[index];
                     entries[index] = OfficeArtBlipStoreEntryWriter.CreateDelayed(
@@ -421,8 +530,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     delayedStreamOffset = checked(delayedStreamOffset
                         + (uint)entry.BlipRecord.Length);
                 }
-                return BuildContainer(OfficeArtBStoreContainer,
-                    checked((ushort)entries.Length), entries);
+                return entries;
             }
 
             internal byte[] BuildPicturesStream() {

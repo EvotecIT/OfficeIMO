@@ -4,6 +4,20 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
+        internal static bool ShouldWriteNotesPage(PowerPointSlide slide,
+            out string text) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            text = slide.Notes.TryGetText(out string noteText)
+                ? noteText
+                : string.Empty;
+            if (!string.IsNullOrWhiteSpace(text)) return true;
+
+            NotesSlidePart? notesPart = slide.SlidePart.NotesSlidePart;
+            return notesPart?.NotesSlide?.CommonSlideData?.Background != null
+                || notesPart?.ThemeOverridePart?.ThemeOverride != null
+                || notesPart?.NotesSlide?.ShowMasterShapes?.Value == false;
+        }
+
         private static byte[] BuildNotesList(IReadOnlyList<LegacyPptWriterNote> notes) {
             var children = new List<byte[]>(notes.Count);
             foreach (LegacyPptWriterNote note in notes) {
@@ -18,7 +32,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildNotesRecord(LegacyPptRecord prototype, string text,
-            uint slideId, uint drawingId, NotesSlidePart? sourcePart) {
+            uint slideId, uint drawingId, NotesSlidePart? sourcePart,
+            LegacyPptWriterPictureCatalog pictureCatalog) {
             var children = new List<byte[]>(prototype.Children.Count);
             A.ThemeOverride? theme = sourcePart?.ThemeOverridePart?
                 .ThemeOverride;
@@ -62,7 +77,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             .ReadSingle(drawingBytes, 0,
                                 new LegacyPptImportOptions());
                         drawingBytes = BuildBackgroundDrawingRecord(
-                            drawingRecord, background);
+                            drawingRecord, background, pictureCatalog);
                     }
                     children.Add(drawingBytes);
                 } else if (classicOverride != null

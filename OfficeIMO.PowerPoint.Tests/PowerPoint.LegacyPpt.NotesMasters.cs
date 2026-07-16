@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.Tests.Pdf;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using Xunit;
@@ -184,6 +185,187 @@ namespace OfficeIMO.Tests {
             Assert.Equal("334455",
                 projectedBackground.RgbColorModelHex!.Val!.Value);
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_WritesSpecialMasterAndNotesPagePictureBackgrounds() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(25, 135, 84);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            PresentationPart presentationPart = presentation.OpenXmlDocument
+                .PresentationPart!;
+            NotesMasterPart notesMasterPart = presentationPart
+                .NotesMasterPart!;
+            SetPictureBackground(notesMasterPart,
+                notesMasterPart.NotesMaster!.CommonSlideData!, imageBytes);
+            HandoutMasterPart handoutMasterPart = CreateHandoutMaster(
+                presentation);
+            SetPictureBackground(handoutMasterPart,
+                handoutMasterPart.HandoutMaster!.CommonSlideData!, imageBytes);
+            PowerPointSlide slide = presentation.AddSlide(
+                P.SlideLayoutValues.Blank);
+            slide.Notes.Text = "Temporary notes body";
+            NotesSlidePart notesPart = slide.SlidePart.NotesSlidePart!;
+            slide.Notes.Text = string.Empty;
+            SetPictureBackground(notesPart,
+                notesPart.NotesSlide!.CommonSlideData!, imageBytes);
+
+            LegacyPptWritePreflightReport preflight = presentation
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+
+            LegacyPptBackground notesMasterBackground = Assert.IsType<
+                LegacyPptBackground>(Assert.IsType<LegacyPptSpecialMaster>(
+                    binary.NotesMaster).Background);
+            LegacyPptBackground handoutBackground = Assert.IsType<
+                LegacyPptBackground>(Assert.IsType<LegacyPptSpecialMaster>(
+                    binary.HandoutMaster).Background);
+            LegacyPptBackground notesPageBackground = Assert.IsType<
+                LegacyPptBackground>(Assert.IsType<LegacyPptNotesPage>(
+                    Assert.Single(binary.Slides).NotesPage).Background);
+            Assert.Equal(string.Empty, Assert.IsType<LegacyPptNotesPage>(
+                Assert.Single(binary.Slides).NotesPage).Text);
+            Assert.All(new[] { notesMasterBackground, handoutBackground,
+                    notesPageBackground }, background => {
+                Assert.Equal(LegacyPptBackgroundKind.Picture,
+                    background.Kind);
+                Assert.Equal(imageBytes, background.Picture!.ImageBytes);
+            });
+            Assert.Equal(3U, Assert.Single(binary.BlipStoreEntries)
+                .ReferenceCount);
+
+            using var stream = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(stream);
+            Assert.NotNull(reopened.OpenXmlDocument.PresentationPart!
+                .NotesMasterPart!.NotesMaster!.CommonSlideData!.Background!
+                .BackgroundProperties!.GetFirstChild<A.BlipFill>());
+            Assert.NotNull(reopened.OpenXmlDocument.PresentationPart!
+                .HandoutMasterPart!.HandoutMaster!.CommonSlideData!.Background!
+                .BackgroundProperties!.GetFirstChild<A.BlipFill>());
+            Assert.NotNull(reopened.Slides[0].SlidePart.NotesSlidePart!
+                .NotesSlide!.CommonSlideData!.Background!
+                .BackgroundProperties!.GetFirstChild<A.BlipFill>());
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedMasterPictureBackgroundEdits_AppendOneDeduplicatedBlip() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(74, 34, 194);
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                PresentationPart presentationPart = created.OpenXmlDocument
+                    .PresentationPart!;
+                SlideMasterPart mainMaster = presentationPart.SlideMasterParts
+                    .First();
+                mainMaster.SlideMaster!.CommonSlideData!.Background =
+                    CreateSolidBackground("112233");
+                NotesMasterPart notesMaster = presentationPart.NotesMasterPart!;
+                notesMaster.NotesMaster!.CommonSlideData!.Background =
+                    CreateSolidBackground("223344");
+                HandoutMasterPart handoutMaster = CreateHandoutMaster(created);
+                handoutMaster.HandoutMaster!.CommonSlideData!.Background =
+                    CreateSolidBackground("334455");
+                PowerPointSlide slide = created.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                slide.Notes.Text = "Preserved picture background note";
+                slide.SlidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!
+                    .Background = CreateSolidBackground("445566");
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            using var input = new MemoryStream(sourceBytes, writable: false);
+            using PowerPointPresentation imported = PowerPointPresentation.Load(
+                input);
+            PresentationPart importedPart = imported.OpenXmlDocument
+                .PresentationPart!;
+            SlideMasterPart importedMain = importedPart.SlideMasterParts.First();
+            SetPictureBackground(importedMain,
+                importedMain.SlideMaster!.CommonSlideData!, imageBytes);
+            NotesMasterPart importedNotesMaster = importedPart.NotesMasterPart!;
+            SetPictureBackground(importedNotesMaster,
+                importedNotesMaster.NotesMaster!.CommonSlideData!, imageBytes);
+            HandoutMasterPart importedHandout = importedPart.HandoutMasterPart!;
+            SetPictureBackground(importedHandout,
+                importedHandout.HandoutMaster!.CommonSlideData!, imageBytes);
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.Equal(3U, Assert.Single(saved.BlipStoreEntries)
+                .ReferenceCount);
+            Assert.Equal(imageBytes, Assert.IsType<LegacyPptBackground>(
+                Assert.Single(saved.Masters).Background).Picture!.ImageBytes);
+            Assert.Equal(imageBytes, Assert.IsType<LegacyPptBackground>(
+                Assert.IsType<LegacyPptSpecialMaster>(saved.NotesMaster)
+                    .Background).Picture!.ImageBytes);
+            Assert.Equal(imageBytes, Assert.IsType<LegacyPptBackground>(
+                Assert.IsType<LegacyPptSpecialMaster>(saved.HandoutMaster)
+                    .Background).Picture!.ImageBytes);
+            using var reopenedInput = new MemoryStream(savedBytes,
+                writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(
+                reopenedInput);
+            Assert.Empty(reopened.ValidateDocument());
+            Assert.Equal(savedBytes,
+                reopened.ToBytes(PowerPointFileFormat.Ppt));
+        }
+
+        [Fact]
+        public void ImportedNotesPagePictureBackgroundEdit_AppendsPreservingBlip() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(91, 61, 31);
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = created.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                slide.Notes.Text = "Notes page picture";
+                slide.SlidePart.NotesSlidePart!.NotesSlide!.CommonSlideData!
+                    .Background = CreateSolidBackground("123456");
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            using var input = new MemoryStream(sourceBytes, writable: false);
+            using PowerPointPresentation imported = PowerPointPresentation.Load(
+                input);
+            NotesSlidePart notesPart = imported.Slides[0].SlidePart
+                .NotesSlidePart!;
+            SetPictureBackground(notesPart,
+                notesPart.NotesSlide!.CommonSlideData!, imageBytes);
+
+            Assert.True(imported.HasOnlyLegacyPptPreservableChanges);
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(savedBytes);
+
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            Assert.Equal(1U, Assert.Single(saved.BlipStoreEntries)
+                .ReferenceCount);
+            Assert.Equal(imageBytes, Assert.IsType<LegacyPptBackground>(
+                Assert.IsType<LegacyPptNotesPage>(Assert.Single(saved.Slides)
+                    .NotesPage).Background).Picture!.ImageBytes);
         }
 
         [Fact]

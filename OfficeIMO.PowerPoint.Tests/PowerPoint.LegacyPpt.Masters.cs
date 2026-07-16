@@ -5,6 +5,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.Tests.Pdf;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using Xunit;
@@ -631,6 +632,60 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_WritesMasterAndMaterializedLayoutPictureBackgrounds() {
+            byte[] imageBytes = PdfPngTestImages.CreateRgbPng(82, 113, 255);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Create();
+            SlideMasterPart masterPart = presentation.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.First();
+            SetPictureBackground(masterPart,
+                masterPart.SlideMaster!.CommonSlideData!, imageBytes);
+            presentation.AddSlide(P.SlideLayoutValues.Title);
+            int blankIndex = presentation.GetLayoutIndex(
+                P.SlideLayoutValues.Blank);
+            SlideLayoutPart blankLayout = masterPart.SlideLayoutParts
+                .ElementAt(blankIndex);
+            SetPictureBackground(blankLayout,
+                blankLayout.SlideLayout!.CommonSlideData!, imageBytes);
+            presentation.AddSlide(0, blankIndex);
+
+            LegacyPptWritePreflightReport preflight = presentation
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] binaryBytes = presentation.ToBytes(
+                PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(
+                binaryBytes);
+
+            LegacyPptBackground masterBackground = Assert.IsType<
+                LegacyPptBackground>(Assert.Single(binary.Masters).Background);
+            Assert.Equal(LegacyPptBackgroundKind.Picture,
+                masterBackground.Kind);
+            Assert.Equal(imageBytes, masterBackground.Picture!.ImageBytes);
+            Assert.True(binary.Slides[0].FollowsMasterBackground);
+            LegacyPptBackground layoutBackground = Assert.IsType<
+                LegacyPptBackground>(binary.Slides[1].Background);
+            Assert.Equal(LegacyPptBackgroundKind.Picture,
+                layoutBackground.Kind);
+            Assert.Equal(imageBytes, layoutBackground.Picture!.ImageBytes);
+            Assert.Equal(2U, Assert.Single(binary.BlipStoreEntries)
+                .ReferenceCount);
+
+            using var stream = new MemoryStream(binaryBytes,
+                writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(stream);
+            Assert.All(reopened.Slides, slide => {
+                PowerPointSlideBackground background = slide.GetBackground();
+                Assert.Equal(PowerPointSlideBackgroundKind.Image,
+                    background.Kind);
+                Assert.Equal(imageBytes, background.ImageBytes);
+            });
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void NativeWriter_WritesNotesMasterBackground() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             NotesMasterPart notesMasterPart = presentation.OpenXmlDocument
@@ -653,6 +708,21 @@ namespace OfficeIMO.Tests {
                 .Background!.BackgroundProperties!.GetFirstChild<A.SolidFill>());
             Assert.Equal("445566", solid.RgbColorModelHex!.Val!.Value);
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        private static void SetPictureBackground(OpenXmlPart ownerPart,
+            P.CommonSlideData commonSlideData, byte[] imageBytes) {
+            ImagePart imagePart = ownerPart.AddNewPart<ImagePart>("image/png");
+            using (var image = new MemoryStream(imageBytes,
+                       writable: false)) {
+                imagePart.FeedData(image);
+            }
+            commonSlideData.Background = new P.Background(
+                new P.BackgroundProperties(new A.BlipFill(
+                    new A.Blip {
+                        Embed = ownerPart.GetIdOfPart(imagePart)
+                    },
+                    new A.Stretch(new A.FillRectangle()))));
         }
 
         [Fact]

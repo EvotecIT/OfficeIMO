@@ -763,8 +763,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static string CreateBackgroundFingerprint(
             SlideMasterPart masterPart) {
             if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
-            return masterPart.SlideMaster?.CommonSlideData?.Background?.OuterXml
-                ?? string.Empty;
+            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
+                masterPart.SlideMaster?.CommonSlideData?.Background);
         }
 
         internal static string CreateTextStylesFingerprint(
@@ -782,22 +782,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static string CreateBackgroundFingerprint(
             NotesMasterPart masterPart) {
             if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
-            return masterPart.NotesMaster?.CommonSlideData?.Background?.OuterXml
-                ?? string.Empty;
+            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
+                masterPart.NotesMaster?.CommonSlideData?.Background);
         }
 
         internal static string CreateBackgroundFingerprint(
             HandoutMasterPart masterPart) {
             if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
-            return masterPart.HandoutMaster?.CommonSlideData?.Background?.OuterXml
-                ?? string.Empty;
+            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
+                masterPart.HandoutMaster?.CommonSlideData?.Background);
         }
 
         internal static string CreateBackgroundFingerprint(
             SlideLayoutPart masterPart) {
             if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
-            return masterPart.SlideLayout?.CommonSlideData?.Background?.OuterXml
-                ?? string.Empty;
+            return LegacyPptBackgroundProjectionFingerprint.Create(masterPart,
+                masterPart.SlideLayout?.CommonSlideData?.Background);
         }
     }
 
@@ -904,10 +904,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static string CreateBackgroundFingerprint(
             PowerPointSlide slide) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
-            return slide.SlidePart.Slide?.CommonSlideData?.Background?.OuterXml
-                ?? slide.SlidePart.SlideLayoutPart?.SlideLayout?
-                    .CommonSlideData?.Background?.OuterXml
-                ?? string.Empty;
+            P.Background? background = slide.SlidePart.Slide?.CommonSlideData?
+                .Background;
+            if (background != null) {
+                return LegacyPptBackgroundProjectionFingerprint.Create(
+                    slide.SlidePart, background);
+            }
+            SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
+            return layoutPart == null
+                ? string.Empty
+                : LegacyPptBackgroundProjectionFingerprint.Create(layoutPart,
+                    layoutPart.SlideLayout?.CommonSlideData?.Background);
         }
 
         internal bool ThemeMatches(PowerPointSlide slide) => string.Equals(
@@ -1071,8 +1078,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal static string CreateBackgroundFingerprint(
             NotesSlidePart part) {
             if (part == null) throw new ArgumentNullException(nameof(part));
-            return part.NotesSlide?.CommonSlideData?.Background?.OuterXml
-                ?? string.Empty;
+            return LegacyPptBackgroundProjectionFingerprint.Create(part,
+                part.NotesSlide?.CommonSlideData?.Background);
         }
     }
 

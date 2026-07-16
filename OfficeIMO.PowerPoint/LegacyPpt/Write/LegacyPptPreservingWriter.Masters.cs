@@ -10,7 +10,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
-                pictureBullets) {
+                pictureBullets,
+            PreservingPictureStoreUpdate pictureStore) {
             SlideMasterPart[] masterParts = presentation.OpenXmlDocument
                 .PresentationPart?.SlideMasterParts.ToArray()
                 ?? Array.Empty<SlideMasterPart>();
@@ -80,9 +81,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     LegacyPptRecord backgroundRecord = LegacyPptRecordReader
                         .ReadSingle(masterBytes, 0,
                             new LegacyPptImportOptions());
+                    if (!pictureStore.TryPrepareBackground(backgroundRecord,
+                            background!)) return false;
                     masterBytes = LegacyPptWriter
                         .BuildPreservedBackgroundRecord(backgroundRecord,
-                            background!);
+                            background!, pictureStore.Catalog);
                 }
                 if (themeChanged) {
                     LegacyPptRecord themedRecord = LegacyPptRecordReader
@@ -308,7 +311,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
-                pictureBullets) {
+                pictureBullets,
+            PreservingPictureStoreUpdate pictureStore) {
             PresentationPart? presentationPart = presentation.OpenXmlDocument
                 .PresentationPart;
             int processed = 0;
@@ -332,7 +336,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                                 record, notesPart,
                                 projection.GetChangedClassicColorSlots(notesPart)),
-                            rewritten, fonts, pictureBullets, notesPart)) {
+                            rewritten, fonts, pictureBullets, pictureStore,
+                            notesPart)) {
                         return false;
                     }
                     processed++;
@@ -359,7 +364,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                                 record, handoutPart,
                                 projection.GetChangedClassicColorSlots(handoutPart)),
-                            rewritten, fonts, pictureBullets, handoutPart)) {
+                            rewritten, fonts, pictureBullets, pictureStore,
+                            handoutPart)) {
                         return false;
                     }
                     processed++;
@@ -374,7 +380,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IDictionary<uint, byte[]> rewritten,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
-                pictureBullets) {
+                pictureBullets,
+            PreservingPictureStoreUpdate pictureStore) {
             SlideLayoutPart[] layouts = presentation.OpenXmlDocument
                 .PresentationPart?.SlideMasterParts
                 .SelectMany(master => master.SlideLayoutParts).ToArray()
@@ -400,7 +407,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                             record, part,
                             projection.GetChangedClassicColorSlots(part)),
-                        rewritten, fonts, pictureBullets, part,
+                        rewritten, fonts, pictureBullets, pictureStore, part,
                         masterObjectsChanged:
                             !projection.MasterObjectsMatch(part),
                         followsMasterObjects: part.SlideLayout?
@@ -424,6 +431,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
             LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
                 pictureBullets,
+            PreservingPictureStoreUpdate pictureStore,
             OpenXmlPart ownerPart,
             bool masterObjectsChanged = false,
             bool followsMasterObjects = true) {
@@ -469,8 +477,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (backgroundChanged) {
                 LegacyPptRecord backgroundRecord = LegacyPptRecordReader
                     .ReadSingle(bytes, 0, new LegacyPptImportOptions());
+                if (!pictureStore.TryPrepareBackground(backgroundRecord,
+                        background!)) return false;
                 bytes = LegacyPptWriter.BuildPreservedBackgroundRecord(
-                    backgroundRecord, background!);
+                    backgroundRecord, background!, pictureStore.Catalog);
             }
             if (themeChanged) {
                 LegacyPptRecord themedRecord = LegacyPptRecordReader.ReadSingle(

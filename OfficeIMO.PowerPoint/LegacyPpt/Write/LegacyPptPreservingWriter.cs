@@ -34,7 +34,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool CanWritePresentation(PowerPointPresentation presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            return TryBuildModifiedPersistObjects(presentation, out _, out _)
+            return TryBuildModifiedPersistObjects(presentation, out _, out _,
+                    out _)
                 && LegacyPptPropertySetCodec.TryBuildReplacementStreams(
                     presentation, presentation.LegacyPptProjectionMap!
                         .PropertySets, out _);
@@ -45,7 +46,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bytes = Array.Empty<byte>();
             if (!TryBuildModifiedPersistObjects(presentation,
                     out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,
-                    out IReadOnlyList<uint> currentSlideIds)) {
+                    out IReadOnlyList<uint> currentSlideIds,
+                    out byte[]? replacementPicturesStream)) {
                 return false;
             }
 
@@ -79,6 +81,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 replacementStreams["Current User"] = PatchCurrentEditOffset(
                     package.CurrentUserStream, editOffset);
             }
+            if (replacementPicturesStream != null) {
+                replacementStreams["Pictures"] = replacementPicturesStream;
+            }
             bytes = package.RewriteCompoundStreams(replacementStreams,
                 removeSignatures ? new[] { "_signatures", "_xmlsignatures" } : null);
             return true;
@@ -86,11 +91,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool TryBuildModifiedPersistObjects(PowerPointPresentation presentation,
             out IReadOnlyDictionary<uint, byte[]> modifiedPersistObjects,
-            out IReadOnlyList<uint> currentSlideIds) {
+            out IReadOnlyList<uint> currentSlideIds,
+            out byte[]? replacementPicturesStream) {
             var rewritten = new Dictionary<uint, byte[]>();
             var slideIds = new List<uint>(presentation.Slides.Count);
             modifiedPersistObjects = rewritten;
             currentSlideIds = slideIds;
+            replacementPicturesStream = null;
             LegacyPptPackage? package = presentation.LegacyPptPackage;
             LegacyPptProjectionMap? projectionMap = presentation.LegacyPptProjectionMap;
             if (package == null || projectionMap == null || !presentation.HasOnlyLegacyPptPreservableChanges
@@ -136,19 +143,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             try {
                 var oleObjectEdits = new List<LegacyPptOleObjectEdit>();
+                var pictureStore = new PreservingPictureStoreUpdate(package);
                 if (!TryBuildModifiedMasterPersistObjects(presentation, package,
                         projectionMap, rewritten, textFonts,
-                        pictureBullets)) {
+                        pictureBullets, pictureStore)) {
                     return false;
                 }
                 if (!TryBuildModifiedTitleMasterPersistObjects(presentation,
                         package, projectionMap, rewritten, textFonts,
-                        pictureBullets)) {
+                        pictureBullets, pictureStore)) {
                     return false;
                 }
                 if (!TryBuildModifiedSpecialMasterPersistObjects(presentation,
                         package, projectionMap, rewritten, textFonts,
-                        pictureBullets)) {
+                        pictureBullets, pictureStore)) {
                     return false;
                 }
 
@@ -237,10 +245,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 LegacyPptRecord backgroundRecord =
                                     LegacyPptRecordReader.ReadSingle(notesBytes,
                                         0, new LegacyPptImportOptions());
+                                if (!pictureStore.TryPrepareBackground(
+                                        backgroundRecord,
+                                        currentNotesBackground!)) return false;
                                 notesBytes = LegacyPptWriter
                                     .BuildPreservedBackgroundRecord(
                                         backgroundRecord,
-                                        currentNotesBackground!);
+                                        currentNotesBackground!,
+                                        pictureStore.Catalog);
                             }
                             if (notesThemeChanged) {
                                 LegacyPptRecord themedRecord =
@@ -554,6 +566,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     bool backgroundChanged = !slideProjection.BackgroundMatches(slide);
+                    if (backgroundChanged && !slideProjection.HasExplicitBackground
+                        && slide.SlidePart.Slide?.CommonSlideData?.Background == null
+                        && slide.SlidePart.SlideLayoutPart is SlideLayoutPart layoutPart
+                        && projectionMap.TryGetTitleMaster(layoutPart, out _)) {
+                        backgroundChanged = false;
+                    }
                     LegacyPptWriter.LegacyPptWriterBackground? currentBackground = null;
                     if (backgroundChanged
                         && (!LegacyPptWriter.TryReadBackground(slide,
@@ -613,9 +631,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         LegacyPptRecord backgroundRecord = LegacyPptRecordReader
                             .ReadSingle(slideBytes, 0,
                                 new LegacyPptImportOptions());
+                        if (!pictureStore.TryPrepareBackground(backgroundRecord,
+                                currentBackground!)) return false;
                         slideBytes = LegacyPptWriter
                             .BuildPreservedBackgroundRecord(
-                                backgroundRecord, currentBackground!);
+                                backgroundRecord, currentBackground!,
+                                pictureStore.Catalog);
                     }
                     if (themeChanged) {
                         LegacyPptRecord themedRecord = LegacyPptRecordReader
@@ -727,6 +748,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 if (!TryRewriteVbaProject(presentation, package,
                         projectionMap, rewritten)) {
                     return false;
+                }
+                if (pictureStore.HasChanges) {
+                    rewritten.TryGetValue(package.DocumentPersistId,
+                        out byte[]? currentDocumentBytes);
+                    if (!pictureStore.TryBuildDocumentAndPictures(
+                            currentDocumentBytes,
+                            out byte[] documentWithPictures,
+                            out replacementPicturesStream)) return false;
+                    rewritten[package.DocumentPersistId] =
+                        documentWithPictures;
                 }
                 return true;
             } catch (Exception exception) when (exception is InvalidDataException
