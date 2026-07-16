@@ -236,6 +236,26 @@ public sealed class ReaderEpubModularTests {
     }
 
     [Fact]
+    public void EpubReader_RawHtmlRetention_IsAggregateBounded() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+
+            EpubDocument document = EpubDocument.Load(epubPath, new EpubReadOptions {
+                IncludeRawHtml = true,
+                MaxTotalRawHtmlBytes = 1
+            });
+
+            Assert.Equal(2, document.Chapters.Count);
+            Assert.All(document.Chapters, chapter => Assert.Null(chapter.Html));
+            Assert.All(document.Chapters, chapter => Assert.False(string.IsNullOrWhiteSpace(chapter.Text)));
+            Assert.Contains(document.Warnings, warning => warning.Contains("MaxTotalRawHtmlBytes", StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
     public void DocumentReaderEpub_EmitsWarningsAndVirtualChapterPaths() {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {

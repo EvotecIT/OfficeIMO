@@ -15,6 +15,11 @@ public sealed class EpubReadOptions {
     public long? MaxChapterBytes { get; set; } = 4L * 1024 * 1024;
 
     /// <summary>
+    /// Maximum combined uncompressed bytes of raw chapter HTML retained in memory.
+    /// </summary>
+    public long MaxTotalRawHtmlBytes { get; set; } = 64L * 1024 * 1024;
+
+    /// <summary>
     /// When true, includes raw HTML per chapter.
     /// </summary>
     public bool IncludeRawHtml { get; set; }

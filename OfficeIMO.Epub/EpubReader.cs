@@ -43,6 +43,7 @@ internal static class EpubReader {
 
         var chapters = new List<EpubChapter>();
         int emitted = 0;
+        long totalRawHtmlBytes = 0;
 
         foreach (var candidate in candidates) {
             if (emitted >= effective.MaxChapters) break;
@@ -58,7 +59,16 @@ internal static class EpubReader {
             }
 
             var text = ExtractVisibleText(chapterDocument);
-            if (text.Length == 0 && (!effective.IncludeRawHtml || !HasStructuredChapterContent(chapterDocument))) {
+            string? retainedHtml = null;
+            if (effective.IncludeRawHtml) {
+                if (candidate.Entry.Length > effective.MaxTotalRawHtmlBytes - totalRawHtmlBytes) {
+                    warnings.Add($"Did not retain raw HTML for chapter '{NormalizePath(candidate.Entry.FullName)}' because MaxTotalRawHtmlBytes ({effective.MaxTotalRawHtmlBytes}) was reached.");
+                } else {
+                    retainedHtml = markup;
+                    totalRawHtmlBytes += candidate.Entry.Length;
+                }
+            }
+            if (text.Length == 0 && (retainedHtml == null || !HasStructuredChapterContent(chapterDocument))) {
                 continue;
             }
 
@@ -75,7 +85,7 @@ internal static class EpubReader {
                 IsLinear = candidate.IsLinear,
                 Title = title,
                 Text = text,
-                Html = effective.IncludeRawHtml ? markup : null
+                Html = retainedHtml
             });
         }
 
@@ -697,6 +707,7 @@ internal static class EpubReader {
         var normalized = new EpubReadOptions {
             MaxChapters = source.MaxChapters,
             MaxChapterBytes = source.MaxChapterBytes,
+            MaxTotalRawHtmlBytes = source.MaxTotalRawHtmlBytes,
             IncludeRawHtml = source.IncludeRawHtml,
             IncludeResourceData = source.IncludeResourceData,
             MaxResources = source.MaxResources,
@@ -712,6 +723,7 @@ internal static class EpubReader {
         if (normalized.MaxChapterBytes.HasValue && normalized.MaxChapterBytes.Value < 1) {
             normalized.MaxChapterBytes = 1;
         }
+        if (normalized.MaxTotalRawHtmlBytes < 1) normalized.MaxTotalRawHtmlBytes = 1;
         if (normalized.MaxResources < 1) normalized.MaxResources = 1;
         if (normalized.MaxResourceBytes < 1) normalized.MaxResourceBytes = 1;
         if (normalized.MaxTotalResourceBytes < 1) normalized.MaxTotalResourceBytes = 1;
