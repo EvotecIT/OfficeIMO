@@ -53,6 +53,52 @@ public partial class DrawingTests {
         Assert.Equal(1D / 0x80000000u, info.DpiY);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OfficeImageReader_RejectsTruncatedClassicTiffDirectory(bool littleEndian) {
+        byte[] data = CreateClassicTiff(
+            littleEndian,
+            width: 11,
+            height: 9,
+            xNumerator: 300,
+            xDenominator: 1,
+            yNumerator: 300,
+            yDenominator: 1);
+        Array.Resize(ref data, 34);
+
+        Assert.False(OfficeImageReader.TryIdentifyByContent(data, fileName: null, out _));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OfficeImageReader_RejectsClassicTiffScalarTagsWithMultipleValues(bool littleEndian) {
+        const int ifdOffset = 8;
+        var data = new byte[38];
+        data[0] = littleEndian ? (byte)'I' : (byte)'M';
+        data[1] = data[0];
+        WriteUInt16(data, 2, 42, littleEndian);
+        WriteUInt32(data, 4, ifdOffset, littleEndian);
+        WriteUInt16(data, ifdOffset, 2, littleEndian);
+        WriteClassicLongEntry(data, 10, 256, 1, littleEndian);
+        WriteUInt32(data, 14, 2, littleEndian);
+        WriteClassicLongEntry(data, 22, 257, 1, littleEndian);
+        WriteUInt32(data, 26, 2, littleEndian);
+
+        Assert.False(OfficeImageReader.TryIdentifyByContent(data, fileName: null, out _));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void OfficeImageReader_RejectsTruncatedBigTiffDirectory(bool littleEndian) {
+        byte[] data = CreateBigTiff(littleEndian, 11, 9, 300);
+        Array.Resize(ref data, 64);
+
+        Assert.False(OfficeImageReader.TryIdentifyByContent(data, fileName: null, out _));
+    }
+
     private static byte[] CreateClassicTiff(
         bool littleEndian,
         int width,

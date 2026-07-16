@@ -29,11 +29,16 @@ public static partial class OfficeImageReader {
     private static bool TryReadClassicTiff(byte[] data, bool littleEndian, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
         int ifdOffset = ReadInt32(data, 4, littleEndian);
-        if (ifdOffset < 0 || ifdOffset > data.Length - 2) {
+        if (ifdOffset < 8 || ifdOffset > data.Length - 2) {
             return false;
         }
 
         int entryCount = ReadUInt16(data, ifdOffset, littleEndian);
+        long directoryEnd = (long)ifdOffset + 2L + entryCount * 12L + 4L;
+        if (directoryEnd > data.LongLength) {
+            return false;
+        }
+
         int width = 0;
         int height = 0;
         double dpiX = 96.0;
@@ -42,10 +47,6 @@ public static partial class OfficeImageReader {
 
         for (int i = 0; i < entryCount; i++) {
             int entry = ifdOffset + 2 + (i * 12);
-            if (entry < 0 || entry > data.Length - 12) {
-                break;
-            }
-
             int tag = ReadUInt16(data, entry, littleEndian);
             int type = ReadUInt16(data, entry + 2, littleEndian);
             int count = ReadInt32(data, entry + 4, littleEndian);
@@ -75,15 +76,21 @@ public static partial class OfficeImageReader {
         }
 
         int ifdOffset = (int)ifdOffsetValue;
-        if (ifdOffset < 16 || ifdOffset > data.Length - 8) {
+        if (ifdOffset < 16 || ifdOffset > data.Length - 16) {
             return false;
         }
 
         ulong declaredEntryCount = ReadUInt64(data, ifdOffset, littleEndian);
-        int availableEntryCount = (data.Length - ifdOffset - 8) / 20;
-        int entryCount = declaredEntryCount > (ulong)availableEntryCount
-            ? availableEntryCount
-            : (int)declaredEntryCount;
+        if (declaredEntryCount > int.MaxValue) {
+            return false;
+        }
+
+        long directoryEnd = (long)ifdOffset + 8L + (long)declaredEntryCount * 20L + 8L;
+        if (directoryEnd > data.LongLength) {
+            return false;
+        }
+
+        int entryCount = (int)declaredEntryCount;
         int width = 0;
         int height = 0;
         double dpiX = 96.0;
@@ -133,7 +140,7 @@ public static partial class OfficeImageReader {
     }
 
     private static int ReadClassicTiffScalar(int type, int count, int valueOrOffset, bool littleEndian) {
-        if (count <= 0) return 0;
+        if (count != 1) return 0;
         if (type == 3) {
             return littleEndian ? valueOrOffset & 0xFFFF : (valueOrOffset >> 16) & 0xFFFF;
         }

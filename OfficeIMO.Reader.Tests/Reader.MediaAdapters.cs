@@ -184,16 +184,46 @@ public sealed class ReaderMediaAdapterTests {
 
     [Fact]
     public void ImageAdapter_RejectsOverflowingBmpHeightAsUnsupported() {
-        var bmp = new byte[42];
+        var bmp = new byte[54];
         bmp[0] = (byte)'B';
         bmp[1] = (byte)'M';
         WriteUInt32LittleEndian(bmp, 14, 40);
         WriteUInt32LittleEndian(bmp, 18, 1);
         WriteUInt32LittleEndian(bmp, 22, int.MinValue);
+        WriteUInt16LittleEndian(bmp, 26, 1);
+        WriteUInt16LittleEndian(bmp, 28, 24);
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
         Assert.Throws<NotSupportedException>(() =>
             reader.ReadDocument(bmp, "malformed.bmp"));
+    }
+
+    [Fact]
+    public void ImageAdapter_RejectsBmpWithTruncatedDeclaredDibHeader() {
+        var bmp = new byte[42];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteUInt32LittleEndian(bmp, 14, 40);
+        WriteUInt32LittleEndian(bmp, 18, 2);
+        WriteUInt32LittleEndian(bmp, 22, 3);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(bmp, "truncated.bmp"));
+    }
+
+    [Fact]
+    public void ImageAdapter_RejectsBmpWithInvalidPlaneAndBitDepthFields() {
+        var bmp = new byte[54];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteUInt32LittleEndian(bmp, 14, 40);
+        WriteUInt32LittleEndian(bmp, 18, 2);
+        WriteUInt32LittleEndian(bmp, 22, 3);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(bmp, "invalid-fields.bmp"));
     }
 
     [Fact]
@@ -240,6 +270,20 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_RejectsPcxWithInvalidLayoutFields() {
+        var pcx = new byte[128];
+        pcx[0] = 0x0A;
+        pcx[1] = 0x05;
+        pcx[2] = 0x01;
+        pcx[8] = 1;
+        pcx[10] = 1;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(pcx, "malformed.pcx"));
+    }
+
+    [Fact]
     public void ImageAdapter_IdentifiesBigTiffFromItsHeader() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
@@ -261,6 +305,16 @@ public sealed class ReaderMediaAdapterTests {
 
         Assert.Contains(result.Metadata, item => item.Name == "DpiX" && item.Value == "96");
         Assert.Contains(result.Metadata, item => item.Name == "DpiY" && item.Value == "96");
+    }
+
+    [Fact]
+    public void ImageAdapter_RejectsTruncatedBigTiffDirectory() {
+        byte[] tiff = CreateBigTiff(7, 5);
+        Array.Resize(ref tiff, 64);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(tiff, "truncated.tiff"));
     }
 
     [Fact]
@@ -400,6 +454,24 @@ public sealed class ReaderMediaAdapterTests {
 
         Assert.Equal("BOM notebook", Assert.Single(result.Chunks).Text);
         Assert.Contains(result.Metadata, item => item.Name == "NbFormat" && item.Value == "4");
+    }
+
+    [Fact]
+    public void NotebookAdapter_BoundsFenceLanguageMetadataBeforeReusingIt() {
+        string oversizedLanguage = new string('p', 1000);
+        string notebook = "{\"cells\":[{\"cell_type\":\"code\",\"source\":\"one\"}," +
+            "{\"cell_type\":\"code\",\"source\":\"two\"}],\"metadata\":{\"kernelspec\":{\"language\":\"" +
+            oversizedLanguage + "\"}},\"nbformat\":4,\"nbformat_minor\":5}";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddNotebookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(notebook), "bounded-language.ipynb");
+
+        string expectedLanguage = new string('p', 64);
+        Assert.Equal(expectedLanguage, Assert.Single(result.Metadata, item => item.Name == "Language").Value);
+        Assert.All(result.Chunks, chunk => {
+            Assert.Contains("```" + expectedLanguage, chunk.Markdown, StringComparison.Ordinal);
+            Assert.DoesNotContain(new string('p', 65), chunk.Markdown, StringComparison.Ordinal);
+        });
     }
 
     [Fact]
@@ -880,7 +952,7 @@ public sealed class ReaderMediaAdapterTests {
         int? dpi = null,
         int resolutionUnit = 2) {
         int entryCount = dpi.HasValue ? 5 : 2;
-        var bytes = new byte[24 + (entryCount * 20)];
+        var bytes = new byte[32 + (entryCount * 20)];
         bytes[0] = (byte)'I';
         bytes[1] = (byte)'I';
         WriteUInt16LittleEndian(bytes, 2, 43);

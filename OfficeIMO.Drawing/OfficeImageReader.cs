@@ -253,10 +253,25 @@ public static partial class OfficeImageReader {
         double dpiX = 96.0;
         double dpiY = 96.0;
 
-        if (dibSize == 12 && data.Length >= 26) {
+        if (dibSize == 12) {
+            int planes = ReadUInt16LittleEndian(data, 22);
+            int bitsPerPixel = ReadUInt16LittleEndian(data, 24);
+            if (planes != 1 || bitsPerPixel is not (1 or 4 or 8 or 24)) {
+                return false;
+            }
+
             width = ReadUInt16LittleEndian(data, 18);
             height = ReadUInt16LittleEndian(data, 20);
-        } else if (data.Length >= 42) {
+        } else if (dibSize >= 40 && 14L + dibSize <= data.LongLength) {
+            int planes = ReadUInt16LittleEndian(data, 26);
+            int bitsPerPixel = ReadUInt16LittleEndian(data, 28);
+            int compression = ReadInt32LittleEndian(data, 30);
+            bool hasSupportedBitDepth = bitsPerPixel is 1 or 4 or 8 or 16 or 24 or 32 ||
+                (bitsPerPixel == 0 && compression is 4 or 5);
+            if (planes != 1 || !hasSupportedBitDepth) {
+                return false;
+            }
+
             if (!TryConvertPixelDimension(ReadInt32LittleEndian(data, 18), out width) ||
                 !TryConvertPixelDimension(Math.Abs((long)ReadInt32LittleEndian(data, 22)), out height)) {
                 return false;
@@ -350,7 +365,11 @@ public static partial class OfficeImageReader {
 
     private static bool TryReadPcx(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);
-        if (data.Length < 128 || data[0] != 0x0A || data[2] != 0x01) {
+        if (data.Length < 128 ||
+            data[0] != 0x0A ||
+            data[1] is not (0 or 2 or 3 or 4 or 5) ||
+            data[2] != 0x01 ||
+            data[64] != 0) {
             return false;
         }
 
@@ -358,8 +377,26 @@ public static partial class OfficeImageReader {
         int yMin = ReadUInt16LittleEndian(data, 6);
         int xMax = ReadUInt16LittleEndian(data, 8);
         int yMax = ReadUInt16LittleEndian(data, 10);
+        if (xMax < xMin || yMax < yMin) {
+            return false;
+        }
+
         int width = xMax - xMin + 1;
         int height = yMax - yMin + 1;
+        int bitsPerPixel = data[3];
+        int planes = data[65];
+        bool supportedLayout = bitsPerPixel switch {
+            1 => planes is >= 1 and <= 4,
+            2 or 4 => planes == 1,
+            8 => planes is 1 or 3 or 4,
+            _ => false
+        };
+        int bytesPerLine = ReadUInt16LittleEndian(data, 66);
+        int minimumBytesPerLine = (width * bitsPerPixel + 7) / 8;
+        if (!supportedLayout || bytesPerLine < minimumBytesPerLine || (bytesPerLine & 1) != 0) {
+            return false;
+        }
+
         double dpiX = ReadUInt16LittleEndian(data, 12);
         double dpiY = ReadUInt16LittleEndian(data, 14);
 

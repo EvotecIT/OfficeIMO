@@ -1,6 +1,8 @@
 namespace OfficeIMO.Reader.Notebook;
 
 internal static class NotebookReaderAdapter {
+    private const int MaxFenceLanguageCharacters = 64;
+
     internal static OfficeDocumentReadResult ReadDocument(
         string path,
         ReaderOptions readerOptions,
@@ -314,8 +316,14 @@ internal static class NotebookReaderAdapter {
     }
 
     private static string NormalizeFenceLanguage(string value) {
-        return new string(value.Trim().Where(static character =>
-            char.IsLetterOrDigit(character) || character is '-' or '_' or '+' or '.').ToArray());
+        var normalized = new StringBuilder(Math.Min(value.Length, MaxFenceLanguageCharacters));
+        for (int index = 0; index < value.Length && normalized.Length < MaxFenceLanguageCharacters; index++) {
+            char character = value[index];
+            if (char.IsLetterOrDigit(character) || character is '-' or '_' or '+' or '.') {
+                normalized.Append(character);
+            }
+        }
+        return normalized.ToString();
     }
 
     private static IEnumerable<OfficeDocumentMetadataEntry> BuildMetadata(

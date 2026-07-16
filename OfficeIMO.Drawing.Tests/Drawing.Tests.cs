@@ -3624,14 +3624,46 @@ public partial class DrawingTests {
 
     [Fact]
     public void OfficeImageReaderRejectsBmpWithOverflowingHeight() {
-        var bmp = new byte[42];
+        var bmp = new byte[54];
         bmp[0] = (byte)'B';
         bmp[1] = (byte)'M';
         WriteInt32LittleEndian(bmp, 14, 40);
         WriteInt32LittleEndian(bmp, 18, 1);
         WriteInt32LittleEndian(bmp, 22, int.MinValue);
+        WriteUInt16LittleEndian(bmp, 26, 1);
+        WriteUInt16LittleEndian(bmp, 28, 24);
 
         bool identified = OfficeImageReader.TryIdentify(bmp, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsBmpWithTruncatedDeclaredDibHeader() {
+        var bmp = new byte[42];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 2);
+        WriteInt32LittleEndian(bmp, 22, 3);
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(bmp, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsBmpWithInvalidPlaneAndBitDepthFields() {
+        var bmp = new byte[54];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 2);
+        WriteInt32LittleEndian(bmp, 22, 3);
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(bmp, fileName: null, out OfficeImageInfo image);
 
         Assert.False(identified);
         Assert.Equal(OfficeImageFormat.Unknown, image.Format);
@@ -3648,6 +3680,8 @@ public partial class DrawingTests {
         pcx[10] = 49;
         pcx[12] = 96;
         pcx[14] = 96;
+        pcx[65] = 1;
+        WriteUInt16LittleEndian(pcx, 66, 100);
 
         var image = OfficeImageReader.Identify(pcx);
 
@@ -3657,6 +3691,33 @@ public partial class DrawingTests {
         Assert.Equal(96, image.DpiX);
         Assert.Equal(96, image.DpiY);
         Assert.Equal("image/x-pcx", image.MimeType);
+    }
+
+    [Theory]
+    [InlineData(1, 8, 1, 100)]
+    [InlineData(5, 0, 1, 100)]
+    [InlineData(5, 8, 0, 100)]
+    [InlineData(5, 8, 1, 0)]
+    [InlineData(5, 8, 1, 101)]
+    public void OfficeImageReaderRejectsPcxWithInvalidLayout(
+        byte version,
+        byte bitsPerPixel,
+        byte planes,
+        ushort bytesPerLine) {
+        var pcx = new byte[128];
+        pcx[0] = 0x0A;
+        pcx[1] = version;
+        pcx[2] = 0x01;
+        pcx[3] = bitsPerPixel;
+        pcx[8] = 99;
+        pcx[10] = 49;
+        pcx[65] = planes;
+        WriteUInt16LittleEndian(pcx, 66, bytesPerLine);
+
+        bool identified = OfficeImageReader.TryIdentifyByContent(pcx, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
     }
 
     [Fact]
