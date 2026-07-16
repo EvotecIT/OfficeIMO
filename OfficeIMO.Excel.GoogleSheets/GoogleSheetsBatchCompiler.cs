@@ -26,8 +26,8 @@ namespace OfficeIMO.Excel.GoogleSheets {
                 RecalculationInterval = options.Spreadsheet.RecalculationInterval,
             });
             if (options.Identity.WriteDeveloperMetadata) {
-                batch.Add(new GoogleSheetsAddDeveloperMetadataRequest { Key = options.Identity.SourceKey, Value = options.Identity.SourceValue });
-                batch.Add(new GoogleSheetsAddDeveloperMetadataRequest { Key = options.Identity.SchemaKey, Value = options.Identity.SchemaValue });
+                batch.Add(new GoogleSheetsCreateDeveloperMetadataRequest { Key = options.Identity.SourceKey, Value = options.Identity.SourceValue });
+                batch.Add(new GoogleSheetsCreateDeveloperMetadataRequest { Key = options.Identity.SchemaKey, Value = options.Identity.SchemaValue });
             }
 
             bool styleNoticeAdded = false;

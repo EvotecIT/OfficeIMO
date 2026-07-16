@@ -212,9 +212,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
                         if (!TryBuildPivotTablePayload(sheetIds, pivot, out var pivotUpdate)) continue;
                         payload.Requests.Add(pivotUpdate);
                         break;
-                    case GoogleSheetsAddDeveloperMetadataRequest metadata:
+                    case GoogleSheetsCreateDeveloperMetadataRequest metadata:
                         payload.Requests.Add(new GoogleSheetsApiRequestPayload {
-                            AddDeveloperMetadata = new GoogleSheetsApiAddDeveloperMetadataRequestPayload {
+                            CreateDeveloperMetadata = new GoogleSheetsApiCreateDeveloperMetadataRequestPayload {
                                 DeveloperMetadata = new GoogleSheetsApiDeveloperMetadataPayload {
                                     MetadataKey = metadata.Key,
                                     MetadataValue = metadata.Value,

@@ -543,10 +543,6 @@ namespace OfficeIMO.Word.GoogleDocs {
     }
 
     internal sealed class GoogleDocsApiSectionStylePayload {
-        [JsonPropertyName("pageSize")]
-        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public GoogleDocsApiSizePayload? PageSize { get; set; }
-
         [JsonPropertyName("marginTop")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleDocsApiDimensionPayload? MarginTop { get; set; }
@@ -593,6 +589,10 @@ namespace OfficeIMO.Word.GoogleDocs {
     }
 
     internal sealed class GoogleDocsApiDocumentStylePayload {
+        [JsonPropertyName("pageSize")]
+        [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+        public GoogleDocsApiSizePayload? PageSize { get; set; }
+
         [JsonPropertyName("useEvenPageHeaderFooter")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public bool? UseEvenPageHeaderFooter { get; set; }

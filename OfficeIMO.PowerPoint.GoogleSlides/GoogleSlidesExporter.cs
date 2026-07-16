@@ -260,12 +260,22 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
             var requests = new List<object>();
             foreach (GoogleSlidesSlide slide in batch.Slides.Where(slide => !string.IsNullOrWhiteSpace(slide.SpeakerNotes))) {
                 GoogleSlidesApiPage? page = current.Slides.FirstOrDefault(candidate => string.Equals(candidate.ObjectId, slide.ObjectId, StringComparison.Ordinal));
-                string? notesId = page?.SlideProperties?.NotesPage?.NotesProperties?.SpeakerNotesObjectId;
+                GoogleSlidesApiPage? notesPage = page?.SlideProperties?.NotesPage;
+                string? notesId = notesPage?.NotesProperties?.SpeakerNotesObjectId;
                 if (string.IsNullOrWhiteSpace(notesId)) continue;
-                requests.Add(new { deleteText = new { objectId = notesId, textRange = new { type = "ALL" } } });
+                if (HasDeletableSpeakerNotes(notesPage!, notesId!)) {
+                    requests.Add(new { deleteText = new { objectId = notesId, textRange = new { type = "ALL" } } });
+                }
                 requests.Add(new { insertText = new { objectId = notesId, text = slide.SpeakerNotes } });
             }
             return requests;
+        }
+
+        private static bool HasDeletableSpeakerNotes(GoogleSlidesApiPage notesPage, string notesId) {
+            GoogleSlidesApiPageElement? notesShape = notesPage.PageElements.FirstOrDefault(element =>
+                string.Equals(element.ObjectId, notesId, StringComparison.Ordinal));
+            return notesShape?.Shape?.Text?.TextElements.Any(element =>
+                element.TextRun?.Content?.Any(character => character != '\r' && character != '\n') == true) == true;
         }
 
         private static async Task<string?> SendRequestsAsync(

@@ -148,9 +148,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
         public GoogleSheetsApiAddDimensionGroupRequestPayload? AddDimensionGroup { get; set; }
 
-        [JsonPropertyName("addDeveloperMetadata")]
+        [JsonPropertyName("createDeveloperMetadata")]
         [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
-        public GoogleSheetsApiAddDeveloperMetadataRequestPayload? AddDeveloperMetadata { get; set; }
+        public GoogleSheetsApiCreateDeveloperMetadataRequestPayload? CreateDeveloperMetadata { get; set; }
     }
 
     internal sealed class GoogleSheetsApiAddSheetRequestPayload {

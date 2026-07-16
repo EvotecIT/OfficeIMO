@@ -247,9 +247,9 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string? Name { get; set; }
     }
 
-    /// <summary>Adds spreadsheet-scoped developer metadata.</summary>
-    public sealed class GoogleSheetsAddDeveloperMetadataRequest : GoogleSheetsRequest {
-        public GoogleSheetsAddDeveloperMetadataRequest() : base("addDeveloperMetadata") { }
+    /// <summary>Creates spreadsheet-scoped developer metadata.</summary>
+    public sealed class GoogleSheetsCreateDeveloperMetadataRequest : GoogleSheetsRequest {
+        public GoogleSheetsCreateDeveloperMetadataRequest() : base("createDeveloperMetadata") { }
         public string Key { get; set; } = string.Empty;
         public string Value { get; set; } = string.Empty;
     }

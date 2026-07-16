@@ -393,7 +393,11 @@ namespace OfficeIMO.Tests {
                 GoogleSheetsAddProtectedRangeRequest protection = Assert.Single(batch.Requests.OfType<GoogleSheetsAddProtectedRangeRequest>());
                 Assert.True(protection.WarningOnly);
                 Assert.Equal("editor@example.com", Assert.Single(protection.EditorEmailAddresses));
-                Assert.Equal(2, batch.Requests.OfType<GoogleSheetsAddDeveloperMetadataRequest>().Count());
+                Assert.Equal(2, batch.Requests.OfType<GoogleSheetsCreateDeveloperMetadataRequest>().Count());
+                GoogleSheetsApiBatchUpdatePayload payload = GoogleSheetsApiPayloadBuilder.BuildBatchUpdatePayload(
+                    batch,
+                    GoogleSheetsApiPayloadBuilder.BuildSheetIdMap(batch));
+                Assert.Equal(2, payload.Requests.Count(request => request.CreateDeveloperMetadata != null));
             } finally {
                 if (File.Exists(path)) File.Delete(path);
             }

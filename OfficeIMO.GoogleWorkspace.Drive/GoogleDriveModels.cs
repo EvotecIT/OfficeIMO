@@ -40,9 +40,11 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         public DateTimeOffset? CreatedTime { get; set; }
 
         [JsonPropertyName("version")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public long? Version { get; set; }
 
         [JsonPropertyName("size")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public long? Size { get; set; }
 
         [JsonPropertyName("trashed")]
@@ -218,6 +220,7 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
         public bool Published { get; set; }
 
         [JsonPropertyName("size")]
+        [JsonNumberHandling(JsonNumberHandling.AllowReadingFromString)]
         public long? Size { get; set; }
     }
 

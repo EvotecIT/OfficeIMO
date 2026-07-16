@@ -342,13 +342,14 @@ namespace OfficeIMO.Tests {
             using var httpClient = new HttpClient(new FakeHandler(request => {
                 methods.Add(request.Method);
                 metadataUri = request.RequestUri;
-                return Task.FromResult(Json("{\"id\":\"file-1\",\"name\":\"Document\",\"parents\":[\"folder-1\"],\"version\":7,\"modifiedTime\":\"2026-07-15T18:00:00Z\"}"));
+                return Task.FromResult(Json("{\"id\":\"file-1\",\"name\":\"Document\",\"parents\":[\"folder-1\"],\"version\":\"7\",\"size\":\"42\",\"modifiedTime\":\"2026-07-15T18:00:00Z\"}"));
             }));
             using var client = CreateClient(httpClient);
 
             GoogleDriveFile file = await client.MoveFileAsync("file-1", "folder-1");
 
             Assert.Equal(7, file.Version);
+            Assert.Equal(42, file.Size);
             Assert.Equal(DateTimeOffset.Parse("2026-07-15T18:00:00Z"), file.ModifiedTime);
             Assert.Equal(new[] { HttpMethod.Get }, methods);
             Assert.Contains("version", metadataUri!.AbsoluteUri, StringComparison.Ordinal);
@@ -404,7 +405,7 @@ namespace OfficeIMO.Tests {
                 requests.Add(request.RequestUri!.AbsoluteUri);
                 return Task.FromResult(request.RequestUri.AbsolutePath.EndsWith("/permissions", StringComparison.Ordinal)
                     ? Json("{\"permissions\":[],\"nextPageToken\":\"permission-next\"}")
-                    : Json("{\"revisions\":[],\"nextPageToken\":\"revision-next\"}"));
+                    : Json("{\"revisions\":[{\"id\":\"revision-1\",\"size\":\"84\"}],\"nextPageToken\":\"revision-next\"}"));
             }));
             using var client = CreateClient(httpClient);
 
@@ -413,6 +414,7 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal("permission-next", permissions.NextPageToken);
             Assert.Equal("revision-next", revisions.NextPageToken);
+            Assert.Equal(84, Assert.Single(revisions.Revisions).Size);
             Assert.Contains(requests, request => request.Contains("/permissions?", StringComparison.Ordinal)
                 && request.Contains("pageToken=permission%20page", StringComparison.Ordinal)
                 && request.Contains("pageSize=42", StringComparison.Ordinal)

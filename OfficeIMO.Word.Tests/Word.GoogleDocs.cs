@@ -469,12 +469,15 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(3, paragraphRequest.SectionStyle.PageNumberStart);
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
-                var sectionStyle = Assert.Single(payload.Requests, request => request.UpdateSectionStyle?.SectionStyle.PageSize != null);
+                var documentStyle = Assert.Single(payload.Requests, request => request.UpdateDocumentStyle?.DocumentStyle.PageSize != null);
+                Assert.Equal("pageSize", documentStyle.UpdateDocumentStyle!.Fields);
+                Assert.Equal(419.55d, documentStyle.UpdateDocumentStyle.DocumentStyle.PageSize!.Width!.Magnitude);
+                Assert.Equal(595.3d, documentStyle.UpdateDocumentStyle.DocumentStyle.PageSize.Height!.Magnitude);
+
+                var sectionStyle = Assert.Single(payload.Requests, request => request.UpdateSectionStyle?.SectionStyle.FlipPageOrientation == true);
                 Assert.Equal(
-                    "flipPageOrientation,marginBottom,marginFooter,marginHeader,marginLeft,marginRight,marginTop,pageNumberStart,pageSize,useFirstPageHeaderFooter",
+                    "flipPageOrientation,marginBottom,marginFooter,marginHeader,marginLeft,marginRight,marginTop,pageNumberStart,useFirstPageHeaderFooter",
                     string.Join(",", sectionStyle.UpdateSectionStyle!.Fields.Split(',').OrderBy(value => value, StringComparer.Ordinal)));
-                Assert.Equal(595.3d, sectionStyle.UpdateSectionStyle.SectionStyle.PageSize!.Width!.Magnitude);
-                Assert.Equal(419.55d, sectionStyle.UpdateSectionStyle.SectionStyle.PageSize.Height!.Magnitude);
                 Assert.Equal(36d, sectionStyle.UpdateSectionStyle.SectionStyle.MarginTop!.Magnitude);
                 Assert.Equal(18d, sectionStyle.UpdateSectionStyle.SectionStyle.MarginHeader!.Magnitude);
                 Assert.True(sectionStyle.UpdateSectionStyle.SectionStyle.FlipPageOrientation);
@@ -873,8 +876,7 @@ namespace OfficeIMO.Tests {
                 var sectionBreakRequest = Assert.Single(payload.Requests, request => request.InsertSectionBreak != null);
                 var sectionBreakIndex = payload.Requests.IndexOf(sectionBreakRequest);
                 var secondSectionStyleIndex = payload.Requests.FindIndex(request =>
-                    request.UpdateSectionStyle?.Range.StartIndex == sectionBreakRequest.InsertSectionBreak!.Location.Index + 1
-                    && request.UpdateSectionStyle.SectionStyle.PageSize != null);
+                    request.UpdateSectionStyle?.Range.StartIndex == sectionBreakRequest.InsertSectionBreak!.Location.Index + 1);
                 Assert.True(secondSectionStyleIndex > sectionBreakIndex);
                 var secondSectionTextStyle = Assert.Single(payload.Requests, request =>
                     request.UpdateTextStyle?.TextStyle.Bold == true
@@ -1052,7 +1054,8 @@ namespace OfficeIMO.Tests {
 
                 var payload = GoogleDocsApiPayloadBuilder.BuildInitialBatchUpdatePayload(batch);
                 var documentStyle = Assert.Single(payload.Requests, request => request.UpdateDocumentStyle != null);
-                Assert.Equal("useEvenPageHeaderFooter", documentStyle.UpdateDocumentStyle!.Fields);
+                Assert.Equal("pageSize,useEvenPageHeaderFooter", documentStyle.UpdateDocumentStyle!.Fields);
+                Assert.NotNull(documentStyle.UpdateDocumentStyle.DocumentStyle.PageSize);
                 Assert.True(documentStyle.UpdateDocumentStyle.DocumentStyle.UseEvenPageHeaderFooter);
                 Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-header");
                 Assert.Contains(batch.Report.Notices, notice => notice.Code == "DOCS.HEADER_FOOTER.VARIANT_UNSUPPORTED" && notice.Path == "section/1/even-footer");
@@ -1900,7 +1903,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("doc-section-layout", result.DocumentId);
                 var batchRequest = Assert.Single(recordedRequests, request => request.Uri.AbsoluteUri == "https://docs.googleapis.com/v1/documents/doc-section-layout:batchUpdate");
                 Assert.Contains("\"updateSectionStyle\":{", batchRequest.Body!);
-                Assert.Contains("\"pageSize\":{", batchRequest.Body!);
+                Assert.Contains("\"updateDocumentStyle\":{\"documentStyle\":{\"pageSize\":{", batchRequest.Body!);
+                Assert.DoesNotContain("\"sectionStyle\":{\"pageSize\":{", batchRequest.Body!);
                 Assert.Contains("\"marginLeft\":{\"magnitude\":54", batchRequest.Body!);
                 Assert.Contains("\"flipPageOrientation\":true", batchRequest.Body!);
                 Assert.Contains("\"useFirstPageHeaderFooter\":true", batchRequest.Body!);

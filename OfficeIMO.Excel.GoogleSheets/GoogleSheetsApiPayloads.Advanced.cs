@@ -144,7 +144,7 @@ namespace OfficeIMO.Excel.GoogleSheets {
         public string? Name { get; set; }
     }
 
-    internal sealed class GoogleSheetsApiAddDeveloperMetadataRequestPayload {
+    internal sealed class GoogleSheetsApiCreateDeveloperMetadataRequestPayload {
         [JsonPropertyName("developerMetadata")]
         public GoogleSheetsApiDeveloperMetadataPayload DeveloperMetadata { get; set; } = new GoogleSheetsApiDeveloperMetadataPayload();
     }

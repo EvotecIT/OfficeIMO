@@ -215,8 +215,10 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Report.Notices, notice => notice.Code == "SLIDES.PAGE_SIZE.SCALED");
         }
 
-        [Fact]
-        public async Task Exporter_WritesSpeakerNotesAfterSlidesExist() {
+        [Theory]
+        [InlineData(false)]
+        [InlineData(true)]
+        public async Task Exporter_WritesSpeakerNotesAfterSlidesExist(bool existingNotes) {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             PowerPointSlide slide = presentation.AddSlide();
             slide.AddTextBox("Slide body");
@@ -230,7 +232,9 @@ namespace OfficeIMO.Tests {
                     presentationReads++;
                     return presentationReads == 1
                         ? Json("{\"presentationId\":\"deck-notes\",\"revisionId\":\"revision-1\",\"slides\":[{\"objectId\":\"initial-slide\"}]}")
-                        : Json("{\"presentationId\":\"deck-notes\",\"revisionId\":\"revision-2\",\"slides\":[{\"objectId\":\"officeimo_slide_0001_0001\",\"slideProperties\":{\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"}}}}]}");
+                        : Json(existingNotes
+                            ? "{\"presentationId\":\"deck-notes\",\"revisionId\":\"revision-2\",\"slides\":[{\"objectId\":\"officeimo_slide_0001_0001\",\"slideProperties\":{\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"Existing notes\\n\"}}]}}}]}}}] }"
+                            : "{\"presentationId\":\"deck-notes\",\"revisionId\":\"revision-2\",\"slides\":[{\"objectId\":\"officeimo_slide_0001_0001\",\"slideProperties\":{\"notesPage\":{\"notesProperties\":{\"speakerNotesObjectId\":\"notes-body\"},\"pageElements\":[{\"objectId\":\"notes-body\",\"shape\":{\"text\":{\"textElements\":[{\"textRun\":{\"content\":\"\\n\"}}]}}}]}}}] }");
                 }
                 if (request.Method == HttpMethod.Post && uri.EndsWith(":batchUpdate", StringComparison.Ordinal)) {
                     batchBodies.Add(await request.Content!.ReadAsStringAsync().ConfigureAwait(false));
@@ -245,7 +249,11 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, presentationReads);
             Assert.Equal(2, batchBodies.Count);
-            Assert.Contains("\"deleteText\":{\"objectId\":\"notes-body\"", batchBodies[1]);
+            if (existingNotes) {
+                Assert.Contains("\"deleteText\":{\"objectId\":\"notes-body\"", batchBodies[1]);
+            } else {
+                Assert.DoesNotContain("\"deleteText\":{\"objectId\":\"notes-body\"", batchBodies[1]);
+            }
             Assert.Contains("Presenter-only context", batchBodies[1]);
             Assert.Contains("\"requiredRevisionId\":\"revision-2\"", batchBodies[1]);
             Assert.Equal("revision-3", result.RevisionId);
