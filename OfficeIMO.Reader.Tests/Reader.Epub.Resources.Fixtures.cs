@@ -28,7 +28,7 @@ public sealed partial class ReaderEpubModularTests {
             "<item id=\"video\" href=\"shared/video/clip.mp4\" media-type=\"video/mp4\"/>" +
             "<item id=\"styles\" href=\"shared/styles/book.css\" media-type=\"text/css\"/>" +
             "<item id=\"font\" href=\"shared/fonts/book.woff2\" media-type=\"font/woff2\"/>" +
-            "<item id=\"remote-image\" href=\"https://cdn.example/remote.png\" media-type=\"image/png\"/>" +
+            "<item id=\"remote-image\" href=\"https://cdn.example/remote.png#v2\" media-type=\"image/png\"/>" +
             "</manifest><spine><itemref idref=\"chapter\"/><itemref idref=\"second\"/></spine></package>");
         WriteResolvedResourceEntry(
             archive,
@@ -39,7 +39,7 @@ public sealed partial class ReaderEpubModularTests {
             "<img src=\"images/cover%20art.png?display=1#front\" alt=\"Cover\"/>" +
             "<img src=\"images/cover%23v2.png\" alt=\"Reserved name\"/>" +
             "<img src=\"/EPUB/shared/images/root.png\" alt=\"Root image\"/>" +
-            "<img src=\"https://cdn.example/remote.png\" alt=\"Remote image\"/>" +
+            "<img src=\"https://cdn.example/remote.png#v2\" alt=\"Remote image\"/>" +
             "<img src=\"data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==\" alt=\"Inline\"/>" +
             "<audio><source src=\"audio/chapter.mp3\" type=\"audio/mpeg\"/>Audio fallback</audio>" +
             "<video src=\"video/clip.mp4#clip\">Video fallback</video>" +

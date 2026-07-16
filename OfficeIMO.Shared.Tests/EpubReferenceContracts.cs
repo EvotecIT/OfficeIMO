@@ -61,6 +61,19 @@ public sealed class EpubReferenceContractTests {
         Assert.False(reference.IsConforming);
     }
 
+    [Fact]
+    public void Resolve_NormalizesRawBackslashesButMarksReferenceNonConforming() {
+        EpubReference reference = EpubReference.Resolve(
+            "EPUB/package.opf",
+            @"images\cover.png");
+
+        Assert.Equal(EpubReferenceKind.Container, reference.Kind);
+        Assert.Equal(EpubReferenceError.None, reference.Error);
+        Assert.Equal("EPUB/images/cover.png", reference.ContainerPath);
+        Assert.Equal("EPUB/images/cover.png", reference.ResolvedValue);
+        Assert.False(reference.IsConforming);
+    }
+
     [Theory]
     [InlineData("../../../outside.xhtml", EpubReferenceError.EscapesContainer)]
     [InlineData("../images/a%2Fb.png", EpubReferenceError.InvalidPath)]

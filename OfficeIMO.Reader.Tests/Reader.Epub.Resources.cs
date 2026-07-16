@@ -76,9 +76,11 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Equal("stylesheet", Assert.Single(result.Assets, asset => asset.SourceObjectId == "styles").Kind);
             Assert.Equal("font", Assert.Single(result.Assets, asset => asset.SourceObjectId == "font").Kind);
             Assert.DoesNotContain(result.Assets, asset => asset.SourceObjectId == "chapter" || asset.SourceObjectId == "second");
-            Assert.Contains(result.Assets, asset =>
-                asset.Location.Path == "https://cdn.example/remote.png" &&
-                asset.PayloadBytes == null);
+            OfficeDocumentAsset remoteImage = Assert.Single(result.Assets, asset => asset.SourceObjectId == "remote-image");
+            Assert.Equal("https://cdn.example/remote.png", remoteImage.Location.Path);
+            Assert.Null(remoteImage.PayloadBytes);
+            Assert.Contains(result.Pages[0].Assets, asset => ReferenceEquals(asset, remoteImage));
+            Assert.DoesNotContain(result.Assets, asset => asset.SourceObjectId == "https://cdn.example/remote.png#v2");
 
             OfficeDocumentDiagnostic[] nonConforming = result.Diagnostics
                 .Where(item => item.Code == "epub.reference.non-conforming")

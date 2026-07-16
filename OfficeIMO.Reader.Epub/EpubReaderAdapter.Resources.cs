@@ -13,7 +13,7 @@ internal static partial class EpubReaderAdapter {
 
             string id = "epub-" + kind + "-" + assetIndex.ToString("D4", CultureInfo.InvariantCulture);
             string resourceLocation = resource.IsRemote && !string.IsNullOrWhiteSpace(resource.RemoteUri)
-                ? resource.RemoteUri!
+                ? RemoveEpubUrlFragment(resource.RemoteUri!)
                 : BuildVirtualPath(sourcePath, resource.Path);
             string extensionSource = GetEpubExtensionSource(resource);
             string extension = Path.GetExtension(extensionSource);
@@ -105,6 +105,11 @@ internal static partial class EpubReaderAdapter {
         if (query >= 0) value = value.Substring(0, query);
         if (value.StartsWith("//", StringComparison.Ordinal)) value = "https:" + value;
         return Uri.TryCreate(value, UriKind.Absolute, out Uri? uri) ? uri.AbsolutePath : value;
+    }
+
+    private static string RemoveEpubUrlFragment(string value) {
+        int fragment = value.IndexOf('#');
+        return fragment < 0 ? value : value.Substring(0, fragment);
     }
 
     private static string ComputeEpubPayloadHash(byte[] bytes) {

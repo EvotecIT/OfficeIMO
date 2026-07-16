@@ -62,8 +62,9 @@ public sealed class EpubReference {
     public bool IsContainerRootRelative { get; }
 
     /// <summary>
-    /// Whether the reference conforms to EPUB OCF URL restrictions. A safely resolved
-    /// root-relative container reference is exposed with this value set to <see langword="false"/>.
+    /// Whether the reference conforms to EPUB OCF URL restrictions. Safely resolved
+    /// root-relative or backslash-separated container references are exposed with this
+    /// value set to <see langword="false"/>.
     /// </summary>
     public bool IsConforming { get; }
 
@@ -154,6 +155,8 @@ public sealed class EpubReference {
                 true);
         }
 
+        bool hasRawBackslash = path.IndexOf('\\') >= 0;
+        if (hasRawBackslash) path = path.Replace('\\', '/');
         bool isRootRelative = path.StartsWith("/", StringComparison.Ordinal);
         string relativePath = isRootRelative ? path.TrimStart('/') : path;
         var segments = new List<string>();
@@ -215,7 +218,7 @@ public sealed class EpubReference {
                 fragment,
                 encodedFragment,
                 isRootRelative,
-                !isRootRelative);
+                !isRootRelative && !hasRawBackslash);
         }
         return Valid(
             original,
@@ -226,7 +229,7 @@ public sealed class EpubReference {
             fragment,
             encodedFragment,
             isRootRelative,
-            !isRootRelative);
+            !isRootRelative && !hasRawBackslash);
     }
 
     /// <summary>
