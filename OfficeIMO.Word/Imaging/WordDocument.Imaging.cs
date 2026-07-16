@@ -15,6 +15,15 @@ namespace OfficeIMO.Word {
             return WordDocumentImageRenderer.CreateSnapshot(this, resolved);
         }
 
+        /// <summary>Returns the renderer's estimated document page count.</summary>
+        public int GetEstimatedPageCount() => WordDocumentImageRenderer.EstimatePageCount(this);
+
+        /// <summary>Creates format-neutral visual snapshots for a page range or the complete document.</summary>
+        public IReadOnlyList<WordDocumentVisualSnapshot> CreateVisualSnapshots(WordImageExportOptions? options = null) {
+            WordImageExportOptions resolved = NormalizeImageExportOptions(options);
+            return WordDocumentImageRenderer.CreateSnapshots(this, resolved);
+        }
+
         /// <summary>
         /// Exports the requested document page as PNG or SVG.
         /// </summary>
@@ -22,6 +31,34 @@ namespace OfficeIMO.Word {
             WordImageExportOptions resolved = NormalizeImageExportOptions(options);
             return WordDocumentImageRenderer.Render(this, format, resolved);
         }
+
+        /// <summary>Exports a page range or the complete document as PNG or SVG images.</summary>
+        public IReadOnlyList<OfficeImageExportResult> ExportImages(OfficeImageExportFormat format,
+            WordImageExportOptions? options = null) {
+            WordImageExportOptions resolved = NormalizeImageExportOptions(options);
+            return WordDocumentImageRenderer.RenderPages(this, format, resolved);
+        }
+
+        /// <summary>Saves every selected document page as a PNG file in a folder.</summary>
+        public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath,
+            WordImageExportOptions? options = null) =>
+            new WordDocumentPageImageExportBuilder(this, options).AsPng().Save(folderPath);
+
+        /// <summary>Saves every selected document page as PNG or SVG in a folder.</summary>
+        public IReadOnlyList<OfficeImageExportResult> SaveAsImages(string folderPath,
+            OfficeImageExportFormat format, WordImageExportOptions? options = null) =>
+            new WordDocumentPageImageExportBuilder(this, options).As(format).Save(folderPath);
+
+        /// <summary>Asynchronously saves every selected document page as a PNG file in a folder.</summary>
+        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(string folderPath,
+            WordImageExportOptions? options = null, CancellationToken cancellationToken = default) =>
+            new WordDocumentPageImageExportBuilder(this, options).AsPng().SaveAsync(folderPath, cancellationToken);
+
+        /// <summary>Asynchronously saves every selected document page as PNG or SVG in a folder.</summary>
+        public Task<IReadOnlyList<OfficeImageExportResult>> SaveAsImagesAsync(string folderPath,
+            OfficeImageExportFormat format, WordImageExportOptions? options = null,
+            CancellationToken cancellationToken = default) =>
+            new WordDocumentPageImageExportBuilder(this, options).As(format).SaveAsync(folderPath, cancellationToken);
 
         /// <summary>
         /// Estimates how many pages the dependency-free image renderer will produce for this document.
@@ -108,6 +145,9 @@ namespace OfficeIMO.Word {
             OfficeImageExportOptions.ValidateScale(resolved.Scale, nameof(options));
             if (resolved.PageIndex < 0) {
                 throw new ArgumentOutOfRangeException(nameof(options), "Page index cannot be negative.");
+            }
+            if (resolved.PageCount.HasValue && resolved.PageCount.Value < 1) {
+                throw new ArgumentOutOfRangeException(nameof(options), "Page count must be positive when specified.");
             }
 
             return resolved;

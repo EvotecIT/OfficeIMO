@@ -32,10 +32,47 @@ namespace OfficeIMO.Word {
         public WordDocumentImageExportBuilder WithoutContent() => IncludeContent(false);
     }
 
+    /// <summary>Fluent batch image export for Word document pages.</summary>
+    public sealed class WordDocumentPageImageExportBuilder : OfficeImageExportBatchBuilder<WordDocumentPageImageExportBuilder, WordImageExportOptions> {
+        internal WordDocumentPageImageExportBuilder(WordDocument document, WordImageExportOptions? options = null)
+            : base(options?.Clone() ?? new WordImageExportOptions(), document.ExportImages) {
+        }
+
+        /// <summary>Exports from the specified zero-based page index.</summary>
+        public WordDocumentPageImageExportBuilder FromPage(int pageIndex) {
+            if (pageIndex < 0) throw new System.ArgumentOutOfRangeException(nameof(pageIndex));
+            Options.PageIndex = pageIndex;
+            return this;
+        }
+
+        /// <summary>Limits batch output to the requested number of pages.</summary>
+        public WordDocumentPageImageExportBuilder TakePages(int pageCount) {
+            if (pageCount < 1) throw new System.ArgumentOutOfRangeException(nameof(pageCount));
+            Options.PageCount = pageCount;
+            return this;
+        }
+
+        /// <summary>Exports every estimated page from the beginning of the document.</summary>
+        public WordDocumentPageImageExportBuilder AllPages() {
+            Options.PageIndex = 0;
+            Options.PageCount = null;
+            return this;
+        }
+
+        /// <summary>Includes or excludes document body content.</summary>
+        public WordDocumentPageImageExportBuilder IncludeContent(bool include = true) {
+            Options.IncludeDocumentContent = include;
+            return this;
+        }
+    }
+
     public partial class WordDocument {
         /// <summary>
         /// Starts a fluent image export for this document.
         /// </summary>
         public WordDocumentImageExportBuilder ToImage() => new WordDocumentImageExportBuilder(this);
+
+        /// <summary>Starts a fluent batch image export for document pages.</summary>
+        public WordDocumentPageImageExportBuilder ToImages() => new WordDocumentPageImageExportBuilder(this);
     }
 }
