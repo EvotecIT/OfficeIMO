@@ -5,6 +5,22 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class MsgSerializationRegressionTests {
     [Fact]
+    public void PreservesUnknownMessageFlagBitsWhileUpdatingManagedFlags() {
+        const int unknownFlag = 0x20000000;
+        var source = new EmailDocument { Format = EmailFileFormat.OutlookMsg, Subject = "Flags" };
+        source.MapiProperties.Add(new MapiProperty(0x0E07, MapiPropertyType.Integer32, unknownFlag));
+        source.MessageMetadata.IsDraft = true;
+
+        EmailDocument result = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
+        int flags = Assert.IsType<int>(result.MapiProperties.Single(property =>
+            property.PropertyId == 0x0E07).Value);
+
+        Assert.NotEqual(0, flags & unknownFlag);
+        Assert.True(result.MessageMetadata.IsDraft);
+    }
+
+    [Fact]
     public void ClearingManagedValuesRemovesRetainedMsgProperties() {
         var source = new EmailDocument {
             Subject = "retained subject",
@@ -131,6 +147,29 @@ public sealed class MsgSerializationRegressionTests {
 
         Assert.Equal(nameof(EmailReaderOptions.MaxTnefAttributeCount), exception.LimitName);
         Assert.Equal(2, exception.ActualValue);
+    }
+
+    [Fact]
+    public void ProjectedSemanticPartsDoNotSetMsgAttachmentMetadata() {
+        var source = new EmailDocument { Subject = "projected content" };
+        var semanticPart = new EmailAttachment {
+            FileName = "contact.vcf",
+            ContentType = "text/vcard",
+            Content = Encoding.ASCII.GetBytes("BEGIN:VCARD\r\nVERSION:4.0\r\nEND:VCARD\r\n")
+        };
+        semanticPart.Length = semanticPart.Content.Length;
+        semanticPart.IsProjectedSemanticContent = true;
+        source.Attachments.Add(semanticPart);
+
+        EmailDocument result = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Empty(result.Attachments);
+        Assert.False(Assert.IsType<bool>(result.MapiProperties.Single(property =>
+            property.PropertyId == 0x0E1B).Value));
+        int flags = Assert.IsType<int>(result.MapiProperties.Single(property =>
+            property.PropertyId == 0x0E07).Value);
+        Assert.Equal(0, flags & 0x0010);
     }
 
     private static byte[] CreateMinimalTnef() {

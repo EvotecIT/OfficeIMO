@@ -40,8 +40,14 @@ public sealed class EmailMessageMetadata {
     /// <summary>Whether a read receipt was requested.</summary>
     public bool ReadReceiptRequested { get; set; }
 
+    /// <summary>MIME destination for a requested read receipt.</summary>
+    public string? ReadReceiptDestination { get; set; }
+
     /// <summary>Whether a delivery receipt was requested.</summary>
     public bool DeliveryReceiptRequested { get; set; }
+
+    /// <summary>MIME destination for a requested delivery receipt.</summary>
+    public string? DeliveryReceiptDestination { get; set; }
 
     /// <summary>MAPI sensitivity value.</summary>
     public int? Sensitivity { get; set; }

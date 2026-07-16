@@ -431,4 +431,47 @@ public sealed class EmailMimeWriterTests {
 
         Assert.Equal(displayName, roundTrip.From!.DisplayName);
     }
+
+    [Theory]
+    [InlineData("From", "(undisclosed)")]
+    [InlineData("Sender", "Broken <")]
+    public void RetainsUnparsedScalarAddressHeaders(string name, string value) {
+        byte[] source = Encoding.ASCII.GetBytes(name + ": " + value + "\r\nSubject: retained\r\n\r\nbody\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(source).Document;
+
+        byte[] rewritten = new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml);
+        string eml = Encoding.ASCII.GetString(rewritten);
+
+        Assert.Contains(name + ": " + value + "\r\n", eml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void RetainsEachUnparsedRecipientHeaderIndependently() {
+        byte[] source = Encoding.ASCII.GetBytes(
+            "To: (undisclosed)\r\nCc: Valid <valid@example.com>\r\nSubject: retained\r\n\r\nbody\r\n");
+        EmailDocument document = new EmailDocumentReader().Read(source).Document;
+
+        string eml = Encoding.ASCII.GetString(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.Eml));
+
+        Assert.Contains("To: (undisclosed)\r\n", eml, StringComparison.Ordinal);
+        Assert.Contains("Cc: Valid <valid@example.com>\r\n", eml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PreservesUnrepresentedRetainedRecipientAlongsideStructuredRecipients() {
+        var document = new EmailDocument { Subject = "retained" };
+        document.Body.Text = "body";
+        document.Headers.Add(new EmailHeader("To", "Header Only <header@example.com>"));
+        document.Recipients.Add(new EmailRecipient(EmailRecipientKind.Cc,
+            new EmailAddress("cc@example.com", "Structured")));
+
+        EmailDocument roundTrip = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(document, EmailFileFormat.OutlookMsg)).Document;
+
+        Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.To &&
+            recipient.Address.Address == "header@example.com");
+        Assert.Contains(roundTrip.Recipients, recipient => recipient.Kind == EmailRecipientKind.Cc &&
+            recipient.Address.Address == "cc@example.com");
+    }
 }

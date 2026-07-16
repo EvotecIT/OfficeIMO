@@ -15,10 +15,20 @@ internal static class MimeParser {
         int bodyOffset = MimeHeaderParser.Parse(data, offset, count, state.Options, headers, state.Diagnostics, location);
         foreach (EmailHeader header in headers) document.Headers.Add(header);
         PopulateEnvelope(document, headers, state.Diagnostics, location);
+        MimeMessageMetadataProjection.Apply(document, headers);
 
         int end = offset + count;
         int bodyCount = Math.Max(0, end - bodyOffset);
         ParseEntity(headers, data, bodyOffset, bodyCount, document, state, 0, nestedMessageDepth, location);
+        MimeProtectionProjection.Apply(document, headers, state.Diagnostics, location);
+        bool hasSemanticContent = document.Attachments.Any(attachment => attachment.IsProjectedSemanticContent);
+        if (hasSemanticContent && document.MimeHasMessageBody && !document.MimeSemanticSourceHasTextBody &&
+            !string.IsNullOrWhiteSpace(document.Body.Text)) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+        }
+        if (hasSemanticContent) {
+            document.MimeSemanticSourceModelFingerprint = EmailDocumentStateFingerprint.TryCompute(document);
+        }
         return document;
     }
 
@@ -52,11 +62,17 @@ internal static class MimeParser {
             !attachmentDisposition && string.IsNullOrWhiteSpace(fileName) &&
             (!isRelatedSibling || !hasRelatedIdentity || isPreferredRelatedBody)) {
             string? boundary = contentType.GetParameter("boundary");
-            if (string.IsNullOrEmpty(boundary)) {
+            if (boundary == null) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_MISSING",
                     string.Concat("Multipart entity '", contentType.Value, "' has no boundary."),
-                    EmailDiagnosticSeverity.Error, location));
+                    EmailDiagnosticSeverity.Warning, location));
                 return;
+            }
+            if (boundary.Length == 0) {
+                state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BOUNDARY_EMPTY",
+                    string.Concat("Multipart entity '", contentType.Value,
+                        "' declares an empty boundary; compatible recovery was attempted."),
+                    EmailDiagnosticSeverity.Warning, location));
             }
 
             List<ArraySegment<byte>> parts = SplitMultipart(data, offset, count, boundary!, state, location);
@@ -102,7 +118,13 @@ internal static class MimeParser {
         bool additionalInlineBody = isBodyCandidate && !bodySlotAvailable;
         bool embeddedMessage = string.Equals(contentType.Value, "message/rfc822", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(contentType.Value, "message/global", StringComparison.OrdinalIgnoreCase);
-        bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage;
+        bool calendarContent = string.Equals(contentType.Value, "text/calendar", StringComparison.OrdinalIgnoreCase);
+        bool vcardContent = VCardCodec.IsVCardContentType(contentType.Value, contentType.GetParameter("profile"));
+        bool semanticBodyPart = (calendarContent || vcardContent) && !attachmentDisposition &&
+            string.IsNullOrWhiteSpace(fileName) && string.IsNullOrWhiteSpace(contentId) &&
+            string.IsNullOrWhiteSpace(contentLocation);
+        bool skipAttachmentDecoding = !isBody && !state.Options.IncludeAttachmentContent && !embeddedMessage &&
+            !semanticBodyPart;
         long decodedLength = isBody ? 0 : MimeTextCodec.GetDecodedLength(data, offset, count, transferEncoding,
             skipAttachmentDecoding ? state.Diagnostics : null, skipAttachmentDecoding ? location : null);
         if (!isBody) {
@@ -110,7 +132,7 @@ internal static class MimeParser {
             if (skipAttachmentDecoding) {
                 state.CountAttachment(decodedLength);
                 document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
-                    inlineDisposition || additionalInlineBody, null, decodedLength));
+                    inlineDisposition || additionalInlineBody, attachmentDisposition, null, decodedLength));
                 return;
             }
         }
@@ -119,8 +141,15 @@ internal static class MimeParser {
         byte[] decoded = MimeTextCodec.DecodeTransfer(source, transferEncoding, state.Diagnostics, location);
 
         if (isBody) {
+            document.MimeHasMessageBody = true;
             string? charset = contentType.GetParameter("charset");
             string text = MimeTextCodec.DecodeText(decoded, charset, state.Diagnostics, location);
+            if (string.Equals(contentType.Value, "text/plain", StringComparison.OrdinalIgnoreCase) &&
+                string.Equals(contentType.GetParameter("format"), "flowed", StringComparison.OrdinalIgnoreCase)) {
+                bool deleteSpace = string.Equals(contentType.GetParameter("delsp"), "yes",
+                    StringComparison.OrdinalIgnoreCase);
+                text = MimeFlowedTextCodec.Decode(text, deleteSpace);
+            }
             if (string.Equals(contentType.Value, "text/rtf", StringComparison.OrdinalIgnoreCase)) {
                 if (document.Body.Rtf == null) document.Body.Rtf = text;
             } else if (string.Equals(contentType.Value, "text/html", StringComparison.OrdinalIgnoreCase)) {
@@ -138,7 +167,8 @@ internal static class MimeParser {
         if (embeddedMessage) {
             state.CountAttachment(decoded.LongLength);
             EmailAttachment embedded = CreateAttachment(headers, contentType, disposition, fileName,
-                inlineDisposition, state.Options.IncludeAttachmentContent ? decoded : null, decoded.LongLength);
+                inlineDisposition, attachmentDisposition, state.Options.IncludeAttachmentContent ? decoded : null,
+                decoded.LongLength);
             if (nestedMessageDepth >= state.Options.MaxNestedMessageDepth) {
                 state.Diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_NESTED_MESSAGE_LIMIT",
                     "The embedded message was retained but not parsed because the nested-message limit was reached.",
@@ -152,12 +182,54 @@ internal static class MimeParser {
         }
 
         state.CountAttachment(decoded.LongLength);
-        document.Attachments.Add(CreateAttachment(headers, contentType, disposition, fileName,
-            inlineDisposition || additionalInlineBody, decoded, decoded.LongLength));
+        EmailAttachment attachment = CreateAttachment(headers, contentType, disposition, fileName,
+            inlineDisposition || additionalInlineBody, attachmentDisposition,
+            state.Options.IncludeAttachmentContent || semanticBodyPart ? decoded : null, decoded.LongLength);
+        if (semanticBodyPart) attachment.IsMimeBodyPart = true;
+        string? semanticCharset = contentType.GetParameter("charset");
+        int semanticDiagnosticStart = state.Diagnostics.Count;
+        bool shouldProjectSemantic = attachment.IsMimeBodyPart && (calendarContent || vcardContent);
+        string? semanticText = shouldProjectSemantic
+            ? MimeTextCodec.DecodeText(decoded, semanticCharset, state.Diagnostics, location)
+            : null;
+        bool semanticCharsetFallback = state.Diagnostics.Skip(semanticDiagnosticStart).Any(diagnostic =>
+            diagnostic.Code == "EMAIL_MIME_CHARSET_UNSUPPORTED");
+        if (calendarContent && attachment.IsMimeBodyPart && IcsCalendarCodec.TryProject(
+                semanticText!, document, state.Diagnostics, location, contentType.GetParameter("method"))) {
+            attachment.IsProjectedSemanticContent = true;
+        } else if (vcardContent && attachment.IsMimeBodyPart && VCardCodec.TryProject(
+                       semanticText!, document, state.Diagnostics, location)) {
+            attachment.IsProjectedSemanticContent = true;
+        }
+        if (attachment.IsProjectedSemanticContent && semanticCharsetFallback) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+        }
+        if (attachment.IsProjectedSemanticContent && vcardContent &&
+            HasUnpreservedVCardContentType(contentType)) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+        }
+        if (attachment.IsProjectedSemanticContent && mimeDepth > 0 &&
+            HasUnpreservedSemanticPartHeaders(headers)) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+        }
+        if (attachment.IsProjectedSemanticContent && document.Attachments.Any(existing =>
+            existing.IsProjectedSemanticContent)) document.MimeSemanticProjectionIsIncomplete = true;
+        document.Attachments.Add(attachment);
     }
 
+    private static bool HasUnpreservedSemanticPartHeaders(IEnumerable<EmailHeader> headers) =>
+        headers.Any(header =>
+            !header.Name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) &&
+            !header.Name.Equals("Content-Transfer-Encoding", StringComparison.OrdinalIgnoreCase));
+
+    private static bool HasUnpreservedVCardContentType(MimeValue contentType) =>
+        !contentType.Value.Equals("text/vcard", StringComparison.OrdinalIgnoreCase) ||
+        contentType.Parameters.Keys.Any(parameter =>
+            !parameter.Equals("charset", StringComparison.OrdinalIgnoreCase));
+
     private static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
-        MimeValue disposition, string? fileName, bool inlineDisposition, byte[]? content, long length) {
+        MimeValue disposition, string? fileName, bool inlineDisposition, bool attachmentDisposition,
+        byte[]? content, long length) {
         var attachment = new EmailAttachment {
             FileName = fileName,
             ContentType = contentType.Value,
@@ -167,7 +239,12 @@ internal static class MimeParser {
                 !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-ID")) ||
                 !string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-Location")),
             Length = length,
-            Content = content
+            Content = content,
+            IsMimeAttachment = attachmentDisposition,
+            IsMimeBodyPart = !attachmentDisposition && !inlineDisposition &&
+                string.IsNullOrWhiteSpace(fileName) &&
+                string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-ID")) &&
+                string.IsNullOrWhiteSpace(MimeHeaderParser.GetValue(headers, "Content-Location"))
         };
         foreach (KeyValuePair<string, string> parameter in contentType.Parameters) {
             if (!string.Equals(parameter.Key, "name", StringComparison.OrdinalIgnoreCase)) {

@@ -19,6 +19,12 @@ internal static class TnefWriter {
         return WriteMessage(document, options, diagnostics, 0);
     }
 
+    /// <summary>Returns whether raw TNEF attributes exist that only the TNEF writer can reproduce.</summary>
+    internal static bool HasUnmanagedRawAttributes(EmailDocument document) =>
+        document.TnefAttributes.Any(attribute => !ManagedMessageAttributes.Contains(attribute.Tag)) ||
+        document.Attachments.Any(attachment => attachment.TnefAttributes.Any(attribute =>
+            !ManagedAttachmentAttributes.Contains(attribute.Tag)));
+
     private static byte[] WriteMessage(EmailDocument document, EmailWriterOptions options,
         IList<EmailDiagnostic> diagnostics, int depth) {
         if (depth > options.MaxNestedMessageDepth) throw new InvalidOperationException("The embedded-message write depth exceeds the configured maximum.");
@@ -50,7 +56,7 @@ internal static class TnefWriter {
                     TnefMapiCodec.WriteRecipientTable(rows, codePage, diagnostics, "tnef/recipients"));
             }
 
-            MapiProperty[] messageProperties = MsgWriter.CreateMessageProperties(document, diagnostics, "tnef").Properties
+            MapiProperty[] messageProperties = MsgWriter.CreateMessageProperties(document, diagnostics, "tnef", options).Properties
                 .Where(property => !IsMessageAttributeProperty(property.PropertyId)).ToArray();
             if (messageProperties.Length > 0) {
                 WriteAttribute(output, TnefAttributeLevel.Message, TnefConstants.MessageProperties,
@@ -60,8 +66,10 @@ internal static class TnefWriter {
                 WriteAttribute(output, TnefAttributeLevel.Message, attribute.Tag, attribute.Data);
             }
 
-            for (int index = 0; index < document.Attachments.Count; index++) {
-                WriteAttachment(output, document.Attachments[index], index, codePage, options, diagnostics, depth);
+            EmailAttachment[] writableAttachments = document.Attachments.Where(attachment =>
+                !attachment.IsProjectedSemanticContent).ToArray();
+            for (int index = 0; index < writableAttachments.Length; index++) {
+                WriteAttachment(output, writableAttachments[index], index, codePage, options, diagnostics, depth);
             }
             return output.ToArray();
         }
@@ -69,6 +77,7 @@ internal static class TnefWriter {
 
     private static void WriteAttachment(Stream output, EmailAttachment attachment, int index, int codePage,
         EmailWriterOptions options, IList<EmailDiagnostic> diagnostics, int depth) {
+        byte[]? content = EmailAttachmentContent.ReadOrNull(attachment, options.MaxOutputBytes);
         int method = attachment.MapiAttachMethod ?? (attachment.EmbeddedDocument != null ? 5 :
             attachment.StructuredStorageStreams.Count > 0 ? 6 : 1);
         byte[] rendition = new byte[14];
@@ -80,23 +89,23 @@ internal static class TnefWriter {
             attachment.FileName, diagnostics, string.Concat(attachmentLocation, "/title"));
         WriteStringAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachTransportFilename, codePage,
             attachment.FileName, diagnostics, string.Concat(attachmentLocation, "/transport-filename"));
-        if (method == 1 && attachment.Content != null) {
-            WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachData, attachment.Content);
+        if (method == 1 && content != null) {
+            WriteAttribute(output, TnefAttributeLevel.Attachment, TnefConstants.AttachData, content);
         }
 
         MsgPropertyBuilder builder = MsgWriter.CreateAttachmentProperties(attachment, index, method, diagnostics,
-            attachmentLocation, attachment.EmbeddedDocument != null || attachment.Content != null);
+            attachmentLocation, attachment.EmbeddedDocument != null || content != null, content);
         var properties = builder.Properties.Where(property => !IsAttachmentAttributeProperty(property.PropertyId)).
             Select(Clone).ToList();
         if (method == 5 && attachment.EmbeddedDocument != null) {
             byte[] nested = WriteMessage(attachment.EmbeddedDocument, options, diagnostics, depth + 1);
             properties.RemoveAll(property => property.PropertyId == 0x3701);
             properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, Combine(IidMessage.ToByteArray(), nested)));
-        } else if (method == 5 && attachment.Content != null) {
-            byte[] opaque = attachment.Content.Length >= 16 &&
-                new Guid(MsgBinary.Slice(attachment.Content, 0, 16)) == IidMessage
-                    ? (byte[])attachment.Content.Clone()
-                    : Combine(IidMessage.ToByteArray(), attachment.Content);
+        } else if (method == 5 && content != null) {
+            byte[] opaque = content.Length >= 16 &&
+                new Guid(MsgBinary.Slice(content, 0, 16)) == IidMessage
+                    ? (byte[])content.Clone()
+                    : Combine(IidMessage.ToByteArray(), content);
             properties.RemoveAll(property => property.PropertyId == 0x3701);
             properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, opaque));
         } else if (method == 6 && attachment.StructuredStorageStreams.Count > 0) {
@@ -105,11 +114,11 @@ internal static class TnefWriter {
             byte[] compound = OfficeCompoundFileWriter.Write(compoundStreams);
             properties.RemoveAll(property => property.PropertyId == 0x3701);
             properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, Combine(IidStorage.ToByteArray(), compound)));
-        } else if (method == 6 && attachment.Content != null) {
-            byte[] opaque = attachment.Content.Length >= 16 &&
-                new Guid(MsgBinary.Slice(attachment.Content, 0, 16)) == IidStorage
-                    ? (byte[])attachment.Content.Clone()
-                    : Combine(IidStorage.ToByteArray(), attachment.Content);
+        } else if (method == 6 && content != null) {
+            byte[] opaque = content.Length >= 16 &&
+                new Guid(MsgBinary.Slice(content, 0, 16)) == IidStorage
+                    ? (byte[])content.Clone()
+                    : Combine(IidStorage.ToByteArray(), content);
             properties.RemoveAll(property => property.PropertyId == 0x3701);
             properties.Add(new MapiProperty(0x3701, MapiPropertyType.Object, opaque));
         }

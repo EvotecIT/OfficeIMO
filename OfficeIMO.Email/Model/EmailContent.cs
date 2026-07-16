@@ -24,6 +24,9 @@ public sealed class EmailAttachment {
     private readonly Dictionary<string, string> _contentTypeParameters = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly Dictionary<string, byte[]> _structuredStorageStreams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
     private readonly List<TnefAttribute> _tnefAttributes = new List<TnefAttribute>();
+    internal bool IsProjectedSemanticContent { get; set; }
+    internal bool IsMimeAttachment { get; set; }
+    internal bool IsMimeBodyPart { get; set; }
     /// <summary>Attachment filename.</summary>
     public string? FileName { get; set; }
 
@@ -65,6 +68,41 @@ public sealed class EmailAttachment {
 
     /// <summary>Decoded content when requested by reader options.</summary>
     public byte[]? Content { get; set; }
+
+    /// <summary>
+    /// Reopenable decoded content used when retaining a byte array is undesirable. Writers prefer
+    /// <see cref="Content"/> when both representations are present.
+    /// </summary>
+    public IEmailContentSource? ContentSource { get; set; }
+
+    /// <summary>Opens decoded attachment content without transferring ownership of the attachment.</summary>
+    public Stream OpenContentStream() {
+        if (Content != null) return new MemoryStream(Content, writable: false);
+        if (ContentSource != null) {
+            Stream stream = ContentSource.OpenRead();
+            if (stream == null || !stream.CanRead) {
+                stream?.Dispose();
+                throw new InvalidDataException("The attachment content source did not return a readable stream.");
+            }
+            return stream;
+        }
+        return new MemoryStream(Array.Empty<byte>(), writable: false);
+    }
+
+    /// <summary>Asynchronously opens decoded attachment content.</summary>
+    public async Task<Stream> OpenContentStreamAsync(CancellationToken cancellationToken = default) {
+        cancellationToken.ThrowIfCancellationRequested();
+        if (Content != null) return new MemoryStream(Content, writable: false);
+        if (ContentSource != null) {
+            Stream stream = await ContentSource.OpenReadAsync(cancellationToken).ConfigureAwait(false);
+            if (stream == null || !stream.CanRead) {
+                stream?.Dispose();
+                throw new InvalidDataException("The attachment content source did not return a readable stream.");
+            }
+            return stream;
+        }
+        return new MemoryStream(Array.Empty<byte>(), writable: false);
+    }
 
     /// <summary>Embedded message or Outlook item when the attachment is structured.</summary>
     public EmailDocument? EmbeddedDocument { get; set; }

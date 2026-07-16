@@ -20,6 +20,7 @@ public sealed class EmailDocumentWriter {
     public EmailWriteResult Write(EmailDocument document, string filePath, EmailFileFormat format = EmailFileFormat.Eml) {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         byte[] data = ToBytes(document, format, out EmailWriteResult result);
+        if (result.HasErrors && data.Length == 0) return result;
         OfficeFileCommit.WriteAllBytes(filePath, data);
         return result;
     }
@@ -29,13 +30,16 @@ public sealed class EmailDocumentWriter {
         if (stream == null) throw new ArgumentNullException(nameof(stream));
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         byte[] data = ToBytes(document, format, out EmailWriteResult result);
+        if (result.HasErrors && data.Length == 0) return result;
         OfficeStreamWriter.WriteAllBytes(stream, data);
         return result;
     }
 
     /// <summary>Writes an artifact to memory.</summary>
     public byte[] ToBytes(EmailDocument document, EmailFileFormat format = EmailFileFormat.Eml) {
-        return ToBytes(document, format, out _);
+        byte[] data = ToBytes(document, format, out EmailWriteResult result);
+        ThrowIfBlocked(result);
+        return data;
     }
 
     /// <summary>Asynchronously writes an artifact to a file.</summary>
@@ -44,6 +48,7 @@ public sealed class EmailDocumentWriter {
         if (filePath == null) throw new ArgumentNullException(nameof(filePath));
         cancellationToken.ThrowIfCancellationRequested();
         byte[] data = ToBytes(document, format, out EmailWriteResult result);
+        if (result.HasErrors && data.Length == 0) return result;
         cancellationToken.ThrowIfCancellationRequested();
         await OfficeFileCommit.WriteAllBytesAsync(filePath, data, cancellationToken: cancellationToken)
             .ConfigureAwait(false);
@@ -57,6 +62,7 @@ public sealed class EmailDocumentWriter {
         if (!stream.CanWrite) throw new ArgumentException("The stream must be writable.", nameof(stream));
         cancellationToken.ThrowIfCancellationRequested();
         byte[] data = ToBytes(document, format, out EmailWriteResult result);
+        if (result.HasErrors && data.Length == 0) return result;
         cancellationToken.ThrowIfCancellationRequested();
         await OfficeStreamWriter.WriteAllBytesAsync(stream, data, cancellationToken).ConfigureAwait(false);
         return result;
@@ -69,7 +75,8 @@ public sealed class EmailDocumentWriter {
         }
 
         List<EmailDiagnostic> diagnostics = new List<EmailDiagnostic>();
-        if (_options.UsePreservedRawSource && document.Format == format && document.RawSource != null) {
+        bool protectedPassThrough = EmailConversionAnalyzer.CanPassThroughProtectedSource(document, format);
+        if ((_options.UsePreservedRawSource || protectedPassThrough) && document.Format == format && document.RawSource != null) {
             byte[]? baseline = document.RawSourceModelFingerprint;
             if (baseline != null && EmailDocumentStateFingerprint.Matches(document, baseline)) {
                 EnsureOutputLimit(document.RawSource.LongLength);
@@ -82,7 +89,14 @@ public sealed class EmailDocumentWriter {
                 EmailDiagnosticSeverity.Warning));
         }
 
-        EmailOutputPreflight.EnsurePayloadsFit(document, _options.MaxOutputBytes);
+        EmailConversionReport conversion = EmailConversionAnalyzer.Analyze(document, format, _options);
+        diagnostics.AddRange(conversion.Diagnostics);
+        if (!conversion.CanWrite) {
+            result = new EmailWriteResult(0, diagnostics.AsReadOnly(), false);
+            return Array.Empty<byte>();
+        }
+
+        EmailOutputPreflight.EnsurePayloadsFit(document, format, _options.MaxOutputBytes);
         byte[] data = format == EmailFileFormat.Eml
             ? MimeWriter.Write(document, _options, diagnostics)
             : format == EmailFileFormat.OutlookMsg
@@ -97,5 +111,21 @@ public sealed class EmailDocumentWriter {
         if (length > _options.MaxOutputBytes) {
             throw new EmailLimitExceededException(nameof(EmailWriterOptions.MaxOutputBytes), length, _options.MaxOutputBytes);
         }
+    }
+
+    /// <summary>Analyzes known fidelity implications without producing output.</summary>
+    public EmailConversionReport AnalyzeConversion(EmailDocument document,
+        EmailFileFormat format = EmailFileFormat.Eml) {
+        if (format != EmailFileFormat.Eml && format != EmailFileFormat.OutlookMsg && format != EmailFileFormat.Tnef) {
+            throw new NotSupportedException("The requested email artifact format cannot be serialized.");
+        }
+        return EmailConversionAnalyzer.Analyze(document, format, _options);
+    }
+
+    private static void ThrowIfBlocked(EmailWriteResult result) {
+        if (!result.HasErrors) return;
+        EmailDiagnostic diagnostic = result.Diagnostics.First(item => item.Severity == EmailDiagnosticSeverity.Error);
+        throw new InvalidDataException(string.Concat("The email artifact could not be serialized: ",
+            diagnostic.Code, ": ", diagnostic.Message));
     }
 }

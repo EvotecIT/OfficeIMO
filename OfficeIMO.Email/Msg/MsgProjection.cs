@@ -49,6 +49,7 @@ internal static class MsgProjection {
             MimeHeaderParser.Parse(bytes, 0, bytes.Length, state.Options, parsedHeaders, state.Diagnostics,
                 string.Concat(location, "/transport-headers"));
             foreach (EmailHeader header in parsedHeaders) document.Headers.Add(header);
+            MimeMessageMetadataProjection.ApplyReceiptDestinations(document, parsedHeaders);
             document.From = document.From ?? MimeAddressParser.ParseOne(
                 MimeHeaderParser.GetRawValue(parsedHeaders, "From"), state.Diagnostics,
                 string.Concat(location, "/transport-headers/From"));
