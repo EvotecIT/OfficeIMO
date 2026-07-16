@@ -1567,7 +1567,8 @@ namespace OfficeIMO.Tests {
                 Assert.True(
                     expected[index].Record.Data.SequenceEqual(actual[index].Record.Data),
                     $"Worksheet record {index} (type {expected[index].Record.Type}, cell {expected[index].Cell}) changed unexpectedly. " +
-                    $"Expected {Convert.ToHexString(expected[index].Record.Data)}, actual {Convert.ToHexString(actual[index].Record.Data)}.");
+                    $"Expected {BitConverter.ToString(expected[index].Record.Data).Replace("-", string.Empty)}, " +
+                    $"actual {BitConverter.ToString(actual[index].Record.Data).Replace("-", string.Empty)}.");
             }
         }
 
