@@ -49,8 +49,15 @@ using OfficeIMO.Drawing;
 OfficeImageInfo info = OfficeImageReader.Identify("logo.png");
 Console.WriteLine($"{info.Width}x{info.Height} {info.MimeType}");
 
+// Use content verification when an extension must not identify invalid bytes.
+byte[] bytes = File.ReadAllBytes("upload.svg");
+bool verified = OfficeImageReader.TryIdentifyByContent(bytes, "upload.svg", out OfficeImageInfo upload);
+
 OfficeImageFit fit = OfficeImageFit.Contain;
 ```
+
+`TryIdentify(...)` retains the metadata reader's extension fallback. `TryIdentifyByContent(...)`
+may use a file name to select the SVG parser, but succeeds only when the bytes match a supported format.
 
 ### Encode common raster formats
 

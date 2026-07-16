@@ -13,11 +13,14 @@ public sealed class ReaderAllPresetTests {
         "officeimo.reader.emailstore",
         "officeimo.reader.epub",
         "officeimo.reader.html",
+        "officeimo.reader.image",
         "officeimo.reader.json",
         "officeimo.reader.latex",
+        "officeimo.reader.notebook",
         "officeimo.reader.opendocument",
         "officeimo.reader.pdf",
         "officeimo.reader.rtf",
+        "officeimo.reader.subtitles",
         "officeimo.reader.visio",
         "officeimo.reader.xml",
         "officeimo.reader.yaml",
@@ -56,7 +59,6 @@ public sealed class ReaderAllPresetTests {
             "data.csv");
         Assert.Equal(2, document.Chunks.Count);
     }
-
     [Fact]
     public void PresetPreservesOpenDocumentRoutingWhenContentIsPreferred() {
         OdtDocument text = OdtDocument.Create();

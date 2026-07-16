@@ -33,6 +33,13 @@ public sealed class ReaderHandlerRegistration {
     public ReaderInputKind Kind { get; set; } = ReaderInputKind.Unknown;
 
     /// <summary>
+    /// Gets or sets whether this handler may be selected as the sole custom fallback for a detected
+    /// <see cref="Kind"/> when no registered extension matches. Default: true.
+    /// Set false for extension-specific formats that share a broader detected kind.
+    /// </summary>
+    public bool UseDetectedKindFallback { get; set; } = true;
+
+    /// <summary>
     /// File extensions handled by this registration (for example: ".epub", ".zip").
     /// </summary>
     public IReadOnlyList<string> Extensions { get; set; } = Array.Empty<string>();

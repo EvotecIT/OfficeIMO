@@ -17,7 +17,19 @@ internal static partial class DocumentReaderEngine {
         ReaderInputKind fallbackKind,
         OfficeDocumentSource? source = null,
         IEnumerable<string>? capabilities = null,
-        IReadOnlyList<OfficeDocumentAsset>? assets = null) {
+        IReadOnlyList<OfficeDocumentAsset>? assets = null) =>
+        CreateDocumentResult(chunks, fallbackKind, source, capabilities, assets, ocrCandidates: null);
+
+    /// <summary>
+    /// Creates the shared v5 document envelope with adapter-produced OCR candidates.
+    /// </summary>
+    public static OfficeDocumentReadResult CreateDocumentResult(
+        IEnumerable<ReaderChunk> chunks,
+        ReaderInputKind fallbackKind,
+        OfficeDocumentSource? source,
+        IEnumerable<string>? capabilities,
+        IReadOnlyList<OfficeDocumentAsset>? assets,
+        IReadOnlyList<OfficeDocumentOcrCandidate>? ocrCandidates) {
         if (chunks == null) throw new ArgumentNullException(nameof(chunks));
         ReaderChunk[] materializedChunks = chunks.ToArray();
         ReaderChunk? first = materializedChunks.Length == 0 ? null : materializedChunks[0];
@@ -34,7 +46,8 @@ internal static partial class DocumentReaderEngine {
             sourceName,
             fallbackKind,
             effectiveSource,
-            assets);
+            assets,
+            ocrCandidates: ocrCandidates);
         if (capabilities != null) {
             result.CapabilitiesUsed = result.CapabilitiesUsed
                 .Concat(capabilities)

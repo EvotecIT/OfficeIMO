@@ -582,6 +582,14 @@ _Dependency footprint:_ only OfficeIMO Reader, Reader.Html, and EPUB.
 
 _Dependency footprint:_ only OfficeIMO Reader, HTML, Markdown, and Markdown.Html; DOM parsing comes from `OfficeIMO.Html`.
 
+#### [OfficeIMO.Reader.Image](OfficeIMO.Reader.Image/README.md)
+
+- [x] Standalone PNG, JPEG, GIF, BMP, TIFF, SVG, EMF, WMF, ICO, PCX, and WebP registration
+- [x] Header-level format, dimensions, DPI, asset, visual, and OCR-candidate projection
+- [x] Optional payload retention without pixel decoding or OCR execution
+
+_Dependency footprint:_ only OfficeIMO Reader; image identification comes from Reader's existing Drawing dependency.
+
 #### [OfficeIMO.Reader.Json](OfficeIMO.Reader.Json/README.md)
 
 - [x] JSON AST traversal into path/type/value rows
@@ -597,6 +605,14 @@ _Dependency footprint:_ `System.Text.Json` plus OfficeIMO Reader.
 - [x] Visible source fallbacks and warnings for content outside the bounded document profile
 
 _Dependency footprint:_ only OfficeIMO Reader, LaTeX, and LaTeX.Markdown.
+
+#### [OfficeIMO.Reader.Notebook](OfficeIMO.Reader.Notebook/README.md)
+
+- [x] Bounded Jupyter `.ipynb` Markdown, raw, and code-cell projection
+- [x] Text, Markdown, stream, and error outputs with explicit count and character limits
+- [x] Deterministic ingestion without running kernels or executing cells
+
+_Dependency footprint:_ only OfficeIMO Reader; JSON comes from Reader's established runtime graph.
 
 #### [OfficeIMO.Reader.OpenDocument](OfficeIMO.Reader.OpenDocument/README.md)
 
@@ -637,6 +653,14 @@ _Dependency footprint:_ only OfficeIMO Reader and the first-party OfficeIMO PDF 
 - [x] Shared reports for flattened, omitted, and blocked RTF features
 
 _Dependency footprint:_ only OfficeIMO Reader and the first-party OfficeIMO RTF engine.
+
+#### [OfficeIMO.Reader.Subtitles](OfficeIMO.Reader.Subtitles/README.md)
+
+- [x] Local SubRip (`.srt`) and WebVTT (`.vtt`) ingestion
+- [x] Source-ordered cue chunks with line locations and machine-readable timing metadata
+- [x] Bounded cue parsing and optional markup stripping without media or transcription tooling
+
+_Dependency footprint:_ only OfficeIMO Reader and platform APIs; no audio codec, downloader, or model.
 
 #### [OfficeIMO.Reader.Visio](OfficeIMO.Reader.Visio/README.md)
 

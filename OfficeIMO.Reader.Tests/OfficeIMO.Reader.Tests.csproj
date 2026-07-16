@@ -46,10 +46,13 @@
     <ProjectReference Include="..\OfficeIMO.Reader.EmailStore\OfficeIMO.Reader.EmailStore.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Image\OfficeIMO.Reader.Image.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Notebook\OfficeIMO.Reader.Notebook.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.OpenDocument\OfficeIMO.Reader.OpenDocument.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Subtitles\OfficeIMO.Reader.Subtitles.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj" />
     <ProjectReference Include="..\OfficeIMO.Reader.Yaml\OfficeIMO.Reader.Yaml.csproj" />

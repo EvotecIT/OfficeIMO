@@ -73,6 +73,7 @@ internal static partial class DocumentReaderEngine {
             ReaderChunk chunk = chunks[index];
             ProcessedChunkState? prior = FindOriginalChunk(chunk, index, snapshot.Chunks);
             if (!prior.HasValue) continue;
+            if (prior.Value.ContinuesPreviousChunk) chunk.ContinuesPreviousChunk = true;
             bool textChanged = !string.Equals(chunk.Text, prior.Value.Text, StringComparison.Ordinal);
             bool markdownChanged = !string.Equals(chunk.Markdown, prior.Value.Markdown, StringComparison.Ordinal);
             if (textChanged && !markdownChanged) chunk.Markdown = null;
@@ -112,7 +113,12 @@ internal static partial class DocumentReaderEngine {
             document,
             chunkDerived,
             document.Markdown,
-            chunks.Select(static chunk => new ProcessedChunkState(chunk, chunk?.Id, chunk?.Text, chunk?.Markdown)).ToArray(),
+            chunks.Select(static chunk => new ProcessedChunkState(
+                chunk,
+                chunk?.Id,
+                chunk?.Text,
+                chunk?.Markdown,
+                chunk?.ContinuesPreviousChunk == true)).ToArray(),
             blocks.Select(static block => new ProcessedBlockState(block, block?.Id, block?.Kind, block?.Text, block?.Location)).ToArray());
     }
 
@@ -147,7 +153,8 @@ internal static partial class DocumentReaderEngine {
             if (!ReferenceEquals(chunk, state.Chunk) ||
                 !string.Equals(chunk.Id, state.Id, StringComparison.Ordinal) ||
                 !string.Equals(chunk.Text, state.Text, StringComparison.Ordinal) ||
-                !string.Equals(chunk.Markdown, state.Markdown, StringComparison.Ordinal)) return true;
+                !string.Equals(chunk.Markdown, state.Markdown, StringComparison.Ordinal) ||
+                chunk.ContinuesPreviousChunk != state.ContinuesPreviousChunk) return true;
         }
         return false;
     }
@@ -187,18 +194,14 @@ internal static partial class DocumentReaderEngine {
     private static string? BuildProcessedChunkMarkdown(
         IReadOnlyList<ReaderChunk> chunks,
         IReadOnlyList<ProcessedChunkState> original) {
-        var parts = new List<string>();
-        for (int index = 0; index < chunks.Count; index++) {
-            ReaderChunk chunk = chunks[index];
+        return JoinChunkMarkdown(chunks, (chunk, index) => {
             ProcessedChunkState? prior = FindOriginalChunk(chunk, index, original);
             bool textChanged = prior.HasValue && !string.Equals(chunk.Text, prior.Value.Text, StringComparison.Ordinal);
             bool markdownChanged = prior.HasValue && !string.Equals(chunk.Markdown, prior.Value.Markdown, StringComparison.Ordinal);
-            string? value = textChanged && !markdownChanged
+            return textChanged && !markdownChanged
                 ? chunk.Text
                 : (string.IsNullOrWhiteSpace(chunk.Markdown) ? chunk.Text : chunk.Markdown);
-            if (!string.IsNullOrWhiteSpace(value)) parts.Add(value!);
-        }
-        return parts.Count == 0 ? null : string.Join(Environment.NewLine + Environment.NewLine, parts);
+        });
     }
 
     private static ProcessedChunkState? FindOriginalChunk(
@@ -280,17 +283,24 @@ internal sealed class ProcessedChunkAggregateSnapshot {
 }
 
 internal readonly struct ProcessedChunkState {
-    internal ProcessedChunkState(ReaderChunk? chunk, string? id, string? text, string? markdown) {
+    internal ProcessedChunkState(
+        ReaderChunk? chunk,
+        string? id,
+        string? text,
+        string? markdown,
+        bool continuesPreviousChunk) {
         Chunk = chunk;
         Id = id;
         Text = text;
         Markdown = markdown;
+        ContinuesPreviousChunk = continuesPreviousChunk;
     }
 
     internal ReaderChunk? Chunk { get; }
     internal string? Id { get; }
     internal string? Text { get; }
     internal string? Markdown { get; }
+    internal bool ContinuesPreviousChunk { get; }
 }
 
 internal readonly struct ProcessedBlockState {

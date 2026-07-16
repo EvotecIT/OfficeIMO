@@ -1208,13 +1208,8 @@ public class PdfDocumentImageValidationTests {
         stream.WriteByte((byte)(crc & 0xFF));
     }
 
-    private static byte[] CreateMinimalGif() {
-        return new byte[] {
-            (byte)'G', (byte)'I', (byte)'F', (byte)'8', (byte)'9', (byte)'a',
-            1, 0,
-            1, 0
-        };
-    }
+    private static byte[] CreateMinimalGif() =>
+        Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 
     private static byte[] CreateMinimalJpeg(int width, int height) {
         return new byte[] {
