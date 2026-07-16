@@ -1,5 +1,7 @@
 using OfficeIMO.Email;
 using OfficeIMO.Email.Store;
+using OfficeIMO.Reader;
+using OfficeIMO.Reader.EmailStore;
 using System.Text;
 
 byte[] eml = Encoding.ASCII.GetBytes(
@@ -31,4 +33,24 @@ using (var stream = new MemoryStream(emlx, writable: false)) {
     }
 }
 
-Console.WriteLine($"OfficeIMO.Email and OfficeIMO.Email.Store package smoke passed on {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}.");
+string storePath = Path.Combine(Path.GetTempPath(),
+    "officeimo-reader-email-store-package-smoke-" + Guid.NewGuid().ToString("N") + ".emlx");
+try {
+    File.WriteAllBytes(storePath, emlx);
+    OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+        .AddEmailStoreHandler()
+        .Build();
+    ReaderEmailStoreItemResult readerItem = reader.ReadEmailStoreItems(
+        storePath,
+        new ReaderOptions { ComputeHashes = false },
+        new ReaderEmailStoreOptions { MaxItems = 1 }).Single();
+    if (!readerItem.Succeeded ||
+        !readerItem.Chunks.Any(chunk => chunk.Text.Contains("Store body", StringComparison.Ordinal))) {
+        throw new InvalidOperationException(
+            "The packed OfficeIMO.Reader.EmailStore dependency graph could not project an EMLX item.");
+    }
+} finally {
+    if (File.Exists(storePath)) File.Delete(storePath);
+}
+
+Console.WriteLine($"OfficeIMO Email and Reader email-store package smoke passed on {System.Runtime.InteropServices.RuntimeInformation.FrameworkDescription}.");

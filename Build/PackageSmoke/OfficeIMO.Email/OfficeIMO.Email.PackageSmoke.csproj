@@ -6,6 +6,8 @@
     <EnableOfficeIMOEmailPackageSmoke Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == ''">false</EnableOfficeIMOEmailPackageSmoke>
     <OfficeIMOEmailPackageVersion Condition="'$(OfficeIMOEmailPackageVersion)' == ''">0.1.0</OfficeIMOEmailPackageVersion>
     <OfficeIMOEmailStorePackageVersion Condition="'$(OfficeIMOEmailStorePackageVersion)' == ''">0.1.0</OfficeIMOEmailStorePackageVersion>
+    <OfficeIMOReaderPackageVersion Condition="'$(OfficeIMOReaderPackageVersion)' == ''">0.1.0</OfficeIMOReaderPackageVersion>
+    <OfficeIMOReaderEmailStorePackageVersion Condition="'$(OfficeIMOReaderEmailStorePackageVersion)' == ''">0.1.0</OfficeIMOReaderEmailStorePackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
@@ -15,10 +17,12 @@
   <ItemGroup Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == 'true'">
     <PackageReference Include="OfficeIMO.Email" Version="[$(OfficeIMOEmailPackageVersion)]" />
     <PackageReference Include="OfficeIMO.Email.Store" Version="[$(OfficeIMOEmailStorePackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Reader" Version="[$(OfficeIMOReaderPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Reader.EmailStore" Version="[$(OfficeIMOReaderEmailStorePackageVersion)]" />
   </ItemGroup>
 
   <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
           Condition="'$(EnableOfficeIMOEmailPackageSmoke)' != 'true'">
-    <Error Text="Set EnableOfficeIMOEmailPackageSmoke=true and restore from a feed containing the packed OfficeIMO.Email and OfficeIMO.Email.Store packages." />
+    <Error Text="Set EnableOfficeIMOEmailPackageSmoke=true and restore from a feed containing the packed OfficeIMO.Email, OfficeIMO.Email.Store, OfficeIMO.Reader, and OfficeIMO.Reader.EmailStore packages." />
   </Target>
 </Project>
