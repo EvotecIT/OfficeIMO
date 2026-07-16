@@ -176,6 +176,113 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void RecursiveContentIsRejectedAcrossTextMarkdownHtmlAndPdfProjection() {
+        var section = new OneNoteSection { Name = "Cycle" };
+        var page = new OneNotePage { Title = "Recursive" };
+        var outline = new OneNoteOutline();
+        outline.Children.Add(outline);
+        page.Outlines.Add(outline);
+        section.Pages.Add(page);
+
+        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => OneNoteMarkdownProjection.ToText(outline));
+        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => OneNoteMarkdownProjection.ToMarkdown(outline));
+        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToMarkdown());
+        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToHtmlDocument());
+        AssertProjectionError("ONENOTE_PROJECTION_CONTENT_CYCLE", () => section.ToPdf());
+    }
+
+    [Fact]
+    public void NotebookProjectionRejectsCyclicAndExcessivelyDeepSectionGroups() {
+        var cyclicNotebook = new OneNoteNotebook { Name = "Cyclic" };
+        var cyclicGroup = new OneNoteSectionGroup { Name = "Loop" };
+        cyclicGroup.SectionGroups.Add(cyclicGroup);
+        cyclicNotebook.SectionGroups.Add(cyclicGroup);
+
+        AssertProjectionError("ONENOTE_PROJECTION_GROUP_CYCLE", () => cyclicNotebook.ToMarkdown());
+
+        var deepNotebook = new OneNoteNotebook { Name = "Deep" };
+        var parent = new OneNoteSectionGroup { Name = "Parent" };
+        parent.SectionGroups.Add(new OneNoteSectionGroup { Name = "Child" });
+        deepNotebook.SectionGroups.Add(parent);
+
+        AssertProjectionError(
+            "ONENOTE_PROJECTION_GROUP_DEPTH",
+            () => deepNotebook.ToMarkdown(new OneNoteMarkdownOptions { MaxSectionGroupDepth = 1 }));
+    }
+
+    [Fact]
+    public void RelatedPageCyclesRemainIgnoredUntilTheirProjectionIsRequested() {
+        var section = new OneNoteSection { Name = "Related" };
+        var conflict = new OneNotePage { Title = "Conflict root" };
+        conflict.ConflictPages.Add(conflict);
+        section.Pages.Add(conflict);
+        var version = new OneNotePage { Title = "Version root" };
+        version.VersionHistory.Add(version);
+        section.Pages.Add(version);
+
+        string currentOnly = section.ToMarkdown();
+
+        Assert.Contains("Conflict root", currentOnly, StringComparison.Ordinal);
+        Assert.Contains("Version root", currentOnly, StringComparison.Ordinal);
+        AssertProjectionError(
+            "ONENOTE_PROJECTION_PAGE_CYCLE",
+            () => section.ToMarkdown(new OneNoteMarkdownOptions { IncludeConflictPages = true }));
+        AssertProjectionError(
+            "ONENOTE_PROJECTION_PAGE_CYCLE",
+            () => section.ToMarkdown(new OneNoteMarkdownOptions { IncludeVersionHistory = true }));
+    }
+
+    [Fact]
+    public void ProjectionRejectsConfiguredPageAndContentDepthOverruns() {
+        var page = new OneNotePage { Title = "Deep page" };
+        page.ConflictPages.Add(new OneNotePage { Title = "Nested" });
+        var section = new OneNoteSection { Name = "Depth" };
+        section.Pages.Add(page);
+        AssertProjectionError(
+            "ONENOTE_PROJECTION_PAGE_DEPTH",
+            () => section.ToMarkdown(new OneNoteMarkdownOptions {
+                IncludeConflictPages = true,
+                MaxPageRelationshipDepth = 1
+            }));
+
+        var parent = new OneNoteOutline();
+        parent.Children.Add(new OneNoteParagraph());
+        AssertProjectionError(
+            "ONENOTE_PROJECTION_CONTENT_DEPTH",
+            () => new OneNoteSection {
+                Pages = { new OneNotePage { Outlines = { parent } } }
+            }.ToMarkdown(new OneNoteMarkdownOptions { MaxContentDepth = 1 }));
+    }
+
+    [Fact]
+    public void ProjectionRejectsSharedModelInstancesBeforeRepeatedExpansion() {
+        var sharedContent = new OneNoteParagraph();
+        var contentPage = new OneNotePage { Title = "Content" };
+        contentPage.DirectContent.Add(sharedContent);
+        contentPage.DirectContent.Add(sharedContent);
+        var contentSection = new OneNoteSection { Pages = { contentPage } };
+        AssertProjectionError("ONENOTE_PROJECTION_SHARED_CONTENT", () => contentSection.ToMarkdown());
+
+        var sharedPage = new OneNotePage { Title = "Page" };
+        var pageSection = new OneNoteSection { Pages = { sharedPage, sharedPage } };
+        AssertProjectionError("ONENOTE_PROJECTION_SHARED_PAGE", () => pageSection.ToMarkdown());
+
+        var sharedGroup = new OneNoteSectionGroup { Name = "Group" };
+        var notebook = new OneNoteNotebook { SectionGroups = { sharedGroup, sharedGroup } };
+        AssertProjectionError("ONENOTE_PROJECTION_SHARED_GROUP", () => notebook.ToMarkdown());
+    }
+
+    [Fact]
+    public void ProjectionDepthOptionsEnforceTheHardTraversalCeiling() {
+        int invalid = OneNoteWriterOptions.MaximumTraversalDepth + 1;
+        var section = new OneNoteSection();
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownOptions { MaxSectionGroupDepth = invalid }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownOptions { MaxPageRelationshipDepth = invalid }));
+        Assert.Throws<ArgumentOutOfRangeException>(() => section.ToMarkdown(new OneNoteMarkdownOptions { MaxContentDepth = invalid }));
+    }
+
+    [Fact]
     public void MarkdownProjectionKeepsLiteralLineStartsInsideTheirSourceBlocks() {
         var section = new OneNoteSection { Name = "Projection" };
         var page = new OneNotePage { Title = "Title\n# literal heading" };
@@ -258,6 +365,11 @@ public sealed class ConverterTests {
         var section = new OneNoteSection { Name = sectionName };
         section.Pages.Add(new OneNotePage { Title = pageTitle });
         return section;
+    }
+
+    private static void AssertProjectionError(string code, Action action) {
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(action);
+        Assert.Equal(code, exception.Code);
     }
 
     private static OneNoteNotebook CreateNotebook() {

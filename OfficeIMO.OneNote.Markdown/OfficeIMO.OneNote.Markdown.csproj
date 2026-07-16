@@ -40,4 +40,7 @@
     <Using Include="System.Threading" />
     <Using Include="System.Threading.Tasks" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OfficeIMO.Reader.OneNote" />
+  </ItemGroup>
 </Project>

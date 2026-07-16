@@ -23,4 +23,6 @@ string markdownWithHistory = section.ToMarkdown(options);
 
 Projection normalizes OneNote/RichEdit vertical-tab and form-feed paragraph separators to line breaks. Unsupported control characters, Unicode noncharacters, and unpaired surrogate code units are replaced with `?` so Markdown, HTML, and PDF consumers receive valid text. The original OneNote model is not mutated.
 
+Caller-created models are validated before projection. Cyclic or shared section groups, pages, and content elements fail with a bounded `OneNoteFormatException` instead of recursing indefinitely or expanding the same graph repeatedly. `MaxSectionGroupDepth` defaults to 32, while `MaxPageRelationshipDepth` and `MaxContentDepth` default to 128; all three can be tightened up to the hard ceiling of 256. Conflict and version relationships are validated only when their projection is requested.
+
 The package is MIT licensed and has no Graph, GraphEssentialsX, COM, or installed-OneNote dependency.

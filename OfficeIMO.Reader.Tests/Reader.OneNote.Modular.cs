@@ -83,6 +83,32 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
+    public void OneNoteAdapterRejectsRecursiveModelGraphsBeforeProjectionTraversal() {
+        var contentSection = new OneNoteSection { Name = "Content" };
+        var contentPage = new OneNotePage { Title = "Cycle" };
+        var outline = new OneNoteOutline();
+        outline.Children.Add(outline);
+        contentPage.Outlines.Add(outline);
+        contentSection.Pages.Add(contentPage);
+        OneNoteFormatException contentError = Assert.Throws<OneNoteFormatException>(() => OneNoteReaderAdapter.ReadDocument(contentSection));
+        Assert.Equal("ONENOTE_PROJECTION_CONTENT_CYCLE", contentError.Code);
+
+        var relatedSection = new OneNoteSection { Name = "Related" };
+        var relatedPage = new OneNotePage { Title = "Cycle" };
+        relatedPage.VersionHistory.Add(relatedPage);
+        relatedSection.Pages.Add(relatedPage);
+        OneNoteFormatException relatedError = Assert.Throws<OneNoteFormatException>(() => OneNoteReaderAdapter.ReadDocument(relatedSection));
+        Assert.Equal("ONENOTE_PROJECTION_PAGE_CYCLE", relatedError.Code);
+
+        var notebook = new OneNoteNotebook { Name = "Notebook" };
+        var group = new OneNoteSectionGroup { Name = "Cycle" };
+        group.SectionGroups.Add(group);
+        notebook.SectionGroups.Add(group);
+        OneNoteFormatException groupError = Assert.Throws<OneNoteFormatException>(() => OneNoteReaderAdapter.ReadDocument(notebook));
+        Assert.Equal("ONENOTE_PROJECTION_GROUP_CYCLE", groupError.Code);
+    }
+
+    [Fact]
     public void OneNoteAdapter_EmitsUnresolvedImageMetadataAndConvertsHalfInchesToPixels() {
         var section = new OneNoteSection { Name = "Images" };
         var page = new OneNotePage { Title = "Page" };

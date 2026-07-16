@@ -487,6 +487,7 @@ _Dependency footprint:_ only OfficeIMO Markdown, PDF, and Drawing packages.
 - [x] Shared semantic projection for OneNote hierarchy, rich text, lists, tables, links, assets, math, conflicts, and version history
 - [x] Markdown text, UTF-8 bytes, and typed `MarkdownDoc` output
 - [x] Safe RichEdit/control/noncharacter normalization without mutating the native model
+- [x] Bounded cycle, shared-instance, and depth validation across hierarchy, related pages, and recursive content
 
 _Dependency footprint:_ only OfficeIMO OneNote and Markdown; it is the single projection owner used by Reader, HTML, and PDF.
 
@@ -653,6 +654,7 @@ _Dependency footprint:_ only OfficeIMO Reader; JSON comes from Reader's establis
 - [x] Offline `.one`, `.onetoc2`, and `.onepkg` path/stream ingestion with async, non-seekable, cancellation, and input-limit behavior
 - [x] Page/subpage hierarchy, chunks, tables, links, assets, metadata, conflicts/version counts, diagnostics, hashes, and Markdown/text projections
 - [x] Current-only default with explicit conflict/version/recycle-bin opt-ins and unresolved-image metadata
+- [x] Complete-graph projection validation before chunks, tables, assets, links, and metadata traversal
 - [x] Thin registration over the native OneNote engine and shared OneNote.Markdown projection
 
 _Dependency footprint:_ only OfficeIMO Reader, OneNote, and OneNote.Markdown.

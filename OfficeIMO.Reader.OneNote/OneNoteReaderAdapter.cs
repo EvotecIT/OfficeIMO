@@ -167,6 +167,7 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions reader,
         ReaderOneNoteOptions native,
         CancellationToken cancellationToken) {
+        OneNoteMarkdownModelValidator.ValidateSection(section, CreateProjectionValidationOptions(native));
         PageSelection selection = SelectPages(section, native);
         ReaderChunk[] chunks = BuildChunks(selection.Section, source, reader, cancellationToken, selection.Hierarchy).ToArray();
         return new ReadContext(selection.Section, section, null, selection.Hierarchy, source, reader, native, chunks);
@@ -178,6 +179,7 @@ internal static partial class OneNoteReaderAdapter {
         ReaderOptions reader,
         ReaderOneNoteOptions native,
         CancellationToken cancellationToken) {
+        OneNoteMarkdownModelValidator.ValidateNotebook(notebook, CreateProjectionValidationOptions(native));
         string notebookName = string.IsNullOrWhiteSpace(notebook.Name) ? "OneNote notebook" : OneNoteTextProjection.Normalize(notebook.Name);
         var aggregate = new OneNoteSection { Name = notebookName, SourcePath = notebook.SourcePath };
         var metadataAggregate = new OneNoteSection { Name = notebookName, SourcePath = notebook.SourcePath };
@@ -237,6 +239,17 @@ internal static partial class OneNoteReaderAdapter {
             chunks.Add(chunk);
         }
         return new ReadContext(aggregate, metadataAggregate, notebook, pageHierarchy, source, reader, native, chunks.ToArray());
+    }
+
+    private static OneNoteMarkdownOptions CreateProjectionValidationOptions(ReaderOneNoteOptions options) {
+        return new OneNoteMarkdownOptions {
+            // Reader metadata counts all related pages even when their chunk projection is disabled.
+            IncludeConflictPages = true,
+            IncludeVersionHistory = true,
+            MaxSectionGroupDepth = Math.Min(OneNoteWriterOptions.MaximumTraversalDepth, options.NotebookOptions.MaxSectionGroupDepth),
+            MaxPageRelationshipDepth = Math.Min(OneNoteWriterOptions.MaximumTraversalDepth, options.OneNoteOptions.MaxPageRelationshipDepth),
+            MaxContentDepth = Math.Min(OneNoteWriterOptions.MaximumTraversalDepth, options.OneNoteOptions.MaxPropertySetDepth)
+        }.CloneValidated();
     }
 
     private static IEnumerable<NotebookSectionScope> EnumerateNotebookSections(OneNoteNotebook notebook, string notebookName) {
