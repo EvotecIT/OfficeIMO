@@ -25,7 +25,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? fieldInstruction = null,
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
             string? language = null,
-            string? eastAsiaLanguage = null)
+            string? eastAsiaLanguage = null,
+            LegacyDocPicture? picture = null)
             : this(
                 text,
                 bold,
@@ -53,7 +54,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 specified,
                 characterSpacingTwips: null,
                 language: language,
-                eastAsiaLanguage: eastAsiaLanguage) {
+                eastAsiaLanguage: eastAsiaLanguage,
+                picture: picture) {
         }
 
         internal LegacyDocTextRun(
@@ -83,7 +85,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
             int? characterSpacingTwips = null,
             string? language = null,
-            string? eastAsiaLanguage = null) {
+            string? eastAsiaLanguage = null,
+            LegacyDocPicture? picture = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -107,6 +110,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CharacterSpacingTwips = characterSpacingTwips;
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
+            Picture = picture;
             CharacterPositions = characterPositions.Count == 0
                 ? Array.Empty<int>()
                 : characterPositions.ToArray();
@@ -158,6 +162,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? Language { get; }
 
         internal string? EastAsiaLanguage { get; }
+
+        internal LegacyDocPicture? Picture { get; }
 
         internal IReadOnlyList<int> CharacterPositions { get; }
 

@@ -23,6 +23,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCRgFtc0 = 0x4A4F;
         private const ushort SprmCFDStrike = 0x2A53;
         private const ushort SprmCCv = 0x6870;
+        private const ushort SprmCPicLocation = 0x6A03;
 
         internal static IReadOnlyList<LegacyDocCharacterFormatRange> ReadCharacterFormatting(
             byte[] wordDocumentStream,
@@ -137,6 +138,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? characterSpacingTwips = null;
             string? language = null;
             string? eastAsiaLanguage = null;
+            int? pictureDataOffset = null;
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None;
 
             while (offset + 2 <= end) {
@@ -301,6 +303,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmCPicLocation) {
+                    if (offset + 6 > end) {
+                        break;
+                    }
+
+                    pictureDataOffset = LegacyDocFib.ReadInt32(bytes, offset + 2);
+                    offset += 6;
+                    continue;
+                }
+
                 if (!TryGetSprmOperandLength(bytes, offset, end, out int operandLength)) {
                     break;
                 }
@@ -312,7 +324,29 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, characterSpacingTwips, language, eastAsiaLanguage, specified);
+            return new LegacyDocCharacterFormat(
+                bold,
+                italic,
+                strike,
+                doubleStrike,
+                outline,
+                shadow,
+                emboss,
+                imprint,
+                hidden,
+                noProof,
+                capsKind,
+                verticalPosition,
+                underline,
+                highlight,
+                fontSizeHalfPoints,
+                colorHex,
+                fontFamily,
+                characterSpacingTwips,
+                language,
+                eastAsiaLanguage,
+                specified,
+                pictureDataOffset);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {

@@ -200,7 +200,26 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             AddUnsupportedParagraphFormattingFeaturesIfPresent(paragraphFormattingRanges, options.ReportUnsupportedContent);
 
-            Text = BuildFormattedParagraphs(textContent.Characters, formattingRanges, paragraphFormattingRanges, Sections, bookmarkProjection, options.ReportUnsupportedContent);
+            byte[] dataStream = TryGetRootStream(compoundFile, "Data", out byte[]? dataStreamCandidate)
+                ? dataStreamCandidate!
+                : Array.Empty<byte>();
+            LegacyDocPictureReader.LegacyDocPictureReadResult pictures = LegacyDocPictureReader.Read(
+                dataStream,
+                textContent.Characters,
+                formattingRanges,
+                fib.CcpText);
+            if (pictures.Warning != null) {
+                AddWarning("DOC-PICTURE-DATA-INVALID", pictures.Warning);
+            }
+
+            Text = BuildFormattedParagraphs(
+                textContent.Characters,
+                formattingRanges,
+                paragraphFormattingRanges,
+                Sections,
+                bookmarkProjection,
+                pictures.PicturesByCharacterPosition,
+                options.ReportUnsupportedContent);
             Footnotes = LegacyDocFootnoteReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? footnoteWarning);
             if (footnoteWarning != null) {
                 AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
@@ -217,7 +236,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             TextBoxStories = LegacyDocTextBoxStoryReader.Read(textContent, fib, formattingRanges, bookmarkProjection);
-            AddKnownUnsupportedFeatureDiagnostics(compoundFile, tableStream, fib, options.ReportUnsupportedContent);
+            AddKnownUnsupportedFeatureDiagnostics(
+                compoundFile,
+                tableStream,
+                fib,
+                pictures.FullyProjectsDataStream,
+                options.ReportUnsupportedContent);
 
             HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, formattingRanges, paragraphFormattingRanges, bookmarkProjection, out string? headerFooterWarning);
             if (headerFooterWarning != null) {
@@ -243,8 +267,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return compoundFile.Streams.TryGetValue(name, out bytes);
         }
 
-        private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, byte[] tableStream, LegacyDocFib fib, bool reportDiagnostic) {
-            AddUnsupportedFibFlagFeatures(fib, reportDiagnostic);
+        private void AddKnownUnsupportedFeatureDiagnostics(OfficeCompoundFile compoundFile, byte[] tableStream, LegacyDocFib fib, bool pictureDataFullyProjected, bool reportDiagnostic) {
+            AddUnsupportedFibFlagFeatures(fib, pictureDataFullyProjected, reportDiagnostic);
 
             AddCompoundFeatureIfPresent(
                 compoundFile,
@@ -283,7 +307,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 "The legacy DOC contains embedded package payload storage. Embedded packages are preserved in the source file but are not projected into the OfficeIMO document.",
                 "Compound:EmbeddedPackageStorage");
 
-            AddDataStreamCompoundFeatureIfPresent(compoundFile);
+            AddDataStreamCompoundFeatureIfPresent(compoundFile, pictureDataFullyProjected);
 
             AddCompoundFeatureIfPresent(
                 compoundFile,
@@ -400,7 +424,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             AddUnsupportedFeature(new LegacyDocUnsupportedFeature(kind, code, description, entry.Path, detailCode), reportDiagnostic);
         }
 
-        private void AddUnsupportedFibFlagFeatures(LegacyDocFib fib, bool reportDiagnostic) {
+        private void AddUnsupportedFibFlagFeatures(LegacyDocFib fib, bool pictureDataFullyProjected, bool reportDiagnostic) {
             if (fib.IsFastSaved) {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                     LegacyDocUnsupportedFeatureKind.FastSave,
@@ -416,7 +440,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     $"The legacy DOC reports {fib.QuickSaveCount} quick-save revision(s). The projected document content is readable; quick-save history is not represented as editable revision history.");
             }
 
-            if (fib.HasPictures) {
+            if (fib.HasPictures && pictureDataFullyProjected) {
+                AddInfo(
+                    "DOC-PICTURES-PROJECTED",
+                    "Supported inline picture payloads were projected from the legacy DOC Data stream into editable Open XML images.");
+            } else if (fib.HasPictures) {
                 _preservedFeatures.Add(new LegacyDocPreservedFeature(
                     LegacyDocPreservedFeatureKind.Picture,
                     "DOC-PICTURES-PRESENT",
@@ -425,7 +453,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
         }
 
-        private void AddDataStreamCompoundFeatureIfPresent(OfficeCompoundFile compoundFile) {
+        private void AddDataStreamCompoundFeatureIfPresent(OfficeCompoundFile compoundFile, bool pictureDataFullyProjected) {
+            if (pictureDataFullyProjected) {
+                return;
+            }
+
             OfficeCompoundFileEntry? entry = compoundFile.Entries.FirstOrDefault(item =>
                 item.IsStream && string.Equals(item.Name, "Data", StringComparison.OrdinalIgnoreCase));
             if (entry == null) {
@@ -607,6 +639,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             IReadOnlyList<LegacyDocSection> sections,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
+            IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
             bool reportUnsupportedFeatures) {
             var bodyText = new System.Text.StringBuilder(characters.Count);
             var currentRuns = new List<LegacyDocTextRun>();
@@ -629,6 +662,37 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             for (int characterIndex = 0; characterIndex < characters.Count; characterIndex++) {
                 LegacyDocTextCharacter textCharacter = characters[characterIndex];
+                if (textCharacter.Character == '\u0001'
+                    && picturesByCharacterPosition.TryGetValue(textCharacter.CharacterPosition, out LegacyDocPicture? picture)) {
+                    FlushRun();
+                    currentRuns.Add(new LegacyDocTextRun(
+                        string.Empty,
+                        bold: false,
+                        italic: false,
+                        strike: false,
+                        doubleStrike: false,
+                        outline: false,
+                        shadow: false,
+                        emboss: false,
+                        imprint: false,
+                        hidden: false,
+                        noProof: false,
+                        caps: null,
+                        verticalPosition: null,
+                        underline: null,
+                        highlight: null,
+                        fontSizeHalfPoints: null,
+                        colorHex: null,
+                        fontFamily: null,
+                        characterPositions: new[] { textCharacter.CharacterPosition },
+                        picture: picture));
+                    if (inTable) {
+                        justClosedCell = false;
+                    }
+
+                    continue;
+                }
+
                 if (LegacyDocField.TryReadHyperlink(
                     characters,
                     characterIndex,

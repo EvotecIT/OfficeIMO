@@ -913,7 +913,8 @@ namespace OfficeIMO.Word {
             int remainingRunStartIndex;
             if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text)
                 || firstRun.HyperlinkTarget.HasValue
-                || firstRun.FieldKind != LegacyDocFieldKind.None) {
+                || firstRun.FieldKind != LegacyDocFieldKind.None
+                || firstRun.Picture != null) {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
                 remainingRunStartIndex = 0;
             } else {
@@ -973,6 +974,11 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, int startIndex, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
             for (int index = startIndex; index < paragraphRuns.Count; index++) {
                 LegacyDocTextRun legacyRun = paragraphRuns[index];
+                if (legacyRun.Picture != null) {
+                    AddLegacyDocPicture(paragraph, legacyRun, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.HyperlinkTarget.HasValue) {
                     int hyperlinkStartIndex = index;
                     LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
@@ -1002,6 +1008,24 @@ namespace OfficeIMO.Word {
 
                 AddLegacyDocRunContent(paragraph, legacyRun, notes, bookmarks);
             }
+        }
+
+        private static void AddLegacyDocPicture(
+            WordParagraph paragraph,
+            LegacyDocTextRun legacyRun,
+            LegacyDocBookmarkProjection bookmarks) {
+            LegacyDocPicture picture = legacyRun.Picture
+                ?? throw new InvalidOperationException("The legacy DOC picture run has no picture payload.");
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
+            using var stream = new MemoryStream(picture.ImageBytes, writable: false);
+            paragraph.AddImage(
+                stream,
+                picture.FileName,
+                picture.WidthPixels,
+                picture.HeightPixels,
+                WrapTextImage.InLineWithText,
+                "Imported legacy DOC inline picture");
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
         private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocNoteProjection notes) {
@@ -1347,7 +1371,8 @@ namespace OfficeIMO.Word {
                 specified: source.Specified,
                 characterSpacingTwips: source.CharacterSpacingTwips,
                 language: source.Language,
-                eastAsiaLanguage: source.EastAsiaLanguage);
+                eastAsiaLanguage: source.EastAsiaLanguage,
+                picture: source.Picture);
         }
 
         private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {

@@ -46,7 +46,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? characterSpacingTwips,
             string? language,
             string? eastAsiaLanguage,
-            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None) {
+            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
+            int? pictureDataOffset = null) {
             Bold = bold;
             Italic = italic;
             Strike = strike;
@@ -70,6 +71,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
             Specified = specified;
+            PictureDataOffset = pictureDataOffset;
         }
 
         internal bool Bold { get; }
@@ -112,6 +114,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal string? EastAsiaLanguage { get; }
 
+        internal int? PictureDataOffset { get; }
+
         internal LegacyDocCharacterFormatProperties Specified { get; }
 
         internal bool HasFormatting =>
@@ -135,6 +139,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || CharacterSpacingTwips != null
             || Language != null
             || EastAsiaLanguage != null
+            || PictureDataOffset != null
             || Specified != LegacyDocCharacterFormatProperties.None;
 
         internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null, null, null, null);
@@ -164,6 +169,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && CharacterSpacingTwips == other.CharacterSpacingTwips
                 && string.Equals(Language, other.Language, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(EastAsiaLanguage, other.EastAsiaLanguage, StringComparison.OrdinalIgnoreCase)
+                && PictureDataOffset == other.PictureDataOffset
                 && Specified == other.Specified;
         }
 
@@ -193,6 +199,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + CharacterSpacingTwips.GetHashCode();
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(Language ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(EastAsiaLanguage ?? string.Empty);
+            hash = (hash * 31) + PictureDataOffset.GetHashCode();
             hash = (hash * 31) + Specified.GetHashCode();
             return hash;
         }

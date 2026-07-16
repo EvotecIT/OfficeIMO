@@ -15,6 +15,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableEndnoteStories endnoteStories,
                 LegacyDocWritableHeaderFooterStories headerFooterStories,
                 LegacyDocWritableCommentStories commentStories,
+                byte[] pictureData,
+                bool hasPictures,
                 bool facingPages,
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
@@ -46,6 +48,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PlcfandTxt = commentStories.PlcfandTxt;
                 CommentFormattedRuns = commentStories.FormattedRuns;
                 CommentFormattedParagraphs = commentStories.FormattedParagraphs;
+                PictureData = pictureData;
+                HasPictures = hasPictures;
                 FacingPages = facingPages;
                 EndnotePosition = endnotePosition;
                 TrackRevisions = trackRevisions;
@@ -130,6 +134,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal byte[] PlcfBkl { get; }
 
             internal bool FacingPages { get; }
+
+            internal byte[] PictureData { get; }
+
+            internal bool HasPictures { get; }
 
             internal EndnotePositionValues? EndnotePosition { get; }
 
@@ -235,7 +243,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AddSegment(segments, character, run.StartCharacter - character, LegacyDocWritableFormatting.Plain);
                     }
 
-                    AddSegment(segments, run.StartCharacter, run.Length, run.Formatting);
+                    AddSegment(segments, run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset);
                     character = run.EndCharacter;
                 }
 
@@ -309,20 +317,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 List<LegacyDocWritableSegment> segments,
                 int startCharacter,
                 int length,
-                LegacyDocWritableFormatting formatting) {
+                LegacyDocWritableFormatting formatting,
+                int? pictureDataOffset = null) {
                 if (length <= 0) {
                     return;
                 }
 
                 if (segments.Count > 0) {
                     LegacyDocWritableSegment previous = segments[segments.Count - 1];
-                    if (previous.EndCharacter == startCharacter && previous.Formatting.Equals(formatting)) {
+                    if (previous.EndCharacter == startCharacter
+                        && previous.Formatting.Equals(formatting)
+                        && previous.PictureDataOffset == pictureDataOffset) {
                         segments[segments.Count - 1] = previous.Extend(length);
                         return;
                     }
                 }
 
-                segments.Add(new LegacyDocWritableSegment(startCharacter, length, formatting));
+                segments.Add(new LegacyDocWritableSegment(startCharacter, length, formatting, pictureDataOffset));
             }
 
             internal IReadOnlyList<LegacyDocWritableParagraphSegment> CreateParagraphSegments() {

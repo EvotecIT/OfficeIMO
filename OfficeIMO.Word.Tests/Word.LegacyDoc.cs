@@ -10875,17 +10875,75 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksBodyImagePartsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesAndReloadsBodyInlinePictures() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string pngPath = Path.Combine(_directoryWithImages, "BackgroundImage.png");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph jpegParagraph = document.AddParagraph("Before JPEG ");
+                    jpegParagraph.AddImage(jpegPath, 50, 40);
+                    jpegParagraph.AddText(" after JPEG");
+                    document.AddParagraph("PNG").AddImage(pngPath, 32, 24);
+
+                    document.Save(docPath);
+                }
+
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                byte[] dataStream = ReadCompoundStream(docBytes, "Data");
+                Assert.NotEmpty(dataStream);
+                Assert.NotEqual(0, BitConverter.ToUInt16(wordDocumentStream, 0x0A) & 0x0008);
+
+                using (WordDocument reloaded = WordDocument.Load(docPath)) {
+                    Assert.Equal(2, reloaded.Images.Count);
+                    Assert.Equal("image/jpeg", reloaded.Images[0].ContentType);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[0].ToBytes());
+                    Assert.InRange(reloaded.Images[0].Width!.Value, 49.99, 50.01);
+                    Assert.InRange(reloaded.Images[0].Height!.Value, 39.99, 40.01);
+                    Assert.Equal("image/png", reloaded.Images[1].ContentType);
+                    Assert.Equal(File.ReadAllBytes(pngPath), reloaded.Images[1].ToBytes());
+                    Assert.InRange(reloaded.Images[1].Width!.Value, 31.99, 32.01);
+                    Assert.InRange(reloaded.Images[1].Height!.Value, 23.99, 24.01);
+                    Assert.Contains(
+                        "Before JPEG  after JPEG",
+                        string.Concat(reloaded.Paragraphs.Select(paragraph => paragraph.Text)),
+                        StringComparison.Ordinal);
+                    Assert.Empty(reloaded.LegacyDocPreservedFeatures);
+                    Assert.Empty(reloaded.LegacyDocCompoundFeatures);
+
+                    reloaded.Save(roundTripPath);
+                }
+
+                byte[] roundTripData = ReadCompoundStream(File.ReadAllBytes(roundTripPath), "Data");
+                Assert.Equal(dataStream, roundTripData);
+
+                using WordDocument roundTripped = WordDocument.Load(roundTripPath);
+                Assert.Equal(2, roundTripped.Images.Count);
+            } finally {
+                DeleteIfExists(docPath);
+                DeleteIfExists(roundTripPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksFloatingBodyPicturesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordParagraph paragraph = document.AddParagraph("Body image");
-                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                document.AddParagraph("Floating picture")
+                    .AddImage(
+                        Path.Combine(_directoryWithImages, "Kulek.jpg"),
+                        50,
+                        50,
+                        WrapTextImage.Square);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("Images", exception.Message);
+                Assert.Contains("inline pictures", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -10905,7 +10963,8 @@ namespace OfficeIMO.Tests {
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("Images", exception.Message);
+                Assert.Contains("inline pictures", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("headers", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

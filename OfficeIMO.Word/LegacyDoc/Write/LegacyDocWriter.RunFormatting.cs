@@ -1,10 +1,15 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritablePictures pictures, OpenXmlPart ownerPart) {
+            AppendSupportedRunText(text, runs, run, footnotes, endnotes, LegacyDocWritableFormatting.Plain, allowHyperlinkRunStyle: false, pictures, ownerPart);
+        }
+
         private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
             AppendSupportedRunText(text, runs, run, footnotes, endnotes, LegacyDocWritableFormatting.Plain);
         }
@@ -13,7 +18,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: false);
         }
 
-        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting, bool allowHyperlinkRunStyle) {
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting, bool allowHyperlinkRunStyle, LegacyDocWritablePictures? pictures = null, OpenXmlPart? ownerPart = null) {
             if (run.Elements<FootnoteReference>().Any()) {
                 AppendFootnoteReferenceRun(text, runs, footnotes, run);
                 return;
@@ -66,6 +71,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             runs,
                             LegacyDocCommentReader.CommentReferenceCharacter.ToString(),
                             LegacyDocWritableFormatting.SpecialCharacter);
+                        break;
+                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                        if (pictures == null || ownerPart == null) {
+                            throw new NotSupportedException(
+                                "Native DOC saving currently supports inline pictures in main-document body paragraphs only.");
+                        }
+
+                        int picturePosition = text.Length;
+                        int pictureDataOffset = pictures.AddInlinePicture(drawing, ownerPart);
+                        text.Append('\u0001');
+                        runs.Add(new LegacyDocWritableRun(
+                            picturePosition,
+                            1,
+                            LegacyDocWritableFormatting.SpecialCharacter,
+                            pictureDataOffset));
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports text, tabs, page-number fields, carriage returns, soft/no-break hyphens, text-wrapping/page/column breaks, and simple footnote/endnote/comment references only. Unsupported run element: {child.LocalName}.");
@@ -529,8 +549,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             for (int index = 0; index < segments.Count; index++) {
                 LegacyDocWritableSegment segment = segments[index];
                 WriteInt32(stream, pageOffset + (index * 4), TextOffset + (segment.StartCharacter * bytesPerCharacter));
-                if (segment.Formatting.HasFormatting) {
-                    byte[] chpx = CreateChpx(segment.Formatting, fontFamilyIndexes);
+                if (segment.HasFormatting) {
+                    byte[] chpx = CreateChpx(segment.Formatting, fontFamilyIndexes, segment.PictureDataOffset);
                     chpxOffset = AlignToEven(chpxOffset);
                     if (chpxOffset + chpx.Length >= OleSectorSize - 1 || chpxOffset / 2 > byte.MaxValue) {
                         throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
@@ -547,8 +567,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             stream[pageOffset + OleSectorSize - 1] = (byte)segments.Count;
         }
 
-        private static byte[] CreateChpx(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
+        private static byte[] CreateChpx(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes, int? pictureDataOffset = null) {
             List<byte> grpprl = CreateCharacterGrpprl(formatting, fontFamilyIndexes);
+            if (pictureDataOffset != null) {
+                AddInt32Sprm(grpprl, SprmCPicLocation, pictureDataOffset.Value);
+            }
             var chpx = new byte[grpprl.Count + 1];
             chpx[0] = (byte)grpprl.Count;
             grpprl.CopyTo(chpx, 1);
@@ -711,6 +734,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add((byte)(sprm >> 8));
             grpprl.Add((byte)(operand & 0xFF));
             grpprl.Add((byte)(operand >> 8));
+        }
+
+        private static void AddInt32Sprm(List<byte> grpprl, ushort sprm, int operand) {
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add((byte)operand);
+            grpprl.Add((byte)(operand >> 8));
+            grpprl.Add((byte)(operand >> 16));
+            grpprl.Add((byte)(operand >> 24));
         }
 
         private static void AddInt16CharacterSprm(List<byte> grpprl, ushort sprm, int operand) {
@@ -955,10 +987,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableRun {
-            internal LegacyDocWritableRun(int startCharacter, int length, LegacyDocWritableFormatting formatting) {
+            internal LegacyDocWritableRun(int startCharacter, int length, LegacyDocWritableFormatting formatting, int? pictureDataOffset = null) {
                 StartCharacter = startCharacter;
                 Length = length;
                 Formatting = formatting;
+                PictureDataOffset = pictureDataOffset;
             }
 
             internal int StartCharacter { get; }
@@ -969,16 +1002,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal LegacyDocWritableFormatting Formatting { get; }
 
+            internal int? PictureDataOffset { get; }
+
             internal LegacyDocWritableRun Extend(int additionalLength) {
-                return new LegacyDocWritableRun(StartCharacter, Length + additionalLength, Formatting);
+                return new LegacyDocWritableRun(StartCharacter, Length + additionalLength, Formatting, PictureDataOffset);
             }
         }
 
         private readonly struct LegacyDocWritableSegment {
-            internal LegacyDocWritableSegment(int startCharacter, int length, LegacyDocWritableFormatting formatting) {
+            internal LegacyDocWritableSegment(int startCharacter, int length, LegacyDocWritableFormatting formatting, int? pictureDataOffset = null) {
                 StartCharacter = startCharacter;
                 Length = length;
                 Formatting = formatting;
+                PictureDataOffset = pictureDataOffset;
             }
 
             internal int StartCharacter { get; }
@@ -989,8 +1025,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal LegacyDocWritableFormatting Formatting { get; }
 
+            internal int? PictureDataOffset { get; }
+
+            internal bool HasFormatting => Formatting.HasFormatting || PictureDataOffset != null;
+
             internal LegacyDocWritableSegment Extend(int additionalLength) {
-                return new LegacyDocWritableSegment(StartCharacter, Length + additionalLength, Formatting);
+                return new LegacyDocWritableSegment(StartCharacter, Length + additionalLength, Formatting, PictureDataOffset);
             }
         }
     }

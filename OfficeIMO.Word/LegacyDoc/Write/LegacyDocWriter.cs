@@ -28,6 +28,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCFVanish = 0x083C;
         private const ushort SprmCFEmboss = 0x0858;
         private const ushort SprmCFSpec = 0x0855;
+        private const ushort SprmCPicLocation = 0x6A03;
+        private const ushort HasPicturesFibFlag = 0x0008;
         private const ushort SprmCFNoProof = 0x0875;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
@@ -104,6 +106,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 new OfficeCompoundStream("WordDocument", wordDocumentStream),
                 new OfficeCompoundStream("1Table", tableStream)
             };
+            if (body.HasPictures) {
+                streams.Add(new OfficeCompoundStream("Data", body.PictureData));
+            }
             foreach (OfficeCompoundStream propertyStream in propertyStreams) {
                 streams.Add(new OfficeCompoundStream(propertyStream.Name, PadToRegularOleStream(propertyStream.Bytes)));
             }
@@ -182,6 +187,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
+            var pictures = new LegacyDocWritablePictures(document);
             LegacyDocWritableFootnotes footnotes = ReadSupportedFootnotes(mainPart!);
             LegacyDocWritableEndnotes endnotes = ReadSupportedEndnotes(mainPart!);
             LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
@@ -199,6 +205,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     bookmarks,
                     child,
                     mainPart!,
+                    pictures,
                     styleSheet.StyleIndexes,
                     tableStyleDefinitions,
                     footnotes,
@@ -248,6 +255,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 endnoteStories,
                 headerFooterStories,
                 commentStories,
+                pictures.DataBytes,
+                pictures.HasPictures,
                 HasEvenAndOddHeaders(mainPart),
                 ReadDocumentEndnotePosition(sections),
                 trackRevisions || lockRevisionTracking,
@@ -291,8 +300,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             ThrowIfUnsupportedReviewMarkup(mainPart);
 
-            if (HasRelatedPart<ImagePart>(mainPart)) {
-                throw new NotSupportedException("Native DOC saving currently supports text only. Images are not supported yet.");
+            if (mainPart.HeaderParts.Any(HasRelatedPart<ImagePart>)
+                || mainPart.FooterParts.Any(HasRelatedPart<ImagePart>)
+                || (mainPart.FootnotesPart != null && HasRelatedPart<ImagePart>(mainPart.FootnotesPart))
+                || (mainPart.EndnotesPart != null && HasRelatedPart<ImagePart>(mainPart.EndnotesPart))
+                || (mainPart.WordprocessingCommentsPart != null && HasRelatedPart<ImagePart>(mainPart.WordprocessingCommentsPart))) {
+                throw new NotSupportedException(
+                    "Native DOC saving currently supports inline pictures in main-document body paragraphs only. "
+                    + "Pictures in headers, footers, notes, and comments are not supported yet.");
             }
 
             if (HasRelatedPart<ChartPart>(mainPart)) {
@@ -452,6 +467,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             OpenXmlElement child,
             MainDocumentPart mainPart,
+            LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
             IReadOnlyDictionary<string, Style> tableStyleDefinitions,
             LegacyDocWritableFootnotes footnotes,
@@ -464,7 +480,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             switch (child) {
                 case Paragraph paragraph:
                     if (!IsPureSectionBreakParagraph(paragraph)) {
-                        AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart, styleIndexes, footnotes, endnotes);
+                        AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart, pictures, styleIndexes, footnotes, endnotes);
                         bodyContentCount++;
                     }
 
@@ -488,6 +504,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         bookmarks,
                         sdtBlock,
                         mainPart,
+                        pictures,
                         styleIndexes,
                         tableStyleDefinitions,
                         footnotes,
@@ -518,6 +535,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             SdtBlock sdtBlock,
             MainDocumentPart mainPart,
+            LegacyDocWritablePictures pictures,
             IReadOnlyDictionary<string, ushort> styleIndexes,
             IReadOnlyDictionary<string, Style> tableStyleDefinitions,
             LegacyDocWritableFootnotes footnotes,
@@ -539,6 +557,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     bookmarks,
                     child,
                     mainPart,
+                    pictures,
                     styleIndexes,
                     tableStyleDefinitions,
                     footnotes,
@@ -551,7 +570,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
             ParagraphProperties? paragraphProperties = paragraph.GetFirstChild<ParagraphProperties>();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBodyParagraphFormatting(paragraphProperties, styleIndexes);
             LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraphProperties);
@@ -567,7 +586,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendSupportedComplexPageNumberField(children, ref index, text, runs, bookmarks, LegacyDocWritableFormatting.Plain);
                         } else {
-                            AppendSupportedRunText(text, runs, run, footnotes, endnotes);
+                            AppendSupportedRunText(text, runs, run, footnotes, endnotes, pictures, mainPart);
                         }
 
                         break;
@@ -639,7 +658,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(stream, 0x00, WordDocumentMagic);
             WriteUInt16(stream, 0x02, Word97FibVersion);
             WriteUInt16(stream, 0x06, DefaultLanguageId);
-            WriteUInt16(stream, 0x0A, DefaultFibFlags);
+            WriteUInt16(stream, 0x0A, body.HasPictures
+                ? unchecked((ushort)(DefaultFibFlags | HasPicturesFibFlag))
+                : DefaultFibFlags);
             WriteUInt16(stream, 0x0C, Word97FibBackVersion);
             WriteInt32(stream, 0x18, TextOffset);
             WriteInt32(stream, 0x1C, TextOffset + textBytes.Length);
