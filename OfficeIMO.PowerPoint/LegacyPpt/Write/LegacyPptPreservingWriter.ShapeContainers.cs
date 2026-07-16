@@ -6,6 +6,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool TryRewriteShapeContainer(
             LegacyPptRecord shapeContainer, ProjectedShapeEdit edit,
             out byte[] bytes) {
+            LegacyPptWriter.LegacyPptWriterTextBoxContent? textContent =
+                null;
+            if (edit.TextFormatting != null
+                && !LegacyPptWriter.TryBuildTextBoxContent(
+                    edit.TextFormatting,
+                    edit.TextFonts
+                        ?? throw new InvalidOperationException(
+                            "A text-formatting edit has no font catalog."),
+                    out textContent, out _)) {
+                bytes = shapeContainer.CopyRecordBytes();
+                return false;
+            }
+            if (textContent != null && shapeContainer.Children.Count(
+                    child => child.Type == OfficeArtClientData) > 1) {
+                bytes = shapeContainer.CopyRecordBytes();
+                return false;
+            }
             var children = new List<byte[]>(shapeContainer.Children.Count + 1);
             bool patchedAnchor = !edit.Bounds.HasValue;
             bool rewritePrimaryFopt = edit.ShapeTransform != null
@@ -28,6 +45,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 .RewriteShapeInteractions != true;
             bool patchedAnimation = !edit.RewriteAnimation;
             bool patchedPlaceholder = !edit.RewritePlaceholder;
+            bool patchedStyle9 = textContent == null;
             bool appendedShapeInteractions = false;
             bool appendedAnimation = false;
             bool sawClientData = false;
@@ -101,11 +119,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } else if (!patchedText
                            && child.Type == OfficeArtClientTextbox) {
                     bool rewritten = edit.TextFormatting != null
-                        ? TryRewriteTextBoxFormatting(child,
-                            edit.TextFormatting,
-                            edit.TextFonts
-                                ?? throw new InvalidOperationException(
-                                    "A text-formatting edit has no font catalog."),
+                        ? TryRewriteTextBoxFormatting(child, textContent!,
                             edit.Interactions?.RewriteTextInteractions
                                 == true,
                             edit.Interactions?.Interactions.TextInteractions
@@ -130,19 +144,35 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                            && (edit.Interactions?
                                    .RewriteShapeInteractions == true
                                || edit.RewriteAnimation
-                               || edit.RewritePlaceholder)) {
+                               || edit.RewritePlaceholder
+                               || textContent != null)) {
                     sawClientData = true;
                     byte[] clientData = child.CopyRecordBytes();
+                    LegacyPptRecord rewrittenClientData = child;
+                    if (textContent != null) {
+                        if (!TryRewriteClientDataStyle9(
+                                rewrittenClientData,
+                                textContent.Style9Record,
+                                out clientData)) {
+                            bytes = shapeContainer.CopyRecordBytes();
+                            return false;
+                        }
+                        rewrittenClientData = LegacyPptRecordReader
+                            .ReadSingle(clientData, 0,
+                                new LegacyPptImportOptions());
+                        patchedStyle9 = true;
+                    }
                     if (edit.Interactions?.RewriteShapeInteractions == true
-                        && !TryRewriteClientDataInteractions(child,
+                        && !TryRewriteClientDataInteractions(
+                            rewrittenClientData,
                             edit.Interactions.Interactions.ShapeInteractions,
                             append: !appendedShapeInteractions,
                             out clientData)) {
                         bytes = shapeContainer.CopyRecordBytes();
                         return false;
                     }
-                    LegacyPptRecord rewrittenClientData =
-                        LegacyPptRecordReader.ReadSingle(clientData, 0,
+                    rewrittenClientData = LegacyPptRecordReader.ReadSingle(
+                            clientData, 0,
                             new LegacyPptImportOptions());
                     if (edit.RewriteAnimation
                         && !TryRewriteClientDataAnimation(
@@ -182,7 +212,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             if (!sawClientData
                 && (edit.Interactions?.RewriteShapeInteractions == true
-                    || edit.RewriteAnimation || edit.RewritePlaceholder)) {
+                    || edit.RewriteAnimation || edit.RewritePlaceholder
+                    || textContent != null)) {
                 var clientChildren = new List<byte[]>();
                 if (edit.Placeholder != null) {
                     clientChildren.Add(LegacyPptWriter
@@ -201,6 +232,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             .BuildInteractiveInfoRecord));
                     patchedShapeInteractions = true;
                 }
+                if (textContent?.Style9Record != null) {
+                    clientChildren.Add(LegacyPptWriter
+                        .BuildShapePpt9ProgrammableTagsRecord(
+                            textContent.Style9Record));
+                }
+                patchedStyle9 = true;
                 patchedAnimation = true;
                 patchedPlaceholder = true;
                 if (clientChildren.Count > 0) {
@@ -212,7 +249,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 || !patchedGroupCoordinate
                 || !patchedPictureRecolor || !patchedText
                 || !patchedShapeInteractions || !patchedAnimation
-                || !patchedPlaceholder) {
+                || !patchedPlaceholder || !patchedStyle9) {
                 bytes = shapeContainer.CopyRecordBytes();
                 return false;
             }

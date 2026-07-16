@@ -30,8 +30,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool TryRewriteTextBoxFormatting(
-            LegacyPptRecord textbox, PowerPointTextBox textBox,
-            LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
+            LegacyPptRecord textbox,
+            LegacyPptWriter.LegacyPptWriterTextBoxContent content,
             bool rewriteInteractions,
             IReadOnlyList<LegacyPptWriter.LegacyPptWriterTextInteraction>
                 interactions, out byte[] bytes) {
@@ -41,15 +41,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 || textbox.Children.Count(child => child.Type
                     == RecordStyleTextPropAtomForPreservation) > 1
                 || textbox.Children.Count(child => child.Type
-                    == RecordTextRulerAtomForPreservation) > 1
-                || !LegacyPptWriter.TryBuildTextBoxContent(textBox, fonts,
-                    out string text, out byte[]? styleRecord,
-                    out byte[]? rulerRecord, out _)) {
+                    == RecordTextRulerAtomForPreservation) > 1) {
                 bytes = textbox.CopyRecordBytes();
                 return false;
             }
             byte[] textRecord = BuildRecord(version: 0, instance: 0,
-                RecordTextChars, System.Text.Encoding.Unicode.GetBytes(text));
+                RecordTextChars, System.Text.Encoding.Unicode.GetBytes(
+                    content.Text));
             var children = new List<byte[]>(textbox.Children.Count
                 + interactions.Count * 2 + 2);
             bool wroteText = false;
@@ -61,8 +59,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     children.Add(textRecord);
-                    if (styleRecord != null) children.Add(styleRecord);
-                    if (rulerRecord != null) children.Add(rulerRecord);
+                    if (content.StyleRecord != null) {
+                        children.Add(content.StyleRecord);
+                    }
+                    if (content.RulerRecord != null) {
+                        children.Add(content.RulerRecord);
+                    }
                     wroteText = true;
                     continue;
                 }

@@ -169,10 +169,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static void AppendBulletProperties(A.TextParagraphPropertiesType properties,
             LegacyPptParagraphRun run) {
+            if (run.HasAutoNumber == true
+                && run.AutoNumberScheme.HasValue) {
+                AppendBulletDecorationProperties(properties, run);
+                properties.Append(new A.AutoNumberedBullet {
+                    Type = MapAutoNumberScheme(run.AutoNumberScheme.Value),
+                    StartAt = run.AutoNumberStartAt ?? 1
+                });
+                return;
+            }
             if (run.HasBullet == false) {
                 properties.Append(new A.NoBullet());
                 return;
             }
+            AppendBulletDecorationProperties(properties, run);
+            if (run.HasBullet == true && run.BulletCharacter.HasValue) {
+                properties.Append(new A.CharacterBullet { Char = run.BulletCharacter.Value.ToString() });
+            }
+        }
+
+        private static void AppendBulletDecorationProperties(
+            A.TextParagraphPropertiesType properties,
+            LegacyPptParagraphRun run) {
             if (run.BulletHasColor == false) {
                 properties.Append(new A.BulletColorText());
             } else if (run.BulletHasColor == true) {
@@ -198,10 +216,53 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             } else if (run.BulletHasFont == true && run.BulletTypeface != null) {
                 properties.Append(new A.BulletFont { Typeface = run.BulletTypeface });
             }
-            if (run.HasBullet == true && run.BulletCharacter.HasValue) {
-                properties.Append(new A.CharacterBullet { Char = run.BulletCharacter.Value.ToString() });
-            }
         }
+
+        internal static A.TextAutoNumberSchemeValues MapAutoNumberScheme(
+            LegacyPptAutoNumberScheme value) => value switch {
+                LegacyPptAutoNumberScheme.AlphaLowerPeriod => A.TextAutoNumberSchemeValues.AlphaLowerCharacterPeriod,
+                LegacyPptAutoNumberScheme.AlphaUpperPeriod => A.TextAutoNumberSchemeValues.AlphaUpperCharacterPeriod,
+                LegacyPptAutoNumberScheme.ArabicParenRight => A.TextAutoNumberSchemeValues.ArabicParenR,
+                LegacyPptAutoNumberScheme.ArabicPeriod => A.TextAutoNumberSchemeValues.ArabicPeriod,
+                LegacyPptAutoNumberScheme.RomanLowerParenBoth => A.TextAutoNumberSchemeValues.RomanLowerCharacterParenBoth,
+                LegacyPptAutoNumberScheme.RomanLowerParenRight => A.TextAutoNumberSchemeValues.RomanLowerCharacterParenR,
+                LegacyPptAutoNumberScheme.RomanLowerPeriod => A.TextAutoNumberSchemeValues.RomanLowerCharacterPeriod,
+                LegacyPptAutoNumberScheme.RomanUpperPeriod => A.TextAutoNumberSchemeValues.RomanUpperCharacterPeriod,
+                LegacyPptAutoNumberScheme.AlphaLowerParenBoth => A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenBoth,
+                LegacyPptAutoNumberScheme.AlphaLowerParenRight => A.TextAutoNumberSchemeValues.AlphaLowerCharacterParenR,
+                LegacyPptAutoNumberScheme.AlphaUpperParenBoth => A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenBoth,
+                LegacyPptAutoNumberScheme.AlphaUpperParenRight => A.TextAutoNumberSchemeValues.AlphaUpperCharacterParenR,
+                LegacyPptAutoNumberScheme.ArabicParenBoth => A.TextAutoNumberSchemeValues.ArabicParenBoth,
+                LegacyPptAutoNumberScheme.ArabicPlain => A.TextAutoNumberSchemeValues.ArabicPlain,
+                LegacyPptAutoNumberScheme.RomanUpperParenBoth => A.TextAutoNumberSchemeValues.RomanUpperCharacterParenBoth,
+                LegacyPptAutoNumberScheme.RomanUpperParenRight => A.TextAutoNumberSchemeValues.RomanUpperCharacterParenR,
+                LegacyPptAutoNumberScheme.SimplifiedChinesePlain => A.TextAutoNumberSchemeValues.EastAsianSimplifiedChinesePlain,
+                LegacyPptAutoNumberScheme.SimplifiedChinesePeriod => A.TextAutoNumberSchemeValues.EastAsianSimplifiedChinesePeriod,
+                LegacyPptAutoNumberScheme.CircleNumberDoubleBytePlain => A.TextAutoNumberSchemeValues.CircleNumberDoubleBytePlain,
+                LegacyPptAutoNumberScheme.CircleNumberWingdingsWhitePlain => A.TextAutoNumberSchemeValues.CircleNumberWingdingsWhitePlain,
+                LegacyPptAutoNumberScheme.CircleNumberWingdingsBlackPlain => A.TextAutoNumberSchemeValues.CircleNumberWingdingsBlackPlain,
+                LegacyPptAutoNumberScheme.TraditionalChinesePlain => A.TextAutoNumberSchemeValues.EastAsianTraditionalChinesePlain,
+                LegacyPptAutoNumberScheme.TraditionalChinesePeriod => A.TextAutoNumberSchemeValues.EastAsianTraditionalChinesePeriod,
+                LegacyPptAutoNumberScheme.Arabic1Minus => A.TextAutoNumberSchemeValues.Arabic1Minus,
+                LegacyPptAutoNumberScheme.Arabic2Minus => A.TextAutoNumberSchemeValues.Arabic2Minus,
+                LegacyPptAutoNumberScheme.Hebrew2Minus => A.TextAutoNumberSchemeValues.Hebrew2Minus,
+                LegacyPptAutoNumberScheme.JapaneseKoreanPlain => A.TextAutoNumberSchemeValues.EastAsianJapaneseKoreanPlain,
+                LegacyPptAutoNumberScheme.JapaneseKoreanPeriod => A.TextAutoNumberSchemeValues.EastAsianJapaneseKoreanPeriod,
+                LegacyPptAutoNumberScheme.ArabicDoubleBytePlain => A.TextAutoNumberSchemeValues.ArabicDoubleBytePlain,
+                LegacyPptAutoNumberScheme.ArabicDoubleBytePeriod => A.TextAutoNumberSchemeValues.ArabicDoubleBytePeriod,
+                LegacyPptAutoNumberScheme.ThaiAlphaPeriod => A.TextAutoNumberSchemeValues.ThaiAlphaPeriod,
+                LegacyPptAutoNumberScheme.ThaiAlphaParenRight => A.TextAutoNumberSchemeValues.ThaiAlphaParenthesisRight,
+                LegacyPptAutoNumberScheme.ThaiAlphaParenBoth => A.TextAutoNumberSchemeValues.ThaiAlphaParenthesisBoth,
+                LegacyPptAutoNumberScheme.ThaiNumberPeriod => A.TextAutoNumberSchemeValues.ThaiNumberPeriod,
+                LegacyPptAutoNumberScheme.ThaiNumberParenRight => A.TextAutoNumberSchemeValues.ThaiNumberParenthesisRight,
+                LegacyPptAutoNumberScheme.ThaiNumberParenBoth => A.TextAutoNumberSchemeValues.ThaiNumberParenthesisBoth,
+                LegacyPptAutoNumberScheme.HindiAlphaPeriod => A.TextAutoNumberSchemeValues.HindiAlphaPeriod,
+                LegacyPptAutoNumberScheme.HindiNumberPeriod => A.TextAutoNumberSchemeValues.HindiNumPeriod,
+                LegacyPptAutoNumberScheme.JapaneseDoubleBytePeriod => A.TextAutoNumberSchemeValues.EastAsianJapaneseDoubleBytePeriod,
+                LegacyPptAutoNumberScheme.HindiNumberParenRight => A.TextAutoNumberSchemeValues.HindiNumberParenthesisRight,
+                LegacyPptAutoNumberScheme.HindiAlpha1Period => A.TextAutoNumberSchemeValues.HindiAlpha1Period,
+                _ => throw new ArgumentOutOfRangeException(nameof(value))
+            };
 
         private static void AppendTabStops(A.TextParagraphPropertiesType properties,
             IReadOnlyList<LegacyPptTabStop> tabStops) {

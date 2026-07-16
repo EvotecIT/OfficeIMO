@@ -240,6 +240,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 string? textFormattingFingerprint =
                     (sourceShape.TextBody.HasStyleRecord
+                        || sourceShape.TextBody.HasStyle9Record
                         || sourceShape.TextBody.HasInteractions)
                     && projectedShape.Element is P.Shape projectedTextShape
                         ? LegacyPptTextProjection.CreateFormattingFingerprint(
@@ -255,6 +256,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     sourceShape.Animation, projectableSoundIds,
                     sourceShape.Kind == LegacyPptShapeKind.TextBox
                         && !sourceShape.TextBody.IsStyleTruncated
+                        && !sourceShape.TextBody.IsStyle9Truncated
                         && !sourceShape.TextBody
                             .HasUnprojectedCharacterFormatting
                         && !sourceShape.TextBody

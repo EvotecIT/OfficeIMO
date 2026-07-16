@@ -9,7 +9,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             bool isStyleTruncated = false, LegacyPptTextType? textType = null,
             LegacyPptTextRuler? ruler = null, bool hasRulerRecord = false,
             bool isRulerTruncated = false,
-            IReadOnlyList<LegacyPptTextInteraction>? interactions = null) {
+            IReadOnlyList<LegacyPptTextInteraction>? interactions = null,
+            bool hasStyle9Record = false,
+            bool isStyle9Truncated = false) {
             Text = text ?? string.Empty;
             CharacterRuns = new ReadOnlyCollection<LegacyPptCharacterRun>(
                 characterRuns?.ToArray() ?? throw new ArgumentNullException(nameof(characterRuns)));
@@ -25,6 +27,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             IsRulerTruncated = isRulerTruncated;
             Interactions = new ReadOnlyCollection<LegacyPptTextInteraction>(
                 interactions?.ToArray() ?? Array.Empty<LegacyPptTextInteraction>());
+            HasStyle9Record = hasStyle9Record;
+            IsStyle9Truncated = isStyle9Truncated;
         }
 
         /// <summary>Gets the normalized text, with binary paragraph separators represented by line feeds.</summary>
@@ -51,6 +55,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets whether the style record was malformed or truncated.</summary>
         public bool IsStyleTruncated { get; }
+
+        /// <summary>Gets whether the text box contains a PPT9 extended-style atom.</summary>
+        public bool HasStyle9Record { get; }
+
+        /// <summary>Gets whether the PPT9 extended-style atom is malformed or cannot be linked to its character runs.</summary>
+        public bool IsStyle9Truncated { get; }
 
         /// <summary>Gets the text category from the TextHeaderAtom, when valid.</summary>
         public LegacyPptTextType? TextType { get; }
@@ -83,7 +93,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 CharacterRuns, ParagraphRuns, HasStyleRecord,
                 HasUnprojectedCharacterFormatting, HasUnprojectedParagraphFormatting,
                 IsStyleTruncated, TextType, Ruler, HasRulerRecord,
-                IsRulerTruncated, interactions);
+                IsRulerTruncated, interactions, HasStyle9Record,
+                IsStyle9Truncated);
+
+        internal LegacyPptTextBody WithPpt9Formatting(
+            IReadOnlyList<LegacyPptParagraphRun> paragraphRuns,
+            bool hasUnprojectedParagraphFormatting,
+            bool isStyle9Truncated) => new(Text, CharacterRuns,
+                paragraphRuns, HasStyleRecord,
+                HasUnprojectedCharacterFormatting,
+                HasUnprojectedParagraphFormatting
+                    || hasUnprojectedParagraphFormatting,
+                IsStyleTruncated, TextType, Ruler, HasRulerRecord,
+                IsRulerTruncated, Interactions, hasStyle9Record: true,
+                isStyle9Truncated);
     }
 
     /// <summary>Represents one character-formatting run from a binary PowerPoint text box.</summary>
@@ -95,7 +118,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             ushort? symbolFontIndex, string? typeface, string? oldEastAsianTypeface,
             string? ansiTypeface, string? symbolTypeface, short? fontSizePoints, string? color,
             byte? colorSchemeIndex, short? baselinePositionPercent,
-            bool hasUnprojectedFormatting) {
+            bool hasUnprojectedFormatting, byte? ppt9RunId = null) {
             Start = start;
             Length = length;
             Text = text ?? string.Empty;
@@ -119,6 +142,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             ColorSchemeIndex = colorSchemeIndex;
             BaselinePositionPercent = baselinePositionPercent;
             HasUnprojectedFormatting = hasUnprojectedFormatting;
+            Ppt9RunId = ppt9RunId;
         }
 
         /// <summary>Gets the zero-based character offset in <see cref="LegacyPptTextBody.Text"/>.</summary>
@@ -189,6 +213,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets whether the run has explicit fields that are retained but not projected yet.</summary>
         public bool HasUnprojectedFormatting { get; }
+
+        /// <summary>Gets the PPT9 extended-style grouping identifier, or null when the default group is used.</summary>
+        public byte? Ppt9RunId { get; }
 
         /// <summary>Gets whether the run carries any explicit character-formatting field.</summary>
         public bool HasExplicitFormatting => Bold.HasValue || Italic.HasValue || Underline.HasValue

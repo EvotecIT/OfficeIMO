@@ -385,7 +385,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 out bool isTextRulerTruncated);
             LegacyPptTextBody textBody = LegacyPptTextStyleReader.Read(text, textData.RawCharacterCount,
                 textStyle, colorScheme, _fontsByIndex, textType, textRuler,
-                hasRulerRecord: textRulerRecord != null, isRulerTruncated: isTextRulerTruncated)
+                hasRulerRecord: textRulerRecord != null, isRulerTruncated: isTextRulerTruncated);
+            LegacyPptRecord? textStyle9 = ReadShapeStyle9(shapeContainer,
+                options, out bool isTextStyle9Malformed);
+            textBody = LegacyPptTextStyle9Reader.Apply(textBody, textStyle9,
+                    isTextStyle9Malformed)
                 .WithInteractions(ReadTextInteractions(textbox, text.Length, options));
             LegacyPptPlaceholder? placeholder = ReadPlaceholder(shapeContainer, options);
             LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,
@@ -436,6 +440,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     "A StyleTextPropAtom is malformed or truncated; its text remains available as plain text.",
                     textStyle?.Offset ?? textbox?.Offset);
             } else {
+                if (textBody.IsStyle9Truncated
+                    && !isTextStyle9Malformed) {
+                    AddDiagnostic("PPT-TEXT-STYLE9-TRUNCATED",
+                        LegacyPptDiagnosticSeverity.Warning,
+                        "A StyleTextProp9Atom is malformed or cannot be linked to its base character runs; its extended formatting remains preserve-only.",
+                        textStyle9?.Offset ?? shapeContainer.Offset);
+                }
                 if (textBody.HasUnprojectedParagraphFormatting) {
                     AddDiagnostic("PPT-TEXT-PARAGRAPH-PARTIAL", LegacyPptDiagnosticSeverity.Warning,
                         "A text ruler field, unresolved bullet resource, or unsupported bullet size is preserved but not projected yet.",

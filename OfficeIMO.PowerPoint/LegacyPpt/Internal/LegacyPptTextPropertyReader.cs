@@ -122,6 +122,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
 
             ushort? style = (masks & CharacterStyleMask) != 0 ? cursor.ReadUInt16() : null;
+            byte? ppt9RunId = (masks & 0x00003C00U) != 0
+                ? checked((byte)((style.GetValueOrDefault() >> 10) & 0x0F))
+                : null;
             bool? bold = ReadStyleFlag(masks, style, 0);
             bool? italic = ReadStyleFlag(masks, style, 1);
             bool? underline = ReadStyleFlag(masks, style, 2);
@@ -162,7 +165,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return new LegacyPptCharacterRun(start, length, text, bold, italic, underline,
                 shadow, farEastHint, kumi, emboss, fontIndex, oldEastAsianFontIndex,
                 ansiFontIndex, symbolFontIndex, typeface, oldEastAsianTypeface, ansiTypeface,
-                symbolTypeface, fontSize, color, schemeIndex, position, hasUnprojectedFormatting);
+                symbolTypeface, fontSize, color, schemeIndex, position,
+                hasUnprojectedFormatting, ppt9RunId);
         }
 
         internal static IReadOnlyList<LegacyPptTabStop> ReadTabStops(

@@ -36,7 +36,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             A.NormalAutoFit? normal = body.GetFirstChild<A.NormalAutoFit>();
             if (normal != null) {
-                reason = "Shrink-text normal autofit requires the later binary PowerPoint extension record and is not encoded yet.";
+                reason = "Shrink-text normal autofit has no lossless classic binary PowerPoint mapping.";
                 return false;
             }
             foreach (OpenXmlElement fit in body.ChildElements) {

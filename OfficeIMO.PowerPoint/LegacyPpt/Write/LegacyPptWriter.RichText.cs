@@ -13,18 +13,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryReadTextBoxForWrite(
             PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
             out string? reason) => TryBuildTextBoxContent(textBox, fonts,
-            out _, out _, out _, out reason);
+            out _, out reason);
 
         internal static bool TryBuildTextBoxContent(
             PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
-            out string text, out byte[]? styleRecord,
-            out byte[]? rulerRecord, out string? reason) {
+            out LegacyPptWriterTextBoxContent? content,
+            out string? reason) {
             if (textBox == null) throw new ArgumentNullException(
                 nameof(textBox));
             if (fonts == null) throw new ArgumentNullException(nameof(fonts));
-            text = string.Empty;
-            styleRecord = null;
-            rulerRecord = null;
+            content = null;
             reason = null;
             if (textBox.Element is not P.Shape shape
                 || shape.TextBody == null) {
@@ -47,18 +45,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = "The text body must contain at least one paragraph.";
                 return false;
             }
-            if (!TryBuildTextRulerRecord(paragraphs, out rulerRecord,
+            if (!TryBuildTextRulerRecord(paragraphs, out byte[]? rulerRecord,
                     out reason)) return false;
+            if (!TryBuildStyleTextProp9Record(paragraphs,
+                    out byte[]? style9Record, out reason)) return false;
 
             var logicalText = new System.Text.StringBuilder();
             using var paragraphRuns = new MemoryStream();
             using var characterRuns = new MemoryStream();
-            foreach (A.Paragraph paragraph in paragraphs) {
+            for (int index = 0; index < paragraphs.Length; index++) {
+                A.Paragraph paragraph = paragraphs[index];
+                byte? ppt9RunId = style9Record == null
+                    ? null
+                    : checked((byte)(index % 16));
                 if (!TryWriteParagraphRun(paragraph, fonts, logicalText,
-                        paragraphRuns, characterRuns, out reason)) {
-                    text = string.Empty;
-                    styleRecord = null;
-                    rulerRecord = null;
+                        paragraphRuns, characterRuns, ppt9RunId,
+                        out reason)) {
+                    content = null;
                     return false;
                 }
             }
@@ -66,27 +69,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (styledText.Length == 0
                 || styledText[styledText.Length - 1] != '\r') {
                 reason = "The encoded text body has no terminal paragraph marker.";
-                styleRecord = null;
-                rulerRecord = null;
+                content = null;
                 return false;
             }
-            text = styledText.Substring(0, styledText.Length - 1);
+            string text = styledText.Substring(0, styledText.Length - 1);
             using var payload = new MemoryStream();
             paragraphRuns.Position = 0;
             paragraphRuns.CopyTo(payload);
             characterRuns.Position = 0;
             characterRuns.CopyTo(payload);
+            byte[]? styleRecord = null;
             if (HasBinaryTextFormatting(paragraphs, rulerRecord != null)) {
                 styleRecord = BuildRecord(version: 0, instance: 0,
                     RecordStyleTextPropAtomForWrite, payload.ToArray());
             }
+            content = new LegacyPptWriterTextBoxContent(text, styleRecord,
+                rulerRecord, style9Record);
             return true;
         }
 
         private static bool TryWriteParagraphRun(A.Paragraph paragraph,
             LegacyPptWriterFontCatalog fonts,
             System.Text.StringBuilder logicalText, Stream paragraphRuns,
-            Stream characterRuns, out string? reason) {
+            Stream characterRuns, byte? ppt9RunId,
+            out string? reason) {
             reason = null;
             if (paragraph.HasAttributes
                 || paragraph.ChildElements.Any(child => child
@@ -113,7 +119,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             var paragraphText = new System.Text.StringBuilder();
             foreach (A.Run run in paragraph.Elements<A.Run>()) {
                 if (!TryWriteCharacterRun(run, fonts, paragraphText,
-                        characterRuns, out reason)) return false;
+                        characterRuns, ppt9RunId, out reason)) return false;
             }
             paragraphText.Append('\r');
             logicalText.Append(paragraphText);
@@ -130,20 +136,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 properties.RemoveAllChildren<A.TabStopList>();
             }
             if (!TryWriteParagraphException(paragraphRuns, properties,
-                    fonts, out reason)) return false;
+                    fonts, out reason,
+                    allowAutoNumbering: true)) return false;
 
             A.EndParagraphRunProperties? endProperties = paragraph
                 .GetFirstChild<A.EndParagraphRunProperties>();
             WriteUInt32(characterRuns, 1U);
             return TryWriteCharacterException(characterRuns,
                 NormalizeCharacterProperties(endProperties), fonts,
-                out reason);
+                out reason, ppt9RunId);
         }
 
         private static bool TryWriteCharacterRun(A.Run run,
             LegacyPptWriterFontCatalog fonts,
             System.Text.StringBuilder paragraphText, Stream characterRuns,
-            out string? reason) {
+            byte? ppt9RunId, out string? reason) {
             reason = null;
             if (run.HasAttributes
                 || run.ChildElements.Any(child => child is not A.RunProperties
@@ -164,7 +171,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             WriteUInt32(characterRuns, checked((uint)value.Length));
             return TryWriteCharacterException(characterRuns,
                 NormalizeCharacterProperties(run.RunProperties), fonts,
-                out reason);
+                out reason, ppt9RunId);
         }
 
         private static A.TextCharacterPropertiesType?
@@ -339,6 +346,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     alignment));
             }
             return true;
+        }
+
+        internal sealed class LegacyPptWriterTextBoxContent {
+            internal LegacyPptWriterTextBoxContent(string text,
+                byte[]? styleRecord, byte[]? rulerRecord,
+                byte[]? style9Record) {
+                Text = text;
+                StyleRecord = styleRecord;
+                RulerRecord = rulerRecord;
+                Style9Record = style9Record;
+            }
+
+            internal string Text { get; }
+
+            internal byte[]? StyleRecord { get; }
+
+            internal byte[]? RulerRecord { get; }
+
+            internal byte[]? Style9Record { get; }
         }
     }
 }

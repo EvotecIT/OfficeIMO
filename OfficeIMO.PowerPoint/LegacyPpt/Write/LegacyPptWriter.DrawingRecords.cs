@@ -113,17 +113,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterShapeInteractions interactions = interactionCatalog.Get(shape);
             LegacyPptWriterAnimation? animation = animationCatalog.Get(shape);
             if (shape is PowerPointTextBox textBox) {
+                if (!TryBuildTextBoxContent(textBox, fonts,
+                        out LegacyPptWriterTextBoxContent? textContent,
+                        out string? textReason)) {
+                    throw new NotSupportedException(textReason);
+                }
                 shapeType = 202;
                 children.Add(BuildFsp(shapeType, shapeId, shape));
                 byte[]? formatting = BuildShapeFoptRecord(shape);
                 if (formatting != null) children.Add(formatting);
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
-                    interactions.ShapeInteractions, animation, shapeContext);
+                    interactions.ShapeInteractions, animation, shapeContext,
+                    style9Record: textContent!.Style9Record);
                 if (clientData != null) children.Add(clientData);
-                children.Add(BuildTextBox(textBox,
-                    MapTextType(shape, shapeContext),
-                    interactions.TextInteractions, fonts));
+                children.Add(BuildTextBox(MapTextType(shape, shapeContext),
+                    interactions.TextInteractions, textContent));
             } else if (shape is PowerPointAutoShape autoShape) {
                 if (!TryReadOfficeArtShapeType(autoShape,
                         requireConnector: false, out shapeType,
@@ -292,7 +297,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<LegacyPptWriterInteraction> interactions,
             LegacyPptWriterAnimation? animation,
             LegacyPptWriterShapeContext shapeContext,
-            uint? externalObjectId = null) {
+            uint? externalObjectId = null,
+            byte[]? style9Record = null) {
             var children = new List<byte[]>();
             if (externalObjectId.HasValue) {
                 children.Add(BuildExternalObjectReferenceAtom(
@@ -310,6 +316,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (animation != null) children.Add(BuildAnimationInfoRecord(animation));
             foreach (LegacyPptWriterInteraction interaction in interactions) {
                 children.Add(BuildInteractiveInfoRecord(interaction));
+            }
+            if (style9Record != null) {
+                children.Add(BuildShapePpt9ProgrammableTagsRecord(
+                    style9Record));
             }
             return children.Count == 0
                 ? null
@@ -398,24 +408,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(OfficeArtClientTextbox, instance: 0, children);
         }
 
-        private static byte[] BuildTextBox(PowerPointTextBox textBox,
-            uint textType,
+        private static byte[] BuildTextBox(uint textType,
             IReadOnlyList<LegacyPptWriterTextInteraction> textInteractions,
-            LegacyPptWriterFontCatalog fonts) {
-            if (!TryBuildTextBoxContent(textBox, fonts, out string text,
-                    out byte[]? styleRecord, out byte[]? rulerRecord,
-                    out string? reason)) {
-                throw new NotSupportedException(reason);
-            }
+            LegacyPptWriterTextBoxContent content) {
             var headerPayload = new byte[4];
             WriteUInt32(headerPayload, 0, textType);
             byte[] header = BuildRecord(version: 0, instance: 0,
                 RecordTextHeader, headerPayload);
             byte[] chars = BuildRecord(version: 0, instance: 0,
-                RecordTextChars, Encoding.Unicode.GetBytes(text));
+                RecordTextChars, Encoding.Unicode.GetBytes(content.Text));
             var children = new List<byte[]> { header, chars };
-            if (styleRecord != null) children.Add(styleRecord);
-            if (rulerRecord != null) children.Add(rulerRecord);
+            if (content.StyleRecord != null) {
+                children.Add(content.StyleRecord);
+            }
+            if (content.RulerRecord != null) {
+                children.Add(content.RulerRecord);
+            }
             foreach (LegacyPptWriterTextInteraction interaction
                      in textInteractions) {
                 children.Add(BuildInteractiveInfoRecord(

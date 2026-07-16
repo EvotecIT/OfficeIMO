@@ -5,7 +5,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private static bool TryWriteParagraphException(Stream output,
             A.TextParagraphPropertiesType? properties,
-            LegacyPptWriterFontCatalog fonts, out string? reason) {
+            LegacyPptWriterFontCatalog fonts, out string? reason,
+            bool allowAutoNumbering = false) {
             reason = null;
             if (properties == null) {
                 WriteUInt32(output, 0);
@@ -21,6 +22,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = "A master paragraph style contains duplicate or unsupported formatting children.";
                 return false;
             }
+            A.AutoNumberedBullet? autoNumberedBullet = properties
+                .GetFirstChild<A.AutoNumberedBullet>();
+            if (autoNumberedBullet != null && !allowAutoNumbering) {
+                reason = "A master paragraph style uses automatic numbering that requires a TextMasterStyle9Atom.";
+                return false;
+            }
 
             uint masks = 0;
             ushort bulletFlags = 0;
@@ -34,10 +41,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = "A master no-bullet marker contains unsupported metadata.";
                 return false;
             }
-            if (noBullet != null || characterBullet != null) {
+            if (noBullet != null || characterBullet != null
+                || autoNumberedBullet != null) {
                 masks |= 1U;
                 hasBulletFlags = true;
-                if (characterBullet != null) bulletFlags |= 1;
+                if (characterBullet != null || autoNumberedBullet != null) {
+                    bulletFlags |= 1;
+                }
             }
             A.BulletFont? bulletFont = properties.GetFirstChild<A.BulletFont>();
             A.BulletFontText? bulletFontText = properties
@@ -292,39 +302,43 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool TryWriteCharacterException(Stream output,
             A.TextCharacterPropertiesType? properties,
-            LegacyPptWriterFontCatalog fonts, out string? reason) {
+            LegacyPptWriterFontCatalog fonts, out string? reason,
+            byte? ppt9RunId = null) {
             reason = null;
-            if (properties == null) {
+            if (properties == null && !ppt9RunId.HasValue) {
                 WriteUInt32(output, 0);
                 return true;
             }
-            if (!HasOnlyAttributes(properties, "b", "i", "u", "kumimoji",
+            if (properties != null && !HasOnlyAttributes(properties, "b", "i", "u", "kumimoji",
                     "sz", "baseline")) {
                 reason = "A text run uses attributes outside the base binary character-style contract.";
                 return false;
             }
-            foreach (OpenXmlElement child in properties.ChildElements) {
-                if (child is not A.SolidFill and not A.LatinFont
-                    and not A.EastAsianFont and not A.SymbolFont) {
-                    reason = $"A text run contains unsupported '{child.LocalName}' content.";
-                    return false;
+            if (properties != null) {
+                foreach (OpenXmlElement child in properties.ChildElements) {
+                    if (child is not A.SolidFill and not A.LatinFont
+                        and not A.EastAsianFont and not A.SymbolFont) {
+                        reason = $"A text run contains unsupported '{child.LocalName}' content.";
+                        return false;
+                    }
                 }
             }
-            if (properties.Elements<A.SolidFill>().Count() > 1
-                || properties.Elements<A.LatinFont>().Count() > 1
-                || properties.Elements<A.EastAsianFont>().Count() > 1
-                || properties.Elements<A.SymbolFont>().Count() > 1) {
+            if (properties != null
+                && (properties.Elements<A.SolidFill>().Count() > 1
+                    || properties.Elements<A.LatinFont>().Count() > 1
+                    || properties.Elements<A.EastAsianFont>().Count() > 1
+                    || properties.Elements<A.SymbolFont>().Count() > 1)) {
                 reason = "A text run contains duplicate color or typeface elements.";
                 return false;
             }
             uint masks = 0;
             ushort style = 0;
             bool hasStyle = false;
-            AddStyleFlag(properties.Bold, 0, ref masks, ref style,
+            AddStyleFlag(properties?.Bold, 0, ref masks, ref style,
                 ref hasStyle);
-            AddStyleFlag(properties.Italic, 1, ref masks, ref style,
+            AddStyleFlag(properties?.Italic, 1, ref masks, ref style,
                 ref hasStyle);
-            if (properties.Underline?.HasValue == true) {
+            if (properties?.Underline?.HasValue == true) {
                 A.TextUnderlineValues value = properties.Underline.Value;
                 if (value != A.TextUnderlineValues.None
                     && value != A.TextUnderlineValues.Single) {
@@ -335,11 +349,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 hasStyle = true;
                 if (value == A.TextUnderlineValues.Single) style |= 1 << 2;
             }
-            AddStyleFlag(properties.Kumimoji, 7, ref masks, ref style,
+            AddStyleFlag(properties?.Kumimoji, 7, ref masks, ref style,
                 ref hasStyle);
+            if (ppt9RunId.HasValue) {
+                if (ppt9RunId.Value > 0x0F) {
+                    reason = "A PPT9 text run identifier is outside the four-bit range.";
+                    return false;
+                }
+                masks |= 0x00003C00U;
+                style |= checked((ushort)(ppt9RunId.Value << 10));
+                hasStyle = true;
+            }
 
             ushort? latinFont = null;
-            A.LatinFont? latin = properties.GetFirstChild<A.LatinFont>();
+            A.LatinFont? latin = properties?.GetFirstChild<A.LatinFont>();
             if (latin != null) {
                 if (!HasOnlyAttributes(latin, "typeface")
                     || latin.ChildElements.Count != 0
@@ -349,7 +372,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 16;
             }
             ushort? eastAsianFont = null;
-            A.EastAsianFont? eastAsian = properties
+            A.EastAsianFont? eastAsian = properties?
                 .GetFirstChild<A.EastAsianFont>();
             if (eastAsian != null) {
                 if (!HasOnlyAttributes(eastAsian, "typeface")
@@ -360,7 +383,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 21;
             }
             ushort? symbolFont = null;
-            A.SymbolFont? symbol = properties.GetFirstChild<A.SymbolFont>();
+            A.SymbolFont? symbol = properties?.GetFirstChild<A.SymbolFont>();
             if (symbol != null) {
                 if (!HasOnlyAttributes(symbol, "typeface")
                     || symbol.ChildElements.Count != 0
@@ -370,7 +393,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 23;
             }
             short? fontSize = null;
-            if (properties.FontSize?.HasValue == true) {
+            if (properties?.FontSize?.HasValue == true) {
                 int value = properties.FontSize.Value;
                 if (value % 100 != 0 || value < 100 || value > 400000) {
                     reason = "A master font size cannot be represented exactly as whole binary PowerPoint points.";
@@ -380,7 +403,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 17;
             }
             byte[]? color = null;
-            A.SolidFill? fill = properties.GetFirstChild<A.SolidFill>();
+            A.SolidFill? fill = properties?.GetFirstChild<A.SolidFill>();
             if (fill != null) {
                 if (!TryReadBinaryColor(fill, out color, out reason)) {
                     return false;
@@ -388,7 +411,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 masks |= 1U << 18;
             }
             short? baseline = null;
-            if (properties.Baseline?.HasValue == true) {
+            if (properties?.Baseline?.HasValue == true) {
                 int value = properties.Baseline.Value;
                 if (value % 1000 != 0 || value < -100000
                     || value > 100000) {
@@ -433,11 +456,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     and not A.BulletSizePercentage and not A.BulletSizePoints
                     and not A.BulletFontText and not A.BulletFont
                     and not A.NoBullet and not A.CharacterBullet
+                    and not A.AutoNumberedBullet
                     and not A.TabStopList) return false;
                 if (!seen.Add(child.GetType())) return false;
             }
-            return !(properties.GetFirstChild<A.NoBullet>() != null
-                    && properties.GetFirstChild<A.CharacterBullet>() != null)
+            return CountPresent(properties.GetFirstChild<A.NoBullet>(),
+                    properties.GetFirstChild<A.CharacterBullet>(),
+                    properties.GetFirstChild<A.AutoNumberedBullet>()) <= 1
                 && CountPresent(properties.GetFirstChild<A.BulletFont>(),
                     properties.GetFirstChild<A.BulletFontText>()) <= 1
                 && CountPresent(properties.GetFirstChild<A.BulletColor>(),
