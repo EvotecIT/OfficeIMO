@@ -8,5 +8,6 @@ internal interface IEmailStoreSessionBackend : IDisposable {
     IReadOnlyList<EmailStoreDiagnostic> Diagnostics { get; }
     IEnumerable<EmailStoreItemReference> EnumerateItems(
         EmailStoreEnumerationOptions options, CancellationToken cancellationToken);
+    EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference, CancellationToken cancellationToken);
     EmailStoreItem ReadItem(EmailStoreItemReference reference, CancellationToken cancellationToken);
 }

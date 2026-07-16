@@ -18,7 +18,8 @@ internal sealed class PstPropertyContextReader {
         _cancellationToken = cancellationToken;
     }
 
-    internal List<MapiProperty> ReadProperties(IDictionary<ushort, uint>? sourceHnids = null) {
+    internal List<MapiProperty> ReadProperties(IDictionary<ushort, uint>? sourceHnids = null,
+        ISet<ushort>? includedPropertyIds = null) {
         if (_heap.ClientSignature != 0xBC) {
             throw new InvalidDataException("The PST node is not a Property Context.");
         }
@@ -34,11 +35,12 @@ internal sealed class PstPropertyContextReader {
         if (rootHid != 0) {
             foreach (byte[] record in _heap.EnumerateBthLeafRecords(rootHid, 2, 6, indexLevels)) {
                 _cancellationToken.ThrowIfCancellationRequested();
+                ushort id = PstBinary.UInt16(record, 0);
+                if (includedPropertyIds != null && !includedPropertyIds.Contains(id)) continue;
                 if (properties.Count >= _options.MaxPropertiesPerItem) {
                     throw new EmailStoreLimitExceededException(nameof(EmailStoreReaderOptions.MaxPropertiesPerItem),
                         properties.Count + 1L, _options.MaxPropertiesPerItem);
                 }
-                ushort id = PstBinary.UInt16(record, 0);
                 var type = (MapiPropertyType)PstBinary.UInt16(record, 2);
                 uint rawValue = PstBinary.UInt32(record, 4);
                 MapiProperty property = DecodeProperty(id, type, rawValue, ref decodedBytes, sourceHnids);

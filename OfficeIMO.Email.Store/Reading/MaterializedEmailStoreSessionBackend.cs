@@ -31,17 +31,23 @@ internal sealed class MaterializedEmailStoreSessionBackend : IEmailStoreSessionB
                 cancellationToken.ThrowIfCancellationRequested();
                 if (item.IsOrphaned && !options.IncludeOrphanedItems) continue;
                 if (++count > options.MaxItems) yield break;
-                yield return new EmailStoreItemReference(item.Id, folder.Id, false, item.IsOrphaned);
+                yield return new EmailStoreItemReference(
+                    item.Id, folder.Id, false, item.IsOrphaned, EmailStoreItemSummary.FromItem(item));
             }
             if (!options.IncludeAssociatedItems) continue;
             foreach (EmailStoreItem item in folder.AssociatedItems) {
                 cancellationToken.ThrowIfCancellationRequested();
                 if (item.IsOrphaned && !options.IncludeOrphanedItems) continue;
                 if (++count > options.MaxItems) yield break;
-                yield return new EmailStoreItemReference(item.Id, folder.Id, true, item.IsOrphaned);
+                yield return new EmailStoreItemReference(
+                    item.Id, folder.Id, true, item.IsOrphaned, EmailStoreItemSummary.FromItem(item));
             }
         }
     }
+
+    public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
+        CancellationToken cancellationToken) =>
+        EmailStoreItemSummary.FromItem(ReadItem(reference, cancellationToken));
 
     public EmailStoreItem ReadItem(EmailStoreItemReference reference, CancellationToken cancellationToken) {
         cancellationToken.ThrowIfCancellationRequested();

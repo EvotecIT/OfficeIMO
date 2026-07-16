@@ -90,6 +90,40 @@ public sealed class EmailStoreSession : IDisposable {
         return _backend.ReadItem(reference, cancellationToken);
     }
 
+    /// <summary>
+    /// Reads only the small set of source properties needed for browsing and search when the format supports it.
+    /// A summary already carried by <paramref name="reference"/> is returned without another source read.
+    /// </summary>
+    public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
+        CancellationToken cancellationToken = default) {
+        if (reference == null) throw new ArgumentNullException(nameof(reference));
+        ThrowIfDisposed();
+        return reference.Summary ?? _backend.ReadSummary(reference, cancellationToken);
+    }
+
+    /// <summary>
+    /// Searches bounded lightweight summaries without materializing message bodies, recipients, or attachments.
+    /// </summary>
+    public IEnumerable<EmailStoreSearchResult> Search(EmailStoreQuery query,
+        CancellationToken cancellationToken = default) {
+        if (query == null) throw new ArgumentNullException(nameof(query));
+        ThrowIfDisposed();
+        var enumeration = new EmailStoreEnumerationOptions(
+            query.FolderId,
+            query.IncludeDescendants,
+            query.IncludeAssociatedItems,
+            query.IncludeOrphanedItems,
+            query.MaxItemsScanned);
+        int resultCount = 0;
+        foreach (EmailStoreItemReference reference in EnumerateItems(enumeration, cancellationToken)) {
+            cancellationToken.ThrowIfCancellationRequested();
+            EmailStoreItemSummary summary = ReadSummary(reference, cancellationToken);
+            if (!Matches(query, summary)) continue;
+            yield return new EmailStoreSearchResult(reference, summary);
+            if (++resultCount >= query.MaxResults) yield break;
+        }
+    }
+
     /// <summary>Materializes the configured store scope as a compatibility convenience.</summary>
     public EmailStoreReadResult ReadAll(CancellationToken cancellationToken = default) {
         ThrowIfDisposed();
@@ -174,4 +208,25 @@ public sealed class EmailStoreSession : IDisposable {
     private void ThrowIfDisposed() {
         if (_disposed) throw new ObjectDisposedException(nameof(EmailStoreSession));
     }
+
+    private static bool Matches(EmailStoreQuery query, EmailStoreItemSummary summary) {
+        if (query.ItemKind.HasValue && summary.OutlookItemKind != query.ItemKind.Value) return false;
+        if (query.SubjectContains != null && !Contains(summary.Subject, query.SubjectContains)) return false;
+        if (query.SenderContains != null &&
+            !AddressContains(summary.From, query.SenderContains) &&
+            !AddressContains(summary.Sender, query.SenderContains)) return false;
+        DateTimeOffset? timestamp = summary.ReceivedAt ?? summary.SentAt;
+        if (query.Since.HasValue && (!timestamp.HasValue || timestamp.Value < query.Since.Value)) return false;
+        if (query.Before.HasValue && (!timestamp.HasValue || timestamp.Value >= query.Before.Value)) return false;
+        if (query.HasAttachments.HasValue && summary.HasAttachments != query.HasAttachments) return false;
+        if (query.IsRead.HasValue && summary.IsRead != query.IsRead) return false;
+        return true;
+    }
+
+    private static bool AddressContains(OfficeIMO.Email.EmailAddress? address, string value) =>
+        address != null && (Contains(address.Address, value) ||
+            Contains(address.DisplayName, value) || Contains(address.RawValue, value));
+
+    private static bool Contains(string? text, string value) =>
+        text != null && text.IndexOf(value, StringComparison.OrdinalIgnoreCase) >= 0;
 }

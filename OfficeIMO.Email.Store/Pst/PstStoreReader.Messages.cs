@@ -3,6 +3,16 @@ using OfficeIMO.Email;
 namespace OfficeIMO.Email.Store;
 
 internal sealed partial class PstStoreReader {
+    private EmailStoreItemSummary CreateSummary(IReadOnlyList<MapiProperty> properties, string location) {
+        var document = new EmailDocument { Format = EmailFileFormat.Unknown };
+        foreach (MapiProperty property in properties) document.MapiProperties.Add(property);
+        ProjectItem(document, properties, location);
+        return new EmailStoreItemSummary(
+            document,
+            GetBool(properties, 0x0E1B),
+            GetInt(properties, 0x0E07).HasValue ? document.MessageMetadata.IsRead : null);
+    }
+
     private EmailStoreItem ReadItem(PstNodeReference node, string folderId, EmailStoreFormat format,
         bool isAssociated, bool isOrphaned) {
         string id = FormatId(node.Nid);
@@ -151,7 +161,8 @@ internal sealed partial class PstStoreReader {
 
     private IReadOnlyList<MapiProperty> ReadProperties(ulong dataBid, ulong subnodeBid, string location,
         IReadOnlyDictionary<uint, PstSubnodeReference>? knownSubnodes = null,
-        bool applyNamedProperties = true, IDictionary<ushort, uint>? sourceHnids = null) {
+        bool applyNamedProperties = true, IDictionary<ushort, uint>? sourceHnids = null,
+        ISet<ushort>? includedPropertyIds = null) {
         try {
             PstDataTree data = Ndb.ReadDataTree(
                 dataBid, _options.MaxDecodedPropertyBytesPerItem, _cancellationToken);
@@ -159,7 +170,8 @@ internal sealed partial class PstStoreReader {
                 Ndb.ReadSubnodes(subnodeBid, _cancellationToken);
             var heap = new PstHeap(data, subnodes, Ndb, _options, _cancellationToken);
             IReadOnlyList<MapiProperty> properties =
-                new PstPropertyContextReader(heap, _options, _cancellationToken).ReadProperties(sourceHnids);
+                new PstPropertyContextReader(heap, _options, _cancellationToken)
+                    .ReadProperties(sourceHnids, includedPropertyIds);
             if (applyNamedProperties) _namedProperties.Apply(properties);
             return properties;
         } catch (EmailStoreLimitExceededException) {

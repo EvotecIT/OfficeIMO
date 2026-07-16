@@ -57,6 +57,42 @@ public sealed class EmailStoreSessionTests {
         Assert.Equal(nameof(EmailStoreReaderOptions.MaxInputBytes), exception.LimitName);
     }
 
+    [Fact]
+    public void Searches_selective_pst_summaries_without_decoding_message_bodies() {
+        using var source = new MemoryStream(PstTestFileBuilder.Create());
+        var options = new EmailStoreReaderOptions(maxPropertiesPerItem: 2);
+        using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst", options);
+
+        EmailStoreSearchResult result = Assert.Single(session.Search(new EmailStoreQuery(
+            subjectContains: "synthetic pst",
+            itemKind: OfficeIMO.Email.OutlookItemKind.Message,
+            maxItemsScanned: 1,
+            maxResults: 1)));
+
+        Assert.Equal("Synthetic PST message", result.Summary.Subject);
+        Assert.Equal("IPM.Note", result.Summary.MessageClass);
+        Assert.Null(result.Reference.Summary);
+        Assert.Throws<EmailStoreLimitExceededException>(() => session.ReadItem(result.Reference));
+    }
+
+    [Fact]
+    public void Search_does_not_match_unknown_values_for_explicit_boolean_filters() {
+        using var source = new MemoryStream(PstTestFileBuilder.Create());
+        using EmailStoreSession session = EmailStoreSession.Open(source, "archive.pst");
+
+        Assert.Empty(session.Search(new EmailStoreQuery(hasAttachments: false)));
+        Assert.Empty(session.Search(new EmailStoreQuery(isRead: true)));
+    }
+
+    [Fact]
+    public void Query_rejects_unbounded_or_inverted_ranges() {
+        Assert.Throws<ArgumentOutOfRangeException>(() => new EmailStoreQuery(maxItemsScanned: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new EmailStoreQuery(maxResults: 0));
+        Assert.Throws<ArgumentException>(() => new EmailStoreQuery(
+            since: new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero),
+            before: new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero)));
+    }
+
     private sealed class VirtualLengthStream : Stream {
         private readonly byte[] _data;
         private readonly long _length;

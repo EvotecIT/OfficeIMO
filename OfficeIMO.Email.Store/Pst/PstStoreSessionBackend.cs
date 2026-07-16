@@ -19,6 +19,10 @@ internal sealed class PstStoreSessionBackend : IEmailStoreSessionBackend {
         EmailStoreEnumerationOptions options, CancellationToken cancellationToken) =>
         _reader.EnumerateItemReferences(options, cancellationToken);
 
+    public EmailStoreItemSummary ReadSummary(EmailStoreItemReference reference,
+        CancellationToken cancellationToken) =>
+        _reader.ReadReferencedSummary(reference, cancellationToken);
+
     public EmailStoreItem ReadItem(EmailStoreItemReference reference,
         CancellationToken cancellationToken) =>
         _reader.ReadReferencedItem(reference, cancellationToken);

@@ -3,6 +3,14 @@ using OfficeIMO.Email;
 namespace OfficeIMO.Email.Store;
 
 internal sealed partial class PstStoreReader {
+    private static readonly ISet<ushort> SummaryPropertyIds = new HashSet<ushort> {
+        0x001A, 0x0037, 0x0E1D, 0x1035,
+        0x0039, 0x3007, 0x0E06,
+        0x0042, 0x5D02, 0x0065, 0x0064,
+        0x0C1A, 0x5D01, 0x0C1F, 0x0C1E,
+        0x0017, 0x0026, 0x0E07, 0x0E08, 0x0E1B,
+        0x3FDE, 0x3FFC, 0x3FFD
+    };
     private readonly EmailStoreReaderOptions _options;
     private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
     private readonly Dictionary<uint, PstNodeReference> _folderNodes = new Dictionary<uint, PstNodeReference>();
@@ -130,13 +138,30 @@ internal sealed partial class PstStoreReader {
             if (++count > options.MaxItems) yield break;
             yield return new EmailStoreItemReference(
                 FormatId(selection.Node.Nid), FormatId(selection.FolderNid),
-                selection.IsAssociated, selection.IsOrphaned);
+                selection.IsAssociated, selection.IsOrphaned, selection.Summary);
         }
+    }
+
+    internal EmailStoreItemSummary ReadReferencedSummary(EmailStoreItemReference reference,
+        CancellationToken cancellationToken) {
+        _cancellationToken = cancellationToken;
+        PstNodeReference node = ResolveReferencedNode(reference);
+        string location = string.Concat("item/", reference.Id, "/summary");
+        IReadOnlyList<MapiProperty> properties = ReadProperties(
+            node.DataBid, node.SubnodeBid, location, includedPropertyIds: SummaryPropertyIds);
+        return CreateSummary(properties, location);
     }
 
     internal EmailStoreItem ReadReferencedItem(EmailStoreItemReference reference,
         CancellationToken cancellationToken) {
         _cancellationToken = cancellationToken;
+        PstNodeReference node = ResolveReferencedNode(reference);
+        _totalAttachmentBytes = 0;
+        return ReadItem(node, reference.FolderId, _format,
+            reference.IsAssociated, reference.IsOrphaned);
+    }
+
+    private PstNodeReference ResolveReferencedNode(EmailStoreItemReference reference) {
         uint nid = ParseId(reference.Id);
         uint folderNid = ParseId(reference.FolderId);
         if (!_folderNodes.ContainsKey(folderNid) ||
@@ -147,9 +172,7 @@ internal sealed partial class PstStoreReader {
             reference.IsAssociated != (node.Type == 0x08)) {
             throw new KeyNotFoundException("The item reference does not belong to this PST/OST session.");
         }
-        _totalAttachmentBytes = 0;
-        return ReadItem(node, reference.FolderId, _format,
-            reference.IsAssociated, reference.IsOrphaned);
+        return node;
     }
 
     private IReadOnlyCollection<uint> ResolveFolderNids(EmailStoreEnumerationOptions options) {
@@ -265,7 +288,9 @@ internal sealed partial class PstStoreReader {
                     location));
                 continue;
             }
-            yield return new ItemSelection(itemNode, folderNid, isAssociated, isOrphaned: false);
+            yield return new ItemSelection(
+                itemNode, folderNid, isAssociated, isOrphaned: false,
+                CreateSummary(row, string.Concat(location, "/item/", FormatId(nid), "/summary")));
         }
     }
 
@@ -371,17 +396,28 @@ internal sealed partial class PstStoreReader {
         return null;
     }
 
+    private static bool? GetBool(IEnumerable<MapiProperty> properties, ushort id) {
+        object? value = properties.FirstOrDefault(property => property.PropertyId == id)?.Value;
+        if (value is bool boolean) return boolean;
+        if (value is int number) return number != 0;
+        if (value is short shortNumber) return shortNumber != 0;
+        return null;
+    }
+
     private sealed class ItemSelection {
-        internal ItemSelection(PstNodeReference node, uint folderNid, bool isAssociated, bool isOrphaned) {
+        internal ItemSelection(PstNodeReference node, uint folderNid, bool isAssociated, bool isOrphaned,
+            EmailStoreItemSummary? summary = null) {
             Node = node;
             FolderNid = folderNid;
             IsAssociated = isAssociated;
             IsOrphaned = isOrphaned;
+            Summary = summary;
         }
 
         internal PstNodeReference Node { get; }
         internal uint FolderNid { get; }
         internal bool IsAssociated { get; }
         internal bool IsOrphaned { get; }
+        internal EmailStoreItemSummary? Summary { get; }
     }
 }
