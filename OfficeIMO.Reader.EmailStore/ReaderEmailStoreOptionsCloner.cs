@@ -6,7 +6,11 @@ namespace OfficeIMO.Reader.EmailStore;
 internal static class ReaderEmailStoreOptionsCloner {
     internal static ReaderEmailStoreOptions CloneOrDefault(ReaderEmailStoreOptions? options) {
         return new ReaderEmailStoreOptions {
-            StoreOptions = CloneStoreOptions(options?.StoreOptions ?? EmailStoreReaderOptions.Default)
+            StoreOptions = CloneStoreOptions(options?.StoreOptions ?? EmailStoreReaderOptions.Default),
+            Query = CloneQuery(options?.Query),
+            MaxItems = options?.MaxItems ?? 1_000,
+            ContinueOnItemError = options?.ContinueOnItemError ?? true,
+            ComputeSourceHash = options?.ComputeSourceHash ?? false
         };
     }
 
@@ -49,6 +53,25 @@ internal static class ReaderEmailStoreOptionsCloner {
             maxArchiveEntryBytes: source.MaxArchiveEntryBytes,
             maxArchiveDecodedBytes: source.MaxArchiveDecodedBytes,
             maxXmlCharactersPerItem: source.MaxXmlCharactersPerItem,
-            maxMessageBytes: source.MaxMessageBytes);
+            maxMessageBytes: source.MaxMessageBytes,
+            maxDirectoryDepth: source.MaxDirectoryDepth,
+            maxDirectoryFileCount: source.MaxDirectoryFileCount);
     }
+
+    private static EmailStoreQuery? CloneQuery(EmailStoreQuery? query) => query == null
+        ? null
+        : new EmailStoreQuery(
+            query.FolderId,
+            query.IncludeDescendants,
+            query.IncludeAssociatedItems,
+            query.IncludeOrphanedItems,
+            query.ItemKind,
+            query.SubjectContains,
+            query.SenderContains,
+            query.Since,
+            query.Before,
+            query.HasAttachments,
+            query.IsRead,
+            query.MaxItemsScanned,
+            query.MaxResults);
 }

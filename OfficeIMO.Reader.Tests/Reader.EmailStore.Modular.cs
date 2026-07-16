@@ -124,6 +124,77 @@ public sealed class ReaderEmailStoreModularTests {
             chunk.Text.Contains("EMLX Reader contract", StringComparison.Ordinal));
     }
 
+    [Fact]
+    public void Selective_query_projects_only_matching_store_items() {
+        const string xml = "<emails>" +
+            "<email><OPFMessageCopySubject>Keep this message</OPFMessageCopySubject>" +
+            "<OPFMessageCopyBody>Selected body</OPFMessageCopyBody></email>" +
+            "<email><OPFMessageCopySubject>Skip this message</OPFMessageCopySubject>" +
+            "<OPFMessageCopyBody>Unselected body</OPFMessageCopyBody></email>" +
+            "</emails>";
+        byte[] archive = CreateOlmArchive(new Dictionary<string, byte[]> {
+            ["Local/com.microsoft.__Messages/Inbox/messages.xml"] = Encoding.UTF8.GetBytes(xml)
+        });
+        var adapterOptions = new ReaderEmailStoreOptions {
+            Query = new EmailStoreQuery(subjectContains: "keep"),
+            MaxItems = 10
+        };
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddEmailStoreHandler(adapterOptions)
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(archive, "mailbox.olm");
+
+        Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("Keep this message", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Chunks, chunk => chunk.Text.Contains("Skip this message", StringComparison.Ordinal));
+        Assert.Contains(result.Metadata, item => item.Name == "ItemCount" && item.Value == "1");
+        Assert.Contains(result.Metadata,
+            item => item.Name == "SelectionLimitReached" && item.Value == "False");
+    }
+
+    [Fact]
+    public void Reader_item_bound_is_reported_instead_of_materializing_the_whole_store() {
+        const string xml = "<emails>" +
+            "<email><OPFMessageCopySubject>First</OPFMessageCopySubject></email>" +
+            "<email><OPFMessageCopySubject>Second</OPFMessageCopySubject></email>" +
+            "</emails>";
+        byte[] archive = CreateOlmArchive(new Dictionary<string, byte[]> {
+            ["Local/com.microsoft.__Messages/Inbox/messages.xml"] = Encoding.UTF8.GetBytes(xml)
+        });
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddEmailStoreHandler(new ReaderEmailStoreOptions { MaxItems = 1 })
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(archive, "mailbox.olm");
+
+        Assert.Contains(result.Metadata,
+            item => item.Name == "SelectionLimitReached" && item.Value == "True");
+        Assert.Contains(result.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_STORE_READER_SELECTION_LIMIT");
+        Assert.Contains(result.Chunks, chunk => chunk.Text.Contains("First", StringComparison.Ordinal));
+        Assert.DoesNotContain(result.Chunks, chunk => chunk.Text.Contains("Second", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Store_source_hash_is_opt_in_while_chunk_hashes_remain_available() {
+        byte[] emlx = CreateEmlx(CreateMultipartMessage(), null);
+        string path = Path.Combine(Path.GetTempPath(), "officeimo-reader-store-" + Guid.NewGuid().ToString("N") + ".emlx");
+        try {
+            File.WriteAllBytes(path, emlx);
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddEmailStoreHandler()
+                .Build();
+
+            OfficeDocumentReadResult result = reader.ReadDocument(
+                path, new ReaderOptions { ComputeHashes = true });
+
+            Assert.Null(result.Source.SourceHash);
+            Assert.All(result.Chunks, chunk => Assert.False(string.IsNullOrWhiteSpace(chunk.ChunkHash)));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
     private static byte[] CreateEmlx(byte[] message, string? plist) {
         byte[] prefix = Encoding.ASCII.GetBytes(message.Length.ToString(CultureInfo.InvariantCulture) + "\n");
         byte[] metadata = plist == null ? Array.Empty<byte>() : Encoding.UTF8.GetBytes(plist);

@@ -9,17 +9,18 @@ internal static class EmailStoreReaderAdapter {
         ReaderEmailStoreOptions adapterOptions,
         CancellationToken cancellationToken) {
         EmailStoreReaderOptions effective = ReaderEmailStoreOptionsCloner.CreateEffective(adapterOptions, readerOptions);
-        EmailStoreReadResult readResult = new global::OfficeIMO.Email.Store.EmailStoreReader(effective)
-            .Read(path, cancellationToken);
-        EmailStoreProjection projection = EmailStoreReaderProjection.Create(readResult, path, cancellationToken);
-        return DocumentReaderEngine.ProjectEmailDocumentsToChunks(
-            projection.Documents,
-            projection.LogicalPaths,
-            projection.Diagnostics,
-            projection.EmailFormat,
-            path,
-            readerOptions,
-            cancellationToken);
+        using (EmailStoreSession session = EmailStoreSession.Open(path, effective, cancellationToken)) {
+            EmailStoreProjection projection = EmailStoreReaderProjection.Create(
+                session, path, adapterOptions, cancellationToken);
+            return DocumentReaderEngine.ProjectEmailDocumentsToChunks(
+                projection.Documents,
+                projection.LogicalPaths,
+                projection.Diagnostics,
+                projection.EmailFormat,
+                path,
+                readerOptions,
+                cancellationToken);
+        }
     }
 
     internal static IEnumerable<ReaderChunk> Read(
@@ -33,18 +34,19 @@ internal static class EmailStoreReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream, effective.MaxInputBytes, cancellationToken, out bool ownsParseStream);
         try {
-            EmailStoreReadResult readResult = new global::OfficeIMO.Email.Store.EmailStoreReader(effective)
-                .Read(parseStream, logicalSourceName, cancellationToken);
-            EmailStoreProjection projection = EmailStoreReaderProjection.Create(
-                readResult, logicalSourceName, cancellationToken);
-            return DocumentReaderEngine.ProjectEmailDocumentsToChunks(
-                projection.Documents,
-                projection.LogicalPaths,
-                projection.Diagnostics,
-                projection.EmailFormat,
-                logicalSourceName,
-                readerOptions,
-                cancellationToken).ToArray();
+            using (EmailStoreSession session = EmailStoreSession.Open(
+                parseStream, logicalSourceName, effective, leaveOpen: true, cancellationToken)) {
+                EmailStoreProjection projection = EmailStoreReaderProjection.Create(
+                    session, logicalSourceName, adapterOptions, cancellationToken);
+                return DocumentReaderEngine.ProjectEmailDocumentsToChunks(
+                    projection.Documents,
+                    projection.LogicalPaths,
+                    projection.Diagnostics,
+                    projection.EmailFormat,
+                    logicalSourceName,
+                    readerOptions,
+                    cancellationToken).ToArray();
+            }
         } finally {
             if (ownsParseStream) parseStream.Dispose();
         }
@@ -56,19 +58,21 @@ internal static class EmailStoreReaderAdapter {
         ReaderEmailStoreOptions adapterOptions,
         CancellationToken cancellationToken) {
         EmailStoreReaderOptions effective = ReaderEmailStoreOptionsCloner.CreateEffective(adapterOptions, readerOptions);
-        EmailStoreReadResult readResult = new global::OfficeIMO.Email.Store.EmailStoreReader(effective)
-            .Read(path, cancellationToken);
-        EmailStoreProjection projection = EmailStoreReaderProjection.Create(readResult, path, cancellationToken);
-        OfficeDocumentReadResult result = DocumentReaderEngine.ProjectEmailDocumentsToPathResult(
-            projection.Documents,
-            projection.LogicalPaths,
-            projection.Diagnostics,
-            projection.EmailFormat,
-            path,
-            path,
-            readerOptions,
-            cancellationToken);
-        return EmailStoreReaderProjection.EnrichResult(result, projection);
+        using (EmailStoreSession session = EmailStoreSession.Open(path, effective, cancellationToken)) {
+            EmailStoreProjection projection = EmailStoreReaderProjection.Create(
+                session, path, adapterOptions, cancellationToken);
+            OfficeDocumentReadResult result = DocumentReaderEngine.ProjectEmailDocumentsToPathResult(
+                projection.Documents,
+                projection.LogicalPaths,
+                projection.Diagnostics,
+                projection.EmailFormat,
+                path,
+                path,
+                readerOptions,
+                cancellationToken,
+                computeSourceHash: adapterOptions.ComputeSourceHash);
+            return EmailStoreReaderProjection.EnrichResult(result, projection);
+        }
     }
 
     internal static OfficeDocumentReadResult ReadDocument(
@@ -82,20 +86,22 @@ internal static class EmailStoreReaderAdapter {
         Stream parseStream = ReaderInputLimits.EnsureSeekableReadStream(
             stream, effective.MaxInputBytes, cancellationToken, out bool ownsParseStream);
         try {
-            EmailStoreReadResult readResult = new global::OfficeIMO.Email.Store.EmailStoreReader(effective)
-                .Read(parseStream, logicalSourceName, cancellationToken);
-            EmailStoreProjection projection = EmailStoreReaderProjection.Create(
-                readResult, logicalSourceName, cancellationToken);
-            OfficeDocumentReadResult result = DocumentReaderEngine.ProjectEmailDocumentsToStreamResult(
-                projection.Documents,
-                projection.LogicalPaths,
-                projection.Diagnostics,
-                projection.EmailFormat,
-                logicalSourceName,
-                parseStream,
-                readerOptions,
-                cancellationToken);
-            return EmailStoreReaderProjection.EnrichResult(result, projection);
+            using (EmailStoreSession session = EmailStoreSession.Open(
+                parseStream, logicalSourceName, effective, leaveOpen: true, cancellationToken)) {
+                EmailStoreProjection projection = EmailStoreReaderProjection.Create(
+                    session, logicalSourceName, adapterOptions, cancellationToken);
+                OfficeDocumentReadResult result = DocumentReaderEngine.ProjectEmailDocumentsToStreamResult(
+                    projection.Documents,
+                    projection.LogicalPaths,
+                    projection.Diagnostics,
+                    projection.EmailFormat,
+                    logicalSourceName,
+                    parseStream,
+                    readerOptions,
+                    cancellationToken,
+                    computeSourceHash: adapterOptions.ComputeSourceHash);
+                return EmailStoreReaderProjection.EnrichResult(result, projection);
+            }
         } finally {
             if (ownsParseStream) parseStream.Dispose();
         }

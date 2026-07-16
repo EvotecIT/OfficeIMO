@@ -7,7 +7,7 @@ public static class OfficeDocumentReaderBuilderEmailStoreExtensions {
     /// <summary>Stable handler identifier for email-store adapter registration.</summary>
     public const string HandlerId = "officeimo.reader.emailstore";
 
-    /// <summary>Adds PST, OST, OLM, and EMLX ingestion to an isolated Reader builder.</summary>
+    /// <summary>Adds bounded PST, OST, OLM, and EMLX ingestion to an isolated Reader builder.</summary>
     public static OfficeDocumentReaderBuilder AddEmailStoreHandler(
         this OfficeDocumentReaderBuilder builder,
         ReaderEmailStoreOptions? options = null,
@@ -18,7 +18,7 @@ public static class OfficeDocumentReaderBuilderEmailStoreExtensions {
         return builder.AddHandler(new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "Email Store Reader Adapter",
-            Description = "PST, OST, OLM, and EMLX adapter using the dependency-free OfficeIMO.Email.Store parser.",
+            Description = "Bounded PST, OST, OLM, and EMLX adapter using lazy OfficeIMO.Email.Store sessions.",
             Kind = ReaderInputKind.Email,
             Extensions = new[] { ".pst", ".ost", ".olm", ".emlx" },
             ReadPath = (path, readerOptions, cancellationToken) => EmailStoreReaderAdapter.Read(

@@ -4,6 +4,8 @@ namespace OfficeIMO.Reader.EmailStore;
 
 /// <summary>Options for projecting email stores through OfficeIMO.Reader.</summary>
 public sealed class ReaderEmailStoreOptions {
+    private int _maxItems = 1_000;
+
     /// <summary>
     /// Gets or sets bounded store-reader options. Registrations capture a defensive copy.
     /// A Reader-level <see cref="ReaderOptions.MaxInputBytes"/> can narrow, but never widen, this limit.
@@ -13,4 +15,29 @@ public sealed class ReaderEmailStoreOptions {
     /// It is never added to Reader results, diagnostics, or metadata.
     /// </remarks>
     public EmailStoreReaderOptions? StoreOptions { get; set; }
+
+    /// <summary>
+    /// Optional selective summary query applied before full item projection. This is the preferred way to ingest
+    /// a narrow slice of a very large PST or OST.
+    /// </summary>
+    public EmailStoreQuery? Query { get; set; }
+
+    /// <summary>Maximum matching items fully projected into one Reader result. Default: 1,000.</summary>
+    public int MaxItems {
+        get => _maxItems;
+        set {
+            if (value <= 0) throw new ArgumentOutOfRangeException(nameof(value));
+            _maxItems = value;
+        }
+    }
+
+    /// <summary>Whether a corrupt or over-limit item is diagnosed and skipped instead of aborting the store.</summary>
+    public bool ContinueOnItemError { get; set; } = true;
+
+    /// <summary>
+    /// Whether Reader hashes the complete source store. Disabled by default because hashing a huge PST/OST forces a
+    /// full sequential read even when parsing selected items is random-access and bounded. Chunk hashes still follow
+    /// <see cref="ReaderOptions.ComputeHashes"/>.
+    /// </summary>
+    public bool ComputeSourceHash { get; set; }
 }
