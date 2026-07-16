@@ -38,6 +38,9 @@ public sealed class ReaderAllOptions {
     /// <summary>Gets or sets Jupyter Notebook adapter options.</summary>
     public Notebook.ReaderNotebookOptions? Notebook { get; set; }
 
+    /// <summary>Gets or sets offline OneNote adapter options.</summary>
+    public OneNote.ReaderOneNoteOptions? OneNote { get; set; }
+
     /// <summary>Gets or sets PDF adapter options.</summary>
     public Pdf.ReaderPdfOptions? Pdf { get; set; }
 

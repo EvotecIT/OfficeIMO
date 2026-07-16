@@ -8,6 +8,7 @@ using OfficeIMO.Reader.Image;
 using OfficeIMO.Reader.Json;
 using OfficeIMO.Reader.Latex;
 using OfficeIMO.Reader.Notebook;
+using OfficeIMO.Reader.OneNote;
 using OfficeIMO.Reader.OpenDocument;
 using OfficeIMO.Reader.Pdf;
 using OfficeIMO.Reader.Rtf;
@@ -48,6 +49,7 @@ public static class OfficeDocumentReaderBuilderAllExtensions {
             .AddJsonHandler(configured.Json)
             .AddLatexHandler(configured.Latex)
             .AddNotebookHandler(configured.Notebook)
+            .AddOneNoteHandler(configured.OneNote)
             .AddOpenDocumentHandler()
             .AddPdfHandler(configured.Pdf)
             .AddRtfHandler(configured.Rtf)

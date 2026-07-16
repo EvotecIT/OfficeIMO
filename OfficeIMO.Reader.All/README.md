@@ -22,7 +22,7 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
 OfficeDocumentReadResult document = reader.ReadDocument("input.epub");
 ```
 
-The preset adds AsciiDoc, CSV/TSV, Outlook OAB address books, PST/OST/OLM/EMLX email stores, EPUB, HTML/MHTML, standalone image, JSON, LaTeX, Jupyter Notebook, OpenDocument, PDF, RTF, SRT/WebVTT subtitle, Visio, XML, YAML, and ZIP handlers. Word, Excel, PowerPoint, Markdown, individual email artifacts, and plain text remain built into `OfficeIMO.Reader`.
+The preset adds AsciiDoc, CSV/TSV, Outlook OAB address books, PST/OST/OLM/EMLX email stores, EPUB, HTML/MHTML, standalone image, JSON, LaTeX, Jupyter Notebook, offline OneNote (`.one`, `.onetoc2`, and `.onepkg`), OpenDocument, PDF, RTF, SRT/WebVTT subtitle, Visio, XML, YAML, and ZIP handlers. Word, Excel, PowerPoint, Markdown, individual email artifacts, and plain text remain built into `OfficeIMO.Reader`.
 
 Configure a format through one options object:
 
@@ -38,6 +38,10 @@ OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
         },
         EmailAddressBook = new OfficeIMO.Reader.EmailAddressBook.ReaderEmailAddressBookOptions {
             MaxEntries = 10_000
+        },
+        OneNote = new OfficeIMO.Reader.OneNote.ReaderOneNoteOptions {
+            IncludeConflictPages = true,
+            IncludeVersionHistory = true
         },
         ZipTraversal = new OfficeIMO.Zip.ZipTraversalOptions {
             MaxEntries = 500,
