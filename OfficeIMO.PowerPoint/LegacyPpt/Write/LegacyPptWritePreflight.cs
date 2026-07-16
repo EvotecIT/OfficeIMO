@@ -317,6 +317,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             "Fill, outline, transform, effects, hyperlink, visibility, or alternative-text styling is not encoded.",
                             slideIndex, shapeIndex));
                     }
+                    if (LegacyPptWriter.IsLayoutShape(shape)
+                        && HasUnsupportedMasterInteraction(shape)) {
+                        findings.Add(new LegacyPptWriteFinding(
+                            LegacyPptFeature.Layouts,
+                            "PPT-WRITE-LAYOUT-INTERACTION",
+                            "Interactions on a materialized ordinary-layout shape are not encoded by the native binary writer.",
+                            slideIndex, shapeIndex));
+                    }
                     if (shape is PowerPointTextBox textBox
                         && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
                             shapeTextFonts, pictureBullets,
@@ -372,6 +380,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out _)) return false;
             foreach (PowerPointShape shape in shapes) {
                 if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)
+                    || LegacyPptWriter.IsLayoutShape(shape)
+                    && HasUnsupportedMasterInteraction(shape)
                     || !LegacyPptWriter.TryReadPlaceholderForWrite(shape,
                         LegacyPptWriter.LegacyPptWriterShapeContext.Slide,
                         out _, out _)) return false;

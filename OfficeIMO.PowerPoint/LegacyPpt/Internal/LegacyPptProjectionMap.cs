@@ -12,6 +12,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private readonly IReadOnlyDictionary<string, LegacyPptSlideProjection> _slidesByPartUri;
         private readonly IReadOnlyDictionary<uint, LegacyPptSlideProjection> _slidesByLegacyId;
         private readonly IReadOnlyDictionary<string, uint> _masterIdsByLayoutPartUri;
+        private readonly IReadOnlyDictionary<string,
+            LegacyPptOrdinaryLayoutProjection> _ordinaryLayoutsByPartUri;
         private readonly IReadOnlyDictionary<string, LegacyPptMasterProjection> _mastersByPartUri;
         private readonly IReadOnlyDictionary<string, LegacyPptMasterProjection>
             _titleMastersByPartUri;
@@ -22,6 +24,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private LegacyPptProjectionMap(IReadOnlyList<LegacyPptSlideProjection> slides,
             IReadOnlyDictionary<string, uint> masterIdsByLayoutPartUri,
+            IReadOnlyList<LegacyPptOrdinaryLayoutProjection> ordinaryLayouts,
             IReadOnlyList<LegacyPptMasterProjection> masters,
             IReadOnlyList<LegacyPptMasterProjection> titleMasters,
             IReadOnlyList<LegacyPptMasterProjection> specialMasters,
@@ -39,6 +42,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             _masterIdsByLayoutPartUri = new ReadOnlyDictionary<string, uint>(
                 masterIdsByLayoutPartUri.ToDictionary(pair => pair.Key, pair => pair.Value,
                     StringComparer.Ordinal));
+            _ordinaryLayoutsByPartUri = new ReadOnlyDictionary<string,
+                LegacyPptOrdinaryLayoutProjection>(ordinaryLayouts
+                    .ToDictionary(layout => layout.PartUri,
+                        StringComparer.Ordinal));
             Masters = new ReadOnlyCollection<LegacyPptMasterProjection>(masters.ToArray());
             _mastersByPartUri = new ReadOnlyDictionary<string, LegacyPptMasterProjection>(
                 masters.ToDictionary(master => master.MasterPartUri, StringComparer.Ordinal));
@@ -123,6 +130,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool IsProjectedLayoutPart(string partUri) =>
             partUri != null && _masterIdsByLayoutPartUri.ContainsKey(partUri);
 
+        internal bool IsEditableProjectedOrdinaryLayoutPart(string partUri) =>
+            partUri != null
+            && _ordinaryLayoutsByPartUri.ContainsKey(partUri);
+
+        internal bool OrdinaryLayoutMatches(SlideLayoutPart layoutPart) {
+            if (layoutPart == null) throw new ArgumentNullException(
+                nameof(layoutPart));
+            return _ordinaryLayoutsByPartUri.TryGetValue(
+                    layoutPart.Uri.ToString(), out LegacyPptOrdinaryLayoutProjection?
+                        projection)
+                && projection.ShapeTreeMatches(layoutPart);
+        }
+
+        internal bool OrdinaryLayoutTypeMatches(
+            SlideLayoutPart layoutPart) {
+            if (layoutPart == null) throw new ArgumentNullException(
+                nameof(layoutPart));
+            return _ordinaryLayoutsByPartUri.TryGetValue(
+                    layoutPart.Uri.ToString(), out LegacyPptOrdinaryLayoutProjection?
+                        projection)
+                && projection.TypeMatches(layoutPart);
+        }
+
+        internal bool TryGetOrdinaryLayoutAddedShapeIds(
+            SlideLayoutPart layoutPart,
+            out IReadOnlyList<uint> addedShapeIds) {
+            if (layoutPart == null) throw new ArgumentNullException(
+                nameof(layoutPart));
+            addedShapeIds = Array.Empty<uint>();
+            return _ordinaryLayoutsByPartUri.TryGetValue(
+                    layoutPart.Uri.ToString(), out LegacyPptOrdinaryLayoutProjection?
+                        projection)
+                && projection.TryGetAddedShapeIds(layoutPart,
+                    out addedShapeIds);
+        }
+
         internal bool IsEditableProjectedLayoutBackgroundPart(string partUri) =>
             partUri != null && !_titleMastersByPartUri.ContainsKey(partUri)
             && Slides.Any(slide => !slide.HasExplicitBackground
@@ -192,6 +235,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     projectedSlide.SlidePart.SlideLayoutPart?.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
+                    sourceSlide.LayoutType,
+                    sourceSlide.LayoutPlaceholderTypes.Select(value =>
+                        unchecked((byte)value)).ToArray(),
                     sourceSlide.Hidden, sourceSlide.FollowsMasterObjects,
                     sourceSlide.HeaderFooter,
                     projectedSlide.SlidePart.Slide?.CommonSlideData?
@@ -209,9 +255,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         : CreateNotesProjection(projectedSlide,
                             sourceSlide.NotesPage)));
             }
-            return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy),
+            IReadOnlyList<LegacyPptMasterProjection> titleMasters =
+                CreateTitleMasterProjections(presentation, legacy);
+            return new LegacyPptProjectionMap(slides,
+                CreateLayoutMasterMap(presentation, legacy),
+                LegacyPptOrdinaryLayoutProjection.Create(presentation,
+                    titleMasters),
                 CreateMasterProjections(presentation, legacy),
-                CreateTitleMasterProjections(presentation, legacy),
+                titleMasters,
                 CreateSpecialMasterProjections(presentation, legacy),
                 legacy.Hyperlinks, legacy.CustomShows,
                 legacy.CustomShowsAreEditable, legacy.Sounds,
@@ -753,6 +804,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal LegacyPptSlideProjection(string slidePartUri,
             string? layoutPartUri, uint persistId, uint slideId, uint masterId,
+            uint layoutType, IReadOnlyList<byte> layoutPlaceholderTypes,
             bool hidden, bool followsMasterObjects,
             LegacyPptHeaderFooterSettings? headerFooter,
             bool hasExplicitBackground,
@@ -767,6 +819,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             PersistId = persistId;
             SlideId = slideId;
             MasterId = masterId;
+            LayoutType = layoutType;
+            LayoutPlaceholderTypes = new ReadOnlyCollection<byte>(
+                (layoutPlaceholderTypes ?? throw new ArgumentNullException(
+                    nameof(layoutPlaceholderTypes))).ToArray());
+            if (LayoutPlaceholderTypes.Count != 8) {
+                throw new ArgumentException(
+                    "A binary slide layout signature requires eight placeholder slots.",
+                    nameof(layoutPlaceholderTypes));
+            }
             Hidden = hidden;
             FollowsMasterObjects = followsMasterObjects;
             HeaderFooter = headerFooter;
@@ -802,6 +863,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal uint SlideId { get; }
 
         internal uint MasterId { get; }
+
+        internal uint LayoutType { get; }
+
+        internal IReadOnlyList<byte> LayoutPlaceholderTypes { get; }
+
+        internal bool LayoutContractMatches(uint layoutType,
+            IReadOnlyList<byte> placeholderTypes) =>
+            LayoutType == layoutType
+            && placeholderTypes != null
+            && LayoutPlaceholderTypes.SequenceEqual(placeholderTypes);
 
         internal bool Hidden { get; }
 

@@ -149,6 +149,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
                 var currentSlideOrder = new List<LegacyPptSlideProjection>(presentation.Slides.Count);
                 var addedSlides = new List<PowerPointSlide>();
+                var materializedLayoutDrawingUpdates = new Dictionary<uint,
+                    MaterializedLayoutDrawingUpdate>();
                 bool encounteredAddedSlide = false;
                 foreach (PowerPointSlide slide in presentation.Slides) {
                     if (!projectionMap.TryGetSlide(slide, out LegacyPptSlideProjection? slideProjection)
@@ -249,6 +251,52 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 notesBytes);
                         }
                     }
+
+                    SlideLayoutPart? ordinaryLayoutPart = slide.SlidePart
+                        .SlideLayoutPart;
+                    bool ordinaryLayoutShapesChanged = ordinaryLayoutPart != null
+                        && projectionMap
+                            .IsEditableProjectedOrdinaryLayoutPart(
+                                ordinaryLayoutPart.Uri.ToString())
+                        && !projectionMap.OrdinaryLayoutMatches(
+                            ordinaryLayoutPart);
+                    bool ordinaryLayoutTypeChanged = ordinaryLayoutPart != null
+                        && projectionMap
+                            .IsEditableProjectedOrdinaryLayoutPart(
+                                ordinaryLayoutPart.Uri.ToString())
+                        && !projectionMap.OrdinaryLayoutTypeMatches(
+                            ordinaryLayoutPart);
+                    IReadOnlyList<PowerPointShape> writableShapes =
+                        LegacyPptWriter.ReadSlideShapesForWrite(slide,
+                            out string? layoutShapeReason);
+                    if (layoutShapeReason != null) return false;
+                    IReadOnlyList<uint> addedLayoutShapeIds =
+                        Array.Empty<uint>();
+                    if (ordinaryLayoutShapesChanged
+                        && !projectionMap
+                            .TryGetOrdinaryLayoutAddedShapeIds(
+                                ordinaryLayoutPart!,
+                                out addedLayoutShapeIds)) return false;
+                    var addedLayoutShapeIdSet = new HashSet<uint>(
+                        addedLayoutShapeIds);
+                    IReadOnlyList<PowerPointShape> materializedLayoutShapes =
+                        writableShapes.Where(shape =>
+                            LegacyPptWriter.IsLayoutShape(shape)
+                            && shape.Id.HasValue
+                            && addedLayoutShapeIdSet.Contains(
+                                shape.Id.Value)).ToArray();
+                    if (materializedLayoutShapes.Count
+                        != addedLayoutShapeIdSet.Count) return false;
+                    uint currentLayoutType = unchecked((uint)
+                        LegacyPptWriter.MapSlideLayout(slide,
+                            writableShapes));
+                    byte[] currentLayoutPlaceholderTypes = LegacyPptWriter
+                        .BuildLayoutPlaceholderTypes(slide, writableShapes);
+                    bool layoutContractChanged = ordinaryLayoutTypeChanged
+                        || ordinaryLayoutShapesChanged
+                        && !slideProjection.LayoutContractMatches(
+                            currentLayoutType,
+                            currentLayoutPlaceholderTypes);
 
                     PowerPointShape[] shapes = LegacyPptWriter
                         .FlattenShapeTreeForWrite(slide.Shapes,
@@ -498,9 +546,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     bool hasSlideRecordChanges = editsByOfficeArtId.Count > 0
                         || hidden.HasValue || followsMasterObjects.HasValue
                         || headerFooterChanged
-                        || transitionChanged || commentsChanged;
+                        || transitionChanged || commentsChanged
+                        || layoutContractChanged;
                     if (!hasSlideRecordChanges && !backgroundChanged
-                        && !themeChanged) continue;
+                        && !themeChanged
+                        && materializedLayoutShapes.Count == 0) continue;
 
                     LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(persistObject.RecordBytes, 0,
                         new LegacyPptImportOptions());
@@ -508,6 +558,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (hasSlideRecordChanges) {
                         if (!TryRewriteSlide(slide, slideRecord, editsByOfficeArtId,
                                 hidden, followsMasterObjects,
+                                layoutContractChanged
+                                    ? currentLayoutType
+                                    : null,
+                                layoutContractChanged
+                                    ? currentLayoutPlaceholderTypes
+                                    : null,
                                 transitionChanged, currentTransition,
                                 soundCatalog,
                                 headerFooterChanged, currentHeaderFooter,
@@ -518,6 +574,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             return false;
                         }
                         slideBytes = result.Bytes;
+                    }
+                    if (materializedLayoutShapes.Count > 0) {
+                        LegacyPptRecord layoutRecord = LegacyPptRecordReader
+                            .ReadSingle(slideBytes, 0,
+                                new LegacyPptImportOptions());
+                        if (!TryAppendMaterializedLayoutShapes(layoutRecord,
+                                materializedLayoutShapes, textFonts,
+                                pictureBullets, out slideBytes,
+                                out uint drawingId,
+                                out MaterializedLayoutDrawingUpdate update)
+                            || materializedLayoutDrawingUpdates.ContainsKey(
+                                drawingId)) {
+                            return false;
+                        }
+                        materializedLayoutDrawingUpdates.Add(drawingId,
+                            update);
                     }
                     if (backgroundChanged) {
                         LegacyPptRecord backgroundRecord = LegacyPptRecordReader
@@ -554,6 +626,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     rewritten.Add(package.DocumentPersistId, documentRecord);
+                }
+                if (materializedLayoutDrawingUpdates.Count > 0) {
+                    rewritten.TryGetValue(package.DocumentPersistId,
+                        out byte[]? currentDocumentBytes);
+                    if (!TryRewriteDocumentDrawingClusters(package,
+                            currentDocumentBytes,
+                            materializedLayoutDrawingUpdates,
+                            out byte[] documentWithLayoutShapes)) {
+                        return false;
+                    }
+                    rewritten[package.DocumentPersistId] =
+                        documentWithLayoutShapes;
                 }
                 if (customShowsChanged) {
                     rewritten.TryGetValue(package.DocumentPersistId,

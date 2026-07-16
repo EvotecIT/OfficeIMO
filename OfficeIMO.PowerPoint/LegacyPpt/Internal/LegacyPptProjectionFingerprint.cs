@@ -109,6 +109,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         && projectionMap.IsProjectedLayoutPart(part.Uri.ToString())) {
                         NormalizeProjectedHeaderFooter(root);
                     }
+                    if (part is SlideLayoutPart ordinaryLayout
+                        && projectionMap
+                            .IsEditableProjectedOrdinaryLayoutPart(
+                                ordinaryLayout.Uri.ToString())) {
+                        NormalizeProjectedOrdinaryLayout(root);
+                    }
                     if (part is SlideLayoutPart backgroundLayout
                         && projectionMap.IsEditableProjectedLayoutBackgroundPart(
                             backgroundLayout.Uri.ToString())
@@ -357,6 +363,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     && type != P.PlaceholderValues.SlideNumber) continue;
                 shape.TextBody?.RemoveAllChildren<A.Paragraph>();
             }
+        }
+
+        private static void NormalizeProjectedOrdinaryLayout(
+            OpenXmlElement root) {
+            if (root is not P.SlideLayout layout) return;
+            layout.Type = null;
+            layout.CommonSlideData?.ShapeTree?.RemoveAllChildren();
         }
 
         private static void NormalizeProjectedLayoutTheme(OpenXmlElement root) {

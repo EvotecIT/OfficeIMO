@@ -2,6 +2,8 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using OfficeIMO.PowerPoint.LegacyPpt.Write;
+using DocumentFormat.OpenXml.Packaging;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -382,16 +384,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedLayoutRelationshipEdit_RemainsLossBlocked() {
+        public void ImportedLayoutTypeEdit_AppendsPreservingRecord() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                FixturePath);
             using PowerPointPresentation presentation = PowerPointPresentation.Load(FixturePath);
             PowerPointSlide slide = Assert.Single(presentation.Slides);
-            slide.SlidePart.SlideLayoutPart!.SlideLayout!.Type = P.SlideLayoutValues.Blank;
+            SlideLayoutPart layoutPart = slide.SlidePart.SlideLayoutPart!;
+            layoutPart.SlideLayout!.Type = P.SlideLayoutValues.FourObjects;
+            Assert.True(presentation.LegacyPptProjectionMap!
+                .IsEditableProjectedOrdinaryLayoutPart(
+                    layoutPart.Uri.ToString()));
+            Assert.False(presentation.LegacyPptProjectionMap
+                .OrdinaryLayoutTypeMatches(layoutPart));
+            IReadOnlyList<PowerPointShape> writableShapes = LegacyPptWriter
+                .ReadSlideShapesForWrite(slide, out string? reason);
+            Assert.Null(reason);
+            Assert.Equal(LegacyPptSlideLayoutType.FourObjects,
+                LegacyPptWriter.MapSlideLayout(slide, writableShapes));
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
 
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings,
-                finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            Assert.Equal(LegacyPptSlideLayoutType.FourObjects,
+                Assert.Single(saved.Slides).Layout);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
         }
 
         [Fact]
@@ -448,6 +471,148 @@ namespace OfficeIMO.Tests {
             Assert.Equal(P.DirectionValues.Vertical,
                 reopenedTitle.PlaceholderOrientation);
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedOrdinaryLayoutEdits_MaterializeIntoAffectedSlides() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide(P.SlideLayoutValues.Blank);
+                source.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            byte[] savedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                P.SlideLayout layout = imported.Slides[0].SlidePart
+                    .SlideLayoutPart!.SlideLayout!;
+                Assert.All(imported.Slides, slide => Assert.Same(
+                    layout, slide.SlidePart.SlideLayoutPart!.SlideLayout));
+                layout.Type = P.SlideLayoutValues.TitleOnly;
+                P.ShapeTree tree = layout.CommonSlideData!.ShapeTree!;
+                tree.Append(
+                    new P.Shape(
+                        new P.NonVisualShapeProperties(
+                            new P.NonVisualDrawingProperties {
+                                Id = 700U,
+                                Name = "Materialized layout decoration"
+                            },
+                            new P.NonVisualShapeDrawingProperties(),
+                            new P.ApplicationNonVisualDrawingProperties()),
+                        new P.ShapeProperties(
+                            new A.Transform2D(
+                                new A.Offset { X = 300000, Y = 400000 },
+                                new A.Extents { Cx = 1200000, Cy = 250000 }),
+                            new A.PresetGeometry(new A.AdjustValueList()) {
+                                Preset = A.ShapeTypeValues.Rectangle
+                            })),
+                    new P.Shape(
+                        new P.NonVisualShapeProperties(
+                            new P.NonVisualDrawingProperties {
+                                Id = 701U,
+                                Name = "Materialized layout placeholder"
+                            },
+                            new P.NonVisualShapeDrawingProperties(),
+                            new P.ApplicationNonVisualDrawingProperties(
+                                new P.PlaceholderShape {
+                                    Type = P.PlaceholderValues.Body,
+                                    Index = 2U
+                                })),
+                        new P.ShapeProperties(
+                            new A.Transform2D(
+                                new A.Offset { X = 800000, Y = 1300000 },
+                                new A.Extents { Cx = 5000000, Cy = 2400000 }),
+                            new A.PresetGeometry(new A.AdjustValueList()) {
+                                Preset = A.ShapeTypeValues.Rectangle
+                            }),
+                        new P.TextBody(new A.BodyProperties(),
+                            new A.ListStyle(),
+                            new A.Paragraph(
+                                CreateField(
+                                    "{00000000-0000-0000-0000-000000000101}",
+                                    "slidenum", "1"),
+                                new A.Break(),
+                                new A.Run(new A.Text(
+                                    "Materialized layout text")),
+                                new A.EndParagraphRunProperties()))));
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                savedBytes);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+            Assert.All(saved.Slides, slide => {
+                Assert.Equal(LegacyPptSlideLayoutType.TitleOnly,
+                    slide.Layout);
+                Assert.Equal(LegacyPptPlaceholderKind.Body,
+                    slide.LayoutPlaceholderTypes[2]);
+                Assert.Equal(2, slide.Shapes.Count);
+                Assert.Contains(slide.Shapes, shape =>
+                    shape.Placeholder == null
+                    && shape.Kind == LegacyPptShapeKind.Rectangle);
+                LegacyPptShape placeholder = Assert.Single(slide.Shapes,
+                    shape => shape.Placeholder?.Position == 2);
+                Assert.Equal(LegacyPptPlaceholderKind.Body,
+                    placeholder.Placeholder!.Kind);
+                Assert.Equal("*\vMaterialized layout text",
+                    placeholder.TextBody.Text);
+                Assert.Equal(LegacyPptTextFieldKind.SlideNumber,
+                    Assert.Single(placeholder.TextBody.Fields).Kind);
+            });
+
+            using var reopenedInput = new MemoryStream(savedBytes,
+                writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(reopenedInput);
+            Assert.All(reopened.Slides, slide =>
+                Assert.Equal(2, slide.Shapes.Count));
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedOrdinaryLayoutBaselineShapeMutation_IsLossBlocked() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide(P.SlideLayoutValues.Text);
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            using var input = new MemoryStream(sourceBytes,
+                writable: false);
+            using PowerPointPresentation imported = PowerPointPresentation
+                .Load(input);
+            P.Shape layoutPlaceholder = Assert.Single(imported.Slides[0]
+                .SlidePart.SlideLayoutPart!.SlideLayout!.CommonSlideData!
+                .ShapeTree!.Elements<P.Shape>(), shape =>
+                    shape.NonVisualShapeProperties?
+                        .ApplicationNonVisualDrawingProperties?
+                        .PlaceholderShape?.Type?.Value
+                    == P.PlaceholderValues.Title);
+            layoutPlaceholder.ShapeProperties!.Transform2D!.Offset!.X =
+                layoutPlaceholder.ShapeProperties.Transform2D.Offset.X!.Value
+                + 100000L;
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+
+            Assert.False(preflight.CanWrite);
+            Assert.Contains(preflight.Findings, finding =>
+                finding.Code == "PPT-WRITE-IMPORT-LOSS");
         }
 
         private static int LayoutToMasterUnits(long emus) => checked((int)Math.Round(

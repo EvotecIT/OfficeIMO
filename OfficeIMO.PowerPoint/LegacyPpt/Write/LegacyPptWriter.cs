@@ -625,7 +625,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (index >= 0 && (replaceExisting || result[index] == 0)) result[index] = mapped;
         }
 
-        private static LegacyPptSlideLayoutType MapSlideLayout(PowerPointSlide slide,
+        internal static LegacyPptSlideLayoutType MapSlideLayout(PowerPointSlide slide,
             IReadOnlyList<PowerPointShape> shapes) {
             P.SlideLayoutValues? type = slide.SlidePart.SlideLayoutPart?.SlideLayout?.Type?.Value;
             if (type == P.SlideLayoutValues.Title) return LegacyPptSlideLayoutType.TitleSlide;

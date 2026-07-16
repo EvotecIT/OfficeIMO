@@ -90,6 +90,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildContainer(RecordDrawing, baseDrawing.Instance, outerChildren);
         }
 
+        internal static IReadOnlyList<byte[]>
+            BuildAppendedSlideShapeRecords(
+                IReadOnlyList<PowerPointShape> shapes,
+                ref uint nextShapeId, LegacyPptWriterFontCatalog fonts,
+                LegacyPptWriterPictureBulletCatalog pictureBullets) {
+            if (shapes == null) throw new ArgumentNullException(nameof(shapes));
+            if (fonts == null) throw new ArgumentNullException(nameof(fonts));
+            if (pictureBullets == null) throw new ArgumentNullException(
+                nameof(pictureBullets));
+            var interactions = new LegacyPptWriterInteractionCatalog();
+            var animations = new LegacyPptWriterAnimationCatalog(
+                new Dictionary<string, LegacyPptWriterAnimation>(
+                    StringComparer.Ordinal));
+            var result = new List<byte[]>(shapes.Count);
+            foreach (PowerPointShape shape in shapes) {
+                result.Add(shape is PowerPointGroupShape group
+                    ? BuildGroupRecord(group, ref nextShapeId,
+                        interactions, animations,
+                        LegacyPptWriterShapeContext.Slide,
+                        mediaCatalog: null, oleCatalog: null,
+                        pictureCatalog: null, fonts, pictureBullets)
+                    : BuildShapeRecord(shape, nextShapeId++,
+                        interactions, animations,
+                        LegacyPptWriterShapeContext.Slide,
+                        mediaCatalog: null, oleCatalog: null,
+                        pictureCatalog: null, fonts, pictureBullets));
+            }
+            return result;
+        }
+
         private static byte[] PatchShapeId(byte[] spContainer, uint shapeId) {
             // The template SpContainers begin with FSPGR/FSP or FSP. Locate the FSP record defensively.
             for (int offset = 8; offset <= spContainer.Length - 16;) {

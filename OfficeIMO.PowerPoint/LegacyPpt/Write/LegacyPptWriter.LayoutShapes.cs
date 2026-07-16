@@ -129,6 +129,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool ShowsLayoutShapes(P.Slide? slide) =>
             slide?.ShowMasterShapes?.Value != false;
 
+        internal static bool IsLayoutShape(PowerPointShape shape) =>
+            shape != null && shape.Element.Ancestors<P.SlideLayout>().Any();
+
         internal static bool FollowsMasterObjects(PowerPointSlide slide,
             bool layoutIsIndependentMaster = false) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));

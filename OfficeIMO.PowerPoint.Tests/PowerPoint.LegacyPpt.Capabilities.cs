@@ -208,15 +208,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void CapabilityContract_ReportsLayoutSubsetWithoutOverstatingCustomLayoutWriting() {
+        public void CapabilityContract_ReportsNativeLayoutHintsAndMaterializedConversion() {
             LegacyPptCapability layouts = LegacyPptCapabilityCatalog.Get(LegacyPptFeature.Layouts);
 
             Assert.Equal(LegacyPptCapabilityState.Native, layouts.ImportToEditableModel);
-            Assert.Equal(LegacyPptCapabilityState.Planned, layouts.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Native, layouts.NewBinaryWrite);
             Assert.Equal(LegacyPptCapabilityState.Preserved, layouts.BinaryRoundTrip);
-            Assert.Equal(LegacyPptCapabilityState.Planned, layouts.PptxToBinary);
+            Assert.Equal(LegacyPptCapabilityState.Converted, layouts.PptxToBinary);
             Assert.Contains("master-shape visibility maps to schema-valid root attributes and native inheritance flags",
                 layouts.Note);
+            Assert.Contains("newly added supported layout shapes and placeholders append native OfficeArt shape containers",
+                layouts.Note);
+            Assert.Contains("explicitly loss-blocked", layouts.Note);
 
             LegacyPptCapability placeholders = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Placeholders);

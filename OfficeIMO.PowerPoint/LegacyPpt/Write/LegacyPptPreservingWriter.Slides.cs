@@ -7,6 +7,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord slideRecord,
             IReadOnlyDictionary<uint, ProjectedShapeEdit> editsByOfficeArtId,
             bool? hidden, bool? followsMasterObjects,
+            uint? layoutType,
+            IReadOnlyList<byte>? layoutPlaceholderTypes,
             bool rewriteTransition,
             LegacyPptWriter.LegacyPptWriterTransition? transition,
             LegacyPptWriter.LegacyPptWriterSoundCatalog soundCatalog,
@@ -24,10 +26,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool patchedSlideShowInfo = !rewriteSlideShowInfo;
             bool patchedHeaderFooter = !rewriteHeaderFooter;
             bool patchedComments = !rewriteComments;
-            bool rewritePlaceholderSignature = editsByOfficeArtId.Values
-                .Any(edit => edit.RewritePlaceholder);
-            byte[]? placeholderTypes = null;
-            if (rewritePlaceholderSignature) {
+            bool rewritePlaceholderSignature = layoutPlaceholderTypes != null
+                || editsByOfficeArtId.Values.Any(edit =>
+                    edit.RewritePlaceholder);
+            byte[]? placeholderTypes = layoutPlaceholderTypes?.ToArray();
+            if (rewritePlaceholderSignature && placeholderTypes == null) {
                 IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
                     .ReadSlideShapesForWrite(slide, out string? layoutReason);
                 if (layoutReason != null) {
@@ -72,10 +75,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     patchedSlideShowInfo = true;
                     changed = true;
                 } else if ((followsMasterObjects.HasValue
+                               || layoutType.HasValue
                                || rewritePlaceholderSignature)
                            && child.Type == RecordSlideAtom
                            && child.PayloadLength >= 22) {
                     byte[] atom = child.CopyRecordBytes();
+                    if (layoutType.HasValue) {
+                        WriteUInt32(atom, 8, layoutType.Value);
+                    }
                     if (placeholderTypes != null) {
                         Buffer.BlockCopy(placeholderTypes, 0, atom, 12,
                             placeholderTypes.Length);
