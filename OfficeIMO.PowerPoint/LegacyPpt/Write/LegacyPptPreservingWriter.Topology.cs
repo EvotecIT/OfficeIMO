@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
@@ -41,11 +42,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 drawingId++;
                 IReadOnlyList<PowerPointShape> writableShapes =
                     LegacyPptWriter.ReadSlideShapesForWrite(slide, out _);
+                SlideLayoutPart? layoutPart = slide.SlidePart.SlideLayoutPart;
+                bool layoutIsIndependentMaster = layoutPart != null
+                    && projectionMap.TryGetTitleMaster(layoutPart, out _);
                 uint nextShapeIndex = checked(unchecked((uint)writableShapes.Count) + 2U);
                 clusters.Add(new KeyValuePair<uint, uint>(drawingId, nextShapeIndex));
                 rewritten.Add(persistId,
                     LegacyPptWriter.BuildIncrementalSlideRecord(slide, drawingId,
-                        masterIdRef, remappedInteractions));
+                        masterIdRef, remappedInteractions,
+                        layoutIsIndependentMaster));
                 appendedSlideAtoms.Add(BuildSlidePersistAtom(persistId, slideId));
                 slideIds.Add(slideId);
             }

@@ -221,7 +221,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                             record, part,
                             projection.GetChangedClassicColorSlots(part)),
-                        rewritten)) {
+                        rewritten,
+                        masterObjectsChanged:
+                            !projection.MasterObjectsMatch(part),
+                        followsMasterObjects: part.SlideLayout?
+                            .ShowMasterShapes?.Value != false)) {
                     return false;
                 }
                 processed++;
@@ -235,7 +239,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             bool backgroundChanged,
             Func<LegacyPptWriter.LegacyPptWriterBackground?> readBackground,
             Func<LegacyPptRecord, byte[]> rewriteTheme,
-            IDictionary<uint, byte[]> rewritten) {
+            IDictionary<uint, byte[]> rewritten,
+            bool masterObjectsChanged = false,
+            bool followsMasterObjects = true) {
             if (!TryBuildMasterShapeEdits(shapes, projection,
                     out IReadOnlyDictionary<uint, ProjectedShapeEdit>
                         shapeEdits)) {
@@ -246,6 +252,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             if (!themeChanged && !backgroundChanged
+                && !masterObjectsChanged
                 && shapeEdits.Count == 0) return true;
             if (!package.PersistObjects.TryGetValue(projection.PersistId,
                     out LegacyPptPersistObject? persistObject)
@@ -274,6 +281,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 LegacyPptRecord themedRecord = LegacyPptRecordReader.ReadSingle(
                     bytes, 0, new LegacyPptImportOptions());
                 bytes = rewriteTheme(themedRecord);
+            }
+            if (masterObjectsChanged) {
+                LegacyPptRecord inheritanceRecord = LegacyPptRecordReader
+                    .ReadSingle(bytes, 0, new LegacyPptImportOptions());
+                bytes = LegacyPptWriter
+                    .BuildPreservedMasterObjectInheritanceRecord(
+                        inheritanceRecord, followsMasterObjects);
             }
             rewritten.Add(projection.PersistId, bytes);
             return true;

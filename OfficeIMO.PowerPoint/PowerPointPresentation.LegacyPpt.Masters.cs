@@ -117,8 +117,8 @@ namespace OfficeIMO.PowerPoint {
                 SlideLayoutValues.Title, titleMaster.Shapes,
                 titleMaster.ConnectorRules, soundContext);
             layoutPart.AddPart(masterPart);
-            if (!titleMaster.FollowsMasterObjects && layoutPart.SlideLayout.CommonSlideData != null) {
-                SetShowsMasterShapes(layoutPart.SlideLayout.CommonSlideData, false);
+            if (!titleMaster.FollowsMasterObjects) {
+                layoutPart.SlideLayout.ShowMasterShapes = false;
             }
             ApplyLegacyRoundTripTheme(layoutPart, titleMaster.RoundTripTheme);
             if (!titleMaster.FollowsMasterColorScheme
@@ -161,7 +161,7 @@ namespace OfficeIMO.PowerPoint {
             CommonSlideData commonSlideData = slideRoot.CommonSlideData ??= new CommonSlideData();
             ApplyLegacyRoundTripTheme(slide.SlidePart,
                 source.RoundTripTheme);
-            if (!source.FollowsMasterObjects) SetShowsMasterShapes(commonSlideData, false);
+            if (!source.FollowsMasterObjects) slideRoot.ShowMasterShapes = false;
             if (!source.FollowsMasterColorScheme && source.ColorScheme != null
                 && source.RoundTripTheme?.ThemeXml == null) {
                 ApplyLegacyColorScheme(slide.SlidePart, source.ColorScheme);
@@ -174,11 +174,6 @@ namespace OfficeIMO.PowerPoint {
                     ApplyLegacyBackground(commonSlideData, source.ColorScheme.Background);
                 }
             }
-        }
-
-        private static void SetShowsMasterShapes(CommonSlideData commonSlideData, bool value) {
-            commonSlideData.SetAttribute(new OpenXmlAttribute(string.Empty, "showMasterSp", string.Empty,
-                value ? "1" : "0"));
         }
 
         private static void ApplyLegacyBackground(CommonSlideData commonSlideData, string color) {

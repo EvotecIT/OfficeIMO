@@ -187,7 +187,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     projectedSlide.SlidePart.SlideLayoutPart?.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
-                    sourceSlide.Hidden, sourceSlide.HeaderFooter,
+                    sourceSlide.Hidden, sourceSlide.FollowsMasterObjects,
+                    sourceSlide.HeaderFooter,
                     projectedSlide.SlidePart.Slide?.CommonSlideData?
                         .Background != null,
                     LegacyPptSlideProjection.CreateBackgroundFingerprint(
@@ -218,7 +219,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 ?? throw new InvalidDataException(
                     "The projected binary notes page has no notes-slide part.");
             return new LegacyPptNotesProjection(source.PersistId,
-                source.NotesId, source.Text,
+                source.NotesId, source.Text, source.FollowsMasterObjects,
                 part.ThemeOverridePart?.Uri.ToString(),
                 LegacyPptNotesProjection.CreateThemeFingerprint(part),
                 LegacyPptNotesProjection.CreateClassicColorFingerprints(part),
@@ -252,6 +253,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     LegacyPptMasterProjection.CreateThemeFingerprint(masterPart),
                     LegacyPptMasterProjection.CreateClassicColorFingerprints(masterPart),
                     LegacyPptMasterProjection.CreateBackgroundFingerprint(masterPart),
+                    followsMasterObjects: null,
                     shapes));
             }
             return result;
@@ -280,6 +282,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     LegacyPptMasterProjection.CreateThemeFingerprint(part),
                     LegacyPptMasterProjection.CreateClassicColorFingerprints(part),
                     LegacyPptMasterProjection.CreateBackgroundFingerprint(part),
+                    source.FollowsMasterObjects,
                     CreateMasterShapeProjections(source.Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
                         $"title master 0x{source.MasterId:X8}")));
@@ -306,6 +309,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     LegacyPptMasterProjection.CreateThemeFingerprint(part),
                     LegacyPptMasterProjection.CreateClassicColorFingerprints(part),
                     LegacyPptMasterProjection.CreateBackgroundFingerprint(part),
+                    followsMasterObjects: null,
                     CreateMasterShapeProjections(legacy.NotesMaster.Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
                         "notes master")));
@@ -323,6 +327,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     LegacyPptMasterProjection.CreateThemeFingerprint(part),
                     LegacyPptMasterProjection.CreateClassicColorFingerprints(part),
                     LegacyPptMasterProjection.CreateBackgroundFingerprint(part),
+                    followsMasterObjects: null,
                     CreateMasterShapeProjections(legacy.HandoutMaster.Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
                         "handout master")));
@@ -398,7 +403,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal LegacyPptMasterProjection(string masterPartUri, string? themePartUri,
             uint persistId, string themeFingerprint,
             IReadOnlyList<string> classicColorFingerprints,
-            string backgroundFingerprint,
+            string backgroundFingerprint, bool? followsMasterObjects,
             IReadOnlyList<LegacyPptShapeProjection> shapes) {
             MasterPartUri = masterPartUri ?? throw new ArgumentNullException(nameof(masterPartUri));
             ThemePartUri = themePartUri;
@@ -406,6 +411,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             ThemeFingerprint = themeFingerprint ?? throw new ArgumentNullException(nameof(themeFingerprint));
             BackgroundFingerprint = backgroundFingerprint
                 ?? throw new ArgumentNullException(nameof(backgroundFingerprint));
+            FollowsMasterObjects = followsMasterObjects;
             ClassicColorFingerprints = new ReadOnlyCollection<string>(
                 (classicColorFingerprints
                     ?? throw new ArgumentNullException(nameof(classicColorFingerprints)))
@@ -432,6 +438,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal IReadOnlyList<string> ClassicColorFingerprints { get; }
 
         internal string BackgroundFingerprint { get; }
+
+        internal bool? FollowsMasterObjects { get; }
 
         internal IReadOnlyList<LegacyPptShapeProjection> Shapes { get; }
 
@@ -466,6 +474,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool BackgroundMatches(SlideLayoutPart masterPart) => string.Equals(
             BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
             StringComparison.Ordinal);
+
+        internal bool MasterObjectsMatch(SlideLayoutPart masterPart) =>
+            !FollowsMasterObjects.HasValue
+            || FollowsMasterObjects.Value
+                == (masterPart.SlideLayout?.ShowMasterShapes?.Value != false);
 
         internal IReadOnlyList<int> GetChangedClassicColorSlots(
             SlideMasterPart masterPart) {
@@ -617,7 +630,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal LegacyPptSlideProjection(string slidePartUri,
             string? layoutPartUri, uint persistId, uint slideId, uint masterId,
-            bool hidden, LegacyPptHeaderFooterSettings? headerFooter,
+            bool hidden, bool followsMasterObjects,
+            LegacyPptHeaderFooterSettings? headerFooter,
             bool hasExplicitBackground,
             string backgroundFingerprint, string? themePartUri,
             string themeFingerprint,
@@ -631,6 +645,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             SlideId = slideId;
             MasterId = masterId;
             Hidden = hidden;
+            FollowsMasterObjects = followsMasterObjects;
             HeaderFooter = headerFooter;
             HasExplicitBackground = hasExplicitBackground;
             BackgroundFingerprint = backgroundFingerprint
@@ -667,6 +682,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool Hidden { get; }
 
+        internal bool FollowsMasterObjects { get; }
+
         internal LegacyPptHeaderFooterSettings? HeaderFooter { get; }
 
         internal bool HasExplicitBackground { get; }
@@ -682,6 +699,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool BackgroundMatches(PowerPointSlide slide) => string.Equals(
             BackgroundFingerprint, CreateBackgroundFingerprint(slide),
             StringComparison.Ordinal);
+
+        internal bool MasterObjectsMatch(PowerPointSlide slide) =>
+            FollowsMasterObjects
+                == (slide.SlidePart.Slide?.ShowMasterShapes?.Value != false);
 
         internal static string CreateBackgroundFingerprint(
             PowerPointSlide slide) {
@@ -757,12 +778,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Maps projected speaker-note text to its binary NotesContainer.</summary>
     internal sealed class LegacyPptNotesProjection {
         internal LegacyPptNotesProjection(uint persistId, uint notesId,
-            string text, string? themePartUri, string themeFingerprint,
+            string text, bool followsMasterObjects, string? themePartUri,
+            string themeFingerprint,
             IReadOnlyList<string> classicColorFingerprints,
             string backgroundFingerprint) {
             PersistId = persistId;
             NotesId = notesId;
             Text = text ?? string.Empty;
+            FollowsMasterObjects = followsMasterObjects;
             ThemePartUri = themePartUri;
             ThemeFingerprint = themeFingerprint
                 ?? throw new ArgumentNullException(nameof(themeFingerprint));
@@ -785,6 +808,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal string Text { get; }
 
+        internal bool FollowsMasterObjects { get; }
+
         internal string? ThemePartUri { get; }
 
         internal string ThemeFingerprint { get; }
@@ -800,6 +825,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool BackgroundMatches(NotesSlidePart part) => string.Equals(
             BackgroundFingerprint, CreateBackgroundFingerprint(part),
             StringComparison.Ordinal);
+
+        internal bool MasterObjectsMatch(NotesSlidePart part) =>
+            FollowsMasterObjects
+                == (part.NotesSlide?.ShowMasterShapes?.Value != false);
 
         internal IReadOnlyList<int> GetChangedClassicColorSlots(
             NotesSlidePart part) {

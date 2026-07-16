@@ -146,6 +146,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         bool notesTextChanged = !string.Equals(currentNotes,
                             NormalizeLogicalText(slideProjection.Notes.Text),
                             StringComparison.Ordinal);
+                        bool notesMasterObjectsChanged = !slideProjection.Notes
+                            .MasterObjectsMatch(notesPart);
                         bool notesThemeChanged = !slideProjection.Notes
                             .ThemeMatches(notesPart);
                         if (notesThemeChanged && notesPart.ThemeOverridePart?
@@ -162,7 +164,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 || currentNotesBackground == null)) {
                             return false;
                         }
-                        if (notesTextChanged || notesThemeChanged
+                        if (notesTextChanged || notesMasterObjectsChanged
+                            || notesThemeChanged
                             || notesBackgroundChanged) {
                             if (!package.PersistObjects.TryGetValue(
                                     slideProjection.Notes.PersistId,
@@ -179,6 +182,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                     slideProjection.Notes.Text, currentNotes,
                                     out notesBytes)) {
                                 return false;
+                            }
+                            if (notesMasterObjectsChanged) {
+                                LegacyPptRecord inheritanceRecord =
+                                    LegacyPptRecordReader.ReadSingle(notesBytes,
+                                        0, new LegacyPptImportOptions());
+                                notesBytes = LegacyPptWriter
+                                    .BuildPreservedMasterObjectInheritanceRecord(
+                                        inheritanceRecord,
+                                        notesPart.NotesSlide?
+                                            .ShowMasterShapes?.Value != false);
                             }
                             if (notesBackgroundChanged) {
                                 LegacyPptRecord backgroundRecord =
@@ -261,6 +274,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         }
                     }
                     bool? hidden = slide.Hidden == slideProjection.Hidden ? null : slide.Hidden;
+                    bool currentFollowsMasterObjects = slide.SlidePart.Slide?
+                        .ShowMasterShapes?.Value != false;
+                    bool? followsMasterObjects = slideProjection
+                        .MasterObjectsMatch(slide)
+                        ? null
+                        : currentFollowsMasterObjects;
                     LegacyPptWriter.LegacyPptWriterHeaderFooter? currentHeaderFooter =
                         LegacyPptWriter.ReadSlideHeaderFooter(slide);
                     LegacyPptWriter.LegacyPptWriterHeaderFooter? originalHeaderFooter =
@@ -297,7 +316,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     bool hasSlideRecordChanges = editsByOfficeArtId.Count > 0
-                        || hidden.HasValue || headerFooterChanged
+                        || hidden.HasValue || followsMasterObjects.HasValue
+                        || headerFooterChanged
                         || transitionChanged || commentsChanged;
                     if (!hasSlideRecordChanges && !backgroundChanged
                         && !themeChanged) continue;
@@ -307,7 +327,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     byte[] slideBytes = slideRecord.CopyRecordBytes();
                     if (hasSlideRecordChanges) {
                         if (!TryRewriteSlide(slide, slideRecord, editsByOfficeArtId,
-                                hidden, transitionChanged, currentTransition,
+                                hidden, followsMasterObjects,
+                                transitionChanged, currentTransition,
                                 soundCatalog,
                                 headerFooterChanged, currentHeaderFooter,
                                 commentsChanged, currentComments,

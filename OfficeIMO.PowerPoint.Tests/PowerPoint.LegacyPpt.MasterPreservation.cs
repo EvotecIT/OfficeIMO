@@ -263,6 +263,12 @@ namespace OfficeIMO.Tests {
                 .Single(layout => string.Equals(layout.SlideLayout?
                     .CommonSlideData?.Name?.Value, titleName,
                     StringComparison.Ordinal));
+            Assert.False(titlePart.SlideLayout!.ShowMasterShapes!.Value);
+            Assert.DoesNotContain(titlePart.SlideLayout.CommonSlideData!
+                .GetAttributes(), attribute =>
+                    attribute.LocalName == "showMasterSp");
+            Assert.Empty(imported.ValidateDocument());
+            titlePart.SlideLayout.ShowMasterShapes = true;
             PowerPointShape shape = Assert.Single(LegacyPptWriter
                 .ReadMasterShapesForWrite(titlePart, out string? shapeReason));
             Assert.Null(shapeReason);
@@ -287,6 +293,7 @@ namespace OfficeIMO.Tests {
                 master => master.MasterId == originalTitleMaster.MasterId);
 
             Assert.False(savedTitleMaster.IsMainMaster);
+            Assert.True(savedTitleMaster.FollowsMasterObjects);
             Assert.Equal(originalTitleMaster.Shapes[0].Bounds.Left + 10,
                 savedTitleMaster.Shapes[0].Bounds.Left);
             Assert.Equal("5A6B7C", savedTitleMaster.RoundTripTheme?
@@ -299,7 +306,7 @@ namespace OfficeIMO.Tests {
                     original.Package.DocumentStream.Length)
                 .SequenceEqual(original.Package.DocumentStream));
             AssertUnrelatedMasterChildrenEqual(original, saved,
-                originalTitleMaster.PersistId, 0x040E, 0x040F);
+                originalTitleMaster.PersistId, 0x03EF, 0x040E, 0x040F);
 
             using var reopenedInput = new MemoryStream(savedBytes);
             using PowerPointPresentation reopened =
@@ -310,6 +317,8 @@ namespace OfficeIMO.Tests {
                 .Single(layout => string.Equals(layout.SlideLayout?
                     .CommonSlideData?.Name?.Value, titleName,
                     StringComparison.Ordinal));
+            Assert.True(reopenedTitlePart.SlideLayout!.ShowMasterShapes?.Value
+                != false);
             Assert.Equal(expectedLeft, Assert.Single(LegacyPptWriter
                 .ReadMasterShapesForWrite(reopenedTitlePart, out _)).Left);
             Assert.Equal("5A6B7C", reopenedTitlePart.ThemeOverridePart!
@@ -413,7 +422,7 @@ namespace OfficeIMO.Tests {
                 documentStream.AsSpan(slideAtomPayloadOffset + 12, 4),
                 parent.MasterId);
             BinaryPrimitives.WriteUInt16LittleEndian(
-                documentStream.AsSpan(slideAtomPayloadOffset + 20, 2), 0x0001);
+                documentStream.AsSpan(slideAtomPayloadOffset + 20, 2), 0x0000);
             return generated.Package.RewriteCompoundStreams(
                 new Dictionary<string, byte[]> {
                     ["PowerPoint Document"] = documentStream

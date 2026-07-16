@@ -48,6 +48,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     flags = classicOverride == null
                         ? unchecked((ushort)(flags | 0x0002))
                         : unchecked((ushort)(flags & ~0x0002));
+                    flags = sourcePart?.NotesSlide?.ShowMasterShapes?.Value != false
+                        ? unchecked((ushort)(flags | 0x0001))
+                        : unchecked((ushort)(flags & ~0x0001));
                     WriteUInt16(atom, 12, flags);
                     children.Add(atom);
                 } else if (child.Type == RecordDrawing) {

@@ -327,12 +327,58 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LayoutToMasterUnits(decorationBounds.Top),
                 decoration.Bounds.Top);
 
-            slide.SlidePart.Slide!.CommonSlideData!.SetAttribute(
-                new DocumentFormat.OpenXml.OpenXmlAttribute(
-                    "showMasterSp", string.Empty, "0"));
-            LegacyPptSlide hidden = Assert.Single(LegacyPptPresentation.Load(
-                presentation.ToBytes(PowerPointFileFormat.Ppt)).Slides);
+            slide.SlidePart.Slide!.ShowMasterShapes = false;
+            byte[] hiddenBytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptSlide hidden = Assert.Single(
+                LegacyPptPresentation.Load(hiddenBytes).Slides);
             Assert.Empty(hidden.Shapes);
+            Assert.False(hidden.FollowsMasterObjects);
+
+            using var hiddenStream = new MemoryStream(hiddenBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(hiddenStream);
+            Assert.False(reopened.Slides[0].SlidePart.Slide!
+                .ShowMasterShapes!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedSlideMasterShapeVisibilityEdit_AppendsPreservingRecord() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                created.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original =
+                LegacyPptPresentation.Load(sourceBytes);
+
+            using var input = new MemoryStream(sourceBytes);
+            using PowerPointPresentation imported =
+                PowerPointPresentation.Load(input);
+            imported.Slides[0].SlidePart.Slide!.ShowMasterShapes = false;
+
+            LegacyPptWritePreflightReport preflight = imported
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            byte[] savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation saved =
+                LegacyPptPresentation.Load(savedBytes);
+
+            Assert.False(Assert.Single(saved.Slides).FollowsMasterObjects);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            using var reopenedInput = new MemoryStream(savedBytes);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(reopenedInput);
+            Assert.False(reopened.Slides[0].SlidePart.Slide!
+                .ShowMasterShapes!.Value);
+            Assert.Empty(reopened.ValidateDocument());
         }
 
         [Fact]

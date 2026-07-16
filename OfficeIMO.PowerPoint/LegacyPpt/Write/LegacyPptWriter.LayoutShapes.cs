@@ -9,7 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             unsupportedReason = null;
             PowerPointShape[] slideShapes = slide.Shapes.ToArray();
-            if (!ShowsLayoutShapes(slide.SlidePart.Slide?.CommonSlideData)) {
+            if (!ShowsLayoutShapes(slide.SlidePart.Slide)) {
                 return slideShapes;
             }
 
@@ -42,14 +42,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 _ => null
             };
 
-        private static bool ShowsLayoutShapes(P.CommonSlideData? commonSlideData) {
-            if (commonSlideData == null) return true;
-            string? value = commonSlideData.GetAttributes()
-                .FirstOrDefault(attribute => attribute.LocalName == "showMasterSp")
-                .Value;
-            return string.IsNullOrWhiteSpace(value)
-                || value == "1"
-                || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+        private static bool ShowsLayoutShapes(P.Slide? slide) =>
+            slide?.ShowMasterShapes?.Value != false;
+
+        internal static bool FollowsMasterObjects(PowerPointSlide slide,
+            bool layoutIsIndependentMaster = false) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            return slide.SlidePart.Slide?.ShowMasterShapes?.Value != false
+                && (layoutIsIndependentMaster
+                    || slide.SlidePart.SlideLayoutPart?.SlideLayout?
+                        .ShowMasterShapes?.Value != false);
         }
 
         private static bool IsPlaceholderOverridden(PowerPointShape inheritedShape,

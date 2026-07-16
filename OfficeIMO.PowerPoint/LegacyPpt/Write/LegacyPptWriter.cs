@@ -178,7 +178,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide,
             uint drawingId, uint masterIdRef,
-            LegacyPptWriterInteractionCatalog interactionCatalog) {
+            LegacyPptWriterInteractionCatalog interactionCatalog,
+            bool layoutIsIndependentMaster = false) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             IReadOnlyList<PowerPointShape> sourceShapes = ReadSlideShapesForWrite(slide,
                 out string? layoutReason);
@@ -193,7 +194,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             return BuildSlideRecord(Template.Value.SlidePrototype, slide, shapes, drawingId,
                 masterIdRef, notesIdRef: null, ReadClassicCommentsForSlide(slide),
-                interactionCatalog, animationCatalog);
+                interactionCatalog, animationCatalog,
+                layoutIsIndependentMaster);
         }
 
         private static byte[] BuildDocumentRecord(LegacyPptRecord document, PowerPointPresentation presentation,

@@ -388,6 +388,38 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return bytes;
         }
 
+        internal static byte[] BuildPreservedMasterObjectInheritanceRecord(
+            LegacyPptRecord prototype, bool followsMasterObjects) {
+            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            byte[] bytes = prototype.CopyRecordBytes();
+            LegacyPptRecord? slideAtom = prototype.Children.FirstOrDefault(child =>
+                child.Type == RecordSlideAtom && child.PayloadLength >= 22);
+            if (slideAtom != null) {
+                int flagsOffset = checked(slideAtom.PayloadOffset
+                    - prototype.Offset + 20);
+                ushort flags = ReadUInt16(bytes, flagsOffset);
+                flags = followsMasterObjects
+                    ? unchecked((ushort)(flags | 0x0001))
+                    : unchecked((ushort)(flags & ~0x0001));
+                WriteUInt16(bytes, flagsOffset, flags);
+                return bytes;
+            }
+            LegacyPptRecord? notesAtom = prototype.Children.FirstOrDefault(child =>
+                child.Type == RecordNotesAtom && child.PayloadLength >= 6);
+            if (notesAtom != null) {
+                int flagsOffset = checked(notesAtom.PayloadOffset
+                    - prototype.Offset + 4);
+                ushort flags = ReadUInt16(bytes, flagsOffset);
+                flags = followsMasterObjects
+                    ? unchecked((ushort)(flags | 0x0001))
+                    : unchecked((ushort)(flags & ~0x0001));
+                WriteUInt16(bytes, flagsOffset, flags);
+                return bytes;
+            }
+            throw new InvalidDataException(
+                "The binary PowerPoint persist object has no slide or notes inheritance atom.");
+        }
+
         private static byte[] BuildColorSchemeAtom(LegacyPptWriterColorScheme scheme) {
             var payload = new byte[32];
             for (int index = 0; index < scheme.Colors.Count; index++) {

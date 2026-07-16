@@ -5,7 +5,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptPreservingWriter {
         private static bool TryRewriteSlide(PowerPointSlide slide,
             LegacyPptRecord slideRecord,
-            IReadOnlyDictionary<uint, ProjectedShapeEdit> editsByOfficeArtId, bool? hidden,
+            IReadOnlyDictionary<uint, ProjectedShapeEdit> editsByOfficeArtId,
+            bool? hidden, bool? followsMasterObjects,
             bool rewriteTransition,
             LegacyPptWriter.LegacyPptWriterTransition? transition,
             LegacyPptWriter.LegacyPptWriterSoundCatalog soundCatalog,
@@ -55,6 +56,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             slide.Hidden));
                     }
                     patchedSlideShowInfo = true;
+                    changed = true;
+                } else if (followsMasterObjects.HasValue
+                           && child.Type == RecordSlideAtom
+                           && child.PayloadLength >= 22) {
+                    byte[] atom = child.CopyRecordBytes();
+                    ushort flags = child.ReadUInt16(20);
+                    flags = followsMasterObjects.Value
+                        ? unchecked((ushort)(flags | 0x0001))
+                        : unchecked((ushort)(flags & ~0x0001));
+                    WriteUInt16(atom, 28, flags);
+                    children.Add(atom);
                     changed = true;
                 } else {
                     RecordRewrite childResult = RewriteRecord(child, editsByOfficeArtId);

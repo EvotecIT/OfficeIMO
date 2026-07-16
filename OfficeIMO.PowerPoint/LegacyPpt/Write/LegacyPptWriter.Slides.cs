@@ -10,7 +10,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<PowerPointShape> shapes, uint drawingId, uint? masterIdRef,
             uint? notesIdRef, IReadOnlyList<LegacyPptWriterComment> comments,
             LegacyPptWriterInteractionCatalog interactionCatalog,
-            LegacyPptWriterAnimationCatalog animationCatalog) {
+            LegacyPptWriterAnimationCatalog animationCatalog,
+            bool layoutIsIndependentMaster = false) {
             var children = new List<byte[]>();
             ThemeOverridePart? themePart = slide.SlidePart.ThemeOverridePart
                 ?? slide.SlidePart.SlideLayoutPart?.ThemeOverridePart;
@@ -59,6 +60,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     slideFlags = classicOverride == null
                         ? unchecked((ushort)(slideFlags | 0x0002))
                         : unchecked((ushort)(slideFlags & ~0x0002));
+                    slideFlags = FollowsMasterObjects(slide,
+                            layoutIsIndependentMaster)
+                        ? unchecked((ushort)(slideFlags | 0x0001))
+                        : unchecked((ushort)(slideFlags & ~0x0001));
                     WriteUInt16(atom, 28, slideFlags);
                     children.Add(atom);
                     if (headerFooter != null && !hasHeaderFooter

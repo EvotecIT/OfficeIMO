@@ -149,6 +149,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private static void NormalizeProjectedTitleMaster(OpenXmlElement root,
             LegacyPptMasterProjection projection) {
             if (root is not P.SlideLayout layout) return;
+            layout.ShowMasterShapes = null;
             if (layout.ColorMapOverride != null) {
                 layout.ColorMapOverride.ClearAllAttributes();
                 layout.ColorMapOverride.RemoveAllChildren();
@@ -231,6 +232,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 string.Equals(slide.SlidePartUri, partUri.ToString(), StringComparison.Ordinal));
             if (slideProjection == null) return;
             if (root is P.NotesSlide notesRoot && slideProjection.Notes != null) {
+                notesRoot.ShowMasterShapes = null;
                 if (notesRoot.ColorMapOverride != null) {
                     notesRoot.ColorMapOverride.ClearAllAttributes();
                     notesRoot.ColorMapOverride.RemoveAllChildren();
@@ -249,6 +251,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             if (root is P.Slide slideRoot) {
                 slideRoot.Show = null;
+                slideRoot.ShowMasterShapes = null;
                 slideRoot.Transition = null;
                 if (slideRoot.ColorMapOverride != null) {
                     slideRoot.ColorMapOverride.ClearAllAttributes();

@@ -78,6 +78,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Planned, layouts.NewBinaryWrite);
             Assert.Equal(LegacyPptCapabilityState.Preserved, layouts.BinaryRoundTrip);
             Assert.Equal(LegacyPptCapabilityState.Planned, layouts.PptxToBinary);
+            Assert.Contains("master-shape visibility maps to schema-valid root attributes and native inheritance flags",
+                layouts.Note);
 
             LegacyPptCapability placeholders = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Placeholders);
@@ -117,6 +119,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Imported main-, title-, notes-, and handout-master position, size, and structurally plain text edits",
                 masters.Note);
             Assert.Contains("Binary title masters map to exact named layout parts",
+                masters.Note);
+            Assert.Contains("parent-master-shape visibility edits",
                 masters.Note);
         }
 
