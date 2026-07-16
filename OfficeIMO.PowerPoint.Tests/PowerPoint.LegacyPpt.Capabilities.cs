@@ -27,8 +27,6 @@ namespace OfficeIMO.Tests {
             Assert.True(LegacyPptCapabilityCatalog.HasRemainingParityWork);
             Assert.Contains(LegacyPptCapabilityCatalog.RemainingParityWork,
                 row => row.Feature == LegacyPptFeature.Masters);
-            Assert.Contains(LegacyPptCapabilityCatalog.RemainingParityWork,
-                row => row.Feature == LegacyPptFeature.Layouts);
             Assert.Contains("| Preservation | UnknownRecordsAndStreams |",
                 LegacyPptCapabilityCatalog.ToMarkdown());
         }

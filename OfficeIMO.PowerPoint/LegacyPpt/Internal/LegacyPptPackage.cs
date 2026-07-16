@@ -53,15 +53,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal int CompoundStreamCount => CompoundFile.Entries.Count(entry => entry.IsStream && !entry.IsFallback);
 
+        internal bool HasBinarySignatureStream => CompoundFile.Entries.Any(entry =>
+            entry.IsStream && !entry.IsFallback
+            && string.Equals(entry.Path, "_signatures", StringComparison.OrdinalIgnoreCase));
+
+        internal bool HasXmlSignatureStorage => CompoundFile.Entries.Any(entry =>
+            !entry.IsFallback
+            && (string.Equals(entry.Path, "_xmlsignatures", StringComparison.OrdinalIgnoreCase)
+                || entry.Path.StartsWith("_xmlsignatures/", StringComparison.OrdinalIgnoreCase)));
+
         internal byte[] CopyOriginalBytes() => (byte[])_originalBytes.Clone();
 
         internal IReadOnlyDictionary<string, byte[]> CopyCompoundStreams() => CompoundFile.Streams.ToDictionary(
             pair => pair.Key, pair => (byte[])pair.Value.Clone(), StringComparer.OrdinalIgnoreCase);
 
         internal byte[] RewriteCompoundStreams(
-            IReadOnlyDictionary<string, byte[]> replacementStreams) =>
+            IReadOnlyDictionary<string, byte[]> replacementStreams,
+            IReadOnlyCollection<string>? removedPaths = null) =>
             OfficeCompoundFileWriter.Rewrite(CompoundFile,
-                replacementStreams);
+                replacementStreams, removedPaths);
 
         internal static LegacyPptPackage Read(byte[] bytes, LegacyPptImportOptions options) {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));

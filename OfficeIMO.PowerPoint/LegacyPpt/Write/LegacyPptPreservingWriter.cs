@@ -58,8 +58,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         propertyStreams)) {
                 return false;
             }
+            bool removeSignatures = presentation.LastSignatureReport?.Action
+                == PowerPointSignatureMutationAction.Removed
+                && (package.HasBinarySignatureStream || package.HasXmlSignatureStorage);
             if (modifiedPersistObjects.Count == 0
-                && propertyStreams.Count == 0) {
+                && propertyStreams.Count == 0
+                && !removeSignatures) {
                 bytes = package.CopyOriginalBytes();
                 return true;
             }
@@ -75,7 +79,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 replacementStreams["Current User"] = PatchCurrentEditOffset(
                     package.CurrentUserStream, editOffset);
             }
-            bytes = package.RewriteCompoundStreams(replacementStreams);
+            bytes = package.RewriteCompoundStreams(replacementStreams,
+                removeSignatures ? new[] { "_signatures", "_xmlsignatures" } : null);
             return true;
         }
 

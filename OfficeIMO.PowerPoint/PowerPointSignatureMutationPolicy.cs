@@ -29,11 +29,14 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>Structured signature inspection and mutation-policy evidence.</summary>
     public sealed class PowerPointSignatureReport {
         internal PowerPointSignatureReport(bool hasOriginPart, int xmlSignaturePartCount,
-            bool hasApplicationSignatureFlag, PowerPointSignatureMutationPolicy policy,
+            bool hasApplicationSignatureFlag, bool hasLegacyBinarySignatureStream,
+            bool hasLegacyXmlSignatureStorage, PowerPointSignatureMutationPolicy policy,
             PowerPointSignatureMutationAction action) {
             HasOriginPart = hasOriginPart;
             XmlSignaturePartCount = xmlSignaturePartCount;
             HasApplicationSignatureFlag = hasApplicationSignatureFlag;
+            HasLegacyBinarySignatureStream = hasLegacyBinarySignatureStream;
+            HasLegacyXmlSignatureStorage = hasLegacyXmlSignatureStorage;
             Policy = policy;
             Action = action;
         }
@@ -44,18 +47,26 @@ namespace OfficeIMO.PowerPoint {
         public int XmlSignaturePartCount { get; }
         /// <summary>Whether extended application properties advertise a digital signature.</summary>
         public bool HasApplicationSignatureFlag { get; }
+        /// <summary>Whether a binary PowerPoint package contains the legacy <c>_signatures</c> stream.</summary>
+        public bool HasLegacyBinarySignatureStream { get; }
+        /// <summary>Whether a binary PowerPoint package contains the legacy <c>_xmlsignatures</c> storage.</summary>
+        public bool HasLegacyXmlSignatureStorage { get; }
         /// <summary>Configured save policy.</summary>
         public PowerPointSignatureMutationPolicy Policy { get; }
         /// <summary>Policy action taken.</summary>
         public PowerPointSignatureMutationAction Action { get; }
         /// <summary>Whether any signature metadata was detected.</summary>
-        public bool HasSignatureMetadata => HasOriginPart || XmlSignaturePartCount > 0 || HasApplicationSignatureFlag;
+        public bool HasSignatureMetadata => HasOriginPart || XmlSignaturePartCount > 0
+            || HasApplicationSignatureFlag || HasLegacyBinarySignatureStream
+            || HasLegacyXmlSignatureStorage;
 
         /// <summary>Serializes the report as deterministic JSON.</summary>
         public string ToJson() => new StringBuilder()
             .Append("{\"hasOriginPart\":").Append(HasOriginPart ? "true" : "false")
             .Append(",\"xmlSignaturePartCount\":").Append(XmlSignaturePartCount)
             .Append(",\"hasApplicationSignatureFlag\":").Append(HasApplicationSignatureFlag ? "true" : "false")
+            .Append(",\"hasLegacyBinarySignatureStream\":").Append(HasLegacyBinarySignatureStream ? "true" : "false")
+            .Append(",\"hasLegacyXmlSignatureStorage\":").Append(HasLegacyXmlSignatureStorage ? "true" : "false")
             .Append(",\"policy\":\"").Append(Policy)
             .Append("\",\"action\":\"").Append(Action).Append("\"}").ToString();
     }
@@ -108,6 +119,7 @@ namespace OfficeIMO.PowerPoint {
                 }
                 LastSignatureReport = new PowerPointSignatureReport(inspection.HasOriginPart,
                     inspection.XmlSignaturePartCount, inspection.HasApplicationSignatureFlag,
+                    inspection.HasLegacyBinarySignatureStream, inspection.HasLegacyXmlSignatureStorage,
                     SignatureMutationPolicy, PowerPointSignatureMutationAction.Removed);
                 return;
             }
@@ -119,7 +131,10 @@ namespace OfficeIMO.PowerPoint {
             DigitalSignatureOriginPart? origin = _document?.DigitalSignatureOriginPart;
             int count = origin?.XmlSignatureParts.Count() ?? 0;
             bool applicationFlag = _document?.ExtendedFilePropertiesPart?.Properties?.DigitalSignature != null;
+            bool legacyBinarySignature = _legacyPptPackage?.HasBinarySignatureStream == true;
+            bool legacyXmlSignature = _legacyPptPackage?.HasXmlSignatureStorage == true;
             return new PowerPointSignatureReport(origin != null, count, applicationFlag,
+                legacyBinarySignature, legacyXmlSignature,
                 SignatureMutationPolicy, action);
         }
     }

@@ -257,11 +257,18 @@ namespace OfficeIMO.PowerPoint {
             if (TryCopyOriginalLegacyPackage(out byte[] originalBytes)) {
                 return originalBytes;
             }
+            ApplySignatureMutationPolicy();
             foreach (PowerPointSlide slide in _slides) slide.Save();
             PresentationRoot.Save();
             _document!.Save();
             if (LegacyPptPreservingWriter.TryWritePresentation(this, out byte[] preservedBytes)) {
                 return preservedBytes;
+            }
+            if (LastSignatureReport?.Action == PowerPointSignatureMutationAction.Preserved
+                && LastSignatureReport.HasSignatureMetadata) {
+                throw new NotSupportedException(
+                    "The requested binary rewrite cannot preserve the presentation's digital-signature carrier. " +
+                    "Choose RemoveInvalidatedSignatures or make only preservation-aware edits.");
             }
             return LegacyPptWriter.WritePresentation(this, options);
         }
