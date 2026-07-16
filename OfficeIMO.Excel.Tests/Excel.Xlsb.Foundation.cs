@@ -882,6 +882,36 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Xlsb_NewWorkbook_WritesStylesCustomFormatsAndDates() {
+            var date = new DateTime(2024, 2, 29);
+            using ExcelDocument document = ExcelDocument.Create();
+            document.DateSystem = ExcelDateSystem.NineteenFour;
+            ExcelSheet sheet = document.AddWorksheet("Styled");
+            sheet.CellValue(1, 1, "Heading");
+            sheet.CellBold(1, 1);
+            sheet.CellBackground(1, 1, "#4472C4");
+            sheet.CellWrapText(1, 1);
+            sheet.CellValue(2, 1, date);
+            sheet.CellValue(3, 1, 12.34567D);
+            sheet.FormatCell(3, 1, "0.0000");
+            Assert.True(sheet.GetCellStyle(1, 1).Bold);
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            Assert.Equal(ExcelDateSystem.NineteenFour, reloaded.DateSystem);
+            ExcelSheet reloadedSheet = Assert.Single(reloaded.Sheets);
+            ExcelCellStyleSnapshot heading = reloadedSheet.GetCellStyle(1, 1);
+            Assert.True(heading.Bold);
+            Assert.True(heading.WrapText);
+            Assert.Equal("solid", heading.FillPatternType);
+            Assert.Equal(date, AssertCellValue(reloadedSheet, 2, 1).DateTimeValue);
+            Assert.Equal("0.0000", reloadedSheet.GetCellStyle(3, 1).NumberFormatCode);
+            Assert.Contains(reloaded.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.NumberingFormats!
+                .Elements<NumberingFormat>(), format => format.FormatCode?.Value == "0.0000");
+        }
+
         private static byte[] CreateMinimalXlsbPackage() {
             byte[] workbookRecords = {
                 0x83, 0x01, 0x00,

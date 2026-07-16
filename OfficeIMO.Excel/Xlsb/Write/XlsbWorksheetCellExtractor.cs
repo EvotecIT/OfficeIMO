@@ -52,7 +52,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
                     sourceCells.TryGetValue((cellRow, cellColumn), out XlsbCell? sourceCell);
                     if (sourceCell != null) visitedSourceCells.Add((cellRow, cellColumn));
-                    uint styleIndex = ResolveStyleIndex(cell, sourceCell, sheet.Name, cellRow, cellColumn);
+                    uint styleIndex = ResolveStyleIndex(
+                        cell,
+                        sourceCell,
+                        sheet.Name,
+                        cellRow,
+                        cellColumn,
+                        allowNewStyles: sourceSheet == null);
                     if (sourceCell != null && CellMatchesSource(sheet, cell, sourceCell)) {
                         result.Add(XlsbWriteCell.PreserveSource(sourceCell));
                         sequentialColumn = cellColumn + 1;
@@ -234,7 +240,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
         }
 
-        private static uint ResolveStyleIndex(Cell cell, XlsbCell? sourceCell, string sheetName, int row, int column) {
+        private static uint ResolveStyleIndex(
+            Cell cell,
+            XlsbCell? sourceCell,
+            string sheetName,
+            int row,
+            int column,
+            bool allowNewStyles) {
             uint current = cell.StyleIndex?.Value ?? 0U;
             if (sourceCell != null) {
                 if (current != sourceCell.StyleIndex) {
@@ -244,11 +256,11 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 return current;
             }
 
-            if (current != 0) {
+            if (current != 0 && !allowNewStyles) {
                 throw new NotSupportedException($"Native XLSB rewriting currently cannot add a styled cell. Cell {sheetName}!{ToAddress(row, column)} uses style index {current}.");
             }
 
-            return 0U;
+            return current;
         }
 
         private static byte GetErrorCode(string value, int row, int column) {

@@ -2,6 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using OfficeIMO.Excel.Xlsb;
 using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Excel.Xlsb.Projection;
 using OfficeIMO.Excel.Xlsb.Write;
 
 namespace OfficeIMO.Excel {
@@ -190,6 +191,7 @@ namespace OfficeIMO.Excel {
 
         private void AdoptNativeXlsbAfterWrite(byte[] bytes, string? sourcePath) {
             XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes);
+            if (workbook.Stylesheet != null) XlsbStylesheetProjector.Install(this, workbook.Stylesheet);
             MarkLoadedFromXlsb(sourcePath, workbook);
         }
 
