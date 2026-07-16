@@ -24,7 +24,7 @@ public sealed class OfficeDocumentWebReader {
     }
 
     /// <summary>
-    /// Downloads one bounded HTTP(S) response and routes its bytes through the configured Reader instance.
+    /// Downloads one bounded HTTP(S) response and routes its body through the configured Reader instance.
     /// </summary>
     public async Task<OfficeDocumentReadResult> ReadDocumentAsync(
         Uri uri,
@@ -40,7 +40,7 @@ public sealed class OfficeDocumentWebReader {
             if (readerOptions?.MaxInputBytes is long readerLimit && readerLimit >= 0) {
                 maxResponseBytes = Math.Min(maxResponseBytes, readerLimit);
             }
-            ReaderWebDownload download = await ReaderWebTransport.DownloadAsync(
+            using ReaderWebDownload download = await ReaderWebTransport.DownloadAsync(
                 _httpClient,
                 uri,
                 normalizedSourceName,
@@ -48,7 +48,7 @@ public sealed class OfficeDocumentWebReader {
                 _options,
                 cancellationToken).ConfigureAwait(false);
             OfficeDocumentReadResult result = await _reader.ReadDocumentAsync(
-                download.Bytes,
+                download.Content,
                 download.SourceName,
                 readerOptions,
                 cancellationToken).ConfigureAwait(false);

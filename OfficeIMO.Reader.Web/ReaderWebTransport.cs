@@ -32,59 +32,75 @@ internal static class ReaderWebTransport {
                     maxResponseBytes.ToString(CultureInfo.InvariantCulture) + ").");
             }
 
-            byte[] bytes = await ReadBoundedContentAsync(
+            MemoryStream content = await ReadBoundedContentAsync(
                 response.Content,
                 declaredLength,
                 maxResponseBytes,
                 timeout.Token).ConfigureAwait(false);
-            string logicalSourceName = ResolveSourceName(
-                sourceName,
-                finalUri,
-                response.Content.Headers.ContentDisposition);
-            return new ReaderWebDownload(
-                bytes,
-                logicalSourceName,
-                uri,
-                finalUri,
-                (int)response.StatusCode,
-                response.Content.Headers.ContentType?.ToString(),
-                response.Content.Headers.LastModified?.UtcDateTime);
+            try {
+                string logicalSourceName = ResolveSourceName(
+                    sourceName,
+                    finalUri,
+                    response.Content.Headers.ContentDisposition);
+                return new ReaderWebDownload(
+                    content,
+                    logicalSourceName,
+                    uri,
+                    finalUri,
+                    (int)response.StatusCode,
+                    response.Content.Headers.ContentType?.ToString(),
+                    response.Content.Headers.LastModified?.UtcDateTime);
+            } catch {
+                content.Dispose();
+                throw;
+            }
         } catch (OperationCanceledException exception)
             when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested) {
             throw new TimeoutException("Reader Web request exceeded RequestTimeout.", exception);
         }
     }
 
-    private static async Task<byte[]> ReadBoundedContentAsync(
+    private static async Task<MemoryStream> ReadBoundedContentAsync(
         HttpContent content,
         long? declaredLength,
         long maxResponseBytes,
         CancellationToken cancellationToken) {
         int capacity = GetInitialBufferCapacity(declaredLength);
-        using var output = capacity > 0 ? new MemoryStream(capacity) : new MemoryStream();
-        using Stream input = await content.ReadAsStreamAsync().ConfigureAwait(false);
-        byte[] buffer = new byte[64 * 1024];
-        long total = 0;
-        while (true) {
-            cancellationToken.ThrowIfCancellationRequested();
-            Task<int> readOperation = input.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
-            int read = await WaitForOperationAsync(readOperation, cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
-            if (total > maxResponseBytes - read) {
-                throw new IOException(
-                    "HTTP response exceeds the effective web input byte limit (" +
-                    (total + read).ToString(CultureInfo.InvariantCulture) + " > " +
-                    maxResponseBytes.ToString(CultureInfo.InvariantCulture) + ").");
+        MemoryStream output = ReaderInputLimits.CreateSnapshotStream(capacity);
+        try {
+            Task<Stream> openOperation = content.ReadAsStreamAsync();
+            using Stream input = await WaitForOperationAsync(
+                openOperation,
+                cancellationToken,
+                stream => stream.Dispose()).ConfigureAwait(false);
+            byte[] buffer = new byte[64 * 1024];
+            long total = 0;
+            while (true) {
+                cancellationToken.ThrowIfCancellationRequested();
+                Task<int> readOperation = input.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+                int read = await WaitForOperationAsync(readOperation, cancellationToken).ConfigureAwait(false);
+                if (read == 0) break;
+                if (total > maxResponseBytes - read) {
+                    throw new IOException(
+                        "HTTP response exceeds the effective web input byte limit (" +
+                        (total + read).ToString(CultureInfo.InvariantCulture) + " > " +
+                        maxResponseBytes.ToString(CultureInfo.InvariantCulture) + ").");
+                }
+                output.Write(buffer, 0, read);
+                total += read;
             }
-            output.Write(buffer, 0, read);
-            total += read;
+            output.Position = 0;
+            return output;
+        } catch {
+            output.Dispose();
+            throw;
         }
-        return output.ToArray();
     }
 
     private static async Task<T> WaitForOperationAsync<T>(
         Task<T> operation,
-        CancellationToken cancellationToken) {
+        CancellationToken cancellationToken,
+        Action<T>? disposeAbandonedResult = null) {
         if (operation.IsCompleted) {
             return await operation.ConfigureAwait(false);
         }
@@ -100,15 +116,25 @@ internal static class ReaderWebTransport {
             }
         }
 
-        ObserveFault(operation);
+        ObserveAbandonedOperation(operation, disposeAbandonedResult);
         throw new OperationCanceledException(cancellationToken);
     }
 
-    private static void ObserveFault(Task operation) {
+    private static void ObserveAbandonedOperation<T>(Task<T> operation, Action<T>? disposeResult) {
         _ = operation.ContinueWith(
-            completed => { _ = completed.Exception; },
+            completed => {
+                if (completed.IsFaulted) {
+                    _ = completed.Exception;
+                } else if (completed.Status == TaskStatus.RanToCompletion && disposeResult != null) {
+                    try {
+                        disposeResult(completed.Result);
+                    } catch {
+                        // Cleanup must not surface on the continuation scheduler.
+                    }
+                }
+            },
             CancellationToken.None,
-            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskContinuationOptions.ExecuteSynchronously,
             TaskScheduler.Default);
     }
 
@@ -171,16 +197,17 @@ internal static class ReaderWebTransport {
     }
 }
 
-internal sealed class ReaderWebDownload {
+internal sealed class ReaderWebDownload : IDisposable {
     internal ReaderWebDownload(
-        byte[] bytes,
+        MemoryStream content,
         string sourceName,
         Uri requestUri,
         Uri responseUri,
         int statusCode,
         string? contentType,
         DateTime? lastModifiedUtc) {
-        Bytes = bytes;
+        Content = content;
+        LengthBytes = content.Length;
         SourceName = sourceName;
         RequestUri = requestUri;
         ResponseUri = responseUri;
@@ -189,7 +216,8 @@ internal sealed class ReaderWebDownload {
         LastModifiedUtc = lastModifiedUtc;
     }
 
-    internal byte[] Bytes { get; }
+    internal MemoryStream Content { get; }
+    internal long LengthBytes { get; }
     internal string SourceName { get; }
     internal Uri RequestUri { get; }
     internal Uri ResponseUri { get; }
@@ -207,7 +235,7 @@ internal sealed class ReaderWebDownload {
             result,
             sourceId,
             LastModifiedUtc,
-            Bytes.LongLength,
+            LengthBytes,
             computeHashes);
         result.CapabilitiesUsed = result.CapabilitiesUsed
             .Concat(new[] { ReaderWebTransport.CapabilityId })
@@ -217,7 +245,7 @@ internal sealed class ReaderWebDownload {
             Metadata("reader-web-request-uri", "RequestUri", FormatUri(RequestUri, options.IncludeQueryInMetadata), "uri"),
             Metadata("reader-web-response-uri", "ResponseUri", FormatUri(ResponseUri, options.IncludeQueryInMetadata), "uri"),
             Metadata("reader-web-status-code", "StatusCode", StatusCode.ToString(CultureInfo.InvariantCulture), "number"),
-            Metadata("reader-web-length", "LengthBytes", Bytes.LongLength.ToString(CultureInfo.InvariantCulture), "number")
+            Metadata("reader-web-length", "LengthBytes", LengthBytes.ToString(CultureInfo.InvariantCulture), "number")
         };
         if (!string.IsNullOrWhiteSpace(ContentType)) {
             metadata.Add(Metadata("reader-web-content-type", "ContentType", ContentType!, "string"));
@@ -230,6 +258,10 @@ internal sealed class ReaderWebDownload {
                 "timestamp"));
         }
         result.Metadata = result.Metadata.Concat(metadata).ToArray();
+    }
+
+    public void Dispose() {
+        Content.Dispose();
     }
 
     private static OfficeDocumentMetadataEntry Metadata(string id, string name, string value, string valueType) {

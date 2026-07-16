@@ -107,6 +107,7 @@ public sealed class ReaderWebTests {
     [InlineData("192.0.0.8")]
     [InlineData("192.0.0.170")]
     [InlineData("192.0.0.171")]
+    [InlineData("192.88.99.1")]
     public async Task WebReader_RejectsNonGlobalIanaProtocolAssignmentTargets(string host) {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
@@ -358,6 +359,63 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
+    public async Task WebReader_TimesOutANonCooperativeStreamOpenAndDisposesALateStream() {
+        var stalledContent = new CancellationIgnoringOpenContent();
+        int responseIndex = 0;
+        var handler = new DelegateHttpHandler((request, cancellationToken) => {
+            if (Interlocked.Increment(ref responseIndex) == 1) {
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = stalledContent });
+            }
+            return Task.FromResult(TextResponse("recovered", "text/plain"));
+        });
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+            httpClient,
+            new ReaderWebOptions {
+                MaxConcurrentRequests = 1,
+                RequestTimeout = TimeSpan.FromMilliseconds(100)
+            });
+
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            webReader.ReadDocumentAsync(new Uri("https://example.test/stalled-open.txt")));
+        OfficeDocumentReadResult recovered = await webReader.ReadDocumentAsync(
+            new Uri("https://example.test/recovered.txt"));
+        var lateStream = new TrackingMemoryStream(Encoding.UTF8.GetBytes("late"));
+        stalledContent.CompleteOpen(lateStream);
+
+        Assert.Contains("recovered", recovered.Markdown, StringComparison.Ordinal);
+        Assert.True(stalledContent.IsDisposed);
+        Assert.True(SpinWait.SpinUntil(() => lateStream.IsDisposed, TimeSpan.FromSeconds(2)));
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task WebTransport_HandsReaderItsPreparedSnapshotWithoutCopying() {
+        byte[] payload = Encoding.UTF8.GetBytes("prepared snapshot");
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) {
+                Content = new ByteArrayContent(payload)
+            }));
+        using var httpClient = new HttpClient(handler);
+        using ReaderWebDownload download = await ReaderWebTransport.DownloadAsync(
+            httpClient,
+            new Uri("https://example.test/prepared.txt"),
+            sourceName: null,
+            maxResponseBytes: 1024,
+            new ReaderWebOptions(),
+            CancellationToken.None);
+
+        Stream prepared = await ReaderInputLimits.EnsureSeekableReadStreamAsync(
+            download.Content,
+            maxInputBytes: 1024);
+
+        Assert.Same(download.Content, prepared);
+        Assert.True(ReaderInputLimits.IsSnapshotStream(prepared));
+        Assert.Equal(payload.Length, prepared.Length);
+        Assert.Equal(0, prepared.Position);
+    }
+
+    [Fact]
     public async Task WebReader_BoundsConcurrentOperationsPerInstance() {
         var handler = new BlockingFirstRequestHandler();
         using var httpClient = new HttpClient(handler);
@@ -483,6 +541,49 @@ public sealed class ReaderWebTests {
         public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
         public override void SetLength(long value) => throw new NotSupportedException();
         public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) Interlocked.Exchange(ref _isDisposed, 1);
+            base.Dispose(disposing);
+        }
+    }
+
+    private sealed class CancellationIgnoringOpenContent : HttpContent {
+        private readonly TaskCompletionSource<Stream> _pendingOpen =
+            new TaskCompletionSource<Stream>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _isDisposed;
+
+        internal bool IsDisposed => Volatile.Read(ref _isDisposed) != 0;
+
+        internal void CompleteOpen(Stream stream) => _pendingOpen.TrySetResult(stream);
+
+        protected override Task SerializeToStreamAsync(Stream stream, TransportContext? context) {
+            return Task.CompletedTask;
+        }
+
+        protected override bool TryComputeLength(out long length) {
+            length = 0;
+            return false;
+        }
+
+        protected override Task<Stream> CreateContentReadStreamAsync() => _pendingOpen.Task;
+
+        protected override Task<Stream> CreateContentReadStreamAsync(CancellationToken cancellationToken) =>
+            _pendingOpen.Task;
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) Interlocked.Exchange(ref _isDisposed, 1);
+            base.Dispose(disposing);
+        }
+    }
+
+    private sealed class TrackingMemoryStream : MemoryStream {
+        private int _isDisposed;
+
+        internal TrackingMemoryStream(byte[] bytes) : base(bytes, writable: false) {
+        }
+
+        internal bool IsDisposed => Volatile.Read(ref _isDisposed) != 0;
 
         protected override void Dispose(bool disposing) {
             if (disposing) Interlocked.Exchange(ref _isDisposed, 1);
