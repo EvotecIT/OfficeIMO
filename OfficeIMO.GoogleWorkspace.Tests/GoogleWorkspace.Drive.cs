@@ -398,6 +398,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task Test_DriveClient_PaginatesPermissionsAndUsesDocumentedRevisionParameters() {
+            var requests = new List<string>();
+            using var httpClient = new HttpClient(new FakeHandler(request => {
+                requests.Add(request.RequestUri!.AbsoluteUri);
+                return Task.FromResult(request.RequestUri.AbsolutePath.EndsWith("/permissions", StringComparison.Ordinal)
+                    ? Json("{\"permissions\":[],\"nextPageToken\":\"permission-next\"}")
+                    : Json("{\"revisions\":[],\"nextPageToken\":\"revision-next\"}"));
+            }));
+            using var client = CreateClient(httpClient);
+
+            GoogleDrivePermissionList permissions = await client.ListPermissionsAsync("file-1", "permission page", 42);
+            GoogleDriveRevisionList revisions = await client.ListRevisionsAsync("file-1", "revision page");
+
+            Assert.Equal("permission-next", permissions.NextPageToken);
+            Assert.Equal("revision-next", revisions.NextPageToken);
+            Assert.Contains(requests, request => request.Contains("/permissions?", StringComparison.Ordinal)
+                && request.Contains("pageToken=permission%20page", StringComparison.Ordinal)
+                && request.Contains("pageSize=42", StringComparison.Ordinal)
+                && request.Contains("supportsAllDrives=true", StringComparison.Ordinal));
+            Assert.Contains(requests, request => request.Contains("/revisions?", StringComparison.Ordinal)
+                && request.Contains("pageToken=revision%20page", StringComparison.Ordinal)
+                && !request.Contains("supportsAllDrives", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public async Task Test_DriveClient_CommentEndpoints_UseDocumentedParameters() {
             var requests = new List<string>();
             using var httpClient = new HttpClient(new FakeHandler(request => {

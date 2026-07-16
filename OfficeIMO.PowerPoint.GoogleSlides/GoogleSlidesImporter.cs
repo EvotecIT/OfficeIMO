@@ -55,10 +55,11 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                         slide.BackgroundColor = ToHex(backgroundColor);
                     }
                     foreach (GoogleSlidesApiPageElement element in sourceSlide.PageElements) {
-                        double left = ToPoints(element.Transform?.TranslateX ?? 0, element.Transform?.Unit);
-                        double top = ToPoints(element.Transform?.TranslateY ?? 0, element.Transform?.Unit);
-                        double width = ToPoints(element.Size?.Width) * (element.Transform?.ScaleX ?? 1);
-                        double height = ToPoints(element.Size?.Height) * (element.Transform?.ScaleY ?? 1);
+                        ElementGeometry geometry = ProjectGeometry(element, report);
+                        double left = geometry.Left;
+                        double top = geometry.Top;
+                        double width = geometry.Width;
+                        double height = geometry.Height;
                         if (element.Shape?.Text != null) {
                             string text = ExtractText(element.Shape.Text);
                             PowerPointTextBox box;
@@ -75,6 +76,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                         action: TranslationAction.Flatten);
                                 }
                             }
+                            ApplyTransform(box, geometry);
                             GoogleSlidesApiTextRun? style = element.Shape.Text.TextElements.Select(item => item.TextRun).FirstOrDefault(run => run?.Style != null);
                             PowerPointTextRun? run = box.Paragraphs.SelectMany(paragraph => paragraph.Runs).FirstOrDefault();
                             if (style?.Style != null && run != null) {
@@ -84,7 +86,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             }
                         } else if (element.Shape != null) {
                             if (TryMapShapeType(element.Shape.ShapeType, out A.ShapeTypeValues shapeType)) {
-                                slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
+                                PowerPointAutoShape shape = slide.AddShapePoints(shapeType, left, top, Math.Max(1, width), Math.Max(1, height), element.ObjectId);
+                                ApplyTransform(shape, geometry);
                             } else {
                                 report.Add(
                                     TranslationSeverity.Warning,
@@ -95,6 +98,7 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                             }
                         } else if (element.Table != null && element.Table.Rows > 0 && element.Table.Columns > 0) {
                             PowerPointTable table = slide.AddTablePoints(element.Table.Rows, element.Table.Columns, left, top, Math.Max(1, width), Math.Max(1, height));
+                            ApplyTransform(table, geometry);
                             for (int row = 0; row < Math.Min(table.RowItems.Count, element.Table.TableRows.Count); row++) {
                                 for (int column = 0; column < Math.Min(table.RowItems[row].Cells.Count, element.Table.TableRows[row].TableCells.Count); column++) {
                                     table.RowItems[row].Cells[column].Text = ExtractText(element.Table.TableRows[row].TableCells[column].Text);
@@ -112,7 +116,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
                                     cancellationToken,
                                     preserveRequestUri: true).ConfigureAwait(false);
                                 using var image = new MemoryStream(bytes, writable: false);
-                                slide.AddPicturePoints(image, DetectImageType(bytes), left, top, Math.Max(1, width), Math.Max(1, height));
+                                PowerPointPicture picture = slide.AddPicturePoints(image, DetectImageType(bytes), left, top, Math.Max(1, width), Math.Max(1, height));
+                                ApplyTransform(picture, geometry);
                             } catch (Exception ex) when (!(ex is OperationCanceledException)) {
                                 report.Add(TranslationSeverity.Warning, "Images", "A native Google Slides image could not be downloaded; Drive-export import remains the broad fallback.", code: "SLIDES.IMPORT.IMAGE_FALLBACK", action: TranslationAction.Skip);
                             }
@@ -135,6 +140,75 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
         }
         private static double ToPoints(GoogleSlidesApiDimension? dimension) => dimension == null ? 0 : ToPoints(dimension.Magnitude, dimension.Unit);
         private static double ToPoints(double value, string? unit) => string.Equals(unit, "EMU", StringComparison.OrdinalIgnoreCase) ? value / 12700d : value;
+        private static ElementGeometry ProjectGeometry(GoogleSlidesApiPageElement element, TranslationReport report) {
+            GoogleSlidesApiTransform? transform = element.Transform;
+            double matrixScaleX = transform?.ScaleX ?? 1;
+            double matrixScaleY = transform?.ScaleY ?? 1;
+            double shearX = transform?.ShearX ?? 0;
+            double shearY = transform?.ShearY ?? 0;
+            double scaleX = Math.Sqrt((matrixScaleX * matrixScaleX) + (shearY * shearY));
+            double scaleY = Math.Sqrt((shearX * shearX) + (matrixScaleY * matrixScaleY));
+            double rotationRadians = scaleX > 0.000000001
+                ? Math.Atan2(shearY, matrixScaleX)
+                : Math.Atan2(-shearX, matrixScaleY);
+            double determinant = (matrixScaleX * matrixScaleY) - (shearX * shearY);
+            bool verticalFlip = determinant < 0;
+            double cos = Math.Cos(rotationRadians);
+            double sin = Math.Sin(rotationRadians);
+            double normalizedScaleX = cos;
+            double normalizedShearY = sin;
+            double normalizedShearX = verticalFlip ? sin : -sin;
+            double normalizedScaleY = verticalFlip ? -cos : cos;
+            double tolerance = 0.0000001 * Math.Max(1, Math.Max(scaleX, scaleY));
+            bool exact = scaleX > 0.000000001
+                && scaleY > 0.000000001
+                && Math.Abs(matrixScaleX - (normalizedScaleX * scaleX)) <= tolerance
+                && Math.Abs(shearY - (normalizedShearY * scaleX)) <= tolerance
+                && Math.Abs(shearX - (normalizedShearX * scaleY)) <= tolerance
+                && Math.Abs(matrixScaleY - (normalizedScaleY * scaleY)) <= tolerance;
+
+            double width = ToPoints(element.Size?.Width) * scaleX;
+            double height = ToPoints(element.Size?.Height) * scaleY;
+            double translateX = ToPoints(transform?.TranslateX ?? 0, transform?.Unit);
+            double translateY = ToPoints(transform?.TranslateY ?? 0, transform?.Unit);
+            double left = translateX + (normalizedScaleX * width / 2d) + (normalizedShearX * height / 2d) - (width / 2d);
+            double top = translateY + (normalizedShearY * width / 2d) + (normalizedScaleY * height / 2d) - (height / 2d);
+
+            if (!exact) {
+                report.Add(
+                    TranslationSeverity.Warning,
+                    "PageElements",
+                    $"Native Google Slides element '{element.ObjectId ?? "unspecified"}' uses a skewed or degenerate affine transform that PowerPoint cannot represent exactly; rotation, reflection, size, and position were approximated.",
+                    code: "SLIDES.IMPORT.TRANSFORM_PARTIAL",
+                    action: TranslationAction.Flatten);
+            }
+
+            return new ElementGeometry(left, top, width, height, rotationRadians * (180d / Math.PI), verticalFlip);
+        }
+
+        private static void ApplyTransform(PowerPointShape shape, ElementGeometry geometry) {
+            if (Math.Abs(geometry.Rotation) > 0.0000001) shape.Rotation = geometry.Rotation;
+            if (geometry.VerticalFlip) shape.VerticalFlip = true;
+        }
+
+        private readonly struct ElementGeometry {
+            internal ElementGeometry(double left, double top, double width, double height, double rotation, bool verticalFlip) {
+                Left = left;
+                Top = top;
+                Width = width;
+                Height = height;
+                Rotation = rotation;
+                VerticalFlip = verticalFlip;
+            }
+
+            internal double Left { get; }
+            internal double Top { get; }
+            internal double Width { get; }
+            internal double Height { get; }
+            internal double Rotation { get; }
+            internal bool VerticalFlip { get; }
+        }
+
         private static string ToHex(GoogleSlidesApiRgbColor color) => $"{ToByte(color.Red):X2}{ToByte(color.Green):X2}{ToByte(color.Blue):X2}";
         private static int ToByte(double component) => Math.Max(0, Math.Min(255, (int)Math.Round(component * 255d)));
         private static bool TryMapShapeType(string? shapeType, out A.ShapeTypeValues mapped) {

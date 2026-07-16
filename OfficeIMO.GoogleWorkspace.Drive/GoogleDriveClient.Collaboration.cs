@@ -25,17 +25,33 @@ namespace OfficeIMO.GoogleWorkspace.Drive {
     }
 
     public sealed partial class GoogleDriveClient {
+        /// <summary>Lists one page of permissions for a file or shared drive.</summary>
+        /// <param name="fileId">The file or shared-drive identifier.</param>
+        /// <param name="pageToken">The continuation token returned by the previous page.</param>
+        /// <param name="pageSize">The requested number of permissions. Google Drive caps this value at 100.</param>
+        /// <param name="report">An optional translation report that receives API diagnostics.</param>
+        /// <param name="cancellationToken">A token that cancels the request.</param>
+        /// <returns>The requested permission page and its continuation token, when another page exists.</returns>
         public async Task<GoogleDrivePermissionList> ListPermissionsAsync(
             string fileId,
+            string? pageToken = null,
+            int? pageSize = null,
             TranslationReport? report = null,
             CancellationToken cancellationToken = default) {
             ValidateResourceId(fileId, nameof(fileId));
+            if (pageSize <= 0) throw new ArgumentOutOfRangeException(nameof(pageSize), "Page size must be positive when specified.");
             report ??= new TranslationReport();
             string token = await AcquireTokenAsync(Options.ReadScopes, report, "Google Drive permission listing", cancellationToken).ConfigureAwait(false);
+            var query = new List<string> {
+                "supportsAllDrives=" + Bool(Options.SupportsAllDrives),
+                "fields=nextPageToken,permissions(id,type,role,emailAddress,domain,displayName,allowFileDiscovery)",
+            };
+            if (!string.IsNullOrWhiteSpace(pageToken)) query.Add("pageToken=" + Escape(pageToken!));
+            if (pageSize != null) query.Add("pageSize=" + pageSize.Value.ToString(System.Globalization.CultureInfo.InvariantCulture));
             return await Transport.SendJsonAsync<GoogleDrivePermissionList>(
                 token,
                 HttpMethod.Get,
-                $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/permissions?supportsAllDrives={Bool(Options.SupportsAllDrives)}&fields=nextPageToken,permissions(id,type,role,emailAddress,domain,displayName,allowFileDiscovery)",
+                $"https://www.googleapis.com/drive/v3/files/{Escape(fileId)}/permissions?{string.Join("&", query)}",
                 null,
                 GoogleWorkspaceRequestSafety.Safe,
                 "Google Drive API",

@@ -468,6 +468,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task NativeImporter_PreservesRotationAndReportsUnrepresentableShear() {
+            byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
+            using var httpClient = new HttpClient(new DelegateHandler(request => {
+                if (request.RequestUri!.Host == "www.googleapis.com") {
+                    return Task.FromResult(Json("{\"id\":\"deck-transform\",\"mimeType\":\"application/vnd.google-apps.presentation\",\"capabilities\":{\"canDownload\":false}}"));
+                }
+                if (request.RequestUri.Host == "images.example.test") {
+                    return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new ByteArrayContent(gif) });
+                }
+                const string slides = "{\"presentationId\":\"deck-transform\",\"slides\":[{\"objectId\":\"slide-1\",\"pageElements\":[{\"objectId\":\"shape-rotated\",\"size\":{\"width\":{\"magnitude\":80,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":100,\"translateY\":50,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}},{\"objectId\":\"table-rotated\",\"size\":{\"width\":{\"magnitude\":100,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":200,\"translateY\":50,\"unit\":\"PT\"},\"table\":{\"rows\":1,\"columns\":1,\"tableRows\":[{\"tableCells\":[{\"text\":{\"textElements\":[]}}]}]}},{\"objectId\":\"image-rotated\",\"size\":{\"width\":{\"magnitude\":60,\"unit\":\"PT\"},\"height\":{\"magnitude\":30,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":0,\"scaleY\":0,\"shearX\":-1,\"shearY\":1,\"translateX\":300,\"translateY\":50,\"unit\":\"PT\"},\"image\":{\"contentUrl\":\"https://images.example.test/image.gif\"}},{\"objectId\":\"shape-skewed\",\"size\":{\"width\":{\"magnitude\":80,\"unit\":\"PT\"},\"height\":{\"magnitude\":40,\"unit\":\"PT\"}},\"transform\":{\"scaleX\":1,\"scaleY\":1,\"shearX\":0.25,\"translateX\":400,\"translateY\":50,\"unit\":\"PT\"},\"shape\":{\"shapeType\":\"RECTANGLE\"}}]}]}";
+                return Task.FromResult(Json(slides));
+            }));
+
+            GoogleSlidesImportResult imported = await new GoogleSlidesImporter().ImportAsync(
+                "deck-transform",
+                Session(httpClient),
+                new GoogleSlidesImportOptions { Mode = GoogleSlidesImportMode.Native });
+
+            using (imported.Presentation) {
+                PowerPointSlide slide = Assert.Single(imported.Presentation.Slides);
+                PowerPointAutoShape rotatedShape = Assert.Single(slide.Shapes.OfType<PowerPointAutoShape>(), shape => shape.Name == "shape-rotated");
+                Assert.Equal(90d, rotatedShape.Rotation ?? 0, 6);
+                Assert.Equal(40d, rotatedShape.LeftPoints, 6);
+                Assert.Equal(70d, rotatedShape.TopPoints, 6);
+                Assert.Equal(90d, Assert.Single(slide.Tables).Rotation ?? 0, 6);
+                Assert.Equal(90d, Assert.Single(slide.Pictures).Rotation ?? 0, 6);
+                Assert.Contains(imported.Report.Notices, notice => notice.Code == "SLIDES.IMPORT.TRANSFORM_PARTIAL"
+                    && notice.Message.Contains("shape-skewed", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
         public async Task NativeImporter_PreservesGifImages() {
             byte[] gif = Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
             using var httpClient = new HttpClient(new DelegateHandler(request => {

@@ -76,6 +76,8 @@ namespace OfficeIMO.PowerPoint.GoogleSlides {
     internal sealed class GoogleSlidesApiTransform {
         [JsonPropertyName("scaleX")] public double ScaleX { get; set; } = 1;
         [JsonPropertyName("scaleY")] public double ScaleY { get; set; } = 1;
+        [JsonPropertyName("shearX")] public double ShearX { get; set; }
+        [JsonPropertyName("shearY")] public double ShearY { get; set; }
         [JsonPropertyName("translateX")] public double TranslateX { get; set; }
         [JsonPropertyName("translateY")] public double TranslateY { get; set; }
         [JsonPropertyName("unit")] public string? Unit { get; set; }
