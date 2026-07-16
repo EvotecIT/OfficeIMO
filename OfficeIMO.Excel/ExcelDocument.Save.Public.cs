@@ -109,6 +109,7 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(path, allowNativeXls: true, options);
+            EnsureXlsbFileTargetSupported(path);
 
             // Ensure target directory is writable
             EnsureDestinationFileWritable(path);
@@ -180,6 +181,7 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
             EnsureLegacyBinaryEncryptedSaveTargetSupported(path);
+            EnsureXlsbFileTargetSupported(path);
             EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
@@ -247,6 +249,7 @@ namespace OfficeIMO.Excel {
             var originalFilePath = FilePath;
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
             EnsureLegacyBinaryExcelSaveTargetSupported(target, allowNativeXls: true, options);
+            EnsureXlsbFileTargetSupported(target);
             EnsureDestinationFileWritable(target);
             EnsureDirectoryWritable(target);
 
@@ -330,7 +333,7 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Saves the workbook to a stream in the explicitly selected physical format.</summary>
         /// <param name="destination">Writable destination stream. This one-time save does not change the associated destination.</param>
-        /// <param name="format">Physical XLSX or XLS format.</param>
+        /// <param name="format">Physical XLSX, XLS, or XLSB format.</param>
         /// <param name="options">Optional save settings.</param>
         public void Save(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options = null) {
             SaveToStreamCore(destination, format, options);
@@ -340,6 +343,7 @@ namespace OfficeIMO.Excel {
         private void SaveToStreamCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureXlsbStreamTargetSupported(format);
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
 
@@ -471,6 +475,7 @@ namespace OfficeIMO.Excel {
         private async Task SaveToStreamAsyncCore(Stream destination, ExcelFileFormat format, ExcelSaveOptions? options, CancellationToken cancellationToken) {
             if (destination == null) throw new ArgumentNullException(nameof(destination));
             if (!destination.CanWrite) throw new ArgumentException("Destination stream must be writable.", nameof(destination));
+            EnsureXlsbStreamTargetSupported(format);
             EnsureWritableForSave();
             EnsureLegacyXlsSaveDoesNotDropImportedContent(options);
 

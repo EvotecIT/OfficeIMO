@@ -7,7 +7,9 @@ namespace OfficeIMO.Excel {
         /// <summary>Office Open XML Excel workbook.</summary>
         Xlsx,
         /// <summary>Excel 97-2003 BIFF8 workbook.</summary>
-        Xls
+        Xls,
+        /// <summary>Excel Binary Workbook package containing BIFF12 record streams.</summary>
+        Xlsb
     }
 
     /// <summary>Controls whether a conversion may continue when content loss is known.</summary>

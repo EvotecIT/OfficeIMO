@@ -188,7 +188,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingShapePropertiesByName["PropertyId:0x0005"]);
             Assert.Equal(1, report.DrawingShapePropertiesByGroup["Blip"]);
             Assert.Equal(1, report.DrawingShapePropertiesByGroup["Text"]);
-            Assert.Equal(1, report.DrawingShapePropertiesByGroup["Protection"]);
+            Assert.Equal(1, report.DrawingShapePropertiesByGroup["Transform"]);
             Assert.Equal(1, report.DrawingShapePropertiesByFlagState["Simple"]);
             Assert.Equal(1, report.DrawingShapePropertiesByFlagState["Blip"]);
             Assert.Equal(1, report.DrawingShapePropertiesByFlagState["Complex"]);
@@ -336,7 +336,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)0x8005, complexProperty.RawOperationId);
             Assert.Equal((ushort)0x0005, complexProperty.PropertyId);
             Assert.Equal("PropertyId:0x0005", complexProperty.PropertyName);
-            Assert.Equal("Protection", complexProperty.PropertyGroupName);
+            Assert.Equal("Transform", complexProperty.PropertyGroupName);
             Assert.False(complexProperty.IsBlipId);
             Assert.True(complexProperty.IsComplex);
             Assert.Equal((uint)4, complexProperty.Value);

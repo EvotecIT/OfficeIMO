@@ -202,8 +202,13 @@ namespace OfficeIMO.Excel {
                 originalStream,
                 options.AccessMode);
 
-            if (ExcelDocumentLoadRouting.IsLegacyXls(bytes, filePath)) {
+            ExcelFileFormat detectedFormat = ExcelDocumentLoadRouting.DetectFormat(bytes, filePath);
+            if (detectedFormat == ExcelFileFormat.Xls) {
                 return LoadLegacyXlsFromNormalFlow(bytes, readOnly, saveOnDispose, filePath);
+            }
+
+            if (detectedFormat == ExcelFileFormat.Xlsb) {
+                throw new NotSupportedException("The input is a recognized XLSB workbook. XLSB package projection is being implemented and this build does not yet expose it as an ExcelDocument.");
             }
 
             var effectiveOpenSettings = CreateOpenSettings(options.OpenSettings);
