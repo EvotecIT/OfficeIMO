@@ -233,6 +233,19 @@ namespace OfficeIMO.Drawing.Internal {
             return new OfficeOleProperty(id, stream.ToArray());
         }
 
+        internal static OfficeOleProperty FileTimeDuration(uint id,
+            TimeSpan value) {
+            if (value < TimeSpan.Zero) {
+                throw new ArgumentOutOfRangeException(nameof(value));
+            }
+            using var stream = new MemoryStream();
+            WriteUInt16(stream, 0x0040);
+            WriteUInt16(stream, 0);
+            OfficeOlePropertySetWriter.WriteUInt64(stream,
+                checked((ulong)value.Ticks));
+            return new OfficeOleProperty(id, stream.ToArray());
+        }
+
         internal static OfficeOleProperty Blob(uint id, byte[] value) {
             using var stream = new MemoryStream();
             WriteUInt16(stream, 0x0041);

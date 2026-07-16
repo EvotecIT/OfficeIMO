@@ -26,7 +26,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyList<LegacyPptHyperlink> hyperlinks,
             IReadOnlyList<LegacyPptCustomShow> customShows,
             bool customShowsAreEditable,
-            IReadOnlyList<LegacyPptSound> sounds, uint? soundIdSeed) {
+            IReadOnlyList<LegacyPptSound> sounds, uint? soundIdSeed,
+            LegacyPptPropertySetProjection propertySets) {
             Slides = new ReadOnlyCollection<LegacyPptSlideProjection>(slides.ToArray());
             _slidesByPartUri = new ReadOnlyDictionary<string, LegacyPptSlideProjection>(slides.ToDictionary(
                 slide => slide.SlidePartUri, StringComparer.Ordinal));
@@ -63,6 +64,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     .Distinct(StringComparer.Ordinal).Count() == customShows.Count;
             Sounds = new ReadOnlyCollection<LegacyPptSound>(sounds.ToArray());
             SoundIdSeed = soundIdSeed;
+            PropertySets = propertySets
+                ?? throw new ArgumentNullException(nameof(propertySets));
         }
 
         internal IReadOnlyList<LegacyPptSlideProjection> Slides { get; }
@@ -82,6 +85,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal IReadOnlyList<LegacyPptSound> Sounds { get; }
 
         internal uint? SoundIdSeed { get; }
+
+        internal LegacyPptPropertySetProjection PropertySets { get; }
 
         internal bool TryGetSlide(PowerPointSlide slide, out LegacyPptSlideProjection? projection) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
@@ -211,7 +216,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 CreateSpecialMasterProjections(presentation, legacy),
                 legacy.Hyperlinks, legacy.CustomShows,
                 legacy.CustomShowsAreEditable, legacy.Sounds,
-                legacy.SoundIdSeed);
+                legacy.SoundIdSeed,
+                LegacyPptPropertySetCodec.CreateProjection(presentation,
+                    legacy.Package));
         }
 
         private static LegacyPptNotesProjection CreateNotesProjection(

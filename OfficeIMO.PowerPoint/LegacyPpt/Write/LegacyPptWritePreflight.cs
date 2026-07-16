@@ -26,6 +26,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "PPT-WRITE-VBA",
                     "VBA projects are not encoded by the native binary writer."));
             }
+            if (!LegacyPptPropertySetCodec.TryCreateFreshStreams(presentation,
+                    out _, out string? propertyReason)) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.CustomProperties,
+                    "PPT-WRITE-DOCUMENT-PROPERTY",
+                    propertyReason
+                    ?? "A document property cannot be encoded by the native binary writer."));
+            }
             SlideMasterPart[] masterParts = presentation.OpenXmlDocument
                 .PresentationPart?.SlideMasterParts.ToArray()
                 ?? Array.Empty<SlideMasterPart>();

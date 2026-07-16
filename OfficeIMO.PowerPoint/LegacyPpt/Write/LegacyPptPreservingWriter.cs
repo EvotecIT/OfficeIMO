@@ -31,7 +31,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool CanWritePresentation(PowerPointPresentation presentation) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
-            return TryBuildModifiedPersistObjects(presentation, out _, out _);
+            return TryBuildModifiedPersistObjects(presentation, out _, out _)
+                && LegacyPptPropertySetCodec.TryBuildReplacementStreams(
+                    presentation, presentation.LegacyPptProjectionMap!
+                        .PropertySets, out _);
         }
 
         internal static bool TryWritePresentation(PowerPointPresentation presentation, out byte[] bytes) {
@@ -44,19 +47,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             LegacyPptPackage package = presentation.LegacyPptPackage!;
-            if (modifiedPersistObjects.Count == 0) {
+            LegacyPptProjectionMap projectionMap = presentation
+                .LegacyPptProjectionMap!;
+            if (!LegacyPptPropertySetCodec.TryBuildReplacementStreams(
+                    presentation, projectionMap.PropertySets,
+                    out IReadOnlyDictionary<string, byte[]>
+                        propertyStreams)) {
+                return false;
+            }
+            if (modifiedPersistObjects.Count == 0
+                && propertyStreams.Count == 0) {
                 bytes = package.CopyOriginalBytes();
                 return true;
             }
 
-            byte[] documentStream = AppendIncrementalEdit(package, modifiedPersistObjects, currentSlideIds,
-                out uint editOffset);
-            byte[] currentUserStream = PatchCurrentEditOffset(package.CurrentUserStream, editOffset);
-            bytes = package.RewriteCompoundStreams(
-                new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase) {
-                    ["PowerPoint Document"] = documentStream,
-                    ["Current User"] = currentUserStream
-                });
+            var replacementStreams = propertyStreams.ToDictionary(
+                pair => pair.Key, pair => pair.Value,
+                StringComparer.OrdinalIgnoreCase);
+            if (modifiedPersistObjects.Count > 0) {
+                byte[] documentStream = AppendIncrementalEdit(package,
+                    modifiedPersistObjects, currentSlideIds,
+                    out uint editOffset);
+                replacementStreams["PowerPoint Document"] = documentStream;
+                replacementStreams["Current User"] = PatchCurrentEditOffset(
+                    package.CurrentUserStream, editOffset);
+            }
+            bytes = package.RewriteCompoundStreams(replacementStreams);
             return true;
         }
 

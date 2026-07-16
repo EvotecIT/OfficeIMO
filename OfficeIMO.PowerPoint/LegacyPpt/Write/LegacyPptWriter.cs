@@ -139,10 +139,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             byte[] documentStream = BuildDocumentStream(persistObjects, presentation.Slides.Count);
             byte[] currentUserStream = BuildCurrentUserStream(FindUserEditOffset(documentStream));
-            var streams = new[] {
+            var streams = new List<OfficeCompoundStream> {
                 new OfficeCompoundStream("Current User", currentUserStream),
                 new OfficeCompoundStream("PowerPoint Document", documentStream)
             };
+            if (!LegacyPptPropertySetCodec.TryCreateFreshStreams(presentation,
+                    out IReadOnlyList<OfficeCompoundStream> propertyStreams,
+                    out string? propertyReason)) {
+                throw new NotSupportedException(propertyReason);
+            }
+            streams.AddRange(propertyStreams);
             return OfficeCompoundFileWriter.Write(streams, PowerPointClassId);
         }
 

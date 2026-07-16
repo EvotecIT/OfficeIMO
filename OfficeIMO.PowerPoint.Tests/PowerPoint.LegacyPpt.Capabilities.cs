@@ -112,6 +112,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CapabilityContract_ReportsOlePropertySetParity() {
+            LegacyPptCapability builtIn = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.BuiltInProperties);
+            LegacyPptCapability custom = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.CustomProperties);
+
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                builtIn.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                builtIn.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                builtIn.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                builtIn.PptxToBinary);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                custom.ImportToEditableModel);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                custom.NewBinaryWrite);
+            Assert.Equal(LegacyPptCapabilityState.Preserved,
+                custom.BinaryRoundTrip);
+            Assert.Equal(LegacyPptCapabilityState.Native,
+                custom.PptxToBinary);
+            Assert.Contains("loss-blocked", builtIn.Note);
+            Assert.Contains("byte-preserved", custom.Note);
+        }
+
+        [Fact]
         public void CapabilityContract_ReportsPreservingMainMasterShapeEdits() {
             LegacyPptCapability masters = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.Masters);

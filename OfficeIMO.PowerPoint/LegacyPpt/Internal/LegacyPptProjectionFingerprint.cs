@@ -73,6 +73,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return PowerPointPackageFingerprint.Create(document,
                 (part, root) => {
                     if (part is PresentationPart) NormalizePresentationTopology(root);
+                    if (part is ExtendedFilePropertiesPart) {
+                        NormalizeProjectedExtendedProperties(root);
+                    }
                     if (part is SlideMasterPart masterPart
                         && projectionMap.TryGetMaster(masterPart,
                             out LegacyPptMasterProjection? masterProjection)
@@ -113,7 +116,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     }
                 },
                 part => !(part is SlidePart or NotesSlidePart or SlideCommentsPart
-                    or CommentAuthorsPart)
+                    or CommentAuthorsPart or CoreFilePropertiesPart
+                    or CustomFilePropertiesPart)
                     && !materializedLayoutThemePartUris.Contains(
                         part.Uri.ToString()),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
@@ -121,7 +125,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     && !(owner is SlideLayoutPart layout
                         && relationship.OpenXmlPart is ThemeOverridePart
                         && projectionMap.IsEditableProjectedLayoutThemePart(
-                            layout.Uri.ToString())));
+                            layout.Uri.ToString())),
+                includePackageProperties: false);
         }
 
         private static void NormalizeProjectedMaster(OpenXmlElement root,
@@ -199,12 +204,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     && ReferenceEquals(notesPart.SlidePart, slidePart),
             (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart
                 and not SlidePart,
-            (owner, relationship) => relationship is not HyperlinkRelationship);
+            (owner, relationship) => relationship is not HyperlinkRelationship,
+            includePackageProperties: false);
 
         private static void NormalizePresentationTopology(OpenXmlElement root) {
             if (root is not P.Presentation presentation) return;
             presentation.SlideIdList?.RemoveAllChildren<P.SlideId>();
             presentation.RemoveAllChildren<P.CustomShowList>();
+        }
+
+        private static void NormalizeProjectedExtendedProperties(
+            OpenXmlElement root) {
+            if (root is not DocumentFormat.OpenXml.ExtendedProperties.Properties
+                properties) return;
+            properties.Application?.Remove();
+            properties.TotalTime?.Remove();
+            properties.PresentationFormat?.Remove();
+            properties.Slides?.Remove();
+            properties.Notes?.Remove();
+            properties.HiddenSlides?.Remove();
+            properties.Manager?.Remove();
+            properties.Company?.Remove();
         }
 
         private static void NormalizeProjectedHeaderFooter(OpenXmlElement root) {

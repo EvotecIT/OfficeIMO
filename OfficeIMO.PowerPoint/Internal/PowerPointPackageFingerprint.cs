@@ -10,7 +10,8 @@ namespace OfficeIMO.PowerPoint {
             Action<OpenXmlPart, OpenXmlElement>? normalizeRoot = null,
             Func<OpenXmlPart, bool>? includePart = null,
             Func<OpenXmlPart, IdPartPair, bool>? includeRelationship = null,
-            Func<OpenXmlPart, ReferenceRelationship, bool>? includeReferenceRelationship = null) {
+            Func<OpenXmlPart, ReferenceRelationship, bool>? includeReferenceRelationship = null,
+            bool includePackageProperties = true) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             var parts = new HashSet<OpenXmlPart>();
             foreach (IdPartPair pair in document.Parts) CollectParts(pair.OpenXmlPart, parts);
@@ -57,20 +58,26 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
 
-            var properties = document.PackageProperties;
-            content.Append("|core|")
-                .Append(properties.Creator).Append('|')
-                .Append(properties.Title).Append('|')
-                .Append(properties.Description).Append('|')
-                .Append(properties.Category).Append('|')
-                .Append(properties.Keywords).Append('|')
-                .Append(properties.Subject).Append('|')
-                .Append(properties.Revision).Append('|')
-                .Append(properties.LastModifiedBy).Append('|')
-                .Append(properties.Version).Append('|')
-                .Append(properties.Created?.ToUniversalTime().Ticks).Append('|')
-                .Append(properties.Modified?.ToUniversalTime().Ticks).Append('|')
-                .Append(properties.LastPrinted?.ToUniversalTime().Ticks);
+            if (includePackageProperties) {
+                var properties = document.PackageProperties;
+                content.Append("|core|")
+                    .Append(properties.Creator).Append('|')
+                    .Append(properties.Title).Append('|')
+                    .Append(properties.Description).Append('|')
+                    .Append(properties.Category).Append('|')
+                    .Append(properties.ContentStatus).Append('|')
+                    .Append(properties.ContentType).Append('|')
+                    .Append(properties.Identifier).Append('|')
+                    .Append(properties.Keywords).Append('|')
+                    .Append(properties.Language).Append('|')
+                    .Append(properties.Subject).Append('|')
+                    .Append(properties.Revision).Append('|')
+                    .Append(properties.LastModifiedBy).Append('|')
+                    .Append(properties.Version).Append('|')
+                    .Append(properties.Created?.ToUniversalTime().Ticks).Append('|')
+                    .Append(properties.Modified?.ToUniversalTime().Ticks).Append('|')
+                    .Append(properties.LastPrinted?.ToUniversalTime().Ticks);
+            }
 
             using SHA256 sha = SHA256.Create();
             return Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(content.ToString())));
