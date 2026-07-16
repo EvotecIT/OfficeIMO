@@ -66,7 +66,9 @@ internal static class ReaderWebTransport {
         byte[] buffer = new byte[64 * 1024];
         long total = 0;
         while (true) {
-            int read = await input.ReadAsync(buffer, 0, buffer.Length, cancellationToken).ConfigureAwait(false);
+            cancellationToken.ThrowIfCancellationRequested();
+            Task<int> readOperation = input.ReadAsync(buffer, 0, buffer.Length, cancellationToken);
+            int read = await WaitForOperationAsync(readOperation, cancellationToken).ConfigureAwait(false);
             if (read == 0) break;
             if (total > maxResponseBytes - read) {
                 throw new IOException(
@@ -78,6 +80,36 @@ internal static class ReaderWebTransport {
             total += read;
         }
         return output.ToArray();
+    }
+
+    private static async Task<T> WaitForOperationAsync<T>(
+        Task<T> operation,
+        CancellationToken cancellationToken) {
+        if (operation.IsCompleted) {
+            return await operation.ConfigureAwait(false);
+        }
+
+        var cancellationSignal = new TaskCompletionSource<bool>(
+            TaskCreationOptions.RunContinuationsAsynchronously);
+        using (cancellationToken.Register(
+            state => ((TaskCompletionSource<bool>)state!).TrySetResult(true),
+            cancellationSignal)) {
+            Task completed = await Task.WhenAny(operation, cancellationSignal.Task).ConfigureAwait(false);
+            if (completed == operation) {
+                return await operation.ConfigureAwait(false);
+            }
+        }
+
+        ObserveFault(operation);
+        throw new OperationCanceledException(cancellationToken);
+    }
+
+    private static void ObserveFault(Task operation) {
+        _ = operation.ContinueWith(
+            completed => { _ = completed.Exception; },
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     internal static int GetInitialBufferCapacity(long? declaredLength) {

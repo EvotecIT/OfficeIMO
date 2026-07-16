@@ -63,6 +63,7 @@ internal static class ReaderWebUriPolicy {
                 (bytes[0] & 0xFE) == 0xFC ||
                 IsLocalUseNat64(bytes) ||
                 IsWellKnownNat64WithPrivateIpv4(bytes) ||
+                IsSixToFourWithPrivateIpv4(bytes) ||
                 (bytes[0] == 0x20 && bytes[1] == 0x01 && bytes[2] == 0x0D && bytes[3] == 0xB8);
         }
         return true;
@@ -105,5 +106,11 @@ internal static class ReaderWebUriPolicy {
             if (bytes[index] != 0x00) return false;
         }
         return IsPrivateOrNonRoutableIpv4(new[] { bytes[12], bytes[13], bytes[14], bytes[15] });
+    }
+
+    private static bool IsSixToFourWithPrivateIpv4(byte[] bytes) {
+        return bytes.Length == 16 &&
+            bytes[0] == 0x20 && bytes[1] == 0x02 &&
+            IsPrivateOrNonRoutableIpv4(new[] { bytes[2], bytes[3], bytes[4], bytes[5] });
     }
 }

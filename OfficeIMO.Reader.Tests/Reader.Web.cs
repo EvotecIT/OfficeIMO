@@ -177,6 +177,33 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
+    public async Task WebReader_RejectsPrivateIpv4EmbeddedInA6To4Target() {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("not reached", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
+            webReader.ReadDocumentAsync(new Uri("http://[2002:a00:1::]/private.txt")));
+
+        Assert.Equal(0, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task WebReader_AllowsPublicIpv4EmbeddedInA6To4Target() {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("public fixture", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
+            new Uri("http://[2002:808:808::]/public.txt"));
+
+        Assert.Contains("public fixture", result.Markdown, StringComparison.Ordinal);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
     public async Task WebReader_RejectsAnInvalidSourceNameBeforeSending() {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));
@@ -302,6 +329,35 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
+    public async Task WebReader_TimesOutANonCooperativeBodyAndReleasesItsRequestSlot() {
+        var blockingStream = new CancellationIgnoringReadStream();
+        int responseIndex = 0;
+        var handler = new DelegateHttpHandler((request, cancellationToken) => {
+            if (Interlocked.Increment(ref responseIndex) == 1) {
+                var content = new StreamContent(blockingStream);
+                return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = content });
+            }
+            return Task.FromResult(TextResponse("recovered", "text/plain"));
+        });
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(
+            httpClient,
+            new ReaderWebOptions {
+                MaxConcurrentRequests = 1,
+                RequestTimeout = TimeSpan.FromMilliseconds(100)
+            });
+
+        await Assert.ThrowsAsync<TimeoutException>(() =>
+            webReader.ReadDocumentAsync(new Uri("https://example.test/stalled.txt")));
+        OfficeDocumentReadResult recovered = await webReader.ReadDocumentAsync(
+            new Uri("https://example.test/recovered.txt"));
+
+        Assert.Contains("recovered", recovered.Markdown, StringComparison.Ordinal);
+        Assert.True(blockingStream.IsDisposed);
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
     public async Task WebReader_BoundsConcurrentOperationsPerInstance() {
         var handler = new BlockingFirstRequestHandler();
         using var httpClient = new HttpClient(handler);
@@ -398,6 +454,38 @@ public sealed class ReaderWebTests {
 
         protected override void Dispose(bool disposing) {
             if (disposing) _inner.Dispose();
+            base.Dispose(disposing);
+        }
+    }
+
+    private sealed class CancellationIgnoringReadStream : Stream {
+        private readonly TaskCompletionSource<int> _pendingRead =
+            new TaskCompletionSource<int>(TaskCreationOptions.RunContinuationsAsynchronously);
+        private int _isDisposed;
+
+        internal bool IsDisposed => Volatile.Read(ref _isDisposed) != 0;
+
+        public override bool CanRead => true;
+        public override bool CanSeek => false;
+        public override bool CanWrite => false;
+        public override long Length => throw new NotSupportedException();
+        public override long Position {
+            get => throw new NotSupportedException();
+            set => throw new NotSupportedException();
+        }
+        public override void Flush() { }
+        public override int Read(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+        public override Task<int> ReadAsync(
+            byte[] buffer,
+            int offset,
+            int count,
+            CancellationToken cancellationToken) => _pendingRead.Task;
+        public override long Seek(long offset, SeekOrigin origin) => throw new NotSupportedException();
+        public override void SetLength(long value) => throw new NotSupportedException();
+        public override void Write(byte[] buffer, int offset, int count) => throw new NotSupportedException();
+
+        protected override void Dispose(bool disposing) {
+            if (disposing) Interlocked.Exchange(ref _isDisposed, 1);
             base.Dispose(disposing);
         }
     }
