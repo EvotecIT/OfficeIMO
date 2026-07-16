@@ -46,6 +46,25 @@ public sealed class EmailReaderContractTests {
     }
 
     [Fact]
+    public void PublicMapiProjectionProvidesOneSemanticOwnerForContainerReaders() {
+        var document = new EmailDocument { Format = EmailFileFormat.Unknown };
+        document.MapiProperties.Add(new MapiProperty(0x001A, MapiPropertyType.Unicode, "IPM.Task"));
+        document.MapiProperties.Add(new MapiProperty(0x0037, MapiPropertyType.Unicode, "Projected task"));
+        document.MapiProperties.Add(new MapiProperty(0x1000, MapiPropertyType.Unicode, "Task body"));
+        document.MapiProperties.Add(new MapiProperty(0x8104, MapiPropertyType.Floating64, 0.5d,
+            name: new MapiNamedProperty(new Guid("00062003-0000-0000-C000-000000000046"), 0x8102)));
+
+        EmailReadResult result = EmailMapiProjection.Project(document, 1252, location: "store/message-1");
+
+        Assert.Same(document, result.Document);
+        Assert.False(result.HasErrors);
+        Assert.Equal("Projected task", document.Subject);
+        Assert.Equal("Task body", document.Body.Text);
+        Assert.Equal(OutlookItemKind.Task, document.OutlookItemKind);
+        Assert.NotNull(document.Task);
+    }
+
+    [Fact]
     public void DetectsTnefAndRequiresMsgDirectoryContractForCompoundFiles() {
         Assert.Equal(EmailFileFormat.Tnef, EmailDocumentReader.DetectFormat(new byte[] { 0x78, 0x9F, 0x3E, 0x22 }));
         Assert.Equal(EmailFileFormat.Unknown, EmailDocumentReader.DetectFormat(
