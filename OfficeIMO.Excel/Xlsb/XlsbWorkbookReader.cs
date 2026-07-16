@@ -21,12 +21,15 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtFmlaBool = 10;
         private const int BrtFmlaError = 11;
         private const int BrtCellRString = 62;
+        private const int BrtColInfo = 60;
         private const int BrtBeginSheet = 129;
         private const int BrtEndSheet = 130;
         private const int BrtBeginBook = 131;
         private const int BrtEndBook = 132;
         private const int BrtBeginSheetData = 145;
         private const int BrtEndSheetData = 146;
+        private const int BrtWsDim = 148;
+        private const int BrtPane = 151;
         private const int BrtWbProp = 153;
         private const int BrtBeginBundleShs = 143;
         private const int BrtEndBundleShs = 144;
@@ -34,6 +37,12 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtBeginSst = 159;
         private const int BrtEndSst = 160;
         private const int BrtSstItem = 19;
+        private const int BrtMergeCell = 176;
+        private const int BrtBeginMergeCells = 177;
+        private const int BrtEndMergeCells = 178;
+        private const int BrtBeginColInfos = 390;
+        private const int BrtEndColInfos = 391;
+        private const int BrtWsFmtInfo = 485;
 
         private const string WorksheetRelationshipSuffix = "/worksheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
@@ -67,6 +76,7 @@ namespace OfficeIMO.Excel.Xlsb {
             }
 
             int totalCells = 0;
+            int totalMergedRanges = 0;
             foreach (XlsbWorksheet worksheet in workbook.Worksheets) {
                 if (!relationships.TryGetValue(worksheet.RelationshipId, out XlsbPackageRelationship? relationship)
                     || relationship.IsExternal
@@ -83,7 +93,8 @@ namespace OfficeIMO.Excel.Xlsb {
                     sharedStrings,
                     resolved,
                     workbook,
-                    ref totalCells);
+                    ref totalCells,
+                    ref totalMergedRanges);
             }
 
             workbook.SharedStringCount = sharedStrings.Count;
@@ -214,26 +225,133 @@ namespace OfficeIMO.Excel.Xlsb {
             IReadOnlyList<string> sharedStrings,
             XlsbImportOptions options,
             XlsbWorkbook workbook,
-            ref int totalCells) {
+            ref int totalCells,
+            ref int totalMergedRanges) {
             IReadOnlyList<XlsbRecord> records = ReadRecords(bytes, options);
             if (records.Count < 2 || records[0].Type != BrtBeginSheet || records[records.Count - 1].Type != BrtEndSheet) {
                 throw new InvalidDataException($"The XLSB worksheet part '{partName}' is missing its BrtBeginSheet/BrtEndSheet boundaries.");
             }
 
-            int currentRow = -1;
+            XlsbRowInfo? currentRow = null;
+            int previousRow = -1;
+            int previousColumnEnd = -1;
+            bool inSheetData = false;
+            bool inColumnInfos = false;
+            bool inMergeCells = false;
+            bool sawSheetData = false;
+            bool sawColumnInfos = false;
+            bool sawMergeCells = false;
+            uint declaredMergeCount = 0;
+            int actualMergeCount = 0;
             foreach (XlsbRecord record in records) {
                 switch (record.Type) {
                     case BrtBeginSheet:
                     case BrtEndSheet:
+                        break;
                     case BrtBeginSheetData:
+                        if (inSheetData || sawSheetData) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains duplicate or nested BrtBeginSheetData records.");
+                        }
+                        inSheetData = true;
+                        sawSheetData = true;
+                        currentRow = null;
+                        break;
                     case BrtEndSheetData:
+                        if (!inSheetData) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains BrtEndSheetData without a matching begin record.");
+                        }
+                        inSheetData = false;
+                        currentRow = null;
+                        break;
+                    case BrtWsDim:
+                        if (worksheet.UsedRange != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtWsDim record.");
+                        }
+                        worksheet.UsedRange = ParseCellRange(record, "BrtWsDim");
+                        break;
+                    case BrtWsFmtInfo:
+                        if (worksheet.FormatInfo != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtWsFmtInfo record.");
+                        }
+                        worksheet.FormatInfo = ParseWorksheetFormatInfo(record);
+                        break;
+                    case BrtPane:
+                        if (worksheet.Pane != null) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains more than one BrtPane record.");
+                        }
+                        worksheet.Pane = ParsePane(record);
+                        break;
+                    case BrtBeginColInfos:
+                        if (inColumnInfos || sawColumnInfos) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains duplicate or nested BrtBeginColInfos records.");
+                        }
+                        inColumnInfos = true;
+                        sawColumnInfos = true;
+                        previousColumnEnd = -1;
+                        break;
+                    case BrtColInfo:
+                        if (!inColumnInfos) {
+                            throw new InvalidDataException($"The BrtColInfo record at offset {record.Offset} appears outside its collection.");
+                        }
+                        XlsbColumnInfo column = ParseColumnInfo(record, workbook);
+                        if (column.FirstColumn - 1 <= previousColumnEnd) {
+                            throw new InvalidDataException($"The BrtColInfo record at offset {record.Offset} overlaps or precedes another column definition.");
+                        }
+                        previousColumnEnd = column.LastColumn - 1;
+                        worksheet.AddColumn(column);
+                        break;
+                    case BrtEndColInfos:
+                        if (!inColumnInfos) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains BrtEndColInfos without a matching begin record.");
+                        }
+                        inColumnInfos = false;
                         break;
                     case BrtRowHdr:
-                        var rowCursor = new XlsbBinaryCursor(record.Data);
-                        currentRow = rowCursor.ReadInt32();
-                        if (currentRow < 0 || currentRow >= 1_048_576) {
-                            throw new InvalidDataException($"The XLSB row record at offset {record.Offset} contains invalid row index {currentRow}.");
+                        if (!inSheetData) {
+                            throw new InvalidDataException($"The XLSB row record at offset {record.Offset} appears outside BrtBeginSheetData/BrtEndSheetData.");
                         }
+                        currentRow = ParseRowInfo(record, workbook);
+                        if (currentRow.Row - 1 <= previousRow) {
+                            throw new InvalidDataException($"The XLSB row record at offset {record.Offset} is duplicated or out of order.");
+                        }
+                        previousRow = currentRow.Row - 1;
+                        worksheet.AddRow(currentRow);
+                        break;
+                    case BrtBeginMergeCells:
+                        if (inMergeCells || sawMergeCells) {
+                            throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains duplicate or nested BrtBeginMergeCells records.");
+                        }
+                        if (record.Data.Length != 4) {
+                            throw new InvalidDataException($"The BrtBeginMergeCells record at offset {record.Offset} has invalid payload length {record.Data.Length}.");
+                        }
+                        var mergeCountCursor = new XlsbBinaryCursor(record.Data);
+                        declaredMergeCount = mergeCountCursor.ReadUInt32();
+                        if (declaredMergeCount > options.MaxMergedRanges - totalMergedRanges) {
+                            throw new InvalidDataException($"The XLSB worksheet '{worksheet.Name}' declares {declaredMergeCount} merged ranges, exceeding the configured limit of {options.MaxMergedRanges}.");
+                        }
+                        inMergeCells = true;
+                        sawMergeCells = true;
+                        actualMergeCount = 0;
+                        break;
+                    case BrtMergeCell:
+                        if (!inMergeCells) {
+                            throw new InvalidDataException($"The BrtMergeCell record at offset {record.Offset} appears outside its collection.");
+                        }
+                        actualMergeCount = checked(actualMergeCount + 1);
+                        if (actualMergeCount > options.MaxMergedRanges) {
+                            throw new InvalidDataException($"The XLSB workbook exceeds the configured limit of {options.MaxMergedRanges} merged ranges.");
+                        }
+                        worksheet.AddMergedRange(ParseCellRange(record, "BrtMergeCell"));
+                        break;
+                    case BrtEndMergeCells:
+                        if (!inMergeCells || record.Data.Length != 0) {
+                            throw new InvalidDataException($"The BrtEndMergeCells record at offset {record.Offset} is invalid or has no matching begin record.");
+                        }
+                        if (actualMergeCount != declaredMergeCount) {
+                            throw new InvalidDataException($"The XLSB worksheet '{worksheet.Name}' declares {declaredMergeCount} merged ranges but contains {actualMergeCount} records.");
+                        }
+                        totalMergedRanges = checked(totalMergedRanges + actualMergeCount);
+                        inMergeCells = false;
                         break;
                     case BrtCellBlank:
                     case BrtCellRk:
@@ -247,7 +365,7 @@ namespace OfficeIMO.Excel.Xlsb {
                     case BrtFmlaBool:
                     case BrtFmlaError:
                     case BrtCellRString:
-                        if (currentRow < 0) {
+                        if (!inSheetData || currentRow == null) {
                             throw new InvalidDataException($"The XLSB cell record at offset {record.Offset} appears before a row header.");
                         }
 
@@ -256,12 +374,195 @@ namespace OfficeIMO.Excel.Xlsb {
                             throw new InvalidDataException($"The XLSB workbook exceeds the configured limit of {options.MaxCells} populated cells.");
                         }
 
-                        worksheet.AddCell(ParseCell(record, currentRow, sharedStrings, options, workbook, partName));
+                        XlsbCell cell = ParseCell(record, currentRow.Row - 1, sharedStrings, options, workbook, partName);
+                        if (!currentRow.ContainsZeroBasedColumn(cell.Column - 1)) {
+                            throw new InvalidDataException($"The XLSB cell at row {cell.Row}, column {cell.Column} is not covered by its BrtRowHdr column spans.");
+                        }
+                        worksheet.AddCell(cell);
                         break;
                     default:
                         PreserveRecord(options, workbook, partName, record);
                         break;
                 }
+            }
+
+            if (inSheetData || inColumnInfos || inMergeCells) {
+                throw new InvalidDataException($"The XLSB worksheet part '{partName}' contains an unterminated record collection.");
+            }
+
+            if (worksheet.UsedRange == null) {
+                throw new InvalidDataException($"The XLSB worksheet part '{partName}' does not contain BrtWsDim.");
+            }
+            if (!sawSheetData) {
+                throw new InvalidDataException($"The XLSB worksheet part '{partName}' does not contain BrtBeginSheetData/BrtEndSheetData.");
+            }
+        }
+
+        private static XlsbCellRange ParseCellRange(XlsbRecord record, string recordName) {
+            if (record.Data.Length != 16) {
+                throw new InvalidDataException($"The {recordName} record at offset {record.Offset} has invalid payload length {record.Data.Length}.");
+            }
+
+            var cursor = new XlsbBinaryCursor(record.Data);
+            uint firstRow = cursor.ReadUInt32();
+            uint lastRow = cursor.ReadUInt32();
+            uint firstColumn = cursor.ReadUInt32();
+            uint lastColumn = cursor.ReadUInt32();
+            if (firstRow > lastRow || lastRow >= A1.MaxRows || firstColumn > lastColumn || lastColumn >= A1.MaxColumns) {
+                throw new InvalidDataException($"The {recordName} record at offset {record.Offset} contains an invalid worksheet range.");
+            }
+
+            return new XlsbCellRange(
+                checked((int)firstRow + 1),
+                checked((int)lastRow + 1),
+                checked((int)firstColumn + 1),
+                checked((int)lastColumn + 1));
+        }
+
+        private static XlsbWorksheetFormatInfo ParseWorksheetFormatInfo(XlsbRecord record) {
+            if (record.Data.Length != 12) {
+                throw new InvalidDataException($"The BrtWsFmtInfo record at offset {record.Offset} has invalid payload length {record.Data.Length}.");
+            }
+
+            var cursor = new XlsbBinaryCursor(record.Data);
+            uint encodedColumnWidth = cursor.ReadUInt32();
+            ushort fallbackColumnWidth = cursor.ReadUInt16();
+            ushort rowHeightTwips = cursor.ReadUInt16();
+            uint flags = cursor.ReadUInt32();
+            if ((flags & 0x0000FFFCU) != 0) {
+                throw new InvalidDataException($"The BrtWsFmtInfo record at offset {record.Offset} sets reserved flags.");
+            }
+
+            byte maximumRowOutlineLevel = checked((byte)((flags >> 16) & 0xFFU));
+            byte maximumColumnOutlineLevel = checked((byte)((flags >> 24) & 0xFFU));
+            if (maximumRowOutlineLevel > 7 || maximumColumnOutlineLevel > 7) {
+                throw new InvalidDataException($"The BrtWsFmtInfo record at offset {record.Offset} contains an invalid outline level.");
+            }
+
+            double columnWidth = encodedColumnWidth == uint.MaxValue
+                ? fallbackColumnWidth
+                : encodedColumnWidth / 256D;
+            if (columnWidth < 0D || columnWidth > 255D) {
+                throw new InvalidDataException($"The BrtWsFmtInfo record at offset {record.Offset} contains invalid default column width {columnWidth}.");
+            }
+
+            return new XlsbWorksheetFormatInfo(
+                columnWidth,
+                rowHeightTwips / 20D,
+                (flags & 0x01U) != 0,
+                (flags & 0x02U) != 0,
+                maximumRowOutlineLevel,
+                maximumColumnOutlineLevel);
+        }
+
+        private static XlsbPaneInfo ParsePane(XlsbRecord record) {
+            if (record.Data.Length != 29) {
+                throw new InvalidDataException($"The BrtPane record at offset {record.Offset} has invalid payload length {record.Data.Length}.");
+            }
+
+            var cursor = new XlsbBinaryCursor(record.Data);
+            double horizontalSplit = cursor.ReadDouble();
+            double verticalSplit = cursor.ReadDouble();
+            uint topRow = cursor.ReadUInt32();
+            uint leftColumn = cursor.ReadUInt32();
+            uint activePane = cursor.ReadUInt32();
+            byte flags = cursor.ReadByte();
+            if (double.IsNaN(horizontalSplit) || double.IsInfinity(horizontalSplit) || horizontalSplit < 0D
+                || double.IsNaN(verticalSplit) || double.IsInfinity(verticalSplit) || verticalSplit < 0D
+                || topRow >= A1.MaxRows || leftColumn >= A1.MaxColumns || activePane > 3U || (flags & 0xFC) != 0) {
+                throw new InvalidDataException($"The BrtPane record at offset {record.Offset} contains invalid pane metadata.");
+            }
+
+            return new XlsbPaneInfo(
+                horizontalSplit,
+                verticalSplit,
+                checked((int)topRow),
+                checked((int)leftColumn),
+                activePane,
+                (flags & 0x01) != 0,
+                (flags & 0x02) != 0);
+        }
+
+        private static XlsbColumnInfo ParseColumnInfo(XlsbRecord record, XlsbWorkbook workbook) {
+            if (record.Data.Length != 18) {
+                throw new InvalidDataException($"The BrtColInfo record at offset {record.Offset} has invalid payload length {record.Data.Length}.");
+            }
+
+            var cursor = new XlsbBinaryCursor(record.Data);
+            uint firstColumn = cursor.ReadUInt32();
+            uint lastColumn = cursor.ReadUInt32();
+            uint encodedWidth = cursor.ReadUInt32();
+            uint styleIndex = cursor.ReadUInt32();
+            ushort flags = cursor.ReadUInt16();
+            if (firstColumn > lastColumn || lastColumn >= A1.MaxColumns || encodedWidth > 255U * 256U || (flags & ~0x170F) != 0) {
+                throw new InvalidDataException($"The BrtColInfo record at offset {record.Offset} contains invalid column metadata.");
+            }
+            ValidateStyleIndex(styleIndex, workbook, $"The BrtColInfo record at offset {record.Offset}");
+
+            return new XlsbColumnInfo(
+                checked((int)firstColumn + 1),
+                checked((int)lastColumn + 1),
+                encodedWidth / 256D,
+                styleIndex,
+                (flags & 0x0001) != 0,
+                (flags & 0x0002) != 0,
+                (flags & 0x0004) != 0,
+                (flags & 0x0008) != 0,
+                checked((byte)((flags >> 8) & 0x07)),
+                (flags & 0x1000) != 0);
+        }
+
+        private static XlsbRowInfo ParseRowInfo(XlsbRecord record, XlsbWorkbook workbook) {
+            if (record.Data.Length < 17) {
+                throw new InvalidDataException($"The BrtRowHdr record at offset {record.Offset} is truncated.");
+            }
+
+            var cursor = new XlsbBinaryCursor(record.Data);
+            uint zeroBasedRow = cursor.ReadUInt32();
+            uint styleIndex = cursor.ReadUInt32();
+            ushort heightTwips = cursor.ReadUInt16();
+            byte extraFlags = cursor.ReadByte();
+            byte flags = cursor.ReadByte();
+            byte phoneticFlags = cursor.ReadByte();
+            uint spanCount = cursor.ReadUInt32();
+            if (zeroBasedRow >= A1.MaxRows || (extraFlags & 0xFC) != 0 || (flags & 0x80) != 0 || (phoneticFlags & 0xFE) != 0 || spanCount > 16) {
+                throw new InvalidDataException($"The BrtRowHdr record at offset {record.Offset} contains invalid row metadata.");
+            }
+            if (cursor.Remaining != checked((int)spanCount * 8)) {
+                throw new InvalidDataException($"The BrtRowHdr record at offset {record.Offset} has an invalid column-span payload.");
+            }
+            ValidateStyleIndex(styleIndex, workbook, $"The BrtRowHdr record at offset {record.Offset}");
+
+            var row = new XlsbRowInfo(
+                checked((int)zeroBasedRow + 1),
+                styleIndex,
+                heightTwips,
+                checked((byte)(flags & 0x07)),
+                (flags & 0x08) != 0,
+                (flags & 0x10) != 0,
+                (flags & 0x20) != 0,
+                (flags & 0x40) != 0,
+                (phoneticFlags & 0x01) != 0);
+            int previousLast = -1;
+            for (uint index = 0; index < spanCount; index++) {
+                uint firstColumn = cursor.ReadUInt32();
+                uint lastColumn = cursor.ReadUInt32();
+                if (firstColumn > lastColumn
+                    || lastColumn >= A1.MaxColumns
+                    || firstColumn / 1024U != lastColumn / 1024U
+                    || firstColumn <= previousLast) {
+                    throw new InvalidDataException($"The BrtRowHdr record at offset {record.Offset} contains an invalid column span.");
+                }
+                previousLast = checked((int)lastColumn);
+                row.AddSpan(checked((int)firstColumn), checked((int)lastColumn));
+            }
+            return row;
+        }
+
+        private static void ValidateStyleIndex(uint styleIndex, XlsbWorkbook workbook, string context) {
+            int availableFormats = workbook.Stylesheet?.CellFormats.Count ?? 1;
+            if (styleIndex >= availableFormats) {
+                throw new InvalidDataException($"{context} refers to missing cell format {styleIndex}; the styles part exposes {availableFormats} format(s).");
             }
         }
 

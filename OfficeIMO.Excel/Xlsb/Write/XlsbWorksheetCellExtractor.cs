@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Write;
 using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Excel.Xlsb.Projection;
 using System.Globalization;
 
 namespace OfficeIMO.Excel.Xlsb.Write {
@@ -15,14 +16,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (sourceSheet == null) throw new ArgumentNullException(nameof(sourceSheet));
 
-            ThrowIfUnsupportedWorksheetMutation(sheet);
+            ThrowIfUnsupportedWorksheetMutation(sheet, sourceSheet);
             var sourceCells = sourceSheet.Cells.ToDictionary(cell => (cell.Row, cell.Column));
+            var visitedSourceCells = new HashSet<(int Row, int Column)>();
             var result = new List<XlsbWriteCell>();
             SheetData? sheetData = sheet.WorksheetPart.Worksheet?.GetFirstChild<SheetData>();
             if (sheetData == null) return result;
 
             foreach (Row row in sheetData.Elements<Row>()) {
-                ThrowIfUnsupportedRowMutation(row, sheet.Name);
                 uint sequentialRow = row.RowIndex?.Value ?? 0U;
                 int sequentialColumn = 1;
                 foreach (Cell cell in row.Elements<Cell>()) {
@@ -32,6 +33,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     }
 
                     sourceCells.TryGetValue((cellRow, cellColumn), out XlsbCell? sourceCell);
+                    if (sourceCell != null) visitedSourceCells.Add((cellRow, cellColumn));
                     uint styleIndex = ResolveStyleIndex(cell, sourceCell, sheet.Name, cellRow, cellColumn);
                     if (sourceCell != null && CellMatchesSource(sheet, cell, sourceCell)) {
                         result.Add(XlsbWriteCell.PreserveSource(sourceCell));
@@ -45,6 +47,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 }
             }
 
+            foreach (XlsbCell sourceCell in sourceSheet.Cells) {
+                if (sourceCell.Kind == XlsbCellValueKind.Blank
+                    && !visitedSourceCells.Contains((sourceCell.Row, sourceCell.Column))) {
+                    result.Add(XlsbWriteCell.PreserveSource(sourceCell));
+                }
+            }
+
             result.Sort(static (left, right) => {
                 int row = left.Row.CompareTo(right.Row);
                 return row != 0 ? row : left.Column.CompareTo(right.Column);
@@ -52,28 +61,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             return result.AsReadOnly();
         }
 
-        private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet) {
-            Worksheet worksheet = sheet.WorksheetPart.Worksheet
-                ?? throw new InvalidDataException($"Worksheet '{sheet.Name}' has no worksheet root.");
-            OpenXmlElement? unsupportedChild = worksheet.ChildElements.FirstOrDefault(element => element is not SheetData);
-            if (unsupportedChild != null
-                || sheet.WorksheetPart.Parts.Any()
+        private static void ThrowIfUnsupportedWorksheetMutation(ExcelSheet sheet, XlsbWorksheet sourceSheet) {
+            if (sheet.WorksheetPart.Parts.Any()
                 || sheet.WorksheetPart.ExternalRelationships.Any()
                 || sheet.WorksheetPart.HyperlinkRelationships.Any()) {
-                string detail = unsupportedChild?.LocalName ?? "relationship-backed worksheet content";
-                throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Worksheet '{sheet.Name}' contains modified {detail}; save as .xlsx to retain that change.");
+                throw new NotSupportedException($"Native XLSB rewriting currently cannot modify relationship-backed worksheet content on worksheet '{sheet.Name}'; save as .xlsx to retain that change.");
             }
-        }
 
-        private static void ThrowIfUnsupportedRowMutation(Row row, string sheetName) {
-            if (row.CustomFormat?.Value == true
-                || row.CustomHeight?.Value == true
-                || row.Hidden?.Value == true
-                || (row.OutlineLevel?.Value ?? 0) != 0
-                || row.Collapsed?.Value == true
-                || row.StyleIndex != null) {
-                throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Worksheet '{sheetName}' contains modified row formatting or outline metadata.");
-            }
+            XlsbWorksheetGeometryProjector.ValidateUnchanged(sheet, sourceSheet);
         }
 
         private static XlsbWriteCell? ConvertCell(

@@ -95,31 +95,55 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 throw new InvalidDataException($"The XLSB row header for row {zeroBasedRow + 1} is truncated.");
             }
 
-            var spans = cells
-                .GroupBy(cell => (cell.Column - 1) / 1024)
-                .OrderBy(group => group.Key)
-                .Select(group => new {
-                    First = checked((uint)(group.Min(cell => cell.Column) - 1)),
-                    Last = checked((uint)(group.Max(cell => cell.Column) - 1))
-                })
-                .ToArray();
-            if (spans.Length > 16) {
-                throw new InvalidDataException($"The XLSB row {zeroBasedRow + 1} requires {spans.Length} column spans, exceeding the BIFF12 limit of 16.");
+            var spans = ReadSourceSpans(sourcePayload, zeroBasedRow);
+            foreach (IGrouping<int, XlsbWriteCell> group in cells.GroupBy(cell => (cell.Column - 1) / 1024)) {
+                uint first = checked((uint)(group.Min(cell => cell.Column) - 1));
+                uint last = checked((uint)(group.Max(cell => cell.Column) - 1));
+                if (spans.TryGetValue(group.Key, out (uint First, uint Last) sourceSpan)) {
+                    first = Math.Min(first, sourceSpan.First);
+                    last = Math.Max(last, sourceSpan.Last);
+                }
+                spans[group.Key] = (first, last);
+            }
+            if (spans.Count > 16) {
+                throw new InvalidDataException($"The XLSB row {zeroBasedRow + 1} requires {spans.Count} column spans, exceeding the BIFF12 limit of 16.");
             }
 
-            using var payload = new MemoryStream(17 + spans.Length * 8);
+            using var payload = new MemoryStream(17 + spans.Count * 8);
             WriteUInt32(payload, checked((uint)zeroBasedRow));
             if (sourcePayload != null) {
                 payload.Write(sourcePayload, 4, 9);
             } else {
                 payload.Write(DefaultRowProperties, 0, DefaultRowProperties.Length);
             }
-            WriteUInt32(payload, checked((uint)spans.Length));
-            foreach (var span in spans) {
-                WriteUInt32(payload, span.First);
-                WriteUInt32(payload, span.Last);
+            WriteUInt32(payload, checked((uint)spans.Count));
+            foreach (KeyValuePair<int, (uint First, uint Last)> span in spans.OrderBy(pair => pair.Key)) {
+                WriteUInt32(payload, span.Value.First);
+                WriteUInt32(payload, span.Value.Last);
             }
             return payload.ToArray();
+        }
+
+        private static Dictionary<int, (uint First, uint Last)> ReadSourceSpans(byte[]? sourcePayload, int zeroBasedRow) {
+            var spans = new Dictionary<int, (uint First, uint Last)>();
+            if (sourcePayload == null) return spans;
+
+            var cursor = new XlsbBinaryCursor(sourcePayload);
+            cursor.Skip(13);
+            uint count = cursor.ReadUInt32();
+            if (count > 16 || cursor.Remaining != checked((int)count * 8)) {
+                throw new InvalidDataException($"The XLSB row header for row {zeroBasedRow + 1} has an invalid column-span payload.");
+            }
+            for (uint index = 0; index < count; index++) {
+                uint first = cursor.ReadUInt32();
+                uint last = cursor.ReadUInt32();
+                int segment = checked((int)(first / 1024U));
+                if (first > last || last >= 16_384U || first / 1024U != last / 1024U || spans.ContainsKey(segment)) {
+                    throw new InvalidDataException($"The XLSB row header for row {zeroBasedRow + 1} contains an invalid column span.");
+                }
+                spans.Add(segment, (first, last));
+            }
+            return spans;
         }
 
         private static byte[]? CreateExpandedDimensionPayload(
@@ -149,12 +173,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             uint cellLastRow = checked((uint)(cells.Max(cell => cell.Row) - 1));
             uint cellFirstColumn = checked((uint)(cells.Min(cell => cell.Column) - 1));
             uint cellLastColumn = checked((uint)(cells.Max(cell => cell.Column) - 1));
+            bool hasSourceCells = records.Any(record => IsCellRecord(record.Type));
 
             using var payload = new MemoryStream(16);
-            WriteUInt32(payload, Math.Min(firstRow, cellFirstRow));
-            WriteUInt32(payload, Math.Max(lastRow, cellLastRow));
-            WriteUInt32(payload, Math.Min(firstColumn, cellFirstColumn));
-            WriteUInt32(payload, Math.Max(lastColumn, cellLastColumn));
+            WriteUInt32(payload, hasSourceCells ? Math.Min(firstRow, cellFirstRow) : cellFirstRow);
+            WriteUInt32(payload, hasSourceCells ? Math.Max(lastRow, cellLastRow) : cellLastRow);
+            WriteUInt32(payload, hasSourceCells ? Math.Min(firstColumn, cellFirstColumn) : cellFirstColumn);
+            WriteUInt32(payload, hasSourceCells ? Math.Max(lastColumn, cellLastColumn) : cellLastColumn);
             return payload.ToArray();
         }
 

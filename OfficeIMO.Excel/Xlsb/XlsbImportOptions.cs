@@ -21,6 +21,9 @@ namespace OfficeIMO.Excel.Xlsb {
         /// <summary>Gets or sets the maximum number of shared-string items accepted.</summary>
         public int MaxSharedStrings { get; set; } = 1_000_000;
 
+        /// <summary>Gets or sets the maximum number of merged ranges accepted from one workbook.</summary>
+        public int MaxMergedRanges { get; set; } = 1_048_576;
+
         /// <summary>Gets or sets the maximum number of UTF-16 characters accepted in one BIFF12 string.</summary>
         public int MaxStringCharacters { get; set; } = 1_048_576;
 
@@ -34,6 +37,7 @@ namespace OfficeIMO.Excel.Xlsb {
             if (MaxWorksheets <= 0) throw new ArgumentOutOfRangeException(nameof(MaxWorksheets));
             if (MaxCells <= 0) throw new ArgumentOutOfRangeException(nameof(MaxCells));
             if (MaxSharedStrings <= 0) throw new ArgumentOutOfRangeException(nameof(MaxSharedStrings));
+            if (MaxMergedRanges <= 0) throw new ArgumentOutOfRangeException(nameof(MaxMergedRanges));
             if (MaxStringCharacters <= 0) throw new ArgumentOutOfRangeException(nameof(MaxStringCharacters));
         }
     }

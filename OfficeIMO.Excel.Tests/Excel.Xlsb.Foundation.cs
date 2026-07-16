@@ -285,6 +285,130 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_GeometryFixture_ProjectsDimensionsRowsColumnsPanesAndMerges() {
+            using ExcelDocument document = ExcelDocument.Load(GetGeometryExcelGeneratedXlsbFixturePath());
+
+            ExcelSheet sheet = Assert.Single(document.Sheets);
+            Assert.Equal("Geometry", sheet.Name);
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet;
+            Assert.Equal("A1:D5", worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
+
+            SheetFormatProperties format = Assert.IsType<SheetFormatProperties>(worksheet.GetFirstChild<SheetFormatProperties>());
+            Assert.Equal(9D, format.DefaultColumnWidth?.Value);
+            Assert.Equal(18D, format.DefaultRowHeight?.Value);
+            Assert.True(format.CustomHeight?.Value);
+            Assert.Equal((byte)2, format.OutlineLevelRow?.Value);
+            Assert.Equal((byte)1, format.OutlineLevelColumn?.Value);
+
+            Column[] columns = Assert.IsType<Columns>(worksheet.GetFirstChild<Columns>()).Elements<Column>().ToArray();
+            Assert.Equal(4, columns.Length);
+            AssertColumn(columns[0], 1, 1, 18D, hidden: false, outlineLevel: 0, collapsed: false);
+            AssertColumn(columns[1], 2, 2, 12D, hidden: false, outlineLevel: 1, collapsed: false);
+            AssertColumn(columns[2], 3, 3, 12D, hidden: false, outlineLevel: 1, collapsed: true);
+            AssertColumn(columns[3], 4, 4, 8D, hidden: true, outlineLevel: 0, collapsed: false);
+
+            IReadOnlyDictionary<int, ExcelRowSnapshot> rows = sheet.GetRowDefinitions().ToDictionary(row => row.Index);
+            Assert.Equal(3, rows.Count);
+            Assert.Equal(30D, rows[1].Height);
+            Assert.True(rows[1].CustomHeight);
+            Assert.True(rows[3].Hidden);
+            Assert.Equal((byte)2, rows[4].OutlineLevel);
+            Assert.True(rows[4].Collapsed);
+
+            ExcelMergedRangeSnapshot merge = Assert.Single(sheet.GetMergedRanges());
+            Assert.Equal("A1:C1", merge.A1Range);
+
+            Pane pane = Assert.IsType<Pane>(worksheet.GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()?.GetFirstChild<Pane>());
+            Assert.Equal(1D, pane.HorizontalSplit?.Value);
+            Assert.Equal(1D, pane.VerticalSplit?.Value);
+            Assert.Equal("B2", pane.TopLeftCell?.Value);
+            Assert.Equal(PaneValues.BottomRight, pane.ActivePane?.Value);
+            Assert.Equal(PaneStateValues.FrozenSplit, pane.State?.Value);
+        }
+
+        [Fact]
+        public void Xlsb_GeometryFixture_NativeRewritePreservesWorksheetMetadata() {
+            byte[] original = File.ReadAllBytes(GetGeometryExcelGeneratedXlsbFixturePath());
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(original, writable: false));
+            document.Sheets[0].CellValue(2, 1, "Edited");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            ExcelSheet sheet = Assert.Single(reloaded.Sheets);
+            Assert.True(sheet.TryGetCellText(2, 1, out string? value));
+            Assert.Equal("Edited", value);
+            Assert.Equal("A1:D5", sheet.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
+            Assert.Equal("A1:C1", Assert.Single(sheet.GetMergedRanges()).A1Range);
+            Assert.Equal(30D, sheet.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.True(sheet.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
+            Assert.Equal(PaneStateValues.FrozenSplit, sheet.WorksheetPart.Worksheet
+                .GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()?.GetFirstChild<Pane>()?.State?.Value);
+            AssertPackageEntriesEqualExcept(original, rewritten, "xl/worksheets/sheet1.bin");
+            AssertWorksheetRecordsEqualExceptCells(original, rewritten, "xl/worksheets/sheet1.bin", (2, 1));
+        }
+
+        [Fact]
+        public void Xlsb_GeometryFixture_ConvertsToXlsxWithWorksheetMetadataIntact() {
+            using ExcelDocument source = ExcelDocument.Load(GetGeometryExcelGeneratedXlsbFixturePath());
+            using var destination = new MemoryStream();
+
+            source.Save(destination, ExcelFileFormat.Xlsx);
+
+            using ExcelDocument converted = ExcelDocument.Load(new MemoryStream(destination.ToArray(), writable: false));
+            ExcelSheet sheet = Assert.Single(converted.Sheets);
+            Assert.Equal("A1:D5", sheet.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
+            Assert.Equal(9D, sheet.DefaultColumnWidth);
+            Assert.Equal(18D, sheet.DefaultRowHeight);
+            Assert.Equal("A1:C1", Assert.Single(sheet.GetMergedRanges()).A1Range);
+            Assert.Equal(30D, sheet.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.True(sheet.GetRowDefinitions().Single(row => row.Index == 3).Hidden);
+            Assert.True(sheet.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
+            Pane pane = Assert.IsType<Pane>(sheet.WorksheetPart.Worksheet
+                .GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()?.GetFirstChild<Pane>());
+            Assert.Equal("B2", pane.TopLeftCell?.Value);
+        }
+
+        [Fact]
+        public void Xlsb_RowSpan_RejectsCellOutsideDeclaredSegmentBounds() {
+            byte[] package = File.ReadAllBytes(GetGeometryExcelGeneratedXlsbFixturePath());
+            byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
+            using var input = new MemoryStream(worksheet, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            XlsbRecord row = records.First(record => record.Type == 0 && ReadXlsbTestUInt32(record.Data, 0) == 1U);
+            byte[] tamperedRow = (byte[])row.Data.Clone();
+            WriteXlsbTestUInt32(tamperedRow, 13, 1U);
+            WriteXlsbTestUInt32(tamperedRow, 17, 1U);
+            WriteXlsbTestUInt32(tamperedRow, 21, 3U);
+            byte[] malformed = ReplaceWorksheetRecords(package, records, row, tamperedRow);
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(new MemoryStream(malformed, writable: false)));
+
+            Assert.Contains("not covered", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Xlsb_MergeCollection_EnforcesConfiguredLimitBeforeExpansion() {
+            byte[] package = File.ReadAllBytes(GetGeometryExcelGeneratedXlsbFixturePath());
+            byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
+            using var input = new MemoryStream(worksheet, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            XlsbRecord beginMerges = Assert.Single(records, record => record.Type == 177);
+            byte[] tamperedBegin = (byte[])beginMerges.Data.Clone();
+            WriteXlsbTestUInt32(tamperedBegin, 0, 2U);
+            byte[] malformed = ReplaceWorksheetRecords(package, records, beginMerges, tamperedBegin);
+            var options = new ExcelLoadOptions {
+                XlsbImportOptions = new XlsbImportOptions { MaxMergedRanges = 1 }
+            };
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                ExcelDocument.Load(new MemoryStream(malformed, writable: false), options));
+
+            Assert.Contains("configured limit of 1", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void Xlsb_CellStyleReference_RejectsMissingCellFormatBeforeProjection() {
             byte[] package = File.ReadAllBytes(GetStyledExcelGeneratedXlsbFixturePath());
             byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
@@ -402,6 +526,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_NativeRewrite_UsesExactFirstCellDimensionForEmptySourceSheet() {
+            byte[] emptySource = RemoveWorksheetRowsAndCells(File.ReadAllBytes(GetExcelGeneratedXlsbFixturePath()));
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(emptySource, writable: false));
+            document.Sheets[0].CellValue(3, 3, "Only cell");
+
+            byte[] rewritten = document.ToBytes(ExcelFileFormat.Xlsb);
+
+            Assert.Equal((2, 2, 2, 2), ReadWorksheetDimension(rewritten, "xl/worksheets/sheet1.bin"));
+            Assert.Equal(new[] { (2, 2) }, ReadRowSpans(rewritten, "xl/worksheets/sheet1.bin", 3));
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.True(reloaded.Sheets[0].TryGetCellText(3, 3, out string? value));
+            Assert.Equal("Only cell", value);
+        }
+
+        [Fact]
         public void Xlsb_UnsupportedStructuralMutation_RejectsBeforeWriting() {
             using ExcelDocument document = ExcelDocument.Load(GetExcelGeneratedXlsbFixturePath());
             document.Sheets[0].MergeRange("A1:B1");
@@ -410,7 +549,7 @@ namespace OfficeIMO.Tests {
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
                 document.Save(destination, ExcelFileFormat.Xlsb));
 
-            Assert.Contains("cell-value edits only", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("merged ranges", exception.Message, StringComparison.OrdinalIgnoreCase);
             Assert.Equal(0, destination.Length);
         }
 
@@ -508,6 +647,31 @@ namespace OfficeIMO.Tests {
                 "styles-dates-formulas.xlsb");
         }
 
+        private static string GetGeometryExcelGeneratedXlsbFixturePath() {
+            return Path.Combine(
+                AppContext.BaseDirectory,
+                "Documents",
+                "XlsbCorpus",
+                "excel-generated",
+                "worksheet-geometry.xlsb");
+        }
+
+        private static void AssertColumn(
+            Column column,
+            uint first,
+            uint last,
+            double width,
+            bool hidden,
+            byte outlineLevel,
+            bool collapsed) {
+            Assert.Equal(first, column.Min?.Value);
+            Assert.Equal(last, column.Max?.Value);
+            Assert.Equal(width, column.Width?.Value);
+            Assert.Equal(hidden, column.Hidden?.Value == true);
+            Assert.Equal(outlineLevel, column.OutlineLevel?.Value ?? 0);
+            Assert.Equal(collapsed, column.Collapsed?.Value == true);
+        }
+
         private static ExcelCellValueSnapshot AssertCellValue(ExcelSheet sheet, int row, int column) {
             Assert.True(sheet.TryGetCellValueSnapshot(row, column, out ExcelCellValueSnapshot? value));
             return Assert.IsType<ExcelCellValueSnapshot>(value);
@@ -555,6 +719,84 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(pair.Value.Type, actual[pair.Key].Type);
                 Assert.Equal(pair.Value.Data, actual[pair.Key].Data);
             }
+        }
+
+        private static void AssertWorksheetRecordsEqualExceptCells(
+            byte[] expectedPackage,
+            byte[] actualPackage,
+            string partName,
+            params (int Row, int Column)[] excludedCells) {
+            var excluded = new HashSet<(int Row, int Column)>(excludedCells);
+            IReadOnlyList<(XlsbRecord Record, (int Row, int Column)? Cell)> expected = ReadWorksheetRecords(expectedPackage, partName);
+            IReadOnlyList<(XlsbRecord Record, (int Row, int Column)? Cell)> actual = ReadWorksheetRecords(actualPackage, partName);
+            Assert.Equal(expected.Count, actual.Count);
+            for (int index = 0; index < expected.Count; index++) {
+                Assert.Equal(expected[index].Cell, actual[index].Cell);
+                if (expected[index].Cell.HasValue && excluded.Contains(expected[index].Cell!.Value)) continue;
+                Assert.Equal(expected[index].Record.Type, actual[index].Record.Type);
+                Assert.True(
+                    expected[index].Record.Data.SequenceEqual(actual[index].Record.Data),
+                    $"Worksheet record {index} (type {expected[index].Record.Type}, cell {expected[index].Cell}) changed unexpectedly. " +
+                    $"Expected {Convert.ToHexString(expected[index].Record.Data)}, actual {Convert.ToHexString(actual[index].Record.Data)}.");
+            }
+        }
+
+        private static IReadOnlyList<(XlsbRecord Record, (int Row, int Column)? Cell)> ReadWorksheetRecords(
+            byte[] package,
+            string partName) {
+            using var part = new MemoryStream(ReadZipEntry(package, partName), writable: false);
+            var result = new List<(XlsbRecord Record, (int Row, int Column)? Cell)>();
+            int row = -1;
+            foreach (XlsbRecord record in XlsbRecordReader.ReadAll(part)) {
+                if (record.Type == 0) {
+                    row = checked((int)ReadXlsbTestUInt32(record.Data, 0) + 1);
+                    result.Add((record, null));
+                } else if ((record.Type >= 1 && record.Type <= 11) || record.Type == 62) {
+                    int column = checked((int)ReadXlsbTestUInt32(record.Data, 0) + 1);
+                    result.Add((record, (row, column)));
+                } else {
+                    result.Add((record, null));
+                }
+            }
+            return result.AsReadOnly();
+        }
+
+        private static byte[] ReplaceWorksheetRecords(
+            byte[] package,
+            IReadOnlyList<XlsbRecord> records,
+            XlsbRecord target,
+            byte[] replacementData) {
+            using var output = new MemoryStream();
+            foreach (XlsbRecord record in records) {
+                XlsbRecordWriter.Write(output, record.Type, ReferenceEquals(record, target) ? replacementData : record.Data);
+            }
+            return ReplaceZipEntry(package, "xl/worksheets/sheet1.bin", output.ToArray());
+        }
+
+        private static byte[] RemoveWorksheetRowsAndCells(byte[] package) {
+            byte[] worksheet = ReadZipEntry(package, "xl/worksheets/sheet1.bin");
+            using var input = new MemoryStream(worksheet, writable: false);
+            IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(input);
+            using var output = new MemoryStream();
+            foreach (XlsbRecord record in records) {
+                if (record.Type == 0 || (record.Type >= 1 && record.Type <= 11) || record.Type == 62) continue;
+                XlsbRecordWriter.Write(output, record.Type, record.Type == 148 ? new byte[16] : record.Data);
+            }
+            return ReplaceZipEntry(package, "xl/worksheets/sheet1.bin", output.ToArray());
+        }
+
+        private static uint ReadXlsbTestUInt32(byte[] data, int offset) {
+            return (uint)(data[offset]
+                | (data[offset + 1] << 8)
+                | (data[offset + 2] << 16)
+                | (data[offset + 3] << 24));
+        }
+
+        private static void WriteXlsbTestUInt32(byte[] data, int offset, uint value) {
+            data[offset] = (byte)value;
+            data[offset + 1] = (byte)(value >> 8);
+            data[offset + 2] = (byte)(value >> 16);
+            data[offset + 3] = (byte)(value >> 24);
         }
 
         private static void AssertFormulaPayloadEqual(
