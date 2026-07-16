@@ -103,6 +103,16 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_RejectsWebpWithAnInvalidContainerLength() {
+        byte[] malformedWebp = CreateWebpExtendedHeader(3, 2);
+        WriteUInt32LittleEndian(malformedWebp, 4, 0);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(malformedWebp, "malformed.webp"));
+    }
+
+    [Fact]
     public void ImageAdapter_IdentifiesBigTiffFromItsHeader() {
         OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
 
@@ -590,9 +600,9 @@ public sealed class ReaderMediaAdapterTests {
     private static byte[] CreateWebpExtendedHeader(int width, int height) {
         var bytes = new byte[30];
         Encoding.ASCII.GetBytes("RIFF").CopyTo(bytes, 0);
-        BitConverter.GetBytes(22).CopyTo(bytes, 4);
+        WriteUInt32LittleEndian(bytes, 4, 22);
         Encoding.ASCII.GetBytes("WEBPVP8X").CopyTo(bytes, 8);
-        BitConverter.GetBytes(10).CopyTo(bytes, 16);
+        WriteUInt32LittleEndian(bytes, 16, 10);
         WriteUInt24LittleEndian(bytes, 24, width - 1);
         WriteUInt24LittleEndian(bytes, 27, height - 1);
         return bytes;

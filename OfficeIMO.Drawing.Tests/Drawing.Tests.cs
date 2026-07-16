@@ -3513,6 +3513,25 @@ public partial class DrawingTests {
         Assert.Equal(OfficeImageFormat.Unknown, image.Format);
     }
 
+    [Theory]
+    [InlineData(0, 10)]
+    [InlineData(22, 0)]
+    [InlineData(22, 11)]
+    public void OfficeImageReaderRejectsWebpWithInvalidDeclaredLengths(int riffSize, int chunkSize) {
+        var webp = new byte[30];
+        Encoding.ASCII.GetBytes("RIFF").CopyTo(webp, 0);
+        WriteInt32LittleEndian(webp, 4, riffSize);
+        Encoding.ASCII.GetBytes("WEBPVP8X").CopyTo(webp, 8);
+        WriteInt32LittleEndian(webp, 16, chunkSize);
+        webp[24] = 2;
+        webp[27] = 1;
+
+        bool identified = OfficeImageReader.TryIdentify(webp, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
     [Fact]
     public void OfficeImageReaderIdentifiesIconDimensionsFromHeader() {
         var icon = new byte[22];
