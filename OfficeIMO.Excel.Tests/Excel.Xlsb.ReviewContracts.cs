@@ -29,6 +29,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Xlsb_FormulaReader_GroupsUnionUsedAsSingleFunctionArgument() {
+            byte[] unionAreas = {
+                0x44, 0, 0, 0, 0, 0, 0, // $A$1
+                0x44, 0, 0, 0, 0, 1, 0, // $B$1
+                0x10,                    // union
+                0x21, 0x4B, 0x00         // AREAS, one fixed argument
+            };
+
+            Assert.True(XlsbFormulaTextReader.TryRead(unionAreas, out string? formula));
+            Assert.Equal("AREAS(($A$1,$B$1))", formula);
+        }
+
+        [Fact]
         public void Xlsb_NewWorkbook_ProjectsComparisonBeforeConcatenationWithoutSemanticLoss() {
             using ExcelDocument document = ExcelDocument.Create();
             ExcelSheet sheet = document.AddWorksheet("Formula");

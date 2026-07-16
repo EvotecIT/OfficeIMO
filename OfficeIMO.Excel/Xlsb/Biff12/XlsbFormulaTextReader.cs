@@ -80,7 +80,11 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
                     case 0x14:
                         if (stack.Count < 1) return false;
                         FormulaExpression percent = stack.Pop();
-                        stack.Push(new FormulaExpression(Parenthesize(percent, PercentPrecedence) + "%", PercentPrecedence));
+                        bool percentParenthesized = percent.Precedence < PercentPrecedence;
+                        stack.Push(new FormulaExpression(
+                            Parenthesize(percent, PercentPrecedence) + "%",
+                            PercentPrecedence,
+                            !percentParenthesized && percent.HasUngroupedUnion));
                         break;
                     case 0x15:
                         if (stack.Count < 1) return false;
@@ -255,7 +259,10 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         private static bool ApplyFunction(Stack<FormulaExpression> stack, string name, int count) {
             string[] arguments = new string[count];
             for (int index = count - 1; index >= 0; index--) {
-                arguments[index] = stack.Pop().Text;
+                FormulaExpression argument = stack.Pop();
+                arguments[index] = argument.HasUngroupedUnion
+                    ? "(" + argument.Text + ")"
+                    : argument.Text;
             }
 
             stack.Push(new FormulaExpression(name + "(" + string.Join(",", arguments) + ")", AtomPrecedence));
@@ -266,16 +273,25 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
             if (stack.Count < 2) return false;
             FormulaExpression right = stack.Pop();
             FormulaExpression left = stack.Pop();
+            bool leftParenthesized = left.Precedence < precedence;
+            bool rightParenthesized = right.Precedence < precedence + 1;
             stack.Push(new FormulaExpression(
                 Parenthesize(left, precedence) + operation + Parenthesize(right, precedence + 1),
-                precedence));
+                precedence,
+                operation == ","
+                    || (!leftParenthesized && left.HasUngroupedUnion)
+                    || (!rightParenthesized && right.HasUngroupedUnion)));
             return true;
         }
 
         private static bool ApplyUnary(Stack<FormulaExpression> stack, string operation) {
             if (stack.Count < 1) return false;
             FormulaExpression value = stack.Pop();
-            stack.Push(new FormulaExpression(operation + Parenthesize(value, UnaryPrecedence), UnaryPrecedence));
+            bool parenthesized = value.Precedence < UnaryPrecedence;
+            stack.Push(new FormulaExpression(
+                operation + Parenthesize(value, UnaryPrecedence),
+                UnaryPrecedence,
+                !parenthesized && value.HasUngroupedUnion));
             return true;
         }
 
@@ -330,14 +346,17 @@ namespace OfficeIMO.Excel.Xlsb.Biff12 {
         }
 
         private readonly struct FormulaExpression {
-            internal FormulaExpression(string text, int precedence) {
+            internal FormulaExpression(string text, int precedence, bool hasUngroupedUnion = false) {
                 Text = text;
                 Precedence = precedence;
+                HasUngroupedUnion = hasUngroupedUnion;
             }
 
             internal string Text { get; }
 
             internal int Precedence { get; }
+
+            internal bool HasUngroupedUnion { get; }
         }
     }
 }
