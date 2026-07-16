@@ -21,7 +21,7 @@ internal static partial class EpubReaderAdapter {
                 Location = new ReaderLocation {
                     Path = string.IsNullOrWhiteSpace(diagnostic.Path)
                         ? sourcePath
-                        : BuildVirtualPath(sourcePath, diagnostic.Path!)
+                        : BuildEpubLocationPath(sourcePath, diagnostic.Path!)
                 }
             });
         }
