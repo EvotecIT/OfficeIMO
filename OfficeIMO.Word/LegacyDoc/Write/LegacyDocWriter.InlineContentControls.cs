@@ -38,6 +38,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
+                    case InsertedRun insertedRun:
+                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting, pictures, mainPart);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting, pictures, mainPart);
+                        break;
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes, inheritedFormatting);
                         break;
@@ -89,6 +95,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             AppendFormattedHeaderFooterRun(storyText, formattedRuns, paragraphText, run, relationshipOwner, pictures, kind);
                         }
 
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, paragraphText, insertedRun, LegacyDocRevisionKind.Inserted, relationshipOwner, pictures, kind);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, paragraphText, deletedRun, LegacyDocRevisionKind.Deleted, relationshipOwner, pictures, kind);
                         break;
                     case Hyperlink hyperlink:
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, paragraphText, bookmarks, hyperlink, relationshipOwner, kind);
@@ -142,6 +154,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
+                    case InsertedRun insertedRun:
+                        AppendSimpleFootnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSimpleFootnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
+                        break;
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "footnote", storyStart);
                         break;
@@ -193,6 +211,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             AppendSimpleEndnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures);
                         }
 
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendSimpleEndnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSimpleEndnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "endnote", storyStart);

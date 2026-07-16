@@ -318,6 +318,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
+                    case InsertedRun insertedRun:
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, text, insertedRun, LegacyDocRevisionKind.Inserted, relationshipOwner, pictures, kind);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, text, deletedRun, LegacyDocRevisionKind.Deleted, relationshipOwner, pictures, kind);
+                        break;
                     case Hyperlink hyperlink:
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, bookmarks, hyperlink, relationshipOwner, kind);
                         break;
@@ -414,8 +420,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendFormattedHeaderFooterRun(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Run run, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind) {
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
+        private static void AppendFormattedHeaderFooterRevision(
+            StringBuilder storyText,
+            List<LegacyDocWritableRun> formattedRuns,
+            StringBuilder paragraphText,
+            OpenXmlCompositeElement revisionElement,
+            LegacyDocRevisionKind revisionKind,
+            OpenXmlPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
+            string kind) {
+            LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
+            foreach (OpenXmlElement child in revisionElement.ChildElements) {
+                if (child is Run run) {
+                    AppendFormattedHeaderFooterRun(storyText, formattedRuns, paragraphText, run, relationshipOwner, pictures, kind, revision);
+                    continue;
+                }
+
+                throw new NotSupportedException($"Native DOC saving supports tracked insertions and deletions in {kind}s only when they contain text runs. Unsupported revision element: {child.LocalName}.");
+            }
+        }
+
+        private static void AppendFormattedHeaderFooterRun(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Run run, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind, LegacyDocRevision revision = default) {
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties).WithRevision(revision);
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
                     case RunProperties:
@@ -427,6 +453,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Text textNode:
                         AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, textNode.Text, formatting);
+                        break;
+                    case DeletedText deletedTextNode:
+                        AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, deletedTextNode.Text, formatting);
                         break;
                     case TabChar:
                         AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, "\t", formatting);
@@ -451,7 +480,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         formattedRuns.Add(new LegacyDocWritableRun(
                             picturePosition,
                             1,
-                            LegacyDocWritableFormatting.SpecialCharacter,
+                            LegacyDocWritableFormatting.SpecialCharacter.WithRevision(revision),
                             pictureDataOffset));
                         break;
                     default:

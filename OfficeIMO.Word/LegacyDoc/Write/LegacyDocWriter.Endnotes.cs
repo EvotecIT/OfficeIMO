@@ -174,6 +174,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
+                    case InsertedRun insertedRun:
+                        AppendSimpleEndnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSimpleEndnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
+                        break;
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "endnote", storyStart);
                         break;
@@ -208,12 +214,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return paragraphFormatting;
         }
 
-        private static void AppendSimpleEndnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, Run run, long id, int storyStart, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures) {
+        private static void AppendSimpleEndnoteRevision(
+            StringBuilder builder,
+            List<LegacyDocWritableRun> runs,
+            OpenXmlCompositeElement revisionElement,
+            LegacyDocRevisionKind revisionKind,
+            long id,
+            int storyStart,
+            EndnotesPart relationshipOwner,
+            LegacyDocWritablePictures pictures) {
+            LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
+            foreach (OpenXmlElement child in revisionElement.ChildElements) {
+                if (child is Run run) {
+                    AppendSimpleEndnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures, revision);
+                    continue;
+                }
+
+                throw new NotSupportedException($"Native DOC saving supports tracked insertions and deletions in endnote id '{id}' only when they contain text runs. Unsupported revision element: {child.LocalName}.");
+            }
+        }
+
+        private static void AppendSimpleEndnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, Run run, long id, int storyStart, EndnotesPart relationshipOwner, LegacyDocWritablePictures pictures, LegacyDocRevision revision = default) {
             if (IsEndnoteReferenceMarkRun(run)) {
                 return;
             }
 
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties).WithRevision(revision);
 
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
@@ -223,6 +249,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Text text:
                         AppendFormattedNoteText(builder, runs, text.Text, formatting, storyStart);
+                        break;
+                    case DeletedText deletedText:
+                        AppendFormattedNoteText(builder, runs, deletedText.Text, formatting, storyStart);
                         break;
                     case TabChar:
                         AppendFormattedNoteText(builder, runs, "\t", formatting, storyStart);
@@ -246,7 +275,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         runs.Add(new LegacyDocWritableRun(
                             picturePosition,
                             1,
-                            LegacyDocWritableFormatting.SpecialCharacter,
+                            LegacyDocWritableFormatting.SpecialCharacter.WithRevision(revision),
                             pictureDataOffset));
                         break;
                     default:

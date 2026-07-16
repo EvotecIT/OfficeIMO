@@ -24,12 +24,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCFDStrike = 0x2A53;
         private const ushort SprmCCv = 0x6870;
         private const ushort SprmCPicLocation = 0x6A03;
+        private const ushort SprmCFRMarkDel = 0x0800;
+        private const ushort SprmCFRMarkIns = 0x0801;
+        private const ushort SprmCIbstRMark = 0x4804;
+        private const ushort SprmCDttmRMark = 0x6805;
+        private const ushort SprmCIbstRMarkDel = 0x4863;
+        private const ushort SprmCDttmRMarkDel = 0x6864;
 
         internal static IReadOnlyList<LegacyDocCharacterFormatRange> ReadCharacterFormatting(
             byte[] wordDocumentStream,
             byte[] tableStream,
             LegacyDocFib fib,
             IReadOnlyList<string> fontFamilies,
+            IReadOnlyList<string> revisionAuthors,
             out string? warning) {
             warning = null;
 
@@ -64,7 +71,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return ranges;
                 }
 
-                ReadChpxFkp(wordDocumentStream, pageOffset, ranges, fontFamilies);
+                ReadChpxFkp(wordDocumentStream, pageOffset, ranges, fontFamilies, revisionAuthors);
             }
 
             return ranges
@@ -73,7 +80,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 .ToArray();
         }
 
-        private static void ReadChpxFkp(byte[] wordDocumentStream, int pageOffset, List<LegacyDocCharacterFormatRange> ranges, IReadOnlyList<string> fontFamilies) {
+        private static void ReadChpxFkp(
+            byte[] wordDocumentStream,
+            int pageOffset,
+            List<LegacyDocCharacterFormatRange> ranges,
+            IReadOnlyList<string> fontFamilies,
+            IReadOnlyList<string> revisionAuthors) {
             int crun = wordDocumentStream[pageOffset + OleSectorSize - 1];
             if (crun <= 0) {
                 return;
@@ -108,14 +120,19 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                LegacyDocCharacterFormat format = ReadGrpprl(wordDocumentStream, grpprlOffset, cbGrpprl, fontFamilies);
+                LegacyDocCharacterFormat format = ReadGrpprl(wordDocumentStream, grpprlOffset, cbGrpprl, fontFamilies, revisionAuthors);
                 if (format.HasFormatting) {
                     ranges.Add(new LegacyDocCharacterFormatRange(fcStart, fcEnd, format));
                 }
             }
         }
 
-        internal static LegacyDocCharacterFormat ReadGrpprl(byte[] bytes, int offset, int count, IReadOnlyList<string> fontFamilies) {
+        internal static LegacyDocCharacterFormat ReadGrpprl(
+            byte[] bytes,
+            int offset,
+            int count,
+            IReadOnlyList<string> fontFamilies,
+            IReadOnlyList<string>? revisionAuthors = null) {
             int end = offset + count;
             bool bold = false;
             bool italic = false;
@@ -139,10 +156,64 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? language = null;
             string? eastAsiaLanguage = null;
             int? pictureDataOffset = null;
+            bool inserted = false;
+            bool deleted = false;
+            int insertedAuthorIndex = 0;
+            int deletedAuthorIndex = 0;
+            DateTime? insertedDate = null;
+            DateTime? deletedDate = null;
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None;
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
+                if (sprm == SprmCFRMarkIns || sprm == SprmCFRMarkDel) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    bool enabled = bytes[offset + 2] != 0;
+                    if (sprm == SprmCFRMarkIns) {
+                        inserted = enabled;
+                    } else {
+                        deleted = enabled;
+                    }
+
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmCIbstRMark || sprm == SprmCIbstRMarkDel) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    int authorIndex = unchecked((short)LegacyDocFib.ReadUInt16(bytes, offset + 2));
+                    if (sprm == SprmCIbstRMark) {
+                        insertedAuthorIndex = authorIndex;
+                    } else {
+                        deletedAuthorIndex = authorIndex;
+                    }
+
+                    offset += 4;
+                    continue;
+                }
+
+                if (sprm == SprmCDttmRMark || sprm == SprmCDttmRMarkDel) {
+                    if (offset + 6 > end) {
+                        break;
+                    }
+
+                    DateTime? date = ReadDttm(unchecked((uint)LegacyDocFib.ReadInt32(bytes, offset + 2)));
+                    if (sprm == SprmCDttmRMark) {
+                        insertedDate = date;
+                    } else {
+                        deletedDate = date;
+                    }
+
+                    offset += 6;
+                    continue;
+                }
+
                 if (sprm == SprmCFBold || sprm == SprmCFItalic || sprm == SprmCFStrike || sprm == SprmCFOutline || sprm == SprmCFShadow || sprm == SprmCFSmallCaps || sprm == SprmCFCaps || sprm == SprmCFVanish || sprm == SprmCFImprint || sprm == SprmCFEmboss || sprm == SprmCFNoProof || sprm == SprmCFDStrike) {
                     if (offset + 3 > end) {
                         break;
@@ -323,6 +394,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCapsKind? capsKind = caps
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
+            LegacyDocRevision revision = deleted
+                ? new LegacyDocRevision(LegacyDocRevisionKind.Deleted, ResolveRevisionAuthor(revisionAuthors, deletedAuthorIndex), deletedDate)
+                : inserted
+                    ? new LegacyDocRevision(LegacyDocRevisionKind.Inserted, ResolveRevisionAuthor(revisionAuthors, insertedAuthorIndex), insertedDate)
+                    : LegacyDocRevision.None;
 
             return new LegacyDocCharacterFormat(
                 bold,
@@ -346,7 +422,36 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 language,
                 eastAsiaLanguage,
                 specified,
-                pictureDataOffset);
+                pictureDataOffset,
+                revision);
+        }
+
+        private static string ResolveRevisionAuthor(IReadOnlyList<string>? revisionAuthors, int authorIndex) {
+            if (revisionAuthors != null
+                && authorIndex >= 0
+                && authorIndex < revisionAuthors.Count
+                && !string.IsNullOrWhiteSpace(revisionAuthors[authorIndex])) {
+                return revisionAuthors[authorIndex];
+            }
+
+            return LegacyDocRevisionAuthorReader.UnknownAuthor;
+        }
+
+        private static DateTime? ReadDttm(uint value) {
+            if (value == 0) {
+                return null;
+            }
+
+            int minute = (int)(value & 0x3F);
+            int hour = (int)((value >> 6) & 0x1F);
+            int day = (int)((value >> 11) & 0x1F);
+            int month = (int)((value >> 16) & 0x0F);
+            int year = 1900 + (int)((value >> 20) & 0x1FF);
+            if (minute > 59 || hour > 23 || month < 1 || month > 12 || day < 1 || day > DateTime.DaysInMonth(year, month)) {
+                return null;
+            }
+
+            return new DateTime(year, month, day, hour, minute, 0, DateTimeKind.Unspecified);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {

@@ -38,6 +38,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         EnsureSupportedHyperlinkRun(run);
                         AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
                         break;
+                    case InsertedRun insertedRun:
+                        AppendSupportedHyperlinkRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSupportedHyperlinkRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting);
+                        break;
                     case SdtRun sdtRun:
                         AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, sdtRun, footnotes, endnotes, inheritedFormatting);
                         break;
@@ -105,6 +111,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case RunProperties:
                     case LastRenderedPageBreak:
                     case Text:
+                    case DeletedText:
                     case TabChar:
                     case CarriageReturn:
                     case NoBreakHyphen:
@@ -117,6 +124,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when their display text contains text, tabs, carriage returns, soft/no-break hyphens, and supported breaks. Unsupported hyperlink run element: {child.LocalName}.");
                 }
+            }
+        }
+
+        private static void AppendSupportedHyperlinkRevisionText(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            OpenXmlCompositeElement revisionElement,
+            LegacyDocRevisionKind revisionKind,
+            LegacyDocWritableFootnotes footnotes,
+            LegacyDocWritableEndnotes endnotes,
+            LegacyDocWritableFormatting inheritedFormatting) {
+            LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
+            LegacyDocWritableFormatting revisionFormatting = inheritedFormatting.WithRevision(revision);
+            foreach (OpenXmlElement child in revisionElement.ChildElements) {
+                if (child is Run run) {
+                    EnsureSupportedHyperlinkRun(run);
+                    AppendSupportedRunText(text, runs, run, footnotes, endnotes, revisionFormatting, allowHyperlinkRunStyle: true);
+                    continue;
+                }
+
+                throw new NotSupportedException($"Native DOC saving supports tracked insertions and deletions in hyperlinks only when they contain text runs. Unsupported revision element: {child.LocalName}.");
             }
         }
 
@@ -134,6 +162,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Run run:
                         EnsureSupportedHyperlinkRun(run);
                         AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendSupportedHyperlinkRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSupportedHyperlinkRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting);
                         break;
                     case SdtRun nestedSdtRun:
                         AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, nestedSdtRun, footnotes, endnotes, inheritedFormatting);

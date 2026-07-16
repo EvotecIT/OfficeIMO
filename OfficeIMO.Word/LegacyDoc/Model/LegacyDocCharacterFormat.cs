@@ -47,7 +47,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? language,
             string? eastAsiaLanguage,
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
-            int? pictureDataOffset = null) {
+            int? pictureDataOffset = null,
+            LegacyDocRevision revision = default) {
             Bold = bold;
             Italic = italic;
             Strike = strike;
@@ -72,6 +73,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             EastAsiaLanguage = eastAsiaLanguage;
             Specified = specified;
             PictureDataOffset = pictureDataOffset;
+            Revision = revision;
         }
 
         internal bool Bold { get; }
@@ -116,6 +118,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? PictureDataOffset { get; }
 
+        internal LegacyDocRevision Revision { get; }
+
         internal LegacyDocCharacterFormatProperties Specified { get; }
 
         internal bool HasFormatting =>
@@ -140,6 +144,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || Language != null
             || EastAsiaLanguage != null
             || PictureDataOffset != null
+            || Revision.HasValue
             || Specified != LegacyDocCharacterFormatProperties.None;
 
         internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null, null, null, null);
@@ -170,6 +175,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && string.Equals(Language, other.Language, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(EastAsiaLanguage, other.EastAsiaLanguage, StringComparison.OrdinalIgnoreCase)
                 && PictureDataOffset == other.PictureDataOffset
+                && Revision.Equals(other.Revision)
                 && Specified == other.Specified;
         }
 
@@ -200,6 +206,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(Language ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(EastAsiaLanguage ?? string.Empty);
             hash = (hash * 31) + PictureDataOffset.GetHashCode();
+            hash = (hash * 31) + Revision.GetHashCode();
             hash = (hash * 31) + Specified.GetHashCode();
             return hash;
         }

@@ -284,6 +284,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (LegacyDocPictureReader.TryCreatePictureRun(
                     character,
                     picturesByCharacterPosition,
+                    GetFormatForFileOffset(formattingRanges, character.FileOffset),
                     out LegacyDocTextRun? pictureRun)) {
                     FlushRun();
                     currentRuns.Add(pictureRun!);
@@ -669,7 +670,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     specified: currentFormat.Specified,
                     characterSpacingTwips: currentFormat.CharacterSpacingTwips,
                     language: currentFormat.Language,
-                    eastAsiaLanguage: currentFormat.EastAsiaLanguage));
+                    eastAsiaLanguage: currentFormat.EastAsiaLanguage,
+                    revision: currentFormat.Revision));
                 runText.Clear();
                 runCharacterPositions.Clear();
             }

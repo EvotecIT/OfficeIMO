@@ -10691,18 +10691,169 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksTrackedRevisionMarkupBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesTrackedInsertionsAndDeletionsWithAuthorAndDate() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            DateTime insertedDate = new(2024, 5, 6, 7, 8, 0, DateTimeKind.Utc);
+            DateTime deletedDate = new(2024, 5, 7, 9, 10, 0, DateTimeKind.Utc);
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Review ");
+                paragraph.AddInsertedText("inserted", "Alice", insertedDate);
+                paragraph.AddDeletedText("deleted", "Bob", deletedDate);
+
+                document.Save(docPath);
+
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(docBytes, "1Table");
+                int authorTableOffset = BitConverter.ToInt32(wordDocumentStream, 0x232);
+                int authorTableLength = BitConverter.ToInt32(wordDocumentStream, 0x236);
+                Assert.True(authorTableOffset > 0);
+                Assert.True(authorTableLength > 6);
+                Assert.Equal(0xFFFF, BitConverter.ToUInt16(tableStream, authorTableOffset));
+                Assert.Equal(3, BitConverter.ToUInt16(tableStream, authorTableOffset + 2));
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, "Review ".Length, "inserted".Length, 0x0801, 1);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, "Review inserted".Length, "deleted".Length, 0x0800, 1);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                InsertedRun inserted = Assert.Single(body.Descendants<InsertedRun>());
+                DeletedRun deleted = Assert.Single(body.Descendants<DeletedRun>());
+                Assert.Equal("Alice", inserted.Author?.Value);
+                Assert.Equal(insertedDate.Date.AddHours(7).AddMinutes(8), inserted.Date?.Value);
+                Assert.Equal("inserted", inserted.InnerText);
+                Assert.Equal("Bob", deleted.Author?.Value);
+                Assert.Equal(deletedDate.Date.AddHours(9).AddMinutes(10), deleted.Date?.Value);
+                Assert.Equal("deleted", deleted.InnerText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_CharacterFormattingReader_DecodesMicrosoftRevisionSprms() {
+            IReadOnlyList<string> authors = new[] { "Unknown", "Alice", "Bob" };
+            byte[] insertedGrpprl = { 0x01, 0x08, 0x01, 0x04, 0x48, 0x01, 0x00, 0x05, 0x68, 0xC8, 0x31, 0xC5, 0x27 };
+            byte[] deletedGrpprl = { 0x00, 0x08, 0x01, 0x63, 0x48, 0x02, 0x00, 0x64, 0x68, 0xC8, 0x39, 0xC5, 0x47 };
+
+            LegacyDocCharacterFormat inserted = LegacyDocCharacterFormattingReader.ReadGrpprl(
+                insertedGrpprl,
+                0,
+                insertedGrpprl.Length,
+                Array.Empty<string>(),
+                authors);
+            LegacyDocCharacterFormat deleted = LegacyDocCharacterFormattingReader.ReadGrpprl(
+                deletedGrpprl,
+                0,
+                deletedGrpprl.Length,
+                Array.Empty<string>(),
+                authors);
+
+            Assert.Equal(LegacyDocRevisionKind.Inserted, inserted.Revision.Kind);
+            Assert.Equal("Alice", inserted.Revision.Author);
+            Assert.Equal(new DateTime(2024, 5, 6, 7, 8, 0), inserted.Revision.Date);
+            Assert.Equal(LegacyDocRevisionKind.Deleted, deleted.Revision.Kind);
+            Assert.Equal("Bob", deleted.Revision.Author);
+            Assert.Equal(new DateTime(2024, 5, 7, 7, 8, 0), deleted.Revision.Date);
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesTrackedRevisionMarkupInNonBodyStories() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            DateTime revisionDate = new(2024, 6, 7, 8, 9, 0, DateTimeKind.Utc);
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Body");
+                WordSection section = document.Sections[0];
+                section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header ").AddInsertedText("inserted", "Alice", revisionDate);
+                section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer ").AddDeletedText("deleted", "Bob", revisionDate);
+
+                WordParagraph paragraph = document.AddParagraph("Notes");
+                paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1].AddInsertedText(" inserted", "Alice", revisionDate);
+                paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1].AddDeletedText(" deleted", "Bob", revisionDate);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                InsertedRun headerInsertion = Assert.Single(mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<InsertedRun>()));
+                DeletedRun footerDeletion = Assert.Single(mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<DeletedRun>()));
+                InsertedRun footnoteInsertion = Assert.Single(mainPart.FootnotesPart!.Footnotes!.Descendants<InsertedRun>());
+                DeletedRun endnoteDeletion = Assert.Single(mainPart.EndnotesPart!.Endnotes!.Descendants<DeletedRun>());
+                Assert.Equal("Alice", headerInsertion.Author?.Value);
+                Assert.Equal("inserted", headerInsertion.InnerText);
+                Assert.Equal("Bob", footerDeletion.Author?.Value);
+                Assert.Equal("deleted", footerDeletion.InnerText);
+                Assert.Equal("Alice", footnoteInsertion.Author?.Value);
+                Assert.Equal(" inserted", footnoteInsertion.InnerText);
+                Assert.Equal("Bob", endnoteDeletion.Author?.Value);
+                Assert.Equal(" deleted", endnoteDeletion.InnerText);
+                Assert.All(
+                    new DateTime?[] { headerInsertion.Date?.Value, footerDeletion.Date?.Value, footnoteInsertion.Date?.Value, endnoteDeletion.Date?.Value },
+                    date => Assert.Equal(new DateTime(2024, 6, 7, 8, 9, 0), date));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesTrackedRevisionMarkupInCommentsAndTables() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            DateTime revisionDate = new(2024, 7, 8, 9, 10, 0, DateTimeKind.Utc);
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph anchor = document.AddParagraph("Commented");
+                anchor.AddComment("OfficeIMO", "OI", "Comment ");
+                WordComment comment = Assert.Single(document.Comments);
+                comment.Paragraphs[0].AddInsertedText("inserted", "Alice", revisionDate);
+                comment.Paragraphs[0].AddDeletedText("deleted", "Bob", revisionDate);
+
+                WordTable table = document.AddTable(1, 1);
+                WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+                cellParagraph.AddText("Cell ");
+                cellParagraph.AddInsertedText("inserted", "Alice", revisionDate);
+                cellParagraph.AddDeletedText("deleted", "Bob", revisionDate);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                Assert.Contains(
+                    mainPart.Document.Body!.Descendants<InsertedRun>(),
+                    revision => revision.InnerText == "inserted" && revision.Author?.Value == "Alice");
+                Assert.Contains(
+                    mainPart.Document.Body.Descendants<DeletedRun>(),
+                    revision => revision.InnerText == "deleted" && revision.Author?.Value == "Bob");
+                WordComment reloadedComment = Assert.Single(reloaded.Comments);
+                InsertedRun commentInsertion = Assert.Single(reloadedComment.Paragraphs[0]._paragraph.Descendants<InsertedRun>());
+                DeletedRun commentDeletion = Assert.Single(reloadedComment.Paragraphs[0]._paragraph.Descendants<DeletedRun>());
+                Assert.Equal("inserted", commentInsertion.InnerText);
+                Assert.Equal("deleted", commentDeletion.InnerText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksTrackedMoveMarkupBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
                 WordParagraph paragraph = document.AddParagraph("Review ");
-                paragraph.AddInsertedText("inserted", "OfficeIMO");
-                paragraph.AddDeletedText("deleted", "OfficeIMO");
+                paragraph._paragraph.Append(new MoveFromRun(
+                    new Run(new DeletedText("moved") { Space = SpaceProcessingModeValues.Preserve })) {
+                    Author = "OfficeIMO",
+                    Date = new DateTime(2024, 8, 9, 10, 11, 0, DateTimeKind.Utc),
+                    Id = WordHeadersAndFooters.GenerateRevisionId()
+                });
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("tracked revision markup", exception.Message.ToLowerInvariant());
+                Assert.Contains("tracked move", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -10710,24 +10861,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksTrackedRevisionMarkupInNonBodyStoriesBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesTrackedInlinePictureRevision() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Body");
-                WordSection section = document.Sections[0];
-                section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header ").AddInsertedText("inserted", "OfficeIMO");
-                section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer ").AddDeletedText("deleted", "OfficeIMO");
+                WordParagraph paragraph = document.AddParagraph("Picture ");
+                paragraph.AddImage(jpegPath, 24, 18);
+                Run sourceRun = paragraph._paragraph.Elements<Run>().Last(run => run.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any());
+                DocumentFormat.OpenXml.Wordprocessing.Drawing drawing = sourceRun.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
+                drawing.Remove();
+                var pictureRun = new Run(drawing);
+                if (!sourceRun.ChildElements.Any(element => element is not RunProperties)) {
+                    sourceRun.Remove();
+                }
 
-                WordParagraph paragraph = document.AddParagraph("Notes");
-                paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1].AddInsertedText(" inserted", "OfficeIMO");
-                paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1].AddDeletedText(" deleted", "OfficeIMO");
+                paragraph._paragraph.Append(new InsertedRun(pictureRun) {
+                    Author = "Alice",
+                    Date = new DateTime(2024, 9, 10, 11, 12, 0, DateTimeKind.Utc),
+                    Id = WordHeadersAndFooters.GenerateRevisionId()
+                });
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                document.Save(docPath);
 
-                Assert.Contains("tracked revision markup", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                InsertedRun insertedPicture = Assert.Single(
+                    reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Descendants<InsertedRun>());
+                Assert.Equal("Alice", insertedPicture.Author?.Value);
+                Assert.Single(insertedPicture.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+                Assert.Single(reloaded.Images);
+                Assert.Equal("Picture ", string.Concat(reloaded.Paragraphs.Select(item => item.Text)));
             } finally {
                 DeleteIfExists(docPath);
             }

@@ -71,6 +71,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 FontFamilyIndexes = FontFamilies
                     .Select((fontFamily, index) => new { fontFamily, index })
                     .ToDictionary(item => item.fontFamily, item => item.index, StringComparer.OrdinalIgnoreCase);
+                string[] revisionAuthors = CreateFormattedRuns()
+                    .Select(run => run.Formatting.Revision.Author)
+                    .Where(author => !string.IsNullOrWhiteSpace(author))
+                    .Select(author => author!)
+                    .Distinct(StringComparer.Ordinal)
+                    .ToArray();
+                RevisionAuthors = revisionAuthors.Length == 0
+                    ? Array.Empty<string>()
+                    : new[] { LegacyDocRevisionAuthorReader.UnknownAuthor }
+                        .Concat(revisionAuthors.Where(author => !string.Equals(author, LegacyDocRevisionAuthorReader.UnknownAuthor, StringComparison.Ordinal)))
+                        .ToArray();
+
+                RevisionAuthorIndexes = RevisionAuthors
+                    .Select((author, index) => new { author, index })
+                    .ToDictionary(item => item.author, item => item.index, StringComparer.Ordinal);
+                SttbfRMark = CreateRevisionAuthorTable(RevisionAuthors);
             }
 
             internal string Text { get; }
@@ -157,6 +173,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyDictionary<string, int> FontFamilyIndexes { get; }
 
+            internal IReadOnlyList<string> RevisionAuthors { get; }
+
+            internal IReadOnlyDictionary<string, int> RevisionAuthorIndexes { get; }
+
+            internal byte[] SttbfRMark { get; }
+
             internal bool HasCharacterFormatting => true;
 
             internal bool HasParagraphFormatting => true;
@@ -164,6 +186,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool HasFontTable => FontFamilies.Count > 0;
 
             internal bool HasStyleSheet => StyleSheet.Bytes.Length > 0;
+
+            internal bool HasRevisions => SttbfRMark.Length > 0;
 
             internal bool HasSectionDescriptors => Sections.Count > 0;
 
@@ -229,11 +253,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             private int AfterBookmarkDataOffsetInTableStream => HasBookmarks ? PlcfBklOffsetInTableStream + PlcfBkl.Length : AfterDocumentOptionsOffsetInTableStream;
 
-            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterBookmarkDataOffsetInTableStream) : AfterBookmarkDataOffsetInTableStream;
+            internal int SttbfRMarkOffsetInTableStream => HasRevisions ? AlignToEven(AfterBookmarkDataOffsetInTableStream) : AfterBookmarkDataOffsetInTableStream;
+
+            private int AfterRevisionDataOffsetInTableStream => HasRevisions
+                ? SttbfRMarkOffsetInTableStream + SttbfRMark.Length
+                : AfterBookmarkDataOffsetInTableStream;
+
+            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterRevisionDataOffsetInTableStream) : AfterRevisionDataOffsetInTableStream;
 
             internal int FontTableOffsetInTableStream => HasStyleSheet
                 ? StyleSheetOffsetInTableStream + StyleSheet.Bytes.Length
-                : AfterBookmarkDataOffsetInTableStream;
+                : AfterRevisionDataOffsetInTableStream;
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();

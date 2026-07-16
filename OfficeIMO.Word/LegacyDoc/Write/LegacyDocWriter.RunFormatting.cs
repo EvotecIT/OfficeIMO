@@ -44,6 +44,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Text textNode:
                         AppendFormattedText(text, runs, textNode.Text, formatting);
                         break;
+                    case DeletedText deletedTextNode:
+                        AppendFormattedText(text, runs, deletedTextNode.Text, formatting);
+                        break;
                     case TabChar:
                         AppendFormattedText(text, runs, "\t", formatting);
                         break;
@@ -84,7 +87,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         runs.Add(new LegacyDocWritableRun(
                             picturePosition,
                             1,
-                            LegacyDocWritableFormatting.SpecialCharacter,
+                            LegacyDocWritableFormatting.SpecialCharacter.WithRevision(formatting.Revision),
                             pictureDataOffset));
                         break;
                     default:
@@ -538,7 +541,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             runs.Add(new LegacyDocWritableRun(start, length, formatting));
         }
 
-        private static void WriteChpxFkp(byte[] stream, int pageOffset, IReadOnlyList<LegacyDocWritableSegment> segments, IReadOnlyDictionary<string, int> fontFamilyIndexes, int bytesPerCharacter) {
+        private static void WriteChpxFkp(
+            byte[] stream,
+            int pageOffset,
+            IReadOnlyList<LegacyDocWritableSegment> segments,
+            IReadOnlyDictionary<string, int> fontFamilyIndexes,
+            IReadOnlyDictionary<string, int> revisionAuthorIndexes,
+            int bytesPerCharacter) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
             }
@@ -550,7 +559,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableSegment segment = segments[index];
                 WriteInt32(stream, pageOffset + (index * 4), TextOffset + (segment.StartCharacter * bytesPerCharacter));
                 if (segment.HasFormatting) {
-                    byte[] chpx = CreateChpx(segment.Formatting, fontFamilyIndexes, segment.PictureDataOffset);
+                    byte[] chpx = CreateChpx(segment.Formatting, fontFamilyIndexes, revisionAuthorIndexes, segment.PictureDataOffset);
                     chpxOffset = AlignToEven(chpxOffset);
                     if (chpxOffset + chpx.Length >= OleSectorSize - 1 || chpxOffset / 2 > byte.MaxValue) {
                         throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
@@ -567,11 +576,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             stream[pageOffset + OleSectorSize - 1] = (byte)segments.Count;
         }
 
-        private static byte[] CreateChpx(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes, int? pictureDataOffset = null) {
-            List<byte> grpprl = CreateCharacterGrpprl(formatting, fontFamilyIndexes);
+        private static byte[] CreateChpx(
+            LegacyDocWritableFormatting formatting,
+            IReadOnlyDictionary<string, int> fontFamilyIndexes,
+            IReadOnlyDictionary<string, int> revisionAuthorIndexes,
+            int? pictureDataOffset = null) {
+            List<byte> grpprl = CreateCharacterGrpprl(formatting, fontFamilyIndexes, revisionAuthorIndexes);
             if (pictureDataOffset != null) {
                 AddInt32Sprm(grpprl, SprmCPicLocation, pictureDataOffset.Value);
             }
+            if (grpprl.Count > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving cannot write a character-format record larger than 255 bytes.");
+            }
+
             var chpx = new byte[grpprl.Count + 1];
             chpx[0] = (byte)grpprl.Count;
             grpprl.CopyTo(chpx, 1);
@@ -586,8 +603,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return CreateCharacterGrpprl(formatting, fontFamilyIndexes).ToArray();
         }
 
-        private static List<byte> CreateCharacterGrpprl(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
+        private static List<byte> CreateCharacterGrpprl(
+            LegacyDocWritableFormatting formatting,
+            IReadOnlyDictionary<string, int> fontFamilyIndexes,
+            IReadOnlyDictionary<string, int>? revisionAuthorIndexes = null) {
             var grpprl = new List<byte>(18);
+            AddRevisionSprms(grpprl, formatting.Revision, revisionAuthorIndexes);
             if (formatting.Bold || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Bold)) {
                 AddSingleByteSprm(grpprl, SprmCFBold, formatting.Bold ? (byte)1 : (byte)0);
             }
@@ -795,7 +816,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
             internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null, LegacyDocWritableFormattingProperties.Special);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None, int? characterSpacingTwips = null, ushort? languageId = null, ushort? eastAsiaLanguageId = null) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None, int? characterSpacingTwips = null, ushort? languageId = null, ushort? eastAsiaLanguageId = null, LegacyDocRevision revision = default) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -818,6 +839,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LanguageId = languageId;
                 EastAsiaLanguageId = eastAsiaLanguageId;
                 Specified = specified;
+                Revision = revision;
             }
 
             internal bool Bold { get; }
@@ -862,7 +884,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal ushort? EastAsiaLanguageId { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || CharacterSpacingTwips != null || LanguageId != null || EastAsiaLanguageId != null || HasExplicitOffFormatting;
+            internal LegacyDocRevision Revision { get; }
+
+            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || CharacterSpacingTwips != null || LanguageId != null || EastAsiaLanguageId != null || Revision.HasValue || HasExplicitOffFormatting;
 
             private LegacyDocWritableFormattingProperties Specified { get; }
 
@@ -893,7 +917,35 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     Specified | inherited.Specified,
                     characterSpacingTwips: IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing) ? CharacterSpacingTwips : inherited.CharacterSpacingTwips,
                     languageId: IsSpecified(LegacyDocWritableFormattingProperties.Language) ? LanguageId : inherited.LanguageId,
-                    eastAsiaLanguageId: IsSpecified(LegacyDocWritableFormattingProperties.Language) ? EastAsiaLanguageId : inherited.EastAsiaLanguageId);
+                    eastAsiaLanguageId: IsSpecified(LegacyDocWritableFormattingProperties.Language) ? EastAsiaLanguageId : inherited.EastAsiaLanguageId,
+                    revision: Revision.HasValue ? Revision : inherited.Revision);
+            }
+
+            internal LegacyDocWritableFormatting WithRevision(LegacyDocRevision revision) {
+                return new LegacyDocWritableFormatting(
+                    Bold,
+                    Italic,
+                    Strike,
+                    DoubleStrike,
+                    Outline,
+                    Shadow,
+                    Emboss,
+                    Imprint,
+                    Hidden,
+                    NoProof,
+                    Special,
+                    Caps,
+                    VerticalPosition,
+                    Underline,
+                    Highlight,
+                    FontSizeHalfPoints,
+                    ColorHex,
+                    FontFamily,
+                    Specified,
+                    CharacterSpacingTwips,
+                    LanguageId,
+                    EastAsiaLanguageId,
+                    revision);
             }
 
             private bool HasExplicitOffFormatting =>
@@ -939,7 +991,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase)
                     && CharacterSpacingTwips == other.CharacterSpacingTwips
                     && LanguageId == other.LanguageId
-                    && EastAsiaLanguageId == other.EastAsiaLanguageId;
+                    && EastAsiaLanguageId == other.EastAsiaLanguageId
+                    && Revision.Equals(other.Revision);
             }
 
             public override bool Equals(object? obj) {
@@ -969,6 +1022,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + CharacterSpacingTwips.GetHashCode();
                 hash = (hash * 31) + LanguageId.GetHashCode();
                 hash = (hash * 31) + EastAsiaLanguageId.GetHashCode();
+                hash = (hash * 31) + Revision.GetHashCode();
                 return hash;
             }
         }

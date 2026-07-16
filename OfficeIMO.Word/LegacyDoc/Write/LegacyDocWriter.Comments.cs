@@ -131,6 +131,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Run run:
                         AppendSimpleCommentRun(builder, runs, run, id, relationshipOwner, pictures);
                         break;
+                    case InsertedRun insertedRun:
+                        AppendSimpleCommentRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, relationshipOwner, pictures);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSimpleCommentRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, relationshipOwner, pictures);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, builder.Length);
                         break;
@@ -149,14 +155,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
+        private static void AppendSimpleCommentRevision(
+            StringBuilder builder,
+            List<LegacyDocWritableRun> runs,
+            OpenXmlCompositeElement revisionElement,
+            LegacyDocRevisionKind revisionKind,
+            string id,
+            WordprocessingCommentsPart relationshipOwner,
+            LegacyDocWritablePictures pictures) {
+            LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
+            foreach (OpenXmlElement child in revisionElement.ChildElements) {
+                if (child is Run run) {
+                    AppendSimpleCommentRun(builder, runs, run, id, relationshipOwner, pictures, revision);
+                    continue;
+                }
+
+                throw new NotSupportedException($"Native DOC saving supports tracked insertions and deletions in comment id '{id}' only when they contain text runs. Unsupported revision element: {child.LocalName}.");
+            }
+        }
+
         private static void AppendSimpleCommentRun(
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             Run run,
             string id,
             WordprocessingCommentsPart relationshipOwner,
-            LegacyDocWritablePictures pictures) {
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
+            LegacyDocWritablePictures pictures,
+            LegacyDocRevision revision = default) {
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties).WithRevision(revision);
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
                     case RunProperties:
@@ -164,6 +190,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Text text:
                         AppendFormattedText(builder, runs, text.Text, formatting);
+                        break;
+                    case DeletedText deletedText:
+                        AppendFormattedText(builder, runs, deletedText.Text, formatting);
                         break;
                     case TabChar:
                         AppendFormattedText(builder, runs, "\t", formatting);
@@ -199,7 +228,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         runs.Add(new LegacyDocWritableRun(
                             picturePosition,
                             1,
-                            LegacyDocWritableFormatting.SpecialCharacter,
+                            LegacyDocWritableFormatting.SpecialCharacter.WithRevision(revision),
                             pictureDataOffset));
                         break;
                     default:

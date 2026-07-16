@@ -1365,6 +1365,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
+                    case InsertedRun insertedRun:
+                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, tableStyleRunFormatting, pictures, mainPart);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, tableStyleRunFormatting, pictures, mainPart);
+                        break;
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes, tableStyleRunFormatting);
                         break;

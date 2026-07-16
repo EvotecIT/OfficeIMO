@@ -48,6 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal static bool TryCreatePictureRun(
             LegacyDocTextCharacter character,
             IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
+            LegacyDocCharacterFormat format,
             out LegacyDocTextRun? pictureRun) {
             pictureRun = null;
             if (character.Character != '\u0001'
@@ -75,7 +76,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 colorHex: null,
                 fontFamily: null,
                 characterPositions: new[] { character.CharacterPosition },
-                picture: picture);
+                picture: picture,
+                revision: format.Revision);
             return true;
         }
 

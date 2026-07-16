@@ -168,6 +168,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-FONT-TABLE-INVALID", fontTableWarning);
             }
 
+            IReadOnlyList<string> revisionAuthors = LegacyDocRevisionAuthorReader.Read(tableStream, fib, out string? revisionAuthorWarning);
+            if (revisionAuthorWarning != null) {
+                AddWarning("DOC-REVISION-AUTHORS-INVALID", revisionAuthorWarning);
+            }
+
             StyleSheet = LegacyDocStyleSheet.Read(tableStream, fib, fontFamilies, out string? styleSheetWarning);
             if (styleSheetWarning != null) {
                 AddWarning("DOC-STYLESHEET-INVALID", styleSheetWarning);
@@ -182,7 +187,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-SEPX-INVALID", sectionFormattingWarning);
             }
 
-            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges = LegacyDocCharacterFormattingReader.ReadCharacterFormatting(wordDocumentStream, tableStream, fib, fontFamilies, out string? formattingWarning);
+            IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges = LegacyDocCharacterFormattingReader.ReadCharacterFormatting(
+                wordDocumentStream,
+                tableStream,
+                fib,
+                fontFamilies,
+                revisionAuthors,
+                out string? formattingWarning);
             if (formattingWarning != null) {
                 AddWarning("DOC-CHPX-INVALID", formattingWarning);
             }
@@ -665,6 +676,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 if (LegacyDocPictureReader.TryCreatePictureRun(
                     textCharacter,
                     picturesByCharacterPosition,
+                    GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset),
                     out LegacyDocTextRun? pictureRun)) {
                     FlushRun();
                     currentRuns.Add(pictureRun!);
@@ -1031,7 +1043,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     specified: currentFormat.Specified,
                     characterSpacingTwips: currentFormat.CharacterSpacingTwips,
                     language: currentFormat.Language,
-                    eastAsiaLanguage: currentFormat.EastAsiaLanguage));
+                    eastAsiaLanguage: currentFormat.EastAsiaLanguage,
+                    revision: currentFormat.Revision));
                 runText.Clear();
                 runCharacterPositions.Clear();
                 currentHyperlinkTarget = default;

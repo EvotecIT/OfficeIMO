@@ -41,6 +41,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmCRgFtc0 = 0x4A4F;
         private const ushort SprmCFDStrike = 0x2A53;
         private const ushort SprmCCv = 0x6870;
+        private const ushort SprmCFRMarkDel = 0x0800;
+        private const ushort SprmCFRMarkIns = 0x0801;
+        private const ushort SprmCIbstRMark = 0x4804;
+        private const ushort SprmCDttmRMark = 0x6805;
+        private const ushort SprmCIbstRMarkDel = 0x4863;
+        private const ushort SprmCDttmRMarkDel = 0x6864;
         private const ushort SprmPJc = 0x2461;
         private const ushort DefaultPcdFlags = 0x0310;
         private const ushort FootnotePcdFlags = 0x0330;
@@ -78,6 +84,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int LcbSttbfFfnOffset = 0x116;
         private const int FcSttbfBkmkOffset = 0x142;
         private const int LcbSttbfBkmkOffset = 0x146;
+        private const int FcSttbfRMarkOffset = 0x232;
+        private const int LcbSttbfRMarkOffset = 0x236;
         private const int FcPlcfBkfOffset = 0x14A;
         private const int LcbPlcfBkfOffset = 0x14E;
         private const int FcPlcfBklOffset = 0x152;
@@ -344,8 +352,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void ThrowIfUnsupportedReviewMarkup(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
             IReadOnlyList<OpenXmlElement> storyRoots = GetReviewMarkupStoryRoots(mainPart);
-            if (storyRoots.Any(HasTrackedRevisionMarkup)) {
-                throw new NotSupportedException("Native DOC saving currently does not support tracked revision markup. Accept or reject revisions, or save as DOCX before saving as DOC.");
+            if (storyRoots.Any(HasMoveRevisionMarkup)) {
+                throw new NotSupportedException("Native DOC saving currently supports tracked insertions and deletions, but not tracked move markup. Accept or reject tracked moves, or save as DOCX before saving as DOC.");
             }
 
             CommentsEx? commentsEx = mainPart.WordprocessingCommentsExPart?.CommentsEx;
@@ -410,10 +418,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return roots;
         }
 
-        private static bool HasTrackedRevisionMarkup(OpenXmlElement storyRoot) {
-            return storyRoot.Descendants<InsertedRun>().Any()
-                || storyRoot.Descendants<DeletedRun>().Any()
-                || storyRoot.Descendants<MoveFromRun>().Any()
+        private static bool HasMoveRevisionMarkup(OpenXmlElement storyRoot) {
+            return storyRoot.Descendants<MoveFromRun>().Any()
                 || storyRoot.Descendants<MoveToRun>().Any();
         }
 
@@ -580,6 +586,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
+                    case InsertedRun insertedRun:
+                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, LegacyDocWritableFormatting.Plain, pictures, mainPart);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, LegacyDocWritableFormatting.Plain, pictures, mainPart);
+                        break;
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes);
                         break;
@@ -687,6 +699,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, LcbPlcfHddOffset, body.HasHeaderFooterStories ? body.PlcfHdd.Length : 0);
             WriteInt32(stream, FcSttbfBkmkOffset, body.HasBookmarks ? body.SttbfBkmkOffsetInTableStream : 0);
             WriteInt32(stream, LcbSttbfBkmkOffset, body.HasBookmarks ? body.SttbfBkmk.Length : 0);
+            WriteInt32(stream, FcSttbfRMarkOffset, body.HasRevisions ? body.SttbfRMarkOffsetInTableStream : 0);
+            WriteInt32(stream, LcbSttbfRMarkOffset, body.SttbfRMark.Length);
             WriteInt32(stream, FcPlcfBkfOffset, body.HasBookmarks ? body.PlcfBkfOffsetInTableStream : 0);
             WriteInt32(stream, LcbPlcfBkfOffset, body.HasBookmarks ? body.PlcfBkf.Length : 0);
             WriteInt32(stream, FcPlcfBklOffset, body.HasBookmarks ? body.PlcfBklOffsetInTableStream : 0);
@@ -699,7 +713,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteInt32(stream, 0x1A6, ClxLength);
             Buffer.BlockCopy(textBytes, 0, stream, TextOffset, textBytes.Length);
             if (body.HasCharacterFormatting) {
-                WriteChpxFkp(stream, chpxFkpOffset, body.CreateFormattingSegments(), body.FontFamilyIndexes, bytesPerCharacter);
+                WriteChpxFkp(
+                    stream,
+                    chpxFkpOffset,
+                    body.CreateFormattingSegments(),
+                    body.FontFamilyIndexes,
+                    body.RevisionAuthorIndexes,
+                    bytesPerCharacter);
             }
 
             if (body.HasParagraphFormatting) {
@@ -794,6 +814,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Buffer.BlockCopy(body.SttbfBkmk, 0, table, body.SttbfBkmkOffsetInTableStream, body.SttbfBkmk.Length);
                 Buffer.BlockCopy(body.PlcfBkf, 0, table, body.PlcfBkfOffsetInTableStream, body.PlcfBkf.Length);
                 Buffer.BlockCopy(body.PlcfBkl, 0, table, body.PlcfBklOffsetInTableStream, body.PlcfBkl.Length);
+            }
+
+            if (body.HasRevisions) {
+                Buffer.BlockCopy(body.SttbfRMark, 0, table, body.SttbfRMarkOffsetInTableStream, body.SttbfRMark.Length);
             }
 
             if (body.HasStyleSheet) {

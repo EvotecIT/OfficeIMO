@@ -979,6 +979,11 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                if (legacyRun.Revision.HasValue) {
+                    AddLegacyDocRevisionRunContent(paragraph, legacyRun, notes, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.HyperlinkTarget.HasValue) {
                     int hyperlinkStartIndex = index;
                     LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
@@ -1017,6 +1022,8 @@ namespace OfficeIMO.Word {
             LegacyDocPicture picture = legacyRun.Picture
                 ?? throw new InvalidOperationException("The legacy DOC picture run has no picture payload.");
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
+            var existingDrawings = new HashSet<DocumentFormat.OpenXml.Wordprocessing.Drawing>(
+                paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
             using var stream = new MemoryStream(picture.ImageBytes, writable: false);
             paragraph.AddImage(
                 stream,
@@ -1025,6 +1032,29 @@ namespace OfficeIMO.Word {
                 picture.HeightPixels,
                 WrapTextImage.InLineWithText,
                 "Imported legacy DOC inline picture");
+            if (legacyRun.Revision.HasValue) {
+                Run? sourceRun = paragraph._paragraph.Elements<Run>()
+                    .LastOrDefault(run => run.Elements<DocumentFormat.OpenXml.Wordprocessing.Drawing>()
+                        .Any(drawing => !existingDrawings.Contains(drawing)));
+                if (sourceRun != null) {
+                    DocumentFormat.OpenXml.Wordprocessing.Drawing[] addedDrawings = sourceRun
+                        .Elements<DocumentFormat.OpenXml.Wordprocessing.Drawing>()
+                        .Where(drawing => !existingDrawings.Contains(drawing))
+                        .ToArray();
+                    var pictureRun = new Run();
+                    foreach (DocumentFormat.OpenXml.Wordprocessing.Drawing drawing in addedDrawings) {
+                        drawing.Remove();
+                        pictureRun.Append(drawing);
+                    }
+
+                    if (!sourceRun.ChildElements.Any(element => element is not RunProperties)) {
+                        sourceRun.Remove();
+                    }
+
+                    AppendLegacyDocRevisionRun(paragraph, legacyRun, pictureRun);
+                }
+            }
+
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
@@ -1374,7 +1404,8 @@ namespace OfficeIMO.Word {
                 characterSpacingTwips: source.CharacterSpacingTwips,
                 language: source.Language,
                 eastAsiaLanguage: source.EastAsiaLanguage,
-                picture: source.Picture);
+                picture: source.Picture,
+                revision: source.Revision);
         }
 
         private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
