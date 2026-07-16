@@ -26,24 +26,44 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             0x00, 0x00, 0x00
         };
 
-        internal static byte[] Create(IReadOnlyList<XlsbWriteCell> cells) {
+        internal static byte[] Create(
+            ExcelSheet sheet,
+            IReadOnlyList<XlsbWriteCell> cells,
+            int cellFormatCount) {
+            if (sheet == null) throw new ArgumentNullException(nameof(sheet));
             if (cells == null) throw new ArgumentNullException(nameof(cells));
+
+            XlsbWorksheetGeometryPlan geometry = XlsbWorksheetGeometryPlan.Create(sheet, cells, cellFormatCount);
 
             IReadOnlyDictionary<int, IReadOnlyList<XlsbWriteCell>> cellsByRow = cells
                 .GroupBy(cell => cell.Row - 1)
                 .ToDictionary(group => group.Key, group => (IReadOnlyList<XlsbWriteCell>)group.OrderBy(cell => cell.Column).ToArray());
+            int[] rowIndexes = cellsByRow.Keys.Concat(geometry.RowProperties.Keys).Distinct().OrderBy(row => row).ToArray();
 
             using var output = new MemoryStream(Math.Max(256, cells.Count * 24));
             XlsbRecordWriter.Write(output, 129); // BrtBeginSheet
-            XlsbRecordWriter.Write(output, BrtWsDim, CreateNewDimensionPayload(cells));
+            XlsbRecordWriter.Write(output, BrtWsDim, geometry.DimensionPayload);
+            foreach (XlsbGeneratedRecord record in geometry.PrefixRecords) {
+                XlsbRecordWriter.Write(output, record.Type, record.Payload);
+            }
             XlsbRecordWriter.Write(output, BrtBeginSheetData);
-            foreach (KeyValuePair<int, IReadOnlyList<XlsbWriteCell>> row in cellsByRow.OrderBy(pair => pair.Key)) {
-                XlsbRecordWriter.Write(output, BrtRowHdr, CreateRowHeaderPayload(row.Key, sourcePayload: null, row.Value));
-                foreach (XlsbWriteCell cell in row.Value) {
+            foreach (int rowIndex in rowIndexes) {
+                cellsByRow.TryGetValue(rowIndex, out IReadOnlyList<XlsbWriteCell>? rowCells);
+                geometry.RowProperties.TryGetValue(rowIndex, out byte[]? rowProperties);
+                XlsbRecordWriter.Write(output, BrtRowHdr, CreateRowHeaderPayload(
+                    rowIndex,
+                    sourcePayload: null,
+                    rowCells ?? Array.Empty<XlsbWriteCell>(),
+                    rowProperties));
+                if (rowCells == null) continue;
+                foreach (XlsbWriteCell cell in rowCells) {
                     WriteCell(output, cell);
                 }
             }
             XlsbRecordWriter.Write(output, BrtEndSheetData);
+            foreach (XlsbGeneratedRecord record in geometry.SuffixRecords) {
+                XlsbRecordWriter.Write(output, record.Type, record.Payload);
+            }
             XlsbRecordWriter.Write(output, 130); // BrtEndSheet
             return output.ToArray();
         }
@@ -86,7 +106,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             foreach (int rowIndex in rowIndexes) {
                 layout.Rows.TryGetValue(rowIndex, out XlsbSourceRowBlock? sourceRow);
                 cellsByRow.TryGetValue(rowIndex, out IReadOnlyList<XlsbWriteCell>? rowCells);
-                byte[] rowPayload = CreateRowHeaderPayload(rowIndex, sourceRow?.RowHeader.Data, rowCells ?? Array.Empty<XlsbWriteCell>());
+                byte[] rowPayload = CreateRowHeaderPayload(rowIndex, sourceRow?.RowHeader.Data, rowCells ?? Array.Empty<XlsbWriteCell>(), newProperties: null);
                 XlsbRecordWriter.Write(output, BrtRowHdr, rowPayload);
 
                 if (rowCells != null) {
@@ -112,7 +132,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
         private static byte[] CreateRowHeaderPayload(
             int zeroBasedRow,
             byte[]? sourcePayload,
-            IReadOnlyList<XlsbWriteCell> cells) {
+            IReadOnlyList<XlsbWriteCell> cells,
+            byte[]? newProperties) {
             if (sourcePayload != null && sourcePayload.Length < 17) {
                 throw new InvalidDataException($"The XLSB row header for row {zeroBasedRow + 1} is truncated.");
             }
@@ -135,6 +156,9 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteUInt32(payload, checked((uint)zeroBasedRow));
             if (sourcePayload != null) {
                 payload.Write(sourcePayload, 4, 9);
+            } else if (newProperties != null) {
+                if (newProperties.Length != 9) throw new InvalidDataException("A generated XLSB row-property payload must contain 9 bytes.");
+                payload.Write(newProperties, 0, newProperties.Length);
             } else {
                 payload.Write(DefaultRowProperties, 0, DefaultRowProperties.Length);
             }
@@ -202,22 +226,6 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteUInt32(payload, hasSourceCells ? Math.Max(lastRow, cellLastRow) : cellLastRow);
             WriteUInt32(payload, hasSourceCells ? Math.Min(firstColumn, cellFirstColumn) : cellFirstColumn);
             WriteUInt32(payload, hasSourceCells ? Math.Max(lastColumn, cellLastColumn) : cellLastColumn);
-            return payload.ToArray();
-        }
-
-        private static byte[] CreateNewDimensionPayload(IReadOnlyList<XlsbWriteCell> cells) {
-            using var payload = new MemoryStream(16);
-            if (cells.Count == 0) {
-                WriteUInt32(payload, 0);
-                WriteUInt32(payload, 0);
-                WriteUInt32(payload, 0);
-                WriteUInt32(payload, 0);
-            } else {
-                WriteUInt32(payload, checked((uint)(cells.Min(cell => cell.Row) - 1)));
-                WriteUInt32(payload, checked((uint)(cells.Max(cell => cell.Row) - 1)));
-                WriteUInt32(payload, checked((uint)(cells.Min(cell => cell.Column) - 1)));
-                WriteUInt32(payload, checked((uint)(cells.Max(cell => cell.Column) - 1)));
-            }
             return payload.ToArray();
         }
 

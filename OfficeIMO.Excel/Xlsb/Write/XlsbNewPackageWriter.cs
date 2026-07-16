@@ -29,7 +29,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 if (invalidStyle != null) {
                     throw new NotSupportedException($"Native XLSB generation found cell {sheets[index].Name}!R{invalidStyle.Row}C{invalidStyle.Column} with missing style index {invalidStyle.StyleIndex}.");
                 }
-                worksheetParts[index] = XlsbWorksheetPartWriter.Create(cells);
+                worksheetParts[index] = XlsbWorksheetPartWriter.Create(sheets[index], cells, cellFormatCount);
             }
 
             using var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true);
@@ -37,7 +37,8 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WriteEntry(archive, "_rels/.rels", RootRelationships);
             WriteEntry(archive, "xl/workbook.bin", XlsbWorkbookPartWriter.Create(
                 sheets,
-                document.DateSystem == ExcelDateSystem.NineteenFour));
+                document.DateSystem == ExcelDateSystem.NineteenFour,
+                document.WorkbookRoot.GetFirstChild<BookViews>()));
             WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Length, stylesPart != null));
             for (int index = 0; index < worksheetParts.Length; index++) {
                 WriteEntry(
@@ -58,10 +59,14 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
-                .FirstOrDefault(element => element is not Sheets && element is not WorkbookProperties);
+                .FirstOrDefault(element => element is not Sheets
+                    && element is not WorkbookProperties
+                    && element is not BookViews);
             if (unsupportedWorkbookChild != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support workbook metadata '{unsupportedWorkbookChild.LocalName}'.");
             }
+
+            XlsbWorkbookViewWriter.Validate(document.WorkbookRoot.GetFirstChild<BookViews>(), sheets.Count);
 
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
             if (properties != null) {

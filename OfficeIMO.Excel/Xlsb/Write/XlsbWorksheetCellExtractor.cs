@@ -95,7 +95,12 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             }
 
             OpenXmlElement? unsupported = sheet.WorksheetPart.Worksheet?.ChildElements
-                .FirstOrDefault(element => element is not SheetDimension && element is not SheetData);
+                .FirstOrDefault(element => element is not SheetDimension
+                    && element is not SheetViews
+                    && element is not SheetFormatProperties
+                    && element is not Columns
+                    && element is not SheetData
+                    && element is not MergeCells);
             if (unsupported != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support worksheet metadata '{unsupported.LocalName}' on worksheet '{sheet.Name}'.");
             }

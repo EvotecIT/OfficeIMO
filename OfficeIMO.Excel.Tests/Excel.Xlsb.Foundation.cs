@@ -930,7 +930,6 @@ namespace OfficeIMO.Tests {
             Assert.True(sheet.GetCellStyle(1, 1).Bold);
 
             byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
-
             using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
             Assert.Equal(ExcelDateSystem.NineteenFour, reloaded.DateSystem);
             ExcelSheet reloadedSheet = Assert.Single(reloaded.Sheets);
@@ -942,6 +941,46 @@ namespace OfficeIMO.Tests {
             Assert.Equal("0.0000", reloadedSheet.GetCellStyle(3, 1).NumberFormatCode);
             Assert.Contains(reloaded.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!.NumberingFormats!
                 .Elements<NumberingFormat>(), format => format.FormatCode?.Value == "0.0000");
+        }
+
+        [Fact]
+        public void Xlsb_NewWorkbook_WritesWorksheetGeometry() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet sheet = document.AddWorksheet("Geometry");
+            sheet.CellValue(1, 1, "Merged heading");
+            sheet.CellValue(5, 4, "Extent");
+            sheet.SetDefaultColumnWidth(9D);
+            sheet.SetDefaultRowHeight(18D);
+            sheet.SetColumnWidth(1, 20D);
+            sheet.SetColumnHidden(4, true);
+            sheet.SetColumnOutline(3, 2, collapsed: true);
+            sheet.SetRowHeight(1, 30D);
+            sheet.SetRowHidden(3, true);
+            sheet.SetRowOutline(4, 2, collapsed: true);
+            sheet.Freeze(topRows: 1, leftCols: 1);
+            sheet.MergeRange("A1:C1");
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            ExcelSheet result = Assert.Single(reloaded.Sheets);
+            Assert.Equal("A1:D5", result.WorksheetPart.Worksheet.GetFirstChild<SheetDimension>()?.Reference?.Value);
+            Assert.Equal(9D, result.DefaultColumnWidth);
+            Assert.Equal(18D, result.DefaultRowHeight);
+            Assert.Equal(30D, result.GetRowDefinitions().Single(row => row.Index == 1).Height);
+            Assert.True(result.GetRowDefinitions().Single(row => row.Index == 3).Hidden);
+            Assert.Equal((byte)2, result.GetRowDefinitions().Single(row => row.Index == 4).OutlineLevel);
+            Assert.True(result.GetRowDefinitions().Single(row => row.Index == 4).Collapsed);
+            Assert.Equal(20D, result.GetColumnDefinitions().Single(column => column.StartIndex == 1).Width);
+            Assert.True(result.GetColumnDefinitions().Single(column => column.StartIndex == 4).Hidden);
+            Assert.Equal((byte)2, result.GetColumnDefinitions().Single(column => column.StartIndex == 3).OutlineLevel);
+            Assert.True(result.GetColumnDefinitions().Single(column => column.StartIndex == 3).Collapsed);
+            Assert.Equal("A1:C1", Assert.Single(result.GetMergedRanges()).A1Range);
+            Pane pane = Assert.IsType<Pane>(result.WorksheetPart.Worksheet
+                .GetFirstChild<SheetViews>()?.GetFirstChild<SheetView>()?.GetFirstChild<Pane>());
+            Assert.Equal(1D, pane.HorizontalSplit?.Value);
+            Assert.Equal(1D, pane.VerticalSplit?.Value);
+            Assert.Equal("B2", pane.TopLeftCell?.Value);
+            Assert.Equal(PaneStateValues.Frozen, pane.State?.Value);
         }
 
         private static byte[] CreateMinimalXlsbPackage() {
