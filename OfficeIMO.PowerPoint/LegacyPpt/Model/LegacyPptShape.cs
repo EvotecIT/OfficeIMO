@@ -184,7 +184,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets decoded OfficeArt fill, line, and shadow properties.</summary>
         public OfficeArtShapeStyle Style { get; }
 
-        /// <summary>Gets the resolved solid fill color as RRGGBB, when available.</summary>
+        /// <summary>Gets the resolved foreground or first gradient fill color as RRGGBB.</summary>
         public string? FillColor { get; }
 
         /// <summary>Gets the resolved background or final gradient fill color as RRGGBB.</summary>

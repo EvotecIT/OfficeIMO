@@ -107,7 +107,7 @@ namespace OfficeIMO.PowerPoint {
                 return null;
             }
 
-            var gradient = new A.GradientFill { RotateWithShape = true };
+            var gradient = new A.GradientFill { RotateWithShape = false };
             var stops = new A.GradientStopList();
             LegacyPptGradientStop[] customStops = source.FillGradientStops
                 .Where(stop => stop.Color != null)
@@ -131,7 +131,7 @@ namespace OfficeIMO.PowerPoint {
             gradient.Append(stops);
             if (fillType is 4 or 7) {
                 double angle = NormalizeLegacyGradientAngle(
-                    90D + source.Style.FillAngleDegrees.GetValueOrDefault());
+                    90D - source.Style.FillAngleDegrees.GetValueOrDefault());
                 gradient.Append(new A.LinearGradientFill {
                     Angle = checked((int)Math.Round(angle * 60000D,
                         MidpointRounding.AwayFromZero)),

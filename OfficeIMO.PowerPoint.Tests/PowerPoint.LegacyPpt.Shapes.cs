@@ -157,6 +157,7 @@ namespace OfficeIMO.Tests {
                 gradient.GetFirstChild<A.LinearGradientFill>());
             Assert.Equal(270 * 60000, linear.Angle!.Value);
             Assert.True(linear.Scaled!.Value);
+            Assert.False(gradient.RotateWithShape!.Value);
         }
 
         [Fact]
@@ -265,11 +266,18 @@ namespace OfficeIMO.Tests {
             using PowerPointPresentation presentation = PowerPointPresentation.Load(TransformFixturePath);
 
             PowerPointSlide slide = Assert.Single(presentation.Slides);
-            Assert.Equal(30D, slide.TextBoxes.Single(shape => shape.Text == "Rotate 30").Rotation);
+            PowerPointTextBox rotated = slide.TextBoxes.Single(shape => shape.Text == "Rotate 30");
+            Assert.Equal(30D, rotated.Rotation);
             Assert.Equal(315D, slide.TextBoxes.Single(shape => shape.Text == "Rotate -45").Rotation);
             Assert.True(slide.TextBoxes.Single(shape => shape.Text == "Flip H").HorizontalFlip);
             Assert.True(slide.TextBoxes.Single(shape => shape.Text == "Flip V").VerticalFlip);
             Assert.Single(slide.Shapes.OfType<PowerPointGroupShape>());
+            A.GradientFill gradient = Assert.IsType<A.GradientFill>(
+                Assert.IsType<P.Shape>(rotated.Element).ShapeProperties!
+                    .GetFirstChild<A.GradientFill>());
+            Assert.False(gradient.RotateWithShape!.Value);
+            Assert.Equal(300 * 60000, gradient.GetFirstChild<A.LinearGradientFill>()!
+                .Angle!.Value);
             Assert.Empty(presentation.ValidateDocument());
 
             Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
