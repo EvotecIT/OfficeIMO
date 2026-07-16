@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing;
 using OfficeIMO.Excel.Xlsb;
@@ -5,6 +6,8 @@ using OfficeIMO.Excel.Xlsb;
 namespace OfficeIMO.Excel {
     /// <summary>Controls creation and persistence of an Excel workbook.</summary>
     public sealed class ExcelCreateOptions : DocumentCreateOptions {
+        /// <summary>Controls the Open XML workbook type when no destination extension is available.</summary>
+        public SpreadsheetDocumentType DocumentType { get; set; } = SpreadsheetDocumentType.Workbook;
     }
 
     /// <summary>Controls access, persistence, and package behavior when loading an Excel workbook.</summary>

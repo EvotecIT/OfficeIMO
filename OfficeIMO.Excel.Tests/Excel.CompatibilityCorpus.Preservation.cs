@@ -91,22 +91,19 @@ namespace OfficeIMO.Tests {
                     Assert.False(report.Can(ExcelPreflightCapability.BindTemplate));
                     Assert.False(report.Can(ExcelPreflightCapability.ExportPdfReport));
 
-                    Assert.Contains(report.PreservedFeatures, feature => feature.Name == "VBA macros"
+                    Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "VBA macros"
                         && feature.Details.Any(detail => detail.Contains("vbaProject", StringComparison.OrdinalIgnoreCase)));
-                    Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Embedded packages"
+                    Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Embedded packages"
                         && feature.Details.Any(detail => detail.Contains("/embeddings/", StringComparison.OrdinalIgnoreCase)));
-                    Assert.Contains(report.PreservedFeatures, feature => feature.Name == "OLE objects"
+                    Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "OLE objects"
                         && feature.Details.Any(detail => detail.Contains("Controls", StringComparison.OrdinalIgnoreCase)));
                     Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Form controls"
                         && feature.Details.Any(detail => detail.Contains("Controls", StringComparison.OrdinalIgnoreCase)));
 
                     string diagnostics = string.Join(Environment.NewLine,
                         report.GetCapabilityDiagnostics(ExcelPreflightCapability.BindTemplate));
-                    Assert.Contains("VBA macros", diagnostics);
-                    Assert.Contains("Embedded packages", diagnostics);
-                    Assert.Contains("OLE objects", diagnostics);
                     Assert.Contains("Form controls", diagnostics);
-                    Assert.Contains("VBA macros", Assert.Throws<InvalidOperationException>(() =>
+                    Assert.Contains("Form controls", Assert.Throws<InvalidOperationException>(() =>
                         report.EnsureCan(ExcelPreflightCapability.BindTemplate)).Message);
                 }
             } finally {

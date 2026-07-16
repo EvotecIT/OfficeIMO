@@ -421,14 +421,14 @@ namespace OfficeIMO.Word {
             Add(features, "Compatibility", "Web extensions and task panes", WordFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
                 "Office add-in and task-pane package metadata is detected as preserve-only advanced content.",
                 webExtensionDetails);
-            Add(features, "Compatibility", "Embedded packages", WordFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
-                "Embedded package parts and OLE payloads are advanced package content and should be treated as preserve-only.",
+            Add(features, "Compatibility", "Embedded packages", WordFeatureSupportLevel.PartiallyEditable, embeddedPackageDetails.Count, null,
+                "Embedded package and OLE payloads can be inventoried, hash-checked, extracted with byte limits, replaced, and removed; authoring remains available through the embedded-object API.",
                 embeddedPackageDetails);
             Add(features, "Compatibility", "ActiveX controls", WordFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
                 "ActiveX control package metadata is detected as preserve-only advanced document content.",
                 activeXControlDetails);
             Add(features, "Compatibility", "VBA macros", WordFeatureSupportLevel.PartiallyEditable, vbaDetails.Count, null,
-                "VBA projects can be attached, extracted, enumerated, and removed; OfficeIMO does not edit VBA modules or sign macro projects.",
+                "VBA projects can be attached, hash-checked, extracted with byte limits, enumerated, and removed; OfficeIMO does not edit VBA source or sign macro projects.",
                 vbaDetails);
             Add(features, "Compatibility", "Custom XML parts", WordFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",

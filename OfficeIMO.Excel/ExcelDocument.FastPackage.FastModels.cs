@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
             internal static void Write(Stream destination, FastWorkbookPackageModel model, CancellationToken ct) {
                 using (var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true)) {
                     ct.ThrowIfCancellationRequested();
-                    WriteContentTypesEntry(archive, model.HasStyles, model.HasSharedStrings, model.HasCustomProperties, model.Worksheets.Count, model.Tables.Count);
+                    WriteContentTypesEntry(archive, model.WorkbookContentType, model.HasStyles, model.HasSharedStrings, model.HasCustomProperties, model.Worksheets.Count, model.Tables.Count);
                     ct.ThrowIfCancellationRequested();
                     WriteTextEntry(archive, "_rels/.rels", CreatePackageRelationshipsXml(model.HasCustomProperties));
                     WriteCorePropertiesEntry(archive);
@@ -70,6 +70,7 @@ namespace OfficeIMO.Excel {
 
         private sealed class FastWorkbookPackageModel {
             private FastWorkbookPackageModel(
+                string workbookContentType,
                 IReadOnlyList<FastWorksheetPackageModel> worksheets,
                 Stylesheet? stylesheet,
                 SharedStringTable? sharedStrings,
@@ -82,6 +83,7 @@ namespace OfficeIMO.Excel {
                 DefinedNames? definedNames,
                 CalculationProperties? calculationProperties,
                 DocumentFormat.OpenXml.CustomProperties.Properties? customProperties) {
+                WorkbookContentType = workbookContentType;
                 Worksheets = worksheets;
                 Stylesheet = stylesheet;
                 SharedStrings = sharedStrings;
@@ -97,6 +99,8 @@ namespace OfficeIMO.Excel {
             }
 
             internal IReadOnlyList<FastWorksheetPackageModel> Worksheets { get; }
+
+            internal string WorkbookContentType { get; }
 
             internal Stylesheet? Stylesheet { get; }
 
@@ -267,6 +271,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 model = new FastWorkbookPackageModel(
+                    workbookPart.ContentType,
                     worksheets,
                     workbookPart.WorkbookStylesPart?.Stylesheet,
                     sharedStrings!,

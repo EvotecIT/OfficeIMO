@@ -31,7 +31,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageStream = new MemoryStream(StreamBufferSize);
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, autoSave: false);
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType, autoSave: false);
             return CreateNewDocument(
                 spreadSheetDocument,
                 filePath: null,
@@ -59,7 +59,8 @@ namespace OfficeIMO.Excel {
             Stream packageStream = saveOnDispose
                 ? new NonDisposingMemoryStream(StreamBufferSize)
                 : new MemoryStream(StreamBufferSize);
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, autoSave: false);
+            SpreadsheetDocumentType documentType = ResolveSpreadsheetDocumentType(filePath) ?? resolved.DocumentType;
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, documentType, autoSave: false);
             return CreateNewDocument(
                 spreadSheetDocument,
                 filePath,
@@ -86,8 +87,43 @@ namespace OfficeIMO.Excel {
                 ? new NonDisposingMemoryStream(StreamBufferSize)
                 : new MemoryStream(StreamBufferSize);
 
-            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, false);
+            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType, false);
             return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, resolved.PersistenceMode, saveOnDispose, leaveSourceStreamOpen: true);
+        }
+
+        private static SpreadsheetDocumentType? ResolveSpreadsheetDocumentType(string? filePath) {
+            if (string.IsNullOrWhiteSpace(filePath)) {
+                return null;
+            }
+
+            return Path.GetExtension(filePath).ToLowerInvariant() switch {
+                ".xlsx" => SpreadsheetDocumentType.Workbook,
+                ".xlsm" => SpreadsheetDocumentType.MacroEnabledWorkbook,
+                ".xltx" => SpreadsheetDocumentType.Template,
+                ".xltm" => SpreadsheetDocumentType.MacroEnabledTemplate,
+                _ => null
+            };
+        }
+
+        private void AlignSpreadsheetDocumentTypeWithFilePath(string filePath) {
+            SpreadsheetDocumentType? target = ResolveSpreadsheetDocumentType(filePath);
+            if (!target.HasValue) {
+                return;
+            }
+
+            bool macroFreeTarget = target.Value == SpreadsheetDocumentType.Workbook
+                || target.Value == SpreadsheetDocumentType.Template;
+            bool currentlyMacroEnabled = _spreadSheetDocument.DocumentType == SpreadsheetDocumentType.MacroEnabledWorkbook
+                || _spreadSheetDocument.DocumentType == SpreadsheetDocumentType.MacroEnabledTemplate;
+            if (macroFreeTarget && HasMacros && currentlyMacroEnabled) {
+                throw new InvalidOperationException(
+                    "A workbook containing VBA cannot be saved to a macro-free .xlsx or .xltx destination. Use .xlsm/.xltm or remove the VBA project first.");
+            }
+
+            if (_spreadSheetDocument.DocumentType != target.Value) {
+                _spreadSheetDocument.ChangeDocumentType(target.Value);
+                MarkPackageDirty();
+            }
         }
 
         private static ExcelDocument CreateNewDocument(

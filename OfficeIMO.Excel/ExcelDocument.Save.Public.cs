@@ -125,6 +125,8 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            AlignSpreadsheetDocumentTypeWithFilePath(path);
+
             if (TrySaveDirectDataSetPackageToFile(path, options, CancellationToken.None, out _)) {
                 return;
             }
@@ -188,6 +190,7 @@ namespace OfficeIMO.Excel {
             EnsureLegacyXlsSaveDoesNotDropImportedContent(saveOptions);
             EnsureLegacyBinaryEncryptedSaveTargetSupported(path);
             EnsureXlsbFileTargetSupported(path, saveOptions, allowUnchangedCopy: false);
+            AlignSpreadsheetDocumentTypeWithFilePath(path);
             EnsureDestinationFileWritable(path);
             EnsureDirectoryWritable(path);
 
@@ -268,6 +271,8 @@ namespace OfficeIMO.Excel {
             if (await TrySaveNativeLegacyXlsToFileAsync(target, options, cancellationToken).ConfigureAwait(false)) {
                 return;
             }
+
+            AlignSpreadsheetDocumentTypeWithFilePath(target);
 
             if (TrySaveDirectDataSetPackageToFile(target, options, cancellationToken, out _)) {
                 return;

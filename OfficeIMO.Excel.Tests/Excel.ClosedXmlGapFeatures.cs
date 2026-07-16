@@ -1366,7 +1366,7 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
-                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "OLE objects"
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "OLE objects"
                     && feature.Count == 1
                     && feature.Details.Any(detail => detail.Contains("Controls", StringComparison.OrdinalIgnoreCase)));
                 Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Form controls"
@@ -1496,9 +1496,9 @@ namespace OfficeIMO.Tests {
 
             using (ExcelDocument document = ExcelDocument.Load(filePath, new OfficeIMO.Excel.ExcelLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly })) {
                 ExcelFeatureReport report = document.InspectFeatures();
-                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "VBA macros"
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "VBA macros"
                     && feature.Details.Any(detail => detail.Contains("vbaProject", StringComparison.OrdinalIgnoreCase)));
-                Assert.Contains(report.PreservedFeatures, feature => feature.Name == "Embedded packages"
+                Assert.Contains(report.PartiallyEditableFeatures, feature => feature.Name == "Embedded packages"
                     && feature.Details.Any(detail => detail.Contains("/embeddings/", StringComparison.OrdinalIgnoreCase)));
             }
         }

@@ -4,6 +4,7 @@ using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
 using OpenMcdf;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 using Version = OpenMcdf.Version;
@@ -326,6 +327,28 @@ namespace OfficeIMO.Tests {
                 Assert.True(document.HasMacros);
                 Assert.Single(document.Macros);
                 Assert.Equal("Module1", document.Macros[0].Name);
+            }
+
+            File.Delete(documentPath);
+            File.Delete(vbaPath);
+        }
+
+        [Fact]
+        public void Test_InspectVbaProjectReportsHashModulesAndBounds() {
+            string vbaPath = Path.Combine(_directoryDocuments, "inspectVba.bin");
+            string documentPath = Path.Combine(_directoryWithFiles, "InspectMacro.docm");
+            CreateDummyVba(vbaPath, "Module1", "Module2");
+            File.Delete(documentPath);
+
+            using (WordDocument document = WordDocument.Create(documentPath)) {
+                document.AddMacro(vbaPath);
+                OfficeVbaProjectInfo info = document.InspectVbaProject(includeSha256: true)!;
+                Assert.Equal(new[] { "Module1", "Module2" }, info.ModuleNames);
+                Assert.Equal(new FileInfo(vbaPath).Length, info.Length);
+                Assert.Equal(64, info.Sha256!.Length);
+                Assert.Throws<InvalidDataException>(() => document.ExtractMacros(info.Length - 1));
+                Assert.Equal(File.ReadAllBytes(vbaPath), document.ExtractMacros(info.Length));
+                document.Save();
             }
 
             File.Delete(documentPath);
