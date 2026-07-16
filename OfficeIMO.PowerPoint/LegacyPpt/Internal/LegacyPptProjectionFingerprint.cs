@@ -76,13 +76,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         && specialProjection != null) {
                         NormalizeProjectedSpecialMaster(root, specialProjection);
                     }
-                    if (part is ThemePart
+                    if (part is ThemePart or ThemeOverridePart
                         && projectionMap.IsProjectedMasterThemePart(part.Uri.ToString())) {
                         NormalizeProjectedMasterTheme(root);
                     }
                     if (part is SlideLayoutPart
                         && projectionMap.IsProjectedLayoutPart(part.Uri.ToString())) {
                         NormalizeProjectedHeaderFooter(root);
+                    }
+                    if (part is SlideLayoutPart titlePart
+                        && projectionMap.TryGetTitleMaster(titlePart,
+                            out LegacyPptMasterProjection? titleProjection)
+                        && titleProjection != null) {
+                        NormalizeProjectedTitleMaster(root, titleProjection);
                     }
                 },
                 part => !(part is SlidePart or NotesSlidePart or SlideCommentsPart
@@ -97,14 +103,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 master.ColorMap.ClearAllAttributes();
                 master.ColorMap.RemoveAllChildren();
             }
+            NormalizeProjectedBackground(master.CommonSlideData);
             NormalizeProjectedShapes(root, projection.TryGetShape,
                 normalizeInteractions: false);
         }
 
         private static void NormalizeProjectedMasterTheme(OpenXmlElement root) {
-            if (root is not A.Theme theme) return;
-            theme.ClearAllAttributes();
-            theme.RemoveAllChildren();
+            if (root is A.Theme theme) {
+                theme.ClearAllAttributes();
+                theme.RemoveAllChildren();
+            } else if (root is A.ThemeOverride themeOverride) {
+                themeOverride.ClearAllAttributes();
+                themeOverride.RemoveAllChildren();
+            }
+        }
+
+        private static void NormalizeProjectedTitleMaster(OpenXmlElement root,
+            LegacyPptMasterProjection projection) {
+            if (root is not P.SlideLayout layout) return;
+            if (layout.ColorMapOverride != null) {
+                layout.ColorMapOverride.ClearAllAttributes();
+                layout.ColorMapOverride.RemoveAllChildren();
+            }
+            NormalizeProjectedBackground(layout.CommonSlideData);
+            NormalizeProjectedShapes(root, projection.TryGetShape,
+                normalizeInteractions: false);
         }
 
         private static void NormalizeProjectedSpecialMaster(OpenXmlElement root,
@@ -113,14 +136,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 case P.NotesMaster notes when notes.ColorMap != null:
                     notes.ColorMap.ClearAllAttributes();
                     notes.ColorMap.RemoveAllChildren();
+                    NormalizeProjectedBackground(notes.CommonSlideData);
                     break;
                 case P.HandoutMaster handout when handout.ColorMap != null:
                     handout.ColorMap.ClearAllAttributes();
                     handout.ColorMap.RemoveAllChildren();
+                    NormalizeProjectedBackground(handout.CommonSlideData);
+                    break;
+                case P.NotesMaster notes:
+                    NormalizeProjectedBackground(notes.CommonSlideData);
+                    break;
+                case P.HandoutMaster handout:
+                    NormalizeProjectedBackground(handout.CommonSlideData);
                     break;
             }
             NormalizeProjectedShapes(root, projection.TryGetShape,
                 normalizeInteractions: false);
+        }
+
+        private static void NormalizeProjectedBackground(
+            P.CommonSlideData? commonSlideData) {
+            P.Background? background = commonSlideData?.Background;
+            if (background == null) return;
+            background.ClearAllAttributes();
+            background.RemoveAllChildren();
         }
 
         private static string CreateSlide(PresentationDocument document, SlidePart slidePart,
@@ -174,6 +213,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (root is P.Slide slideRoot) {
                 slideRoot.Show = null;
                 slideRoot.Transition = null;
+                NormalizeProjectedBackground(slideRoot.CommonSlideData);
                 P.SlideExtensionList? extensions = slideRoot
                     .GetFirstChild<P.SlideExtensionList>();
                 P.SlideExtension? classicAnimations = extensions?

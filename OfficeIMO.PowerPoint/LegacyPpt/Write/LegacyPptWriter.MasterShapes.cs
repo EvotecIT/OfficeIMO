@@ -29,6 +29,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 "handout master", out unsupportedReason);
         }
 
+        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
+            SlideLayoutPart masterPart, out string? unsupportedReason) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            return ReadMasterShapesForWrite(masterPart,
+                masterPart.SlideLayout?.CommonSlideData?.ShapeTree,
+                "title master layout", out unsupportedReason);
+        }
+
         private static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
             OpenXmlPartContainer ownerPart, P.ShapeTree? tree, string ownerName,
             out string? unsupportedReason) {

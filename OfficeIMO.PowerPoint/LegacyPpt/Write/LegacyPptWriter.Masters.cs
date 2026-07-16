@@ -184,7 +184,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         children.AddRange(textStyleRecords);
                         wroteTextStyles = true;
                     }
-                } else if (!IsRoundTripThemeRecord(child.Type)) {
+                } else if (roundTripThemeRecords == null
+                           || !IsRoundTripThemeRecord(child.Type)) {
                     children.Add(child.CopyRecordBytes());
                 }
             }
@@ -231,6 +232,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 source.HandoutMaster?.ColorMap, changedClassicColorSlots);
         }
 
+        internal static byte[] BuildPreservedMasterThemeRecord(
+            LegacyPptRecord prototype, SlideLayoutPart source,
+            IReadOnlyList<int> changedClassicColorSlots) {
+            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            if (source == null) throw new ArgumentNullException(nameof(source));
+            A.ThemeOverride theme = source.ThemeOverridePart?.ThemeOverride
+                ?? throw new InvalidDataException(
+                    "A projected binary title master has no DrawingML theme override to preserve.");
+            if (changedClassicColorSlots == null) {
+                throw new ArgumentNullException(nameof(changedClassicColorSlots));
+            }
+            A.ColorScheme? effectiveColors = theme.ColorScheme
+                ?? source.SlideMasterPart?.ThemePart?.Theme?.ThemeElements?
+                    .ColorScheme;
+            return BuildMasterRecord(prototype, ReadColorScheme(effectiveColors),
+                background: null,
+                roundTripThemeRecords: BuildRoundTripThemeRecords(theme,
+                    source.SlideLayout?.ColorMapOverride),
+                rewriteColorScheme: changedClassicColorSlots.Count > 0,
+                colorSchemeSlotsToRewrite: changedClassicColorSlots);
+        }
+
         private static byte[] BuildPreservedMasterThemeRecord(
             LegacyPptRecord prototype, ThemePart? themePart,
             DocumentFormat.OpenXml.Presentation.ColorMap? colorMap,
@@ -271,6 +294,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return record;
         }
 
+        internal static byte[] BuildPreservedBackgroundRecord(
+            LegacyPptRecord prototype,
+            LegacyPptWriterBackground background) {
+            if (prototype == null) throw new ArgumentNullException(nameof(prototype));
+            if (background == null) throw new ArgumentNullException(nameof(background));
+            return BuildMasterRecord(prototype,
+                ReadColorScheme(themePart: null), background,
+                rewriteColorScheme: false);
+        }
+
         private static byte[] BuildColorSchemeAtom(LegacyPptWriterColorScheme scheme) {
             var payload = new byte[32];
             for (int index = 0; index < scheme.Colors.Count; index++) {
@@ -283,8 +316,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static LegacyPptWriterColorScheme ReadColorScheme(ThemePart? themePart) {
-            DocumentFormat.OpenXml.Drawing.ColorScheme? source = themePart?
-                .Theme?.ThemeElements?.ColorScheme;
+            A.ColorScheme? source = themePart?.Theme?.ThemeElements?.ColorScheme;
+            return ReadColorScheme(source);
+        }
+
+        private static LegacyPptWriterColorScheme ReadColorScheme(
+            A.ColorScheme? source) {
             string Read(PowerPointThemeColor slot, string fallback) {
                 OpenXmlCompositeElement? element = slot switch {
                     PowerPointThemeColor.Dark1 => source?.Dark1Color,

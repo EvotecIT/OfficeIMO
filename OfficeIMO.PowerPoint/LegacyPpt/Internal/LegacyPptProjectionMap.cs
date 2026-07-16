@@ -12,12 +12,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private readonly IReadOnlyDictionary<string, uint> _masterIdsByLayoutPartUri;
         private readonly IReadOnlyDictionary<string, LegacyPptMasterProjection> _mastersByPartUri;
         private readonly IReadOnlyDictionary<string, LegacyPptMasterProjection>
+            _titleMastersByPartUri;
+        private readonly IReadOnlyDictionary<string, LegacyPptMasterProjection>
             _specialMastersByPartUri;
         private readonly ISet<string> _masterThemePartUris;
 
         private LegacyPptProjectionMap(IReadOnlyList<LegacyPptSlideProjection> slides,
             IReadOnlyDictionary<string, uint> masterIdsByLayoutPartUri,
             IReadOnlyList<LegacyPptMasterProjection> masters,
+            IReadOnlyList<LegacyPptMasterProjection> titleMasters,
             IReadOnlyList<LegacyPptMasterProjection> specialMasters,
             IReadOnlyList<LegacyPptHyperlink> hyperlinks,
             IReadOnlyList<LegacyPptCustomShow> customShows,
@@ -34,13 +37,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             Masters = new ReadOnlyCollection<LegacyPptMasterProjection>(masters.ToArray());
             _mastersByPartUri = new ReadOnlyDictionary<string, LegacyPptMasterProjection>(
                 masters.ToDictionary(master => master.MasterPartUri, StringComparer.Ordinal));
+            TitleMasters = new ReadOnlyCollection<LegacyPptMasterProjection>(
+                titleMasters.ToArray());
+            _titleMastersByPartUri = new ReadOnlyDictionary<string,
+                LegacyPptMasterProjection>(titleMasters.ToDictionary(
+                    master => master.MasterPartUri, StringComparer.Ordinal));
             SpecialMasters = new ReadOnlyCollection<LegacyPptMasterProjection>(
                 specialMasters.ToArray());
             _specialMastersByPartUri = new ReadOnlyDictionary<string,
                 LegacyPptMasterProjection>(specialMasters.ToDictionary(
                     master => master.MasterPartUri, StringComparer.Ordinal));
-            _masterThemePartUris = new HashSet<string>(masters.Concat(specialMasters)
-                .Select(master => master.ThemePartUri), StringComparer.Ordinal);
+            _masterThemePartUris = new HashSet<string>(masters
+                .Concat(titleMasters).Concat(specialMasters)
+                .Select(master => master.ThemePartUri)
+                .Where(uri => uri != null).Cast<string>(), StringComparer.Ordinal);
             Hyperlinks = new ReadOnlyCollection<LegacyPptHyperlink>(hyperlinks.ToArray());
             CustomShows = new ReadOnlyCollection<LegacyPptCustomShow>(
                 customShows.ToArray());
@@ -55,6 +65,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal IReadOnlyList<LegacyPptSlideProjection> Slides { get; }
 
         internal IReadOnlyList<LegacyPptMasterProjection> Masters { get; }
+
+        internal IReadOnlyList<LegacyPptMasterProjection> TitleMasters { get; }
 
         internal IReadOnlyList<LegacyPptMasterProjection> SpecialMasters { get; }
 
@@ -107,6 +119,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 masterPart.Uri.ToString(), out projection);
         }
 
+        internal bool TryGetTitleMaster(SlideLayoutPart masterPart,
+            out LegacyPptMasterProjection? projection) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            return _titleMastersByPartUri.TryGetValue(
+                masterPart.Uri.ToString(), out projection);
+        }
+
         internal static LegacyPptProjectionMap Create(PowerPointPresentation presentation,
             LegacyPptPresentation legacy) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -153,6 +172,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
                     sourceSlide.Hidden, sourceSlide.HeaderFooter,
+                    LegacyPptSlideProjection.CreateBackgroundFingerprint(
+                        projectedSlide),
                     sourceSlide.Transition, sourceSlide.Comments, shapes,
                     sourceSlide.NotesPage == null
                         ? null
@@ -161,6 +182,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
             return new LegacyPptProjectionMap(slides, CreateLayoutMasterMap(presentation, legacy),
                 CreateMasterProjections(presentation, legacy),
+                CreateTitleMasterProjections(presentation, legacy),
                 CreateSpecialMasterProjections(presentation, legacy),
                 legacy.Hyperlinks, legacy.CustomShows,
                 legacy.CustomShowsAreEditable, legacy.Sounds,
@@ -193,7 +215,38 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     sourceMasters[index].PersistId,
                     LegacyPptMasterProjection.CreateThemeFingerprint(masterPart),
                     LegacyPptMasterProjection.CreateClassicColorFingerprints(masterPart),
+                    LegacyPptMasterProjection.CreateBackgroundFingerprint(masterPart),
                     shapes));
+            }
+            return result;
+        }
+
+        private static IReadOnlyList<LegacyPptMasterProjection>
+            CreateTitleMasterProjections(PowerPointPresentation presentation,
+                LegacyPptPresentation legacy) {
+            SlideLayoutPart[] layouts = presentation.OpenXmlDocument
+                .PresentationPart?.SlideMasterParts
+                .SelectMany(master => master.SlideLayoutParts).ToArray()
+                ?? Array.Empty<SlideLayoutPart>();
+            var result = new List<LegacyPptMasterProjection>();
+            foreach (LegacyPptMaster source in legacy.Masters.Where(master =>
+                         !master.IsMainMaster)) {
+                string expectedName =
+                    $"Binary Title Master {source.MasterId:X8}";
+                SlideLayoutPart part = layouts.SingleOrDefault(layout =>
+                        string.Equals(layout.SlideLayout?.CommonSlideData?.Name?.Value,
+                            expectedName, StringComparison.Ordinal))
+                    ?? throw new InvalidDataException(
+                        $"The projected title master 0x{source.MasterId:X8} has no exact layout part.");
+                result.Add(new LegacyPptMasterProjection(
+                    part.Uri.ToString(), part.ThemeOverridePart?.Uri.ToString(),
+                    source.PersistId,
+                    LegacyPptMasterProjection.CreateThemeFingerprint(part),
+                    LegacyPptMasterProjection.CreateClassicColorFingerprints(part),
+                    LegacyPptMasterProjection.CreateBackgroundFingerprint(part),
+                    CreateMasterShapeProjections(source.Shapes,
+                        LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
+                        $"title master 0x{source.MasterId:X8}")));
             }
             return result;
         }
@@ -216,6 +269,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     legacy.NotesMaster.PersistId,
                     LegacyPptMasterProjection.CreateThemeFingerprint(part),
                     LegacyPptMasterProjection.CreateClassicColorFingerprints(part),
+                    LegacyPptMasterProjection.CreateBackgroundFingerprint(part),
                     CreateMasterShapeProjections(legacy.NotesMaster.Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
                         "notes master")));
@@ -232,6 +286,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     legacy.HandoutMaster.PersistId,
                     LegacyPptMasterProjection.CreateThemeFingerprint(part),
                     LegacyPptMasterProjection.CreateClassicColorFingerprints(part),
+                    LegacyPptMasterProjection.CreateBackgroundFingerprint(part),
                     CreateMasterShapeProjections(legacy.HandoutMaster.Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
                         "handout master")));
@@ -304,14 +359,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private readonly IReadOnlyDictionary<uint, LegacyPptShapeProjection>
             _shapesByOpenXmlId;
 
-        internal LegacyPptMasterProjection(string masterPartUri, string themePartUri,
+        internal LegacyPptMasterProjection(string masterPartUri, string? themePartUri,
             uint persistId, string themeFingerprint,
             IReadOnlyList<string> classicColorFingerprints,
+            string backgroundFingerprint,
             IReadOnlyList<LegacyPptShapeProjection> shapes) {
             MasterPartUri = masterPartUri ?? throw new ArgumentNullException(nameof(masterPartUri));
-            ThemePartUri = themePartUri ?? throw new ArgumentNullException(nameof(themePartUri));
+            ThemePartUri = themePartUri;
             PersistId = persistId;
             ThemeFingerprint = themeFingerprint ?? throw new ArgumentNullException(nameof(themeFingerprint));
+            BackgroundFingerprint = backgroundFingerprint
+                ?? throw new ArgumentNullException(nameof(backgroundFingerprint));
             ClassicColorFingerprints = new ReadOnlyCollection<string>(
                 (classicColorFingerprints
                     ?? throw new ArgumentNullException(nameof(classicColorFingerprints)))
@@ -329,13 +387,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal string MasterPartUri { get; }
 
-        internal string ThemePartUri { get; }
+        internal string? ThemePartUri { get; }
 
         internal uint PersistId { get; }
 
         internal string ThemeFingerprint { get; }
 
         internal IReadOnlyList<string> ClassicColorFingerprints { get; }
+
+        internal string BackgroundFingerprint { get; }
 
         internal IReadOnlyList<LegacyPptShapeProjection> Shapes { get; }
 
@@ -352,6 +412,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool ThemeMatches(HandoutMasterPart masterPart) => string.Equals(
             ThemeFingerprint, CreateThemeFingerprint(masterPart), StringComparison.Ordinal);
 
+        internal bool ThemeMatches(SlideLayoutPart masterPart) => string.Equals(
+            ThemeFingerprint, CreateThemeFingerprint(masterPart), StringComparison.Ordinal);
+
+        internal bool BackgroundMatches(SlideMasterPart masterPart) => string.Equals(
+            BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
+            StringComparison.Ordinal);
+
+        internal bool BackgroundMatches(NotesMasterPart masterPart) => string.Equals(
+            BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
+            StringComparison.Ordinal);
+
+        internal bool BackgroundMatches(HandoutMasterPart masterPart) => string.Equals(
+            BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
+            StringComparison.Ordinal);
+
+        internal bool BackgroundMatches(SlideLayoutPart masterPart) => string.Equals(
+            BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
+            StringComparison.Ordinal);
+
         internal IReadOnlyList<int> GetChangedClassicColorSlots(
             SlideMasterPart masterPart) {
             IReadOnlyList<string> current = CreateClassicColorFingerprints(masterPart);
@@ -366,6 +445,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal IReadOnlyList<int> GetChangedClassicColorSlots(
             HandoutMasterPart masterPart) {
+            IReadOnlyList<string> current = CreateClassicColorFingerprints(masterPart);
+            return GetChangedClassicColorSlots(current);
+        }
+
+        internal IReadOnlyList<int> GetChangedClassicColorSlots(
+            SlideLayoutPart masterPart) {
             IReadOnlyList<string> current = CreateClassicColorFingerprints(masterPart);
             return GetChangedClassicColorSlots(current);
         }
@@ -396,6 +481,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 masterPart.HandoutMaster?.ColorMap);
         }
 
+        internal static string CreateThemeFingerprint(SlideLayoutPart masterPart) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            string theme = masterPart.ThemeOverridePart?.ThemeOverride?.OuterXml
+                ?? string.Empty;
+            string colorMap = masterPart.SlideLayout?.ColorMapOverride?.OuterXml
+                ?? string.Empty;
+            return theme + "\n" + colorMap;
+        }
+
         private static string CreateThemeFingerprint(ThemePart? themePart,
             OpenXmlElement? colorMap) {
             string theme = themePart?.Theme?.OuterXml ?? string.Empty;
@@ -420,10 +514,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return CreateClassicColorFingerprints(masterPart.ThemePart);
         }
 
+        internal static IReadOnlyList<string> CreateClassicColorFingerprints(
+            SlideLayoutPart masterPart) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            DocumentFormat.OpenXml.Drawing.ColorScheme? colors = masterPart
+                .ThemeOverridePart?.ThemeOverride?.ColorScheme
+                ?? masterPart.SlideMasterPart?.ThemePart?.Theme?
+                    .ThemeElements?.ColorScheme;
+            return CreateClassicColorFingerprints(colors);
+        }
+
         private static IReadOnlyList<string> CreateClassicColorFingerprints(
             ThemePart? themePart) {
             DocumentFormat.OpenXml.Drawing.ColorScheme? colors = themePart?
                 .Theme?.ThemeElements?.ColorScheme;
+            return CreateClassicColorFingerprints(colors);
+        }
+
+        private static IReadOnlyList<string> CreateClassicColorFingerprints(
+            DocumentFormat.OpenXml.Drawing.ColorScheme? colors) {
             OpenXmlElement?[] slots = {
                 colors?.Light1Color,
                 colors?.Dark1Color,
@@ -436,6 +545,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             };
             return slots.Select(slot => slot?.OuterXml ?? string.Empty).ToArray();
         }
+
+        internal static string CreateBackgroundFingerprint(
+            SlideMasterPart masterPart) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            return masterPart.SlideMaster?.CommonSlideData?.Background?.OuterXml
+                ?? string.Empty;
+        }
+
+        internal static string CreateBackgroundFingerprint(
+            NotesMasterPart masterPart) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            return masterPart.NotesMaster?.CommonSlideData?.Background?.OuterXml
+                ?? string.Empty;
+        }
+
+        internal static string CreateBackgroundFingerprint(
+            HandoutMasterPart masterPart) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            return masterPart.HandoutMaster?.CommonSlideData?.Background?.OuterXml
+                ?? string.Empty;
+        }
+
+        internal static string CreateBackgroundFingerprint(
+            SlideLayoutPart masterPart) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            return masterPart.SlideLayout?.CommonSlideData?.Background?.OuterXml
+                ?? string.Empty;
+        }
     }
 
     /// <summary>Maps one projected slide to its binary persist object.</summary>
@@ -444,6 +581,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal LegacyPptSlideProjection(string slidePartUri, uint persistId, uint slideId, uint masterId,
             bool hidden, LegacyPptHeaderFooterSettings? headerFooter,
+            string backgroundFingerprint,
             LegacyPptTransition? transition,
             IReadOnlyList<LegacyPptComment> comments,
             IReadOnlyList<LegacyPptShapeProjection> shapes, LegacyPptNotesProjection? notes) {
@@ -453,6 +591,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             MasterId = masterId;
             Hidden = hidden;
             HeaderFooter = headerFooter;
+            BackgroundFingerprint = backgroundFingerprint
+                ?? throw new ArgumentNullException(nameof(backgroundFingerprint));
             Transition = transition;
             Comments = new ReadOnlyCollection<LegacyPptComment>(comments.ToArray());
             Notes = notes;
@@ -472,6 +612,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool Hidden { get; }
 
         internal LegacyPptHeaderFooterSettings? HeaderFooter { get; }
+
+        internal string BackgroundFingerprint { get; }
+
+        internal bool BackgroundMatches(PowerPointSlide slide) => string.Equals(
+            BackgroundFingerprint, CreateBackgroundFingerprint(slide),
+            StringComparison.Ordinal);
+
+        internal static string CreateBackgroundFingerprint(
+            PowerPointSlide slide) {
+            if (slide == null) throw new ArgumentNullException(nameof(slide));
+            return slide.SlidePart.Slide?.CommonSlideData?.Background?.OuterXml
+                ?? string.Empty;
+        }
 
         internal LegacyPptTransition? Transition { get; }
 

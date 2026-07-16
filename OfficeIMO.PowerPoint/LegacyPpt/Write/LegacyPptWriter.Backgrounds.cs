@@ -71,6 +71,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 out background, out reason);
         }
 
+        internal static bool TryReadBackground(SlideLayoutPart masterPart,
+            out LegacyPptWriterBackground? background, out string? reason) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            P.Background? source = masterPart.SlideLayout?.CommonSlideData?
+                .Background;
+            if (source == null) {
+                background = null;
+                reason = null;
+                return true;
+            }
+            return TryReadBackground(masterPart, source, "title master layout",
+                out background, out reason);
+        }
+
         private static bool TryReadBackground(OpenXmlPart ownerPart,
             P.Background source, string ownerName,
             out LegacyPptWriterBackground? background, out string? reason) {

@@ -101,7 +101,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native,
                 themes.PptxToBinary);
             Assert.Contains("all twelve colors", themes.Note);
-            Assert.Contains("imported main-, notes-, and handout-master theme edits",
+            Assert.Contains("imported main-, title-, notes-, and handout-master theme edits",
                 themes.Note);
         }
 
@@ -112,10 +112,21 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(LegacyPptCapabilityState.Planned,
                 masters.BinaryRoundTrip);
-            Assert.Contains("Imported main-, notes-, and handout-master position, size, and structurally plain text edits",
+            Assert.Contains("Imported main-, title-, notes-, and handout-master position, size, and structurally plain text edits",
                 masters.Note);
-            Assert.Contains("Title-master editing remains planned",
+            Assert.Contains("Binary title masters map to exact named layout parts",
                 masters.Note);
+        }
+
+        [Fact]
+        public void CapabilityContract_ReportsPreservingMasterBackgroundEdits() {
+            LegacyPptCapability backgrounds = LegacyPptCapabilityCatalog.Get(
+                LegacyPptFeature.Backgrounds);
+
+            Assert.Contains("Supported imported slide, main-, title-, notes-, and handout-master background edits",
+                backgrounds.Note);
+            Assert.Contains("imported ordinary PPTX-layout background edits remain planned",
+                backgrounds.Note);
         }
 
         [Fact]

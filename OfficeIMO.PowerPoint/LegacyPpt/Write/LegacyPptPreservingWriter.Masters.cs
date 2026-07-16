@@ -20,12 +20,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 bool themeChanged = !projection.ThemeMatches(masterPart);
+                bool backgroundChanged = !projection.BackgroundMatches(masterPart);
+                LegacyPptWriter.LegacyPptWriterBackground? background = null;
+                if (backgroundChanged
+                    && (!LegacyPptWriter.TryReadBackground(masterPart,
+                            out background, out _)
+                        || background == null)) {
+                    return false;
+                }
                 if (!TryBuildMasterShapeEdits(masterPart, projection,
                         out IReadOnlyDictionary<uint, ProjectedShapeEdit>
                             shapeEdits)) {
                     return false;
                 }
-                if (!themeChanged && shapeEdits.Count == 0) continue;
+                if (!themeChanged && !backgroundChanged
+                    && shapeEdits.Count == 0) continue;
                 if (!package.PersistObjects.TryGetValue(projection.PersistId,
                         out LegacyPptPersistObject? persistObject)
                     || persistObject == null) {
@@ -43,6 +52,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         return false;
                     }
                     masterBytes = shapeRewrite.Bytes;
+                }
+                if (backgroundChanged) {
+                    LegacyPptRecord backgroundRecord = LegacyPptRecordReader
+                        .ReadSingle(masterBytes, 0,
+                            new LegacyPptImportOptions());
+                    masterBytes = LegacyPptWriter
+                        .BuildPreservedBackgroundRecord(backgroundRecord,
+                            background!);
                 }
                 if (themeChanged) {
                     LegacyPptRecord themedRecord = LegacyPptRecordReader
@@ -132,6 +149,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (unsupportedReason != null
                         || !TryRewriteSpecialMaster(package, projection, shapes,
                             !projection.ThemeMatches(notesPart),
+                            !projection.BackgroundMatches(notesPart),
+                            () => LegacyPptWriter.TryReadBackground(notesPart,
+                                out LegacyPptWriter.LegacyPptWriterBackground?
+                                    background, out _)
+                                ? background
+                                : null,
                             record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                                 record, notesPart,
                                 projection.GetChangedClassicColorSlots(notesPart)),
@@ -152,6 +175,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (unsupportedReason != null
                         || !TryRewriteSpecialMaster(package, projection, shapes,
                             !projection.ThemeMatches(handoutPart),
+                            !projection.BackgroundMatches(handoutPart),
+                            () => LegacyPptWriter.TryReadBackground(handoutPart,
+                                out LegacyPptWriter.LegacyPptWriterBackground?
+                                    background, out _)
+                                ? background
+                                : null,
                             record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
                                 record, handoutPart,
                                 projection.GetChangedClassicColorSlots(handoutPart)),
@@ -164,9 +193,47 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return processed == projectionMap.SpecialMasters.Count;
         }
 
+        private static bool TryBuildModifiedTitleMasterPersistObjects(
+            PowerPointPresentation presentation, LegacyPptPackage package,
+            LegacyPptProjectionMap projectionMap,
+            IDictionary<uint, byte[]> rewritten) {
+            SlideLayoutPart[] layouts = presentation.OpenXmlDocument
+                .PresentationPart?.SlideMasterParts
+                .SelectMany(master => master.SlideLayoutParts).ToArray()
+                ?? Array.Empty<SlideLayoutPart>();
+            int processed = 0;
+            foreach (SlideLayoutPart part in layouts) {
+                if (!projectionMap.TryGetTitleMaster(part,
+                        out LegacyPptMasterProjection? projection)
+                    || projection == null) continue;
+                IReadOnlyList<PowerPointShape> shapes = LegacyPptWriter
+                    .ReadMasterShapesForWrite(part,
+                        out string? unsupportedReason);
+                if (unsupportedReason != null
+                    || !TryRewriteSpecialMaster(package, projection, shapes,
+                        !projection.ThemeMatches(part),
+                        !projection.BackgroundMatches(part),
+                        () => LegacyPptWriter.TryReadBackground(part,
+                            out LegacyPptWriter.LegacyPptWriterBackground?
+                                background, out _)
+                            ? background
+                            : null,
+                        record => LegacyPptWriter.BuildPreservedMasterThemeRecord(
+                            record, part,
+                            projection.GetChangedClassicColorSlots(part)),
+                        rewritten)) {
+                    return false;
+                }
+                processed++;
+            }
+            return processed == projectionMap.TitleMasters.Count;
+        }
+
         private static bool TryRewriteSpecialMaster(LegacyPptPackage package,
             LegacyPptMasterProjection projection,
             IReadOnlyList<PowerPointShape> shapes, bool themeChanged,
+            bool backgroundChanged,
+            Func<LegacyPptWriter.LegacyPptWriterBackground?> readBackground,
             Func<LegacyPptRecord, byte[]> rewriteTheme,
             IDictionary<uint, byte[]> rewritten) {
             if (!TryBuildMasterShapeEdits(shapes, projection,
@@ -174,7 +241,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         shapeEdits)) {
                 return false;
             }
-            if (!themeChanged && shapeEdits.Count == 0) return true;
+            LegacyPptWriter.LegacyPptWriterBackground? background = null;
+            if (backgroundChanged && (background = readBackground()) == null) {
+                return false;
+            }
+            if (!themeChanged && !backgroundChanged
+                && shapeEdits.Count == 0) return true;
             if (!package.PersistObjects.TryGetValue(projection.PersistId,
                     out LegacyPptPersistObject? persistObject)
                 || persistObject == null) {
@@ -191,6 +263,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 bytes = shapeRewrite.Bytes;
+            }
+            if (backgroundChanged) {
+                LegacyPptRecord backgroundRecord = LegacyPptRecordReader
+                    .ReadSingle(bytes, 0, new LegacyPptImportOptions());
+                bytes = LegacyPptWriter.BuildPreservedBackgroundRecord(
+                    backgroundRecord, background!);
             }
             if (themeChanged) {
                 LegacyPptRecord themedRecord = LegacyPptRecordReader.ReadSingle(

@@ -104,6 +104,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         projectionMap, rewritten)) {
                     return false;
                 }
+                if (!TryBuildModifiedTitleMasterPersistObjects(presentation,
+                        package, projectionMap, rewritten)) {
+                    return false;
+                }
                 if (!TryBuildModifiedSpecialMasterPersistObjects(presentation,
                         package, projectionMap, rewritten)) {
                     return false;
@@ -231,19 +235,44 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         commentsBySlide[slide.SlidePart.Uri.ToString()];
                     bool commentsChanged = !CommentsEqual(slideProjection.Comments,
                         currentComments);
-                    if (editsByOfficeArtId.Count == 0 && !hidden.HasValue
-                        && !headerFooterChanged && !transitionChanged && !commentsChanged) continue;
+                    bool backgroundChanged = !slideProjection.BackgroundMatches(slide);
+                    LegacyPptWriter.LegacyPptWriterBackground? currentBackground = null;
+                    if (backgroundChanged
+                        && (!LegacyPptWriter.TryReadBackground(slide,
+                                out currentBackground, out _)
+                            || currentBackground == null)) {
+                        return false;
+                    }
+                    bool hasSlideRecordChanges = editsByOfficeArtId.Count > 0
+                        || hidden.HasValue || headerFooterChanged
+                        || transitionChanged || commentsChanged;
+                    if (!hasSlideRecordChanges && !backgroundChanged) continue;
 
                     LegacyPptRecord slideRecord = LegacyPptRecordReader.ReadSingle(persistObject.RecordBytes, 0,
                         new LegacyPptImportOptions());
-                    if (!TryRewriteSlide(slide, slideRecord, editsByOfficeArtId, hidden,
-                            transitionChanged, currentTransition,
-                            soundCatalog,
-                            headerFooterChanged, currentHeaderFooter,
-                            commentsChanged, currentComments,
-                            out RecordRewrite result)
-                        || !result.Changed || result.PatchedShapeCount != editsByOfficeArtId.Count) return false;
-                    rewritten.Add(slideProjection.PersistId, result.Bytes);
+                    byte[] slideBytes = slideRecord.CopyRecordBytes();
+                    if (hasSlideRecordChanges) {
+                        if (!TryRewriteSlide(slide, slideRecord, editsByOfficeArtId,
+                                hidden, transitionChanged, currentTransition,
+                                soundCatalog,
+                                headerFooterChanged, currentHeaderFooter,
+                                commentsChanged, currentComments,
+                                out RecordRewrite result)
+                            || !result.Changed
+                            || result.PatchedShapeCount != editsByOfficeArtId.Count) {
+                            return false;
+                        }
+                        slideBytes = result.Bytes;
+                    }
+                    if (backgroundChanged) {
+                        LegacyPptRecord backgroundRecord = LegacyPptRecordReader
+                            .ReadSingle(slideBytes, 0,
+                                new LegacyPptImportOptions());
+                        slideBytes = LegacyPptWriter
+                            .BuildPreservedBackgroundRecord(
+                                backgroundRecord, currentBackground!);
+                    }
+                    rewritten.Add(slideProjection.PersistId, slideBytes);
                 }
                 bool originalTopologyChanged = !currentSlideOrder.Select(slide => slide.PersistId)
                     .SequenceEqual(projectionMap.Slides.Select(slide => slide.PersistId));
