@@ -115,6 +115,36 @@ public sealed class ReaderDetectionTests {
         Assert.Contains("container:word/document.xml", detection.Evidence);
     }
 
+    [Theory]
+    [InlineData("application/vnd.oasis.opendocument.text")]
+    [InlineData("application/vnd.oasis.opendocument.spreadsheet")]
+    [InlineData("application/vnd.oasis.opendocument.presentation")]
+    public void DocumentReader_Detect_IdentifiesOpenDocumentMimeTypes(string mediaType) {
+        byte[] package = CreateStreamingZip(
+            ("mimetype", mediaType),
+            ("content.xml", "<document />"));
+
+        ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(package, "document.blob");
+
+        Assert.Equal(ReaderInputKind.OpenDocument, detection.Kind);
+        Assert.Equal(mediaType, detection.MediaType);
+        Assert.Contains("container:opendocument-mimetype", detection.Evidence);
+    }
+
+    [Fact]
+    public async Task DocumentReader_DetectAsync_IdentifiesOpenDocumentMimeType() {
+        const string mediaType = "application/vnd.oasis.opendocument.text";
+        byte[] package = CreateStreamingZip(
+            ("mimetype", mediaType),
+            ("content.xml", "<document />"));
+
+        ReaderDetectionResult detection = await OfficeDocumentReader.Default.DetectAsync(package, "document.blob");
+
+        Assert.Equal(ReaderInputKind.OpenDocument, detection.Kind);
+        Assert.Equal(mediaType, detection.MediaType);
+        Assert.Contains("container:opendocument-mimetype", detection.Evidence);
+    }
+
     [Fact]
     public void DocumentReader_Detect_InspectsEntriesAfterDataDescriptors() {
         byte[] package = CreateStreamingZip(

@@ -92,6 +92,22 @@ var chunks = reader.Read(@"C:\Docs\data.json").ToList();
 
 `Build()` freezes the handler configuration. The resulting `OfficeDocumentReader` is safe to reuse across concurrent reads and is unaffected by later builder changes. `DocumentReader` remains the simple built-in-only facade; modular formats are configured explicitly on `OfficeDocumentReaderBuilder`, so one reader cannot change another reader or process-wide state.
 
+When the application wants every local adapter, `OfficeIMO.Reader.All` provides the same explicit, instance-scoped composition in one call:
+
+```powershell
+dotnet add package OfficeIMO.Reader.All
+```
+
+```csharp
+using OfficeIMO.Reader.All;
+
+OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+    .AddAllOfficeIMOHandlers()
+    .Build();
+```
+
+The preset contains no parser or provider logic. It excludes OCR engines, process adapters, network clients, and hosted providers; those remain explicit host choices.
+
 ## Async and bounded batches
 
 Configure the instance-wide async limit once, then use the same reader for individual or batched work:

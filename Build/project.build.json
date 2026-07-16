@@ -35,6 +35,7 @@
     "OfficeIMO.PowerPoint.Html": "2.0.X",
     "OfficeIMO.PowerPoint.Pdf": "2.0.X",
     "OfficeIMO.Reader": "2.0.X",
+    "OfficeIMO.Reader.All": "2.0.X",
     "OfficeIMO.Reader.AsciiDoc": "2.0.X",
     "OfficeIMO.Reader.Csv": "2.0.X",
     "OfficeIMO.Reader.Epub": "2.0.X",

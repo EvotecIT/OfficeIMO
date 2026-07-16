@@ -1,0 +1,55 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <Description>Composition-only preset for registering OfficeIMO.Reader's local format adapters.</Description>
+    <AssemblyName>OfficeIMO.Reader.All</AssemblyName>
+    <AssemblyTitle>OfficeIMO.Reader.All</AssemblyTitle>
+    <VersionPrefix>2.0.1</VersionPrefix>
+    <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
+    <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <Company>Evotec</Company>
+    <Authors>Przemyslaw Klys</Authors>
+    <PackageId>OfficeIMO.Reader.All</PackageId>
+    <PackageTags>reader;ingestion;composition;officeimo</PackageTags>
+    <PackageProjectUrl>https://github.com/EvotecIT/OfficeIMO</PackageProjectUrl>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/EvotecIT/OfficeIMO</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageIcon>OfficeIMO.png</PackageIcon>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <IsPackable>true</IsPackable>
+    <IsPublishable>true</IsPublishable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+    <LangVersion>Latest</LangVersion>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OfficeIMO.Reader\OfficeIMO.Reader.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.AsciiDoc\OfficeIMO.Reader.AsciiDoc.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Csv\OfficeIMO.Reader.Csv.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Epub\OfficeIMO.Reader.Epub.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Html\OfficeIMO.Reader.Html.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Json\OfficeIMO.Reader.Json.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Latex\OfficeIMO.Reader.Latex.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.OpenDocument\OfficeIMO.Reader.OpenDocument.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Pdf\OfficeIMO.Reader.Pdf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Rtf\OfficeIMO.Reader.Rtf.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Visio\OfficeIMO.Reader.Visio.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Xml\OfficeIMO.Reader.Xml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Yaml\OfficeIMO.Reader.Yaml.csproj" />
+    <ProjectReference Include="..\OfficeIMO.Reader.Zip\OfficeIMO.Reader.Zip.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\Assets\OfficeIMO.png" Pack="true" PackagePath="\" Link="OfficeIMO.png" />
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="System" />
+    <Using Include="OfficeIMO.Reader" />
+  </ItemGroup>
+</Project>
