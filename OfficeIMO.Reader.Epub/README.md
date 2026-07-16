@@ -105,7 +105,7 @@ Manifest assets keep their package identity and payload while inheriting useful 
 - Path and stream dispatch, including non-seekable stream support.
 - A schema-v5 rich result with chapter pages, HTML blocks, tables, links, forms, bounded manifest assets, metadata, and structured parser diagnostics.
 - Chapter-relative, query-only, fragment-only, encoded, root-relative, external, and HTML-base URL projection through the shared EPUB reference contract.
-- Structured chapter Markdown for native and ARIA headings, quotes, ordered-list markers, code-language hints, tables, and local EPUB/DPUB-ARIA footnotes.
+- Structured chapter Markdown for native and ARIA headings, quotes, portable decimal ordered-list markers with preserved starts and value resets, code-language hints, tables, and local EPUB/DPUB-ARIA footnotes.
 - Rich `quote`, `code`, and `footnote` blocks, accessible link/image names, exact ordered-list markers, and propagated `officeimo.html.*` capabilities.
 - Recoverable diagnostics for unsafe or non-conforming chapter references.
 

@@ -75,7 +75,10 @@ internal static partial class EpubReaderAdapter {
     }
 
     private static void ApplyEpubOccurrenceMetadata(OfficeDocumentAsset packageAsset, OfficeDocumentAsset occurrenceAsset) {
-        if (packageAsset.AltText == null && occurrenceAsset.AltText != null) packageAsset.AltText = occurrenceAsset.AltText;
+        if (string.IsNullOrWhiteSpace(packageAsset.AltText)
+            && !string.IsNullOrWhiteSpace(occurrenceAsset.AltText)) {
+            packageAsset.AltText = occurrenceAsset.AltText;
+        }
         if (packageAsset.Title == null && occurrenceAsset.Title != null) packageAsset.Title = occurrenceAsset.Title;
         if (!packageAsset.Width.HasValue && occurrenceAsset.Width.HasValue) packageAsset.Width = occurrenceAsset.Width;
         if (!packageAsset.Height.HasValue && occurrenceAsset.Height.HasValue) packageAsset.Height = occurrenceAsset.Height;

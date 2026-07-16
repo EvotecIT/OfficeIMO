@@ -303,8 +303,7 @@ internal static class HtmlLogicalDocumentBuilder {
         || HtmlAccessibilitySemantics.HasRole(element, "doc-endnote")
         || HtmlAccessibilitySemantics.HasEpubType(element, "footnote")
         || HtmlAccessibilitySemantics.HasEpubType(element, "endnote")
-        || HtmlAccessibilitySemantics.HasEpubType(element, "rearnote")
-        || HtmlAccessibilitySemantics.HasEpubType(element, "note");
+        || HtmlAccessibilitySemantics.HasEpubType(element, "rearnote");
 
     private static string CaptureFootnoteText(IElement element) {
         var builder = new StringBuilder();

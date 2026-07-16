@@ -142,7 +142,7 @@ internal sealed partial class HtmlToMarkdownConverter {
         }
 
         private static bool IsSemanticFootnoteDefinition(IElement element) =>
-            HasAnyEpubType(element, "footnote", "endnote", "rearnote", "note")
+            HasAnyEpubType(element, "footnote", "endnote", "rearnote")
             || HasAnyRole(element, "doc-footnote", "doc-endnote");
 
         private static bool IsRecognizedIdDefinition(IElement element, ISet<string> referencedIds) {

@@ -75,13 +75,13 @@ string markdown = html.ToMarkdown(options);
 
 - Headings, paragraphs, ordered and unordered lists, block quotes, code blocks, horizontal rules, tables, images, figures, details/summary, definition lists, and raw HTML fallback blocks.
 - Emphasis, strong emphasis, strike-through, code spans, links, images, line breaks, and selected inline HTML wrappers.
-- Native and ARIA headings, accessible link/image names, ordered-list marker families, reversed lists, item value resets, and code-language hints.
+- Native and ARIA headings, accessible link/image names, ordered-list marker families, reversed lists, item value resets, and code-language hints. Generated Markdown uses decimal CommonMark markers while the typed list retains the original HTML marker family for HTML projection.
 - Local EPUB/DPUB-ARIA footnotes and GitHub-style footnote sections as typed `FootnoteRefInline` and `FootnoteDefinitionBlock` nodes, including structured definition bodies.
 - Relative links and image targets when a base URI is supplied.
 - Shared `data-omd-*` visual host elements back into semantic fenced blocks when host hints are registered.
 - Custom block and inline converters for host or plug-in packages.
 
-EPUB footnote references are converted only when their target is a definition in the same HTML document. Cross-document note links remain ordinary links so the converter does not invent a local definition. Footnote backlinks are omitted from Markdown. Accessible names use a deterministic conversion subset: `aria-labelledby`, `aria-label`, host-language alternatives such as image `alt`, optional visible text, and `title` fallback.
+EPUB footnote references are converted only when their target is an actual footnote, endnote, or rearnote definition in the same HTML document. Generic `epub:type="note"` content stays ordinary content. Cross-document note links remain ordinary links so the converter does not invent a local definition. Footnote backlinks are omitted from Markdown. Accessible names use a deterministic conversion subset: `aria-labelledby`, `aria-label`, host-language alternatives such as image `alt`, optional visible text, and `title` fallback.
 
 ## Profiles
 

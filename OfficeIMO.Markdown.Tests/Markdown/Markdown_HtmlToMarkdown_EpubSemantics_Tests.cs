@@ -60,6 +60,18 @@ public sealed class MarkdownHtmlToMarkdownEpubSemanticsTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_KeepsGenericEpubNotesAsOrdinaryContent() {
+        const string html = "<aside epub:type=\"note\" id=\"editorial\"><p>Editorial context.</p></aside>";
+
+        MarkdownDoc document = HtmlConversionDocument.Parse(html).ToMarkdownDocument();
+        string markdown = document.ToMarkdown();
+
+        Assert.Empty(document.Blocks.OfType<FootnoteDefinitionBlock>());
+        Assert.DoesNotContain("[^", markdown, StringComparison.Ordinal);
+        Assert.Contains("Editorial context.", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_ProjectsAriaNamesHeadingsListMarkersAndCodeLanguage() {
         const string html = """
 <div role="heading" aria-level="4">Accessible heading</div>
@@ -102,12 +114,16 @@ public sealed class MarkdownHtmlToMarkdownEpubSemanticsTests {
 
         Assert.Equal(2, lists.Length);
         Assert.Equal(new[] { "3.", "7.", "6." }, lists[0].Items.Select(item => item.MarkerText));
-        Assert.Equal(new[] { "AA.", "AB." }, lists[1].Items.Select(item => item.MarkerText));
+        Assert.Equal(MarkdownOrderedListMarkerStyle.UpperAlpha, lists[1].MarkerStyle);
+        Assert.Equal(new[] { "27.", "28." }, lists[1].Items.Select(item => item.MarkerText));
         string markdown = document.ToMarkdown();
         Assert.Contains("3. Three", markdown, StringComparison.Ordinal);
         Assert.Contains("7. Seven", markdown, StringComparison.Ordinal);
         Assert.Contains("6. Six", markdown, StringComparison.Ordinal);
-        Assert.Contains("AA. Twenty seven", markdown, StringComparison.Ordinal);
-        Assert.Contains("AB. Twenty eight", markdown, StringComparison.Ordinal);
+        Assert.Contains("27. Twenty seven", markdown, StringComparison.Ordinal);
+        Assert.Contains("28. Twenty eight", markdown, StringComparison.Ordinal);
+        MarkdownDoc parsed = MarkdownReader.Parse(markdown);
+        OrderedListBlock parsedList = Assert.Single(parsed.Blocks.OfType<OrderedListBlock>());
+        Assert.Equal(5, parsedList.Items.Count);
     }
 }

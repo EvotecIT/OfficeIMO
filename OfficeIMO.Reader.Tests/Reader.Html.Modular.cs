@@ -702,4 +702,57 @@ public sealed class ReaderHtmlModularTests {
         Assert.Contains("officeimo.html.accessibility", roundTrip.CapabilitiesUsed);
         Assert.Contains("officeimo.html.footnotes", roundTrip.CapabilitiesUsed);
     }
+
+    [Fact]
+    public void DocumentReaderHtml_UsesAriaColumnHeadersForTableColumns() {
+        const string html = """
+<div role="table">
+  <div role="row"><div role="columnheader">Name</div><div role="columnheader">Value</div></div>
+  <div role="row"><div role="cell">EPUB</div><div role="cell">Structured</div></div>
+</div>
+""";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "aria-table.html");
+        ReaderTable table = Assert.Single(result.Tables);
+
+        Assert.Equal(new[] { "Name", "Value" }, table.Columns);
+        Assert.Equal(new[] { "EPUB", "Structured" }, Assert.Single(table.Rows));
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_DoesNotDuplicateNestedQuoteOrFootnoteBlocks() {
+        const string html = """
+<blockquote>
+  <h2>Quoted heading</h2>
+  <pre>quoted code</pre>
+  <ul><li>quoted item</li></ul>
+  <table><tr><th>Quoted column</th></tr><tr><td>quoted value</td></tr></table>
+</blockquote>
+<aside epub:type="footnote" id="source-note">
+  <p>Footnote text</p>
+  <pre>footnote code</pre>
+</aside>
+""";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "nested-blocks.html");
+        OfficeDocumentBlock quote = Assert.Single(result.Blocks, block => block.Kind == "quote");
+        OfficeDocumentBlock footnote = Assert.Single(result.Blocks, block => block.Kind == "footnote");
+
+        Assert.Contains("Quoted heading", quote.Text, StringComparison.Ordinal);
+        Assert.Contains("quoted code", quote.Text, StringComparison.Ordinal);
+        Assert.Contains("Footnote text", footnote.Text, StringComparison.Ordinal);
+        Assert.DoesNotContain(result.Blocks, block => block.Kind == "code" || block.Kind == "list-item" || block.Kind == "table");
+        Assert.Empty(result.Tables);
+    }
+
+    [Fact]
+    public void DocumentReaderHtml_DoesNotPromoteGenericEpubNotesToFootnotes() {
+        const string html = "<aside epub:type=\"note\" id=\"editorial\"><p>Editorial context.</p></aside>";
+
+        OfficeDocumentReadResult result = HtmlReaderAdapter.ReadContentDocument(html, "generic-note.html");
+
+        Assert.DoesNotContain(result.Blocks, block => block.Kind == "footnote");
+        Assert.DoesNotContain("officeimo.html.footnotes", result.CapabilitiesUsed);
+        Assert.Contains(result.Blocks, block => block.Kind == "paragraph" && block.Text == "Editorial context.");
+    }
 }

@@ -16,7 +16,7 @@ public sealed partial class ReaderEpubModularTests {
             string markdown = Assert.IsType<string>(result.Markdown).Replace("\r\n", "\n");
             Assert.Contains("#### Accessible section", markdown, StringComparison.Ordinal);
             Assert.Contains("> Quoted wisdom.", markdown, StringComparison.Ordinal);
-            Assert.Contains("C. Third choice", markdown, StringComparison.Ordinal);
+            Assert.Contains("3. Third choice", markdown, StringComparison.Ordinal);
             Assert.Contains("| Measure | Value |", markdown, StringComparison.Ordinal);
             Assert.Contains("```csharp", markdown, StringComparison.Ordinal);
             Assert.Contains("Evidence[^note-alpha].", markdown, StringComparison.Ordinal);

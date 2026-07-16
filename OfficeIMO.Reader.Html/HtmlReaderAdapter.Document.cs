@@ -152,11 +152,11 @@ internal static partial class HtmlReaderAdapter {
             ? HtmlListProjectionContext.Create(node)
             : listContext;
         int nextListLevel = node.Kind == HtmlLogicalNodeKind.List ? listLevel + 1 : listLevel;
-        ReaderTable? mappedTable = node.Kind == HtmlLogicalNodeKind.Table
+        ReaderTable? mappedTable = !suppressBlockEmission && node.Kind == HtmlLogicalNodeKind.Table
             ? MapHtmlTable(node, path, tableIndex++, maxTableRows)
             : null;
         if (IsHtmlBlock(node.Kind)
-            && (!suppressBlockEmission || node.Kind != HtmlLogicalNodeKind.Paragraph)) {
+            && !suppressBlockEmission) {
             string kind = NormalizeHtmlBlockKind(node.Kind);
             string anchor = "html-" + kind + "-" + blockIndex.ToString("D4", CultureInfo.InvariantCulture);
             projection.Blocks.Add(new OfficeDocumentBlock {
@@ -214,7 +214,7 @@ internal static partial class HtmlReaderAdapter {
         List<HtmlLogicalNode> rows = GetHtmlTableRows(table).ToList();
         int columnCount = rows.Count == 0 ? 0 : rows.Max(row => row.Children.Count(child => child.Kind == HtmlLogicalNodeKind.TableCell));
         bool hasHeaderRow = rows.Count > 0 && rows[0].Children.Any(child =>
-            child.Kind == HtmlLogicalNodeKind.TableCell && string.Equals(child.Name, "th", StringComparison.OrdinalIgnoreCase));
+            child.Kind == HtmlLogicalNodeKind.TableCell && IsHtmlColumnHeaderCell(child));
         IReadOnlyList<string> columns = hasHeaderRow
             ? BuildHtmlTableRow(rows[0], columnCount, true)
             : Enumerable.Range(1, columnCount)
@@ -243,6 +243,10 @@ internal static partial class HtmlReaderAdapter {
             return string.IsNullOrWhiteSpace(value) && fallbacks ? "Column " + (index + 1).ToString(CultureInfo.InvariantCulture) : value;
         }).ToArray();
     }
+
+    private static bool IsHtmlColumnHeaderCell(HtmlLogicalNode cell) =>
+        string.Equals(cell.Name, "th", StringComparison.OrdinalIgnoreCase)
+        || (cell.Attributes.TryGetValue("role", out string? role) && ContainsHtmlToken(role, "columnheader"));
 
     private static OfficeDocumentAsset? MapHtmlImage(HtmlLogicalNode node, string? path, int index, HtmlToMarkdownOptions htmlOptions) {
         node.Attributes.TryGetValue("alt", out string? altText);

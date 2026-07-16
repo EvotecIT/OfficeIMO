@@ -38,6 +38,7 @@ public sealed partial class ReaderEpubModularTests {
             "<aside epub:type=\"footnote\" role=\"doc-footnote\" id=\"note-alpha\"><p>Source <strong>detail</strong>.</p>" +
             "<a epub:type=\"backlink\" role=\"doc-backlink\" href=\"#ref-alpha\">return</a></aside>" +
             "<p><a href=\"#detail\" aria-label=\"Read details\"></a></p>" +
+            "<img src=\"images/cover.png\" alt=\"\"/>" +
             "<figure><span id=\"cover-label\">Accessible cover</span><img src=\"images/cover.png\" aria-labelledby=\"cover-label\"/></figure>" +
             "</body></html>");
         WriteBinaryEntry(archive, "OEBPS/images/cover.png", new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 });
