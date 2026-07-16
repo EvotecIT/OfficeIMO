@@ -200,7 +200,7 @@ internal static class NotebookReaderAdapter {
             }
             string text = value.Value.Text;
             if (text.Length > remaining) {
-                text = text.Substring(0, remaining);
+                text = DocumentReaderEngine.TruncateAdapterProjection(text, remaining);
                 warnings.Add("Notebook output text was truncated at MaxOutputCharactersPerCell.");
             }
             projected.Add(new NotebookOutput(text, value.Value.IsMarkdown));
@@ -367,7 +367,7 @@ internal static class NotebookReaderAdapter {
     private static string Truncate(string value, int limit, string warning, List<string> warnings) {
         if (value.Length <= limit) return value;
         warnings.Add(warning);
-        return value.Substring(0, limit);
+        return DocumentReaderEngine.TruncateAdapterProjection(value, limit);
     }
 
     private readonly struct NotebookOutput {

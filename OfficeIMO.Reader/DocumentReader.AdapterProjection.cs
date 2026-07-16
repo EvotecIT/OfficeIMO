@@ -5,6 +5,23 @@ namespace OfficeIMO.Reader;
 
 internal static partial class DocumentReaderEngine {
     /// <summary>
+    /// Retains a bounded prefix without separating the UTF-16 code units of a surrogate pair.
+    /// A non-BMP Unicode scalar at a one-character boundary is retained intact.
+    /// </summary>
+    internal static string TruncateAdapterProjection(string value, int maxChars) {
+        if (string.IsNullOrEmpty(value) || value.Length <= maxChars) return value;
+
+        int length = Math.Max(1, maxChars);
+        if (length < value.Length &&
+            char.IsHighSurrogate(value[length - 1]) &&
+            char.IsLowSurrogate(value[length])) {
+            length = length == 1 ? 2 : length - 1;
+        }
+
+        return value.Substring(0, length);
+    }
+
+    /// <summary>
     /// Splits an adapter-owned text or Markdown projection into bounded pieces without
     /// discarding content or separating the UTF-16 code units of a surrogate pair.
     /// </summary>

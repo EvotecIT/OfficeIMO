@@ -257,8 +257,10 @@ public static partial class OfficeImageReader {
             width = ReadUInt16LittleEndian(data, 18);
             height = ReadUInt16LittleEndian(data, 20);
         } else if (data.Length >= 42) {
-            width = ReadInt32LittleEndian(data, 18);
-            height = Math.Abs(ReadInt32LittleEndian(data, 22));
+            if (!TryConvertPixelDimension(ReadInt32LittleEndian(data, 18), out width) ||
+                !TryConvertPixelDimension(Math.Abs((long)ReadInt32LittleEndian(data, 22)), out height)) {
+                return false;
+            }
             int xPpm = ReadInt32LittleEndian(data, 38);
             int yPpm = ReadInt32LittleEndian(data, 42);
             if (xPpm > 0) dpiX = xPpm * 0.0254;
@@ -323,6 +325,21 @@ public static partial class OfficeImageReader {
         int count = ReadUInt16LittleEndian(data, 4);
         if (reserved != 0 || type != 1 || count <= 0) {
             return false;
+        }
+
+        long directoryEnd = 6L + count * 16L;
+        if (directoryEnd > data.LongLength) {
+            return false;
+        }
+
+        for (int index = 0; index < count; index++) {
+            int entryOffset = 6 + index * 16;
+            uint imageLength = ReadUInt32LittleEndian(data, entryOffset + 8);
+            uint imageOffset = ReadUInt32LittleEndian(data, entryOffset + 12);
+            if (data[entryOffset + 3] != 0 || imageLength == 0 || imageOffset < directoryEnd ||
+                (long)imageOffset + imageLength > data.LongLength) {
+                return false;
+            }
         }
 
         int width = data[6] == 0 ? 256 : data[6];

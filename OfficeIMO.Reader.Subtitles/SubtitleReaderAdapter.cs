@@ -30,7 +30,7 @@ internal static class SubtitleReaderAdapter {
         ReaderSubtitleOptions subtitleOptions,
         CancellationToken cancellationToken) {
         string content = DecodeText(input.Bytes);
-        SubtitleParseResult parsed = SubtitleParser.Parse(content, subtitleOptions, cancellationToken);
+        SubtitleParseResult parsed = SubtitleParser.Parse(content, input.Source.Path, subtitleOptions, cancellationToken);
         var chunks = new List<ReaderChunk>(parsed.Cues.Count);
         for (int index = 0; index < parsed.Cues.Count; index++) {
             cancellationToken.ThrowIfCancellationRequested();

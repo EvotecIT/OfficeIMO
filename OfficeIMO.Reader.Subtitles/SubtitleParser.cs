@@ -5,11 +5,13 @@ namespace OfficeIMO.Reader.Subtitles;
 internal static class SubtitleParser {
     internal static SubtitleParseResult Parse(
         string content,
+        string? sourceName,
         ReaderSubtitleOptions options,
         CancellationToken cancellationToken) {
         string normalized = (content ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
         string[] lines = normalized.Split('\n');
-        bool webVtt = lines.Length > 0 && IsWebVttSignature(lines[0]);
+        bool isSrtSource = string.Equals(Path.GetExtension(sourceName), ".srt", StringComparison.OrdinalIgnoreCase);
+        bool webVtt = !isSrtSource && lines.Length > 0 && IsWebVttSignature(lines[0]);
         var cues = new List<SubtitleCue>(Math.Min(lines.Length / 3, options.MaxCues));
         var warnings = new List<string>();
         int index = webVtt ? SkipWebVttHeader(lines) : 0;
@@ -53,7 +55,7 @@ internal static class SubtitleParser {
             if (options.StripCueMarkup) cueText = StripMarkup(cueText);
             if (string.IsNullOrWhiteSpace(cueText)) continue;
             bool truncated = cueText.Length > options.MaxCueCharacters;
-            if (truncated) cueText = cueText.Substring(0, options.MaxCueCharacters);
+            if (truncated) cueText = DocumentReaderEngine.TruncateAdapterProjection(cueText, options.MaxCueCharacters);
             cues.Add(new SubtitleCue(
                 identifier,
                 start,

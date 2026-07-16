@@ -3548,11 +3548,13 @@ public partial class DrawingTests {
 
     [Fact]
     public void OfficeImageReaderIdentifiesIconDimensionsFromHeader() {
-        var icon = new byte[22];
+        var icon = new byte[23];
         icon[2] = 0x01;
         icon[4] = 0x01;
         icon[6] = 16;
         icon[7] = 32;
+        WriteInt32LittleEndian(icon, 14, 1);
+        WriteInt32LittleEndian(icon, 18, 22);
 
         var image = OfficeImageReader.Identify(icon);
 
@@ -3560,6 +3562,66 @@ public partial class DrawingTests {
         Assert.Equal(16, image.Width);
         Assert.Equal(32, image.Height);
         Assert.Equal("image/x-icon", image.MimeType);
+    }
+
+    [Theory]
+    [InlineData(0, 22, 22, 0)]
+    [InlineData(1, 21, 22, 0)]
+    [InlineData(1, 22, 22, 0)]
+    [InlineData(1, 22, 23, 1)]
+    public void OfficeImageReaderRejectsIconWithInvalidDirectoryOrPayload(
+        int imageLength,
+        int imageOffset,
+        int totalLength,
+        byte reserved) {
+        var icon = new byte[totalLength];
+        icon[2] = 0x01;
+        icon[4] = 0x01;
+        icon[6] = 16;
+        icon[7] = 32;
+        icon[9] = reserved;
+        WriteInt32LittleEndian(icon, 14, imageLength);
+        WriteInt32LittleEndian(icon, 18, imageOffset);
+
+        bool identified = OfficeImageReader.TryIdentify(icon, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsIconWhenALaterEntryHasNoPayload() {
+        var icon = new byte[39];
+        icon[2] = 0x01;
+        icon[4] = 0x02;
+        icon[6] = 16;
+        icon[7] = 16;
+        WriteInt32LittleEndian(icon, 14, 1);
+        WriteInt32LittleEndian(icon, 18, 38);
+        icon[22] = 32;
+        icon[23] = 32;
+        WriteInt32LittleEndian(icon, 30, 1);
+        WriteInt32LittleEndian(icon, 34, 39);
+
+        bool identified = OfficeImageReader.TryIdentify(icon, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
+    }
+
+    [Fact]
+    public void OfficeImageReaderRejectsBmpWithOverflowingHeight() {
+        var bmp = new byte[42];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteInt32LittleEndian(bmp, 14, 40);
+        WriteInt32LittleEndian(bmp, 18, 1);
+        WriteInt32LittleEndian(bmp, 22, int.MinValue);
+
+        bool identified = OfficeImageReader.TryIdentify(bmp, fileName: null, out OfficeImageInfo image);
+
+        Assert.False(identified);
+        Assert.Equal(OfficeImageFormat.Unknown, image.Format);
     }
 
     [Fact]

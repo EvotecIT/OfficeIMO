@@ -10,6 +10,21 @@ namespace OfficeIMO.Tests;
 
 public sealed class ReaderMediaAdapterTests {
     [Fact]
+    public void DocumentResultFactory_PreservesTheFiveParameterAdapterOverload() {
+        Type[] parameterTypes = {
+            typeof(IEnumerable<ReaderChunk>),
+            typeof(ReaderInputKind),
+            typeof(OfficeDocumentSource),
+            typeof(IEnumerable<string>),
+            typeof(IReadOnlyList<OfficeDocumentAsset>)
+        };
+
+        Assert.NotNull(typeof(DocumentReaderEngine).GetMethod(
+            nameof(DocumentReaderEngine.CreateDocumentResult),
+            parameterTypes));
+    }
+
+    [Fact]
     public void DependencyFreeMediaAdapters_PopulateTokenEstimates() {
         OfficeDocumentReadResult[] results = {
             new OfficeDocumentReaderBuilder().AddImageHandler().Build()
@@ -133,6 +148,19 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void ImageAdapter_RejectsIconWithoutAnInBoundsImagePayload() {
+        var malformedIcon = new byte[22];
+        malformedIcon[2] = 0x01;
+        malformedIcon[4] = 0x01;
+        malformedIcon[6] = 16;
+        malformedIcon[7] = 16;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(malformedIcon, "malformed.ico"));
+    }
+
+    [Fact]
     public void ImageAdapter_RejectsOverflowingEmfDimensionsAsUnsupported() {
         var emf = new byte[88];
         WriteUInt32LittleEndian(emf, 0, 1);
@@ -152,6 +180,20 @@ public sealed class ReaderMediaAdapterTests {
 
         Assert.Throws<NotSupportedException>(() =>
             reader.ReadDocument(emf, "malformed.emf"));
+    }
+
+    [Fact]
+    public void ImageAdapter_RejectsOverflowingBmpHeightAsUnsupported() {
+        var bmp = new byte[42];
+        bmp[0] = (byte)'B';
+        bmp[1] = (byte)'M';
+        WriteUInt32LittleEndian(bmp, 14, 40);
+        WriteUInt32LittleEndian(bmp, 18, 1);
+        WriteUInt32LittleEndian(bmp, 22, int.MinValue);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        Assert.Throws<NotSupportedException>(() =>
+            reader.ReadDocument(bmp, "malformed.bmp"));
     }
 
     [Fact]
@@ -428,6 +470,42 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void NotebookAdapter_TruncatesSourceAndOutputAtCompleteUnicodeScalars() {
+        const string notebook = """
+            {
+              "cells": [
+                { "cell_type": "markdown", "source": "😀source" },
+                {
+                  "cell_type": "code",
+                  "source": "",
+                  "outputs": [ { "output_type": "stream", "text": "😀output" } ]
+                }
+              ],
+              "metadata": {},
+              "nbformat": 4,
+              "nbformat_minor": 0
+            }
+            """;
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddNotebookHandler(new ReaderNotebookOptions {
+                MaxCellCharacters = 1,
+                MaxOutputCharactersPerCell = 1
+            })
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(notebook), "unicode.ipynb");
+
+        Assert.Equal(2, result.Chunks.Count);
+        Assert.All(result.Chunks, chunk => {
+            AssertContainsOnlyCompleteSurrogatePairs(chunk.Text);
+            AssertContainsOnlyCompleteSurrogatePairs(chunk.Markdown ?? string.Empty);
+            Assert.Contains("😀", chunk.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("source", chunk.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("output", chunk.Text, StringComparison.Ordinal);
+        });
+    }
+
+    [Fact]
     public void NotebookAdapter_FallsBackToPlainTextWhenMarkdownOutputIsEmpty() {
         const string notebook = """
             {
@@ -655,6 +733,32 @@ public sealed class ReaderMediaAdapterTests {
 
         Assert.Equal("First cue", Assert.Single(result.Chunks).Text);
         Assert.Contains(result.Metadata, item => item.Name == "Format" && item.Value == "srt");
+    }
+
+    [Fact]
+    public void SubtitleAdapter_DoesNotTreatAnSrtIdentifierWithWebVttPrefixAsAHeader() {
+        const string srt = "WEBVTT cue\n00:00:00,000 --> 00:00:01,000\nFirst cue\n";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddSubtitleHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(srt), "captions.srt");
+
+        Assert.Equal("First cue", Assert.Single(result.Chunks).Text);
+        Assert.Contains(result.Metadata, item => item.Name == "Format" && item.Value == "srt");
+    }
+
+    [Fact]
+    public void SubtitleAdapter_TruncatesCueAtACompleteUnicodeScalar() {
+        const string srt = "1\n00:00:00,000 --> 00:00:01,000\n😀suffix\n";
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddSubtitleHandler(new ReaderSubtitleOptions { MaxCueCharacters = 1 })
+            .Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(Encoding.UTF8.GetBytes(srt), "unicode.srt");
+
+        ReaderChunk chunk = Assert.Single(result.Chunks);
+        Assert.Equal("😀", chunk.Text);
+        AssertContainsOnlyCompleteSurrogatePairs(chunk.Markdown ?? string.Empty);
+        Assert.Contains(chunk.Warnings!, warning => warning.Contains("MaxCueCharacters", StringComparison.Ordinal));
     }
 
     [Fact]
