@@ -214,6 +214,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void NativeWriter_ExpandsBeyondEmbeddedSlideMasterScaffold() {
+            const int masterCount = 12;
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            presentation.SetThemeColor(PowerPointThemeColor.Accent1, "010101");
+            presentation.AddSlide();
+
+            for (int index = 1; index < masterCount; index++) {
+                using PowerPointPresentation source = PowerPointPresentation.Create();
+                source.SetThemeColor(PowerPointThemeColor.Accent1,
+                    $"{index + 1:X2}{index + 1:X2}{index + 1:X2}");
+                SlideLayoutPart layout = source.OpenXmlDocument.PresentationPart!
+                    .SlideMasterParts.First().SlideLayoutParts.First();
+                layout.SlideLayout!.CommonSlideData!.Name =
+                    $"Imported master {index + 1}";
+                layout.SlideLayout.Save();
+                source.AddSlide();
+                presentation.ImportSlide(source, 0);
+            }
+            presentation.Slides[0].Notes.Text = "Expanded topology note";
+            CreateHandoutMaster(presentation);
+
+            Assert.Equal(masterCount, presentation.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.Count());
+            LegacyPptWritePreflightReport preflight =
+                presentation.AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+
+            Assert.Equal(masterCount, binary.Masters.Count);
+            Assert.Equal(masterCount, binary.Slides.Count);
+            Assert.Equal(masterCount, binary.Slides.Select(slide => slide.MasterId)
+                .Distinct().Count());
+            Assert.Equal(14U, binary.DocumentSettings!.NotesMasterPersistId);
+            Assert.Equal(28U, binary.DocumentSettings.HandoutMasterPersistId);
+            Assert.Equal(Enumerable.Range(15, masterCount).Select(value =>
+                    unchecked((uint)value)),
+                binary.Slides.Select(slide => slide.PersistId));
+            Assert.Equal(27U, Assert.IsType<LegacyPptNotesPage>(
+                binary.Slides[0].NotesPage).PersistId);
+            Assert.Equal(28U, Assert.IsType<LegacyPptSpecialMaster>(
+                binary.HandoutMaster).PersistId);
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            Assert.Equal(masterCount, reopened.OpenXmlDocument.PresentationPart!
+                .SlideMasterParts.Count());
+            Assert.Equal(masterCount, reopened.Slides.Count);
+            Assert.Equal("Expanded topology note", reopened.Slides[0].Notes.Text);
+            Assert.NotNull(reopened.OpenXmlDocument.PresentationPart!
+                .HandoutMasterPart);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
         public void NativeWriter_WritesMainMasterShapesAndPlaceholderKinds() {
             using PowerPointPresentation presentation = PowerPointPresentation.Create();
             SlideMasterPart masterPart = presentation.OpenXmlDocument

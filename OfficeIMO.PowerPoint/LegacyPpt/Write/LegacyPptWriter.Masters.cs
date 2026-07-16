@@ -6,7 +6,7 @@ using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
-        internal const int MaxNativeMasterCount = 11;
+        internal const int MaxNativeMasterCount = 4093;
         private const uint FirstMasterId = 0x80000000U;
         private const uint FirstMasterPersistId = 2U;
         private const ushort RecordHandoutForWrite = 0x0FC9;
@@ -16,7 +16,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptRecord templateDocument,
             IReadOnlyList<LegacyPptRecord> prototypes,
             LegacyPptRecord notesMasterPrototype,
-            uint handoutDrawingId,
+            LegacyPptWriterTopology topology,
             LegacyPptWriterPictureBulletCatalog pictureBullets) {
             SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
                 .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
@@ -24,11 +24,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 throw new InvalidDataException(
                     "The Open XML presentation has no slide master to encode.");
             }
-            if (masterParts.Length > MaxNativeMasterCount
-                || masterParts.Length > prototypes.Count) {
+            if (masterParts.Length > MaxNativeMasterCount) {
                 throw new NotSupportedException(
-                    $"Native binary PowerPoint saving currently supports at most {MaxNativeMasterCount} slide masters; "
+                    $"The binary PowerPoint persist-directory format supports at most {MaxNativeMasterCount} slide masters; "
                     + $"the presentation contains {masterParts.Length}.");
+            }
+            if (prototypes.Count == 0) {
+                throw new InvalidDataException(
+                    "The embedded binary PowerPoint template has no slide-master prototype.");
             }
             if (!TryReadMasterTextStyles(presentation, templateDocument,
                     pictureBullets,
@@ -38,9 +41,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             var masterIds = new Dictionary<string, uint>(StringComparer.Ordinal);
-            var persistObjects = new List<byte[]>(prototypes.Count);
+            var persistObjects = new List<byte[]>(topology.MasterSlotCount);
             var drawingShapeCounts = new Dictionary<uint, int>();
-            for (int index = 0; index < prototypes.Count; index++) {
+            for (int index = 0; index < topology.MasterSlotCount; index++) {
+                LegacyPptRecord prototype = prototypes[index % prototypes.Count];
                 if (index < masterParts.Length) {
                     SlideMasterPart source = masterParts[index];
                     if (!TryReadBackground(source,
@@ -52,11 +56,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ReadMasterShapesForWrite(source, out _);
                     IReadOnlyList<PowerPointShape> supportedShapes = sourceShapes
                         .Where(IsSupportedShape).ToArray();
-                    uint drawingId = ReadDrawingId(prototypes[index]);
+                    uint drawingId = topology.GetMasterDrawingId(index);
                     IReadOnlyList<byte[]> roundTripThemeRecords =
                         BuildRoundTripThemeRecords(source.ThemePart?.Theme,
                             source.SlideMaster?.ColorMap);
-                    persistObjects.Add(BuildMasterRecord(prototypes[index],
+                    persistObjects.Add(BuildMasterRecord(prototype,
                         ReadColorScheme(source.ThemePart), background,
                         supportedShapes, drawingId,
                         LegacyPptWriterShapeContext.MainMaster,
@@ -69,7 +73,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     masterIds.Add(masterParts[index].Uri.ToString(),
                         checked(FirstMasterId + unchecked((uint)index)));
                 } else {
-                    persistObjects.Add(prototypes[index].CopyRecordBytes());
+                    persistObjects.Add(prototype.CopyRecordBytes());
                 }
             }
             NotesMasterPart? notesMasterPart = presentation.OpenXmlDocument
@@ -84,9 +88,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 ? null
                 : ReadMasterShapesForWrite(notesMasterPart, out _)
                     .Where(IsSupportedShape).ToArray();
-            uint? notesDrawingId = notesMasterPart == null
-                ? null
-                : ReadDrawingId(notesMasterPrototype);
+            uint notesDrawingId = topology.NotesMasterDrawingId;
             byte[] notesMaster = BuildMasterRecord(notesMasterPrototype,
                 ReadColorScheme(notesMasterPart?.ThemePart
                     ?? masterParts[0].ThemePart), notesBackground,
@@ -98,8 +100,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     notesMasterPart?.NotesMaster?.ColorMap),
                 fonts: textStyles.Fonts,
                 pictureBullets: pictureBullets);
-            if (notesDrawingId.HasValue && notesShapes != null) {
-                drawingShapeCounts.Add(notesDrawingId.Value,
+            if (notesShapes != null) {
+                drawingShapeCounts.Add(notesDrawingId,
                     CountDrawingShapes(notesShapes));
             }
             HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
@@ -118,13 +120,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     notesMasterPrototype,
                     ReadColorScheme(handoutMasterPart.ThemePart
                         ?? masterParts[0].ThemePart), handoutBackground,
-                    handoutShapes, handoutDrawingId,
+                    handoutShapes, topology.HandoutMasterDrawingId,
                     BuildRoundTripThemeRecords(
                         handoutMasterPart.ThemePart?.Theme
                             ?? masterParts[0].ThemePart?.Theme,
                         handoutMasterPart.HandoutMaster?.ColorMap),
                     textStyles.Fonts, pictureBullets);
-                drawingShapeCounts.Add(handoutDrawingId,
+                drawingShapeCounts.Add(topology.HandoutMasterDrawingId,
                     CountDrawingShapes(handoutShapes));
             }
             return new LegacyPptWriterMasterCatalog(masterIds, persistObjects,
@@ -185,15 +187,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         : PatchColorSchemeAtom(child, scheme,
                             colorSchemeSlotsToRewrite));
                     wroteScheme = true;
-                } else if (child.Type == RecordDrawing && shapes != null
-                           && drawingId.HasValue) {
-                    children.Add(BuildDrawingRecord(child, shapes,
-                        drawingId.Value, interactions, animations,
-                        fonts ?? throw new InvalidOperationException(
-                            "Master shape text requires the document font catalog."),
-                        background,
-                        shapeContext,
-                        pictureBullets: pictureBullets));
+                } else if (child.Type == RecordDrawing && drawingId.HasValue) {
+                    if (shapes != null) {
+                        children.Add(BuildDrawingRecord(child, shapes,
+                            drawingId.Value, interactions, animations,
+                            fonts ?? throw new InvalidOperationException(
+                                "Master shape text requires the document font catalog."),
+                            background,
+                            shapeContext,
+                            pictureBullets: pictureBullets));
+                    } else {
+                        children.Add(RewriteDrawingId(child, drawingId.Value));
+                    }
                 } else if (background != null && child.Type == RecordDrawing) {
                     children.Add(BuildBackgroundDrawingRecord(child,
                         background));

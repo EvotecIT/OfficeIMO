@@ -1,5 +1,6 @@
 using System.Reflection;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Drawing.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
@@ -99,40 +100,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
 
             LegacyPptWriterTemplate template = Template.Value;
-            var notes = new List<LegacyPptWriterNote>();
+            var noteSources = new List<(int SlideIndex, string Text,
+                NotesSlidePart? SourcePart)>();
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
                 if (!slide.Notes.TryGetText(out string noteText)
                     || string.IsNullOrWhiteSpace(noteText)) continue;
-                int noteIndex = notes.Count;
-                notes.Add(new LegacyPptWriterNote(slideIndex, noteText,
-                    unchecked((uint)(256 + slideIndex)),
-                    checked((uint)(14 + presentation.Slides.Count + noteIndex)),
-                    checked((uint)(13 + presentation.Slides.Count + noteIndex)),
+                noteSources.Add((slideIndex, noteText,
                     slide.SlidePart.NotesSlidePart));
             }
             bool hasHandoutMaster = presentation.OpenXmlDocument.PresentationPart?
                 .HandoutMasterPart != null;
-            int maximumSlideAndNotesCount = hasHandoutMaster ? 4081 : 4082;
-            if (presentation.Slides.Count + notes.Count
-                    > maximumSlideAndNotesCount) {
-                throw new NotSupportedException(
-                    $"Native binary PowerPoint saving supports at most {maximumSlideAndNotesCount} combined slide and notes persist objects"
-                    + (hasHandoutMaster ? " when a handout master is present." : "."));
-            }
-            uint handoutDrawingId = checked((uint)(13
-                + presentation.Slides.Count + notes.Count));
+            int masterCount = presentation.OpenXmlDocument.PresentationPart?
+                .SlideMasterParts.Count() ?? 0;
+            var topology = new LegacyPptWriterTopology(masterCount,
+                presentation.Slides.Count, noteSources.Count,
+                hasHandoutMaster);
+            topology.EnsurePersistObjectCapacity(checked(oleCatalog.Objects.Count
+                + (vbaProjectBytes == null ? 0 : 1)));
+            var notes = noteSources.Select((source, noteIndex) =>
+                new LegacyPptWriterNote(source.SlideIndex, source.Text,
+                    unchecked((uint)(256 + source.SlideIndex)),
+                    topology.GetNotesPersistId(noteIndex),
+                    topology.GetNotesDrawingId(noteIndex), source.SourcePart))
+                .ToList();
             LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
                 template.Document, template.MainMasterPrototypes,
-                template.NotesMasterPrototype, handoutDrawingId,
+                template.NotesMasterPrototype, topology,
                 pictureBullets);
-            uint firstAdditionalPersistId = checked((uint)(
-                masters.PersistObjects.Count + presentation.Slides.Count
-                + notes.Count
-                + (masters.HandoutMasterPersistObject == null ? 0 : 1)
-                + 3));
             uint nextAdditionalPersistId = oleCatalog.AssignPersistIds(
-                firstAdditionalPersistId);
+                topology.FirstAdditionalPersistId);
             uint? vbaProjectPersistId = vbaProjectBytes == null
                 ? null
                 : nextAdditionalPersistId;
@@ -158,7 +155,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out IReadOnlyList<LegacyPptWriterComment>? comments);
                 slideRecords.Add(BuildSlideRecord(
                     template.SlidePrototype, slide, supportedShapes,
-                    unchecked((uint)(13 + index)), masters.GetMasterId(slide), notesId,
+                    topology.GetSlideDrawingId(index), masters.GetMasterId(slide), notesId,
                     comments ?? Array.Empty<LegacyPptWriterComment>(),
                     interactionCatalog, animationCatalog, mediaCatalog,
                     oleCatalog, pictureCatalog, masters.Fonts,
@@ -169,12 +166,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 note.SourcePart)).ToArray();
             uint handoutMasterPersistId = masters.HandoutMasterPersistObject == null
                 ? 0U
-                : checked((uint)(14 + presentation.Slides.Count + notes.Count));
-            var persistObjects = new List<byte[]>(14 + slideRecords.Count + notesRecords.Length) {
+                : topology.HandoutMasterPersistId;
+            var persistObjects = new List<byte[]>(topology.BasePersistObjectCount
+                + oleCatalog.Objects.Count + (vbaProjectBytes == null ? 0 : 1)) {
                 BuildDocumentRecord(template.Document, presentation, slideShapeCounts, notes,
                     interactionCatalog, customShows, soundCatalog, masters.Count,
                     masters.DrawingShapeCounts, masters.Fonts,
-                    handoutMasterPersistId, vbaProjectPersistId,
+                    topology, handoutMasterPersistId, vbaProjectPersistId,
                     mediaCatalog, oleCatalog, pictureCatalog,
                     pictureBullets)
             };
@@ -302,6 +300,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             int masterCount,
             IReadOnlyDictionary<uint, int> masterDrawingShapeCounts,
             LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterTopology topology,
             uint handoutMasterPersistId,
             uint? vbaProjectPersistId,
             LegacyPptWriterMediaCatalog mediaCatalog,
@@ -322,6 +321,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     WriteInt32(atom, 8, ToMasterUnits(presentation.SlideSize.WidthEmus));
                     WriteInt32(atom, 12, ToMasterUnits(presentation.SlideSize.HeightEmus));
                     PatchDocumentSettings(atom, presentation,
+                        topology.NotesMasterPersistId,
                         handoutMasterPersistId);
                     children.Add(atom);
                     byte[] externalObjects = BuildExternalObjectListRecord(
@@ -346,7 +346,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     children.Add(BuildDrawingGroupRecord(child,
                         masterDrawingShapeCounts, slideShapeCounts, notes.Count,
-                        pictureCatalog));
+                        topology, pictureCatalog));
                 } else if (child.Type == RecordHeadersFooters
                            && (child.Instance == 3 || child.Instance == 4)) {
                     children.Add(BuildDocumentHeaderFooterRecord(presentation,
@@ -354,7 +354,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 1) {
                     children.Add(BuildMasterList(masterCount));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 0) {
-                    children.Add(BuildSlideList(presentation.Slides.Count));
+                    children.Add(BuildSlideList(topology));
                 } else if (child.Type == RecordSlideListWithText && child.Instance == 2) {
                     if (notes.Count > 0) children.Add(BuildNotesList(notes));
                 } else {
@@ -412,6 +412,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static void PatchDocumentSettings(byte[] atom,
             PowerPointPresentation presentation,
+            uint notesMasterPersistId,
             uint handoutMasterPersistId) {
             if (atom.Length < 48) {
                 throw new InvalidDataException("The embedded PowerPoint DocumentAtom template is truncated.");
@@ -428,7 +429,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             int divisor = GreatestCommonDivisor(serverZoom, 100000);
             WriteInt32(atom, 24, serverZoom / divisor);
             WriteInt32(atom, 28, 100000 / divisor);
-            WriteUInt32(atom, 32, 13U);
+            WriteUInt32(atom, 32, notesMasterPersistId);
             WriteUInt32(atom, 36, handoutMasterPersistId);
             int firstSlideNumber = root.FirstSlideNum?.Value ?? 1;
             WriteUInt16(atom, 40, checked((ushort)Math.Min(
@@ -465,6 +466,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static byte[] BuildDrawingGroupRecord(LegacyPptRecord drawingGroup,
             IReadOnlyDictionary<uint, int> masterDrawingShapeCounts,
             IReadOnlyList<int> slideShapeCounts, int notesCount,
+            LegacyPptWriterTopology topology,
             LegacyPptWriterPictureCatalog pictureCatalog) {
             var drawingGroupChildren = new List<byte[]>();
             foreach (LegacyPptRecord child in drawingGroup.Children) {
@@ -479,7 +481,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (dggChild.Type == OfficeArtDgg) {
                         dggChildren.Add(BuildDggAtom(dggChild,
                             masterDrawingShapeCounts, slideShapeCounts,
-                            notesCount));
+                            notesCount, topology));
                         if (pictureCatalog.Entries.Count > 0
                             && !child.Children.Any(candidate =>
                                 candidate.Type == OfficeArtBStoreContainer)) {
@@ -505,13 +507,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static byte[] BuildDggAtom(LegacyPptRecord baseAtom,
             IReadOnlyDictionary<uint, int> masterDrawingShapeCounts,
-            IReadOnlyList<int> slideShapeCounts, int notesCount) {
+            IReadOnlyList<int> slideShapeCounts, int notesCount,
+            LegacyPptWriterTopology topology) {
             var clusters = new List<KeyValuePair<uint, uint>>();
+            var clusteredDrawingIds = new HashSet<uint>();
+            uint templateNotesNextShapeIndex = 2U;
             int baseClusterCount = Math.Max(0, unchecked((int)baseAtom.ReadUInt32(4)) - 1);
             for (int index = 0; index < baseClusterCount && 16 + index * 8 + 8 <= baseAtom.PayloadLength; index++) {
                 uint drawingId = baseAtom.ReadUInt32(16 + index * 8);
                 uint nextShapeIndex = baseAtom.ReadUInt32(20 + index * 8);
-                if (drawingId <= 12) {
+                if (drawingId == 12U) {
+                    templateNotesNextShapeIndex = nextShapeIndex;
+                }
+                if (drawingId <= topology.NotesMasterDrawingId) {
                     if (masterDrawingShapeCounts.TryGetValue(drawingId,
                             out int masterShapeCount)) {
                         nextShapeIndex = checked(
@@ -519,22 +527,35 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     clusters.Add(new KeyValuePair<uint, uint>(drawingId,
                         nextShapeIndex));
+                    clusteredDrawingIds.Add(drawingId);
                 }
             }
+            if (!clusteredDrawingIds.Contains(topology.NotesMasterDrawingId)
+                && !masterDrawingShapeCounts.ContainsKey(
+                    topology.NotesMasterDrawingId)) {
+                clusters.Add(new KeyValuePair<uint, uint>(
+                    topology.NotesMasterDrawingId,
+                    templateNotesNextShapeIndex));
+                clusteredDrawingIds.Add(topology.NotesMasterDrawingId);
+            }
             for (int index = 0; index < slideShapeCounts.Count; index++) {
-                clusters.Add(new KeyValuePair<uint, uint>(unchecked((uint)(13 + index)),
+                uint drawingId = topology.GetSlideDrawingId(index);
+                clusters.Add(new KeyValuePair<uint, uint>(drawingId,
                     unchecked((uint)(slideShapeCounts[index] + 2))));
+                clusteredDrawingIds.Add(drawingId);
             }
             for (int index = 0; index < notesCount; index++) {
-                clusters.Add(new KeyValuePair<uint, uint>(
-                    unchecked((uint)(13 + slideShapeCounts.Count + index)), 4U));
+                uint drawingId = topology.GetNotesDrawingId(index);
+                clusters.Add(new KeyValuePair<uint, uint>(drawingId, 4U));
+                clusteredDrawingIds.Add(drawingId);
             }
             foreach (KeyValuePair<uint, int> pair in masterDrawingShapeCounts
-                         .Where(pair => pair.Key > 12)
+                         .Where(pair => !clusteredDrawingIds.Contains(pair.Key))
                          .OrderBy(pair => pair.Key)) {
                 clusters.Add(new KeyValuePair<uint, uint>(pair.Key,
                     checked(unchecked((uint)pair.Value) + 2U)));
             }
+            clusters.Sort((left, right) => left.Key.CompareTo(right.Key));
 
             uint maxDrawingId = clusters.Count == 0 ? 1U : clusters.Max(cluster => cluster.Key);
             uint shapeCount = unchecked((uint)clusters.Sum(cluster => checked((int)cluster.Value - 1)));
@@ -551,11 +572,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildRecord(version: 0, baseAtom.Instance, OfficeArtDgg, payload);
         }
 
-        private static byte[] BuildSlideList(int slideCount) {
-            var children = new List<byte[]>(slideCount);
-            for (int index = 0; index < slideCount; index++) {
+        private static byte[] BuildSlideList(LegacyPptWriterTopology topology) {
+            var children = new List<byte[]>(topology.SlideCount);
+            for (int index = 0; index < topology.SlideCount; index++) {
                 var payload = new byte[20];
-                WriteUInt32(payload, 0, unchecked((uint)(14 + index)));
+                WriteUInt32(payload, 0, topology.GetSlidePersistId(index));
                 WriteUInt32(payload, 4, 4);
                 WriteUInt32(payload, 12, unchecked((uint)(256 + index)));
                 children.Add(BuildRecord(version: 0, instance: 0, RecordSlidePersistAtom, payload));
@@ -677,6 +698,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildDocumentStream(IReadOnlyList<byte[]> persistObjects, int slideCount) {
+            if (persistObjects.Count > 0x0FFF) {
+                throw new NotSupportedException(
+                    $"The presentation requires {persistObjects.Count} persist objects, but a binary PowerPoint persist-directory run supports at most 4095.");
+            }
             using var output = new MemoryStream();
             var offsets = new uint[persistObjects.Count];
             for (int index = 0; index < persistObjects.Count; index++) {

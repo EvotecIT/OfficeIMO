@@ -24,8 +24,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Sections, "PPT-WRITE-SECTIONS",
                     "Presentation sections are not encoded by the native binary writer."));
             }
-            if (!LegacyPptWriter.TryReadVbaProject(presentation,
-                    out _, out string? vbaReason)) {
+            bool canWriteVba = LegacyPptWriter.TryReadVbaProject(presentation,
+                out byte[]? vbaProjectBytes, out string? vbaReason);
+            if (!canWriteVba) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.VbaProjects, "PPT-WRITE-VBA",
                     vbaReason ?? "The VBA project cannot be encoded by the native binary writer."));
             }
@@ -153,6 +154,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     LegacyPptWriter.LegacyPptWriterShapeContext.HandoutMaster,
                     shapeTextFonts, pictureBullets);
             }
+            LegacyPptWriter.LegacyPptWriterTopology? topology = null;
+            if (masterCount > 0
+                && masterCount <= LegacyPptWriter.MaxNativeMasterCount) {
+                int notesCount = presentation.Slides.Count(slide =>
+                    slide.Notes.TryGetText(out string text)
+                    && !string.IsNullOrWhiteSpace(text));
+                try {
+                    topology = new LegacyPptWriter.LegacyPptWriterTopology(
+                        masterCount, presentation.Slides.Count, notesCount,
+                        handoutMasterPart != null);
+                } catch (NotSupportedException exception) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.UnknownRecordsAndStreams,
+                        "PPT-WRITE-PERSIST-CAPACITY", exception.Message));
+                }
+            }
             if (LegacyPptWriter.HasModernComments(presentation)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
                     "PPT-WRITE-MODERN-COMMENTS",
@@ -204,11 +221,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 firstOleObjectId = mediaCatalog.NextObjectId;
             }
             if (!LegacyPptWriter.TryReadOleObjects(presentation.Slides,
-                    firstOleObjectId, out _, out string? oleReason)) {
+                    firstOleObjectId,
+                    out LegacyPptWriter.LegacyPptWriterOleObjectCatalog
+                        oleCatalog,
+                    out string? oleReason)) {
                 findings.Add(new LegacyPptWriteFinding(
                     LegacyPptFeature.EmbeddedOle, "PPT-WRITE-OLE",
                     oleReason
                     ?? "An embedded OLE object cannot be encoded by the native binary writer."));
+            } else if (topology != null) {
+                try {
+                    topology.EnsurePersistObjectCapacity(checked(
+                        oleCatalog.Objects.Count
+                        + (canWriteVba && vbaProjectBytes != null ? 1 : 0)));
+                } catch (NotSupportedException exception) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.UnknownRecordsAndStreams,
+                        "PPT-WRITE-PERSIST-CAPACITY", exception.Message));
+                }
             }
             if (!LegacyPptWriter.TryReadPictureCatalog(presentation.Slides,
                     out _, out LegacyPptFeature pictureFailureFeature,

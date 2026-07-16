@@ -58,14 +58,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return shapes;
         }
 
-        private static uint ReadDrawingId(LegacyPptRecord prototype) {
-            LegacyPptRecord? drawing = prototype.DescendantsAndSelf()
-                .FirstOrDefault(record => record.Type == OfficeArtDg);
-            if (drawing == null || drawing.Instance == 0) {
-                throw new InvalidDataException(
-                    "The embedded binary PowerPoint master has no drawing identifier.");
+        private static byte[] RewriteDrawingId(LegacyPptRecord record,
+            uint drawingId) {
+            if (record.Version == 0x0F && record.Children.Count > 0) {
+                return BuildRecord(record.Version, record.Instance, record.Type,
+                    Concat(record.Children.Select(child =>
+                        RewriteDrawingId(child, drawingId))));
             }
-            return drawing.Instance;
+
+            byte[] bytes = record.CopyRecordBytes();
+            if (record.Type == OfficeArtDg) {
+                WriteUInt16(bytes, 0,
+                    checked((ushort)((drawingId << 4) | record.Version)));
+                uint currentShapeId = ReadUInt32(bytes, 12);
+                WriteUInt32(bytes, 12, checked((drawingId << 10)
+                    | (currentShapeId & 0x000003FFU)));
+            } else if (record.Type == OfficeArtFsp) {
+                uint shapeId = ReadUInt32(bytes, 8);
+                WriteUInt32(bytes, 8, checked((drawingId << 10)
+                    | (shapeId & 0x000003FFU)));
+            }
+            return bytes;
         }
     }
 }
