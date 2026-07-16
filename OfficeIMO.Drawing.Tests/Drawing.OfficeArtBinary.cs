@@ -209,6 +209,54 @@ public partial class DrawingTests {
     }
 
     [Fact]
+    public void OfficeArtShapeProtection_DecodesAllExplicitLocksAndUseBits() {
+        uint protectionValue = 0;
+        for (int useBit = 6; useBit <= 15; useBit++) {
+            protectionValue |= 1U << useBit;
+            if (useBit % 2 == 0) {
+                protectionValue |= 1U << (useBit + 16);
+            }
+        }
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x007F, 0xFFFFFFFFU),
+            new OfficeArtProperty(1, 0x007F, protectionValue)
+        };
+
+        OfficeArtShapeProtection protection =
+            OfficeArtShapeProtection.Decode(properties);
+
+        Assert.True(protection.LockAgainstUngrouping);
+        Assert.False(protection.LockRotation);
+        Assert.True(protection.LockAspectRatio);
+        Assert.False(protection.LockPosition);
+        Assert.True(protection.LockAgainstSelect);
+        Assert.False(protection.LockCropping);
+        Assert.True(protection.LockVertices);
+        Assert.False(protection.LockText);
+        Assert.True(protection.LockAdjustHandles);
+        Assert.False(protection.LockAgainstGrouping);
+        Assert.Equal("ProtectionBooleanProperties",
+            properties[1].PropertyName);
+        Assert.Equal("Protection", properties[1].PropertyGroupName);
+        Assert.Null(OfficeArtShapeProtection.Decode(new[] {
+            new OfficeArtProperty(0, 0x007F, 1U << 24)
+        }).LockAspectRatio);
+    }
+
+    [Fact]
+    public void OfficeArtShapeStyle_DecodesPictureEditingBooleanUseBits() {
+        var properties = new[] {
+            new OfficeArtProperty(0, 0x033F,
+                (1U << 11) | (1U << 27) | (1U << 12))
+        };
+
+        OfficeArtShapeStyle style = OfficeArtShapeStyle.Decode(properties);
+
+        Assert.True(style.PreferRelativeResize);
+        Assert.False(style.LockShapeType);
+    }
+
+    [Fact]
     public void OfficeArtPropertyTableReader_RejectsTruncatedFixedTableWithoutOverread() {
         byte[] payload = { 0x81, 0x01, 0x33, 0x22, 0x11 };
 

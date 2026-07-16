@@ -20,6 +20,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (presentation == null) throw new ArgumentNullException(
                 nameof(presentation));
             catalog = new LegacyPptWriterPictureCatalog();
+            var materializedLayoutPictures = new HashSet<OpenXmlElement>(
+                ReferenceComparer.Instance);
             foreach (PowerPointSlide slide in presentation.Slides) {
                 IReadOnlyList<PowerPointShape> shapes = ReadSlideShapesForWrite(
                     slide, out string? shapeReason);
@@ -36,6 +38,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 foreach (PowerPointShape shape in shapes) {
+                    if (shape is PowerPointPicture
+                        && IsLayoutShape(shape)) {
+                        materializedLayoutPictures.Add(shape.Element);
+                    }
                     byte[] imageBytes;
                     string contentType;
                     if (shape is PowerPointPicture picture
@@ -109,8 +115,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             PresentationPart? presentationPart = presentation.OpenXmlDocument
                 .PresentationPart;
+            if (!TryValidateMaterializedLayoutPictures(presentation,
+                    materializedLayoutPictures, out reason)) {
+                failureFeature = LegacyPptFeature.Layouts;
+                return false;
+            }
             foreach (SlideMasterPart masterPart in presentationPart?
                          .SlideMasterParts ?? Enumerable.Empty<SlideMasterPart>()) {
+                IReadOnlyList<PowerPointShape> masterShapes =
+                    ReadMasterShapesForWrite(masterPart,
+                        out string? masterShapeReason);
+                if (masterShapeReason != null) {
+                    failureFeature = LegacyPptFeature.Masters;
+                    reason = masterShapeReason;
+                    return false;
+                }
+                if (!TryAddMasterPictures(catalog, masterShapes,
+                        out failureFeature, out reason)) {
+                    return false;
+                }
                 if (!TryReadBackground(masterPart,
                         out LegacyPptWriterBackground? masterBackground,
                         out reason)
@@ -122,25 +145,51 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             NotesMasterPart? notesMasterPart = presentationPart?
                 .NotesMasterPart;
-            if (notesMasterPart != null
-                && (!TryReadBackground(notesMasterPart,
+            if (notesMasterPart != null) {
+                IReadOnlyList<PowerPointShape> notesMasterShapes =
+                    ReadMasterShapesForWrite(notesMasterPart,
+                        out string? notesMasterShapeReason);
+                if (notesMasterShapeReason != null) {
+                    failureFeature = LegacyPptFeature.Masters;
+                    reason = notesMasterShapeReason;
+                    return false;
+                }
+                if (!TryAddMasterPictures(catalog, notesMasterShapes,
+                        out failureFeature, out reason)) {
+                    return false;
+                }
+                if (!TryReadBackground(notesMasterPart,
                         out LegacyPptWriterBackground? notesMasterBackground,
                         out reason)
                     || !TryAddBackgroundPicture(catalog,
-                        notesMasterBackground, out reason))) {
-                failureFeature = LegacyPptFeature.Backgrounds;
-                return false;
+                        notesMasterBackground, out reason)) {
+                    failureFeature = LegacyPptFeature.Backgrounds;
+                    return false;
+                }
             }
             HandoutMasterPart? handoutMasterPart = presentationPart?
                 .HandoutMasterPart;
-            if (handoutMasterPart != null
-                && (!TryReadBackground(handoutMasterPart,
+            if (handoutMasterPart != null) {
+                IReadOnlyList<PowerPointShape> handoutMasterShapes =
+                    ReadMasterShapesForWrite(handoutMasterPart,
+                        out string? handoutMasterShapeReason);
+                if (handoutMasterShapeReason != null) {
+                    failureFeature = LegacyPptFeature.Masters;
+                    reason = handoutMasterShapeReason;
+                    return false;
+                }
+                if (!TryAddMasterPictures(catalog, handoutMasterShapes,
+                        out failureFeature, out reason)) {
+                    return false;
+                }
+                if (!TryReadBackground(handoutMasterPart,
                         out LegacyPptWriterBackground? handoutBackground,
                         out reason)
-                    || !TryAddBackgroundPicture(catalog, handoutBackground,
-                        out reason))) {
-                failureFeature = LegacyPptFeature.Backgrounds;
-                return false;
+                    || !TryAddBackgroundPicture(catalog,
+                        handoutBackground, out reason)) {
+                    failureFeature = LegacyPptFeature.Backgrounds;
+                    return false;
+                }
             }
             failureFeature = LegacyPptFeature.RasterPictures;
             reason = null;
@@ -261,6 +310,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out _, out reason)) {
                 return false;
             }
+            if (!TryReadPictureProtectionForWrite(picture, out _,
+                    out reason)) {
+                return false;
+            }
             if (source.BlipFill.GetFirstChild<A.Tile>() != null) {
                 reason = "Tiled picture fills cannot be represented by a binary picture frame without changing the visual result.";
                 return false;
@@ -374,6 +427,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             PowerPointPicture picture,
             uint preservedBooleanProperties = 0) {
             P.Picture source = (P.Picture)picture.Element;
+            AddPictureProtectionProperties(properties, picture);
             A.SourceRectangle? crop = source.BlipFill?.SourceRectangle;
             AddPictureCropProperty(properties, 0x0100,
                 crop?.Top?.Value);

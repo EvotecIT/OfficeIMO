@@ -277,6 +277,7 @@ namespace OfficeIMO.PowerPoint {
                 }
             }
             if (projectedShape?.Element is Picture projectedPicture) {
+                ApplyLegacyPictureEditingProperties(projectedPicture, shape);
                 ApplyLegacyPictureCrop(projectedPicture.BlipFill, shape);
                 ApplyLegacyPictureEffects(projectedPicture.BlipFill?.Blip, shape);
             }

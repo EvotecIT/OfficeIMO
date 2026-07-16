@@ -559,6 +559,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 NormalizeShapeFormatting(picture.ShapeProperties,
                     shapeProjection);
                 if (shapeProjection.CanEditPictureFormatting) {
+                    P.NonVisualPictureDrawingProperties? nonVisual = picture
+                        .NonVisualPictureProperties?
+                        .NonVisualPictureDrawingProperties;
+                    if (nonVisual != null) {
+                        nonVisual.PreferRelativeResize = null;
+                        nonVisual.RemoveAllChildren<A.PictureLocks>();
+                    }
                     picture.BlipFill?.SourceRectangle?.Remove();
                     A.Blip? blip = picture.BlipFill?.Blip;
                     blip?.RemoveAllChildren<A.LuminanceEffect>();

@@ -59,6 +59,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyPptCapabilityState.Native, raster.NewBinaryWrite);
             Assert.Equal(LegacyPptCapabilityState.Native, raster.PptxToBinary);
             Assert.Contains("deduplicates identical payloads", raster.Note);
+            Assert.Contains("main, notes, and handout masters", raster.Note);
+            Assert.Contains("unused picture-bearing layouts are loss-blocked",
+                raster.Note);
+            Assert.Contains("protection-lock", raster.Note);
 
             LegacyPptCapability crop = LegacyPptCapabilityCatalog.Get(
                 LegacyPptFeature.PictureCrop);

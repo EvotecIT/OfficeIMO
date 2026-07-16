@@ -44,6 +44,10 @@ public sealed class OfficeArtShapeStyle {
         ShadowOffsetYEmus = GetInt32(0x0206);
         ShadowSoftnessEmus = GetInt32(0x021C);
         ShadowEnabled = GetBoolean(0x023F, 0x00020000U, 0x00000002U);
+        PreferRelativeResize = GetBoolean(0x033F,
+            1U << 11, 1U << 27);
+        LockShapeType = GetBoolean(0x033F,
+            1U << 12, 1U << 28);
     }
 
     /// <summary>Decodes a shape style from OfficeArt properties.</summary>
@@ -151,6 +155,15 @@ public sealed class OfficeArtShapeStyle {
 
     /// <summary>Gets explicit shadow visibility, or null when the property inherits its default.</summary>
     public bool? ShadowEnabled { get; }
+
+    /// <summary>
+    /// Gets whether the resizing user interface explicitly prefers values
+    /// relative to the original shape size.
+    /// </summary>
+    public bool? PreferRelativeResize { get; }
+
+    /// <summary>Gets whether changing the shape type is explicitly locked.</summary>
+    public bool? LockShapeType { get; }
 
     /// <summary>Gets whether this style includes fill or line values that can be projected directly.</summary>
     public bool HasProjectableStyle => FillEnabled.HasValue || FillColor.HasValue || FillOpacity.HasValue

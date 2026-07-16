@@ -479,7 +479,7 @@ namespace OfficeIMO.PowerPoint {
             return new Picture(
                 new NonVisualPictureProperties(
                     new NonVisualDrawingProperties { Id = shapeId, Name = $"Binary Picture {shapeId - 1U}" },
-                    new NonVisualPictureDrawingProperties(new A.PictureLocks { NoChangeAspect = true }),
+                    CreateLegacyNonVisualPictureDrawingProperties(source),
                     new ApplicationNonVisualDrawingProperties()),
                 blipFill,
                 properties);

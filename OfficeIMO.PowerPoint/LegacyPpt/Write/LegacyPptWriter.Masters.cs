@@ -56,7 +56,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     IReadOnlyList<PowerPointShape> sourceShapes =
                         ReadMasterShapesForWrite(source, out _);
                     IReadOnlyList<PowerPointShape> supportedShapes = sourceShapes
-                        .Where(IsSupportedShape).ToArray();
+                        .Where(IsSupportedMasterShape).ToArray();
                     uint drawingId = topology.GetMasterDrawingId(index);
                     IReadOnlyList<byte[]> roundTripThemeRecords =
                         BuildRoundTripThemeRecords(source.ThemePart?.Theme,
@@ -89,7 +89,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             IReadOnlyList<PowerPointShape>? notesShapes = notesMasterPart == null
                 ? null
                 : ReadMasterShapesForWrite(notesMasterPart, out _)
-                    .Where(IsSupportedShape).ToArray();
+                    .Where(IsSupportedMasterShape).ToArray();
             uint notesDrawingId = topology.NotesMasterDrawingId;
             byte[] notesMaster = BuildMasterRecord(notesMasterPrototype,
                 ReadColorScheme(notesMasterPart?.ThemePart
@@ -118,7 +118,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 IReadOnlyList<PowerPointShape> handoutShapes =
                     ReadMasterShapesForWrite(handoutMasterPart, out _)
-                        .Where(IsSupportedShape).ToArray();
+                        .Where(IsSupportedMasterShape).ToArray();
                 handoutMaster = BuildHandoutMasterRecord(
                     notesMasterPrototype,
                     ReadColorScheme(handoutMasterPart.ThemePart

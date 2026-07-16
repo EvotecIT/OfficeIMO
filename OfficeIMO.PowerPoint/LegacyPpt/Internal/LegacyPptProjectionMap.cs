@@ -1322,12 +1322,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 || shape.Element is not P.Picture picture) {
                 return null;
             }
+            string protection = picture.NonVisualPictureProperties?
+                .NonVisualPictureDrawingProperties?.OuterXml
+                ?? string.Empty;
             string crop = picture.BlipFill?.SourceRectangle?.OuterXml
                 ?? string.Empty;
             string effects = string.Concat(picture.BlipFill?.Blip?
                 .ChildElements.Select(child => child.OuterXml)
                 ?? Enumerable.Empty<string>());
-            return crop + "\n" + effects;
+            return protection + "\n" + crop + "\n" + effects;
         }
 
         internal bool ShapeMetadataMatches(PowerPointShape shape) =>

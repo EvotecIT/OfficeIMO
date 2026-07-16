@@ -722,8 +722,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 const uint pictureBooleanMask = (1U << 18)
                     | (1U << 17) | (1U << 2) | (1U << 1);
+                IReadOnlyList<LegacyPptWriterFoptProperty>
+                    currentShapeProperties = properties.ToArray();
                 properties = properties.Where(property =>
-                        property.PropertyId is not (>= 0x0100 and <= 0x0103)
+                        property.PropertyId != 0x007F
+                        && property.PropertyId != 0x033F
+                        && property.PropertyId is not (>= 0x0100 and <= 0x0103)
                         && property.PropertyId != 0x0107
                         && property.PropertyId != 0x0108
                         && property.PropertyId != 0x0109
@@ -732,6 +736,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 AddPictureFormatProperties(properties, picture);
                 PreserveBooleanPropertyBits(sourceProperties, properties,
                     0x013F, pictureBooleanMask);
+                PreserveBooleanPropertyBits(sourceProperties, properties,
+                    0x007F, PictureProtectionRewriteMask);
+                PreserveBooleanPropertyBits(currentShapeProperties,
+                    properties, 0x033F,
+                    PictureShapeBooleanRewriteMask);
             }
             if (rewriteTextFrame) {
                 if (shape is not PowerPointTextBox textBox) {

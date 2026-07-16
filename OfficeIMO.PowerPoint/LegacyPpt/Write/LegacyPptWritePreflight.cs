@@ -252,6 +252,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             ? "PPT-WRITE-SMARTART"
                         : pictureFailureFeature == LegacyPptFeature.Backgrounds
                             ? "PPT-WRITE-BACKGROUND"
+                        : pictureFailureFeature == LegacyPptFeature.Layouts
+                            ? "PPT-WRITE-LAYOUT-PICTURE"
                         : "PPT-WRITE-PICTURE",
                     pictureReason
                     ?? "A visual cannot be encoded by the native binary writer."));
@@ -499,10 +501,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         "PPT-WRITE-MASTER-PLACEHOLDER",
                         $"{location}: {placeholderReason}"));
                 }
-                if (!IsSupportedShape(shape)) {
+                if (!LegacyPptWriter.IsSupportedMasterShape(shape)) {
                     findings.Add(new LegacyPptWriteFinding(
                         MapShapeFeature(shape), "PPT-WRITE-MASTER-SHAPE",
-                        $"{location}: {shape.ShapeContentType} content is outside the native writer's text/rectangle/ellipse/line subset."));
+                        $"{location}: {shape.ShapeContentType} content is outside the native writer's supported master-shape subset."));
                     continue;
                 }
                 if (HasUnsupportedVisualStyle(shape)
