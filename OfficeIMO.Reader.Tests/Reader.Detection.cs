@@ -120,9 +120,10 @@ public sealed class ReaderDetectionTests {
     [InlineData("application/vnd.oasis.opendocument.spreadsheet")]
     [InlineData("application/vnd.oasis.opendocument.presentation")]
     public void DocumentReader_Detect_IdentifiesOpenDocumentMimeTypes(string mediaType) {
-        byte[] package = CreateStreamingZip(
+        byte[] package = CreateStoredZip(
             ("mimetype", mediaType),
             ("content.xml", "<document />"));
+        Assert.Equal(0, BitConverter.ToUInt16(package, 8));
 
         ReaderDetectionResult detection = OfficeDocumentReader.Default.Detect(package, "document.blob");
 
@@ -134,9 +135,10 @@ public sealed class ReaderDetectionTests {
     [Fact]
     public async Task DocumentReader_DetectAsync_IdentifiesOpenDocumentMimeType() {
         const string mediaType = "application/vnd.oasis.opendocument.text";
-        byte[] package = CreateStreamingZip(
+        byte[] package = CreateStoredZip(
             ("mimetype", mediaType),
             ("content.xml", "<document />"));
+        Assert.Equal(0, BitConverter.ToUInt16(package, 8));
 
         ReaderDetectionResult detection = await OfficeDocumentReader.Default.DetectAsync(package, "document.blob");
 
@@ -368,6 +370,93 @@ public sealed class ReaderDetectionTests {
             }
         }
         return buffer.ToArray();
+    }
+
+    private static byte[] CreateStoredZip(params (string Name, string Content)[] entries) {
+        using var buffer = new MemoryStream();
+        using var writer = new BinaryWriter(buffer, Encoding.UTF8, leaveOpen: true);
+        var records = new List<StoredZipEntry>(entries.Length);
+
+        foreach ((string name, string content) in entries) {
+            byte[] nameBytes = Encoding.UTF8.GetBytes(name);
+            byte[] contentBytes = Encoding.UTF8.GetBytes(content);
+            uint crc32 = CalculateCrc32(contentBytes);
+            uint localHeaderOffset = checked((uint)buffer.Position);
+
+            writer.Write(0x04034B50U);
+            writer.Write((ushort)20);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write(crc32);
+            writer.Write((uint)contentBytes.Length);
+            writer.Write((uint)contentBytes.Length);
+            writer.Write((ushort)nameBytes.Length);
+            writer.Write((ushort)0);
+            writer.Write(nameBytes);
+            writer.Write(contentBytes);
+            records.Add(new StoredZipEntry(nameBytes, contentBytes.Length, crc32, localHeaderOffset));
+        }
+
+        uint centralDirectoryOffset = checked((uint)buffer.Position);
+        foreach (StoredZipEntry record in records) {
+            writer.Write(0x02014B50U);
+            writer.Write((ushort)20);
+            writer.Write((ushort)20);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write(record.Crc32);
+            writer.Write((uint)record.ContentLength);
+            writer.Write((uint)record.ContentLength);
+            writer.Write((ushort)record.NameBytes.Length);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write((ushort)0);
+            writer.Write(0U);
+            writer.Write(record.LocalHeaderOffset);
+            writer.Write(record.NameBytes);
+        }
+
+        uint centralDirectorySize = checked((uint)buffer.Position - centralDirectoryOffset);
+        writer.Write(0x06054B50U);
+        writer.Write((ushort)0);
+        writer.Write((ushort)0);
+        writer.Write((ushort)records.Count);
+        writer.Write((ushort)records.Count);
+        writer.Write(centralDirectorySize);
+        writer.Write(centralDirectoryOffset);
+        writer.Write((ushort)0);
+        writer.Flush();
+        return buffer.ToArray();
+    }
+
+    private static uint CalculateCrc32(byte[] bytes) {
+        uint crc = uint.MaxValue;
+        foreach (byte value in bytes) {
+            crc ^= value;
+            for (int bit = 0; bit < 8; bit++) {
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320U : crc >> 1;
+            }
+        }
+        return ~crc;
+    }
+
+    private sealed class StoredZipEntry {
+        public StoredZipEntry(byte[] nameBytes, int contentLength, uint crc32, uint localHeaderOffset) {
+            NameBytes = nameBytes;
+            ContentLength = contentLength;
+            Crc32 = crc32;
+            LocalHeaderOffset = localHeaderOffset;
+        }
+
+        public byte[] NameBytes { get; }
+        public int ContentLength { get; }
+        public uint Crc32 { get; }
+        public uint LocalHeaderOffset { get; }
     }
 
     private sealed class NonSeekableWriteStream : Stream {
