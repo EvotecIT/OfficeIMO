@@ -350,6 +350,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     transform.Extents.Cx = 0L;
                     transform.Extents.Cy = 0L;
                 }
+                if (shapeProjection.CanEditPictureFormatting) {
+                    picture.BlipFill?.SourceRectangle?.Remove();
+                    A.Blip? blip = picture.BlipFill?.Blip;
+                    blip?.RemoveAllChildren<A.LuminanceEffect>();
+                    blip?.RemoveAllChildren<A.Grayscale>();
+                    blip?.RemoveAllChildren<A.BiLevel>();
+                    blip?.RemoveAllChildren<A.ColorChange>();
+                    blip?.RemoveAllChildren<A.ColorReplacement>();
+                }
             }
             foreach (P.ConnectionShape connection in root.Descendants<P.ConnectionShape>()) {
                 uint? shapeId = connection.NonVisualConnectionShapeProperties?

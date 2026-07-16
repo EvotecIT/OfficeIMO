@@ -10,6 +10,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
     internal static partial class LegacyPptWriter {
         private const ushort OfficeArtFopt = 0xF00B;
+        private const ushort OfficeArtTertiaryFopt = 0xF122;
         private const uint OfficeArtBackgroundShapeFlag = 1U << 10;
 
         internal static bool TryReadBackground(PowerPointSlide slide,
@@ -424,7 +425,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static byte[] BuildFoptRecord(
-            IReadOnlyList<LegacyPptWriterFoptProperty> source) {
+            IReadOnlyList<LegacyPptWriterFoptProperty> source,
+            ushort recordType = OfficeArtFopt) {
             LegacyPptWriterFoptProperty[] properties = source
                 .OrderBy(property => property.PropertyId)
                 .ToArray();
@@ -446,7 +448,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
             }
             return BuildRecord(version: 3, checked((ushort)properties.Length),
-                OfficeArtFopt, payload);
+                recordType, payload);
         }
 
         private static byte[] BuildGradientStopArray(

@@ -511,6 +511,25 @@ namespace OfficeIMO.PowerPoint {
 
         private static void ApplyLegacyPictureEffects(A.Blip? target, LegacyPptShape source) {
             if (target == null) return;
+            if (source.PictureTransparentColor != null) {
+                target.Append(new A.ColorChange {
+                    ColorFrom = new A.ColorFrom(
+                        new A.RgbColorModelHex {
+                            Val = source.PictureTransparentColor
+                        }),
+                    ColorTo = new A.ColorTo(
+                        new A.RgbColorModelHex(
+                            new A.Alpha { Val = 0 }) {
+                            Val = source.PictureTransparentColor
+                        })
+                });
+            }
+            if (source.PictureRecolorColor != null) {
+                target.Append(new A.ColorReplacement(
+                    new A.RgbColorModelHex {
+                        Val = source.PictureRecolorColor
+                    }));
+            }
             int? brightness = ToOpenXmlPictureAdjustment(
                 source.PictureProperties.BrightnessAdjustment);
             int? contrast = ToOpenXmlPictureAdjustment(

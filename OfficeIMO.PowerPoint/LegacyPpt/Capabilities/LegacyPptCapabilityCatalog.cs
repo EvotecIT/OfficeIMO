@@ -108,7 +108,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Capabilities {
                     LegacyPptRepresentability.Native,
                     LegacyPptCapabilityState.Native, LegacyPptCapabilityState.Native,
                     LegacyPptCapabilityState.Preserved, LegacyPptCapabilityState.Native,
-                    "All four signed OfficeArt crop edges decode as 16.16 image fractions and project natively for slide, master, layout, and grouped pictures, including negative crop-out values. Fresh slide-picture crop writes with the same signed 16.16 properties. Brightness, contrast, grayscale, and bi-level display state project as native DrawingML effects on import; effect editing, transparent-color and recolor authoring, and fresh picture-effect writing remain loss-blocked."),
+                    "All four signed OfficeArt crop edges decode as 16.16 image fractions and project natively for slide, master, layout, and grouped pictures, including negative crop-out values. Fresh pictures and preservation-aware imported edits write the same crop properties. Brightness, contrast, grayscale, classic 50-percent bi-level, transparent-color, and whole-picture recolor state project as native DrawingML effects and write back through primary or tertiary OfficeArt properties. Arbitrary bi-level thresholds and other DrawingML effect sequences remain loss-blocked."),
                 new LegacyPptCapability(LegacyPptFeature.Tables, "Content",
                     "Native OfficeArt tables and cell formatting.",
                     LegacyPptRepresentability.Native,

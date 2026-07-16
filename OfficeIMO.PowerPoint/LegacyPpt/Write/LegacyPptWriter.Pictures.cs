@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml;
 using OfficeIMO.Drawing;
 using OfficeIMO.Drawing.Binary;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
+using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -169,8 +170,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = "Linked pictures cannot be converted to an embedded binary picture without losing the link.";
                 return false;
             }
-            if (source.BlipFill.Blip.ChildElements.Count != 0) {
-                reason = "Picture effects, recoloring, transparency, and image extensions are not yet encoded by the native binary writer.";
+            if (!TryReadPictureEffects(source.BlipFill.Blip,
+                    out _, out reason)) {
                 return false;
             }
             if (source.BlipFill.GetFirstChild<A.Tile>() != null) {
@@ -231,18 +232,86 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static byte[] BuildPictureFoptRecord(PowerPointPicture picture,
             uint oneBasedStoreIndex) {
-            var properties = new List<LegacyPptWriterFoptProperty>(5);
-            AddPictureCropProperty(properties, 0x0100,
-                picture.CropTopRatio);
-            AddPictureCropProperty(properties, 0x0101,
-                picture.CropBottomRatio);
-            AddPictureCropProperty(properties, 0x0102,
-                picture.CropLeftRatio);
-            AddPictureCropProperty(properties, 0x0103,
-                picture.CropRightRatio);
+            var properties = new List<LegacyPptWriterFoptProperty>(8);
+            AddPictureFormatProperties(properties, picture);
             properties.Add(new LegacyPptWriterFoptProperty(0x4104,
                 oneBasedStoreIndex));
             return BuildFoptRecord(properties);
+        }
+
+        internal static byte[] BuildPreservedPictureFoptRecord(
+            LegacyPptRecord prototype, PowerPointPicture picture) {
+            if (prototype == null) throw new ArgumentNullException(
+                nameof(prototype));
+            if (picture == null) throw new ArgumentNullException(
+                nameof(picture));
+            IReadOnlyList<LegacyPptWriterFoptProperty> sourceProperties =
+                ReadFoptProperties(prototype);
+            const uint rewrittenBooleanMask = (1U << 18) | (1U << 17)
+                | (1U << 2) | (1U << 1);
+            LegacyPptWriterFoptProperty? booleanProperty = sourceProperties
+                .LastOrDefault(property => property.PropertyId == 0x013F);
+            uint preservedBooleanProperties = (booleanProperty?.Value ?? 0U)
+                & ~rewrittenBooleanMask;
+            List<LegacyPptWriterFoptProperty> properties = sourceProperties
+                .Where(property =>
+                    property.PropertyId is not (>= 0x0100 and <= 0x0103)
+                    and not 0x0107 and not 0x0108 and not 0x0109
+                    and not 0x013F)
+                .ToList();
+            AddPictureFormatProperties(properties, picture,
+                preservedBooleanProperties);
+            return BuildFoptRecord(properties);
+        }
+
+        private static byte[]? BuildPictureTertiaryFoptRecord(
+            PowerPointPicture picture) =>
+            BuildPreservedPictureTertiaryFoptRecord(null, picture);
+
+        internal static byte[]? BuildPreservedPictureTertiaryFoptRecord(
+            LegacyPptRecord? prototype, PowerPointPicture picture) {
+            if (picture == null) throw new ArgumentNullException(
+                nameof(picture));
+            var properties = prototype == null
+                ? new List<LegacyPptWriterFoptProperty>()
+                : ReadFoptProperties(prototype).Where(property =>
+                    property.PropertyId != 0x011A).ToList();
+            P.Picture source = (P.Picture)picture.Element;
+            if (!TryReadPictureEffects(source.BlipFill!.Blip!,
+                    out LegacyPptWriterPictureEffects effects,
+                    out string? reason)) {
+                throw new NotSupportedException(reason);
+            }
+            if (effects.RecolorColor.HasValue) {
+                properties.Add(new LegacyPptWriterFoptProperty(0x011A,
+                    PackOfficeArtColor(effects.RecolorColor.Value)));
+            }
+            return properties.Count == 0
+                ? null
+                : BuildFoptRecord(properties, OfficeArtTertiaryFopt);
+        }
+
+        private static void AddPictureFormatProperties(
+            ICollection<LegacyPptWriterFoptProperty> properties,
+            PowerPointPicture picture,
+            uint preservedBooleanProperties = 0) {
+            P.Picture source = (P.Picture)picture.Element;
+            A.SourceRectangle? crop = source.BlipFill?.SourceRectangle;
+            AddPictureCropProperty(properties, 0x0100,
+                crop?.Top?.Value);
+            AddPictureCropProperty(properties, 0x0101,
+                crop?.Bottom?.Value);
+            AddPictureCropProperty(properties, 0x0102,
+                crop?.Left?.Value);
+            AddPictureCropProperty(properties, 0x0103,
+                crop?.Right?.Value);
+            if (!TryReadPictureEffects(source.BlipFill!.Blip!,
+                    out LegacyPptWriterPictureEffects effects,
+                    out string? reason)) {
+                throw new NotSupportedException(reason);
+            }
+            AddPictureEffectProperties(properties, effects,
+                preservedBooleanProperties);
         }
 
         private static byte[] BuildStaticVisualFoptRecord(
@@ -253,9 +322,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static void AddPictureCropProperty(
             ICollection<LegacyPptWriterFoptProperty> properties,
-            ushort propertyId, double ratio) {
-            if (Math.Abs(ratio) < 0.0000001D) return;
-            double scaled = ratio * 65536D;
+            ushort propertyId, int? openXmlRatio) {
+            if (!openXmlRatio.HasValue || openXmlRatio.Value == 0) return;
+            double scaled = openXmlRatio.Value / 100000D * 65536D;
             if (scaled < int.MinValue || scaled > int.MaxValue) {
                 throw new NotSupportedException(
                     "The picture crop value exceeds the signed OfficeArt 16.16 range.");

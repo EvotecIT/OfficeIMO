@@ -132,6 +132,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 bool placeholderChanged = !shapeProjection
                     .PlaceholderMatches(currentPlaceholder);
+                PowerPointPicture? changedPictureFormatting = null;
+                if (shape is PowerPointPicture picture
+                    && picture is not PowerPointMedia
+                    && shapeProjection.CanEditPictureFormatting
+                    && !shapeProjection.PictureFormattingMatches(picture)) {
+                    if (!LegacyPptWriter.TryValidatePictureForWrite(picture,
+                            out _)) {
+                        return false;
+                    }
+                    changedPictureFormatting = picture;
+                }
                 string? changedText = null;
                 if (shape is PowerPointTextBox textBox) {
                     if (!MatchesProjectedTextFormatting(textBox,
@@ -146,7 +157,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                 }
                 if (changedBounds.HasValue || changedText != null
-                    || placeholderChanged) {
+                    || placeholderChanged
+                    || changedPictureFormatting != null) {
                     result.Add(shapeProjection.OfficeArtShapeId,
                         new ProjectedShapeEdit(changedBounds,
                             shapeProjection.Text, changedText,
@@ -154,6 +166,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             animation: null,
                             rewritePlaceholder: placeholderChanged,
                             placeholder: currentPlaceholder));
+                    result[shapeProjection.OfficeArtShapeId]
+                        .PictureFormatting = changedPictureFormatting;
                 }
             }
             return true;

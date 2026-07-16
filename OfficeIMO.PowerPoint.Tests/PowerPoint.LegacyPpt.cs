@@ -217,20 +217,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedPictureEffectEdit_RemainsLossBlocked() {
+        public void ImportedPictureEffectEdit_UsesIncrementalFoptRewrite() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                PictureEffectsFixturePath);
+            byte[] picturesStream = original.Package.CopyCompoundStreams()[
+                "Pictures"];
             using PowerPointPresentation presentation = PowerPointPresentation.Load(
                 PictureEffectsFixturePath);
             PowerPointPicture picture = presentation.Slides[0].Pictures
                 .OrderBy(item => item.Top)
                 .ThenBy(item => item.Left)
                 .First();
-            P.Picture element = Assert.IsType<P.Picture>(picture.Element);
-
-            element.BlipFill!.Blip!.GetFirstChild<A.LuminanceEffect>()!.Brightness = 10000;
+            picture.LuminanceBrightness = 10;
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape savedPicture = Assert.Single(saved.Slides).Shapes
+                .Where(shape => shape.Kind == LegacyPptShapeKind.Picture)
+                .OrderBy(shape => shape.Bounds.Top)
+                .ThenBy(shape => shape.Bounds.Left)
+                .First();
+            Assert.Equal(3277, savedPicture.PictureProperties.BrightnessRaw);
+            Assert.Equal(picturesStream,
+                saved.Package.CopyCompoundStreams()["Pictures"]);
         }
 
         [Fact]
@@ -256,7 +268,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedPictureCropEdit_RemainsLossBlocked() {
+        public void ImportedPictureCropEdit_UsesIncrementalFoptRewrite() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                CroppedPictureFixturePath);
+            byte[] picturesStream = original.Package.CopyCompoundStreams()[
+                "Pictures"];
             using PowerPointPresentation presentation = PowerPointPresentation.Load(
                 CroppedPictureFixturePath);
             PowerPointPicture picture = presentation.Slides[0].Pictures.OrderBy(item => item.Left).First();
@@ -264,8 +280,46 @@ namespace OfficeIMO.Tests {
             picture.Crop(10D, 20D, 5D, 10D);
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings, finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape savedPicture = Assert.Single(saved.Slides).Shapes
+                .Where(shape => shape.Kind == LegacyPptShapeKind.Picture)
+                .OrderBy(shape => shape.Bounds.Left)
+                .First();
+            Assert.Equal(6554, savedPicture.PictureProperties.CropFromLeftRaw);
+            Assert.Equal(13107, savedPicture.PictureProperties.CropFromTopRaw);
+            Assert.Equal(3277, savedPicture.PictureProperties.CropFromRightRaw);
+            Assert.Equal(6554, savedPicture.PictureProperties.CropFromBottomRaw);
+            Assert.Equal(picturesStream,
+                saved.Package.CopyCompoundStreams()["Pictures"]);
+        }
+
+        [Fact]
+        public void ImportedNegativeCropSurvivesPictureEffectEdit() {
+            using PowerPointPresentation presentation = PowerPointPresentation
+                .Load(CroppedPictureFixturePath);
+            PowerPointPicture picture = presentation.Slides[0].Pictures
+                .OrderBy(item => item.Left)
+                .Last();
+            picture.GrayScale = true;
+
+            LegacyPptWritePreflightReport preflight = presentation
+                .AnalyzeLegacyPptWrite();
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape savedPicture = Assert.Single(saved.Slides).Shapes
+                .Where(shape => shape.Kind == LegacyPptShapeKind.Picture)
+                .OrderBy(shape => shape.Bounds.Left)
+                .Last();
+            Assert.Equal(-8192,
+                savedPicture.PictureProperties.CropFromLeftRaw);
+            Assert.Equal(-4094,
+                savedPicture.PictureProperties.CropFromTopRaw);
+            Assert.True(savedPicture.PictureProperties.Grayscale);
         }
 
         [Fact]

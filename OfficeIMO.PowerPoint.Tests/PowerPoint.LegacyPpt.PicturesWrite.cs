@@ -83,7 +83,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void NativeWriter_BlocksUnsupportedRasterFormatAndPictureEffects() {
+        public void NativeWriter_BlocksUnsupportedRasterFormatAndPictureEffect() {
             using PowerPointPresentation gifPresentation = PowerPointPresentation
                 .Create();
             using (var gif = new MemoryStream(new byte[] {
@@ -109,15 +109,122 @@ namespace OfficeIMO.Tests {
                     .AddSlide(P.SlideLayoutValues.Blank)
                     .AddPicture(stream, ImagePartType.Png);
                 P.Picture element = Assert.IsType<P.Picture>(picture.Element);
-                element.BlipFill!.Blip!.Append(new A.Grayscale());
+                element.BlipFill!.Blip!.Append(new A.AlphaReplace {
+                    Alpha = 50000
+                });
             }
             LegacyPptWritePreflightReport effectPreflight = effectPresentation
                 .AnalyzeLegacyPptWrite();
             Assert.False(effectPreflight.CanWrite);
             Assert.Contains(effectPreflight.Findings, finding =>
                 finding.Code == "PPT-WRITE-PICTURE"
-                && finding.Description.Contains("effects",
+                && finding.Description.Contains("effect",
                     StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void NativeWriter_AuthorsClassicPictureEffects() {
+            byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
+                4, 3, OfficeColor.FromRgb(37, 99, 235)));
+            byte[] bytes;
+            using (PowerPointPresentation source = PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointPicture first = AddPicture(slide, image, 0);
+                first.LuminanceBrightness = 25;
+                first.LuminanceContrast = -30;
+                PowerPointPicture second = AddPicture(slide, image, 700000);
+                second.LuminanceContrast = 40;
+                PowerPointPicture third = AddPicture(slide, image, 1400000);
+                third.GrayScale = true;
+                PowerPointPicture fourth = AddPicture(slide, image, 2100000);
+                fourth.BlackWhiteThreshold = 50;
+                PowerPointPicture fifth = AddPicture(slide, image, 2800000);
+                fifth.TransparentColor = OfficeColor.CornflowerBlue;
+                PowerPointPicture sixth = AddPicture(slide, image, 3500000);
+                sixth.RecolorColor = OfficeColor.Orange;
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(bytes);
+            Assert.Equal(6U, Assert.Single(legacy.BlipStoreEntries)
+                .ReferenceCount);
+            LegacyPptShape[] pictures = Assert.Single(legacy.Slides).Shapes
+                .Where(shape => shape.Kind == LegacyPptShapeKind.Picture)
+                .OrderBy(shape => shape.Bounds.Left)
+                .ToArray();
+            Assert.Equal(6, pictures.Length);
+            Assert.Equal(8192, pictures[0].PictureProperties.BrightnessRaw);
+            Assert.Equal(45875, pictures[0].PictureProperties.ContrastRaw);
+            Assert.Equal(109226, pictures[1].PictureProperties.ContrastRaw);
+            Assert.True(pictures[2].PictureProperties.Grayscale);
+            Assert.True(pictures[3].PictureProperties.Grayscale);
+            Assert.True(pictures[3].PictureProperties.BiLevel);
+            Assert.Equal(OfficeColor.CornflowerBlue.R,
+                pictures[4].PictureProperties.TransparentColor!.Value.Red);
+            Assert.Equal(OfficeColor.Orange.R,
+                pictures[5].PictureProperties.RecolorColor!.Value.Red);
+            Assert.Equal(OfficeColor.Orange.ToRgbHex(),
+                pictures[5].PictureRecolorColor);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation projected = PowerPointPresentation
+                .Load(input);
+            PowerPointPicture[] projectedPictureModels = projected.Slides[0]
+                .Pictures
+                .OrderBy(picture => picture.Left)
+                .ToArray();
+            P.Picture[] projectedPictures = projectedPictureModels
+                .Select(picture => (P.Picture)picture.Element)
+                .ToArray();
+            Assert.Equal(25000, projectedPictures[0].BlipFill!.Blip!
+                .GetFirstChild<A.LuminanceEffect>()!.Brightness!.Value);
+            Assert.Equal(-30000, projectedPictures[0].BlipFill!.Blip!
+                .GetFirstChild<A.LuminanceEffect>()!.Contrast!.Value);
+            Assert.Equal(40000, projectedPictures[1].BlipFill!.Blip!
+                .GetFirstChild<A.LuminanceEffect>()!.Contrast!.Value);
+            Assert.NotNull(projectedPictures[2].BlipFill!.Blip!
+                .GetFirstChild<A.Grayscale>());
+            Assert.Equal(50000, projectedPictures[3].BlipFill!.Blip!
+                .GetFirstChild<A.BiLevel>()!.Threshold!.Value);
+            Assert.Equal(25,
+                projectedPictureModels[0].LuminanceBrightness);
+            Assert.Equal(-30,
+                projectedPictureModels[0].LuminanceContrast);
+            Assert.True(projectedPictureModels[2].GrayScale);
+            Assert.Equal(50,
+                projectedPictureModels[3].BlackWhiteThreshold);
+            Assert.Equal(OfficeColor.CornflowerBlue,
+                projectedPictureModels[4].TransparentColor);
+            Assert.Equal(OfficeColor.Orange,
+                projectedPictureModels[5].RecolorColor);
+            Assert.Empty(projected.ValidateDocument());
+            Assert.Equal(bytes, projected.ToBytes(PowerPointFileFormat.Ppt));
+
+            projectedPictureModels[4].TransparentColor = OfficeColor.White;
+            projectedPictureModels[5].RecolorColor = OfficeColor.Red;
+            LegacyPptWritePreflightReport editPreflight = projected
+                .AnalyzeLegacyPptWrite();
+            Assert.True(editPreflight.CanWrite,
+                string.Join(Environment.NewLine, editPreflight.Findings));
+            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+                projected.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptShape[] editedPictures = Assert.Single(edited.Slides)
+                .Shapes.Where(shape =>
+                    shape.Kind == LegacyPptShapeKind.Picture)
+                .OrderBy(shape => shape.Bounds.Left)
+                .ToArray();
+            Assert.Equal(OfficeColor.White.ToRgbHex(),
+                editedPictures[4].PictureTransparentColor);
+            Assert.Equal(OfficeColor.Red.ToRgbHex(),
+                editedPictures[5].PictureRecolorColor);
+            Assert.Equal(legacy.Package.CopyCompoundStreams()["Pictures"],
+                edited.Package.CopyCompoundStreams()["Pictures"]);
         }
 
         [Fact]
@@ -179,6 +286,13 @@ namespace OfficeIMO.Tests {
             WriteUInt32(result, 92, 20U);
             WriteUInt32(result, 104, 20U);
             return result;
+        }
+
+        private static PowerPointPicture AddPicture(PowerPointSlide slide,
+            byte[] image, long left) {
+            using var stream = new MemoryStream(image, writable: false);
+            return slide.AddPicture(stream, ImagePartType.Png, left, 0,
+                600000, 450000);
         }
 
         private static void WriteUInt32(byte[] target, int offset,

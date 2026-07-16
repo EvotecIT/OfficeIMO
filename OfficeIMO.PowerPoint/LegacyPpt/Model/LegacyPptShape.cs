@@ -112,7 +112,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LegacyPptEmbeddedOleObject? oleObject = null,
             LegacyPptLinkedOleObject? linkedOleObject = null,
             LegacyPptActiveXControl? activeXControl = null,
-            LegacyPptMedia? media = null) {
+            LegacyPptMedia? media = null,
+            string? pictureTransparentColor = null,
+            string? pictureRecolorColor = null) {
             Kind = kind;
             OfficeArtShapeType = officeArtShapeType;
             ShapeId = shapeId;
@@ -126,6 +128,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             LineColor = lineColor;
             PictureStoreIndex = pictureStoreIndex;
             Picture = picture;
+            PictureTransparentColor = pictureTransparentColor;
+            PictureRecolorColor = pictureRecolorColor;
             Transform = transform ?? OfficeArtShapeTransform.Decode(0);
             Geometry = OfficeArtShapeGeometry.Decode(style.Properties);
             PictureProperties = OfficeArtPictureProperties.Decode(style.Properties);
@@ -188,6 +192,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
 
         /// <summary>Gets the resolved OfficeArt picture entry, when available.</summary>
         public OfficeArtBlipStoreEntry? Picture { get; }
+
+        /// <summary>Gets the resolved picture transparent color as RRGGBB.</summary>
+        public string? PictureTransparentColor { get; }
+
+        /// <summary>Gets the resolved whole-picture recolor color as RRGGBB.</summary>
+        public string? PictureRecolorColor { get; }
 
         /// <summary>Gets decoded rotation and mirroring state.</summary>
         public OfficeArtShapeTransform Transform { get; }

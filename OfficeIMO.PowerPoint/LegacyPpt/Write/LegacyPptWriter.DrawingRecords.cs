@@ -144,6 +144,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 children.Add(BuildFsp(shapeType, shapeId));
                 children.Add(BuildPictureFoptRecord(picture,
                     catalogPicture.OneBasedStoreIndex));
+                byte[]? tertiaryPictureProperties =
+                    BuildPictureTertiaryFoptRecord(picture);
+                if (tertiaryPictureProperties != null) {
+                    children.Add(tertiaryPictureProperties);
+                }
                 children.Add(BuildAnchor(shape));
                 byte[]? clientData = BuildClientData(shape,
                     interactions.ShapeInteractions, animation, shapeContext);

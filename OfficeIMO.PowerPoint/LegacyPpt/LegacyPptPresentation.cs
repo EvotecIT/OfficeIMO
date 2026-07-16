@@ -42,6 +42,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private const ushort OfficeArtFspgr = 0xF009;
         private const ushort OfficeArtFsp = 0xF00A;
         private const ushort OfficeArtFopt = 0xF00B;
+        private const ushort OfficeArtTertiaryFopt = 0xF122;
         private const ushort OfficeArtClientTextbox = 0xF00D;
         private const ushort OfficeArtChildAnchor = 0xF00F;
         private const ushort OfficeArtClientAnchor = 0xF010;
@@ -391,7 +392,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 (shapeFlags & (1U << 8)) != 0);
             LegacyPptRecord? fopt = shapeContainer.Children.FirstOrDefault(record =>
                 record.Type == OfficeArtFopt);
-            OfficeArtShapeStyle style = ReadShapeStyle(fopt);
+            LegacyPptRecord? tertiaryFopt = shapeContainer.Children
+                .FirstOrDefault(record =>
+                    record.Type == OfficeArtTertiaryFopt);
+            OfficeArtShapeStyle style = ReadShapeStyle(fopt, tertiaryFopt);
+            OfficeArtPictureProperties pictureProperties =
+                OfficeArtPictureProperties.Decode(style.Properties);
             OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(shapeFlags,
                 style.Properties);
             int? pictureStoreIndex = ReadPictureStoreIndex(style);
@@ -419,7 +425,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 textBody: textBody, interactions: ReadShapeInteractions(shapeContainer, options),
                 animation: ReadShapeAnimation(shapeContainer, options),
                 oleObject: oleObject, linkedOleObject: linkedOleObject,
-                activeXControl: activeXControl, media: media);
+                activeXControl: activeXControl, media: media,
+                pictureTransparentColor: ResolveShapeColor(
+                    pictureProperties.TransparentColor, colorScheme),
+                pictureRecolorColor: ResolveShapeColor(
+                    pictureProperties.RecolorColor, colorScheme));
 
             if (textBody.IsStyleTruncated) {
                 AddDiagnostic("PPT-TEXT-STYLE-TRUNCATED", LegacyPptDiagnosticSeverity.Warning,
@@ -498,6 +508,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? fspgr = descriptor?.Children.FirstOrDefault(record => record.Type == OfficeArtFspgr);
             LegacyPptRecord? fsp = descriptor?.Children.FirstOrDefault(record => record.Type == OfficeArtFsp);
             LegacyPptRecord? fopt = descriptor?.Children.FirstOrDefault(record => record.Type == OfficeArtFopt);
+            LegacyPptRecord? tertiaryFopt = descriptor?.Children
+                .FirstOrDefault(record =>
+                    record.Type == OfficeArtTertiaryFopt);
             LegacyPptRecord? anchor = descriptor?.Children.FirstOrDefault(record =>
                 record.Type == OfficeArtClientAnchor || record.Type == OfficeArtChildAnchor);
             if (descriptor == null || fspgr == null || fsp == null || anchor == null
@@ -534,7 +547,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (shape != null) children.Add(shape);
             }
             if (children.Count == 0) return null;
-            OfficeArtShapeStyle style = ReadShapeStyle(fopt);
+            OfficeArtShapeStyle style = ReadShapeStyle(fopt, tertiaryFopt);
             OfficeArtShapeTransform transform = OfficeArtShapeTransform.Decode(fsp.ReadUInt32(4),
                 style.Properties);
             return new LegacyPptShape(LegacyPptShapeKind.Group, fsp.Instance, fsp.ReadUInt32(0),
@@ -614,13 +627,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             throw new InvalidDataException("The OfficeArt anchor is too short.");
         }
 
-        private static OfficeArtShapeStyle ReadShapeStyle(LegacyPptRecord? fopt) {
-            if (fopt == null || fopt.PayloadLength == 0 || fopt.Instance == 0) {
-                return OfficeArtShapeStyle.Decode(Array.Empty<OfficeArtProperty>());
+        private static OfficeArtShapeStyle ReadShapeStyle(
+            params LegacyPptRecord?[] propertyTables) {
+            var properties = new List<OfficeArtProperty>();
+            foreach (LegacyPptRecord? table in propertyTables) {
+                if (table == null || table.PayloadLength == 0
+                    || table.Instance == 0) continue;
+                byte[] recordBytes = table.CopyRecordBytes();
+                properties.AddRange(OfficeArtPropertyTableReader.Read(
+                    recordBytes, 8, table.PayloadLength, table.Instance));
             }
-            byte[] recordBytes = fopt.CopyRecordBytes();
-            return OfficeArtShapeStyle.Decode(OfficeArtPropertyTableReader.Read(recordBytes, 8,
-                fopt.PayloadLength, fopt.Instance));
+            return OfficeArtShapeStyle.Decode(properties);
         }
 
         private static string? ResolveShapeColor(OfficeArtColorReference? reference,

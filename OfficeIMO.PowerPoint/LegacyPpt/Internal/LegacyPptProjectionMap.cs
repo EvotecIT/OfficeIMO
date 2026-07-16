@@ -4,6 +4,7 @@ using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
 using A = DocumentFormat.OpenXml.Drawing;
+using P = DocumentFormat.OpenXml.Presentation;
 
 namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     /// <summary>Links projected Open XML slides and shapes back to their original binary persist records.</summary>
@@ -203,6 +204,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         textFormattingFingerprint, sourceShape.Interactions,
                         sourceShape.TextBody.Interactions, sourceShape.Animation,
                         projectableSoundIds,
+                        LegacyPptShapeProjection
+                            .CreatePictureFormattingFingerprint(
+                                projectedShapes[shapeIndex]),
                         sourceShape.OleObject != null
                             && projectedShapes[shapeIndex] is
                                 PowerPointOleObject projectedOle
@@ -395,7 +399,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     sourceShape.Placeholder,
                     textFormattingFingerprint, sourceShape.Interactions,
                     sourceShape.TextBody.Interactions, sourceShape.Animation,
-                    new HashSet<uint>()));
+                    new HashSet<uint>(),
+                    LegacyPptShapeProjection
+                        .CreatePictureFormattingFingerprint(projectedShape)));
             }
             return result;
         }
@@ -919,6 +925,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             IReadOnlyList<LegacyPptTextInteraction> textInteractions,
             LegacyPptAnimation? animation,
             ISet<uint> projectableSoundIds,
+            string? pictureFormattingFingerprint,
             LegacyPptOleObjectProjection? oleObject = null) {
             OpenXmlShapeId = openXmlShapeId;
             OfficeArtShapeId = officeArtShapeId;
@@ -942,6 +949,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 && !HasOverlappingTextTriggers(TextInteractions);
             CanEditAnimation = animation == null || IsEditableAnimation(
                 animation, projectableSoundIds);
+            PictureFormattingFingerprint = pictureFormattingFingerprint;
             OleObject = oleObject;
         }
 
@@ -971,7 +979,32 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         internal bool CanEditAnimation { get; }
 
+        internal string? PictureFormattingFingerprint { get; }
+
+        internal bool CanEditPictureFormatting =>
+            PictureFormattingFingerprint != null;
+
         internal LegacyPptOleObjectProjection? OleObject { get; }
+
+        internal bool PictureFormattingMatches(PowerPointPicture picture) =>
+            string.Equals(PictureFormattingFingerprint,
+                CreatePictureFormattingFingerprint(picture),
+                StringComparison.Ordinal);
+
+        internal static string? CreatePictureFormattingFingerprint(
+            PowerPointShape shape) {
+            if (shape is not PowerPointPicture
+                || shape is PowerPointMedia
+                || shape.Element is not P.Picture picture) {
+                return null;
+            }
+            string crop = picture.BlipFill?.SourceRectangle?.OuterXml
+                ?? string.Empty;
+            string effects = string.Concat(picture.BlipFill?.Blip?
+                .ChildElements.Select(child => child.OuterXml)
+                ?? Enumerable.Empty<string>());
+            return crop + "\n" + effects;
+        }
 
         internal bool PlaceholderMatches(
             LegacyPptWriter.LegacyPptWriterPlaceholder? current) =>
