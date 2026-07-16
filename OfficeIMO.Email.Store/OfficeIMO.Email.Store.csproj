@@ -42,6 +42,10 @@
     <ProjectReference Include="..\OfficeIMO.Email\OfficeIMO.Email.csproj" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
+    <Reference Include="System.IO.Compression" />
+  </ItemGroup>
+
   <ItemGroup>
     <Using Include="System" />
     <Using Include="System.Collections.Generic" />

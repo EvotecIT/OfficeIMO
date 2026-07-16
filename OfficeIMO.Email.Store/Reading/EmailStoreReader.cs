@@ -82,6 +82,7 @@ public sealed class EmailStoreReader {
             case EmailStoreFormat.Ost:
                 return new PstStoreReader(_options).Read(stream, format, cancellationToken);
             case EmailStoreFormat.Olm:
+                return new OlmStoreReader(_options).Read(stream, sourceName, cancellationToken);
             case EmailStoreFormat.Emlx:
                 throw new NotSupportedException(string.Concat(format.ToString(), " support has not been enabled yet."));
             default:

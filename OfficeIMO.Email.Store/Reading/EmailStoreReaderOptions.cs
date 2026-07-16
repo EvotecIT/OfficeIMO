@@ -19,7 +19,11 @@ public sealed class EmailStoreReaderOptions {
         Encoding? pstPasswordEncoding = null,
         bool includeAssociatedMessages = false,
         bool includeOrphanedMessages = false,
-        int maxNestedMessageDepth = 16) {
+        int maxNestedMessageDepth = 16,
+        int maxArchiveEntries = 500_000,
+        long maxArchiveEntryBytes = 512L * 1024 * 1024,
+        long maxArchiveDecodedBytes = 8L * 1024 * 1024 * 1024,
+        long maxXmlCharactersPerItem = 64L * 1024 * 1024) {
         MaxInputBytes = Positive(maxInputBytes, nameof(maxInputBytes));
         MaxNodeCount = Positive(maxNodeCount, nameof(maxNodeCount));
         MaxBTreeDepth = Positive(maxBTreeDepth, nameof(maxBTreeDepth));
@@ -37,6 +41,10 @@ public sealed class EmailStoreReaderOptions {
         IncludeOrphanedMessages = includeOrphanedMessages;
         if (maxNestedMessageDepth < 0) throw new ArgumentOutOfRangeException(nameof(maxNestedMessageDepth));
         MaxNestedMessageDepth = maxNestedMessageDepth;
+        MaxArchiveEntries = Positive(maxArchiveEntries, nameof(maxArchiveEntries));
+        MaxArchiveEntryBytes = Positive(maxArchiveEntryBytes, nameof(maxArchiveEntryBytes));
+        MaxArchiveDecodedBytes = Positive(maxArchiveDecodedBytes, nameof(maxArchiveDecodedBytes));
+        MaxXmlCharactersPerItem = Positive(maxXmlCharactersPerItem, nameof(maxXmlCharactersPerItem));
     }
 
     /// <summary>Default bounded options.</summary>
@@ -74,6 +82,14 @@ public sealed class EmailStoreReaderOptions {
     public bool IncludeOrphanedMessages { get; }
     /// <summary>Maximum embedded-message recursion depth. Zero preserves the attachment without projecting its item.</summary>
     public int MaxNestedMessageDepth { get; }
+    /// <summary>Maximum entries accepted from a compressed email-store archive.</summary>
+    public int MaxArchiveEntries { get; }
+    /// <summary>Maximum decoded size declared by one compressed archive entry.</summary>
+    public long MaxArchiveEntryBytes { get; }
+    /// <summary>Maximum total decoded size declared by all compressed archive entries.</summary>
+    public long MaxArchiveDecodedBytes { get; }
+    /// <summary>Maximum XML characters parsed from one archive item.</summary>
+    public long MaxXmlCharactersPerItem { get; }
 
     private static int Positive(int value, string name) {
         if (value <= 0) throw new ArgumentOutOfRangeException(name);
