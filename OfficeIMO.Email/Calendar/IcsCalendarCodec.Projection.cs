@@ -59,6 +59,8 @@ internal static partial class IcsCalendarCodec {
                 property.Name == "RRULE" || property.Name == "RDATE" ||
                 property.Name == "EXDATE" || property.Name == "RECURRENCE-ID" ||
                 property.Name == "RELATED-TO" || property.Name == "REQUEST-STATUS" ||
+                property.Name == "PRODID" &&
+                !property.Value.Trim().Equals("-//Evotec//OfficeIMO.Email//EN", StringComparison.Ordinal) ||
                 property.Name == "CREATED" || property.Name == "LAST-MODIFIED" ||
                 property.Name == "COMMENT" || property.Name == "RESOURCES" || property.Name == "GEO" ||
                 isEvent && property.Name == "CONTACT" ||

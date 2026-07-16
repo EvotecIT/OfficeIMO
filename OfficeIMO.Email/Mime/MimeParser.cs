@@ -204,10 +204,19 @@ internal static class MimeParser {
         if (attachment.IsProjectedSemanticContent && semanticCharsetFallback) {
             document.MimeSemanticProjectionIsIncomplete = true;
         }
+        if (attachment.IsProjectedSemanticContent && mimeDepth > 0 &&
+            HasUnpreservedSemanticPartHeaders(headers)) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+        }
         if (attachment.IsProjectedSemanticContent && document.Attachments.Any(existing =>
             existing.IsProjectedSemanticContent)) document.MimeSemanticProjectionIsIncomplete = true;
         document.Attachments.Add(attachment);
     }
+
+    private static bool HasUnpreservedSemanticPartHeaders(IEnumerable<EmailHeader> headers) =>
+        headers.Any(header =>
+            !header.Name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) &&
+            !header.Name.Equals("Content-Transfer-Encoding", StringComparison.OrdinalIgnoreCase));
 
     private static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
         MimeValue disposition, string? fileName, bool inlineDisposition, bool attachmentDisposition,

@@ -5,6 +5,38 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailSemanticProjectionLossTests {
     [Fact]
+    public void BlocksNonCanonicalCalendarProducerBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\n" +
+            "PRODID:-//Example Corp//Calendar 1.0//EN\r\nVERSION:2.0\r\nBEGIN:VEVENT\r\n" +
+            "UID:producer@example.com\r\nDTSTART:20260801T100000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
+    public void BlocksVCardProducerBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +
+            "PRODID:-//Example Corp//Contacts 1.0//EN\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
+    public void BlocksUnpreservedCalendarPartHeadersBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "MIME-Version: 1.0\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
+            "--x\r\nContent-Type: text/calendar; charset=utf-8\r\n" +
+            "Content-Class: urn:content-classes:calendarmessage\r\n\r\n" +
+            "BEGIN:VCALENDAR\r\nPRODID:-//Evotec//OfficeIMO.Email//EN\r\nVERSION:2.0\r\n" +
+            "BEGIN:VEVENT\r\nUID:content-class@example.com\r\nDTSTART:20260801T100000Z\r\n" +
+            "END:VEVENT\r\nEND:VCALENDAR\r\n--x--\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
     public void BlocksGroupedVCardPropertiesBeforeStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/vcard; charset=utf-8\r\n\r\nBEGIN:VCARD\r\nVERSION:3.0\r\n" +

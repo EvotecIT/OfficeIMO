@@ -26,7 +26,7 @@ internal static partial class VCardCodec {
             property.Name == "RELATED" || property.Name == "MEMBER" || property.Name == "AGENT" ||
             property.Name == "SORT-STRING" || property.Name == "MAILER" || property.Name == "UID" ||
             property.Name == "SOURCE" || property.Name == "FBURL" || property.Name == "CALURI" ||
-            property.Name == "CALADRURI" || property.Name == "SOUND" ||
+            property.Name == "CALADRURI" || property.Name == "SOUND" || property.Name == "PRODID" ||
             property.Name == "REV" || property.Name == "KIND" &&
             !property.Value.Trim().Equals("individual", StringComparison.OrdinalIgnoreCase) ||
             property.Name == "CLASS" &&
