@@ -164,7 +164,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             bool? hasAutoNumber = null,
             LegacyPptAutoNumberScheme? autoNumberScheme = null,
             short? autoNumberStartAt = null,
-            ushort? bulletPictureReference = null) {
+            ushort? bulletPictureReference = null,
+            LegacyPptPictureBullet? pictureBullet = null) {
             Start = start;
             Length = length;
             IndentLevel = indentLevel;
@@ -196,6 +197,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             AutoNumberScheme = autoNumberScheme;
             AutoNumberStartAt = autoNumberStartAt;
             BulletPictureReference = bulletPictureReference;
+            PictureBullet = pictureBullet;
         }
 
         /// <summary>Gets the zero-based character offset covered by this run.</summary>
@@ -288,6 +290,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets the zero-based picture-bullet reference from the PPT9 text properties.</summary>
         public ushort? BulletPictureReference { get; }
 
+        /// <summary>Gets the resolved PPT9 picture bullet, when its BLIP is importable.</summary>
+        public LegacyPptPictureBullet? PictureBullet { get; }
+
         /// <summary>Gets whether the run includes fields that are retained but not projected yet.</summary>
         public bool HasUnprojectedFormatting { get; }
 
@@ -301,13 +306,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             || TextDirection.HasValue || LeftMargin.HasValue || Indent.HasValue
             || DefaultTabSize.HasValue || TabStops.Count != 0
             || HasAutoNumber.HasValue || AutoNumberScheme.HasValue
-            || AutoNumberStartAt.HasValue || BulletPictureReference.HasValue;
+            || AutoNumberStartAt.HasValue || BulletPictureReference.HasValue
+            || PictureBullet != null;
 
         internal LegacyPptParagraphRun WithPpt9Formatting(
             bool? hasAutoNumber,
             LegacyPptAutoNumberScheme? autoNumberScheme,
             short? autoNumberStartAt,
             ushort? bulletPictureReference,
+            LegacyPptPictureBullet? pictureBullet,
             bool hasUnprojectedFormatting) => new(Start, Length,
                 IndentLevel, HasBullet, BulletHasFont, BulletHasColor,
                 BulletHasSize, BulletCharacter, BulletFontIndex,
@@ -317,6 +324,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 TextDirection,
                 HasUnprojectedFormatting || hasUnprojectedFormatting,
                 LeftMargin, Indent, DefaultTabSize, TabStops, hasAutoNumber,
-                autoNumberScheme, autoNumberStartAt, bulletPictureReference);
+                autoNumberScheme, autoNumberStartAt, bulletPictureReference,
+                pictureBullet);
     }
 }

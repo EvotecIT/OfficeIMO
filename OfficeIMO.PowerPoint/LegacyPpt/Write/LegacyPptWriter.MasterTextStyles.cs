@@ -15,12 +15,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordFontEntityAtomForWrite = 0x0FB7;
 
         internal static bool CanWriteMasterTextStyles(
-            PowerPointPresentation presentation, out string? reason) =>
-            TryReadMasterTextStyles(presentation, Template.Value.Document,
-                out _, out reason);
+            PowerPointPresentation presentation, out string? reason) {
+            if (!TryReadPictureBulletCatalog(presentation,
+                    out LegacyPptWriterPictureBulletCatalog pictureBullets,
+                    out reason)) return false;
+            return TryReadMasterTextStyles(presentation,
+                Template.Value.Document, pictureBullets, out _, out reason);
+        }
 
         private static bool TryReadMasterTextStyles(
             PowerPointPresentation presentation, LegacyPptRecord templateDocument,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterMasterTextStyleCatalog catalog,
             out string? reason) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));
@@ -34,6 +39,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                      ?? Enumerable.Empty<SlideMasterPart>()) {
                 if (!TryBuildMasterTextStyleRecords(
                         masterPart.SlideMaster?.TextStyles, fonts,
+                        pictureBullets,
                         out IReadOnlyList<byte[]> masterRecords,
                         out IReadOnlyList<byte[]> masterStyle9Records,
                         out reason)) {
@@ -53,6 +59,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         internal static bool TryBuildMasterTextStyleRecords(P.TextStyles? styles,
             LegacyPptWriterFontCatalog fonts, out IReadOnlyList<byte[]> records,
+            out IReadOnlyList<byte[]> style9Records,
+            out string? reason) => TryBuildMasterTextStyleRecords(styles,
+                fonts, LegacyPptWriterPictureBulletCatalog.Empty,
+                out records, out style9Records, out reason);
+
+        internal static bool TryBuildMasterTextStyleRecords(P.TextStyles? styles,
+            LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out IReadOnlyList<byte[]> records,
             out IReadOnlyList<byte[]> style9Records,
             out string? reason) {
             var result = new List<byte[]>(3);
@@ -77,12 +92,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             result.Add(other);
             if (!TryBuildMasterTextStyle9Record(styles.TitleStyle,
                     instance: (ushort)LegacyPptTextType.Title,
+                    pictureBullets,
                     out byte[]? title9, out reason)
                 || !TryBuildMasterTextStyle9Record(styles.BodyStyle,
                     instance: (ushort)LegacyPptTextType.Body,
+                    pictureBullets,
                     out byte[]? body9, out reason)
                 || !TryBuildMasterTextStyle9Record(styles.OtherStyle,
                     instance: (ushort)LegacyPptTextType.Other,
+                    pictureBullets,
                     out byte[]? other9, out reason)) return false;
             if (title9 != null) style9Result.Add(title9);
             if (body9 != null) style9Result.Add(body9);
@@ -93,6 +111,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static bool TryRewriteMasterTextStyleRecords(
             LegacyPptRecord master, P.TextStyles? styles,
             LegacyPptWriterFontCatalog fonts, out byte[] bytes,
+            out string? reason) => TryRewriteMasterTextStyleRecords(master,
+                styles, fonts, LegacyPptWriterPictureBulletCatalog.Empty,
+                out bytes, out reason);
+
+        internal static bool TryRewriteMasterTextStyleRecords(
+            LegacyPptRecord master, P.TextStyles? styles,
+            LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out byte[] bytes,
             out string? reason) {
             if (master == null) throw new ArgumentNullException(nameof(master));
             if (fonts == null) throw new ArgumentNullException(nameof(fonts));
@@ -100,6 +127,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             reason = null;
             if (master.Version != 0x0F
                 || !TryBuildMasterTextStyleRecords(styles, fonts,
+                    pictureBullets,
                     out IReadOnlyList<byte[]> records,
                     out IReadOnlyList<byte[]> style9Records, out reason)) {
                 return false;
@@ -315,6 +343,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool TryBuildMasterTextStyle9Record(
             OpenXmlCompositeElement? style, ushort instance,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
             out byte[]? record, out string? reason) {
             record = null;
             reason = null;
@@ -322,8 +351,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!TryReadMasterTextStyleLevels(style, out Dictionary<int,
                     A.TextParagraphPropertiesType> levels,
                     out reason)) return false;
-            if (!levels.Values.Any(properties => properties
-                    .GetFirstChild<A.AutoNumberedBullet>() != null)) {
+            if (!levels.Values.Any(properties => properties.ChildElements
+                    .Any(child => child is A.AutoNumberedBullet
+                        or A.PictureBullet))) {
                 return true;
             }
             int levelCount = levels.Keys.Max() + 1;
@@ -334,6 +364,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out A.TextParagraphPropertiesType? properties);
                 if (!TryWriteAutomaticNumberingException9(payload,
                         properties?.GetFirstChild<A.AutoNumberedBullet>(),
+                        properties?.GetFirstChild<A.PictureBullet>(),
+                        pictureBullets,
                         out reason)) return false;
                 WriteUInt32(payload, 0);
             }

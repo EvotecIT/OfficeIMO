@@ -147,7 +147,9 @@ namespace OfficeIMO.PowerPoint {
                         shape.TextBody, shape.TextFrame,
                         interaction => ProjectLegacyInteraction(slide.SlidePart, interaction,
                             slidePartsByLegacyId: slidePartsByLegacyId,
-                            soundContext: soundContext));
+                            soundContext: soundContext),
+                        pictureBullet => ProjectLegacyPictureBullet(
+                            slide.SlidePart, pictureBullet));
                     if (shape.OfficeArtShapeType != 202
                         && LegacyPptShapeGeometryMapper.TryGetPreset(shape.OfficeArtShapeType,
                             out A.ShapeTypeValues textGeometry)
@@ -222,7 +224,10 @@ namespace OfficeIMO.PowerPoint {
                         .Max() + 1U;
                     OpenXmlElement? group = CreateLegacyOpenXmlShape(slide.SlidePart, shape,
                         ref nextShapeId, slidePartsByLegacyId, soundContext);
-                    if (group != null) tree.Append(group);
+                    if (group != null) {
+                        tree.Append(group);
+                        slide.ReserveShapeIdsThrough(nextShapeId);
+                    }
                     return group;
             }
             DocumentFormat.OpenXml.Presentation.ShapeProperties? projectedProperties =

@@ -47,7 +47,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal static LegacyPptTextMasterStyle ApplyStyle9(
-            LegacyPptTextMasterStyle style, LegacyPptRecord record) {
+            LegacyPptTextMasterStyle style, LegacyPptRecord record,
+            IReadOnlyDictionary<ushort, LegacyPptPictureBullet>?
+                pictureBullets = null) {
             if (style == null) throw new ArgumentNullException(nameof(style));
             if (record == null) throw new ArgumentNullException(nameof(record));
             try {
@@ -81,14 +83,25 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         hasUnprojectedFormatting = true;
                         continue;
                     }
+                    LegacyPptPictureBullet? pictureBullet = null;
+                    bool pictureUnprojected = paragraph
+                        .BulletPictureReference.HasValue
+                        && (pictureBullets == null
+                            || !pictureBullets.TryGetValue(paragraph
+                                    .BulletPictureReference.Value,
+                                out pictureBullet)
+                            || pictureBullet?.HasImportableImage != true);
+                    hasUnprojectedFormatting |= pictureUnprojected;
                     LegacyPptParagraphRun merged = baseLevel
                         .ParagraphProperties.WithPpt9Formatting(
                             paragraph.HasAutoNumber,
                             paragraph.AutoNumberScheme,
                             paragraph.AutoNumberStartAt,
                             paragraph.BulletPictureReference,
+                            pictureBullet,
                             paragraph.HasUnprojectedFormatting
-                                || characterUnprojected);
+                                || characterUnprojected
+                                || pictureUnprojected);
                     levels[level] = new LegacyPptTextMasterStyleLevel(level,
                         merged, baseLevel.CharacterProperties);
                 }

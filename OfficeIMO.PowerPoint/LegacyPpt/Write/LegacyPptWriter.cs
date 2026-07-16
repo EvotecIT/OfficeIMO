@@ -83,6 +83,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? pictureReason)) {
                 throw new NotSupportedException(pictureReason);
             }
+            if (!TryReadPictureBulletCatalog(presentation,
+                    out LegacyPptWriterPictureBulletCatalog pictureBullets,
+                    out string? pictureBulletReason)) {
+                throw new NotSupportedException(pictureBulletReason);
+            }
             if (!TryReadClassicAnimations(presentation.Slides, soundCatalog,
                     out LegacyPptWriterAnimationCatalog animationCatalog,
                     out string? animationReason)) {
@@ -119,7 +124,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 + presentation.Slides.Count + notes.Count));
             LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
                 template.Document, template.MainMasterPrototypes,
-                template.NotesMasterPrototype, handoutDrawingId);
+                template.NotesMasterPrototype, handoutDrawingId,
+                pictureBullets);
             uint firstAdditionalPersistId = checked((uint)(
                 masters.PersistObjects.Count + presentation.Slides.Count
                 + notes.Count
@@ -155,7 +161,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     unchecked((uint)(13 + index)), masters.GetMasterId(slide), notesId,
                     comments ?? Array.Empty<LegacyPptWriterComment>(),
                     interactionCatalog, animationCatalog, mediaCatalog,
-                    oleCatalog, pictureCatalog, masters.Fonts));
+                    oleCatalog, pictureCatalog, masters.Fonts,
+                    pictureBullets));
             }
             var notesRecords = notes.Select(note => BuildNotesRecord(template.NotesPrototype,
                 note.Text, unchecked((uint)(256 + note.SlideIndex)), note.DrawingId,
@@ -168,7 +175,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interactionCatalog, customShows, soundCatalog, masters.Count,
                     masters.DrawingShapeCounts, masters.Fonts,
                     handoutMasterPersistId, vbaProjectPersistId,
-                    mediaCatalog, oleCatalog, pictureCatalog)
+                    mediaCatalog, oleCatalog, pictureCatalog,
+                    pictureBullets)
             };
             persistObjects.AddRange(masters.PersistObjects);
             persistObjects.Add(masters.NotesMasterPersistObject);
@@ -253,13 +261,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new LegacyPptWriterMediaCatalog(),
                 new LegacyPptWriterOleObjectCatalog(),
                 new LegacyPptWriterPictureCatalog(),
-                CreateFontCatalogForWrite());
+                CreateFontCatalogForWrite(),
+                LegacyPptWriterPictureBulletCatalog.Empty);
         }
 
         internal static byte[] BuildIncrementalSlideRecord(PowerPointSlide slide,
             uint drawingId, uint masterIdRef,
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
             bool layoutIsIndependentMaster = false) {
             if (slide == null) throw new ArgumentNullException(nameof(slide));
             IReadOnlyList<PowerPointShape> sourceShapes = ReadSlideShapesForWrite(slide,
@@ -280,6 +290,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 new LegacyPptWriterOleObjectCatalog(),
                 new LegacyPptWriterPictureCatalog(),
                 fonts,
+                pictureBullets,
                 layoutIsIndependentMaster);
         }
 
@@ -295,7 +306,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             uint? vbaProjectPersistId,
             LegacyPptWriterMediaCatalog mediaCatalog,
             LegacyPptWriterOleObjectCatalog oleCatalog,
-            LegacyPptWriterPictureCatalog pictureCatalog) {
+            LegacyPptWriterPictureCatalog pictureCatalog,
+            LegacyPptWriterPictureBulletCatalog pictureBullets) {
             var children = new List<byte[]>();
             bool wroteSounds = false;
             bool wroteFonts = false;
@@ -387,8 +399,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             rebuiltRecord = LegacyPptRecordReader.ReadSingle(withExtensions, 0,
                 new LegacyPptImportOptions());
-            return RewriteDocumentVbaInfo(rebuiltRecord,
-                vbaProjectPersistId);
+            if (!TryRewriteDocumentPictureBullets(rebuiltRecord,
+                    pictureBullets, replaceExisting: true,
+                    out byte[] withPictureBullets)) {
+                throw new InvalidDataException(
+                    "The embedded document template has malformed picture-bullet extension records.");
+            }
+            rebuiltRecord = LegacyPptRecordReader.ReadSingle(
+                withPictureBullets, 0, new LegacyPptImportOptions());
+            return RewriteDocumentVbaInfo(rebuiltRecord, vbaProjectPersistId);
         }
 
         private static void PatchDocumentSettings(byte[] atom,

@@ -62,14 +62,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (content.StyleRecord != null) {
                         children.Add(content.StyleRecord);
                     }
-                    if (content.RulerRecord != null) {
-                        children.Add(content.RulerRecord);
-                    }
+                    children.AddRange(content.FieldRecords);
                     wroteText = true;
                     continue;
                 }
                 if (child.Type == RecordStyleTextPropAtomForPreservation
-                    || child.Type == RecordTextRulerAtomForPreservation) {
+                    || child.Type == RecordTextRulerAtomForPreservation
+                    || LegacyPptWriter.IsTextMetaCharacterRecord(
+                        child.Type)) {
                     continue;
                 }
                 if (rewriteInteractions
@@ -107,6 +107,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     children.Add(LegacyPptWriter
                         .BuildTextInteractiveInfoRecord(interaction));
                 }
+            }
+            if (content.RulerRecord != null) {
+                children.Add(content.RulerRecord);
             }
             bytes = BuildRecord(textbox.Version, textbox.Instance,
                 textbox.Type, Concat(children));

@@ -39,6 +39,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 .PresentationPart?.SlideMasterParts.ToArray()
                 ?? Array.Empty<SlideMasterPart>();
             int masterCount = masterParts.Length;
+            LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
+                pictureBullets;
+            if (!LegacyPptWriter.TryReadPictureBulletCatalog(presentation,
+                    out pictureBullets,
+                    out string? pictureBulletReason)) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.BulletsAndNumbering,
+                    "PPT-WRITE-PICTURE-BULLET",
+                    pictureBulletReason
+                    ?? "A picture bullet cannot be encoded by the native binary writer."));
+                pictureBullets = LegacyPptWriter
+                    .LegacyPptWriterPictureBulletCatalog.Empty;
+            }
             if (masterCount == 0 || masterCount > LegacyPptWriter.MaxNativeMasterCount) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Masters,
                     "PPT-WRITE-MASTER-COUNT",
@@ -77,7 +90,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 AddMasterShapeFindings(findings, masterShapes,
                     $"Slide master {masterIndex}",
                     LegacyPptWriter.LegacyPptWriterShapeContext.MainMaster,
-                    shapeTextFonts);
+                    shapeTextFonts, pictureBullets);
                 if (masterPart.SlideMaster?.Descendants<P.Timing>().Any()
                         == true
                     || masterPart.SlideMaster?.Descendants<P.Transition>().Any()
@@ -111,7 +124,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 AddMasterShapeFindings(findings, notesMasterShapes,
                     "Notes master",
                     LegacyPptWriter.LegacyPptWriterShapeContext.NotesMaster,
-                    shapeTextFonts);
+                    shapeTextFonts, pictureBullets);
             }
             HandoutMasterPart? handoutMasterPart = presentation.OpenXmlDocument
                 .PresentationPart?.HandoutMasterPart;
@@ -136,7 +149,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 AddMasterShapeFindings(findings, handoutMasterShapes,
                     "Handout master",
                     LegacyPptWriter.LegacyPptWriterShapeContext.HandoutMaster,
-                    shapeTextFonts);
+                    shapeTextFonts, pictureBullets);
             }
             if (LegacyPptWriter.HasModernComments(presentation)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
@@ -306,7 +319,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     if (shape is PowerPointTextBox textBox
                         && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
-                            shapeTextFonts, out string? textReason)) {
+                            shapeTextFonts, pictureBullets,
+                            out string? textReason)) {
                         findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.RichText, "PPT-WRITE-RICH-TEXT",
                             textReason
                             ?? "The text formatting cannot be encoded by the native binary writer.",
@@ -349,6 +363,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (groupShapeReason != null) return false;
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts =
                 LegacyPptWriter.CreateFontCatalogForWrite();
+            PresentationPart? presentationPart = slide.SlidePart
+                .GetParentParts().OfType<PresentationPart>().FirstOrDefault();
+            if (presentationPart == null
+                || !LegacyPptWriter.TryReadPictureBulletCatalog(
+                    presentationPart, out LegacyPptWriter
+                        .LegacyPptWriterPictureBulletCatalog pictureBullets,
+                    out _)) return false;
             foreach (PowerPointShape shape in shapes) {
                 if (!IsSupportedShape(shape) || HasUnsupportedVisualStyle(shape)
                     || !LegacyPptWriter.TryReadPlaceholderForWrite(shape,
@@ -356,7 +377,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         out _, out _)) return false;
                 if (shape is PowerPointTextBox textBox
                     && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
-                        fonts, out _)) return false;
+                        fonts, pictureBullets, out _)) return false;
             }
             return true;
         }
@@ -404,7 +425,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             ICollection<LegacyPptWriteFinding> findings,
             IReadOnlyList<PowerPointShape> shapes, string ownerName,
             LegacyPptWriter.LegacyPptWriterShapeContext shapeContext,
-            LegacyPptWriter.LegacyPptWriterFontCatalog fonts) {
+            LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriter.LegacyPptWriterPictureBulletCatalog
+                pictureBullets) {
             shapes = LegacyPptWriter.FlattenShapeTreeForWrite(shapes,
                 out string? groupReason);
             if (groupReason != null) {
@@ -437,7 +460,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 if (shape is PowerPointTextBox textBox
                     && !LegacyPptWriter.TryReadTextBoxForWrite(textBox,
-                        fonts, out string? textReason)) {
+                        fonts, pictureBullets,
+                        out string? textReason)) {
                     findings.Add(new LegacyPptWriteFinding(
                         LegacyPptFeature.RichText,
                         "PPT-WRITE-MASTER-RICH-TEXT",

@@ -12,6 +12,9 @@ namespace OfficeIMO.Tests {
     public partial class PowerPointLegacyPptTests {
         private static string RichTextFixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "RichTextPowerPoint.ppt");
+        private static string PictureBulletFixturePath => Path.Combine(
+            AppContext.BaseDirectory, "Documents", "LegacyPptCorpus",
+            "apache-poi-testdata", "bug61881.ppt");
 
         [Fact]
         public void NeutralReader_DecodesMicrosoftCharacterRuns() {
@@ -1144,6 +1147,122 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void MasterPictureBullet_AddChangeAndRemove_RoundTripsNatively() {
+            byte[] sourceImage = OfficePngWriter.Encode(
+                new OfficeRasterImage(3, 4,
+                    OfficeColor.FromRgb(80, 100, 200)));
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                SlideMasterPart masterPart = source.OpenXmlDocument
+                    .PresentationPart!.SlideMasterParts.Single();
+                ImagePart imagePart = masterPart.AddImagePart(
+                    DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+                using (var imageStream = new MemoryStream(sourceImage,
+                           writable: false)) {
+                    imagePart.FeedData(imageStream);
+                }
+                masterPart.SlideMaster!.TextStyles!.BodyStyle!.Append(
+                    new A.Level1ParagraphProperties(
+                        new A.PictureBullet(new A.Blip {
+                            Embed = masterPart.GetIdOfPart(imagePart)
+                        })));
+                source.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+            LegacyPptTextMasterStyle originalBody = Assert.Single(
+                Assert.Single(original.Masters).TextMasterStyles,
+                style => style.TextType == LegacyPptTextType.Body);
+            Assert.Same(Assert.Single(original.PictureBullets),
+                Assert.Single(originalBody.Levels).ParagraphProperties
+                    .PictureBullet);
+
+            byte[] changedImage = OfficePngWriter.Encode(
+                new OfficeRasterImage(5, 2,
+                    OfficeColor.FromRgb(200, 110, 30)));
+            byte[] changedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                SlideMasterPart masterPart = imported.OpenXmlDocument
+                    .PresentationPart!.SlideMasterParts.Single();
+                P.BodyStyle body = masterPart.SlideMaster!.TextStyles!
+                    .BodyStyle!;
+                A.PictureBullet first = Assert.Single(body
+                    .Descendants<A.PictureBullet>());
+                string relationshipId = first.GetFirstChild<A.Blip>()!
+                    .Embed!.Value!;
+                ImagePart imagePart = Assert.IsType<ImagePart>(
+                    masterPart.GetPartById(relationshipId));
+                using (var imageStream = new MemoryStream(changedImage,
+                           writable: false)) {
+                    imagePart.FeedData(imageStream);
+                }
+                body.Append(new A.Level2ParagraphProperties(
+                    new A.PictureBullet(new A.Blip {
+                        Embed = relationshipId
+                    })));
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                changedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation changed = LegacyPptPresentation.Load(
+                changedBytes);
+            LegacyPptPictureBullet changedBullet = Assert.Single(
+                changed.PictureBullets);
+            Assert.Equal(changedImage, changedBullet.ImageBytes);
+            LegacyPptTextMasterStyle changedBody = Assert.Single(
+                Assert.Single(changed.Masters).TextMasterStyles,
+                style => style.TextType == LegacyPptTextType.Body);
+            Assert.Equal(2, changedBody.Levels.Count);
+            Assert.All(changedBody.Levels, level => Assert.Same(
+                changedBullet, level.ParagraphProperties.PictureBullet));
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                changed.Package.UserEdits.Count);
+            Assert.True(changed.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            byte[] removedBytes;
+            using (var input = new MemoryStream(changedBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                A.TextParagraphPropertiesType first = imported
+                    .OpenXmlDocument.PresentationPart!.SlideMasterParts
+                    .Single().SlideMaster!.TextStyles!.BodyStyle!
+                    .ChildElements.Cast<A.TextParagraphPropertiesType>()
+                    .First();
+                first.RemoveAllChildren<A.PictureBullet>();
+                first.Append(new A.NoBullet());
+
+                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+                removedBytes);
+            LegacyPptTextMasterStyle removedBody = Assert.Single(
+                Assert.Single(removed.Masters).TextMasterStyles,
+                style => style.TextType == LegacyPptTextType.Body);
+            Assert.False(removedBody.Levels[0].ParagraphProperties.HasBullet);
+            Assert.Null(removedBody.Levels[0].ParagraphProperties
+                .PictureBullet);
+            Assert.Same(Assert.Single(removed.PictureBullets),
+                removedBody.Levels[1].ParagraphProperties.PictureBullet);
+            Assert.Equal(changed.Package.UserEdits.Count + 1,
+                removed.Package.UserEdits.Count);
+            Assert.True(removed.Package.DocumentStream.AsSpan(0,
+                    changed.Package.DocumentStream.Length)
+                .SequenceEqual(changed.Package.DocumentStream));
+        }
+
+        [Fact]
         public void ImportedPlainText_AddsPpt9NumberingWithAppendOnlyRewrite() {
             byte[] sourceBytes;
             using (PowerPointPresentation source = PowerPointPresentation
@@ -1324,6 +1443,229 @@ namespace OfficeIMO.Tests {
                 finding.Description, StringComparison.Ordinal);
         }
 
+        [Fact]
+        public void ExplicitLineBreak_FreshEditAndRemove_RoundTripsNatively() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointTextBox textBox = source.AddSlide(
+                        P.SlideLayoutValues.Blank)
+                    .AddTextBox(string.Empty);
+                Assert.IsType<P.Shape>(textBox.Element).TextBody =
+                    new P.TextBody(new A.BodyProperties(),
+                        new A.ListStyle(), new A.Paragraph(
+                            new A.Run(new A.Text("Before")),
+                            new A.Break {
+                                RunProperties = new A.RunProperties {
+                                    Bold = true,
+                                    FontSize = 1800
+                                }
+                            },
+                            new A.Run(new A.Text("After")),
+                            new A.EndParagraphRunProperties()));
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation sourceLegacy = LegacyPptPresentation.Load(
+                sourceBytes);
+            LegacyPptShape sourceShape = Assert.Single(
+                Assert.Single(sourceLegacy.Slides).Shapes);
+            Assert.Equal("Before\vAfter", sourceShape.Text);
+            LegacyPptCharacterRun sourceBreak = Assert.Single(
+                sourceShape.TextBody.CharacterRuns,
+                run => run.Text == "\v");
+            Assert.True(sourceBreak.Bold);
+            Assert.Equal((short)18, sourceBreak.FontSizePoints);
+
+            byte[] editedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                A.Break lineBreak = Assert.Single(imported.Slides[0]
+                    .SlidePart.Slide!.Descendants<A.Break>());
+                Assert.True(lineBreak.RunProperties!.Bold!.Value);
+                lineBreak.RunProperties.Bold = false;
+                lineBreak.RunProperties.Italic = true;
+
+                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+                editedBytes);
+            LegacyPptCharacterRun editedBreak = Assert.Single(
+                Assert.Single(Assert.Single(edited.Slides).Shapes)
+                    .TextBody.CharacterRuns,
+                run => run.Text == "\v");
+            Assert.False(editedBreak.Bold);
+            Assert.True(editedBreak.Italic);
+            Assert.Equal(sourceLegacy.Package.UserEdits.Count + 1,
+                edited.Package.UserEdits.Count);
+            Assert.True(edited.Package.DocumentStream.AsSpan(0,
+                    sourceLegacy.Package.DocumentStream.Length)
+                .SequenceEqual(sourceLegacy.Package.DocumentStream));
+
+            byte[] removedBytes;
+            using (var input = new MemoryStream(editedBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                Assert.Single(imported.Slides[0].SlidePart.Slide!
+                    .Descendants<A.Break>()).Remove();
+                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+                removedBytes);
+            Assert.Equal("BeforeAfter", Assert.Single(
+                Assert.Single(removed.Slides).Shapes).Text);
+            Assert.DoesNotContain(Assert.Single(Assert.Single(
+                    removed.Slides).Shapes).TextBody.CharacterRuns,
+                run => run.Text == "\v");
+            Assert.Equal(edited.Package.UserEdits.Count + 1,
+                removed.Package.UserEdits.Count);
+            Assert.True(removed.Package.DocumentStream.AsSpan(0,
+                    edited.Package.DocumentStream.Length)
+                .SequenceEqual(edited.Package.DocumentStream));
+        }
+
+        [Fact]
+        public void DynamicFields_FreshAddChangeAndRemove_RoundTripNatively() {
+            const string rtfFormat = "{\\rtf1\\ansi dddd, MMMM d}";
+            string encodedRtf = Convert.ToBase64String(
+                System.Text.Encoding.Unicode.GetBytes(rtfFormat));
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointTextBox textBox = source.AddSlide(
+                        P.SlideLayoutValues.Blank)
+                    .AddTextBox(string.Empty);
+                Assert.IsType<P.Shape>(textBox.Element).TextBody =
+                    new P.TextBody(new A.BodyProperties(),
+                        new A.ListStyle(), new A.Paragraph(
+                            CreateField("{00000000-0000-0000-0000-000000000001}",
+                                "slidenum", "7", bold: true),
+                            new A.Run(new A.Text("|")),
+                            CreateField("{00000000-0000-0000-0000-000000000002}",
+                                "datetime4", "July 16, 2026"),
+                            new A.Run(new A.Text("|")),
+                            CreateField("{00000000-0000-0000-0000-000000000003}",
+                                "datetimeFigureOut", "16.07.2026"),
+                            new A.Run(new A.Text("|")),
+                            CreateField("{00000000-0000-0000-0000-000000000004}",
+                                "header", "Header"),
+                            new A.Run(new A.Text("|")),
+                            CreateField("{00000000-0000-0000-0000-000000000005}",
+                                "footer", "Footer"),
+                            new A.Run(new A.Text("|")),
+                            CreateField("{00000000-0000-0000-0000-000000000006}",
+                                "datetimeRtf:" + encodedRtf,
+                                "Thursday, July 16"),
+                            new A.EndParagraphRunProperties()));
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation sourceLegacy = LegacyPptPresentation.Load(
+                sourceBytes);
+            LegacyPptTextBody sourceText = Assert.Single(Assert.Single(
+                    sourceLegacy.Slides).Shapes).TextBody;
+            Assert.Equal("*|*|*|*|*|*", sourceText.Text);
+            Assert.Collection(sourceText.Fields,
+                field => Assert.Equal(LegacyPptTextFieldKind.SlideNumber,
+                    field.Kind),
+                field => {
+                    Assert.Equal(LegacyPptTextFieldKind.DateTime,
+                        field.Kind);
+                    Assert.Equal((byte)3, field.DateTimeFormatIndex);
+                },
+                field => Assert.Equal(LegacyPptTextFieldKind.GenericDate,
+                    field.Kind),
+                field => Assert.Equal(LegacyPptTextFieldKind.Header,
+                    field.Kind),
+                field => Assert.Equal(LegacyPptTextFieldKind.Footer,
+                    field.Kind),
+                field => {
+                    Assert.Equal(LegacyPptTextFieldKind.RtfDateTime,
+                        field.Kind);
+                    Assert.Equal(rtfFormat, field.RtfFormat);
+                });
+            Assert.False(sourceText.IsFieldDataMalformed);
+            Assert.Equal(6, sourceLegacy.CreateImportReport()
+                .TextFieldCount);
+
+            byte[] editedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                A.Paragraph paragraph = Assert.Single(imported.Slides[0]
+                    .SlidePart.Slide!.Descendants<A.Paragraph>());
+                A.Field[] fields = paragraph.Elements<A.Field>().ToArray();
+                Assert.Equal(6, fields.Length);
+                Assert.Equal("slidenum", fields[0].Type!.Value);
+                Assert.Equal("datetime4", fields[1].Type!.Value);
+                Assert.Equal("datetimeFigureOut", fields[2].Type!.Value);
+                Assert.Equal("header", fields[3].Type!.Value);
+                Assert.Equal("footer", fields[4].Type!.Value);
+                Assert.Equal("datetimeRtf:" + encodedRtf,
+                    fields[5].Type!.Value);
+                fields[1].Type = "datetime2";
+                fields[3].InsertAfterSelf(new A.Run(new A.Text("*")));
+                fields[3].Remove();
+                paragraph.InsertBefore(CreateField(
+                        "{00000000-0000-0000-0000-000000000007}",
+                        "slidenum", "8"),
+                    paragraph.GetFirstChild<A.EndParagraphRunProperties>());
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                editedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation edited = LegacyPptPresentation.Load(
+                editedBytes);
+            LegacyPptTextBody editedText = Assert.Single(Assert.Single(
+                    edited.Slides).Shapes).TextBody;
+            Assert.Equal(6, editedText.Fields.Count);
+            Assert.DoesNotContain(editedText.Fields,
+                field => field.Kind == LegacyPptTextFieldKind.Header);
+            Assert.Equal(2, editedText.Fields.Count(field =>
+                field.Kind == LegacyPptTextFieldKind.SlideNumber));
+            Assert.Equal((byte)1, Assert.Single(editedText.Fields,
+                field => field.Kind == LegacyPptTextFieldKind.DateTime)
+                .DateTimeFormatIndex);
+            Assert.Equal(sourceLegacy.Package.UserEdits.Count + 1,
+                edited.Package.UserEdits.Count);
+            Assert.True(edited.Package.DocumentStream.AsSpan(0,
+                    sourceLegacy.Package.DocumentStream.Length)
+                .SequenceEqual(sourceLegacy.Package.DocumentStream));
+
+            using var reopenedInput = new MemoryStream(editedBytes,
+                writable: false);
+            using PowerPointPresentation reopened = PowerPointPresentation
+                .Load(reopenedInput);
+            Assert.Equal(6, reopened.Slides[0].SlidePart.Slide!
+                .Descendants<A.Field>().Count());
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        private static A.Field CreateField(string id, string type,
+            string displayText, bool bold = false) => new(
+                new A.RunProperties { Bold = bold },
+                new A.Text(displayText)) {
+                Id = id,
+                Type = type
+            };
+
         private static A.Paragraph CreateNumberedParagraph(string text,
             int level, A.TextAutoNumberSchemeValues scheme, int startAt) =>
             new(new A.ParagraphProperties(
@@ -1334,6 +1676,215 @@ namespace OfficeIMO.Tests {
                     Level = level
                 },
                 new A.Run(new A.Text(text)));
+
+        [Fact]
+        public void FreshPictureBullet_IsWrittenAsPpt9CollectionAndReference() {
+            byte[] image = OfficePngWriter.Encode(new OfficeRasterImage(
+                4, 4, OfficeColor.FromRgb(20, 120, 220)));
+            byte[] binary;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                PowerPointSlide slide = source.AddSlide(
+                    P.SlideLayoutValues.Blank);
+                PowerPointTextBox textBox = slide.AddTextBox(
+                    "Picture bullet");
+                ImagePart imagePart = slide.SlidePart.AddImagePart(
+                    DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+                using (var stream = new MemoryStream(image,
+                           writable: false)) {
+                    imagePart.FeedData(stream);
+                }
+                string relationshipId = slide.SlidePart.GetIdOfPart(
+                    imagePart);
+                A.Paragraph paragraph = Assert.Single(
+                    Assert.IsType<P.Shape>(textBox.Element).TextBody!
+                        .Elements<A.Paragraph>());
+                paragraph.ParagraphProperties = new A.ParagraphProperties(
+                    new A.PictureBullet(
+                        new A.Blip { Embed = relationshipId }));
+
+                LegacyPptWritePreflightReport preflight = source
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                binary = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation legacy = LegacyPptPresentation.Load(
+                binary);
+            LegacyPptPictureBullet pictureBullet = Assert.Single(
+                legacy.PictureBullets);
+            Assert.Equal((ushort)0, pictureBullet.Index);
+            Assert.Equal("image/png", pictureBullet.ContentType);
+            Assert.Equal(image, pictureBullet.ImageBytes);
+            LegacyPptParagraphRun run = Assert.Single(Assert.Single(
+                    Assert.Single(legacy.Slides).Shapes).TextBody
+                .ParagraphRuns);
+            Assert.Equal((ushort)0, run.BulletPictureReference);
+            Assert.Same(pictureBullet, run.PictureBullet);
+            Assert.True(run.HasBullet);
+
+            using var binaryStream = new MemoryStream(binary,
+                writable: false);
+            using PowerPointPresentation projected =
+                PowerPointPresentation.Load(binaryStream);
+            Assert.Single(projected.Slides[0].SlidePart.Slide!
+                .Descendants<A.PictureBullet>());
+        }
+
+        [Fact]
+        public void ApachePoiPictureBullet_IsDecodedAndProjectedNatively() {
+            LegacyPptPresentation source = LegacyPptPresentation.Load(
+                PictureBulletFixturePath);
+            LegacyPptPictureBullet pictureBullet = Assert.Single(
+                source.PictureBullets);
+            Assert.Equal((ushort)0, pictureBullet.Index);
+            Assert.Equal((byte)0x06, pictureBullet.PreferredBlipType);
+            Assert.Equal("image/png", pictureBullet.ContentType);
+            Assert.Equal(225, pictureBullet.ImageBytes.Length);
+            Assert.False(pictureBullet.IsPayloadTruncated);
+            Assert.True(pictureBullet.HasImportableImage);
+            Assert.Equal(1, source.CreateImportReport()
+                .PictureBulletCount);
+            LegacyPptParagraphRun paragraph = Assert.Single(source.Slides
+                .SelectMany(slide => slide.Shapes)
+                .SelectMany(shape => shape.TextBody.ParagraphRuns),
+                run => run.BulletPictureReference == 0);
+            Assert.Same(pictureBullet, paragraph.PictureBullet);
+            Assert.False(paragraph.HasUnprojectedFormatting);
+
+            using PowerPointPresentation projected =
+                PowerPointPresentation.LoadLegacyPpt(PictureBulletFixturePath);
+            var projectedBullets = projected.Slides
+                .SelectMany(slide => slide.SlidePart.Slide!
+                    .Descendants<A.PictureBullet>()
+                    .Select(bullet => (slide.SlidePart, Bullet: bullet)))
+                .ToArray();
+            Assert.Equal(2, projectedBullets.Length);
+            var projectedBullet = projectedBullets[0];
+            SlidePart slidePart = projectedBullet.SlidePart;
+            A.PictureBullet nativeBullet = projectedBullet.Bullet;
+            A.Blip blip = Assert.Single(nativeBullet.Elements<A.Blip>());
+            ImagePart imagePart = Assert.IsType<ImagePart>(
+                slidePart.GetPartById(blip.Embed!.Value!));
+            Assert.Equal("image/png", imagePart.ContentType);
+            using Stream stream = imagePart.GetStream(FileMode.Open,
+                FileAccess.Read);
+            using var bytes = new MemoryStream();
+            stream.CopyTo(bytes);
+            Assert.Equal(pictureBullet.ImageBytes, bytes.ToArray());
+            Assert.Single(projectedBullets.Select(item => item.Bullet
+                .GetFirstChild<A.Blip>()!.Embed!.Value).Distinct());
+        }
+
+        [Fact]
+        public void ImportedPictureBullet_AddChangeAndRemove_AppendPreservingRecords() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide(P.SlideLayoutValues.Blank)
+                    .AddTextBox("Editable picture bullet");
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+            byte[] addedImage = OfficePngWriter.Encode(
+                new OfficeRasterImage(4, 4,
+                    OfficeColor.FromRgb(30, 150, 90)));
+            byte[] addedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                SlidePart slidePart = imported.Slides[0].SlidePart;
+                ImagePart imagePart = slidePart.AddImagePart(
+                    DocumentFormat.OpenXml.Packaging.ImagePartType.Png);
+                using (var imageStream = new MemoryStream(addedImage,
+                           writable: false)) {
+                    imagePart.FeedData(imageStream);
+                }
+                A.Paragraph paragraph = Assert.Single(slidePart.Slide!
+                    .Descendants<A.Paragraph>());
+                paragraph.ParagraphProperties = new A.ParagraphProperties(
+                    new A.PictureBullet(new A.Blip {
+                        Embed = slidePart.GetIdOfPart(imagePart)
+                    }));
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                addedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation added = LegacyPptPresentation.Load(
+                addedBytes);
+            Assert.Equal(addedImage,
+                Assert.Single(added.PictureBullets).ImageBytes);
+            Assert.True(Assert.Single(Assert.Single(added.Slides).Shapes)
+                .TextBody.ParagraphRuns.Single().HasBullet);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                added.Package.UserEdits.Count);
+            Assert.True(added.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
+
+            byte[] changedImage = OfficePngWriter.Encode(
+                new OfficeRasterImage(5, 3,
+                    OfficeColor.FromRgb(180, 60, 40)));
+            byte[] changedBytes;
+            using (var input = new MemoryStream(addedBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                SlidePart slidePart = imported.Slides[0].SlidePart;
+                A.Blip blip = Assert.Single(slidePart.Slide!
+                    .Descendants<A.PictureBullet>()).GetFirstChild<A.Blip>()!;
+                ImagePart imagePart = Assert.IsType<ImagePart>(
+                    slidePart.GetPartById(blip.Embed!.Value!));
+                using (var imageStream = new MemoryStream(changedImage,
+                           writable: false)) {
+                    imagePart.FeedData(imageStream);
+                }
+
+                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                changedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation changed = LegacyPptPresentation.Load(
+                changedBytes);
+            Assert.Equal(changedImage,
+                Assert.Single(changed.PictureBullets).ImageBytes);
+            Assert.Equal(added.Package.UserEdits.Count + 1,
+                changed.Package.UserEdits.Count);
+            Assert.True(changed.Package.DocumentStream.AsSpan(0,
+                    added.Package.DocumentStream.Length)
+                .SequenceEqual(added.Package.DocumentStream));
+
+            byte[] removedBytes;
+            using (var input = new MemoryStream(changedBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                   PowerPointPresentation.Load(input)) {
+                A.PictureBullet bullet = Assert.Single(imported.Slides[0]
+                    .SlidePart.Slide!.Descendants<A.PictureBullet>());
+                A.ParagraphProperties properties = Assert.IsType<
+                    A.ParagraphProperties>(bullet.Parent);
+                bullet.Remove();
+                properties.Append(new A.NoBullet());
+
+                Assert.True(imported.AnalyzeLegacyPptWrite().CanWrite);
+                removedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation removed = LegacyPptPresentation.Load(
+                removedBytes);
+            Assert.Empty(removed.PictureBullets);
+            Assert.False(Assert.Single(Assert.Single(removed.Slides).Shapes)
+                .TextBody.ParagraphRuns.Single().HasBullet);
+            Assert.Equal(changed.Package.UserEdits.Count + 1,
+                removed.Package.UserEdits.Count);
+            Assert.True(removed.Package.DocumentStream.AsSpan(0,
+                    changed.Package.DocumentStream.Length)
+                .SequenceEqual(changed.Package.DocumentStream));
+        }
 
         private static void AssertAutoNumber(
             LegacyPptParagraphRun paragraph,

@@ -9,6 +9,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriter.LegacyPptWriterInteractionCatalog interactionCatalog,
             PreservingInteractionContext interactionContext,
             LegacyPptWriter.LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriter.LegacyPptWriterPictureBulletCatalog pictureBullets,
             out IReadOnlyList<uint> addedSlideIds) {
             var slideIds = new List<uint>(addedSlides.Count);
             addedSlideIds = slideIds;
@@ -52,6 +53,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 rewritten.Add(persistId,
                     LegacyPptWriter.BuildIncrementalSlideRecord(slide, drawingId,
                         masterIdRef, remappedInteractions, fonts,
+                        pictureBullets,
                         layoutIsIndependentMaster));
                 appendedSlideAtoms.Add(BuildSlidePersistAtom(persistId, slideId));
                 slideIds.Add(slideId);

@@ -10,13 +10,53 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal static LegacyPptWriterFontCatalog
             CreateFontCatalogForWrite() => new(Template.Value.Document);
 
+        internal static string ReadLogicalTextForWrite(
+            PowerPointTextBox textBox) {
+            if (textBox == null) throw new ArgumentNullException(
+                nameof(textBox));
+            if (textBox.Element is not P.Shape shape
+                || shape.TextBody == null) return string.Empty;
+            var result = new System.Text.StringBuilder();
+            A.Paragraph[] paragraphs = shape.TextBody
+                .Elements<A.Paragraph>().ToArray();
+            for (int paragraphIndex = 0;
+                 paragraphIndex < paragraphs.Length; paragraphIndex++) {
+                if (paragraphIndex > 0) result.Append('\n');
+                foreach (OpenXmlElement child in paragraphs[paragraphIndex]
+                             .ChildElements) {
+                    if (child is A.Run run) {
+                        result.Append(run.Text?.Text ?? string.Empty);
+                    } else if (child is A.Field field) {
+                        result.Append('*');
+                    } else if (child is A.Break) {
+                        result.Append('\v');
+                    }
+                }
+            }
+            return result.ToString();
+        }
+
         internal static bool TryReadTextBoxForWrite(
             PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
             out string? reason) => TryBuildTextBoxContent(textBox, fonts,
-            out _, out reason);
+            LegacyPptWriterPictureBulletCatalog.Empty, out _, out reason);
+
+        internal static bool TryReadTextBoxForWrite(
+            PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out string? reason) => TryBuildTextBoxContent(textBox, fonts,
+            pictureBullets, out _, out reason);
 
         internal static bool TryBuildTextBoxContent(
             PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
+            out LegacyPptWriterTextBoxContent? content,
+            out string? reason) => TryBuildTextBoxContent(textBox, fonts,
+                LegacyPptWriterPictureBulletCatalog.Empty, out content,
+                out reason);
+
+        internal static bool TryBuildTextBoxContent(
+            PowerPointTextBox textBox, LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
             out LegacyPptWriterTextBoxContent? content,
             out string? reason) {
             if (textBox == null) throw new ArgumentNullException(
@@ -48,18 +88,21 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!TryBuildTextRulerRecord(paragraphs, out byte[]? rulerRecord,
                     out reason)) return false;
             if (!TryBuildStyleTextProp9Record(paragraphs,
-                    out byte[]? style9Record, out reason)) return false;
+                    pictureBullets, out byte[]? style9Record,
+                    out reason)) return false;
 
             var logicalText = new System.Text.StringBuilder();
             using var paragraphRuns = new MemoryStream();
             using var characterRuns = new MemoryStream();
+            var fieldRecords = new List<byte[]>();
             for (int index = 0; index < paragraphs.Length; index++) {
                 A.Paragraph paragraph = paragraphs[index];
                 byte? ppt9RunId = style9Record == null
                     ? null
                     : checked((byte)(index % 16));
                 if (!TryWriteParagraphRun(paragraph, fonts, logicalText,
-                        paragraphRuns, characterRuns, ppt9RunId,
+                        paragraphRuns, characterRuns, fieldRecords,
+                        ppt9RunId,
                         out reason)) {
                     content = null;
                     return false;
@@ -84,24 +127,26 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     RecordStyleTextPropAtomForWrite, payload.ToArray());
             }
             content = new LegacyPptWriterTextBoxContent(text, styleRecord,
-                rulerRecord, style9Record);
+                rulerRecord, style9Record, fieldRecords);
             return true;
         }
 
         private static bool TryWriteParagraphRun(A.Paragraph paragraph,
             LegacyPptWriterFontCatalog fonts,
             System.Text.StringBuilder logicalText, Stream paragraphRuns,
-            Stream characterRuns, byte? ppt9RunId,
+            Stream characterRuns, ICollection<byte[]> fieldRecords,
+            byte? ppt9RunId,
             out string? reason) {
             reason = null;
             if (paragraph.HasAttributes
                 || paragraph.ChildElements.Any(child => child
                     is not A.ParagraphProperties and not A.Run
+                    and not A.Break and not A.Field
                     and not A.EndParagraphRunProperties)
                 || paragraph.Elements<A.ParagraphProperties>().Count() > 1
                 || paragraph.Elements<A.EndParagraphRunProperties>().Count()
                     > 1) {
-                reason = "A paragraph contains fields, line breaks, extensions, or duplicate properties that are not in the base binary text contract.";
+                reason = "A paragraph contains extensions or duplicate properties that are not in the base binary text contract.";
                 return false;
             }
             A.ParagraphProperties? sourceProperties = paragraph
@@ -117,9 +162,23 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             var paragraphText = new System.Text.StringBuilder();
-            foreach (A.Run run in paragraph.Elements<A.Run>()) {
-                if (!TryWriteCharacterRun(run, fonts, paragraphText,
-                        characterRuns, ppt9RunId, out reason)) return false;
+            foreach (OpenXmlElement child in paragraph.ChildElements) {
+                if (child is A.Run run) {
+                    if (!TryWriteCharacterRun(run, fonts, paragraphText,
+                            characterRuns, ppt9RunId, out reason)) {
+                        return false;
+                    }
+                } else if (child is A.Break lineBreak) {
+                    if (!TryWriteLineBreak(lineBreak, fonts,
+                            paragraphText, characterRuns, ppt9RunId,
+                            out reason)) return false;
+                } else if (child is A.Field field) {
+                    if (!TryWriteField(field, fonts,
+                            checked(logicalText.Length
+                                + paragraphText.Length), paragraphText,
+                            characterRuns, fieldRecords, ppt9RunId,
+                            out reason)) return false;
+                }
             }
             paragraphText.Append('\r');
             logicalText.Append(paragraphText);
@@ -174,6 +233,129 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 out reason, ppt9RunId);
         }
 
+        private static bool TryWriteLineBreak(A.Break lineBreak,
+            LegacyPptWriterFontCatalog fonts,
+            System.Text.StringBuilder paragraphText,
+            Stream characterRuns, byte? ppt9RunId,
+            out string? reason) {
+            reason = null;
+            if (lineBreak.HasAttributes
+                || lineBreak.ChildElements.Any(child => child
+                    is not A.RunProperties)
+                || lineBreak.Elements<A.RunProperties>().Count() > 1) {
+                reason = "A line break contains unsupported or duplicate run properties.";
+                return false;
+            }
+            paragraphText.Append('\v');
+            WriteUInt32(characterRuns, 1U);
+            return TryWriteCharacterException(characterRuns,
+                NormalizeCharacterProperties(lineBreak.RunProperties),
+                fonts, out reason, ppt9RunId);
+        }
+
+        private static bool TryWriteField(A.Field field,
+            LegacyPptWriterFontCatalog fonts, int position,
+            System.Text.StringBuilder paragraphText,
+            Stream characterRuns, ICollection<byte[]> fieldRecords,
+            byte? ppt9RunId, out string? reason) {
+            reason = null;
+            if (!HasOnlyAttributes(field, "id", "type")
+                || !Guid.TryParse(field.Id?.Value, out _)
+                || string.IsNullOrWhiteSpace(field.Type?.Value)
+                || field.ChildElements.Any(child => child
+                    is not A.RunProperties
+                        and not A.ParagraphProperties and not A.Text)
+                || field.Elements<A.RunProperties>().Count() > 1
+                || field.Elements<A.ParagraphProperties>().Count() > 1
+                || field.Elements<A.Text>().Count() != 1) {
+                reason = "A DrawingML field must contain a valid id, one supported type, one text value, and at most one run or paragraph property element.";
+                return false;
+            }
+            A.ParagraphProperties? fieldParagraph = field
+                .ParagraphProperties;
+            if (fieldParagraph is { HasAttributes: true }
+                || fieldParagraph is { HasChildren: true }) {
+                reason = "Field-local paragraph formatting has no native classic binary PowerPoint mapping.";
+                return false;
+            }
+            if (!TryBuildTextFieldRecord(field.Type!.Value!, position,
+                    out byte[] fieldRecord, out reason)) return false;
+            paragraphText.Append('*');
+            WriteUInt32(characterRuns, 1U);
+            if (!TryWriteCharacterException(characterRuns,
+                    NormalizeCharacterProperties(field.RunProperties),
+                    fonts, out reason, ppt9RunId)) return false;
+            fieldRecords.Add(fieldRecord);
+            return true;
+        }
+
+        private static bool TryBuildTextFieldRecord(string fieldType,
+            int position, out byte[] record, out string? reason) {
+            reason = null;
+            record = Array.Empty<byte>();
+            ushort recordType;
+            byte? dateTimeIndex = null;
+            byte[]? rtfFormat = null;
+            if (string.Equals(fieldType, "slidenum",
+                    StringComparison.OrdinalIgnoreCase)) {
+                recordType = 0x0FD8;
+            } else if (string.Equals(fieldType, "datetime",
+                           StringComparison.OrdinalIgnoreCase)
+                       || string.Equals(fieldType, "datetimeFigureOut",
+                           StringComparison.OrdinalIgnoreCase)) {
+                recordType = 0x0FF8;
+            } else if (fieldType.StartsWith("datetimeRtf:",
+                           StringComparison.OrdinalIgnoreCase)) {
+                recordType = 0x1015;
+                try {
+                    rtfFormat = Convert.FromBase64String(fieldType.Substring(
+                        "datetimeRtf:".Length));
+                } catch (FormatException) {
+                    reason = "The legacy RTF date field contains an invalid encoded format string.";
+                    return false;
+                }
+                if ((rtfFormat.Length & 1) != 0
+                    || rtfFormat.Length > 128) {
+                    reason = "The legacy RTF date field format exceeds the 64-character binary limit.";
+                    return false;
+                }
+            } else if (string.Equals(fieldType, "header",
+                           StringComparison.OrdinalIgnoreCase)) {
+                recordType = 0x0FF9;
+            } else if (string.Equals(fieldType, "footer",
+                           StringComparison.OrdinalIgnoreCase)) {
+                recordType = 0x0FFA;
+            } else if (fieldType.StartsWith("datetime",
+                           StringComparison.OrdinalIgnoreCase)
+                       && int.TryParse(fieldType.Substring("datetime".Length),
+                           System.Globalization.NumberStyles.None,
+                           System.Globalization.CultureInfo.InvariantCulture,
+                           out int oneBasedIndex)
+                       && oneBasedIndex >= 1 && oneBasedIndex <= 13) {
+                recordType = 0x0FF7;
+                dateTimeIndex = checked((byte)(oneBasedIndex - 1));
+            } else {
+                reason = $"DrawingML field type '{fieldType}' has no native classic binary PowerPoint metacharacter mapping.";
+                return false;
+            }
+            int payloadLength = dateTimeIndex.HasValue ? 8
+                : rtfFormat != null ? 132 : 4;
+            var payload = new byte[payloadLength];
+            WriteUInt32(payload, 0, checked((uint)position));
+            if (dateTimeIndex.HasValue) payload[4] = dateTimeIndex.Value;
+            if (rtfFormat != null) {
+                Buffer.BlockCopy(rtfFormat, 0, payload, 4,
+                    rtfFormat.Length);
+            }
+            record = BuildRecord(version: 0, instance: 0,
+                recordType, payload);
+            return true;
+        }
+
+        internal static bool IsTextMetaCharacterRecord(ushort type) =>
+            type is 0x0FD8 or 0x0FF7 or 0x0FF8 or 0x0FF9
+                or 0x0FFA or 0x1015;
+
         private static A.TextCharacterPropertiesType?
             NormalizeCharacterProperties(
                 A.TextCharacterPropertiesType? properties) {
@@ -212,6 +394,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 foreach (A.Run run in paragraph.Elements<A.Run>()) {
                     A.TextCharacterPropertiesType? properties =
                         NormalizeCharacterProperties(run.RunProperties);
+                    if (properties is { HasAttributes: true }
+                        || properties is { HasChildren: true }) return true;
+                }
+                foreach (A.Field field in paragraph.Elements<A.Field>()) {
+                    A.TextCharacterPropertiesType? properties =
+                        NormalizeCharacterProperties(field.RunProperties);
+                    if (properties is { HasAttributes: true }
+                        || properties is { HasChildren: true }) return true;
+                }
+                foreach (A.Break lineBreak in paragraph
+                             .Elements<A.Break>()) {
+                    A.TextCharacterPropertiesType? properties =
+                        NormalizeCharacterProperties(
+                            lineBreak.RunProperties);
                     if (properties is { HasAttributes: true }
                         || properties is { HasChildren: true }) return true;
                 }
@@ -351,11 +547,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         internal sealed class LegacyPptWriterTextBoxContent {
             internal LegacyPptWriterTextBoxContent(string text,
                 byte[]? styleRecord, byte[]? rulerRecord,
-                byte[]? style9Record) {
+                byte[]? style9Record,
+                IEnumerable<byte[]> fieldRecords) {
                 Text = text;
                 StyleRecord = styleRecord;
                 RulerRecord = rulerRecord;
                 Style9Record = style9Record;
+                FieldRecords = fieldRecords.ToArray();
             }
 
             internal string Text { get; }
@@ -365,6 +563,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal byte[]? RulerRecord { get; }
 
             internal byte[]? Style9Record { get; }
+
+            internal IReadOnlyList<byte[]> FieldRecords { get; }
         }
     }
 }

@@ -110,7 +110,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 foreach (OpenXmlElement child in paragraphs[paragraphIndex].ChildElements) {
                     string text = child switch {
                         A.Run run => run.Text?.Text ?? string.Empty,
-                        A.Field field => field.Text?.Text ?? string.Empty,
+                        A.Field => "*",
                         A.Break => "\v",
                         _ => string.Empty
                     };

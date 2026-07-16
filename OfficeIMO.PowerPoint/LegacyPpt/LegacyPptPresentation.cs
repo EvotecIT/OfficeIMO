@@ -50,6 +50,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
         private readonly List<LegacyPptSlide> _slides = new();
         private readonly List<LegacyPptMaster> _masters = new();
         private readonly List<OfficeArtBlipStoreEntry> _blipStoreEntries = new();
+        private readonly List<LegacyPptPictureBullet> _pictureBullets = new();
+        private readonly Dictionary<ushort, LegacyPptPictureBullet>
+            _pictureBulletsByIndex = new();
         private readonly List<LegacyPptFont> _fonts = new();
         private readonly Dictionary<ushort, LegacyPptFont> _fontsByIndex = new();
         private readonly List<LegacyPptSound> _sounds = new();
@@ -77,6 +80,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the document-level OfficeArt BLIP store in one-based reference order.</summary>
         public IReadOnlyList<OfficeArtBlipStoreEntry> BlipStoreEntries => _blipStoreEntries;
+
+        /// <summary>Gets PPT9 document-level picture bullets by their sparse zero-based indexes.</summary>
+        public IReadOnlyList<LegacyPptPictureBullet> PictureBullets =>
+            _pictureBullets;
 
         /// <summary>Gets document fonts by their binary PowerPoint font index.</summary>
         public IReadOnlyList<LegacyPptFont> Fonts => _fonts;
@@ -139,6 +146,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ParseDocumentHeaderFooterSettings(document, options);
 
             ParseBlipStore(document, package, options);
+            ParsePictureBullets(document, options);
             ParseFontCollection(document, options);
             ParseSoundCollection(document, options);
             ParseNamedShows(document, options);
@@ -290,7 +298,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 if (style9Records.TryGetValue(record.Instance,
                         out LegacyPptRecord? style9)) {
                     style = LegacyPptTextMasterStyleReader.ApplyStyle9(
-                        style, style9);
+                        style, style9, _pictureBulletsByIndex);
                     consumedStyle9Types.Add(record.Instance);
                 }
                 master.AddTextMasterStyle(style);
@@ -405,7 +413,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             LegacyPptRecord? textStyle9 = ReadShapeStyle9(shapeContainer,
                 options, out bool isTextStyle9Malformed);
             textBody = LegacyPptTextStyle9Reader.Apply(textBody, textStyle9,
-                    isTextStyle9Malformed)
+                    _pictureBulletsByIndex, isTextStyle9Malformed);
+            IReadOnlyList<LegacyPptTextField> fields = ReadTextFields(
+                textbox, text, options, out bool hasFieldRecords,
+                out bool isFieldDataMalformed);
+            textBody = textBody.WithFields(fields, hasFieldRecords,
+                    isFieldDataMalformed)
                 .WithInteractions(ReadTextInteractions(textbox, text.Length, options));
             LegacyPptPlaceholder? placeholder = ReadPlaceholder(shapeContainer, options);
             LegacyPptShapeKind kind = ClassifyShape(shapeType, textbox != null || text.Length > 0,

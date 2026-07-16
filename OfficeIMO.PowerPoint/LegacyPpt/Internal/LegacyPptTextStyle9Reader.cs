@@ -11,7 +11,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private const uint CharacterPpt10ExtensionMask = 1U << 20;
 
         internal static LegacyPptTextBody Apply(LegacyPptTextBody textBody,
-            LegacyPptRecord? styleRecord, bool malformedContainer = false) {
+            LegacyPptRecord? styleRecord,
+            IReadOnlyDictionary<ushort, LegacyPptPictureBullet>?
+                pictureBullets = null,
+            bool malformedContainer = false) {
             if (textBody == null) throw new ArgumentNullException(
                 nameof(textBody));
             if (styleRecord == null) {
@@ -31,7 +34,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     "StyleTextProp9Atom");
                 var entries = new List<ParagraphProperties9>();
                 while (!cursor.IsAtEnd) entries.Add(ReadEntry(cursor));
-                return ApplyEntries(textBody, entries,
+                return ApplyEntries(textBody, entries, pictureBullets,
                     malformedContainer);
             } catch (Exception exception) when (exception
                 is InvalidDataException or OverflowException
@@ -62,9 +65,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 throw new InvalidDataException(
                     "A TextPFException9 uses fields outside the PPT9 extended paragraph contract.");
             }
-            ushort? pictureReference = (masks & BulletPictureMask) != 0
-                ? cursor.ReadUInt16()
-                : null;
+            ushort? pictureReference = null;
+            if ((masks & BulletPictureMask) != 0) {
+                ushort value = cursor.ReadUInt16();
+                if (value != ushort.MaxValue) pictureReference = value;
+            }
             bool? hasAutoNumber = null;
             if ((masks & BulletHasSchemeMask) != 0) {
                 short value = cursor.ReadInt16();
@@ -94,8 +99,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 scheme = LegacyPptAutoNumberScheme.ArabicPeriod;
                 startAt = 1;
             }
-            bool hasUnprojectedFormatting = pictureReference.HasValue
-                || hasAutoNumber == false && (scheme.HasValue
+            bool hasUnprojectedFormatting = hasAutoNumber == false
+                && (scheme.HasValue
                     || startAt.HasValue);
             return new ParagraphProperties9(hasAutoNumber, scheme, startAt,
                 pictureReference, hasUnprojectedFormatting);
@@ -118,6 +123,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private static LegacyPptTextBody ApplyEntries(
             LegacyPptTextBody textBody,
             IReadOnlyList<ParagraphProperties9> entries,
+            IReadOnlyDictionary<ushort, LegacyPptPictureBullet>?
+                pictureBullets,
             bool malformedContainer) {
             if (entries.Count == 0) {
                 return textBody.WithPpt9Formatting(textBody.ParagraphRuns,
@@ -161,12 +168,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     paragraphs.Add(paragraph);
                     continue;
                 }
+                LegacyPptPictureBullet? pictureBullet = null;
+                bool pictureUnprojected = entry.BulletPictureReference
+                    .HasValue && (pictureBullets == null
+                        || !pictureBullets.TryGetValue(entry
+                                .BulletPictureReference.Value,
+                            out pictureBullet)
+                        || pictureBullet?.HasImportableImage != true);
                 hasUnprojectedFormatting |= entry
-                    .HasUnprojectedFormatting;
+                    .HasUnprojectedFormatting || pictureUnprojected;
                 paragraphs.Add(paragraph.WithPpt9Formatting(
                     entry.HasAutoNumber, entry.AutoNumberScheme,
                     entry.AutoNumberStartAt, entry.BulletPictureReference,
-                    entry.HasUnprojectedFormatting));
+                    pictureBullet, entry.HasUnprojectedFormatting
+                        || pictureUnprojected));
             }
             return textBody.WithPpt9Formatting(paragraphs,
                 hasUnprojectedFormatting,

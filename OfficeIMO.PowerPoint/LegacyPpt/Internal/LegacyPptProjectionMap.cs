@@ -188,7 +188,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 var shapes = new List<LegacyPptShapeProjection>();
                 AddShapeProjectionTree(shapes, sourceShapes,
                     projectedShapes, projectableSoundIds,
-                    $"slide {slideIndex + 1}");
+                    $"slide {slideIndex + 1}", projectedSlide.SlidePart);
                 slides.Add(new LegacyPptSlideProjection(projectedSlide.SlidePart.Uri.ToString(),
                     projectedSlide.SlidePart.SlideLayoutPart?.Uri.ToString(),
                     sourceSlide.PersistId, sourceSlide.SlideId, sourceSlide.MasterId,
@@ -225,7 +225,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             ICollection<LegacyPptShapeProjection> result,
             IReadOnlyList<LegacyPptShape> sourceShapes,
             IReadOnlyList<PowerPointShape> projectedShapes,
-            ISet<uint> projectableSoundIds, string ownerName) {
+            ISet<uint> projectableSoundIds, string ownerName,
+            OpenXmlPart ownerPart) {
             if (sourceShapes.Count != projectedShapes.Count) {
                 throw new InvalidDataException(
                     $"Projected {ownerName} has {projectedShapes.Count} editable shapes, but the binary source exposed {sourceShapes.Count}.");
@@ -241,10 +242,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 string? textFormattingFingerprint =
                     (sourceShape.TextBody.HasStyleRecord
                         || sourceShape.TextBody.HasStyle9Record
+                        || sourceShape.TextBody.HasFieldRecords
                         || sourceShape.TextBody.HasInteractions)
                     && projectedShape.Element is P.Shape projectedTextShape
                         ? LegacyPptTextProjection.CreateFormattingFingerprint(
-                            projectedTextShape.TextBody)
+                            projectedTextShape.TextBody, ownerPart)
                         : null;
                 result.Add(new LegacyPptShapeProjection(
                     openXmlShapeId.Value, sourceShape.ShapeId,
@@ -257,6 +259,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     sourceShape.Kind == LegacyPptShapeKind.TextBox
                         && !sourceShape.TextBody.IsStyleTruncated
                         && !sourceShape.TextBody.IsStyle9Truncated
+                        && !sourceShape.TextBody.IsFieldDataMalformed
                         && !sourceShape.TextBody
                             .HasUnprojectedCharacterFormatting
                         && !sourceShape.TextBody
@@ -307,7 +310,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     .ToArray();
                 AddShapeProjectionTree(result, sourceChildren,
                     projectedChildren, projectableSoundIds,
-                    $"{ownerName}, group shape {index + 1}");
+                    $"{ownerName}, group shape {index + 1}", ownerPart);
             }
         }
 
@@ -344,7 +347,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 IReadOnlyList<LegacyPptShapeProjection> shapes =
                     CreateMasterShapeProjections(sourceMasters[index].Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(masterPart,
-                            out _), $"slide master {index + 1}");
+                            out _), $"slide master {index + 1}",
+                        masterPart);
                 result.Add(new LegacyPptMasterProjection(
                     masterPart.Uri.ToString(), themePart.Uri.ToString(),
                     sourceMasters[index].PersistId,
@@ -402,7 +406,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     source.FollowsMasterObjects,
                     CreateMasterShapeProjections(source.Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
-                        $"title master 0x{source.MasterId:X8}")));
+                        $"title master 0x{source.MasterId:X8}", part)));
             }
             return result;
         }
@@ -429,7 +433,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     followsMasterObjects: null,
                     CreateMasterShapeProjections(legacy.NotesMaster.Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
-                        "notes master")));
+                        "notes master", part)));
             }
             if (legacy.HandoutMaster != null) {
                 HandoutMasterPart part = presentationPart?.HandoutMasterPart
@@ -447,19 +451,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     followsMasterObjects: null,
                     CreateMasterShapeProjections(legacy.HandoutMaster.Shapes,
                         LegacyPptWriter.ReadMasterShapesForWrite(part, out _),
-                        "handout master")));
+                        "handout master", part)));
             }
             return result;
         }
 
         private static IReadOnlyList<LegacyPptShapeProjection>
             CreateMasterShapeProjections(IReadOnlyList<LegacyPptShape> source,
-                IReadOnlyList<PowerPointShape> projected, string ownerName) {
+                IReadOnlyList<PowerPointShape> projected, string ownerName,
+                OpenXmlPart ownerPart) {
             LegacyPptShape[] sourceShapes = source.Where(shape =>
                 shape.Kind != LegacyPptShapeKind.Unsupported).ToArray();
             var result = new List<LegacyPptShapeProjection>();
             AddShapeProjectionTree(result, sourceShapes, projected,
-                new HashSet<uint>(), ownerName);
+                new HashSet<uint>(), ownerName, ownerPart);
             return result;
         }
 
@@ -713,8 +718,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (masterPart == null) {
                 throw new ArgumentNullException(nameof(masterPart));
             }
-            return masterPart.SlideMaster?.TextStyles?.OuterXml
-                ?? string.Empty;
+            return (masterPart.SlideMaster?.TextStyles?.OuterXml
+                    ?? string.Empty)
+                + LegacyPptTextProjection
+                    .CreatePictureBulletImageFingerprint(masterPart
+                        .SlideMaster?.TextStyles, masterPart);
         }
 
         internal static string CreateBackgroundFingerprint(

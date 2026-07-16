@@ -24,6 +24,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             A.AutoNumberedBullet? autoNumberedBullet = properties
                 .GetFirstChild<A.AutoNumberedBullet>();
+            A.PictureBullet? pictureBullet = properties
+                .GetFirstChild<A.PictureBullet>();
             if (autoNumberedBullet != null && !allowAutoNumbering) {
                 reason = "A master paragraph style uses automatic numbering that requires a TextMasterStyle9Atom.";
                 return false;
@@ -42,10 +44,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 return false;
             }
             if (noBullet != null || characterBullet != null
-                || autoNumberedBullet != null) {
+                || autoNumberedBullet != null || pictureBullet != null) {
                 masks |= 1U;
                 hasBulletFlags = true;
-                if (characterBullet != null || autoNumberedBullet != null) {
+                if (characterBullet != null || autoNumberedBullet != null
+                    || pictureBullet != null) {
                     bulletFlags |= 1;
                 }
             }
@@ -457,12 +460,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     and not A.BulletFontText and not A.BulletFont
                     and not A.NoBullet and not A.CharacterBullet
                     and not A.AutoNumberedBullet
+                    and not A.PictureBullet
                     and not A.TabStopList) return false;
                 if (!seen.Add(child.GetType())) return false;
             }
             return CountPresent(properties.GetFirstChild<A.NoBullet>(),
                     properties.GetFirstChild<A.CharacterBullet>(),
-                    properties.GetFirstChild<A.AutoNumberedBullet>()) <= 1
+                    properties.GetFirstChild<A.AutoNumberedBullet>(),
+                    properties.GetFirstChild<A.PictureBullet>()) <= 1
                 && CountPresent(properties.GetFirstChild<A.BulletFont>(),
                     properties.GetFirstChild<A.BulletFontText>()) <= 1
                 && CountPresent(properties.GetFirstChild<A.BulletColor>(),

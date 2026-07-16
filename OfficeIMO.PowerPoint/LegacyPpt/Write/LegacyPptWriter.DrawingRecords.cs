@@ -14,12 +14,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterOleObjectCatalog oleCatalog,
             LegacyPptWriterPictureCatalog pictureCatalog,
             LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
             LegacyPptWriterBackground? background = null) {
             LegacyPptRecord baseDrawing = slidePrototype.Children.First(record => record.Type == RecordDrawing);
             return BuildDrawingRecord(baseDrawing, shapes, drawingId,
                 interactionCatalog, animationCatalog, fonts, background,
                 LegacyPptWriterShapeContext.Slide, mediaCatalog,
-                oleCatalog, pictureCatalog);
+                oleCatalog, pictureCatalog, pictureBullets);
         }
 
         private static byte[] BuildDrawingRecord(LegacyPptRecord baseDrawing,
@@ -31,7 +32,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterShapeContext shapeContext,
             LegacyPptWriterMediaCatalog? mediaCatalog = null,
             LegacyPptWriterOleObjectCatalog? oleCatalog = null,
-            LegacyPptWriterPictureCatalog? pictureCatalog = null) {
+            LegacyPptWriterPictureCatalog? pictureCatalog = null,
+            LegacyPptWriterPictureBulletCatalog? pictureBullets = null) {
             LegacyPptRecord baseDgContainer = baseDrawing.Children.First(record => record.Type == OfficeArtDgContainer);
             LegacyPptRecord baseSpgr = baseDgContainer.Children.First(record => record.Type == OfficeArtSpgrContainer);
             LegacyPptRecord baseRootShape = baseSpgr.Children.First(record => record.Type == OfficeArtSpContainer);
@@ -46,10 +48,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 spgrChildren.Add(shape is PowerPointGroupShape group
                     ? BuildGroupRecord(group, ref nextShapeId,
                         interactionCatalog, animationCatalog, shapeContext,
-                        mediaCatalog, oleCatalog, pictureCatalog, fonts)
+                        mediaCatalog, oleCatalog, pictureCatalog, fonts,
+                        pictureBullets)
                     : BuildShapeRecord(shape, nextShapeId++,
                         interactionCatalog, animationCatalog, shapeContext,
-                        mediaCatalog, oleCatalog, pictureCatalog, fonts));
+                        mediaCatalog, oleCatalog, pictureCatalog, fonts,
+                        pictureBullets));
             }
 
             byte[] backgroundShape = PatchShapeId(background == null
@@ -107,13 +111,16 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterMediaCatalog? mediaCatalog,
             LegacyPptWriterOleObjectCatalog? oleCatalog,
             LegacyPptWriterPictureCatalog? pictureCatalog,
-            LegacyPptWriterFontCatalog fonts) {
+            LegacyPptWriterFontCatalog fonts,
+            LegacyPptWriterPictureBulletCatalog? pictureBullets) {
             ushort shapeType;
             var children = new List<byte[]>();
             LegacyPptWriterShapeInteractions interactions = interactionCatalog.Get(shape);
             LegacyPptWriterAnimation? animation = animationCatalog.Get(shape);
             if (shape is PowerPointTextBox textBox) {
                 if (!TryBuildTextBoxContent(textBox, fonts,
+                        pictureBullets
+                            ?? LegacyPptWriterPictureBulletCatalog.Empty,
                         out LegacyPptWriterTextBoxContent? textContent,
                         out string? textReason)) {
                     throw new NotSupportedException(textReason);
@@ -421,14 +428,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (content.StyleRecord != null) {
                 children.Add(content.StyleRecord);
             }
-            if (content.RulerRecord != null) {
-                children.Add(content.RulerRecord);
-            }
+            children.AddRange(content.FieldRecords);
             foreach (LegacyPptWriterTextInteraction interaction
                      in textInteractions) {
                 children.Add(BuildInteractiveInfoRecord(
                     interaction.Interaction));
                 children.Add(BuildTextInteractiveInfoRecord(interaction));
+            }
+            if (content.RulerRecord != null) {
+                children.Add(content.RulerRecord);
             }
             return BuildContainer(OfficeArtClientTextbox, instance: 0,
                 children);

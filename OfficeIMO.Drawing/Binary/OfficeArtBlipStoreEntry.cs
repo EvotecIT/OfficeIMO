@@ -157,7 +157,7 @@ public sealed class OfficeArtBlipStoreEntry {
         _ => $"BlipRecordType:0x{recordType.Value:X4}"
     };
 
-    private static string? GetContentType(ushort? recordType, OfficeArtBlipType? recordInstanceType,
+    internal static string? GetContentType(ushort? recordType, OfficeArtBlipType? recordInstanceType,
         OfficeArtBlipType? win32Type, OfficeArtBlipType? macOsType) {
         OfficeArtBlipType? type = GetBlipTypeFromRecord(recordType)
             ?? recordInstanceType ?? win32Type ?? macOsType;

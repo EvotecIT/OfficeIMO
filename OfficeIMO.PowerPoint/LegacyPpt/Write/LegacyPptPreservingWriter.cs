@@ -119,21 +119,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (!TryCreateTextFontCatalog(package,
                     out LegacyPptWriter.LegacyPptWriterFontCatalog
                         textFonts)) return false;
+            if (presentation.LegacyPptImportDiagnostics.Any(diagnostic =>
+                    diagnostic.Code.StartsWith("PPT-PICTURE-BULLET",
+                        StringComparison.Ordinal))
+                || !LegacyPptWriter.TryReadPictureBulletCatalog(presentation,
+                    out LegacyPptWriter
+                        .LegacyPptWriterPictureBulletCatalog pictureBullets,
+                    out _)) return false;
             bool customShowsChanged = !CustomShowsEqual(projectionMap, customShows);
             if (customShowsChanged && !projectionMap.CanEditCustomShows) return false;
 
             try {
                 var oleObjectEdits = new List<LegacyPptOleObjectEdit>();
                 if (!TryBuildModifiedMasterPersistObjects(presentation, package,
-                        projectionMap, rewritten, textFonts)) {
+                        projectionMap, rewritten, textFonts,
+                        pictureBullets)) {
                     return false;
                 }
                 if (!TryBuildModifiedTitleMasterPersistObjects(presentation,
-                        package, projectionMap, rewritten, textFonts)) {
+                        package, projectionMap, rewritten, textFonts,
+                        pictureBullets)) {
                     return false;
                 }
                 if (!TryBuildModifiedSpecialMasterPersistObjects(presentation,
-                        package, projectionMap, rewritten, textFonts)) {
+                        package, projectionMap, rewritten, textFonts,
+                        pictureBullets)) {
                     return false;
                 }
 
@@ -352,24 +362,31 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             }
                             bool formattingMatches =
                                 MatchesProjectedTextFormatting(textBox,
-                                    shapeProjection);
+                                    shapeProjection, slide.SlidePart);
                             if (!formattingMatches) {
                                 if (!shapeProjection.CanEditTextFormatting
                                     || !LegacyPptWriter
                                         .TryReadTextBoxForWrite(textBox,
-                                            textFonts, out _)) return false;
+                                            textFonts, pictureBullets,
+                                            out _)) return false;
                                 changedTextFormatting = textBox;
                             }
-                            string currentText = NormalizeLogicalText(textBox.Text);
+                            string currentText = NormalizeLogicalText(
+                                LegacyPptWriter.ReadLogicalTextForWrite(
+                                    textBox));
                             if (!string.Equals(currentText, NormalizeLogicalText(shapeProjection.Text),
                                     StringComparison.Ordinal)) {
                                 changedText = currentText;
-                                if (shapeProjection.CanEditTextFormatting
-                                    && shapeProjection
+                                if (shapeProjection
                                         .TextFormattingFingerprint != null) {
+                                    if (!shapeProjection
+                                            .CanEditTextFormatting) {
+                                        return false;
+                                    }
                                     if (!LegacyPptWriter
                                             .TryReadTextBoxForWrite(textBox,
-                                                textFonts, out _)) return false;
+                                                textFonts, pictureBullets,
+                                                out _)) return false;
                                     changedTextFormatting = textBox;
                                 }
                             }
@@ -428,6 +445,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                                 .TextFonts = changedTextFormatting == null
                                     ? null
                                     : textFonts;
+                            editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
+                                .PictureBullets = changedTextFormatting == null
+                                    ? null
+                                    : pictureBullets;
                             editsByOfficeArtId[shapeProjection.OfficeArtShapeId]
                                 .PictureFormatting = changedPictureFormatting;
                         }
@@ -522,6 +543,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     if (originalTopologyChanged || currentSlideOrder.Count != projectionMap.Slides.Count
                         || !TryAppendNewSlides(package, projectionMap, addedSlides, rewritten,
                             interactionCatalog, interactionContext, textFonts,
+                            pictureBullets,
                             out IReadOnlyList<uint> addedSlideIds)) {
                         return false;
                     }
@@ -581,6 +603,24 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             currentDocumentBytes, textFonts,
                             out byte[] documentWithFonts)) return false;
                     rewritten[package.DocumentPersistId] = documentWithFonts;
+                }
+                rewritten.TryGetValue(package.DocumentPersistId,
+                    out byte[]? currentPictureBulletDocument);
+                LegacyPptPersistObject sourceDocument = package
+                    .PersistObjects[package.DocumentPersistId];
+                byte[] pictureBulletSource = currentPictureBulletDocument
+                    ?? sourceDocument.RecordBytes;
+                LegacyPptRecord pictureBulletDocument =
+                    LegacyPptRecordReader.ReadSingle(pictureBulletSource, 0,
+                        new LegacyPptImportOptions());
+                if (!LegacyPptWriter.TryRewriteDocumentPictureBullets(
+                        pictureBulletDocument, pictureBullets,
+                        replaceExisting: true,
+                        out byte[] documentWithPictureBullets)) return false;
+                if (!documentWithPictureBullets.AsSpan().SequenceEqual(
+                        pictureBulletSource)) {
+                    rewritten[package.DocumentPersistId] =
+                        documentWithPictureBullets;
                 }
                 if (!TryRewriteVbaProject(presentation, package,
                         projectionMap, rewritten)) {
@@ -935,7 +975,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static bool HasOnlyPlainProjectedText(PowerPointTextBox textBox) {
             P.Shape? shape = textBox.Element as P.Shape;
             if (shape?.TextBody == null) return true;
-            if (shape.TextBody.Descendants<A.Field>().Any() || shape.TextBody.Descendants<A.Break>().Any()) {
+            if (shape.TextBody.Descendants<A.Field>().Any()) {
                 return false;
             }
             return !shape.TextBody.Descendants<A.RunProperties>().Any(properties =>
@@ -949,11 +989,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         }
 
         private static bool MatchesProjectedTextFormatting(PowerPointTextBox textBox,
-            LegacyPptShapeProjection projection) {
+            LegacyPptShapeProjection projection,
+            OpenXmlPart? ownerPart = null) {
             if (projection.TextFormattingFingerprint == null) return HasOnlyPlainProjectedText(textBox);
             P.Shape? shape = textBox.Element as P.Shape;
             return string.Equals(projection.TextFormattingFingerprint,
-                LegacyPptTextProjection.CreateFormattingFingerprint(shape?.TextBody),
+                LegacyPptTextProjection.CreateFormattingFingerprint(
+                    shape?.TextBody, ownerPart),
                 StringComparison.Ordinal);
         }
 
@@ -1080,6 +1122,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             internal PowerPointTextBox? TextFrame { get; set; }
 
             internal LegacyPptWriter.LegacyPptWriterFontCatalog? TextFonts {
+                get;
+                set;
+            }
+
+            internal LegacyPptWriter
+                .LegacyPptWriterPictureBulletCatalog? PictureBullets {
                 get;
                 set;
             }

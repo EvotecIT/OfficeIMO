@@ -14,6 +14,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     edit.TextFonts
                         ?? throw new InvalidOperationException(
                             "A text-formatting edit has no font catalog."),
+                    edit.PictureBullets
+                        ?? LegacyPptWriter
+                            .LegacyPptWriterPictureBulletCatalog.Empty,
                     out textContent, out _)) {
                 bytes = shapeContainer.CopyRecordBytes();
                 return false;

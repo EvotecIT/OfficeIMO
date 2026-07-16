@@ -17,11 +17,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         private const string ClassicAnimationExtensionUri =
             "{5BA743F1-2B69-4BB9-B2E0-4A418B7E7435}";
         private readonly IReadOnlyDictionary<string, string> _slides;
+        private readonly PictureBulletFingerprintScope _pictureBullets;
 
-        private LegacyPptProjectionFingerprint(string global, IReadOnlyDictionary<string, string> slides) {
+        private LegacyPptProjectionFingerprint(string global,
+            IReadOnlyDictionary<string, string> slides,
+            PictureBulletFingerprintScope pictureBullets) {
             Global = global;
             _slides = new ReadOnlyDictionary<string, string>(slides.ToDictionary(
                 pair => pair.Key, pair => pair.Value, StringComparer.Ordinal));
+            _pictureBullets = pictureBullets;
         }
 
         internal string Global { get; }
@@ -30,28 +34,36 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             LegacyPptProjectionMap projectionMap) {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (projectionMap == null) throw new ArgumentNullException(nameof(projectionMap));
+            PictureBulletFingerprintScope pictureBullets =
+                PictureBulletFingerprintScope.Create(document);
             var slides = new Dictionary<string, string>(StringComparer.Ordinal);
             foreach (SlidePart slidePart in document.PresentationPart?.SlideParts ?? Enumerable.Empty<SlidePart>()) {
                 if (projectionMap.Slides.Any(slide => string.Equals(slide.SlidePartUri,
                         slidePart.Uri.ToString(), StringComparison.Ordinal))) {
-                    slides.Add(slidePart.Uri.ToString(), CreateSlide(document, slidePart, projectionMap));
+                    slides.Add(slidePart.Uri.ToString(), CreateSlide(document,
+                        slidePart, projectionMap, pictureBullets));
                 }
             }
             if (slides.Count != projectionMap.Slides.Count) {
                 throw new InvalidDataException("The projected slide fingerprint set is incomplete.");
             }
             return new LegacyPptProjectionFingerprint(CreateGlobal(document,
-                projectionMap), slides);
+                projectionMap, pictureBullets), slides, pictureBullets);
         }
 
         internal bool Matches(PresentationDocument document, LegacyPptProjectionMap projectionMap) {
-            if (!string.Equals(Global, CreateGlobal(document, projectionMap),
+            PictureBulletFingerprintScope pictureBullets =
+                PictureBulletFingerprintScope.Create(document)
+                    .Merge(_pictureBullets);
+            if (!string.Equals(Global, CreateGlobal(document, projectionMap,
+                    pictureBullets),
                     StringComparison.Ordinal)) return false;
             SlidePart[] currentSlides = document.PresentationPart?.SlideParts.ToArray() ?? Array.Empty<SlidePart>();
             foreach (SlidePart slidePart in currentSlides) {
                 string uri = slidePart.Uri.ToString();
                 if (_slides.TryGetValue(uri, out string? expected)
-                    && !string.Equals(expected, CreateSlide(document, slidePart, projectionMap),
+                    && !string.Equals(expected, CreateSlide(document,
+                        slidePart, projectionMap, pictureBullets),
                         StringComparison.Ordinal)) {
                     return false;
                 }
@@ -60,7 +72,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static string CreateGlobal(PresentationDocument document,
-            LegacyPptProjectionMap projectionMap) {
+            LegacyPptProjectionMap projectionMap,
+            PictureBulletFingerprintScope pictureBullets) {
             ISet<string> materializedLayoutThemePartUris = new HashSet<string>(
                 document.PresentationPart?.SlideMasterParts
                     .SelectMany(master => master.SlideLayoutParts)
@@ -121,9 +134,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     && !projectionMap.IsProjectedOlePart(
                         part.Uri.ToString())
                     && !materializedLayoutThemePartUris.Contains(
-                        part.Uri.ToString()),
+                        part.Uri.ToString())
+                    && !pictureBullets.IsExclusiveImagePart(part),
                 (owner, relationship) => !(relationship.OpenXmlPart is SlidePart
                     or SlideCommentsPart or CommentAuthorsPart or VbaProjectPart)
+                    && !pictureBullets.IsPictureBulletRelationship(owner,
+                        relationship)
                     && !(owner is SlideLayoutPart layout
                         && relationship.OpenXmlPart is ThemeOverridePart
                         && projectionMap.IsEditableProjectedLayoutThemePart(
@@ -201,16 +217,113 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static string CreateSlide(PresentationDocument document, SlidePart slidePart,
-            LegacyPptProjectionMap projectionMap) => PowerPointPackageFingerprint.Create(document,
+            LegacyPptProjectionMap projectionMap,
+            PictureBulletFingerprintScope pictureBullets) =>
+            PowerPointPackageFingerprint.Create(document,
             (part, root) => NormalizeProjectedSlide(root, slidePart.Uri, projectionMap),
             part => string.Equals(part.Uri.ToString(), slidePart.Uri.ToString(),
                         StringComparison.Ordinal)
                     || part is NotesSlidePart notesPart
                     && ReferenceEquals(notesPart.SlidePart, slidePart),
             (owner, relationship) => relationship.OpenXmlPart is not SlideCommentsPart
-                and not SlidePart,
+                and not SlidePart
+                && !pictureBullets.IsPictureBulletRelationship(owner,
+                    relationship),
             (owner, relationship) => relationship is not HyperlinkRelationship,
             includePackageProperties: false);
+
+        private sealed class PictureBulletFingerprintScope {
+            private readonly ISet<string> _relationshipKeys;
+            private readonly ISet<string> _exclusiveImagePartUris;
+
+            private PictureBulletFingerprintScope(
+                ISet<string> exclusiveImagePartUris,
+                ISet<string> relationshipKeys) {
+                _exclusiveImagePartUris = exclusiveImagePartUris;
+                _relationshipKeys = relationshipKeys;
+            }
+
+            internal bool IsExclusiveImagePart(OpenXmlPart part) =>
+                _exclusiveImagePartUris.Contains(part.Uri.ToString());
+
+            internal bool IsPictureBulletRelationship(OpenXmlPart owner,
+                IdPartPair relationship) => _relationshipKeys.Contains(
+                    CreateRelationshipKey(owner,
+                        relationship.RelationshipId));
+
+            internal PictureBulletFingerprintScope Merge(
+                PictureBulletFingerprintScope other) {
+                if (other == null) throw new ArgumentNullException(
+                    nameof(other));
+                return new PictureBulletFingerprintScope(
+                    new HashSet<string>(_exclusiveImagePartUris.Concat(
+                        other._exclusiveImagePartUris),
+                        StringComparer.Ordinal),
+                    new HashSet<string>(_relationshipKeys.Concat(
+                        other._relationshipKeys),
+                        StringComparer.Ordinal));
+            }
+
+            internal static PictureBulletFingerprintScope Create(
+                PresentationDocument document) {
+                var allParts = new HashSet<OpenXmlPart>();
+                foreach (IdPartPair pair in document.Parts) {
+                    CollectParts(pair.OpenXmlPart, allParts);
+                }
+                var relationshipKeys = new HashSet<string>(
+                    StringComparer.Ordinal);
+                var incoming = new Dictionary<ImagePart,
+                    List<bool>>();
+                foreach (OpenXmlPart owner in allParts) {
+                    foreach (IdPartPair relationship in owner.Parts) {
+                        if (relationship.OpenXmlPart is not ImagePart image) {
+                            continue;
+                        }
+                        bool bulletOnly = IsUsedOnlyByPictureBullets(owner,
+                            relationship.RelationshipId);
+                        if (!incoming.TryGetValue(image,
+                                out List<bool>? usages)) {
+                            usages = new List<bool>();
+                            incoming.Add(image, usages);
+                        }
+                        usages.Add(bulletOnly);
+                        if (bulletOnly) relationshipKeys.Add(
+                            CreateRelationshipKey(owner,
+                                relationship.RelationshipId));
+                    }
+                }
+                ISet<string> exclusive = new HashSet<string>(
+                    incoming.Where(pair => pair.Value.Count > 0
+                            && pair.Value.All(value => value))
+                        .Select(pair => pair.Key.Uri.ToString()),
+                    StringComparer.Ordinal);
+                return new PictureBulletFingerprintScope(exclusive,
+                    relationshipKeys);
+            }
+
+            private static bool IsUsedOnlyByPictureBullets(
+                OpenXmlPart owner, string relationshipId) {
+                OpenXmlPartRootElement? root = owner.RootElement;
+                if (root == null) return false;
+                A.Blip[] references = root.Descendants<A.Blip>()
+                    .Where(blip => string.Equals(blip.Embed?.Value,
+                        relationshipId, StringComparison.Ordinal))
+                    .ToArray();
+                return references.Length > 0 && references.All(blip =>
+                    blip.Ancestors<A.PictureBullet>().Any());
+            }
+
+            private static void CollectParts(OpenXmlPart part,
+                ISet<OpenXmlPart> parts) {
+                if (!parts.Add(part)) return;
+                foreach (IdPartPair child in part.Parts) {
+                    CollectParts(child.OpenXmlPart, parts);
+                }
+            }
+
+            private static string CreateRelationshipKey(OpenXmlPart owner,
+                string relationshipId) => owner.Uri + "|" + relationshipId;
+        }
 
         private static void NormalizePresentationTopology(OpenXmlElement root) {
             if (root is not P.Presentation presentation) return;

@@ -125,6 +125,10 @@ namespace OfficeIMO.PowerPoint {
             return shape;
         }
 
+        internal void ReserveShapeIdsThrough(uint nextShapeId) {
+            if (nextShapeId > _nextShapeId) _nextShapeId = nextShapeId;
+        }
+
         private void InsertTrackedShape(int index, PowerPointShape shape) {
             shape.AttachTo(this);
             _shapes.Insert(index, shape);

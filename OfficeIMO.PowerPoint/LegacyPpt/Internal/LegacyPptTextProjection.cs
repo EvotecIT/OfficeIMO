@@ -1,4 +1,6 @@
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using System.Security.Cryptography;
+using DocumentFormat.OpenXml.Packaging;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 
@@ -7,36 +9,42 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
     internal static class LegacyPptTextProjection {
         internal static void Apply(P.Shape shape, LegacyPptTextBody source,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction = null) {
-            Apply(shape, source, frame: null, projectInteraction);
+            Apply(shape, source, frame: null, projectInteraction,
+                projectPictureBullet: null);
         }
 
         internal static void Apply(P.Shape shape, LegacyPptTextBody source,
             LegacyPptTextFrameProperties? frame,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>?
-                projectInteraction = null) {
+                projectInteraction = null,
+            Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
             if (shape == null) throw new ArgumentNullException(nameof(shape));
             if (source == null) throw new ArgumentNullException(nameof(source));
             if (source.HasExplicitCharacterFormatting
-                || source.HasParagraphFormatting || source.HasInteractions) {
+                || source.HasParagraphFormatting || source.HasInteractions
+                || source.Fields.Count > 0) {
                 shape.TextBody = CreateTextBody(source, frame,
-                    projectInteraction);
+                    projectInteraction, projectPictureBullet);
                 return;
             }
             ApplyTextFrame(shape.TextBody?.BodyProperties, frame);
         }
 
         internal static P.TextBody CreateTextBody(LegacyPptTextBody source) =>
-            CreateTextBody(source, frame: null, projectInteraction: null);
+            CreateTextBody(source, frame: null, projectInteraction: null,
+                projectPictureBullet: null);
 
         internal static P.TextBody CreateTextBody(LegacyPptTextBody source,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
-            return CreateTextBody(source, frame: null, projectInteraction);
+            return CreateTextBody(source, frame: null, projectInteraction,
+                projectPictureBullet: null);
         }
 
         internal static P.TextBody CreateTextBody(LegacyPptTextBody source,
             LegacyPptTextFrameProperties? frame,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>?
-                projectInteraction) {
+                projectInteraction,
+            Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
             if (source == null) throw new ArgumentNullException(nameof(source));
             var textBody = new P.TextBody(new A.BodyProperties(), new A.ListStyle());
             ApplyTextFrame(textBody.BodyProperties, frame);
@@ -45,10 +53,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             foreach (string paragraphText in paragraphs) {
                 int paragraphEnd = checked(paragraphStart + paragraphText.Length);
                 var paragraph = new A.Paragraph();
-                ApplyParagraphProperties(paragraph, source, paragraphStart);
+                ApplyParagraphProperties(paragraph, source, paragraphStart,
+                    projectPictureBullet);
                 AppendParagraphRuns(paragraph, source, paragraphStart, paragraphEnd,
                     projectInteraction);
-                if (!paragraph.Elements<A.Run>().Any()) {
+                if (!paragraph.ChildElements.Any(child => child is A.Run
+                        or A.Field or A.Break)) {
                     paragraph.Append(new A.Run(new A.Text(string.Empty)));
                 }
                 textBody.Append(paragraph);
@@ -106,7 +116,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static void ApplyParagraphProperties(A.Paragraph paragraph, LegacyPptTextBody source,
-            int paragraphStart) {
+            int paragraphStart,
+            Func<LegacyPptPictureBullet, string?>? projectPictureBullet) {
             LegacyPptParagraphRun? run = source.ParagraphRuns.FirstOrDefault(item =>
                 paragraphStart >= item.Start && paragraphStart < item.Start + item.Length);
             if ((run == null || !run.HasExplicitFormatting)
@@ -114,7 +125,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             ushort level = run?.IndentLevel ?? 0;
             var properties = new A.ParagraphProperties { Level = level };
             ApplyRulerProperties(properties, source.Ruler, level);
-            if (run != null) ApplyParagraphFormatting(properties, run, includeLevel: true);
+            if (run != null) ApplyParagraphFormatting(properties, run,
+                includeLevel: true, projectPictureBullet);
             if (run == null || run.TabStops.Count == 0) {
                 AppendTabStops(properties, source.Ruler?.TabStops ?? Array.Empty<LegacyPptTabStop>());
             }
@@ -122,7 +134,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         internal static void ApplyParagraphFormatting(A.TextParagraphPropertiesType properties,
-            LegacyPptParagraphRun run, bool includeLevel) {
+            LegacyPptParagraphRun run, bool includeLevel,
+            Func<LegacyPptPictureBullet, string?>? projectPictureBullet = null) {
             if (properties == null) throw new ArgumentNullException(nameof(properties));
             if (run == null) throw new ArgumentNullException(nameof(run));
             if (includeLevel) properties.Level = run.IndentLevel;
@@ -150,7 +163,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             if (run.SpaceAfter.HasValue) {
                 properties.Append(new A.SpaceAfter(CreateSpacing(run.SpaceAfter.Value)));
             }
-            AppendBulletProperties(properties, run);
+            AppendBulletProperties(properties, run, projectPictureBullet);
             AppendTabStops(properties, run.TabStops);
         }
 
@@ -168,7 +181,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         }
 
         private static void AppendBulletProperties(A.TextParagraphPropertiesType properties,
-            LegacyPptParagraphRun run) {
+            LegacyPptParagraphRun run,
+            Func<LegacyPptPictureBullet, string?>? projectPictureBullet) {
+            if (run.PictureBullet != null && projectPictureBullet != null) {
+                string? relationshipId = projectPictureBullet(
+                    run.PictureBullet);
+                if (!string.IsNullOrWhiteSpace(relationshipId)) {
+                    AppendBulletDecorationProperties(properties, run);
+                    properties.Append(new A.PictureBullet(
+                        new A.Blip { Embed = relationshipId }));
+                    return;
+                }
+            }
             if (run.HasAutoNumber == true
                 && run.AutoNumberScheme.HasValue) {
                 AppendBulletDecorationProperties(properties, run);
@@ -314,7 +338,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             _ => throw new ArgumentOutOfRangeException(nameof(value))
         };
 
-        internal static string CreateFormattingFingerprint(P.TextBody? textBody) {
+        internal static string CreateFormattingFingerprint(
+            P.TextBody? textBody, OpenXmlPart? ownerPart = null) {
             if (textBody == null) return string.Empty;
             var clone = (P.TextBody)textBody.CloneNode(true);
             if (clone.BodyProperties != null) {
@@ -328,7 +353,34 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 properties.RemoveAllChildren<A.HyperlinkOnMouseOver>();
                 if (!properties.HasAttributes && !properties.HasChildren) properties.Remove();
             }
-            return clone.OuterXml;
+            return clone.OuterXml + CreatePictureBulletImageFingerprint(
+                textBody, ownerPart);
+        }
+
+        internal static string CreatePictureBulletImageFingerprint(
+            OpenXmlElement? root, OpenXmlPart? ownerPart) {
+            if (root == null || ownerPart == null) return string.Empty;
+            var result = new System.Text.StringBuilder();
+            foreach (A.PictureBullet bullet in root
+                         .Descendants<A.PictureBullet>()) {
+                string? relationshipId = bullet.GetFirstChild<A.Blip>()?
+                    .Embed?.Value;
+                result.Append("|buBlip:").Append(relationshipId);
+                IdPartPair? pair = ownerPart.Parts.FirstOrDefault(item =>
+                    string.Equals(item.RelationshipId, relationshipId,
+                        StringComparison.Ordinal));
+                if (pair?.OpenXmlPart is not ImagePart imagePart) {
+                    result.Append(":missing");
+                    continue;
+                }
+                result.Append(':').Append(imagePart.ContentType).Append(':');
+                using Stream stream = imagePart.GetStream(FileMode.Open,
+                    FileAccess.Read);
+                using SHA256 sha = SHA256.Create();
+                result.Append(Convert.ToBase64String(
+                    sha.ComputeHash(stream)));
+            }
+            return result.ToString();
         }
 
         internal static string CreateTextFrameFingerprint(
@@ -347,6 +399,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 AddClippedBoundaries(boundaries, interaction.Start,
                     checked(interaction.Start + interaction.Length), paragraphStart, paragraphEnd);
             }
+            foreach (LegacyPptTextField field in source.Fields) {
+                AddClippedBoundaries(boundaries, field.Position,
+                    checked(field.Position + 1), paragraphStart,
+                    paragraphEnd);
+            }
             int[] values = boundaries.ToArray();
             for (int index = 0; index < values.Length - 1; index++) {
                 int start = values[index];
@@ -358,8 +415,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         start >= item.Start && end <= item.Start + item.Length)
                     .Select(item => item.Interaction)
                     .ToArray();
-                AppendRun(paragraph, source.Text.Substring(start, end - start), formatting,
-                    interactions, projectInteraction);
+                LegacyPptTextField? field = end == start + 1
+                    ? source.Fields.FirstOrDefault(item =>
+                        item.Position == start)
+                    : null;
+                AppendRun(paragraph,
+                    source.Text.Substring(start, end - start), formatting,
+                    field, interactions, projectInteraction);
             }
         }
 
@@ -374,9 +436,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
 
         private static void AppendRun(A.Paragraph paragraph, string text,
             LegacyPptCharacterRun? source,
+            LegacyPptTextField? field,
             IReadOnlyList<LegacyPptInteraction> interactions,
             Func<LegacyPptInteraction, IReadOnlyList<OpenXmlElement>>? projectInteraction) {
-            var run = new A.Run(new A.Text(text));
             A.RunProperties? properties = source == null ? null : CreateRunProperties(source);
             if (projectInteraction != null && interactions.Count > 0) {
                 properties ??= new A.RunProperties();
@@ -388,8 +450,68 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     }
                 }
             }
-            if (properties != null) run.PrependChild(properties);
-            paragraph.Append(run);
+            if (field != null) {
+                var nativeField = new A.Field {
+                    Id = CreateFieldId(field),
+                    Type = MapFieldType(field)
+                };
+                if (properties != null) {
+                    nativeField.RunProperties = (A.RunProperties)properties
+                        .CloneNode(true);
+                }
+                nativeField.Text = new A.Text(text);
+                paragraph.Append(nativeField);
+                return;
+            }
+            string[] segments = text.Split(new[] { '\v' },
+                StringSplitOptions.None);
+            for (int index = 0; index < segments.Length; index++) {
+                if (segments[index].Length > 0) {
+                    var run = new A.Run(new A.Text(segments[index]));
+                    if (properties != null) {
+                        run.PrependChild((A.RunProperties)properties
+                            .CloneNode(true));
+                    }
+                    paragraph.Append(run);
+                }
+                if (index < segments.Length - 1) {
+                    var lineBreak = new A.Break();
+                    if (properties != null) {
+                        lineBreak.RunProperties = (A.RunProperties)properties
+                            .CloneNode(true);
+                    }
+                    paragraph.Append(lineBreak);
+                }
+            }
+        }
+
+        private static string MapFieldType(LegacyPptTextField field) =>
+            field.Kind switch {
+                LegacyPptTextFieldKind.SlideNumber => "slidenum",
+                LegacyPptTextFieldKind.DateTime => "datetime"
+                    + checked(field.DateTimeFormatIndex.GetValueOrDefault()
+                        + 1).ToString(System.Globalization
+                        .CultureInfo.InvariantCulture),
+                LegacyPptTextFieldKind.GenericDate =>
+                    "datetimeFigureOut",
+                LegacyPptTextFieldKind.Header => "header",
+                LegacyPptTextFieldKind.Footer => "footer",
+                LegacyPptTextFieldKind.RtfDateTime => "datetimeRtf:"
+                    + Convert.ToBase64String(System.Text.Encoding.Unicode
+                        .GetBytes(field.RtfFormat ?? string.Empty)),
+                _ => throw new ArgumentOutOfRangeException(nameof(field))
+            };
+
+        private static string CreateFieldId(LegacyPptTextField field) {
+            string value = field.Position.ToString(System.Globalization
+                    .CultureInfo.InvariantCulture)
+                + "|" + MapFieldType(field);
+            using SHA256 sha = SHA256.Create();
+            byte[] hash = sha.ComputeHash(System.Text.Encoding.UTF8
+                .GetBytes(value));
+            var guidBytes = new byte[16];
+            Buffer.BlockCopy(hash, 0, guidBytes, 0, guidBytes.Length);
+            return new Guid(guidBytes).ToString("B").ToUpperInvariant();
         }
 
         private static A.RunProperties? CreateRunProperties(LegacyPptCharacterRun source) {

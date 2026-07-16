@@ -4,10 +4,15 @@ using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using System.Runtime.CompilerServices;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     public sealed partial class PowerPointPresentation {
+        private static readonly ConditionalWeakTable<OpenXmlPart,
+            Dictionary<ushort, string>> LegacyPictureBulletRelationships =
+            new();
+
         private static LegacyPptLayoutCatalog ProjectLegacyMasters(
             PowerPointPresentation presentation, LegacyPptPresentation legacy,
             LegacyPptSoundProjectionContext soundContext) {
@@ -97,7 +102,8 @@ namespace OfficeIMO.PowerPoint {
             } else if (master.ColorScheme != null) {
                 ApplyLegacyBackground(slideMaster.CommonSlideData, master.ColorScheme.Background);
             }
-            ApplyLegacyMasterTextStyles(slideMaster, master.TextMasterStyles);
+            ApplyLegacyMasterTextStyles(masterPart, slideMaster,
+                master.TextMasterStyles);
             ApplyLegacyHeaderFooter(slideMaster, slideMaster.CommonSlideData,
                 headerFooter, allowHeader: false);
             SlideLayoutPart blankLayout = masterPart.SlideLayoutParts.First();
@@ -375,7 +381,9 @@ namespace OfficeIMO.PowerPoint {
                         source.TextFrame,
                         interaction => ProjectLegacyInteraction(ownerPart, interaction,
                             slidePartsByLegacyId: slidePartsByLegacyId,
-                            soundContext: soundContext))
+                            soundContext: soundContext),
+                        pictureBullet => ProjectLegacyPictureBullet(ownerPart,
+                            pictureBullet))
                     : new TextBody(
                         new A.BodyProperties(),
                         new A.ListStyle(),
@@ -483,7 +491,52 @@ namespace OfficeIMO.PowerPoint {
                 throw new ArgumentException("The OfficeArt BLIP has no importable image payload.",
                     nameof(picture));
             }
-            PartTypeInfo partType = GetLegacyPicturePartType(picture.ContentType).ToPartTypeInfo();
+            return AddLegacyImagePart(ownerPart, picture.ContentType,
+                picture.ImageBytes);
+        }
+
+        private static string? ProjectLegacyPictureBullet(
+            OpenXmlPart ownerPart, LegacyPptPictureBullet pictureBullet) {
+            if (!pictureBullet.HasImportableImage
+                || pictureBullet.ContentType == null) return null;
+            Dictionary<ushort, string> relationships =
+                LegacyPictureBulletRelationships.GetOrCreateValue(
+                    ownerPart);
+            lock (relationships) {
+                if (relationships.TryGetValue(pictureBullet.Index,
+                        out string? existingRelationship)) {
+                    return existingRelationship;
+                }
+                byte[] imageBytes = pictureBullet.ImageBytes;
+                ImagePart imagePart = AddLegacyImagePart(ownerPart,
+                    pictureBullet.ContentType, imageBytes,
+                    reuseExisting: false);
+                string relationshipId = ownerPart.GetIdOfPart(imagePart);
+                relationships.Add(pictureBullet.Index, relationshipId);
+                return relationshipId;
+            }
+        }
+
+        private static ImagePart AddLegacyImagePart(OpenXmlPart ownerPart,
+            string contentType, byte[] imageBytes,
+            bool reuseExisting = true) {
+            foreach (IdPartPair pair in reuseExisting
+                         ? ownerPart.Parts
+                         : Enumerable.Empty<IdPartPair>()) {
+                if (pair.OpenXmlPart is not ImagePart existing
+                    || !string.Equals(existing.ContentType, contentType,
+                        StringComparison.OrdinalIgnoreCase)) continue;
+                using Stream source = existing.GetStream(FileMode.Open,
+                    FileAccess.Read);
+                if (source.Length != imageBytes.Length) continue;
+                using var copy = new MemoryStream();
+                source.CopyTo(copy);
+                if (copy.ToArray().AsSpan().SequenceEqual(imageBytes)) {
+                    return existing;
+                }
+            }
+            PartTypeInfo partType = GetLegacyPicturePartType(contentType)
+                .ToPartTypeInfo();
             ImagePart imagePart = ownerPart switch {
                 SlidePart slidePart => slidePart.AddImagePart(partType),
                 SlideMasterPart masterPart => masterPart.AddImagePart(partType),
@@ -494,7 +547,7 @@ namespace OfficeIMO.PowerPoint {
                 _ => throw new NotSupportedException(
                     $"Legacy pictures cannot be attached to {ownerPart.GetType().Name}.")
             };
-            using var stream = new MemoryStream(picture.ImageBytes, writable: false);
+            using var stream = new MemoryStream(imageBytes, writable: false);
             imagePart.FeedData(stream);
             return imagePart;
         }

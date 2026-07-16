@@ -13,6 +13,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                 slide.Shapes.Count(shape => shape.Kind == LegacyPptShapeKind.Picture));
             BlipStoreEntryCount = presentation.BlipStoreEntries.Count;
             ImportableBlipCount = presentation.BlipStoreEntries.Count(entry => entry.HasImportableImage);
+            PictureBulletCount = presentation.PictureBullets.Count;
             FontCount = presentation.Fonts.Count;
             EmbeddedFontCount = presentation.Fonts.Count(font => font.HasEmbeddedData);
             SoundCount = presentation.Sounds.Count;
@@ -124,6 +125,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
             ShapeInteractionCount = interactiveShapes.Sum(shape => shape.Interactions.Count);
             TextInteractionCount = interactiveShapes.Sum(shape =>
                 shape.TextBody.Interactions.Count);
+            TextFieldCount = interactiveShapes.Sum(shape =>
+                shape.TextBody.Fields.Count);
             WarningCount = presentation.Diagnostics.Count(diagnostic =>
                 diagnostic.Severity == LegacyPptDiagnosticSeverity.Warning);
             ErrorCount = presentation.Diagnostics.Count(diagnostic =>
@@ -150,6 +153,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of BLIP entries that can be projected as Open XML images.</summary>
         public int ImportableBlipCount { get; }
+
+        /// <summary>Gets the number of decoded PPT9 picture-bullet images.</summary>
+        public int PictureBulletCount { get; }
 
         /// <summary>Gets the number of decoded document font entries.</summary>
         public int FontCount { get; }
@@ -291,6 +297,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         /// <summary>Gets the number of decoded text-range interactions.</summary>
         public int TextInteractionCount { get; }
+
+        /// <summary>Gets the number of decoded dynamic text metacharacters.</summary>
+        public int TextFieldCount { get; }
 
         /// <summary>Gets the warning count.</summary>
         public int WarningCount { get; }

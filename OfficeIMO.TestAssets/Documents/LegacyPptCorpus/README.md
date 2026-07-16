@@ -72,6 +72,13 @@ projection, document font-collection resolution, exact no-op saves, formatting-p
 unsupported formatting edits. Its SHA-256 digest is
 `91d0c2a9ee4380357befeee9803d45b4bcdfb2774d84ea5360e3f8b3964dab88`.
 
+`apache-poi-testdata/bug61881.ppt` is a public Apache POI slideshow fixture
+that contains a PPT9 `BlipCollection9Container`, a PNG picture-bullet entity,
+and a paragraph that references the entity by its zero-based picture-bullet
+index. It exercises independent binary decoding and native DrawingML
+`a:buBlip` projection. Its provenance and license are recorded alongside the
+fixture.
+
 To regenerate a fixture from its PPTX source, use LibreOffice's headless converter:
 
 ```sh

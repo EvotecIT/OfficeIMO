@@ -11,7 +11,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
             bool isRulerTruncated = false,
             IReadOnlyList<LegacyPptTextInteraction>? interactions = null,
             bool hasStyle9Record = false,
-            bool isStyle9Truncated = false) {
+            bool isStyle9Truncated = false,
+            IReadOnlyList<LegacyPptTextField>? fields = null,
+            bool hasFieldRecords = false,
+            bool isFieldDataMalformed = false) {
             Text = text ?? string.Empty;
             CharacterRuns = new ReadOnlyCollection<LegacyPptCharacterRun>(
                 characterRuns?.ToArray() ?? throw new ArgumentNullException(nameof(characterRuns)));
@@ -29,6 +32,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 interactions?.ToArray() ?? Array.Empty<LegacyPptTextInteraction>());
             HasStyle9Record = hasStyle9Record;
             IsStyle9Truncated = isStyle9Truncated;
+            Fields = new ReadOnlyCollection<LegacyPptTextField>(
+                fields?.ToArray() ?? Array.Empty<LegacyPptTextField>());
+            HasFieldRecords = hasFieldRecords;
+            IsFieldDataMalformed = isFieldDataMalformed;
         }
 
         /// <summary>Gets the normalized text, with binary paragraph separators represented by line feeds.</summary>
@@ -77,6 +84,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
         /// <summary>Gets click and mouse-over actions anchored to text ranges.</summary>
         public IReadOnlyList<LegacyPptTextInteraction> Interactions { get; }
 
+        /// <summary>Gets native dynamic fields anchored in the text.</summary>
+        public IReadOnlyList<LegacyPptTextField> Fields { get; }
+
+        /// <summary>Gets whether the binary text box contains field metacharacter records.</summary>
+        public bool HasFieldRecords { get; }
+
+        /// <summary>Gets whether one or more field records were malformed or overlapped.</summary>
+        public bool IsFieldDataMalformed { get; }
+
         /// <summary>Gets whether the text contains at least one interactive range.</summary>
         public bool HasInteractions => Interactions.Count > 0;
 
@@ -94,7 +110,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                 HasUnprojectedCharacterFormatting, HasUnprojectedParagraphFormatting,
                 IsStyleTruncated, TextType, Ruler, HasRulerRecord,
                 IsRulerTruncated, interactions, HasStyle9Record,
-                IsStyle9Truncated);
+                IsStyle9Truncated, Fields, HasFieldRecords,
+                IsFieldDataMalformed);
+
+        internal LegacyPptTextBody WithFields(
+            IReadOnlyList<LegacyPptTextField> fields,
+            bool hasFieldRecords, bool isFieldDataMalformed) => new(Text,
+                CharacterRuns, ParagraphRuns, HasStyleRecord,
+                HasUnprojectedCharacterFormatting || isFieldDataMalformed,
+                HasUnprojectedParagraphFormatting, IsStyleTruncated,
+                TextType, Ruler, HasRulerRecord, IsRulerTruncated,
+                Interactions, HasStyle9Record, IsStyle9Truncated, fields,
+                hasFieldRecords, isFieldDataMalformed);
 
         internal LegacyPptTextBody WithPpt9Formatting(
             IReadOnlyList<LegacyPptParagraphRun> paragraphRuns,
@@ -106,7 +133,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Model {
                     || hasUnprojectedParagraphFormatting,
                 IsStyleTruncated, TextType, Ruler, HasRulerRecord,
                 IsRulerTruncated, Interactions, hasStyle9Record: true,
-                isStyle9Truncated);
+                isStyle9Truncated, Fields, HasFieldRecords,
+                IsFieldDataMalformed);
     }
 
     /// <summary>Represents one character-formatting run from a binary PowerPoint text box.</summary>

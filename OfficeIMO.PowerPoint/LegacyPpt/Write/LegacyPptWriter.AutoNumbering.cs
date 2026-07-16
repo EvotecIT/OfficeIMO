@@ -6,13 +6,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private const ushort RecordStyleTextProp9AtomForWrite = 0x0FAC;
 
         private static bool TryBuildStyleTextProp9Record(
-            IReadOnlyList<A.Paragraph> paragraphs, out byte[]? record,
+            IReadOnlyList<A.Paragraph> paragraphs,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
+            out byte[]? record,
             out string? reason) {
             record = null;
             reason = null;
             if (!paragraphs.Any(paragraph => paragraph
-                    .ParagraphProperties?
-                    .GetFirstChild<A.AutoNumberedBullet>() != null)) {
+                    .ParagraphProperties?.ChildElements.Any(child => child
+                        is A.AutoNumberedBullet or A.PictureBullet) == true)) {
                 return true;
             }
             using var payload = new MemoryStream();
@@ -20,8 +22,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 A.AutoNumberedBullet? numbering = paragraph
                     .ParagraphProperties?
                     .GetFirstChild<A.AutoNumberedBullet>();
+                A.PictureBullet? pictureBullet = paragraph
+                    .ParagraphProperties?
+                    .GetFirstChild<A.PictureBullet>();
                 if (!TryWriteAutomaticNumberingException9(payload,
-                        numbering, out reason)) return false;
+                        numbering, pictureBullet, pictureBullets,
+                        out reason)) return false;
                 // StyleTextProp9 character and special-information
                 // exceptions are empty for DrawingML automatic numbering.
                 WriteUInt32(payload, 0);
@@ -34,10 +40,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static bool TryWriteAutomaticNumberingException9(
             Stream output, A.AutoNumberedBullet? numbering,
+            A.PictureBullet? pictureBullet,
+            LegacyPptWriterPictureBulletCatalog pictureBullets,
             out string? reason) {
             reason = null;
-            if (numbering == null) {
+            if (numbering != null && pictureBullet != null) {
+                reason = "A paragraph cannot use automatic numbering and a picture bullet at the same time.";
+                return false;
+            }
+            ushort? pictureReference = null;
+            if (pictureBullet != null) {
+                if (!pictureBullets.TryGetIndex(pictureBullet,
+                        out ushort index)) {
+                    reason = "A picture bullet is not present in the bounded PPT9 picture-bullet catalog.";
+                    return false;
+                }
+                pictureReference = index;
+            }
+            if (numbering == null && !pictureReference.HasValue) {
                 WriteUInt32(output, 0);
+                return true;
+            }
+            if (numbering == null) {
+                WriteUInt32(output, 1U << 23);
+                WriteUInt16(output, pictureReference!.Value);
                 return true;
             }
             if (!HasOnlyAttributes(numbering, "type", "startAt")
@@ -56,7 +82,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 reason = "An automatic-numbering start value lies outside the classic binary PowerPoint signed 16-bit range.";
                 return false;
             }
-            WriteUInt32(output, (1U << 24) | (1U << 25));
+            uint masks = (1U << 24) | (1U << 25);
+            if (pictureReference.HasValue) masks |= 1U << 23;
+            WriteUInt32(output, masks);
+            if (pictureReference.HasValue) {
+                WriteUInt16(output, pictureReference.Value);
+            }
             WriteInt16(output, 1);
             WriteUInt16(output, scheme);
             WriteInt16(output, checked((short)rawStart));
