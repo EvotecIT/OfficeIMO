@@ -84,6 +84,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ReadOnlyImport_ProjectsOlePropertiesBeforeOpeningPackage() {
+            DateTime createdAt = new DateTime(2025, 6, 7, 8, 9, 10,
+                DateTimeKind.Utc);
+            byte[] bytes;
+            using (PowerPointPresentation created =
+                   PowerPointPresentation.Create()) {
+                created.AddSlide().AddTitle("Read-only binary import");
+                created.BuiltinDocumentProperties.Title =
+                    "Read-only metadata";
+                created.BuiltinDocumentProperties.Created = createdAt;
+                created.BuiltinDocumentProperties.Modified =
+                    createdAt.AddMinutes(5);
+                bytes = created.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(input, new PowerPointLoadOptions {
+                    AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly
+                });
+
+            Assert.Equal(OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+                reopened.AccessMode);
+            Assert.Equal(PowerPointFileFormat.Ppt, reopened.SourceFormat);
+            Assert.Equal("Read-only metadata",
+                reopened.BuiltinDocumentProperties.Title);
+            Assert.Equal(createdAt,
+                reopened.BuiltinDocumentProperties.Created);
+            Assert.Equal(createdAt.AddMinutes(5),
+                reopened.BuiltinDocumentProperties.Modified);
+            Assert.Contains(reopened.Slides[0].TextBoxes,
+                textBox => textBox.Text == "Read-only binary import");
+        }
+
+        [Fact]
         public void ImportedPropertyEdits_RewriteOnlyPropertySetStreams() {
             byte[] sourceBytes;
             using (PowerPointPresentation created =

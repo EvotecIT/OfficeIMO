@@ -212,6 +212,135 @@ public sealed class ReaderDocumentReaderTests {
         }
     }
 
+    [Theory]
+    [InlineData("ppt")]
+    [InlineData("pot")]
+    [InlineData("pps")]
+    public void DocumentReader_CanReadLegacyPowerPointVariants(
+        string extension) {
+        string source = GetRepositoryPath("OfficeIMO.TestAssets",
+            "Documents", "LegacyPptCorpus", "BasicPowerPoint.ppt");
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N") + "." + extension);
+        try {
+            File.Copy(source, path);
+
+            IReadOnlyList<ReaderChunk> pathChunks =
+                OfficeDocumentReader.Default.Read(path).ToArray();
+            using var stream = File.OpenRead(path);
+            IReadOnlyList<ReaderChunk> streamChunks =
+                OfficeDocumentReader.Default.Read(stream,
+                    "binary-deck." + extension).ToArray();
+            OfficeDocumentReadResult result =
+                OfficeDocumentReader.Default.ReadDocument(path);
+            ReaderDetectionResult detection =
+                OfficeDocumentReader.Default.Detect(path,
+                    new ReaderDetectionOptions {
+                        Mode = ReaderDetectionMode.ExtensionOnly
+                    });
+
+            AssertLegacyPowerPointChunks(pathChunks);
+            AssertLegacyPowerPointChunks(streamChunks);
+            Assert.Equal(ReaderInputKind.PowerPoint, result.Kind);
+            Assert.NotEmpty(result.Pages);
+            Assert.Contains("officeimo.powerpoint.shape-model",
+                result.CapabilitiesUsed);
+            Assert.Equal(ReaderInputKind.PowerPoint, detection.Kind);
+            Assert.Equal("application/vnd.ms-powerpoint",
+                detection.MediaType);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_CanReadEncryptedLegacyPowerPointWithOpenPassword() {
+        const string password = "reader-pass";
+        string path = Path.Combine(Path.GetTempPath(),
+            Guid.NewGuid().ToString("N") + ".ppt");
+        try {
+            using (PowerPointPresentation source =
+                   PowerPointPresentation.Create()) {
+                source.AddSlide().AddTextBox("Reader encrypted PPT");
+                source.SaveEncrypted(path, password);
+            }
+            var options = new ReaderOptions { OpenPassword = password };
+
+            IReadOnlyList<ReaderChunk> pathChunks =
+                OfficeDocumentReader.Default.Read(path, options).ToArray();
+            using var stream = File.OpenRead(path);
+            OfficeDocumentReadResult streamResult =
+                OfficeDocumentReader.Default.ReadDocument(stream,
+                    "encrypted.ppt", options);
+
+            Assert.Contains(pathChunks, chunk =>
+                (chunk.Markdown ?? chunk.Text).Contains(
+                    "Reader encrypted PPT", StringComparison.Ordinal));
+            Assert.Contains(streamResult.Chunks, chunk =>
+                (chunk.Markdown ?? chunk.Text).Contains(
+                    "Reader encrypted PPT", StringComparison.Ordinal));
+            Assert.Contains(pathChunks.SelectMany(chunk =>
+                    chunk.Warnings ?? Array.Empty<string>()), warning =>
+                warning.Contains("PPT-ENCRYPTION-DECRYPTED",
+                    StringComparison.Ordinal));
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void DocumentReader_LegacyPowerPointWarningsExposeImportDiagnostics() {
+        string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents",
+            "LegacyPptCorpus", "AccessibilityPowerPoint.ppt");
+
+        IReadOnlyList<ReaderChunk> chunks =
+            OfficeDocumentReader.Default.Read(path).ToArray();
+
+        Assert.Contains(chunks.SelectMany(chunk =>
+                chunk.Warnings ?? Array.Empty<string>()), warning =>
+            warning.Contains("Legacy PPT import diagnostic",
+                StringComparison.Ordinal)
+            && warning.Contains("PPT-SHAPE-STYLE-PARTIAL",
+                StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DocumentReader_LegacyPowerPointProjectsImageAssets() {
+        string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents",
+            "LegacyPptCorpus", "PicturePowerPoint.ppt");
+
+        OfficeDocumentReadResult pathResult =
+            OfficeDocumentReader.Default.ReadDocument(path);
+        using var stream = File.OpenRead(path);
+        OfficeDocumentReadResult streamResult =
+            OfficeDocumentReader.Default.ReadDocument(stream,
+                "pictures.ppt");
+
+        Assert.NotEmpty(pathResult.Assets);
+        Assert.NotEmpty(streamResult.Assets);
+        Assert.All(pathResult.Assets, asset => {
+            Assert.Equal("image", asset.Kind);
+            Assert.NotNull(asset.Location.Slide);
+            Assert.True(asset.PayloadHashMatches(out _));
+        });
+        Assert.Equal(pathResult.Assets.Count, streamResult.Assets.Count);
+        Assert.Contains(pathResult.Metadata, entry =>
+            entry.Category == "reader.summary"
+            && entry.Name == "AssetCount"
+            && entry.Value == pathResult.Assets.Count.ToString(
+                CultureInfo.InvariantCulture));
+    }
+
+    private static void AssertLegacyPowerPointChunks(
+        IReadOnlyList<ReaderChunk> chunks) {
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, chunk =>
+            Assert.Equal(ReaderInputKind.PowerPoint, chunk.Kind));
+        Assert.Contains(chunks, chunk =>
+            (chunk.Markdown ?? chunk.Text).Contains(
+                "OfficeIMO PowerPoint Basics", StringComparison.Ordinal));
+    }
+
     private static void AssertEncryptedLegacyXlsChunks(IReadOnlyList<ReaderChunk> chunks) {
         Assert.NotEmpty(chunks);
         Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.Excel, chunk.Kind));

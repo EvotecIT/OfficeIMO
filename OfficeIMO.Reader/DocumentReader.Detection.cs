@@ -660,6 +660,7 @@ internal static partial class DocumentReaderEngine {
             ".xlsm" => "application/vnd.ms-excel.sheet.macroEnabled.12",
             ".xls" => "application/vnd.ms-excel",
             ".pptm" => "application/vnd.ms-powerpoint.presentation.macroEnabled.12",
+            ".ppt" or ".pot" or ".pps" => "application/vnd.ms-powerpoint",
             ".eml" => "message/rfc822",
             ".msg" => "application/vnd.ms-outlook",
             ".mbox" or ".mbx" => "application/mbox",

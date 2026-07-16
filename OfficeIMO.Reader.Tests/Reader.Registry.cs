@@ -25,6 +25,20 @@ public sealed partial class ReaderRegistryTests {
     }
 
     [Fact]
+    public void DocumentReader_PowerPointCapabilityIncludesBinaryVariants() {
+        ReaderHandlerCapability capability = Assert.Single(
+            OfficeDocumentReader.Default.GetCapabilities(), item =>
+                item.Id == "officeimo.reader.powerpoint");
+
+        Assert.Equal(ReaderInputKind.PowerPoint, capability.Kind);
+        Assert.Equal(new[] {
+            ".pptx", ".pptm", ".ppt", ".pot", ".pps"
+        }, capability.Extensions);
+        Assert.True(capability.SupportsPath);
+        Assert.True(capability.SupportsStream);
+    }
+
+    [Fact]
     public void DocumentReader_CapabilityManifestJson_IsDeterministicAndValid() {
         string first = OfficeDocumentReader.Default.GetCapabilityManifestJson();
         string second = OfficeDocumentReader.Default.GetCapabilityManifestJson();

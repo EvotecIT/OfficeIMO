@@ -35,6 +35,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
         }
 
+        internal static void ApplyReadOnlyDateOverrides(
+            PowerPointPresentation presentation, LegacyPptPackage package) {
+            DateTime? created = null;
+            DateTime? modified = null;
+            DateTime? lastPrinted = null;
+            if (TryReadSections(package, OfficeOlePropertySetWriter
+                    .SummaryInformationStreamName, out IReadOnlyList<
+                    OfficeOlePropertySection> sections)) {
+                OfficeOlePropertySection? summary = sections.FirstOrDefault(
+                    item => item.FormatId == OfficeOlePropertySetWriter
+                        .SummaryInformationFormatId);
+                if (summary != null) {
+                    lastPrinted = ReadDate(summary, 11);
+                    created = ReadDate(summary, 12);
+                    modified = ReadDate(summary, 13);
+                }
+            }
+            presentation.BuiltinDocumentProperties
+                .SetReadOnlyLegacyDateOverrides(created, modified,
+                    lastPrinted);
+        }
+
         internal static LegacyPptPropertySetProjection CreateProjection(
             PowerPointPresentation presentation, LegacyPptPackage package) {
             if (presentation == null) throw new ArgumentNullException(nameof(presentation));

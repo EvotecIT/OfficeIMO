@@ -3,6 +3,7 @@ using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
+using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.Word;
 using OfficeIMO.Word.Markdown;
 using DocumentFormat.OpenXml.Packaging;
@@ -496,7 +497,9 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static IEnumerable<ReaderChunk> ReadPowerPoint(string path, ReaderOptions opt, CancellationToken ct) {
-        using var presentation = PowerPointPresentation.Load(path, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+        using var presentation = LoadPowerPointForReader(path, opt);
+        IReadOnlyList<string>? legacyWarnings =
+            BuildLegacyPowerPointWarnings(presentation);
         var chunks = presentation.ExtractMarkdownChunks(
             extract: new PowerPointExtractionExtensions.PowerPointExtractOptions { IncludeNotes = opt.IncludePowerPointNotes },
             chunking: new PowerPointExtractChunkingOptions { MaxChars = opt.MaxChars },
@@ -517,7 +520,7 @@ internal static partial class DocumentReaderEngine {
                 },
                 Text = c.Text,
                 Markdown = c.Markdown,
-                Warnings = c.Warnings
+                Warnings = CombineWarnings(c.Warnings, legacyWarnings)
             };
             outIndex++;
         }
@@ -525,7 +528,9 @@ internal static partial class DocumentReaderEngine {
 
     private static IEnumerable<ReaderChunk> ReadPowerPoint(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Read-only stream opening already copies to an internal stream for safety.
-        using var presentation = PowerPointPresentation.Load(stream, new PowerPointLoadOptions { AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly });
+        using var presentation = LoadPowerPointForReader(stream, opt);
+        IReadOnlyList<string>? legacyWarnings =
+            BuildLegacyPowerPointWarnings(presentation);
         var chunks = presentation.ExtractMarkdownChunks(
             extract: new PowerPointExtractionExtensions.PowerPointExtractOptions { IncludeNotes = opt.IncludePowerPointNotes },
             chunking: new PowerPointExtractChunkingOptions { MaxChars = opt.MaxChars },
@@ -546,10 +551,57 @@ internal static partial class DocumentReaderEngine {
                 },
                 Text = c.Text,
                 Markdown = c.Markdown,
-                Warnings = c.Warnings
+                Warnings = CombineWarnings(c.Warnings, legacyWarnings)
             };
             outIndex++;
         }
+    }
+
+    private static PowerPointPresentation LoadPowerPointForReader(
+        string path, ReaderOptions options) {
+        return PowerPointPresentation.Load(path,
+            CreatePowerPointReaderLoadOptions(options));
+    }
+
+    private static PowerPointPresentation LoadPowerPointForReader(
+        Stream stream, ReaderOptions options) {
+        if (stream.CanSeek) stream.Position = 0;
+        return PowerPointPresentation.Load(stream,
+            CreatePowerPointReaderLoadOptions(options));
+    }
+
+    private static PowerPointLoadOptions CreatePowerPointReaderLoadOptions(
+        ReaderOptions options) {
+        var loadOptions = new PowerPointLoadOptions {
+            AccessMode = OfficeIMO.Drawing.DocumentAccessMode.ReadOnly,
+            OpenSettings = CreateOpenSettings(options)
+        };
+        if (!string.IsNullOrEmpty(options.OpenPassword)) {
+            loadOptions.LegacyPptImportOptions = new LegacyPptImportOptions {
+                Password = options.OpenPassword,
+                ReportUnsupportedContent = true
+            };
+        }
+        return loadOptions;
+    }
+
+    internal static IReadOnlyList<string>? BuildLegacyPowerPointWarnings(
+        PowerPointPresentation presentation) {
+        if (presentation.SourceFormat is not PowerPointFileFormat.Ppt
+            and not PowerPointFileFormat.Pot
+            and not PowerPointFileFormat.Pps) {
+            return null;
+        }
+
+        var warnings = new List<string>();
+        AddBoundedWarnings(warnings,
+            presentation.LegacyPptImportDiagnostics.Select(
+                static diagnostic =>
+                    "Legacy PPT import diagnostic: " + diagnostic),
+            maxItems: 16,
+            overflowMessage:
+                "Additional legacy PPT import diagnostics were omitted.");
+        return warnings.Count == 0 ? null : warnings;
     }
 
     private static IEnumerable<ReaderChunk> ReadPdf(string path, ReaderOptions opt, CancellationToken ct) {
@@ -640,11 +692,6 @@ internal static partial class DocumentReaderEngine {
     }
 
     private static IEnumerable<ReaderChunk> ReadUnknown(string path, ReaderOptions opt, CancellationToken ct) {
-        var extLower = (TryGetExtension(path) ?? string.Empty).ToLowerInvariant();
-        if (extLower is ".doc" or ".xls" or ".ppt") {
-            throw new NotSupportedException($"Legacy binary format '{extLower}' is not supported. Convert to OpenXML (.docx/.xlsx/.pptx) first.");
-        }
-
         // Try plain text; if it fails (binary), the caller can decide how to handle it.
         foreach (var c in ChunkPlainTextByParagraphs(path, opt, ReaderInputKind.Unknown, ct, treatAsMarkdown: false))
             yield return c;

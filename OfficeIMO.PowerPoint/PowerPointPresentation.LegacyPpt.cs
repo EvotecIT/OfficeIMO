@@ -130,6 +130,11 @@ namespace OfficeIMO.PowerPoint {
 
             ProjectLegacyComments(projected, legacy);
             ProjectLegacyVbaProject(projected, legacy);
+            bool readOnlyProjection = loadOptions.AccessMode ==
+                DocumentAccessMode.ReadOnly;
+            if (readOnlyProjection) {
+                LegacyPptPropertySetCodec.Apply(projected, legacy.Package);
+            }
 
             byte[] packageBytes = projected.ToBytes();
             if (legacy.VbaProject != null) {
@@ -137,7 +142,12 @@ namespace OfficeIMO.PowerPoint {
                     packageBytes);
             }
             PowerPointPresentation presentation = LoadPackage(packageBytes, sourcePath, sourceStream, loadOptions);
-            LegacyPptPropertySetCodec.Apply(presentation, legacy.Package);
+            if (readOnlyProjection) {
+                LegacyPptPropertySetCodec.ApplyReadOnlyDateOverrides(
+                    presentation, legacy.Package);
+            } else {
+                LegacyPptPropertySetCodec.Apply(presentation, legacy.Package);
+            }
             LegacyPptProjectionMap projectionMap = LegacyPptProjectionMap.Create(presentation, legacy);
             presentation.MarkLoadedFromLegacyPpt(sourcePath, legacy, projectionMap, sourceFormat);
             return presentation;

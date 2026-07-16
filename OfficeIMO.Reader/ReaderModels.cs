@@ -15,15 +15,15 @@ public enum ReaderInputKind {
     /// </summary>
     Unknown = 0,
     /// <summary>
-    /// Word document (DOCX/DOCM).
+    /// Word document (DOCX/DOCM/DOC).
     /// </summary>
     Word = 1,
     /// <summary>
-    /// Excel workbook (XLSX/XLSM).
+    /// Excel workbook (XLSX/XLSM/XLS).
     /// </summary>
     Excel = 2,
     /// <summary>
-    /// PowerPoint presentation (PPTX/PPTM).
+    /// PowerPoint presentation (PPTX/PPTM/PPT/POT/PPS).
     /// </summary>
     PowerPoint = 3,
     /// <summary>

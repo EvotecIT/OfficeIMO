@@ -3,6 +3,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
+using OfficeIMO.PowerPoint;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
@@ -22,6 +23,13 @@ internal static partial class DocumentReaderEngine {
             return Array.Empty<OfficeDocumentAsset>();
         }
 
+        if (kind == ReaderInputKind.PowerPoint
+            && IsLegacyPowerPointExtension(path)) {
+            using PowerPointPresentation presentation =
+                LoadPowerPointForReader(path, opt);
+            return CollectProjectedPowerPointImageAssets(presentation, path,
+                opt, cancellationToken);
+        }
         if (IsLegacyBinaryOfficeExtension(path)) {
             return Array.Empty<OfficeDocumentAsset>();
         }
@@ -35,6 +43,13 @@ internal static partial class DocumentReaderEngine {
             return Array.Empty<OfficeDocumentAsset>();
         }
 
+        if (kind == ReaderInputKind.PowerPoint
+            && IsLegacyPowerPointExtension(sourceName)) {
+            using PowerPointPresentation presentation =
+                LoadPowerPointForReader(stream, opt);
+            return CollectProjectedPowerPointImageAssets(presentation,
+                sourceName, opt, cancellationToken);
+        }
         if (IsLegacyBinaryOfficeExtension(sourceName)) {
             return Array.Empty<OfficeDocumentAsset>();
         }
@@ -70,6 +85,22 @@ internal static partial class DocumentReaderEngine {
         }
 
         return assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets;
+    }
+
+    private static IReadOnlyList<OfficeDocumentAsset>
+        CollectProjectedPowerPointImageAssets(
+            PowerPointPresentation presentation, string sourceName,
+            ReaderOptions options, CancellationToken cancellationToken) {
+        cancellationToken.ThrowIfCancellationRequested();
+        var assets = new List<OfficeDocumentAsset>();
+        var payloadCache = new Dictionary<Uri, OpenXmlImagePayload>();
+        long totalPayloadBytes = 0;
+        CollectPowerPointImageAssets(presentation.OpenXmlDocument,
+            sourceName, options, assets, payloadCache,
+            ref totalPayloadBytes, cancellationToken);
+        return assets.Count == 0
+            ? Array.Empty<OfficeDocumentAsset>()
+            : assets;
     }
 
     private static bool ShouldSkipExcelImageAssetsAfterPasswordedOpenFailure(Exception exception, ReaderOptions opt) {
