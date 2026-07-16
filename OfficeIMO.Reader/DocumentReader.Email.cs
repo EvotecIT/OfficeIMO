@@ -69,7 +69,8 @@ internal static partial class DocumentReaderEngine {
                 extraction.MailboxEntries.Add(entry);
             }
         } else {
-            EmailReadResult result = new EmailDocumentReader(emailOptions).Read(bytes, cancellationToken);
+            EmailReadResult result = new EmailDocumentReader(emailOptions).Read(bytes, sourceName,
+                cancellationToken);
             extraction.Format = result.Document.Format;
             extraction.Diagnostics.AddRange(result.Diagnostics);
             extraction.Documents.Add(result.Document);

@@ -3,7 +3,7 @@ namespace OfficeIMO.Email;
 
 public sealed partial class EmailDocument {
     /// <summary>
-    /// Loads one EML, MSG, or TNEF artifact with the default bounded policy.
+    /// Loads one EML, MSG, OFT, or TNEF artifact with the default bounded policy.
     /// Use <see cref="EmailDocumentReader"/> when the caller also needs structured diagnostics.
     /// </summary>
     public static EmailDocument Load(string filePath, EmailReaderOptions? options = null,
@@ -12,7 +12,7 @@ public sealed partial class EmailDocument {
             .Read(filePath, cancellationToken));
 
     /// <summary>
-    /// Loads one EML, MSG, or TNEF artifact from memory.
+    /// Loads one EML, MSG, or TNEF artifact from memory. Use a source-name reader overload when bytes represent OFT.
     /// Use <see cref="EmailDocumentReader"/> when the caller also needs structured diagnostics.
     /// </summary>
     public static EmailDocument Load(byte[] data, EmailReaderOptions? options = null,
@@ -49,7 +49,7 @@ public sealed partial class EmailDocument {
         return GetDocumentOrThrow(result);
     }
 
-    /// <summary>Saves the document as EML, MSG, or TNEF, inferred from the destination filename.</summary>
+    /// <summary>Saves the document as EML, MSG, OFT, or TNEF, inferred from the destination filename.</summary>
     public EmailWriteResult Save(string filePath, EmailWriterOptions? options = null) =>
         Save(filePath, InferOutputFormat(filePath), options);
 
@@ -145,11 +145,12 @@ public sealed partial class EmailDocument {
             return EmailFileFormat.Eml;
         }
         if (extension.Equals(".msg", StringComparison.OrdinalIgnoreCase)) return EmailFileFormat.OutlookMsg;
+        if (extension.Equals(".oft", StringComparison.OrdinalIgnoreCase)) return EmailFileFormat.OutlookTemplate;
         if (extension.Equals(".tnef", StringComparison.OrdinalIgnoreCase) ||
             fileName.Equals("winmail.dat", StringComparison.OrdinalIgnoreCase)) {
             return EmailFileFormat.Tnef;
         }
         throw new NotSupportedException(
-            "Cannot infer the email format from the destination filename. Use .eml, .msg, .tnef, or winmail.dat, or call Save with an explicit EmailFileFormat.");
+            "Cannot infer the email format from the destination filename. Use .eml, .msg, .oft, .tnef, or winmail.dat, or call Save with an explicit EmailFileFormat.");
     }
 }
