@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Model;

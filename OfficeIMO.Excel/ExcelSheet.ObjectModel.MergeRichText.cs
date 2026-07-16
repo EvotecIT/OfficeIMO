@@ -132,16 +132,29 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Reads rich inline text runs from a cell.
+        /// Reads rich text runs from an inline-string or shared-string cell.
         /// </summary>
         public IReadOnlyList<ExcelRichTextRun> GetRichText(int row, int column) {
             var cell = TryGetExistingCell(row, column);
-            if (cell?.InlineString == null) {
+            IEnumerable<Run>? openXmlRuns = cell?.InlineString?.Elements<Run>();
+            if (openXmlRuns == null
+                && cell?.DataType?.Value == DocumentFormat.OpenXml.Spreadsheet.CellValues.SharedString
+                && int.TryParse(cell.CellValue?.InnerText, NumberStyles.None, CultureInfo.InvariantCulture, out int sharedStringIndex)
+                && sharedStringIndex >= 0) {
+                SharedStringItem? sharedStringItem = _spreadSheetDocument.WorkbookPart?
+                    .SharedStringTablePart?
+                    .SharedStringTable?
+                    .Elements<SharedStringItem>()
+                    .ElementAtOrDefault(sharedStringIndex);
+                openXmlRuns = sharedStringItem?.Elements<Run>();
+            }
+
+            if (openXmlRuns == null) {
                 return Array.Empty<ExcelRichTextRun>();
             }
 
             var runs = new List<ExcelRichTextRun>();
-            foreach (var run in cell.InlineString.Elements<Run>()) {
+            foreach (var run in openXmlRuns) {
                 var properties = run.RunProperties;
                 var text = run.Text?.Text ?? string.Empty;
                 runs.Add(new ExcelRichTextRun(text) {

@@ -102,7 +102,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     continue;
                 }
 
-                if (builder.Length + runText.Length > ushort.MaxValue) {
+                if (builder.Length + runText.Length > 32767) {
                     reason = "rich-text cell lengths outside BIFF8 limits";
                     return false;
                 }

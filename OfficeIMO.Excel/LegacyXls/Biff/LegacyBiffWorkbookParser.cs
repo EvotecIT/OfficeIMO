@@ -782,7 +782,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return;
                 }
 
-                ushort fontIndex = checked((ushort)workbook.MutableFonts.Count);
+                int fontRecordIndex = workbook.MutableFonts.Count;
+                ushort fontIndex = checked((ushort)(fontRecordIndex < 4 ? fontRecordIndex : fontRecordIndex + 1));
                 ushort heightTwips = BiffRecordReader.ReadUInt16(record.Payload, 0);
                 ushort options = BiffRecordReader.ReadUInt16(record.Payload, 2);
                 ushort colorIndex = BiffRecordReader.ReadUInt16(record.Payload, 4);

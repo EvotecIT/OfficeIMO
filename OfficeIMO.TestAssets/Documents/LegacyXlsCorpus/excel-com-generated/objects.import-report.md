@@ -2111,20 +2111,21 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| fillAngle | 2 |
 | fillBackColor | 2 |
+| fillBackOpacity | 2 |
+| fillBlip | 2 |
 | fillColor | 2 |
+| fillFocus | 2 |
+| fillOpacity | 2 |
+| fillShadeColors | 2 |
 | FillStyleBooleanProperties | 2 |
-| PropertyId:0x0180 | 2 |
-| PropertyId:0x0182 | 2 |
-| PropertyId:0x0184 | 2 |
+| fillType | 2 |
 | PropertyId:0x0185 | 2 |
-| PropertyId:0x0186 | 2 |
 | PropertyId:0x0187 | 2 |
 | PropertyId:0x0188 | 2 |
 | PropertyId:0x0189 | 2 |
 | PropertyId:0x018A | 2 |
-| PropertyId:0x018B | 2 |
-| PropertyId:0x018C | 2 |
 | PropertyId:0x018D | 2 |
 | PropertyId:0x018E | 2 |
 | PropertyId:0x018F | 2 |
@@ -2135,7 +2136,6 @@ Warnings: 0
 | PropertyId:0x0194 | 2 |
 | PropertyId:0x0195 | 2 |
 | PropertyId:0x0196 | 2 |
-| PropertyId:0x0197 | 2 |
 | PropertyId:0x0198 | 2 |
 | PropertyId:0x0199 | 2 |
 | PropertyId:0x019A | 2 |

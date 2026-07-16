@@ -217,7 +217,7 @@ namespace OfficeIMO.Tests {
                 Assert.Same(threadedComment, cell.ThreadedComment);
 
                 var feature = Assert.Single(document.InspectFeatures().FindFeatures("Threaded comments"));
-                Assert.Equal(ExcelFeatureSupportLevel.Preserved, feature.SupportLevel);
+                Assert.Equal(ExcelFeatureSupportLevel.PartiallyEditable, feature.SupportLevel);
                 Assert.Equal(1, feature.Count);
                 document.Save();
             }

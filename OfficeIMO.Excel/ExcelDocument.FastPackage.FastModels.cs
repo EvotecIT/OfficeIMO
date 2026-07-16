@@ -14,7 +14,7 @@ namespace OfficeIMO.Excel {
             internal static void Write(Stream destination, FastWorkbookPackageModel model, CancellationToken ct) {
                 using (var archive = new ZipArchive(destination, ZipArchiveMode.Create, leaveOpen: true)) {
                     ct.ThrowIfCancellationRequested();
-                    WriteContentTypesEntry(archive, model.HasStyles, model.HasSharedStrings, model.HasCustomProperties, model.Worksheets.Count, model.Tables.Count);
+                    WriteContentTypesEntry(archive, model.WorkbookContentType, model.HasStyles, model.HasSharedStrings, model.HasCustomProperties, model.Worksheets.Count, model.Tables.Count);
                     ct.ThrowIfCancellationRequested();
                     WriteTextEntry(archive, "_rels/.rels", CreatePackageRelationshipsXml(model.HasCustomProperties));
                     WriteCorePropertiesEntry(archive);
@@ -70,6 +70,7 @@ namespace OfficeIMO.Excel {
 
         private sealed class FastWorkbookPackageModel {
             private FastWorkbookPackageModel(
+                string workbookContentType,
                 IReadOnlyList<FastWorksheetPackageModel> worksheets,
                 Stylesheet? stylesheet,
                 SharedStringTable? sharedStrings,
@@ -82,6 +83,7 @@ namespace OfficeIMO.Excel {
                 DefinedNames? definedNames,
                 CalculationProperties? calculationProperties,
                 DocumentFormat.OpenXml.CustomProperties.Properties? customProperties) {
+                WorkbookContentType = workbookContentType;
                 Worksheets = worksheets;
                 Stylesheet = stylesheet;
                 SharedStrings = sharedStrings;
@@ -97,6 +99,8 @@ namespace OfficeIMO.Excel {
             }
 
             internal IReadOnlyList<FastWorksheetPackageModel> Worksheets { get; }
+
+            internal string WorkbookContentType { get; }
 
             internal Stylesheet? Stylesheet { get; }
 
@@ -133,6 +137,10 @@ namespace OfficeIMO.Excel {
                 var workbookPart = document.WorkbookPart;
                 if (workbookPart?.Workbook?.Sheets == null) {
                     skipReason = "Workbook is missing sheets.";
+                    return false;
+                }
+
+                if (!CanWriteSimplePackage(document, workbookPart, out skipReason)) {
                     return false;
                 }
 
@@ -176,6 +184,13 @@ namespace OfficeIMO.Excel {
 
                 var worksheets = new List<FastWorksheetPackageModel>(sheets.Count);
                 var tables = new List<Table>();
+                var expectedWorkbookParts = new HashSet<OpenXmlPart>();
+                if (workbookPart.WorkbookStylesPart != null) {
+                    expectedWorkbookParts.Add(workbookPart.WorkbookStylesPart);
+                }
+                if (workbookPart.SharedStringTablePart != null) {
+                    expectedWorkbookParts.Add(workbookPart.SharedStringTablePart);
+                }
                 int tableIndex = 1;
                 for (int sheetIndex = 0; sheetIndex < sheets.Count; sheetIndex++) {
                     var sheet = sheets[sheetIndex];
@@ -193,6 +208,8 @@ namespace OfficeIMO.Excel {
                     if (!CanWriteWorksheet(worksheetPart, worksheet, out skipReason)) {
                         return false;
                     }
+
+                    expectedWorkbookParts.Add(worksheetPart);
 
                     var tablePartPaths = new Dictionary<string, string>(StringComparer.Ordinal);
                     foreach (var tableDefinition in worksheetPart.TableDefinitionParts) {
@@ -227,6 +244,18 @@ namespace OfficeIMO.Excel {
                         hyperlinkRelationships));
                 }
 
+                if (!HasOnlyExpectedChildParts(workbookPart, expectedWorkbookParts, "Workbook", out skipReason)
+                    || HasUnsupportedReferenceRelationships(workbookPart, allowHyperlinks: false, "Workbook", out skipReason)) {
+                    return false;
+                }
+
+                foreach (OpenXmlPart leafPart in expectedWorkbookParts.Where(static part => part is WorkbookStylesPart || part is SharedStringTablePart)) {
+                    if (!HasOnlyExpectedChildParts(leafPart, Array.Empty<OpenXmlPart>(), "Workbook part '" + leafPart.Uri + "'", out skipReason)
+                        || HasUnsupportedReferenceRelationships(leafPart, allowHyperlinks: false, "Workbook part '" + leafPart.Uri + "'", out skipReason)) {
+                        return false;
+                    }
+                }
+
                 var sharedStrings = workbookPart.SharedStringTablePart?.SharedStringTable;
                 if (sharedStrings != null
                     && sharedStrings.Descendants<DocumentFormat.OpenXml.OpenXmlUnknownElement>().Any()) {
@@ -242,6 +271,7 @@ namespace OfficeIMO.Excel {
                 }
 
                 model = new FastWorkbookPackageModel(
+                    workbookPart.ContentType,
                     worksheets,
                     workbookPart.WorkbookStylesPart?.Stylesheet,
                     sharedStrings!,

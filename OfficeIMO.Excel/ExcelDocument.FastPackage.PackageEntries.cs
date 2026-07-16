@@ -10,7 +10,7 @@ using System.Xml;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
 
-        private static void WriteContentTypesEntry(ZipArchive archive, bool hasStyles, bool hasSharedStrings, bool hasCustomProperties, int worksheetCount, int tableCount) {
+        private static void WriteContentTypesEntry(ZipArchive archive, string workbookContentType, bool hasStyles, bool hasSharedStrings, bool hasCustomProperties, int worksheetCount, int tableCount) {
             var builder = new System.Text.StringBuilder(512 + worksheetCount * 160 + tableCount * 160);
             builder.Append("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
             builder.Append("<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">");
@@ -22,7 +22,9 @@ namespace OfficeIMO.Excel {
                 builder.Append("<Override PartName=\"/docProps/custom.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.custom-properties+xml\"/>");
             }
 
-            builder.Append("<Override PartName=\"/xl/workbook.xml\" ContentType=\"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml\"/>");
+            builder.Append("<Override PartName=\"/xl/workbook.xml\" ContentType=\"");
+            AppendXmlEscaped(builder, workbookContentType);
+            builder.Append("\"/>");
             for (int i = 1; i <= worksheetCount; i++) {
                 builder.Append("<Override PartName=\"/xl/worksheets/sheet");
                 AppendInvariant(builder, i);

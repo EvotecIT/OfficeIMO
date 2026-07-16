@@ -15,17 +15,15 @@ using System.IO;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument : IDisposable, IAsyncDisposable {
 
-        private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct) {
-#if NETSTANDARD2_0 || NET472 || NET48
-            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, 8192, FileOptions.Asynchronous))
-            {
-                var mem = new MemoryStream((int)Math.Max(0, fs.Length) + 8192);
-                await fs.CopyToAsync(mem, 81920, ct).ConfigureAwait(false);
-                return mem.ToArray();
+        private static async Task<byte[]> ReadAllBytesCompatAsync(string path, CancellationToken ct,
+            OfficePackageSecurityOptions? securityOptions = null) {
+            using (var fs = new FileStream(path, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete, 8192, FileOptions.Asynchronous)) {
+                return securityOptions == null
+                    ? await OfficeStreamReader.ReadAllBytesAsync(fs, ct).ConfigureAwait(false)
+                    : await OfficePackageSecurityInspector.ReadBoundedAsync(fs, securityOptions, ct)
+                        .ConfigureAwait(false);
             }
-#else
-            return await File.ReadAllBytesAsync(path, ct).ConfigureAwait(false);
-#endif
         }
 
         private static OpenSettings CreateOpenSettings(OpenSettings? openSettings) {

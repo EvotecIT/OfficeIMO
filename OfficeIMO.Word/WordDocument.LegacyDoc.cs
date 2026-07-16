@@ -913,7 +913,8 @@ namespace OfficeIMO.Word {
             int remainingRunStartIndex;
             if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text)
                 || firstRun.HyperlinkTarget.HasValue
-                || firstRun.FieldKind != LegacyDocFieldKind.None) {
+                || firstRun.FieldKind != LegacyDocFieldKind.None
+                || firstRun.Picture != null) {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
                 remainingRunStartIndex = 0;
             } else {
@@ -973,6 +974,16 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, int startIndex, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
             for (int index = startIndex; index < paragraphRuns.Count; index++) {
                 LegacyDocTextRun legacyRun = paragraphRuns[index];
+                if (legacyRun.Picture != null) {
+                    AddLegacyDocPicture(paragraph, legacyRun, bookmarks);
+                    continue;
+                }
+
+                if (legacyRun.Revision.HasValue) {
+                    AddLegacyDocRevisionRunContent(paragraph, legacyRun, notes, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.HyperlinkTarget.HasValue) {
                     int hyperlinkStartIndex = index;
                     LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
@@ -1002,6 +1013,49 @@ namespace OfficeIMO.Word {
 
                 AddLegacyDocRunContent(paragraph, legacyRun, notes, bookmarks);
             }
+        }
+
+        private static void AddLegacyDocPicture(
+            WordParagraph paragraph,
+            LegacyDocTextRun legacyRun,
+            LegacyDocBookmarkProjection bookmarks) {
+            LegacyDocPicture picture = legacyRun.Picture
+                ?? throw new InvalidOperationException("The legacy DOC picture run has no picture payload.");
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
+            var existingDrawings = new HashSet<DocumentFormat.OpenXml.Wordprocessing.Drawing>(
+                paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+            using var stream = new MemoryStream(picture.ImageBytes, writable: false);
+            paragraph.AddImage(
+                stream,
+                picture.FileName,
+                picture.WidthPixels,
+                picture.HeightPixels,
+                WrapTextImage.InLineWithText,
+                "Imported legacy DOC inline picture");
+            if (legacyRun.Revision.HasValue) {
+                Run? sourceRun = paragraph._paragraph.Elements<Run>()
+                    .LastOrDefault(run => run.Elements<DocumentFormat.OpenXml.Wordprocessing.Drawing>()
+                        .Any(drawing => !existingDrawings.Contains(drawing)));
+                if (sourceRun != null) {
+                    DocumentFormat.OpenXml.Wordprocessing.Drawing[] addedDrawings = sourceRun
+                        .Elements<DocumentFormat.OpenXml.Wordprocessing.Drawing>()
+                        .Where(drawing => !existingDrawings.Contains(drawing))
+                        .ToArray();
+                    var pictureRun = new Run();
+                    foreach (DocumentFormat.OpenXml.Wordprocessing.Drawing drawing in addedDrawings) {
+                        drawing.Remove();
+                        pictureRun.Append(drawing);
+                    }
+
+                    if (!sourceRun.ChildElements.Any(element => element is not RunProperties)) {
+                        sourceRun.Remove();
+                    }
+
+                    AppendLegacyDocRevisionRun(paragraph, legacyRun, pictureRun);
+                }
+            }
+
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
         private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocNoteProjection notes) {
@@ -1105,10 +1159,13 @@ namespace OfficeIMO.Word {
         }
 
         private static WordComment CreateLegacyDocComment(WordDocument document, LegacyDocComment comment, LegacyDocStyleSheet styleSheet) {
-            var paragraphs = new List<Paragraph>(comment.ParagraphRuns.Count);
-            foreach (LegacyDocNoteParagraph sourceParagraph in comment.ParagraphRuns) {
-                var targetParagraph = new Paragraph();
-                var wrapper = new WordParagraph(document, targetParagraph, newRun: false);
+            Paragraph[] paragraphShells = comment.ParagraphRuns
+                .Select(_ => new Paragraph())
+                .ToArray();
+            WordComment wordComment = WordComment.Create(document, comment.Author, comment.Initials, paragraphShells);
+            for (int index = 0; index < comment.ParagraphRuns.Count; index++) {
+                LegacyDocNoteParagraph sourceParagraph = comment.ParagraphRuns[index];
+                WordParagraph wrapper = wordComment.Paragraphs[index];
                 ReplaceLegacyDocNoteParagraphRuns(
                     wrapper,
                     sourceParagraph,
@@ -1116,10 +1173,9 @@ namespace OfficeIMO.Word {
                     LegacyDocNoteProjection.Empty,
                     LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
                 ApplyLegacyDocParagraphFormatting(wrapper, sourceParagraph.Format, styleSheet);
-                paragraphs.Add(targetParagraph);
             }
 
-            return WordComment.Create(document, comment.Author, comment.Initials, paragraphs);
+            return wordComment;
         }
 
         private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet) {
@@ -1347,7 +1403,9 @@ namespace OfficeIMO.Word {
                 specified: source.Specified,
                 characterSpacingTwips: source.CharacterSpacingTwips,
                 language: source.Language,
-                eastAsiaLanguage: source.EastAsiaLanguage);
+                eastAsiaLanguage: source.EastAsiaLanguage,
+                picture: source.Picture,
+                revision: source.Revision);
         }
 
         private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {

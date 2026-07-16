@@ -14,7 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ["EndnoteText"] = NoteTextParagraphStyleIndex
         };
 
-        private static LegacyDocWritableFootnotes ReadSupportedFootnotes(MainDocumentPart mainPart) {
+        private static LegacyDocWritableFootnotes ReadSupportedFootnotes(MainDocumentPart mainPart, LegacyDocWritablePictures pictures) {
             Footnotes? footnotes = mainPart.FootnotesPart?.Footnotes;
             if (footnotes == null) {
                 return LegacyDocWritableFootnotes.Empty;
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate footnote id '{id.Value}'.");
                 }
 
-                stories.Add(id.Value, ReadSimpleFootnoteStory(footnote, id.Value, mainPart.FootnotesPart!));
+                stories.Add(id.Value, ReadSimpleFootnoteStory(footnote, id.Value, mainPart.FootnotesPart!, pictures));
             }
 
             return stories.Count == 0
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return footnote.Type == null || footnote.Type.Value == FootnoteEndnoteValues.Normal;
         }
 
-        private static LegacyDocWritableNoteStory ReadSimpleFootnoteStory(Footnote footnote, long id, FootnotesPart relationshipOwner) {
+        private static LegacyDocWritableNoteStory ReadSimpleFootnoteStory(Footnote footnote, long id, FootnotesPart relationshipOwner, LegacyDocWritablePictures pictures) {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
@@ -61,6 +61,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     child,
                     id,
                     relationshipOwner,
+                    pictures,
                     builder,
                     runs,
                     formattedParagraphs,
@@ -82,6 +83,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             OpenXmlElement child,
             long id,
             FootnotesPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> formattedParagraphs,
@@ -93,7 +95,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 case Paragraph paragraph:
                     int paragraphStart = isFirstParagraph ? 0 : builder.Length;
                     LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, pictures, out string paragraphText);
                     if (!string.IsNullOrEmpty(paragraphText)) {
                         hasBodyText = true;
                     }
@@ -112,6 +114,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         sdtBlock,
                         id,
                         relationshipOwner,
+                        pictures,
                         builder,
                         runs,
                         formattedParagraphs,
@@ -134,6 +137,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             SdtBlock sdtBlock,
             long id,
             FootnotesPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             StringBuilder builder,
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> formattedParagraphs,
@@ -150,6 +154,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     child,
                     id,
                     relationshipOwner,
+                    pictures,
                     builder,
                     runs,
                     formattedParagraphs,
@@ -160,7 +165,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, FootnotesPart relationshipOwner, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, FootnotesPart relationshipOwner, LegacyDocWritablePictures pictures, out string paragraphText) {
             var builder = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "footnote", FootnoteParagraphStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
@@ -177,9 +182,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
-                            AppendSimpleFootnoteRun(builder, runs, run, id, storyStart);
+                            AppendSimpleFootnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures);
                         }
 
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendSimpleFootnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSimpleFootnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "footnote", storyStart);
@@ -194,7 +205,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
                         break;
                     case SdtRun sdtRun:
-                        AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, id, storyStart);
+                        AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, pictures, id, storyStart);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
@@ -227,12 +238,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendSimpleFootnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, Run run, long id, int storyStart) {
+        private static void AppendSimpleFootnoteRevision(
+            StringBuilder builder,
+            List<LegacyDocWritableRun> runs,
+            OpenXmlCompositeElement revisionElement,
+            LegacyDocRevisionKind revisionKind,
+            long id,
+            int storyStart,
+            FootnotesPart relationshipOwner,
+            LegacyDocWritablePictures pictures) {
+            LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
+            foreach (OpenXmlElement child in revisionElement.ChildElements) {
+                if (child is Run run) {
+                    AppendSimpleFootnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures, revision);
+                    continue;
+                }
+
+                throw new NotSupportedException($"Native DOC saving supports tracked insertions and deletions in footnote id '{id}' only when they contain text runs. Unsupported revision element: {child.LocalName}.");
+            }
+        }
+
+        private static void AppendSimpleFootnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, Run run, long id, int storyStart, FootnotesPart relationshipOwner, LegacyDocWritablePictures pictures, LegacyDocRevision revision = default) {
             if (IsFootnoteReferenceMarkRun(run)) {
                 return;
             }
 
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties).WithRevision(revision);
 
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
@@ -242,6 +273,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Text text:
                         AppendFormattedNoteText(builder, runs, text.Text, formatting, storyStart);
+                        break;
+                    case DeletedText deletedText:
+                        AppendFormattedNoteText(builder, runs, deletedText.Text, formatting, storyStart);
                         break;
                     case TabChar:
                         AppendFormattedNoteText(builder, runs, "\t", formatting, storyStart);
@@ -258,8 +292,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Break breakNode:
                         AppendSimpleFootnoteBreak(builder, runs, breakNode, id, formatting, storyStart);
                         break;
+                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                        int picturePosition = storyStart + builder.Length;
+                        int pictureDataOffset = pictures.AddInlinePicture(drawing, relationshipOwner);
+                        builder.Append('\u0001');
+                        runs.Add(new LegacyDocWritableRun(
+                            picturePosition,
+                            1,
+                            LegacyDocWritableFormatting.SpecialCharacter.WithRevision(revision),
+                            pictureDataOffset));
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks. Unsupported footnote run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text, embedded inline pictures, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks. Unsupported footnote run element: {child.LocalName}.");
                 }
             }
         }
@@ -714,7 +758,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     textPositions.Add(text.Length);
                     markerPositions.Add(text.Length);
                     foreach (LegacyDocWritableRun run in story.FormattedRuns) {
-                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting));
+                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
                     }
 
                     foreach (LegacyDocWritableParagraph paragraph in story.FormattedParagraphs) {

@@ -19,6 +19,19 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
+            if (element is WorkbookProtection) {
+                OpenXmlElement? before = workbook.GetFirstChild<BookViews>();
+                before ??= workbook.GetFirstChild<Sheets>();
+                if (before != null) {
+                    workbook.InsertBefore(element, before);
+                } else if (workbook.GetFirstChild<WorkbookProperties>() is WorkbookProperties properties) {
+                    workbook.InsertAfter(element, properties);
+                } else {
+                    workbook.Append(element);
+                }
+                return;
+            }
+
             if (element is CalculationProperties) {
                 OpenXmlElement? before = workbook.ChildElements.FirstOrDefault(child =>
                     string.Equals(child.LocalName, "oleSize", StringComparison.Ordinal)

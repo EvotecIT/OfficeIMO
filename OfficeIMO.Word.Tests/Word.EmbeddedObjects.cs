@@ -1,4 +1,5 @@
 using System.IO;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Packaging;
 using V = DocumentFormat.OpenXml.Vml;
@@ -91,5 +92,43 @@ public partial class Word {
             Assert.NotNull(spreadsheet.WorkbookPart);
             Assert.True(spreadsheet.WorkbookPart.WorksheetParts.Any());
         }
+    }
+
+    [Fact]
+    public void Test_EmbeddedPayloadCanBeHashedReplacedAndRemoved() {
+        string filePath = Path.Combine(_directoryWithFiles, "EmbeddedPayloadManagement.docx");
+        string excelFilePath = Path.Combine(_directoryDocuments, "SampleFileExcel.xlsx");
+        string imageFilePath = Path.Combine(_directoryDocuments, "SampleExcelIcon.png");
+        byte[] original = File.ReadAllBytes(excelFilePath);
+        byte[] replacement = System.Text.Encoding.UTF8.GetBytes("replacement package payload");
+        File.Delete(filePath);
+
+        string payloadId;
+        using (WordDocument document = WordDocument.Create(filePath)) {
+            document.AddEmbeddedObject(excelFilePath, imageFilePath);
+            OfficeEmbeddedPayloadInfo info = Assert.Single(document.GetEmbeddedPayloads(includeSha256: true));
+            payloadId = info.Id;
+            Assert.Equal(OfficeEmbeddedPayloadKind.EmbeddedPackage, info.Kind);
+            Assert.Equal(original.Length, info.Length);
+            Assert.Equal(64, info.Sha256!.Length);
+            Assert.Equal(original, document.ExtractEmbeddedPayload(info.Id));
+            Assert.Throws<InvalidDataException>(() => document.ExtractEmbeddedPayload(info.Id, original.Length - 1));
+            document.ReplaceEmbeddedPayload(info.Id, replacement);
+            document.Save();
+        }
+
+        using (WordDocument document = WordDocument.Load(filePath)) {
+            Assert.Equal(replacement, document.ExtractEmbeddedPayload(payloadId));
+            Assert.Equal(WordFeatureSupportLevel.PartiallyEditable, Assert.Single(document.InspectFeatures().FindFeatures("Embedded packages")).SupportLevel);
+            Assert.True(document.RemoveEmbeddedPayload(payloadId));
+            Assert.False(document.RemoveEmbeddedPayload(payloadId));
+            Assert.Empty(document.GetEmbeddedPayloads());
+            Assert.Empty(document.EmbeddedObjects);
+            document.Save();
+        }
+
+        using WordprocessingDocument saved = WordprocessingDocument.Open(filePath, false);
+        Assert.Empty(saved.MainDocumentPart!.EmbeddedPackageParts);
+        File.Delete(filePath);
     }
 }

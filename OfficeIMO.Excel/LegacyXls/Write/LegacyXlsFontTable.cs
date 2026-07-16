@@ -12,6 +12,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private const double DefaultFontSize = 11d;
 
         private readonly Dictionary<FontKey, ushort> _indexes = new();
+        private readonly Dictionary<FontKey, ushort> _richTextIndexes = new();
         private readonly List<FontKey> _entries = new();
         private readonly Dictionary<string, ushort> _customColorIndexes = new(StringComparer.OrdinalIgnoreCase);
         private readonly HashSet<int> _reservedPaletteSlots = new();
@@ -20,7 +21,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
 
         private LegacyXlsFontTable(LegacyXlsThemeColorResolver themeColors) {
             _themeColors = themeColors ?? throw new ArgumentNullException(nameof(themeColors));
-            AddFont(new FontKey(DefaultFontName, ToTwips(DefaultFontSize), AutomaticColorIndex, bold: false, italic: false, underlineStyle: 0, strikeout: false, outline: false, shadow: false, condense: false, extend: false, LegacyXlsFontEscapement.None, family: 0, characterSet: 1));
+            AddRequiredDefaultFonts();
         }
 
         internal IReadOnlyList<byte[]> FontRecords => _entries.Select(BuildFontPayload).ToArray();
@@ -103,7 +104,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 family,
                 characterSet);
 
-            fontIndex = GetOrAddFont(key);
+            fontIndex = GetOrAddRichTextFont(key);
             return true;
         }
 
@@ -189,11 +190,49 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                 : AddFont(key);
         }
 
-        private ushort AddFont(FontKey key) {
+        private ushort GetOrAddRichTextFont(FontKey key) {
+            if (_richTextIndexes.TryGetValue(key, out ushort existingIndex)) {
+                return existingIndex;
+            }
+
+            ushort index = AddFont(key, registerForCellFormatting: false);
+            _richTextIndexes.Add(key, index);
+            return index;
+        }
+
+        private void AddRequiredDefaultFonts() {
+            AddFont(CreateDefaultFontKey(bold: false, italic: false));
+            AddFont(CreateDefaultFontKey(bold: true, italic: false));
+            AddFont(CreateDefaultFontKey(bold: false, italic: true));
+            AddFont(CreateDefaultFontKey(bold: true, italic: true));
+        }
+
+        private static FontKey CreateDefaultFontKey(bool bold, bool italic) {
+            return new FontKey(
+                DefaultFontName,
+                ToTwips(DefaultFontSize),
+                AutomaticColorIndex,
+                bold,
+                italic,
+                underlineStyle: 0,
+                strikeout: false,
+                outline: false,
+                shadow: false,
+                condense: false,
+                extend: false,
+                LegacyXlsFontEscapement.None,
+                family: 0,
+                characterSet: 1);
+        }
+
+        private ushort AddFont(FontKey key, bool registerForCellFormatting = true) {
             int recordIndex = _entries.Count;
             ushort externalIndex = checked((ushort)(recordIndex < 4 ? recordIndex : recordIndex + 1));
             _entries.Add(key);
-            _indexes.Add(key, externalIndex);
+            if (registerForCellFormatting) {
+                _indexes.Add(key, externalIndex);
+            }
+
             return externalIndex;
         }
 
@@ -396,7 +435,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         }
 
         private static byte[] BuildFontPayload(FontKey key) {
-            byte[] nameBytes = EncodeUnicodeString(key.Name, out byte flags);
+            byte[] nameBytes = Encoding.Unicode.GetBytes(key.Name);
             using var stream = new MemoryStream();
             WriteUInt16(stream, checked((ushort)key.SizeTwips));
             WriteUInt16(stream, BuildOptions(key));
@@ -408,7 +447,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             stream.WriteByte(key.CharacterSet);
             stream.WriteByte(0);
             stream.WriteByte(checked((byte)key.Name.Length));
-            stream.WriteByte(flags);
+            stream.WriteByte(1);
             stream.Write(nameBytes, 0, nameBytes.Length);
             return stream.ToArray();
         }
@@ -565,26 +604,6 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             return stream.ToArray();
-        }
-
-        private static byte[] EncodeUnicodeString(string text, out byte flags) {
-            if (CanUseCompressedString(text)) {
-                flags = 0;
-                return Encoding.ASCII.GetBytes(text);
-            }
-
-            flags = 1;
-            return Encoding.Unicode.GetBytes(text);
-        }
-
-        private static bool CanUseCompressedString(string text) {
-            for (int i = 0; i < text.Length; i++) {
-                if (text[i] > 0x7f) {
-                    return false;
-                }
-            }
-
-            return true;
         }
 
         private static void WriteUInt16(Stream stream, ushort value) {

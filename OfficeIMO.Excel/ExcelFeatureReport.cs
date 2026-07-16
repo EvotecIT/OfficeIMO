@@ -516,9 +516,9 @@ namespace OfficeIMO.Excel {
                 "Sparkline metadata is authored and preserved in worksheets, but the first-party Excel-to-PDF path does not render sparkline visuals.",
                 pdfUnrenderedSparklineDetails);
             Add(features, "Collaboration", "Legacy comments", ExcelFeatureSupportLevel.PartiallyEditable, legacyCommentCount, null,
-                "Legacy comments can be authored and inspected, including rich-text runs for authored comments; threaded comment workflows remain preserve-only.");
-            Add(features, "Collaboration", "Threaded comments", ExcelFeatureSupportLevel.Preserved, threadedCommentPartCount, null,
-                "Threaded comments can be inspected and round-trip preserved, but authoring/editing modern conversations remains preserve-only.",
+                "Legacy comments can be authored and inspected, including rich-text runs for authored comments.");
+            Add(features, "Collaboration", "Threaded comments", ExcelFeatureSupportLevel.PartiallyEditable, threadedCommentPartCount, null,
+                "Plain-text threaded comments and replies can be authored, inspected, updated, resolved, reopened, and removed while maintaining workbook person metadata; mentions and richer Microsoft 365 identity metadata remain preserve-only.",
                 threadedCommentDetails);
             Add(features, "Media", "Images", ExcelFeatureSupportLevel.PartiallyEditable, imagePartCount, null,
                 "Images can be inserted in common worksheet/header/footer scenarios; advanced drawing behaviors remain partial.");
@@ -537,8 +537,8 @@ namespace OfficeIMO.Excel {
             Add(features, "Layout", "PDF-unsupported header/footer formatting", ExcelFeatureSupportLevel.PartiallyEditable, pdfUnsupportedHeaderFooterFormattingCount, null,
                 "Header or footer text uses formatting that is simplified by the first-party Excel-to-PDF path.",
                 pdfUnsupportedHeaderFooterFormattingDetails);
-            Add(features, "Compatibility", "OLE objects", ExcelFeatureSupportLevel.Preserved, oleObjectCount, null,
-                "Embedded OLE objects are advanced package content and should be treated as preserve-only.", oleObjectDetails);
+            Add(features, "Compatibility", "OLE objects", ExcelFeatureSupportLevel.PartiallyEditable, oleObjectCount, null,
+                "Embedded OLE payloads can be inventoried, hash-checked, extracted with byte limits, replaced, and removed; creating complete worksheet OLE presentation markup remains unsupported.", oleObjectDetails);
             Add(features, "Compatibility", "Form controls", ExcelFeatureSupportLevel.Preserved, formControlCount, null,
                 "Form controls are preserve-only worksheet metadata.", formControlDetails);
             Add(features, "Compatibility", "External hyperlinks", ExcelFeatureSupportLevel.PartiallyEditable, externalHyperlinkCount, null,
@@ -622,8 +622,8 @@ namespace OfficeIMO.Excel {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            Add(features, "Compatibility", "VBA macros", ExcelFeatureSupportLevel.Preserved, vbaDetails.Count, null,
-                "Macro projects are preserve-only; OfficeIMO.Excel does not author or edit VBA modules.", vbaDetails);
+            Add(features, "Compatibility", "VBA macros", ExcelFeatureSupportLevel.PartiallyEditable, vbaDetails.Count, null,
+                "VBA projects can be attached, hash-checked, inspected, extracted with byte limits, and removed; OfficeIMO does not edit VBA source or sign macro projects.", vbaDetails);
             Add(features, "Compatibility", "Slicers", ExcelFeatureSupportLevel.PartiallyEditable, slicerDetails.Count, null,
                 "Slicer cache metadata can be authored and preserved; full Excel UI slicer shape/materialization remains partial.", slicerDetails);
             Add(features, "Compatibility", "Timelines", ExcelFeatureSupportLevel.PartiallyEditable, timelineDetails.Count, null,
@@ -637,8 +637,8 @@ namespace OfficeIMO.Excel {
                 "Custom XML parts are preserve-only package metadata.", customXmlDetails);
             Add(features, "Compatibility", "Digital signatures", ExcelFeatureSupportLevel.Preserved, signatureDetails.Count, null,
                 "Digital signature parts are preserve-only package metadata.", signatureDetails);
-            Add(features, "Compatibility", "Embedded packages", ExcelFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
-                "Embedded packages are preserve-only package content.", embeddedPackageDetails);
+            Add(features, "Compatibility", "Embedded packages", ExcelFeatureSupportLevel.PartiallyEditable, embeddedPackageDetails.Count, null,
+                "Embedded package payloads can be inventoried, hash-checked, extracted with byte limits, replaced, and removed; complete visual OLE authoring remains unsupported.", embeddedPackageDetails);
 
             AddLegacyXlsImportFeatures(features);
 

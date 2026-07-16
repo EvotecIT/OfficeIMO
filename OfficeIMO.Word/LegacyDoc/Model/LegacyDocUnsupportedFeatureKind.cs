@@ -29,6 +29,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         BinaryData,
 
         /// <summary>
+        /// Digital-signature storage or streams were discovered in the OLE compound container.
+        /// </summary>
+        DigitalSignature,
+
+        /// <summary>
         /// Fast-save state was discovered in the FIB.
         /// </summary>
         FastSave,

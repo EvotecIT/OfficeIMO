@@ -25,6 +25,11 @@ namespace OfficeIMO.Word {
             }
 
             WordDocumentVisualSnapshot snapshot = CreateSnapshot(document, options);
+            return RenderSnapshot(snapshot, format, options);
+        }
+
+        private static OfficeImageExportResult RenderSnapshot(WordDocumentVisualSnapshot snapshot,
+            OfficeImageExportFormat format, WordImageExportOptions options) {
             OfficeDrawing drawing = snapshot.Drawing;
 
             if (format == OfficeImageExportFormat.Svg) {
@@ -54,13 +59,18 @@ namespace OfficeIMO.Word {
                 throw new ArgumentNullException(nameof(options));
             }
 
+            return CreateSnapshot(document, options, EstimateSectionPageCounts(document));
+        }
+
+        private static WordDocumentVisualSnapshot CreateSnapshot(WordDocument document,
+            WordImageExportOptions options, IReadOnlyList<int> sectionPageCounts) {
             List<OfficeImageExportDiagnostic> diagnostics = new List<OfficeImageExportDiagnostic>();
-            OfficeDrawing drawing = CreateDrawing(document, options, diagnostics);
+            OfficeDrawing drawing = CreateDrawing(document, options, diagnostics, sectionPageCounts);
             return new WordDocumentVisualSnapshot(drawing, options.PageIndex, diagnostics.AsReadOnly());
         }
 
-        private static OfficeDrawing CreateDrawing(WordDocument document, WordImageExportOptions options, List<OfficeImageExportDiagnostic> diagnostics) {
-            IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(document);
+        private static OfficeDrawing CreateDrawing(WordDocument document, WordImageExportOptions options,
+            List<OfficeImageExportDiagnostic> diagnostics, IReadOnlyList<int> sectionPageCounts) {
             IReadOnlyList<int> sectionPageNumberStarts = ResolveSectionPageNumberStarts(document, sectionPageCounts);
             WordImagePageContext pageContext = ResolvePageContext(document, options.PageIndex, sectionPageCounts);
             (double width, double height) = GetPageSizePoints(pageContext.Section);

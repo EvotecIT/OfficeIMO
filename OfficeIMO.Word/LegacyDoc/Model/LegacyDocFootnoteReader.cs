@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
+            IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
             out string? warning) {
             warning = null;
             if (fib.CcpFtn == 0) {
@@ -75,7 +76,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     footnoteBaseCharacterPosition + endCharacter,
                     formattingRanges,
                     paragraphFormattingRanges,
-                    bookmarkProjection);
+                    bookmarkProjection,
+                    picturesByCharacterPosition);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -93,6 +95,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
             LegacyDocBookmarkProjectionTracker bookmarkProjection,
+            IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition,
             out string? warning) {
             warning = null;
             if (fib.CcpEdn == 0) {
@@ -129,7 +132,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     endnoteBaseCharacterPosition + endCharacter,
                     formattingRanges,
                     paragraphFormattingRanges,
-                    bookmarkProjection);
+                    bookmarkProjection,
+                    picturesByCharacterPosition);
                 if (paragraphs.Count == 0) {
                     continue;
                 }
@@ -248,7 +252,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int endCharacter,
             IReadOnlyList<LegacyDocCharacterFormatRange> formattingRanges,
             IReadOnlyList<LegacyDocParagraphFormatRange> paragraphFormattingRanges,
-            LegacyDocBookmarkProjectionTracker bookmarkProjection) {
+            LegacyDocBookmarkProjectionTracker bookmarkProjection,
+            IReadOnlyDictionary<int, LegacyDocPicture> picturesByCharacterPosition) {
             if (endCharacter <= startCharacter) {
                 return Array.Empty<LegacyDocNoteParagraph>();
             }
@@ -275,6 +280,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             for (int index = 0; index < storyCharacters.Length; index++) {
                 LegacyDocTextCharacter character = storyCharacters[index];
+
+                if (LegacyDocPictureReader.TryCreatePictureRun(
+                    character,
+                    picturesByCharacterPosition,
+                    GetFormatForFileOffset(formattingRanges, character.FileOffset),
+                    out LegacyDocTextRun? pictureRun)) {
+                    FlushRun();
+                    currentRuns.Add(pictureRun!);
+                    hasCurrentRun = false;
+                    currentHyperlinkTarget = default;
+                    atParagraphStart = false;
+                    skipOptionalReferenceSpace = false;
+                    continue;
+                }
 
                 if (LegacyDocField.TryReadHyperlink(
                     storyCharacters,
@@ -651,7 +670,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     specified: currentFormat.Specified,
                     characterSpacingTwips: currentFormat.CharacterSpacingTwips,
                     language: currentFormat.Language,
-                    eastAsiaLanguage: currentFormat.EastAsiaLanguage));
+                    eastAsiaLanguage: currentFormat.EastAsiaLanguage,
+                    revision: currentFormat.Revision));
                 runText.Clear();
                 runCharacterPositions.Clear();
             }

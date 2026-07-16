@@ -548,6 +548,7 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Equal(
             new[] {
                 "OfficeIMO.SharedSource/Compatibility/TrimmingAttributes.cs",
+                "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlPackagePayload.cs",
                 "OfficeIMO.SharedSource/OpenXml/OfficeOpenXmlThemeColorResolver.cs"
             },
             files);

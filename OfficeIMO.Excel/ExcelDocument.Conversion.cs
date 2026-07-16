@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
-        private static readonly string[] SupportedExcelConversionExtensions = { ".xls", ".xlsx" };
+        private static readonly string[] SupportedExcelConversionExtensions = { ".xls", ".xlsb", ".xlsx" };
 
         /// <summary>
         /// Converts an Excel file between XLS and XLSX and returns format and fidelity diagnostics.
@@ -240,8 +240,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static ExcelFileFormat GetExcelFormat(string path) {
-            return string.Equals(Path.GetExtension(path), ".xls", StringComparison.OrdinalIgnoreCase)
-                ? ExcelFileFormat.Xls
+            string extension = Path.GetExtension(path);
+            if (string.Equals(extension, ".xls", StringComparison.OrdinalIgnoreCase)) {
+                return ExcelFileFormat.Xls;
+            }
+
+            return string.Equals(extension, ".xlsb", StringComparison.OrdinalIgnoreCase)
+                ? ExcelFileFormat.Xlsb
                 : ExcelFileFormat.Xlsx;
         }
     }
