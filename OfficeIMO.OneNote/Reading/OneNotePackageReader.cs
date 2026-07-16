@@ -79,8 +79,12 @@ public static class OneNotePackageReader {
             if (group == null) {
                 notebook.ColorArgb = toc.ColorArgb;
                 notebook.HistoryEnabled = toc.HistoryEnabled;
+                notebook.TableOfContentsRootObjectId = toc.RootObjectId;
+                notebook.TableOfContentsStorageFormat = toc.StorageFormat;
                 foreach (OneNoteOpaqueObject item in toc.PreservedObjects) notebook.UnknownObjects.Add(item);
             } else {
+                group.TableOfContentsRootObjectId = toc.RootObjectId;
+                group.TableOfContentsStorageFormat = toc.StorageFormat;
                 foreach (OneNoteOpaqueObject item in toc.PreservedObjects) group.UnknownObjects.Add(item);
             }
             MapEntries(toc, tocPath, notebook, group, state, depth);

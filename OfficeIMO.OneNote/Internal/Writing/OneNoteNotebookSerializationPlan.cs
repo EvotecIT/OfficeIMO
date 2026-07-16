@@ -15,7 +15,17 @@ internal sealed class OneNoteNotebookSerializationPlan {
         ValidateOptions(options);
         var plan = new OneNoteNotebookSerializationPlan(options);
         Guid rootId = notebook.Id.HasValue && notebook.Id.Value != Guid.Empty ? notebook.Id.Value : Guid.NewGuid();
-        plan.BuildScope(string.Empty, rootId, Guid.Empty, notebook.Sections, notebook.SectionGroups, notebook.ColorArgb, notebook.HistoryEnabled);
+        plan.BuildScope(
+            string.Empty,
+            rootId,
+            Guid.Empty,
+            notebook.Sections,
+            notebook.SectionGroups,
+            notebook.ColorArgb,
+            notebook.HistoryEnabled,
+            notebook.TableOfContentsStorageFormat,
+            notebook.TableOfContentsRootObjectId,
+            notebook.UnknownObjects);
         return plan;
     }
 
@@ -24,9 +34,16 @@ internal sealed class OneNoteNotebookSerializationPlan {
         ValidateOptions(options);
         Guid rootId = notebook.Id.HasValue && notebook.Id.Value != Guid.Empty ? notebook.Id.Value : Guid.NewGuid();
         IReadOnlyList<OneNoteTocWriteEntry> entries = CreateTocEntries(notebook.Sections, notebook.SectionGroups);
-        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(options.MaxOutputBytes).BuildTableOfContents(
-            rootId, Guid.Empty, TocFileName, entries, notebook.ColorArgb, notebook.HistoryEnabled);
-        return SerializeGraph(graph, options, true);
+        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(options.MaxOutputBytes, options.PreserveUnknownData).BuildTableOfContents(
+            rootId,
+            Guid.Empty,
+            TocFileName,
+            entries,
+            notebook.ColorArgb,
+            notebook.HistoryEnabled,
+            notebook.UnknownObjects,
+            notebook.TableOfContentsRootObjectId);
+        return SerializeGraph(graph, options, true, notebook.TableOfContentsStorageFormat);
     }
 
     private void BuildScope(
@@ -36,7 +53,10 @@ internal sealed class OneNoteNotebookSerializationPlan {
         IList<OneNoteSection> sections,
         IList<OneNoteSectionGroup> groups,
         uint? colorArgb,
-        bool? historyEnabled) {
+        bool? historyEnabled,
+        OneNoteStorageFormat sourceStorageFormat,
+        OneNoteExtendedGuid? rootObjectId,
+        IList<OneNoteOpaqueObject> preservedObjects) {
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var tocEntries = new List<OneNoteTocWriteEntry>();
         uint order = 0;
@@ -44,18 +64,35 @@ internal sealed class OneNoteNotebookSerializationPlan {
             string fileName = UniqueName(GetSectionFileName(section), usedNames);
             Guid sectionId = section.Id.HasValue && section.Id.Value != Guid.Empty ? section.Id.Value : Guid.NewGuid();
             OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(_options.MaxOutputBytes, _options.PreserveUnknownData).BuildSection(section, tocId, fileName, sectionId);
-            AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false));
+            AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat));
             tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
         }
         foreach (OneNoteSectionGroup group in groups) {
             string directoryName = UniqueName(SanitizeName(group.Name, "Section Group"), usedNames);
             Guid groupId = group.Id.HasValue && group.Id.Value != Guid.Empty ? group.Id.Value : Guid.NewGuid();
             tocEntries.Add(new OneNoteTocWriteEntry(groupId, directoryName, order++, null));
-            BuildScope(Combine(prefix, directoryName), groupId, tocId, group.Sections, group.SectionGroups, null, historyEnabled);
+            BuildScope(
+                Combine(prefix, directoryName),
+                groupId,
+                tocId,
+                group.Sections,
+                group.SectionGroups,
+                null,
+                historyEnabled,
+                group.TableOfContentsStorageFormat,
+                group.TableOfContentsRootObjectId,
+                group.UnknownObjects);
         }
-        OneNoteWriteGraph tocGraph = new OneNoteWriteGraphBuilder(_options.MaxOutputBytes).BuildTableOfContents(
-            tocId, ancestorId, TocFileName, tocEntries, colorArgb, historyEnabled);
-        AddEntry(Combine(prefix, TocFileName), SerializeGraph(tocGraph, _options, true));
+        OneNoteWriteGraph tocGraph = new OneNoteWriteGraphBuilder(_options.MaxOutputBytes, _options.PreserveUnknownData).BuildTableOfContents(
+            tocId,
+            ancestorId,
+            TocFileName,
+            tocEntries,
+            colorArgb,
+            historyEnabled,
+            preservedObjects,
+            rootObjectId);
+        AddEntry(Combine(prefix, TocFileName), SerializeGraph(tocGraph, _options, true, sourceStorageFormat));
     }
 
     private void AddEntry(string name, byte[] data) {
@@ -65,9 +102,12 @@ internal sealed class OneNoteNotebookSerializationPlan {
         _entries.Add(new OneNoteCabinetEntry(name, data));
     }
 
-    private static byte[] SerializeGraph(OneNoteWriteGraph graph, OneNoteWriterOptions options, bool toc) {
-        byte[] data = OneNoteRevisionStoreWriter.Write(graph);
-        if (data.LongLength > options.MaxOutputBytes) throw new IOException("OneNote output exceeds MaxOutputBytes.");
+    private static byte[] SerializeGraph(
+        OneNoteWriteGraph graph,
+        OneNoteWriterOptions options,
+        bool toc,
+        OneNoteStorageFormat sourceStorageFormat) {
+        byte[] data = OneNoteGraphSerializer.Write(graph, options, sourceStorageFormat);
         if (options.ValidateRoundTrip) {
             using (var stream = new MemoryStream(data, false)) {
                 if (toc) OneNoteNotebookReader.Read(stream, TocFileName, new OneNoteNotebookReaderOptions { LoadSectionContent = false });

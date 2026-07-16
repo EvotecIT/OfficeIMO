@@ -15,6 +15,8 @@ OfficeIMO owns the offline OneNote format engine. Microsoft Graph and GraphEssen
 
 The two `.one` encodings share one semantic model. Conversion and Reader packages do not parse binary OneNote data themselves.
 
+Loaded `.one` and `.onetoc2` artifacts preserve their desktop or FSSHTTP physical encoding by default. `OneNoteWriterOptions.StorageFormat` can select either encoding explicitly; new native artifacts default to the desktop revision store. `.onepkg` remains a separate Cabinet container created through `OneNotePackageWriter`.
+
 ## Content fidelity
 
 | Content | Read | New write/edit | Preservation behavior |
@@ -31,7 +33,7 @@ The two `.one` encodings share one semantic model. Conversion and Reader package
 | Ink/handwriting | Where decoded or available as payload | Not yet | Preserved during unrelated edits; replacement fails closed |
 | Plain math | Yes | Yes | Typed |
 | Raw MathML/LaTeX math payloads | Where present | Not yet | Preserved during unrelated edits; replacement fails closed |
-| Unknown objects/properties/relationships | Opaque | Not directly authored | Retained unless a typed edit replaces the owning relationship |
+| Unknown objects/properties/relationships | Opaque | Not directly authored | Retained in sections and root/nested TOCs unless a typed edit replaces the owning relationship |
 
 ## Interoperability proof
 

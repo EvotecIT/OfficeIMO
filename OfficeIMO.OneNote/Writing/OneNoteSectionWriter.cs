@@ -1,6 +1,6 @@
 namespace OfficeIMO.OneNote;
 
-/// <summary>Creates native desktop revision-store <c>.one</c> section files.</summary>
+/// <summary>Creates native desktop or FSSHTTP package-store <c>.one</c> section files.</summary>
 public static class OneNoteSectionWriter {
     /// <summary>Serializes a section to a new byte array.</summary>
     public static byte[] Write(OneNoteSection section, OneNoteWriterOptions? options = null) {
@@ -8,8 +8,7 @@ public static class OneNoteSectionWriter {
         OneNoteWriterOptions effective = options ?? new OneNoteWriterOptions();
         if (effective.MaxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxOutputBytes must be greater than zero.");
         OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(effective.MaxOutputBytes, effective.PreserveUnknownData).BuildSection(section);
-        byte[] data = OneNoteRevisionStoreWriter.Write(graph);
-        if (data.LongLength > effective.MaxOutputBytes) throw new IOException("OneNote output exceeds MaxOutputBytes.");
+        byte[] data = OneNoteGraphSerializer.Write(graph, effective, section.StorageFormat);
         if (effective.ValidateRoundTrip) {
             using (var stream = new MemoryStream(data, false)) {
                 OneNoteSectionReader.Read(stream, new OneNoteReaderOptions { MaxInputBytes = effective.MaxOutputBytes });

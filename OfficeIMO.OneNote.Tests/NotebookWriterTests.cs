@@ -82,6 +82,35 @@ public sealed class NotebookWriterTests {
         }
     }
 
+    [Fact]
+    public void PackageReadWritePreservesOpaqueRootEntryAndNestedTocObjects() {
+        OneNoteNotebook loaded = OneNotePackageReader.Read(
+            new MemoryStream(OneNotePackageWriter.Write(CreateNotebook())),
+            "opaque.onepkg");
+        OneNoteSectionGroup loadedGroup = Assert.Single(loaded.SectionGroups);
+        AddOpaqueScalar(FindRoot(loaded.UnknownObjects, loaded.TableOfContentsRootObjectId), 0x1400ABCD, 101);
+        AddOpaqueScalar(FindEntry(loaded.UnknownObjects, Assert.Single(loaded.Sections).Id!.Value), 0x1400ABCE, 202);
+        AddOpaqueScalar(FindRoot(loadedGroup.UnknownObjects, loadedGroup.TableOfContentsRootObjectId), 0x1400ABCF, 303);
+        OneNoteExtendedGuid extraId = new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17);
+        var extra = new OneNoteOpaqueObject {
+            Id = extraId,
+            Jcid = OneNoteSchema.JcidPropertyContainer,
+            Ordinal = loaded.UnknownObjects.Count
+        };
+        AddOpaqueScalar(extra, 0x1400ABD0, 404);
+        loaded.UnknownObjects.Add(extra);
+
+        OneNoteNotebook roundTrip = OneNotePackageReader.Read(
+            new MemoryStream(OneNotePackageWriter.Write(loaded)),
+            "opaque-roundtrip.onepkg");
+
+        AssertOpaqueScalar(FindRoot(roundTrip.UnknownObjects, roundTrip.TableOfContentsRootObjectId), 0x1400ABCD, 101);
+        AssertOpaqueScalar(FindEntry(roundTrip.UnknownObjects, Assert.Single(roundTrip.Sections).Id!.Value), 0x1400ABCE, 202);
+        OneNoteSectionGroup roundTripGroup = Assert.Single(roundTrip.SectionGroups);
+        AssertOpaqueScalar(FindRoot(roundTripGroup.UnknownObjects, roundTripGroup.TableOfContentsRootObjectId), 0x1400ABCF, 303);
+        AssertOpaqueScalar(Assert.Single(roundTrip.UnknownObjects, item => extraId.Equals(item.Id)), 0x1400ABD0, 404);
+    }
+
     private static OneNoteNotebook CreateNotebook() {
         var notebook = new OneNoteNotebook { Name = "Writer", ColorArgb = 0xFF123456U, HistoryEnabled = true };
         notebook.Sections.Add(CreateSection("Root", "Root page"));
@@ -99,5 +128,32 @@ public sealed class NotebookWriterTests {
         page.DirectContent.Add(paragraph);
         section.Pages.Add(page);
         return section;
+    }
+
+    private static OneNoteOpaqueObject FindRoot(
+        IEnumerable<OneNoteOpaqueObject> objects,
+        OneNoteExtendedGuid? rootId) => Assert.Single(objects, item => rootId != null && rootId.Equals(item.Id));
+
+    private static OneNoteOpaqueObject FindEntry(IEnumerable<OneNoteOpaqueObject> objects, Guid fileId) =>
+        Assert.Single(objects, item => item.Properties.Any(property => {
+            if ((property.PropertyId & 0x03FFFFFFU) != (OneNoteSchema.FileIdentityGuid & 0x03FFFFFFU)) return false;
+            byte[] data = property.GetRawData();
+            return data.Length == 16 && new Guid(data) == fileId;
+        }));
+
+    private static void AddOpaqueScalar(OneNoteOpaqueObject target, uint propertyId, ulong value) {
+        target.Properties.Add(new OneNoteOpaqueProperty {
+            PropertyId = propertyId,
+            ValueType = OneNotePropertyValueType.UInt32,
+            Ordinal = target.Properties.Count,
+            ScalarValue = value
+        });
+    }
+
+    private static void AssertOpaqueScalar(OneNoteOpaqueObject target, uint propertyId, ulong value) {
+        OneNoteOpaqueProperty property = Assert.Single(
+            target.Properties,
+            item => (item.PropertyId & 0x03FFFFFFU) == (propertyId & 0x03FFFFFFU));
+        Assert.Equal(value, property.ScalarValue);
     }
 }

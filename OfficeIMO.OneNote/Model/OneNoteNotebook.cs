@@ -4,6 +4,8 @@ namespace OfficeIMO.OneNote;
 /// A OneNote notebook with ordered section groups and sections.
 /// </summary>
 public sealed class OneNoteNotebook {
+    internal OneNoteExtendedGuid? TableOfContentsRootObjectId { get; set; }
+
     /// <summary>Notebook identity when available.</summary>
     public Guid? Id { get; set; }
 
@@ -12,6 +14,9 @@ public sealed class OneNoteNotebook {
 
     /// <summary>Source folder or package path.</summary>
     public string? SourcePath { get; set; }
+
+    /// <summary>Physical encoding of the loaded root <c>.onetoc2</c>, or unknown for a new notebook.</summary>
+    public OneNoteStorageFormat TableOfContentsStorageFormat { get; internal set; }
 
     /// <summary>Notebook color encoded as ARGB, when present.</summary>
     public uint? ColorArgb { get; set; }
@@ -36,6 +41,8 @@ public sealed class OneNoteNotebook {
 /// A nested section-group folder in a OneNote notebook.
 /// </summary>
 public sealed class OneNoteSectionGroup {
+    internal OneNoteExtendedGuid? TableOfContentsRootObjectId { get; set; }
+
     /// <summary>Section-group identity when available.</summary>
     public Guid? Id { get; set; }
 
@@ -44,6 +51,9 @@ public sealed class OneNoteSectionGroup {
 
     /// <summary>Relative folder path inside the notebook.</summary>
     public string? RelativePath { get; set; }
+
+    /// <summary>Physical encoding of the loaded group <c>.onetoc2</c>, or unknown for a new group.</summary>
+    public OneNoteStorageFormat TableOfContentsStorageFormat { get; internal set; }
 
     /// <summary>Whether this group represents OneNote's recycle bin.</summary>
     public bool IsRecycleBin { get; set; }
@@ -72,6 +82,9 @@ public sealed class OneNoteSection {
 
     /// <summary>Source <c>.one</c> path or package entry.</summary>
     public string? SourcePath { get; set; }
+
+    /// <summary>Physical encoding of the loaded section, or unknown for a newly created section.</summary>
+    public OneNoteStorageFormat StorageFormat { get; internal set; }
 
     /// <summary>Section color encoded as ARGB, when present.</summary>
     public uint? ColorArgb { get; set; }

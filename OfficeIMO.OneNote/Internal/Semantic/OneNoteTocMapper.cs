@@ -20,7 +20,9 @@ internal static class OneNoteTocMapper {
 
         var result = new OneNoteTocData {
             ColorArgb = OneNoteSemanticMapper.ReadUInt32(root, NotebookColor),
-            HistoryEnabled = OneNoteSemanticMapper.ReadBoolean(root, EnableHistory)
+            HistoryEnabled = OneNoteSemanticMapper.ReadBoolean(root, EnableHistory),
+            RootObjectId = root.Id,
+            StorageFormat = store.Header.StorageFormat
         };
         foreach (OneNoteExtendedGuid entryId in OneNoteSemanticMapper.GetReferences(root, TocEntryIndexOidIndex)) {
             OneNoteRevisionStoreObject? item = space.GetObject(entryId);
@@ -51,6 +53,8 @@ internal static class OneNoteTocMapper {
 internal sealed class OneNoteTocData {
     internal uint? ColorArgb { get; set; }
     internal bool? HistoryEnabled { get; set; }
+    internal OneNoteExtendedGuid? RootObjectId { get; set; }
+    internal OneNoteStorageFormat StorageFormat { get; set; }
     internal List<OneNoteTocEntry> Entries { get; } = new List<OneNoteTocEntry>();
     internal List<OneNoteOpaqueObject> PreservedObjects { get; } = new List<OneNoteOpaqueObject>();
 }

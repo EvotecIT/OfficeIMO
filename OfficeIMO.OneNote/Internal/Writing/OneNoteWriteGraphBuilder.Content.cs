@@ -264,6 +264,9 @@ internal sealed partial class OneNoteWriteGraphBuilder {
 
             var state = new List<OneNoteWriteProperty>();
             if (tag.IsTask) {
+                if (!tag.IsCheckable) {
+                    throw new OneNoteFormatException("ONENOTE_WRITE_TASK_TAG_CHECKABILITY", "MS-ONE task tags are always checkable.");
+                }
                 uint shape = tag.Shape ?? 89U;
                 if (shape < 89 || shape > 93) {
                     throw new OneNoteFormatException("ONENOTE_WRITE_TASK_TAG_SHAPE", "A task tag shape must be from 89 through 93.");
@@ -278,9 +281,10 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 state.Add(ObjectReferences(OneNoteSchema.NoteTagDefinitionOid, definitionId));
             }
             if (tag.CreatedUtc.HasValue) state.Add(Scalar(OneNoteSchema.NoteTagCreated, Time32(tag.CreatedUtc.Value)));
-            if (tag.CompletedUtc.HasValue) state.Add(Scalar(OneNoteSchema.NoteTagCompleted, Time32(tag.CompletedUtc.Value)));
+            DateTime? completedUtc = tag.IsCheckable ? tag.CompletedUtc : tag.CreatedUtc;
+            if (completedUtc.HasValue) state.Add(Scalar(OneNoteSchema.NoteTagCompleted, Time32(completedUtc.Value)));
             else state.Add(Scalar(OneNoteSchema.NoteTagCompleted, 0));
-            uint status = (tag.IsCompleted ? 0x01U : 0U) |
+            uint status = (tag.IsCompleted || !tag.IsCheckable ? 0x01U : 0U) |
                 (tag.IsDisabled ? 0x02U : 0U) |
                 (tag.IsTask ? 0x04U : 0U) |
                 (tag.IsUnsynchronized ? 0x08U : 0U) |
@@ -298,10 +302,17 @@ internal sealed partial class OneNoteWriteGraphBuilder {
 
     private OneNoteExtendedGuid BuildTagDefinition(OneNoteWriteObjectSpace space, OneNoteTag tag, uint actionItemType) {
         OneNoteExtendedGuid id = IdOrNew(tag.DefinitionId);
+        uint shape = tag.Shape ?? (tag.IsCheckable ? 3U : 13U);
+        if (shape > 143) {
+            throw new OneNoteFormatException("ONENOTE_WRITE_TAG_SHAPE", "A normal note-tag shape must be from 0 through 143.");
+        }
+        if (OneNoteSemanticMapper.IsCheckableTagShape(shape) != tag.IsCheckable) {
+            throw new OneNoteFormatException("ONENOTE_WRITE_TAG_CHECKABILITY", "The note-tag shape and IsCheckable value must describe the same MS-ONE tag behavior.");
+        }
         var properties = new List<OneNoteWriteProperty> {
             Scalar(OneNoteSchema.ActionItemSchemaVersion, 0),
             Scalar(OneNoteSchema.ActionItemType, actionItemType),
-            Scalar(OneNoteSchema.NoteTagShape, tag.Shape ?? 3U),
+            Scalar(OneNoteSchema.NoteTagShape, shape),
             Scalar(OneNoteSchema.NoteTagPropertyStatus, 9)
         };
         AddString(properties, OneNoteSchema.NoteTagLabel, tag.Label ?? "Tag");

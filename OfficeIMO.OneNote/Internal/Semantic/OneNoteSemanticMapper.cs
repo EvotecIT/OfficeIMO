@@ -93,7 +93,8 @@ internal static partial class OneNoteSemanticMapper {
             "No current section object space could be materialized.");
         var section = new OneNoteSection {
             Id = store.Header.FileId,
-            Name = string.Empty
+            Name = string.Empty,
+            StorageFormat = store.Header.StorageFormat
         };
 
         OneNoteRevisionStoreObject? metadata = sectionSpace.GetRoot(2);

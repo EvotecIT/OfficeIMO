@@ -106,13 +106,19 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         string fileName,
         IEnumerable<OneNoteTocWriteEntry> entries,
         uint? colorArgb,
-        bool? historyEnabled) {
+        bool? historyEnabled,
+        IEnumerable<OneNoteOpaqueObject>? preservedObjects = null,
+        OneNoteExtendedGuid? preservedRootId = null) {
+        OneNoteOpaqueObject[] preserved = _preserveUnknownData
+            ? preservedObjects?.OrderBy(item => item.Ordinal).ToArray() ?? Array.Empty<OneNoteOpaqueObject>()
+            : Array.Empty<OneNoteOpaqueObject>();
         OneNoteExtendedGuid spaceId = _ids.New();
         var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.TableOfContents, spaceId, ancestorId, OneNoteCrc32.ComputeFileName(fileName));
         var space = new OneNoteWriteObjectSpace(spaceId, _ids.New());
         var entryIds = new List<OneNoteExtendedGuid>();
         foreach (OneNoteTocWriteEntry entry in entries.OrderBy(item => item.Order)) {
-            OneNoteExtendedGuid id = _ids.New();
+            OneNoteOpaqueObject? retained = FindTableOfContentsEntry(preserved, entry.Id);
+            OneNoteExtendedGuid id = retained?.Id ?? _ids.New();
             var properties = new List<OneNoteWriteProperty> {
                 Data(OneNoteSchema.FileIdentityGuid, entry.Id.ToByteArray()),
                 Scalar(OneNoteSchema.NotebookElementOrderingId, entry.Order),
@@ -122,13 +128,15 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidPropertyContainer, properties));
             entryIds.Add(id);
         }
-        OneNoteExtendedGuid rootId = _ids.New();
+        OneNoteOpaqueObject? retainedRoot = FindTableOfContentsRoot(preserved, preservedRootId);
+        OneNoteExtendedGuid rootId = retainedRoot?.Id ?? preservedRootId ?? _ids.New();
         var rootProperties = new List<OneNoteWriteProperty>();
         if (entryIds.Count > 0) rootProperties.Add(ObjectReferences(OneNoteSchema.TocEntryIndex, entryIds));
         if (colorArgb.HasValue) rootProperties.Add(Scalar(OneNoteSchema.NotebookColor, colorArgb.Value));
         if (historyEnabled.HasValue) rootProperties.Add(Boolean(OneNoteSchema.EnableHistory, historyEnabled.Value));
         space.Objects.Add(new OneNoteWriteObject(rootId, OneNoteSchema.JcidPropertyContainer, rootProperties));
         space.Roots[1] = rootId;
+        if (preserved.Length > 0) OneNoteOpaquePreservationWriter.MergeSpace(space, preserved, _maxPayloadBytes);
         graph.ObjectSpaces.Add(space);
         return graph;
     }
@@ -353,7 +361,8 @@ internal sealed partial class OneNoteWriteGraphBuilder {
     private static IReadOnlyList<OneNoteWriteProperty> PageMetadataProperties(
         OneNotePage page,
         Guid managementId,
-        DateTime creationUtc) => new[] {
+        DateTime creationUtc) {
+        var properties = new List<OneNoteWriteProperty> {
             Data(OneNoteSchema.CachedTitleString, Unicode(page.Title)),
             Data(OneNoteSchema.NotebookManagementEntityGuid, managementId.ToByteArray()),
             Scalar(OneNoteSchema.PageLevel, (uint)Math.Max(1, page.Level + 1)),
@@ -361,4 +370,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             Scalar(OneNoteSchema.SchemaRevisionInOrderToWrite, 40),
             Scalar(OneNoteSchema.TopologyCreationTimestamp, FileTime(creationUtc))
         };
+        if (page.IsDeleted) properties.Add(Data(OneNoteSchema.IsDeletedGraphSpaceContent, Array.Empty<byte>()));
+        return properties;
+    }
 }

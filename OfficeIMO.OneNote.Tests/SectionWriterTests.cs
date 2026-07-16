@@ -384,6 +384,59 @@ public sealed class SectionWriterTests {
     }
 
     [Fact]
+    public void NormalTagDefaultShapeHonorsNonCheckableState() {
+        DateTime created = new DateTime(2026, 7, 16, 9, 0, 0, DateTimeKind.Utc);
+        var section = new OneNoteSection { Name = "Tags" };
+        var page = new OneNotePage { Title = "Tagged" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Reference" });
+        paragraph.Tags.Add(new OneNoteTag {
+            ActionItemType = 8,
+            Label = "Reference",
+            IsCheckable = false,
+            CreatedUtc = created
+        });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+
+        OneNoteTag result = Assert.Single(Assert.IsType<OneNoteParagraph>(Assert.Single(roundTrip.Pages[0].DirectContent)).Tags);
+        Assert.False(result.IsCheckable);
+        Assert.Equal(13U, result.Shape);
+        Assert.True(result.IsCompleted);
+        Assert.Equal(created, result.CompletedUtc);
+    }
+
+    [Fact]
+    public void RejectsImpossibleNonCheckableTaskTag() {
+        var section = new OneNoteSection { Name = "Tasks" };
+        var page = new OneNotePage { Title = "Task" };
+        var paragraph = new OneNoteParagraph();
+        paragraph.Tags.Add(new OneNoteTag { IsTask = true, IsCheckable = false });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        OneNoteFormatException exception = Assert.Throws<OneNoteFormatException>(() => OneNoteSectionWriter.Write(section));
+
+        Assert.Equal("ONENOTE_WRITE_TASK_TAG_CHECKABILITY", exception.Code);
+    }
+
+    [Fact]
+    public void PageDeletionMarkerCanBeSetAndClearedAcrossPreservedWrites() {
+        var section = new OneNoteSection { Name = "Deleted pages" };
+        section.Pages.Add(new OneNotePage { Title = "Recoverable", IsDeleted = true });
+
+        OneNoteSection deleted = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(section)));
+        Assert.True(Assert.Single(deleted.Pages).IsDeleted);
+
+        deleted.Pages[0].IsDeleted = false;
+        OneNoteSection restored = OneNoteSectionReader.Read(new MemoryStream(OneNoteSectionWriter.Write(deleted)));
+
+        Assert.False(Assert.Single(restored.Pages).IsDeleted);
+    }
+
+    [Fact]
     public void RoundTripsConflictPageObjectSpacesWithoutPromotingThemToTopLevelPages() {
         var section = new OneNoteSection { Name = "Conflicts" };
         var page = new OneNotePage { Title = "Current" };
@@ -436,11 +489,25 @@ public sealed class SectionWriterTests {
     [Fact]
     public void RoundTripsVersionHistoryThroughFssHttpCells() {
         OneNoteSection section = CreateVersionedSection();
-        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder().BuildSection(section);
 
-        byte[] data = OneNotePackageStoreWriter.Write(graph);
+        byte[] data = OneNoteSectionWriter.Write(section, new OneNoteWriterOptions {
+            StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage
+        });
 
+        Assert.Equal(OneNoteStorageFormat.FileSynchronizationPackage, OneNoteFileProbe.ReadHeader(new MemoryStream(data)).StorageFormat);
         AssertVersionHistoryRoundTrip(data);
+    }
+
+    [Fact]
+    public void LoadedFssHttpSectionPreservesItsStorageFormatByDefault() {
+        OneNoteSection source = OneNoteSectionReader.Read(Path.Combine(AppContext.BaseDirectory, "Fixtures", "testOneNoteFromOffice365.one"));
+        Assert.Equal(OneNoteStorageFormat.FileSynchronizationPackage, source.StorageFormat);
+
+        byte[] data = OneNoteSectionWriter.Write(source);
+
+        Assert.Equal(OneNoteStorageFormat.FileSynchronizationPackage, OneNoteFileProbe.ReadHeader(new MemoryStream(data)).StorageFormat);
+        OneNoteSection roundTrip = OneNoteSectionReader.Read(new MemoryStream(data));
+        Assert.Equal(source.Pages.Select(page => page.Title), roundTrip.Pages.Select(page => page.Title));
     }
 
     [Fact]

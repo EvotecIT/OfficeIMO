@@ -44,7 +44,17 @@ section.Pages.Add(page);
 OneNoteSectionWriter.Write(section, "Planning.one");
 ```
 
-Writers validate their output by reading it back by default. Set explicit `OneNoteWriterOptions` when an application needs tighter output or package-entry limits.
+Writers validate their output by reading it back by default. A loaded `.one` or `.onetoc2` keeps its desktop or FSSHTTP physical encoding when saved; a new artifact defaults to the desktop revision store. Applications can select FSSHTTP output explicitly:
+
+```csharp
+var options = new OneNoteWriterOptions {
+    StorageFormat = OneNoteStorageFormat.FileSynchronizationPackage
+};
+
+OneNoteSectionWriter.Write(section, "Planning.one", options);
+```
+
+`OneNoteWriterOptions.StorageFormat` applies to native `.one` and `.onetoc2` payloads. Use `OneNotePackageWriter` for the Cabinet-based `.onepkg` container. The same options also provide tighter output and package-entry limits when needed.
 
 ## Notebooks and packages
 
@@ -79,6 +89,7 @@ When a loaded section is edited, unsupported source structures are preserved unl
 
 - New plain-text math can be serialized. Creating or replacing raw MathML/LaTeX payloads currently fails with `ONENOTE_WRITE_UNSUPPORTED_MATH` instead of flattening them silently.
 - Source ink is retained during unrelated edits. Creating or replacing native ink currently fails with `ONENOTE_WRITE_UNSUPPORTED_INK` instead of dropping strokes.
+- MS-ONE task tags are always checkable. A task or explicit normal-tag shape that contradicts `IsCheckable` fails closed instead of silently changing the tag after a round trip.
 - Encrypted or otherwise unsupported sections produce diagnostics; notebook readers can continue with other sections when configured to do so.
 
 These fail-closed boundaries distinguish preservation from authoring support.

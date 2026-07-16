@@ -62,6 +62,8 @@ internal static class OneNotePreservationWriter {
             uint key = PropertyKey(original);
             if (generatedById.TryGetValue(key, out OneNoteWriteProperty? replacement)) {
                 if (emitted.Add(key)) merged.Add(MergeReferences(replacement, original, mappedObjectIds));
+            } else if (IsClearedTypedProperty(generated.Jcid, key)) {
+                continue;
             } else {
                 OneNoteWriteProperty? retained = FilterRemovedTypedReferences(original, mappedObjectIds);
                 if (retained != null) merged.Add(retained);
@@ -197,5 +199,10 @@ internal static class OneNotePreservationWriter {
             default:
                 return false;
         }
+    }
+
+    private static bool IsClearedTypedProperty(uint jcid, uint propertyKey) {
+        bool pageMetadata = jcid == OneNoteSchema.JcidPageMetadata || jcid == OneNoteSchema.JcidConflictPageMetadata;
+        return pageMetadata && propertyKey == (OneNoteSchema.IsDeletedGraphSpaceContent & 0x03FFFFFFU);
     }
 }

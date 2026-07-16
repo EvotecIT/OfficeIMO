@@ -52,6 +52,7 @@ internal static class OneNoteSchema {
     internal const uint TopologyCreationTimestamp = 0x18001C65;
     internal const uint LastModifiedTime = 0x14001D7A;
     internal const uint LastModifiedTimestamp = 0x18001D77;
+    internal const uint IsDeletedGraphSpaceContent = 0x1C001DE9;
     internal const uint PageWidth = 0x14001C01;
     internal const uint PageHeight = 0x14001C02;
     internal const uint OffsetFromParentHorizontal = 0x14001C14;

@@ -62,7 +62,7 @@ internal static partial class OneNoteSemanticMapper {
         };
     }
 
-    private static bool IsCheckableTagShape(uint shape) {
+    internal static bool IsCheckableTagShape(uint shape) {
         if (shape >= 1 && shape <= 12) return true;
         if (shape == 28 || shape == 30 || shape == 32) return true;
         if (shape == 48 || shape == 50 || shape == 52) return true;

@@ -44,7 +44,9 @@ public static class OneNoteNotebookReader {
             Name = string.IsNullOrWhiteSpace(name) || string.Equals(name, "Open Notebook", StringComparison.OrdinalIgnoreCase) ? "OneNote notebook" : name,
             SourcePath = sourceName,
             ColorArgb = toc.ColorArgb,
-            HistoryEnabled = toc.HistoryEnabled
+            HistoryEnabled = toc.HistoryEnabled,
+            TableOfContentsRootObjectId = toc.RootObjectId,
+            TableOfContentsStorageFormat = toc.StorageFormat
         };
         foreach (OneNoteOpaqueObject item in toc.PreservedObjects) notebook.UnknownObjects.Add(item);
 
@@ -116,8 +118,12 @@ public static class OneNoteNotebookReader {
         if (group == null) {
             notebook.ColorArgb = toc.ColorArgb;
             notebook.HistoryEnabled = toc.HistoryEnabled;
+            notebook.TableOfContentsRootObjectId = toc.RootObjectId;
+            notebook.TableOfContentsStorageFormat = toc.StorageFormat;
             foreach (OneNoteOpaqueObject item in toc.PreservedObjects) notebook.UnknownObjects.Add(item);
         } else {
+            group.TableOfContentsRootObjectId = toc.RootObjectId;
+            group.TableOfContentsStorageFormat = toc.StorageFormat;
             foreach (OneNoteOpaqueObject item in toc.PreservedObjects) group.UnknownObjects.Add(item);
         }
 
