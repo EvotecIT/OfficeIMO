@@ -82,6 +82,26 @@ public sealed class ReaderEpubModularTests {
     }
 
     [Fact]
+    public void DocumentReaderEpub_BuilderPreservesRegisteredRawHtmlBudget() {
+        var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithSpine(epubPath);
+            var registeredOptions = new EpubReadOptions { MaxTotalRawHtmlBytes = 1 };
+            OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+                .AddEpubHandler(registeredOptions)
+                .Build();
+            registeredOptions.MaxTotalRawHtmlBytes = long.MaxValue;
+
+            OfficeDocumentReadResult result = reader.ReadDocument(epubPath);
+
+            Assert.Contains(result.Chunks, chunk =>
+                chunk.Warnings?.Any(warning => warning.Contains("MaxTotalRawHtmlBytes", StringComparison.Ordinal)) == true);
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
     public void DocumentReaderEpub_DirectRead_PreservesStructuredMarkdownAndChapterProvenanceByDefault() {
         var epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-" + Guid.NewGuid().ToString("N") + ".epub");
         try {

@@ -61,6 +61,7 @@ public static class OfficeDocumentReaderBuilderEpubExtensions {
         return new EpubReadOptions {
             MaxChapters = options.MaxChapters,
             MaxChapterBytes = options.MaxChapterBytes,
+            MaxTotalRawHtmlBytes = options.MaxTotalRawHtmlBytes,
             IncludeRawHtml = options.IncludeRawHtml,
             IncludeResourceData = options.IncludeResourceData,
             MaxResources = options.MaxResources,
