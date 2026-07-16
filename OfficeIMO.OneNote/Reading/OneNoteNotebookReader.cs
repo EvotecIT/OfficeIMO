@@ -222,7 +222,8 @@ public static class OneNoteNotebookReader {
         StringComparison comparison = Path.DirectorySeparatorChar == '\\'
             ? StringComparison.OrdinalIgnoreCase
             : StringComparison.Ordinal;
-        return candidate.StartsWith(parent, comparison) ? candidate : null;
+        if (!candidate.StartsWith(parent, comparison)) return null;
+        return IsSafeFileSystemEntry(candidate) ? candidate : null;
     }
 
     private static bool IsSafeStandaloneEntryName(string name) {
@@ -237,8 +238,30 @@ public static class OneNoteNotebookReader {
 
     private static string? FindChildToc(string directory) {
         string conventional = Path.Combine(directory, "Open Notebook.onetoc2");
-        if (File.Exists(conventional)) return conventional;
-        return Directory.EnumerateFiles(directory, "*.onetoc2", SearchOption.TopDirectoryOnly).OrderBy(path => path, StringComparer.OrdinalIgnoreCase).FirstOrDefault();
+        if (File.Exists(conventional) && IsSafeFileSystemEntry(conventional)) return conventional;
+        return Directory.EnumerateFiles(directory, "*.onetoc2", SearchOption.TopDirectoryOnly)
+            .Where(IsSafeFileSystemEntry)
+            .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+            .FirstOrDefault();
+    }
+
+    /// <summary>
+    /// Rejects symbolic links, junctions, and other reparse-point children before a TOC-controlled
+    /// path is opened. Missing entries remain safe to resolve so the caller can report them normally.
+    /// Attribute failures other than a missing entry fail closed.
+    /// </summary>
+    private static bool IsSafeFileSystemEntry(string path) {
+        try {
+            return (File.GetAttributes(path) & FileAttributes.ReparsePoint) == 0;
+        } catch (FileNotFoundException) {
+            return true;
+        } catch (DirectoryNotFoundException) {
+            return true;
+        } catch (IOException) {
+            return false;
+        } catch (UnauthorizedAccessException) {
+            return false;
+        }
     }
 
     private static string MakeRelativePath(string root, string child) {

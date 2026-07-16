@@ -100,6 +100,67 @@ public sealed class NotebookWriterTests {
             OneNoteNotebookReader.ResolveChildPath(parent, "Section.one"));
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void NotebookReaderRejectsSymbolicLinkSectionsAndGroups() {
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-Links-" + Guid.NewGuid().ToString("N"));
+        string outside = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-Outside-" + Guid.NewGuid().ToString("N"));
+        try {
+            OneNoteNotebookWriter.Write(CreateNotebook(), root);
+            Directory.CreateDirectory(outside);
+            string outsideSection = Path.Combine(outside, "Private.one");
+            File.WriteAllBytes(outsideSection, OneNoteSectionWriter.Write(CreateSection("Private", "External content")));
+            string outsideGroup = Path.Combine(outside, "PrivateGroup");
+            var outsideNotebook = new OneNoteNotebook { Name = "Private group" };
+            outsideNotebook.Sections.Add(CreateSection("Private nested", "External nested content"));
+            OneNoteNotebookWriter.Write(outsideNotebook, outsideGroup);
+
+            string linkedSection = Path.Combine(root, "Root.one");
+            string linkedGroup = Path.Combine(root, "Group");
+            File.Delete(linkedSection);
+            Directory.Delete(linkedGroup, true);
+            File.CreateSymbolicLink(linkedSection, outsideSection);
+            Directory.CreateSymbolicLink(linkedGroup, outsideGroup);
+
+            OneNoteNotebook result = OneNoteNotebookReader.Read(Path.Combine(root, "Open Notebook.onetoc2"));
+
+            Assert.Empty(result.Sections);
+            Assert.Empty(result.SectionGroups);
+            Assert.Equal(2, result.Diagnostics.Count(diagnostic => diagnostic.Code == "ONENOTE_TOC_PATH"));
+            Assert.Null(OneNoteNotebookReader.ResolveChildPath(root, "Root.one"));
+            Assert.Null(OneNoteNotebookReader.ResolveChildPath(root, "Group"));
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+            if (Directory.Exists(outside)) Directory.Delete(outside, true);
+        }
+    }
+
+    [Fact]
+    public void NotebookReaderRejectsSymbolicLinkNestedTableOfContents() {
+        string root = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-TocLink-" + Guid.NewGuid().ToString("N"));
+        string outside = Path.Combine(Path.GetTempPath(), "OfficeIMO-OneNote-OutsideToc-" + Guid.NewGuid().ToString("N"));
+        try {
+            OneNoteNotebookWriter.Write(CreateNotebook(), root);
+            var outsideNotebook = new OneNoteNotebook { Name = "Private group" };
+            outsideNotebook.Sections.Add(CreateSection("Private nested", "External nested content"));
+            OneNoteNotebookWriter.Write(outsideNotebook, outside);
+
+            string nestedToc = Path.Combine(root, "Group", "Open Notebook.onetoc2");
+            File.Delete(nestedToc);
+            File.CreateSymbolicLink(nestedToc, Path.Combine(outside, "Open Notebook.onetoc2"));
+
+            OneNoteNotebook result = OneNoteNotebookReader.Read(Path.Combine(root, "Open Notebook.onetoc2"));
+
+            Assert.Single(result.Sections);
+            Assert.Empty(Assert.Single(result.SectionGroups).Sections);
+            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "ONENOTE_TOC_GROUP_MISSING");
+        } finally {
+            if (Directory.Exists(root)) Directory.Delete(root, true);
+            if (Directory.Exists(outside)) Directory.Delete(outside, true);
+        }
+    }
+#endif
+
     [Fact]
     public void PackageReadWritePreservesOpaqueRootEntryAndNestedTocObjects() {
         OneNoteNotebook loaded = OneNotePackageReader.Read(
