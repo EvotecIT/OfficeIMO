@@ -29,7 +29,13 @@ internal static class NotebookReaderAdapter {
         ReaderOptions readerOptions,
         ReaderNotebookOptions notebookOptions,
         CancellationToken cancellationToken) {
-        using JsonDocument json = JsonDocument.Parse(input.Bytes, new JsonDocumentOptions { MaxDepth = 128 });
+        ReadOnlyMemory<byte> jsonBytes = input.Bytes.Length >= 3 &&
+            input.Bytes[0] == 0xEF &&
+            input.Bytes[1] == 0xBB &&
+            input.Bytes[2] == 0xBF
+                ? new ReadOnlyMemory<byte>(input.Bytes, 3, input.Bytes.Length - 3)
+                : input.Bytes;
+        using JsonDocument json = JsonDocument.Parse(jsonBytes, new JsonDocumentOptions { MaxDepth = 128 });
         JsonElement root = json.RootElement;
         if (root.ValueKind != JsonValueKind.Object ||
             !root.TryGetProperty("cells", out JsonElement cells) ||

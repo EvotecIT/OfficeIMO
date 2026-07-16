@@ -165,6 +165,24 @@ public sealed class ReaderMediaAdapterTests {
     }
 
     [Fact]
+    public void NotebookAdapter_AcceptsUtf8Bom() {
+        const string notebook = "{\"cells\":[{\"cell_type\":\"markdown\",\"source\":\"BOM notebook\"}]," +
+            "\"metadata\":{},\"nbformat\":4,\"nbformat_minor\":5}";
+        byte[] content = Encoding.UTF8.GetBytes(notebook);
+        var bytes = new byte[content.Length + 3];
+        bytes[0] = 0xEF;
+        bytes[1] = 0xBB;
+        bytes[2] = 0xBF;
+        Buffer.BlockCopy(content, 0, bytes, 3, content.Length);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddNotebookHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(bytes, "bom.ipynb");
+
+        Assert.Equal("BOM notebook", Assert.Single(result.Chunks).Text);
+        Assert.Contains(result.Metadata, item => item.Name == "NbFormat" && item.Value == "4");
+    }
+
+    [Fact]
     public void NotebookAdapter_PreservesLeadingWhitespaceInMarkdownCells() {
         const string notebook = """
             {
