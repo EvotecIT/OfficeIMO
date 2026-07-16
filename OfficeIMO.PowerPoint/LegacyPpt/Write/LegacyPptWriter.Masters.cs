@@ -11,7 +11,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
         private static LegacyPptWriterMasterCatalog ReadMasterCatalog(
             PowerPointPresentation presentation,
-            IReadOnlyList<LegacyPptRecord> prototypes) {
+            IReadOnlyList<LegacyPptRecord> prototypes,
+            LegacyPptRecord notesMasterPrototype) {
             SlideMasterPart[] masterParts = presentation.OpenXmlDocument.PresentationPart?
                 .SlideMasterParts.ToArray() ?? Array.Empty<SlideMasterPart>();
             if (masterParts.Length == 0) {
@@ -30,26 +31,45 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             for (int index = 0; index < prototypes.Count; index++) {
                 if (index < masterParts.Length) {
                     SlideMasterPart source = masterParts[index];
-                    persistObjects.Add(BuildMainMasterRecord(prototypes[index],
-                        ReadColorScheme(source)));
+                    if (!TryReadBackground(source,
+                            out LegacyPptWriterBackground? background,
+                            out string? backgroundReason)) {
+                        throw new NotSupportedException(backgroundReason);
+                    }
+                    persistObjects.Add(BuildMasterRecord(prototypes[index],
+                        ReadColorScheme(source.ThemePart), background));
                     masterIds.Add(masterParts[index].Uri.ToString(),
                         checked(FirstMasterId + unchecked((uint)index)));
                 } else {
                     persistObjects.Add(prototypes[index].CopyRecordBytes());
                 }
             }
+            NotesMasterPart? notesMasterPart = presentation.OpenXmlDocument
+                .PresentationPart?.NotesMasterPart;
+            LegacyPptWriterBackground? notesBackground = null;
+            if (notesMasterPart != null
+                && !TryReadBackground(notesMasterPart, out notesBackground,
+                    out string? notesBackgroundReason)) {
+                throw new NotSupportedException(notesBackgroundReason);
+            }
+            byte[] notesMaster = BuildMasterRecord(notesMasterPrototype,
+                ReadColorScheme(notesMasterPart?.ThemePart
+                    ?? masterParts[0].ThemePart), notesBackground);
             return new LegacyPptWriterMasterCatalog(masterIds, persistObjects,
-                masterParts.Length);
+                notesMaster, masterParts.Length);
         }
 
-        private static byte[] BuildMainMasterRecord(LegacyPptRecord prototype,
-            LegacyPptWriterColorScheme scheme) {
+        private static byte[] BuildMasterRecord(LegacyPptRecord prototype,
+            LegacyPptWriterColorScheme scheme,
+            LegacyPptWriterBackground? background) {
             var children = new List<byte[]>(prototype.Children.Count);
             bool wroteScheme = false;
             foreach (LegacyPptRecord child in prototype.Children) {
                 if (child.Type == RecordColorSchemeAtom && child.Instance == 1) {
                     children.Add(BuildColorSchemeAtom(scheme));
                     wroteScheme = true;
+                } else if (background != null && child.Type == RecordDrawing) {
+                    children.Add(BuildBackgroundDrawingRecord(child, background));
                 } else {
                     children.Add(child.CopyRecordBytes());
                 }
@@ -69,8 +89,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             return BuildRecord(version: 0, instance: 1, RecordColorSchemeAtom, payload);
         }
 
-        private static LegacyPptWriterColorScheme ReadColorScheme(SlideMasterPart masterPart) {
-            DocumentFormat.OpenXml.Drawing.ColorScheme? source = masterPart.ThemePart?
+        private static LegacyPptWriterColorScheme ReadColorScheme(ThemePart? themePart) {
+            DocumentFormat.OpenXml.Drawing.ColorScheme? source = themePart?
                 .Theme?.ThemeElements?.ColorScheme;
             string Read(PowerPointThemeColor slot, string fallback) {
                 OpenXmlCompositeElement? element = slot switch {
@@ -133,15 +153,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             internal LegacyPptWriterMasterCatalog(
                 IReadOnlyDictionary<string, uint> masterIds,
-                IReadOnlyList<byte[]> persistObjects, int count) {
+                IReadOnlyList<byte[]> persistObjects,
+                byte[] notesMasterPersistObject, int count) {
                 _masterIds = new ReadOnlyDictionary<string, uint>(
-                    new Dictionary<string, uint>(masterIds, StringComparer.Ordinal));
+                    masterIds.ToDictionary(pair => pair.Key, pair => pair.Value,
+                        StringComparer.Ordinal));
                 PersistObjects = new ReadOnlyCollection<byte[]>(persistObjects.ToArray());
+                NotesMasterPersistObject = notesMasterPersistObject;
                 Count = count;
             }
 
             internal int Count { get; }
             internal IReadOnlyList<byte[]> PersistObjects { get; }
+            internal byte[] NotesMasterPersistObject { get; }
 
             internal uint GetMasterId(PowerPointSlide slide) {
                 SlideMasterPart? masterPart = slide.SlidePart.SlideLayoutPart?.SlideMasterPart;

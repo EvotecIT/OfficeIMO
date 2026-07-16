@@ -1,5 +1,6 @@
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Capabilities;
 
@@ -33,6 +34,27 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     masterCount == 0
                         ? "The presentation has no slide master to encode."
                         : $"The native binary writer currently supports at most {LegacyPptWriter.MaxNativeMasterCount} slide masters; the presentation contains {masterCount}."));
+            }
+            foreach (SlideMasterPart masterPart in presentation.OpenXmlDocument
+                         .PresentationPart?.SlideMasterParts
+                     ?? Enumerable.Empty<SlideMasterPart>()) {
+                if (!LegacyPptWriter.TryReadBackground(masterPart, out _,
+                        out string? masterBackgroundReason)) {
+                    findings.Add(new LegacyPptWriteFinding(
+                        LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
+                        masterBackgroundReason
+                        ?? "A slide-master background cannot be encoded by the native binary writer."));
+                }
+            }
+            NotesMasterPart? notesMasterPart = presentation.OpenXmlDocument
+                .PresentationPart?.NotesMasterPart;
+            if (notesMasterPart != null
+                && !LegacyPptWriter.TryReadBackground(notesMasterPart, out _,
+                    out string? notesBackgroundReason)) {
+                findings.Add(new LegacyPptWriteFinding(
+                    LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
+                    notesBackgroundReason
+                    ?? "The notes-master background cannot be encoded by the native binary writer."));
             }
             if (LegacyPptWriter.HasModernComments(presentation)) {
                 findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.ModernComments,
@@ -83,9 +105,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                             slideIndex));
                     }
                 }
-                if (slideRoot?.CommonSlideData?.Background != null) {
+                if (!LegacyPptWriter.TryReadBackground(slide, out _,
+                        out string? backgroundReason)) {
                     findings.Add(new LegacyPptWriteFinding(LegacyPptFeature.Backgrounds, "PPT-WRITE-BACKGROUND",
-                        "Custom slide backgrounds are not encoded by the native binary writer.", slideIndex));
+                        backgroundReason
+                        ?? "The slide background cannot be encoded by the native binary writer.",
+                        slideIndex));
                 }
                 for (int shapeIndex = 0; shapeIndex < slide.Shapes.Count; shapeIndex++) {
                     PowerPointShape shape = slide.Shapes[shapeIndex];
@@ -128,7 +153,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out _, out _);
             if (!LegacyPptWriter.TryReadTransition(slide, out _, out _)
                 || !animationsSupported
-                || slideRoot?.CommonSlideData?.Background != null) {
+                || !LegacyPptWriter.TryReadBackground(slide, out _, out _)) {
                 return false;
             }
             if (!LegacyPptWriter.TryReadInteractions(new[] { slide },

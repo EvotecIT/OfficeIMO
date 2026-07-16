@@ -71,7 +71,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
 
             LegacyPptWriterTemplate template = Template.Value;
             LegacyPptWriterMasterCatalog masters = ReadMasterCatalog(presentation,
-                template.MainMasterPrototypes);
+                template.MainMasterPrototypes, template.NotesMasterPrototype);
             var notes = new List<LegacyPptWriterNote>();
             for (int slideIndex = 0; slideIndex < presentation.Slides.Count; slideIndex++) {
                 PowerPointSlide slide = presentation.Slides[slideIndex];
@@ -114,7 +114,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interactionCatalog, customShows, soundCatalog, masters.Count)
             };
             persistObjects.AddRange(masters.PersistObjects);
-            persistObjects.Add(template.NotesMasterPrototype.CopyRecordBytes());
+            persistObjects.Add(masters.NotesMasterPersistObject);
             persistObjects.AddRange(slideRecords);
             persistObjects.AddRange(notesRecords);
 
@@ -366,7 +366,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
         private static byte[] BuildDrawingRecord(LegacyPptRecord slidePrototype,
             IReadOnlyList<PowerPointShape> shapes, uint drawingId,
             LegacyPptWriterInteractionCatalog interactionCatalog,
-            LegacyPptWriterAnimationCatalog animationCatalog) {
+            LegacyPptWriterAnimationCatalog animationCatalog,
+            LegacyPptWriterBackground? background = null) {
             LegacyPptRecord baseDrawing = slidePrototype.Children.First(record => record.Type == RecordDrawing);
             LegacyPptRecord baseDgContainer = baseDrawing.Children.First(record => record.Type == OfficeArtDgContainer);
             LegacyPptRecord baseSpgr = baseDgContainer.Children.First(record => record.Type == OfficeArtSpgrContainer);
@@ -381,14 +382,17 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     interactionCatalog, animationCatalog));
             }
 
-            byte[] background = PatchShapeId(baseBackground.CopyRecordBytes(), checked(baseShapeId + 1));
+            byte[] backgroundShape = PatchShapeId(background == null
+                    ? baseBackground.CopyRecordBytes()
+                    : BuildBackgroundShapeRecord(baseBackground, background),
+                checked(baseShapeId + 1));
             var dgPayload = new byte[8];
             WriteUInt32(dgPayload, 0, unchecked((uint)(shapes.Count + 1)));
             WriteUInt32(dgPayload, 4, checked(baseShapeId + unchecked((uint)shapes.Count) + 1U));
             byte[] dgAtom = BuildRecord(version: 0, unchecked((ushort)drawingId), OfficeArtDg, dgPayload);
             byte[] spgr = BuildContainer(OfficeArtSpgrContainer, instance: 0, spgrChildren);
             byte[] dgContainer = BuildContainer(OfficeArtDgContainer, instance: 0,
-                new[] { dgAtom, spgr, background });
+                new[] { dgAtom, spgr, backgroundShape });
             return BuildContainer(RecordDrawing, instance: 0, new[] { dgContainer });
         }
 

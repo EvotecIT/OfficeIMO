@@ -9,6 +9,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterInteractionCatalog interactionCatalog,
             LegacyPptWriterAnimationCatalog animationCatalog) {
             var children = new List<byte[]>();
+            if (!TryReadBackground(slide, out LegacyPptWriterBackground? background,
+                    out string? backgroundReason)) {
+                throw new NotSupportedException(backgroundReason);
+            }
             bool hasSlideShowInfo = false;
             if (!TryReadTransition(slide, interactionCatalog.Sounds,
                     out LegacyPptWriterTransition? transition,
@@ -31,6 +35,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                     if (masterIdRef.HasValue) WriteUInt32(atom, 20, masterIdRef.Value);
                     WriteUInt32(atom, 24, notesIdRef.GetValueOrDefault());
+                    ushort slideFlags = ReadUInt16(atom, 28);
+                    WriteUInt16(atom, 28, background == null
+                        ? unchecked((ushort)(slideFlags | 0x0004))
+                        : unchecked((ushort)(slideFlags & ~0x0004)));
                     children.Add(atom);
                     if (headerFooter != null && !hasHeaderFooter
                         && !prototype.Children.Any(candidate =>
@@ -40,7 +48,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     }
                 } else if (child.Type == RecordDrawing) {
                     children.Add(BuildDrawingRecord(prototype, shapes, drawingId,
-                        interactionCatalog, animationCatalog));
+                        interactionCatalog, animationCatalog, background));
                 } else if (child.Type == RecordSlideShowSlideInfoAtom) {
                     if (needsSlideShowInfo) {
                         children.Add(PatchSlideShowInfo(child.CopyRecordBytes(), slide,

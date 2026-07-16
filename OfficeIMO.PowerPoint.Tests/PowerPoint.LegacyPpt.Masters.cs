@@ -5,6 +5,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
+using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
 using Xunit;
 
@@ -209,6 +210,122 @@ namespace OfficeIMO.Tests {
                 reopened.GetThemeColor(PowerPointThemeColor.Accent1, 0));
             Assert.Equal("A0B0C0",
                 reopened.GetThemeColor(PowerPointThemeColor.Accent1, 1));
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_RoundTripsSolidGradientAndNoFillSlideBackgrounds() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            PowerPointSlide solid = presentation.AddSlide(P.SlideLayoutValues.Blank);
+            solid.BackgroundColor = "123456";
+            PowerPointSlide gradient = presentation.AddSlide(P.SlideLayoutValues.Blank);
+            gradient.SetBackgroundGradient("112233", "AABBCC", 45D);
+            PowerPointSlide noFill = presentation.AddSlide(P.SlideLayoutValues.Blank);
+            noFill.SlidePart.Slide!.CommonSlideData!.Background = new P.Background(
+                new P.BackgroundProperties(new A.NoFill()));
+
+            Assert.True(presentation.AnalyzeLegacyPptWrite().CanWrite);
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+
+            Assert.Collection(binary.Slides,
+                slide => {
+                    Assert.False(slide.FollowsMasterBackground);
+                    LegacyPptBackground background = Assert.IsType<LegacyPptBackground>(
+                        slide.Background);
+                    Assert.Equal(LegacyPptBackgroundKind.Solid, background.Kind);
+                    Assert.Equal("123456", background.ForegroundColor);
+                },
+                slide => {
+                    Assert.False(slide.FollowsMasterBackground);
+                    LegacyPptBackground background = Assert.IsType<LegacyPptBackground>(
+                        slide.Background);
+                    Assert.Equal(LegacyPptBackgroundKind.LinearGradient,
+                        background.Kind);
+                    Assert.Equal("112233", background.ForegroundColor);
+                    Assert.Equal("AABBCC", background.BackgroundColor);
+                    Assert.Equal(225D, background.AngleDegrees);
+                    Assert.Equal(2, background.GradientStops.Count);
+                },
+                slide => {
+                    Assert.False(slide.FollowsMasterBackground);
+                    Assert.Equal(LegacyPptBackgroundKind.None,
+                        Assert.IsType<LegacyPptBackground>(slide.Background).Kind);
+                });
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            PowerPointSlideBackground solidBackground = reopened.Slides[0].GetBackground();
+            Assert.Equal(PowerPointSlideBackgroundKind.SolidColor,
+                solidBackground.Kind);
+            Assert.Equal("123456", solidBackground.Color);
+            PowerPointSlideBackground gradientBackground = reopened.Slides[1].GetBackground();
+            Assert.Equal(PowerPointSlideBackgroundKind.LinearGradient,
+                gradientBackground.Kind);
+            Assert.Equal("112233", gradientBackground.GradientStartColor);
+            Assert.Equal("AABBCC", gradientBackground.GradientEndColor);
+            Assert.Equal(45D, gradientBackground.GradientAngleDegrees);
+            Assert.NotNull(reopened.Slides[2].SlidePart.Slide!.CommonSlideData!
+                .Background!.BackgroundProperties!.GetFirstChild<A.NoFill>());
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_WritesMasterAndMaterializedLayoutBackgrounds() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            SlideMasterPart masterPart = presentation.OpenXmlDocument.PresentationPart!
+                .SlideMasterParts.First();
+            masterPart.SlideMaster!.CommonSlideData!.Background = new P.Background(
+                new P.BackgroundProperties(
+                    new A.SolidFill(new A.RgbColorModelHex { Val = "0A0B0C" })));
+            PowerPointSlide inherited = presentation.AddSlide(P.SlideLayoutValues.Title);
+            int blankIndex = presentation.GetLayoutIndex(P.SlideLayoutValues.Blank);
+            SlideLayoutPart blankLayout = masterPart.SlideLayoutParts
+                .ElementAt(blankIndex);
+            blankLayout.SlideLayout!.CommonSlideData!.Background = new P.Background(
+                new P.BackgroundProperties(
+                    new A.SolidFill(new A.RgbColorModelHex { Val = "8899AA" })));
+            PowerPointSlide materialized = presentation.AddSlide(0, blankIndex);
+
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptMaster master = Assert.Single(binary.Masters);
+            Assert.Equal("0A0B0C",
+                Assert.IsType<LegacyPptBackground>(master.Background).ForegroundColor);
+            Assert.True(binary.Slides[0].FollowsMasterBackground);
+            Assert.False(binary.Slides[1].FollowsMasterBackground);
+            Assert.Equal("8899AA", Assert.IsType<LegacyPptBackground>(
+                binary.Slides[1].Background).ForegroundColor);
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            Assert.Equal("0A0B0C", reopened.Slides[0].GetBackground().Color);
+            Assert.Equal("8899AA", reopened.Slides[1].GetBackground().Color);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_WritesNotesMasterBackground() {
+            using PowerPointPresentation presentation = PowerPointPresentation.Create();
+            NotesMasterPart notesMasterPart = presentation.OpenXmlDocument
+                .PresentationPart!.NotesMasterPart!;
+            notesMasterPart.NotesMaster!.CommonSlideData!.Background = new P.Background(
+                new P.BackgroundProperties(
+                    new A.SolidFill(new A.RgbColorModelHex { Val = "445566" })));
+            presentation.AddSlide();
+
+            byte[] bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            Assert.Equal("445566", Assert.IsType<LegacyPptBackground>(
+                Assert.IsType<LegacyPptSpecialMaster>(binary.NotesMaster)
+                    .Background).ForegroundColor);
+
+            using var stream = new MemoryStream(bytes);
+            using PowerPointPresentation reopened = PowerPointPresentation.Load(stream);
+            A.SolidFill solid = Assert.IsType<A.SolidFill>(reopened.OpenXmlDocument
+                .PresentationPart!.NotesMasterPart!.NotesMaster!.CommonSlideData!
+                .Background!.BackgroundProperties!.GetFirstChild<A.SolidFill>());
+            Assert.Equal("445566", solid.RgbColorModelHex!.Val!.Value);
             Assert.Empty(reopened.ValidateDocument());
         }
 
