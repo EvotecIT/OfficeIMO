@@ -252,7 +252,14 @@ internal static class MimeWriter {
         EmailAttachment? contactBodyPart,
         IReadOnlyList<EmailAttachment> attachments) {
         string boundary = CreateBoundary(document, depth, "related");
-        WriteLine(output, string.Concat("Content-Type: multipart/related; boundary=\"", boundary, "\""));
+        string rootType = hasAlternative ? "multipart/alternative" : document.Body.Html != null
+            ? "text/html"
+            : "text/plain";
+        string start = !hasAlternative && !string.IsNullOrWhiteSpace(document.Body.HtmlContentId)
+            ? string.Concat("; start=\"<", SanitizeMessageId(document.Body.HtmlContentId!), ">\"")
+            : string.Empty;
+        WriteLine(output, string.Concat("Content-Type: multipart/related; boundary=\"", boundary,
+            "\"; type=\"", rootType, "\"", start));
         WriteLine(output, string.Empty);
         WriteLine(output, string.Concat("--", boundary));
         WriteBodyEntity(output, document, state, depth, hasAlternative, includeTextBody, calendarContent,
@@ -266,6 +273,7 @@ internal static class MimeWriter {
     }
 
     private static bool IsRelatedResource(EmailDocument document, EmailAttachment attachment) {
+        if (attachment.IsMimeRelated) return true;
         if (string.IsNullOrWhiteSpace(document.Body.Html)) return false;
         if (!string.IsNullOrWhiteSpace(attachment.ContentId) &&
             MimeRelatedResourceReference.ContainsContentId(document.Body.Html!, attachment.ContentId!)) {
@@ -288,7 +296,8 @@ internal static class MimeWriter {
             }
             if (document.Body.Html != null) {
                 WriteLine(output, string.Concat("--", boundary));
-                WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength);
+                WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength,
+                    document.Body.HtmlContentId, document.Body.HtmlContentLocation);
             }
             if (document.Body.Rtf != null) {
                 WriteLine(output, string.Concat("--", boundary));
@@ -304,7 +313,8 @@ internal static class MimeWriter {
         } else if (contactBodyPart != null) {
             WriteAttachment(output, contactBodyPart, state, depth + 1, 0);
         } else if (document.Body.Html != null) {
-            WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength);
+            WriteTextPart(output, "text/html", document.Body.Html, state.Options.Base64LineLength,
+                document.Body.HtmlContentId, document.Body.HtmlContentLocation);
         } else if (document.Body.Rtf != null) {
             WriteRtfPart(output, document.Body.Rtf, state, "body/rtf");
         } else {
@@ -369,9 +379,16 @@ internal static class MimeWriter {
         return (includeTextBody ? 1 : 0) + (body.Html == null ? 0 : 1) + (body.Rtf == null ? 0 : 1);
     }
 
-    private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength) {
+    private static void WriteTextPart(Stream output, string mediaType, string text, int base64LineLength,
+        string? contentId = null, string? contentLocation = null) {
         WriteLine(output, string.Concat("Content-Type: ", mediaType, "; charset=utf-8"));
         WriteLine(output, "Content-Transfer-Encoding: base64");
+        if (!string.IsNullOrWhiteSpace(contentId)) {
+            WriteLine(output, string.Concat("Content-ID: <", SanitizeMessageId(contentId!), ">"));
+        }
+        if (!string.IsNullOrWhiteSpace(contentLocation)) {
+            WriteLine(output, string.Concat("Content-Location: ", EncodeHeaderText(contentLocation!)));
+        }
         WriteLine(output, string.Empty);
         WriteBase64(output, Encoding.UTF8.GetBytes(text), base64LineLength);
     }

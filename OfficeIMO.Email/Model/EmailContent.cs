@@ -16,6 +16,12 @@ public sealed class EmailBody {
 
     /// <summary>Declared charset for the selected HTML body.</summary>
     public string? HtmlCharset { get; set; }
+
+    /// <summary>Content-ID attached to the selected HTML MIME body part, without angle brackets.</summary>
+    public string? HtmlContentId { get; set; }
+
+    /// <summary>Content location attached to the selected HTML MIME body part.</summary>
+    public string? HtmlContentLocation { get; set; }
 }
 
 /// <summary>Represents a file, inline resource, or embedded item attachment.</summary>
@@ -44,6 +50,12 @@ public sealed class EmailAttachment {
 
     /// <summary>True when the source marks the attachment as inline.</summary>
     public bool IsInline { get; set; }
+
+    /// <summary>
+    /// True when the source places this part inside the MIME related-resource set. Writers also infer related
+    /// membership from exact HTML Content-ID and Content-Location references.
+    /// </summary>
+    public bool IsMimeRelated { get; set; }
 
     /// <summary>True when Outlook marks the attachment hidden.</summary>
     public bool IsHidden { get; set; }
