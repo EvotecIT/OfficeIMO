@@ -6,7 +6,7 @@ using DocumentFormat.OpenXml.Spreadsheet;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
-        private static string GetUnsupportedFormulaReason(string formula) {
+        private string GetUnsupportedFormulaReason(string formula) {
             if (string.IsNullOrWhiteSpace(formula)) {
                 return "Formula is empty.";
             }
@@ -37,6 +37,10 @@ namespace OfficeIMO.Excel {
                 Match functionMatch = FunctionNameFormulaRegex.Match(formula);
                 if (functionMatch.Success) {
                     string function = functionMatch.Groups[1].Value.ToUpperInvariant();
+                    if (_excelDocument.Calculation.TryGetCustomFunction(function, out _)) {
+                        return $"Formula uses registered custom function '{function}' with arguments the custom evaluator cannot currently evaluate.";
+                    }
+
                     return $"Function '{function}' is not supported by OfficeIMO's lightweight evaluator.";
                 }
             } catch (RegexMatchTimeoutException) {

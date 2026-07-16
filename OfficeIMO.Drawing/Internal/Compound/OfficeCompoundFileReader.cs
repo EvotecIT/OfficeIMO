@@ -131,7 +131,8 @@ namespace OfficeIMO.Drawing.Internal {
                     }
                 }
 
-                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries));
+                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries),
+                    CreateCompoundEntry(root!, "Root Entry"));
                 return true;
             } catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is InvalidDataException || ex is OverflowException || ex is IndexOutOfRangeException) {
                 compoundFile = null;
@@ -281,6 +282,10 @@ namespace OfficeIMO.Drawing.Internal {
                     ReadUInt32(directoryBytes, offset + 68),
                     ReadUInt32(directoryBytes, offset + 72),
                     ReadUInt32(directoryBytes, offset + 76),
+                    ReadGuid(directoryBytes, offset + 80),
+                    ReadUInt32(directoryBytes, offset + 96),
+                    ReadUInt64(directoryBytes, offset + 100),
+                    ReadUInt64(directoryBytes, offset + 108),
                     ReadUInt32(directoryBytes, offset + 116),
                     majorVersion == 3
                         ? ReadUInt32(directoryBytes, offset + 120)
@@ -303,8 +308,7 @@ namespace OfficeIMO.Drawing.Internal {
                 }
 
                 if (!result.Any(item => string.Equals(item.Path, entry.Name, StringComparison.OrdinalIgnoreCase))) {
-                    result.Add(new OfficeCompoundFileEntry(entry.Name, entry.Name, entry.ObjectType, entry.Size,
-                        isFallback: true));
+                    result.Add(CreateCompoundEntry(entry, entry.Name, isFallback: true));
                 }
             }
 
@@ -353,7 +357,7 @@ namespace OfficeIMO.Drawing.Internal {
             TraverseDirectoryTree(entries, entry.LeftSiblingId, parentPath, result, visited, depth + 1);
             if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
                 string path = string.IsNullOrEmpty(parentPath) ? entry.Name : parentPath + "/" + entry.Name;
-                result.Add(new OfficeCompoundFileEntry(entry.Name, path, entry.ObjectType, entry.Size));
+                result.Add(CreateCompoundEntry(entry, path));
                 if (entry.ObjectType == 1 || entry.ObjectType == 5) {
                     TraverseDirectoryTree(entries, entry.ChildId, path, result, visited, depth + 1);
                 }
@@ -425,14 +429,30 @@ namespace OfficeIMO.Drawing.Internal {
             return low | ((ulong)high << 32);
         }
 
+        private static Guid ReadGuid(byte[] bytes, int offset) {
+            var value = new byte[16];
+            Buffer.BlockCopy(bytes, offset, value, 0, value.Length);
+            return new Guid(value);
+        }
+
+        private static OfficeCompoundFileEntry CreateCompoundEntry(DirectoryEntry entry, string path,
+            bool isFallback = false) => new OfficeCompoundFileEntry(entry.Name, path, entry.ObjectType, entry.Size,
+                isFallback, entry.ClassId, entry.StateBits, entry.CreationTime, entry.ModifiedTime);
+
         private sealed class DirectoryEntry {
-            internal DirectoryEntry(int index, string name, byte objectType, uint leftSiblingId, uint rightSiblingId, uint childId, uint startSector, long size) {
+            internal DirectoryEntry(int index, string name, byte objectType, uint leftSiblingId,
+                uint rightSiblingId, uint childId, Guid classId, uint stateBits, ulong creationTime,
+                ulong modifiedTime, uint startSector, long size) {
                 Index = index;
                 Name = name;
                 ObjectType = objectType;
                 LeftSiblingId = leftSiblingId;
                 RightSiblingId = rightSiblingId;
                 ChildId = childId;
+                ClassId = classId;
+                StateBits = stateBits;
+                CreationTime = creationTime;
+                ModifiedTime = modifiedTime;
                 StartSector = startSector;
                 Size = size;
             }
@@ -448,6 +468,14 @@ namespace OfficeIMO.Drawing.Internal {
             internal uint RightSiblingId { get; }
 
             internal uint ChildId { get; }
+
+            internal Guid ClassId { get; }
+
+            internal uint StateBits { get; }
+
+            internal ulong CreationTime { get; }
+
+            internal ulong ModifiedTime { get; }
 
             internal uint StartSector { get; }
 

@@ -1,3 +1,4 @@
+using OfficeIMO.Drawing.Internal;
 using OfficeIMO.Word;
 using OfficeIMO.Word.LegacyDoc;
 using Xunit;
@@ -83,6 +84,20 @@ namespace OfficeIMO.Tests {
             InvalidDataException exception = Assert.Throws<InvalidDataException>(() => WordDocument.Load(path));
 
             Assert.Contains("legacy Excel workbook", exception.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void Load_WhenInputIsLegacyPowerPoint_ReportsFormatMismatch() {
+            byte[] compound = OfficeCompoundFileWriter.Write(new[] {
+                new OfficeCompoundStream("PowerPoint Document", new byte[] { 1, 2, 3 }),
+                new OfficeCompoundStream("Current User", new byte[] { 4, 5, 6 })
+            });
+
+            InvalidDataException exception = Assert.Throws<InvalidDataException>(() =>
+                WordDocument.Load(new MemoryStream(compound)));
+
+            Assert.Contains("legacy PowerPoint presentation", exception.Message,
+                StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

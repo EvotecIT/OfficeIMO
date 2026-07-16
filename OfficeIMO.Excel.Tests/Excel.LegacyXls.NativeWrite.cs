@@ -169,24 +169,95 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NativeSave_BlocksImportedCompoundFeaturesWithoutExplicitOptIn() {
+        public void LegacyXls_NativeSave_PreservesImportedVbaProjectAndWritesWorkbookMarker() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
-            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithVbaProjectStorage(workbookStream);
-            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+            byte[] vbaPayload = { 0x01, 0x00, 0x4d, 0x41, 0x43, 0x52, 0x4f };
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithVbaProjectPayload(
+                workbookStream,
+                vbaPayload);
 
-            try {
-                using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
-                Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
-                Assert.Empty(document.LegacyXlsUnsupportedFeatures);
-                LegacyXlsCompoundFeatureRecord feature = Assert.Single(document.LegacyXlsCompoundFeatures);
-                Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, feature.Kind);
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
+            Assert.True(document.SourceFormat == ExcelFileFormat.Xls);
+            Assert.Empty(document.LegacyXlsUnsupportedFeatures);
+            LegacyXlsCompoundFeatureRecord feature = Assert.Single(document.LegacyXlsCompoundFeatures);
+            Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, feature.Kind);
+            ExcelSheet sheet = Assert.Single(document.Sheets);
+            sheet.CellValue(1, 1, "Edited with VBA preserved");
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
-                Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), exception.Message);
-                Assert.False(File.Exists(xlsOutputPath));
-            } finally {
-                TryDelete(xlsOutputPath);
-            }
+            using var conversionOutput = new MemoryStream(new byte[] { 7, 8, 9 }, writable: true);
+            NotSupportedException conversionException = Assert.Throws<NotSupportedException>(() =>
+                document.Save(conversionOutput, ExcelFileFormat.Xlsx));
+            Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), conversionException.Message);
+            Assert.Equal(new byte[] { 7, 8, 9 }, conversionOutput.ToArray());
+
+            using var output = new MemoryStream();
+            document.Save(output, ExcelFileFormat.Xls);
+            byte[] savedBytes = output.ToArray();
+
+            Assert.Equal(vbaPayload, ReadCompoundStream(savedBytes, "_VBA_PROJECT_CUR/VBA/dir"));
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(savedBytes));
+            result.EnsureNoImportErrors();
+            Assert.True(result.Workbook.HasVbaProjectMarker);
+            Assert.Contains(result.CompoundFeatures, item => item.Kind == LegacyXlsCompoundFeatureRecordKind.VbaProject);
+            LegacyXlsCell cell = Assert.Single(Assert.Single(result.Workbook.Worksheets).Cells,
+                item => item.Row == 1 && item.Column == 1);
+            Assert.Equal("Edited with VBA preserved", Assert.IsType<string>(cell.Value));
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_StillBlocksImportedOleObjectsWithoutExplicitOptIn() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
+            byte[] olePayload = { 0x01, 0x4f, 0x4c, 0x45 };
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithOleObjectPayload(
+                workbookStream,
+                olePayload);
+
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
+            Assert.Contains(document.LegacyXlsCompoundFeatures,
+                feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.OleObject);
+            using var output = new MemoryStream(new byte[] { 1, 2, 3, 4 }, writable: true);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Save(output, ExcelFileFormat.Xls));
+
+            Assert.Contains(nameof(ExcelSaveOptions.LossPolicy), exception.Message);
+            Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
+
+            using var allowedOutput = new MemoryStream();
+            document.Save(allowedOutput, ExcelFileFormat.Xls, new ExcelSaveOptions {
+                LossPolicy = ExcelConversionLossPolicy.Allow
+            });
+            Assert.Equal(
+                olePayload,
+                ReadCompoundStream(allowedOutput.ToArray(), "ObjectPool/OLEPackage/\u0001Ole10Native"));
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_BlocksLegacyDigitalSignaturesByDefault() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithDigitalSignatureStream(workbookStream);
+            byte[] signatureStream = ReadCompoundStream(compound, "_signatures");
+
+            using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
+            Assert.Contains(document.LegacyXlsUnsupportedFeatures,
+                feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DigitalSignature);
+            Assert.Contains(document.LegacyXlsCompoundFeatures,
+                feature => feature.Kind == LegacyXlsCompoundFeatureRecordKind.DigitalSignature);
+            using var blockedOutput = new MemoryStream(new byte[] { 4, 3, 2, 1 }, writable: true);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Save(blockedOutput, ExcelFileFormat.Xls));
+
+            Assert.Contains("DigitalSignature", exception.Message);
+            Assert.Equal(new byte[] { 4, 3, 2, 1 }, blockedOutput.ToArray());
+
+            using var allowedOutput = new MemoryStream();
+            document.Save(allowedOutput, ExcelFileFormat.Xls, new ExcelSaveOptions {
+                LossPolicy = ExcelConversionLossPolicy.Allow
+            });
+            Assert.Equal(
+                signatureStream,
+                ReadCompoundStream(allowedOutput.ToArray(), "_signatures"));
         }
 
         [Fact]

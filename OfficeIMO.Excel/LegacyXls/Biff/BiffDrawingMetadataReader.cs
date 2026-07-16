@@ -1,5 +1,4 @@
-using System.Security.Cryptography;
-using System.Text;
+using OfficeIMO.Drawing.Binary;
 using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
@@ -334,125 +333,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort recordInstance,
             out LegacyXlsDrawingBlipStoreEntry? entry) {
             entry = null;
-            if (contentStart < 0 || contentStart + 36 > contentEnd) {
+            if (contentStart < 0 || contentEnd < contentStart || contentEnd > payload.Length
+                || !OfficeArtBlipStoreEntryReader.TryRead(payload, contentStart,
+                    contentEnd - contentStart, recordInstance, delayStream: null,
+                    out OfficeArtBlipStoreEntry? sharedEntry) || sharedEntry == null) {
                 return false;
             }
-
-            byte win32BlipType = payload[contentStart];
-            byte macOsBlipType = payload[contentStart + 1];
-            string uidHex = ToHexString(payload, contentStart + 2, 16);
-            uint sizeBytes = BiffRecordReader.ReadUInt32(payload, contentStart + 20);
-            uint referenceCount = BiffRecordReader.ReadUInt32(payload, contentStart + 24);
-            byte nameByteCount = payload[contentStart + 33];
-            int embeddedOffset = contentStart + 36 + nameByteCount;
-            ushort? embeddedRecordType = null;
-            uint? embeddedPayloadLength = null;
-            int? embeddedPayloadAvailableLength = null;
-            string? embeddedPayloadSha256 = null;
-            byte[]? embeddedPayloadBytes = null;
-            if (embeddedOffset + 8 <= contentEnd) {
-                embeddedRecordType = BiffRecordReader.ReadUInt16(payload, embeddedOffset + 2);
-                embeddedPayloadLength = BiffRecordReader.ReadUInt32(payload, embeddedOffset + 4);
-                int embeddedPayloadOffset = embeddedOffset + 8;
-                int declaredEmbeddedPayloadLength = embeddedPayloadLength > int.MaxValue
-                    ? int.MaxValue
-                    : (int)embeddedPayloadLength.Value;
-                embeddedPayloadAvailableLength = Math.Min(Math.Max(0, contentEnd - embeddedPayloadOffset), declaredEmbeddedPayloadLength);
-                if (embeddedPayloadAvailableLength > 0) {
-                    embeddedPayloadSha256 = ComputeSha256(payload, embeddedPayloadOffset, embeddedPayloadAvailableLength.Value);
-                    embeddedPayloadBytes = CopyEmbeddedBlipPayload(payload, embeddedPayloadOffset, embeddedPayloadAvailableLength.Value, embeddedRecordType);
-                }
-            }
-
-            entry = new LegacyXlsDrawingBlipStoreEntry(
-                recordInstance,
-                win32BlipType,
-                macOsBlipType,
-                uidHex,
-                sizeBytes,
-                referenceCount,
-                embeddedRecordType,
-                embeddedPayloadLength,
-                embeddedPayloadAvailableLength,
-                embeddedPayloadSha256,
-                embeddedPayloadBytes);
+            entry = new LegacyXlsDrawingBlipStoreEntry(sharedEntry);
             return true;
-        }
-
-        private static byte[] CopyEmbeddedBlipPayload(byte[] payload, int offset, int count, ushort? embeddedRecordType) {
-            int imageOffset = FindEmbeddedImageOffset(payload, offset, count, embeddedRecordType);
-            int imageLength = count - (imageOffset - offset);
-            if (imageLength <= 0) {
-                return Array.Empty<byte>();
-            }
-
-            var bytes = new byte[imageLength];
-            Buffer.BlockCopy(payload, imageOffset, bytes, 0, imageLength);
-            return bytes;
-        }
-
-        private static int FindEmbeddedImageOffset(byte[] payload, int offset, int count, ushort? embeddedRecordType) {
-            if (!embeddedRecordType.HasValue) {
-                return offset;
-            }
-
-            int maxScan = Math.Min(count, 32);
-            switch (embeddedRecordType.Value) {
-                case 0xF01D:
-                case 0xF02A:
-                    for (int i = 0; i + 1 < maxScan; i++) {
-                        if (payload[offset + i] == 0xff && payload[offset + i + 1] == 0xd8) {
-                            return offset + i;
-                        }
-                    }
-
-                    break;
-                case 0xF01E:
-                    for (int i = 0; i + 3 < maxScan; i++) {
-                        if (payload[offset + i] == 0x89
-                            && payload[offset + i + 1] == 0x50
-                            && payload[offset + i + 2] == 0x4e
-                            && payload[offset + i + 3] == 0x47) {
-                            return offset + i;
-                        }
-                    }
-
-                    break;
-                case 0xF01F:
-                    for (int i = 0; i + 1 < maxScan; i++) {
-                        if (payload[offset + i] == 0x42 && payload[offset + i + 1] == 0x4d) {
-                            return offset + i;
-                        }
-                    }
-
-                    break;
-                case 0xF029:
-                    for (int i = 0; i + 3 < maxScan; i++) {
-                        if ((payload[offset + i] == 0x49 && payload[offset + i + 1] == 0x49 && payload[offset + i + 2] == 0x2a && payload[offset + i + 3] == 0x00)
-                            || (payload[offset + i] == 0x4d && payload[offset + i + 1] == 0x4d && payload[offset + i + 2] == 0x00 && payload[offset + i + 3] == 0x2a)) {
-                            return offset + i;
-                        }
-                    }
-
-                    break;
-            }
-
-            return offset;
-        }
-
-        private static string ComputeSha256(byte[] payload, int offset, int count) {
-            using SHA256 sha256 = SHA256.Create();
-            byte[] hash = sha256.ComputeHash(payload, offset, count);
-            return ToHexString(hash, 0, hash.Length);
-        }
-
-        private static string ToHexString(byte[] payload, int offset, int count) {
-            var builder = new StringBuilder(count * 2);
-            for (int i = 0; i < count; i++) {
-                builder.Append(payload[offset + i].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
-            }
-
-            return builder.ToString();
         }
 
         private static bool TryReadShape(
@@ -520,55 +408,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int contentEnd,
             ushort propertyCount,
             List<LegacyXlsDrawingShapeProperty> properties) {
-            int fixedLength = propertyCount * 6;
-            if (propertyCount == 0 || contentStart < 0 || contentStart + fixedLength > contentEnd) {
-                return;
+            if (contentStart < 0 || contentEnd < contentStart || contentEnd > payload.Length) return;
+            foreach (OfficeArtProperty property in OfficeArtPropertyTableReader.Read(payload,
+                         contentStart, contentEnd - contentStart, propertyCount)) {
+                properties.Add(new LegacyXlsDrawingShapeProperty(property));
             }
-
-            int complexOffset = contentStart + fixedLength;
-            for (int index = 0; index < propertyCount; index++) {
-                int propertyOffset = contentStart + index * 6;
-                ushort rawOperationId = BiffRecordReader.ReadUInt16(payload, propertyOffset);
-                uint value = BiffRecordReader.ReadUInt32(payload, propertyOffset + 2);
-                bool isComplex = (rawOperationId & 0x8000) != 0;
-                int? availableComplexDataLength = null;
-                string? complexText = null;
-                if (isComplex) {
-                    availableComplexDataLength = GetAvailableComplexDataLength(value, complexOffset, contentEnd);
-                    ushort propertyId = checked((ushort)(rawOperationId & 0x3fff));
-                    complexText = TryReadComplexTextProperty(payload, complexOffset, availableComplexDataLength.Value, propertyId);
-                    complexOffset += availableComplexDataLength.Value;
-                }
-
-                properties.Add(new LegacyXlsDrawingShapeProperty(index, rawOperationId, value, availableComplexDataLength, complexText));
-            }
-        }
-
-        private static string? TryReadComplexTextProperty(byte[] payload, int offset, int byteCount, ushort propertyId) {
-            if (!IsComplexTextProperty(propertyId) || byteCount <= 0 || offset < 0 || offset > payload.Length || byteCount > payload.Length - offset) {
-                return null;
-            }
-
-            int evenByteCount = byteCount - (byteCount % 2);
-            if (evenByteCount <= 0) {
-                return null;
-            }
-
-            string value = Encoding.Unicode.GetString(payload, offset, evenByteCount).TrimEnd('\0');
-            return string.IsNullOrWhiteSpace(value) ? null : value;
-        }
-
-        private static bool IsComplexTextProperty(ushort propertyId) {
-            return propertyId == 0x0380;
-        }
-
-        private static int GetAvailableComplexDataLength(uint declaredLength, int complexOffset, int contentEnd) {
-            if (declaredLength > int.MaxValue || complexOffset >= contentEnd) {
-                return 0;
-            }
-
-            int remaining = contentEnd - complexOffset;
-            return Math.Min((int)declaredLength, remaining);
         }
 
         private static bool TryReadEscherHeader(

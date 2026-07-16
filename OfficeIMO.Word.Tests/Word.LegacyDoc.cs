@@ -4763,12 +4763,22 @@ namespace OfficeIMO.Tests {
                 byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
                 int ccpText = BitConverter.ToInt32(wordDocumentStream, 0x4C);
                 int ccpHdd = BitConverter.ToInt32(wordDocumentStream, 0x54);
+                int fcPlcfSed = BitConverter.ToInt32(wordDocumentStream, 0xCA);
+                int lcbPlcfSed = BitConverter.ToInt32(wordDocumentStream, 0xCE);
+                int fcPlcfHdd = BitConverter.ToInt32(wordDocumentStream, 0xF2);
+                int lcbPlcfHdd = BitConverter.ToInt32(wordDocumentStream, 0xF6);
                 string formattedStory = "plain bold italic\r\r";
                 int headerStart = ccpText;
                 int footerStart = headerStart + formattedStory.Length;
 
                 Assert.Equal(bodyText.Length + 1, ccpText);
-                Assert.Equal(formattedStory.Length * 2, ccpHdd);
+                Assert.Equal((formattedStory.Length * 2) + 1, ccpHdd);
+                Assert.Equal(20, lcbPlcfSed);
+                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed));
+                Assert.Equal(ccpText, BitConverter.ToInt32(tableStream, fcPlcfSed + 4));
+                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfSed + 10));
+                Assert.Equal(ccpHdd - 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 8));
+                Assert.Equal(ccpHdd + 1, BitConverter.ToInt32(tableStream, fcPlcfHdd + lcbPlcfHdd - 4));
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain ".Length, "bold ".Length, 0x0835, 1);
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, headerStart + "plain bold ".Length, "italic".Length, 0x0836, 1);
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, footerStart + "plain ".Length, "bold ".Length, 0x0835, 1);
@@ -8062,6 +8072,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(
                     ContainsBytePattern(wordDocumentStream, 0x17, 0x24, 0x01),
                     "Expected the native DOC paragraph property stream to contain sprmPFTtp.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x49, 0x66, 0x01, 0x00, 0x00, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmPItap with outer-table depth 1.");
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
@@ -10656,7 +10669,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksRevisionTrackingSettingsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesRevisionTrackingSettings() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -10664,52 +10677,186 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Tracked settings");
                 document.Settings.TrackRevisions = true;
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                document.Save(docPath);
 
-                Assert.Contains("revision tracking", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(docBytes, "1Table");
+                int dopOffset = BitConverter.ToInt32(wordDocumentStream, 0x192);
+                uint dopFlags = BitConverter.ToUInt32(tableStream, dopOffset + 4);
+                Assert.Equal(0x00008000U, dopFlags & 0x40008000U);
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.Settings.TrackRevisions);
+                Assert.Equal("Tracked settings", Assert.Single(reloaded.Paragraphs).Text);
             } finally {
                 DeleteIfExists(docPath);
             }
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksTrackedRevisionMarkupBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesTrackedInsertionsAndDeletionsWithAuthorAndDate() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            DateTime insertedDate = new(2024, 5, 6, 7, 8, 0, DateTimeKind.Utc);
+            DateTime deletedDate = new(2024, 5, 7, 9, 10, 0, DateTimeKind.Utc);
 
             try {
                 using WordDocument document = WordDocument.Create();
                 WordParagraph paragraph = document.AddParagraph("Review ");
-                paragraph.AddInsertedText("inserted", "OfficeIMO");
-                paragraph.AddDeletedText("deleted", "OfficeIMO");
+                paragraph.AddInsertedText("inserted", "Alice", insertedDate);
+                paragraph.AddDeletedText("deleted", "Bob", deletedDate);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                document.Save(docPath);
 
-                Assert.Contains("tracked revision markup", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(docBytes, "1Table");
+                int authorTableOffset = BitConverter.ToInt32(wordDocumentStream, 0x232);
+                int authorTableLength = BitConverter.ToInt32(wordDocumentStream, 0x236);
+                Assert.True(authorTableOffset > 0);
+                Assert.True(authorTableLength > 6);
+                Assert.Equal(0xFFFF, BitConverter.ToUInt16(tableStream, authorTableOffset));
+                Assert.Equal(3, BitConverter.ToUInt16(tableStream, authorTableOffset + 2));
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, "Review ".Length, "inserted".Length, 0x0801, 1);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, "Review inserted".Length, "deleted".Length, 0x0800, 1);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                InsertedRun inserted = Assert.Single(body.Descendants<InsertedRun>());
+                DeletedRun deleted = Assert.Single(body.Descendants<DeletedRun>());
+                Assert.Equal("Alice", inserted.Author?.Value);
+                Assert.Equal(insertedDate.Date.AddHours(7).AddMinutes(8), inserted.Date?.Value);
+                Assert.Equal("inserted", inserted.InnerText);
+                Assert.Equal("Bob", deleted.Author?.Value);
+                Assert.Equal(deletedDate.Date.AddHours(9).AddMinutes(10), deleted.Date?.Value);
+                Assert.Equal("deleted", deleted.InnerText);
             } finally {
                 DeleteIfExists(docPath);
             }
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksTrackedRevisionMarkupInNonBodyStoriesBeforeCreatingFile() {
+        public void LegacyDoc_CharacterFormattingReader_DecodesMicrosoftRevisionSprms() {
+            IReadOnlyList<string> authors = new[] { "Unknown", "Alice", "Bob" };
+            byte[] insertedGrpprl = { 0x01, 0x08, 0x01, 0x04, 0x48, 0x01, 0x00, 0x05, 0x68, 0xC8, 0x31, 0xC5, 0x27 };
+            byte[] deletedGrpprl = { 0x00, 0x08, 0x01, 0x63, 0x48, 0x02, 0x00, 0x64, 0x68, 0xC8, 0x39, 0xC5, 0x47 };
+
+            LegacyDocCharacterFormat inserted = LegacyDocCharacterFormattingReader.ReadGrpprl(
+                insertedGrpprl,
+                0,
+                insertedGrpprl.Length,
+                Array.Empty<string>(),
+                authors);
+            LegacyDocCharacterFormat deleted = LegacyDocCharacterFormattingReader.ReadGrpprl(
+                deletedGrpprl,
+                0,
+                deletedGrpprl.Length,
+                Array.Empty<string>(),
+                authors);
+
+            Assert.Equal(LegacyDocRevisionKind.Inserted, inserted.Revision.Kind);
+            Assert.Equal("Alice", inserted.Revision.Author);
+            Assert.Equal(new DateTime(2024, 5, 6, 7, 8, 0), inserted.Revision.Date);
+            Assert.Equal(LegacyDocRevisionKind.Deleted, deleted.Revision.Kind);
+            Assert.Equal("Bob", deleted.Revision.Author);
+            Assert.Equal(new DateTime(2024, 5, 7, 7, 8, 0), deleted.Revision.Date);
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesTrackedRevisionMarkupInNonBodyStories() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            DateTime revisionDate = new(2024, 6, 7, 8, 9, 0, DateTimeKind.Utc);
 
             try {
                 using WordDocument document = WordDocument.Create();
                 document.AddParagraph("Body");
                 WordSection section = document.Sections[0];
-                section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header ").AddInsertedText("inserted", "OfficeIMO");
-                section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer ").AddDeletedText("deleted", "OfficeIMO");
+                section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header ").AddInsertedText("inserted", "Alice", revisionDate);
+                section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer ").AddDeletedText("deleted", "Bob", revisionDate);
 
                 WordParagraph paragraph = document.AddParagraph("Notes");
-                paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1].AddInsertedText(" inserted", "OfficeIMO");
-                paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1].AddDeletedText(" deleted", "OfficeIMO");
+                paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1].AddInsertedText(" inserted", "Alice", revisionDate);
+                paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1].AddDeletedText(" deleted", "Bob", revisionDate);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                InsertedRun headerInsertion = Assert.Single(mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<InsertedRun>()));
+                DeletedRun footerDeletion = Assert.Single(mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<DeletedRun>()));
+                InsertedRun footnoteInsertion = Assert.Single(mainPart.FootnotesPart!.Footnotes!.Descendants<InsertedRun>());
+                DeletedRun endnoteDeletion = Assert.Single(mainPart.EndnotesPart!.Endnotes!.Descendants<DeletedRun>());
+                Assert.Equal("Alice", headerInsertion.Author?.Value);
+                Assert.Equal("inserted", headerInsertion.InnerText);
+                Assert.Equal("Bob", footerDeletion.Author?.Value);
+                Assert.Equal("deleted", footerDeletion.InnerText);
+                Assert.Equal("Alice", footnoteInsertion.Author?.Value);
+                Assert.Equal(" inserted", footnoteInsertion.InnerText);
+                Assert.Equal("Bob", endnoteDeletion.Author?.Value);
+                Assert.Equal(" deleted", endnoteDeletion.InnerText);
+                Assert.All(
+                    new DateTime?[] { headerInsertion.Date?.Value, footerDeletion.Date?.Value, footnoteInsertion.Date?.Value, endnoteDeletion.Date?.Value },
+                    date => Assert.Equal(new DateTime(2024, 6, 7, 8, 9, 0), date));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesTrackedRevisionMarkupInCommentsAndTables() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            DateTime revisionDate = new(2024, 7, 8, 9, 10, 0, DateTimeKind.Utc);
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph anchor = document.AddParagraph("Commented");
+                anchor.AddComment("OfficeIMO", "OI", "Comment ");
+                WordComment comment = Assert.Single(document.Comments);
+                comment.Paragraphs[0].AddInsertedText("inserted", "Alice", revisionDate);
+                comment.Paragraphs[0].AddDeletedText("deleted", "Bob", revisionDate);
+
+                WordTable table = document.AddTable(1, 1);
+                WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+                cellParagraph.AddText("Cell ");
+                cellParagraph.AddInsertedText("inserted", "Alice", revisionDate);
+                cellParagraph.AddDeletedText("deleted", "Bob", revisionDate);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                Assert.Contains(
+                    mainPart.Document.Body!.Descendants<InsertedRun>(),
+                    revision => revision.InnerText == "inserted" && revision.Author?.Value == "Alice");
+                Assert.Contains(
+                    mainPart.Document.Body.Descendants<DeletedRun>(),
+                    revision => revision.InnerText == "deleted" && revision.Author?.Value == "Bob");
+                WordComment reloadedComment = Assert.Single(reloaded.Comments);
+                InsertedRun commentInsertion = Assert.Single(reloadedComment.Paragraphs[0]._paragraph.Descendants<InsertedRun>());
+                DeletedRun commentDeletion = Assert.Single(reloadedComment.Paragraphs[0]._paragraph.Descendants<DeletedRun>());
+                Assert.Equal("inserted", commentInsertion.InnerText);
+                Assert.Equal("deleted", commentDeletion.InnerText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksTrackedMoveMarkupBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Review ");
+                paragraph._paragraph.Append(new MoveFromRun(
+                    new Run(new DeletedText("moved") { Space = SpaceProcessingModeValues.Preserve })) {
+                    Author = "OfficeIMO",
+                    Date = new DateTime(2024, 8, 9, 10, 11, 0, DateTimeKind.Utc),
+                    Id = WordHeadersAndFooters.GenerateRevisionId()
+                });
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("tracked revision markup", exception.Message.ToLowerInvariant());
+                Assert.Contains("tracked move", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -10717,17 +10864,163 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksCommentsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesTrackedInlinePictureRevision() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Picture ");
+                paragraph.AddImage(jpegPath, 24, 18);
+                Run sourceRun = paragraph._paragraph.Elements<Run>().Last(run => run.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any());
+                DocumentFormat.OpenXml.Wordprocessing.Drawing drawing = sourceRun.GetFirstChild<DocumentFormat.OpenXml.Wordprocessing.Drawing>()!;
+                drawing.Remove();
+                var pictureRun = new Run(drawing);
+                if (!sourceRun.ChildElements.Any(element => element is not RunProperties)) {
+                    sourceRun.Remove();
+                }
+
+                paragraph._paragraph.Append(new InsertedRun(pictureRun) {
+                    Author = "Alice",
+                    Date = new DateTime(2024, 9, 10, 11, 12, 0, DateTimeKind.Utc),
+                    Id = WordHeadersAndFooters.GenerateRevisionId()
+                });
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                InsertedRun insertedPicture = Assert.Single(
+                    reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Descendants<InsertedRun>());
+                Assert.Equal("Alice", insertedPicture.Author?.Value);
+                Assert.Single(insertedPicture.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+                Assert.Single(reloaded.Images);
+                Assert.Equal("Picture ", string.Concat(reloaded.Paragraphs.Select(item => item.Text)));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesBodyComments() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
                 WordParagraph paragraph = document.AddParagraph("Commented");
-                paragraph.AddComment("OfficeIMO", "OI", "Native DOC comments are not supported yet.");
+                paragraph.AddComment("OfficeIMO", "OI", "Native DOC comment");
+
+                document.Save(docPath);
+
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0x5C) > 0);
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0xBE) > 0);
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0xC6) > 0);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.Contains(reloaded.Paragraphs, item => item.Text == "Commented");
+                WordComment comment = Assert.Single(reloaded.Comments);
+                Assert.Equal("Native DOC comment", comment.Text);
+                Assert.Equal("OI", comment.Initials);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_NativeSave_RoundTripsImportedFormattedCommentStory() {
+            byte[] source = LegacyDocTestBuilder.CreateSimpleDocWithFormattedCommentStory(
+                "Body with formatted comment");
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string docxPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+
+            try {
+                using (WordDocument document = WordDocument.Load(new MemoryStream(source))) {
+                    Assert.Equal("plain bold italic", Assert.Single(document.Comments).Text);
+                    document.Save(docPath);
+                }
+
+                using (WordDocument reloaded = WordDocument.Load(docPath)) {
+                    WordComment comment = Assert.Single(reloaded.Comments);
+                    Assert.Equal("plain bold italic", comment.Text);
+                    Assert.Equal("LD", comment.Initials);
+                    reloaded.Save(docxPath);
+                }
+
+                AssertFormattedCommentRuns(docxPath);
+            } finally {
+                DeleteIfExists(docPath);
+                DeleteIfExists(docxPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_NativeSave_WritesMultipleCommentsAlongsideOtherStories() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.Sections[0]
+                        .GetOrCreateHeader(HeaderFooterValues.Default)
+                        .AddParagraph("Review header");
+                    WordParagraph first = document.AddParagraph("First review paragraph");
+                    first.AddComment("OfficeIMO", "A1", "First comment");
+                    first.AddFootNote("Review footnote");
+                    first.AddEndNote("Review endnote");
+                    WordParagraph second = document.AddParagraph("Second review paragraph");
+                    second.AddComment("OfficeIMO", "B2", "Second comment");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.Equal(
+                    new[] { "First comment", "Second comment" },
+                    reloaded.Comments.Select(comment => comment.Text).ToArray());
+                Assert.Equal(new[] { "A1", "B2" }, reloaded.Comments.Select(comment => comment.Initials).ToArray());
+                Assert.Equal("Review footnote", Assert.Single(reloaded.FootNotes).Paragraphs![1].Text);
+                Assert.Equal("Review endnote", Assert.Single(reloaded.EndNotes).Paragraphs![1].Text);
+                Assert.Contains(
+                    reloaded.Sections[0].Header.Default!.Paragraphs,
+                    paragraph => paragraph.Text == "Review header");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksThreadedCommentRepliesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Commented");
+                paragraph.AddComment("OfficeIMO", "OI", "Parent comment");
+                WordComment comment = Assert.Single(document.Comments);
+                comment.AddReply("Reviewer", "RV", "Reply comment");
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("comments", exception.Message.ToLowerInvariant());
+                Assert.Contains("threaded replies", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksResolvedCommentMetadataBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph paragraph = document.AddParagraph("Commented");
+                paragraph.AddComment("OfficeIMO", "OI", "Resolved comment");
+                Assert.Single(document.Comments).MarkResolved();
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("resolved-state", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -10759,17 +11052,95 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksBodyImagePartsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesAndReloadsBodyAndTableInlinePictures() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string pngPath = Path.Combine(_directoryWithImages, "BackgroundImage.png");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph jpegParagraph = document.AddParagraph("Before JPEG ");
+                    jpegParagraph.AddImage(jpegPath, 50, 40);
+                    jpegParagraph.AddText(" after JPEG");
+                    document.AddParagraph("PNG").AddImage(pngPath, 32, 24);
+                    WordParagraph tableParagraph = document.AddTable(1, 1)
+                        .Rows[0]
+                        .Cells[0]
+                        .AddParagraph("Cell ", removeExistingParagraphs: true);
+                    tableParagraph.AddImage(jpegPath, 20, 18);
+                    tableParagraph.AddText(" after picture");
+                    document.AddParagraph("Picture control ")
+                        .AddPictureControl(jpegPath, 22, 17, alias: "Legacy picture", tag: "legacy-picture");
+
+                    document.Save(docPath);
+                }
+
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                byte[] dataStream = ReadCompoundStream(docBytes, "Data");
+                Assert.NotEmpty(dataStream);
+                Assert.NotEqual(0, BitConverter.ToUInt16(wordDocumentStream, 0x0A) & 0x0008);
+
+                using (WordDocument reloaded = WordDocument.Load(docPath)) {
+                    Assert.Equal(4, reloaded.Images.Count);
+                    Assert.Equal("image/jpeg", reloaded.Images[0].ContentType);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[0].ToBytes());
+                    Assert.InRange(reloaded.Images[0].Width!.Value, 49.99, 50.01);
+                    Assert.InRange(reloaded.Images[0].Height!.Value, 39.99, 40.01);
+                    Assert.Equal("image/png", reloaded.Images[1].ContentType);
+                    Assert.Equal(File.ReadAllBytes(pngPath), reloaded.Images[1].ToBytes());
+                    Assert.InRange(reloaded.Images[1].Width!.Value, 31.99, 32.01);
+                    Assert.InRange(reloaded.Images[1].Height!.Value, 23.99, 24.01);
+                    Assert.Equal("image/jpeg", reloaded.Images[2].ContentType);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[2].ToBytes());
+                    Assert.InRange(reloaded.Images[2].Width!.Value, 21.99, 22.01);
+                    Assert.InRange(reloaded.Images[2].Height!.Value, 16.99, 17.01);
+                    Assert.Equal("image/jpeg", reloaded.Images[3].ContentType);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), reloaded.Images[3].ToBytes());
+                    Assert.InRange(reloaded.Images[3].Width!.Value, 19.99, 20.01);
+                    Assert.InRange(reloaded.Images[3].Height!.Value, 17.99, 18.01);
+                    Assert.Contains(
+                        "Before JPEG  after JPEG",
+                        string.Concat(reloaded.Paragraphs.Select(paragraph => paragraph.Text)),
+                        StringComparison.Ordinal);
+                    WordTable table = Assert.Single(reloaded.Tables);
+                    Assert.Equal(
+                        "Cell  after picture",
+                        string.Concat(table.Rows[0].Cells[0].Paragraphs.Select(paragraph => paragraph.Text)));
+                    Assert.Empty(reloaded.LegacyDocPreservedFeatures);
+                    Assert.Empty(reloaded.LegacyDocCompoundFeatures);
+
+                    reloaded.Save(roundTripPath);
+                }
+
+                byte[] roundTripData = ReadCompoundStream(File.ReadAllBytes(roundTripPath), "Data");
+                Assert.Equal(dataStream, roundTripData);
+
+                using WordDocument roundTripped = WordDocument.Load(roundTripPath);
+                Assert.Equal(4, roundTripped.Images.Count);
+            } finally {
+                DeleteIfExists(docPath);
+                DeleteIfExists(roundTripPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksFloatingBodyPicturesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                WordParagraph paragraph = document.AddParagraph("Body image");
-                paragraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                document.AddParagraph("Floating picture")
+                    .AddImage(
+                        Path.Combine(_directoryWithImages, "Kulek.jpg"),
+                        50,
+                        50,
+                        WrapTextImage.Square);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("Images", exception.Message);
+                Assert.Contains("inline pictures", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -10777,22 +11148,109 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksHeaderImagePartsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesAndReloadsHeaderFooterInlinePictures() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string pngPath = Path.Combine(_directoryWithImages, "BackgroundImage.png");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Body");
-                document.AddHeadersAndFooters();
-                WordParagraph headerParagraph = document.Sections[0].Header.Default!.AddParagraph();
-                headerParagraph.AddImage(Path.Combine(_directoryWithImages, "Kulek.jpg"), 50, 50);
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body");
+                    document.AddHeadersAndFooters();
+                    document.Sections[0].Header.Default!.AddParagraph("Header ").AddImage(jpegPath, 50, 40);
+                    document.Sections[0].Footer.Default!.AddParagraph("Footer ").AddImage(pngPath, 32, 24);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("Images", exception.Message);
-                Assert.False(File.Exists(docPath));
+                using (LegacyDocLoadResult loadResult = WordDocument.LoadLegacyDocWithReport(docPath)) {
+                    loadResult.EnsureNoImportErrors();
+                    WordDocument reloaded = loadResult.Document;
+                    Assert.Contains("DOC-PICTURES-PROJECTED", loadResult.ImportReport.DiagnosticsByCode.Keys);
+                    WordHeaderFooter header = reloaded.Sections[0].Header.Default!;
+                    WordHeaderFooter footer = reloaded.Sections[0].Footer.Default!;
+                    WordImage headerImage = Assert.Single(header.Images);
+                    WordImage footerImage = Assert.Single(footer.Images);
+                    Assert.Equal("image/jpeg", headerImage.ContentType);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), headerImage.ToBytes());
+                    Assert.InRange(headerImage.Width!.Value, 49.99, 50.01);
+                    Assert.InRange(headerImage.Height!.Value, 39.99, 40.01);
+                    Assert.Equal("image/png", footerImage.ContentType);
+                    Assert.Equal(File.ReadAllBytes(pngPath), footerImage.ToBytes());
+                    Assert.InRange(footerImage.Width!.Value, 31.99, 32.01);
+                    Assert.InRange(footerImage.Height!.Value, 23.99, 24.01);
+                    Assert.Empty(reloaded.LegacyDocPreservedFeatures);
+                    Assert.Empty(reloaded.LegacyDocCompoundFeatures);
+
+                    reloaded.Save(roundTripPath);
+                }
+
+                using WordDocument roundTripped = WordDocument.Load(roundTripPath);
+                Assert.Single(roundTripped.Sections[0].Header.Default!.Images);
+                Assert.Single(roundTripped.Sections[0].Footer.Default!.Images);
             } finally {
                 DeleteIfExists(docPath);
+                DeleteIfExists(roundTripPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesAndReloadsNoteAndCommentInlinePictures() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string roundTripPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string pngPath = Path.Combine(_directoryWithImages, "BackgroundImage.png");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Pictures in stories");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ");
+                    footnoteReference.FootNote!.Paragraphs![1].AddImage(jpegPath, 20, 18);
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ");
+                    endnoteReference.EndNote!.Paragraphs![1].AddImage(pngPath, 24, 16);
+                    paragraph.AddComment("OfficeIMO", "OI", "Comment ");
+                    Assert.Single(document.Comments).Paragraphs[0].AddImage(jpegPath, 18, 14);
+
+                    document.Save(docPath);
+                }
+
+                using (LegacyDocLoadResult loadResult = WordDocument.LoadLegacyDocWithReport(docPath)) {
+                    loadResult.EnsureNoImportErrors();
+                    WordDocument reloaded = loadResult.Document;
+                    Assert.Contains("DOC-PICTURES-PROJECTED", loadResult.ImportReport.DiagnosticsByCode.Keys);
+
+                    WordImage footnoteImage = Assert.Single(
+                        Assert.Single(reloaded.FootNotes).Paragraphs!,
+                        paragraph => paragraph.IsImage).Image!;
+                    WordImage endnoteImage = Assert.Single(
+                        Assert.Single(reloaded.EndNotes).Paragraphs!,
+                        paragraph => paragraph.IsImage).Image!;
+                    WordImage commentImage = Assert.Single(
+                        Assert.Single(reloaded.Comments).Paragraphs,
+                        paragraph => paragraph.IsImage).Image!;
+                    Assert.Equal(File.ReadAllBytes(jpegPath), footnoteImage.ToBytes());
+                    Assert.InRange(footnoteImage.Width!.Value, 19.99, 20.01);
+                    Assert.InRange(footnoteImage.Height!.Value, 17.99, 18.01);
+                    Assert.Equal(File.ReadAllBytes(pngPath), endnoteImage.ToBytes());
+                    Assert.InRange(endnoteImage.Width!.Value, 23.99, 24.01);
+                    Assert.InRange(endnoteImage.Height!.Value, 15.99, 16.01);
+                    Assert.Equal(File.ReadAllBytes(jpegPath), commentImage.ToBytes());
+                    Assert.InRange(commentImage.Width!.Value, 17.99, 18.01);
+                    Assert.InRange(commentImage.Height!.Value, 13.99, 14.01);
+                    Assert.Empty(reloaded.LegacyDocPreservedFeatures);
+                    Assert.Empty(reloaded.LegacyDocCompoundFeatures);
+
+                    reloaded.Save(roundTripPath);
+                }
+
+                using WordDocument roundTripped = WordDocument.Load(roundTripPath);
+                Assert.Single(Assert.Single(roundTripped.FootNotes).Paragraphs!, paragraph => paragraph.IsImage);
+                Assert.Single(Assert.Single(roundTripped.EndNotes).Paragraphs!, paragraph => paragraph.IsImage);
+                Assert.Single(Assert.Single(roundTripped.Comments).Paragraphs, paragraph => paragraph.IsImage);
+            } finally {
+                DeleteIfExists(docPath);
+                DeleteIfExists(roundTripPath);
             }
         }
 
@@ -11579,17 +12037,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksNativeDocSaveWhenImportedLegacyDocHasRevisionTrackingSettingsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_RoundTripsImportedLockedRevisionTrackingSettings() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Load(new MemoryStream(
-                    LegacyDocTestBuilder.CreateSimpleDocWithRevisionTrackingDop(0x40008000, "Tracked save block")));
+                    LegacyDocTestBuilder.CreateSimpleDocWithRevisionTrackingDop(0x40008000, "Tracked save roundtrip")));
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                document.Save(docPath);
 
-                Assert.Contains("revision tracking settings", exception.Message);
-                Assert.False(File.Exists(docPath));
+                byte[] docBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(docBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(docBytes, "1Table");
+                int dopOffset = BitConverter.ToInt32(wordDocumentStream, 0x192);
+                uint dopFlags = BitConverter.ToUInt32(tableStream, dopOffset + 4);
+                Assert.Equal(0x40008000U, dopFlags & 0x40008000U);
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.Settings.TrackRevisions);
+                Assert.Equal(DocumentProtectionValues.TrackedChanges, reloaded.Settings.ProtectionType);
+                Assert.Equal("Tracked save roundtrip", Assert.Single(reloaded.Paragraphs).Text);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -11623,6 +12089,74 @@ namespace OfficeIMO.Tests {
             Assert.Contains("imported from a legacy DOC", exception.Message);
             Assert.Contains("DOC-BINARY-DATA-STREAM-PRESENT", exception.Message);
             Assert.Equal(new byte[] { 1, 2, 3, 4 }, output.ToArray());
+        }
+
+        [Fact]
+        public void LegacyDoc_NativeSave_WithExplicitLossConsent_RetainsCompoundPayloadStreams() {
+            byte[] vbaPayload = { 0x01, 0x00, 0x56, 0x42, 0x41 };
+            byte[] packagePayload = { 0x10, 0x20, 0x30, 0x40 };
+            byte[] activeXPayload = { 0x41, 0x58, 0x01 };
+            byte[] dataPayload = { 0x44, 0x41, 0x54, 0x41 };
+            byte[] source = LegacyDocTestBuilder.CreateSimpleDocWithCompoundPayloadStreams(
+                vbaPayload,
+                packagePayload,
+                activeXPayload,
+                dataPayload,
+                "Original compound body");
+
+            using WordDocument document = WordDocument.Load(new MemoryStream(source));
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.VbaProject);
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.OleObject);
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.ActiveXControl);
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.BinaryData);
+            Assert.Single(document.Paragraphs).Text = "Edited compound body";
+
+            using var output = new MemoryStream();
+            document.Save(output, WordFileFormat.Doc, new WordSaveOptions {
+                LossPolicy = WordConversionLossPolicy.Allow
+            });
+            byte[] savedBytes = output.ToArray();
+
+            Assert.Equal(vbaPayload, ReadCompoundStream(savedBytes, "_VBA_PROJECT_CUR/VBA/dir"));
+            Assert.Equal(packagePayload, ReadCompoundStream(savedBytes, "ObjectPool/OLEPackage/\u0001Ole10Native"));
+            Assert.Equal(activeXPayload, ReadCompoundStream(savedBytes, "ActiveX/ControlData"));
+            Assert.Equal(dataPayload, ReadCompoundStream(savedBytes, "Data"));
+            using WordDocument reloaded = WordDocument.Load(new MemoryStream(savedBytes));
+            Assert.Equal("Edited compound body", Assert.Single(reloaded.Paragraphs).Text);
+        }
+
+        [Fact]
+        public void LegacyDoc_NativeSave_RequiresExplicitSignatureInvalidationForLegacySignatureStorage() {
+            byte[] signaturePayload = { 0x53, 0x49, 0x47, 0x4e };
+            byte[] source = LegacyDocTestBuilder.CreateSimpleDocWithDigitalSignatureStream(
+                signaturePayload,
+                "Signed legacy body");
+
+            using WordDocument document = WordDocument.Load(new MemoryStream(source));
+            Assert.Contains(document.LegacyDocUnsupportedFeatures,
+                feature => feature.Kind == LegacyDocUnsupportedFeatureKind.DigitalSignature);
+            Assert.Contains(document.LegacyDocCompoundFeatures,
+                feature => feature.Kind == LegacyDocCompoundFeatureKind.DigitalSignature);
+            using var blockedOutput = new MemoryStream(new byte[] { 9, 8, 7 }, writable: true);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                document.Save(blockedOutput, WordFileFormat.Doc, new WordSaveOptions {
+                    LossPolicy = WordConversionLossPolicy.Allow
+                }));
+
+            Assert.Contains(nameof(WordSaveOptions.SignedDocumentPolicy), exception.Message);
+            Assert.Equal(new byte[] { 9, 8, 7 }, blockedOutput.ToArray());
+
+            using var allowedOutput = new MemoryStream();
+            document.Save(allowedOutput, WordFileFormat.Doc, new WordSaveOptions {
+                LossPolicy = WordConversionLossPolicy.Allow,
+                SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation
+            });
+            Assert.Equal(signaturePayload, ReadCompoundStream(allowedOutput.ToArray(), "_signatures"));
         }
 
         private static class LegacyDocTestBuilder {
@@ -12264,6 +12798,59 @@ namespace OfficeIMO.Tests {
                     WriteStream(root, "WordDocument", wordDocumentStream);
                     WriteStream(root, "1Table", tableStream);
                     WriteStream(root, "Data", new byte[] { 1, 2, 3, 4 });
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithCompoundPayloadStreams(
+                byte[] vbaPayload,
+                byte[] packagePayload,
+                byte[] activeXPayload,
+                byte[] dataPayload,
+                params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, "Data", dataPayload);
+
+                    var vbaProject = root.CreateStorage("_VBA_PROJECT_CUR");
+                    var vba = vbaProject.CreateStorage("VBA");
+                    using (CfbStream dir = vba.CreateStream("dir")) {
+                        dir.Write(vbaPayload, 0, vbaPayload.Length);
+                    }
+
+                    var objectPool = root.CreateStorage("ObjectPool");
+                    var packageStorage = objectPool.CreateStorage("OLEPackage");
+                    using (CfbStream nativePackage = packageStorage.CreateStream("\u0001Ole10Native")) {
+                        nativePackage.Write(packagePayload, 0, packagePayload.Length);
+                    }
+
+                    var activeX = root.CreateStorage("ActiveX");
+                    using CfbStream controlData = activeX.CreateStream("ControlData");
+                    controlData.Write(activeXPayload, 0, activeXPayload.Length);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithDigitalSignatureStream(
+                byte[] signaturePayload,
+                params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, "_signatures", signaturePayload);
                 }
 
                 return package.ToArray();

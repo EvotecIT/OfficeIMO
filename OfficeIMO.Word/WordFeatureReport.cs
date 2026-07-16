@@ -24,7 +24,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Document-level feature and compatibility report.
     /// </summary>
-    public sealed class WordFeatureReport {
+    public sealed partial class WordFeatureReport {
         private readonly List<WordFeatureFinding> _features = new List<WordFeatureFinding>();
 
         internal WordFeatureReport(IReadOnlyList<WordFeatureFinding> features) {
@@ -194,6 +194,49 @@ namespace OfficeIMO.Word {
                 builder.Append(" | ");
                 builder.Append(EscapeMarkdownCell(FormatDetails(feature.Details)));
                 builder.AppendLine(" |");
+            }
+
+            builder.AppendLine();
+            builder.AppendLine("## Capability Preflight");
+            builder.AppendLine();
+            builder.AppendLine("| Capability | Available | Diagnostics |");
+            builder.AppendLine("| --- | --- | --- |");
+            foreach (WordPreflightCapability capability in Enum.GetValues(typeof(WordPreflightCapability))) {
+                builder.Append("| ");
+                builder.Append(capability);
+                builder.Append(" | ");
+                builder.Append(Can(capability) ? "Yes" : "No");
+                builder.Append(" | ");
+                builder.Append(EscapeMarkdownCell(string.Join("; ", GetCapabilityDiagnostics(capability))));
+                builder.AppendLine(" |");
+            }
+
+            WordPreflightRepairHint[] repairHints = Enum.GetValues(typeof(WordPreflightCapability))
+                .Cast<WordPreflightCapability>()
+                .SelectMany(GetRepairHints)
+                .GroupBy(hint => hint.Capability + "\u001f" + hint.FeatureName + "\u001f" + hint.Action,
+                    StringComparer.Ordinal)
+                .Select(group => group.First())
+                .ToArray();
+            if (repairHints.Length > 0) {
+                builder.AppendLine();
+                builder.AppendLine("## Repair And Routing Hints");
+                builder.AppendLine();
+                builder.AppendLine("| Capability | Feature | Action | API | Details |");
+                builder.AppendLine("| --- | --- | --- | --- | --- |");
+                foreach (WordPreflightRepairHint hint in repairHints) {
+                    builder.Append("| ");
+                    builder.Append(hint.Capability);
+                    builder.Append(" | ");
+                    builder.Append(EscapeMarkdownCell(hint.FeatureName));
+                    builder.Append(" | ");
+                    builder.Append(EscapeMarkdownCell(hint.Action));
+                    builder.Append(" | ");
+                    builder.Append(EscapeMarkdownCell(hint.Command ?? string.Empty));
+                    builder.Append(" | ");
+                    builder.Append(EscapeMarkdownCell(hint.Details ?? string.Empty));
+                    builder.AppendLine(" |");
+                }
             }
 
             return builder.ToString();
@@ -421,14 +464,14 @@ namespace OfficeIMO.Word {
             Add(features, "Compatibility", "Web extensions and task panes", WordFeatureSupportLevel.Preserved, webExtensionDetails.Count, null,
                 "Office add-in and task-pane package metadata is detected as preserve-only advanced content.",
                 webExtensionDetails);
-            Add(features, "Compatibility", "Embedded packages", WordFeatureSupportLevel.Preserved, embeddedPackageDetails.Count, null,
-                "Embedded package parts and OLE payloads are advanced package content and should be treated as preserve-only.",
+            Add(features, "Compatibility", "Embedded packages", WordFeatureSupportLevel.PartiallyEditable, embeddedPackageDetails.Count, null,
+                "Embedded package and OLE payloads can be inventoried, hash-checked, extracted with byte limits, replaced, and removed; authoring remains available through the embedded-object API.",
                 embeddedPackageDetails);
             Add(features, "Compatibility", "ActiveX controls", WordFeatureSupportLevel.Preserved, activeXControlDetails.Count, null,
                 "ActiveX control package metadata is detected as preserve-only advanced document content.",
                 activeXControlDetails);
             Add(features, "Compatibility", "VBA macros", WordFeatureSupportLevel.PartiallyEditable, vbaDetails.Count, null,
-                "VBA projects can be attached, extracted, enumerated, and removed; OfficeIMO does not edit VBA modules or sign macro projects.",
+                "VBA projects can be attached, hash-checked, extracted with byte limits, enumerated, and removed; OfficeIMO does not edit VBA source or sign macro projects.",
                 vbaDetails);
             Add(features, "Compatibility", "Custom XML parts", WordFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",

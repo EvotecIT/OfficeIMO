@@ -6,33 +6,33 @@ namespace OfficeIMO.Word {
     /// </summary>
     public partial class WordParagraph {
         /// <summary>
-        /// Checks where the paragraph is located. If it is located in the header, footer or main document.
-        /// This is required for the image processing to work properly for header and footers
+        /// Checks which document story owns the paragraph.
+        /// This is required for image processing because each story owns its own image relationships
         /// as the location of the image matters to be able to display it properly.
         /// </summary>
         /// <returns></returns>
         internal OpenXmlElement Location() {
-            // i'm assuming the depth shouldn't be more than 10 to get a parent of paragraph
             int count = 0;
             var parent = this._paragraph.Parent;
 
             do {
-                if (parent != null) {
-                    if (parent.GetType() == typeof(Header)) {
-                        return parent;
-                    } else if (parent.GetType() == typeof(Footer)) {
-                        return parent;
-                    } else if (parent.GetType() == typeof(Document)) {
-                        return parent;
-                    }
+                if (parent is Header
+                    or Footer
+                    or Document
+                    or Footnotes
+                    or Endnotes
+                    or Comments) {
+                    return parent;
+                }
 
+                if (parent != null) {
                     parent = parent.Parent;
                 }
 
                 count++;
-            } while (count < 10 || parent != null);
+            } while (count < 10 && parent != null);
 
-            throw new InvalidOperationException("Unable to determine paragraph location within 10 ancestors.");
+            throw new InvalidOperationException("Unable to determine the paragraph's document story within 10 ancestors.");
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Drawing;
 using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
@@ -692,6 +693,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_AddExternalImagesToNotesAndComments_OwnsRelationshipsInStoryParts() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentExternalImagesInStories.docx");
+            var footnoteUri = new Uri("https://example.com/images/footnote.png");
+            var endnoteUri = new Uri("https://example.com/images/endnote.png");
+            var commentUri = new Uri("https://example.com/images/comment.png");
+
+            using (var document = WordDocument.Create(filePath)) {
+                WordParagraph paragraph = document.AddParagraph("External story images");
+                WordParagraph footnoteReference = paragraph.AddFootNote("Footnote ");
+                footnoteReference.FootNote!.Paragraphs![1].AddImage(footnoteUri, 20, 16);
+                WordParagraph endnoteReference = paragraph.AddEndNote("Endnote ");
+                endnoteReference.EndNote!.Paragraphs![1].AddImage(endnoteUri, 24, 18);
+                paragraph.AddComment("OfficeIMO", "OI", "Comment ");
+                Assert.Single(document.Comments).Paragraphs[0].AddImage(commentUri, 18, 14);
+                document.Save();
+            }
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
+            MainDocumentPart mainPart = package.MainDocumentPart!;
+            AssertExternalImageRelationship(mainPart.FootnotesPart!, mainPart.FootnotesPart!.Footnotes!, footnoteUri);
+            AssertExternalImageRelationship(mainPart.EndnotesPart!, mainPart.EndnotesPart!.Endnotes!, endnoteUri);
+            AssertExternalImageRelationship(
+                mainPart.WordprocessingCommentsPart!,
+                mainPart.WordprocessingCommentsPart!.Comments!,
+                commentUri);
+            Assert.DoesNotContain(
+                mainPart.ExternalRelationships,
+                relationship => relationship.RelationshipType.EndsWith("/image", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void Test_ImageNonVisualProperties() {
             var filePath = Path.Combine(_directoryWithFiles, "DocumentImageNvProps.docx");
             using (var document = WordDocument.Create(filePath)) {
@@ -808,6 +840,16 @@ namespace OfficeIMO.Tests {
             var buffer = new byte[1];
             var bytesRead = stream.Read(buffer, 0, 1);
             Assert.Equal(1, bytesRead);
+        }
+
+        private static void AssertExternalImageRelationship(OpenXmlPart part, OpenXmlElement root, Uri expectedUri) {
+            Blip blip = Assert.Single(root.Descendants<Blip>());
+            string relationshipId = Assert.IsType<StringValue>(blip.Link).Value!;
+            ExternalRelationship relationship = Assert.Single(
+                part.ExternalRelationships,
+                candidate => candidate.Id == relationshipId);
+            Assert.Equal(expectedUri, relationship.Uri);
+            Assert.EndsWith("/image", relationship.RelationshipType, StringComparison.Ordinal);
         }
 
     }

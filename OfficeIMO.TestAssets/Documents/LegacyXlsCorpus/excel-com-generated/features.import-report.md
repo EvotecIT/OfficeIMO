@@ -1789,20 +1789,21 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| fillAngle | 1 |
 | fillBackColor | 1 |
+| fillBackOpacity | 1 |
+| fillBlip | 1 |
 | fillColor | 1 |
+| fillFocus | 1 |
+| fillOpacity | 1 |
+| fillShadeColors | 1 |
 | FillStyleBooleanProperties | 1 |
-| PropertyId:0x0180 | 1 |
-| PropertyId:0x0182 | 1 |
-| PropertyId:0x0184 | 1 |
+| fillType | 1 |
 | PropertyId:0x0185 | 1 |
-| PropertyId:0x0186 | 1 |
 | PropertyId:0x0187 | 1 |
 | PropertyId:0x0188 | 1 |
 | PropertyId:0x0189 | 1 |
 | PropertyId:0x018A | 1 |
-| PropertyId:0x018B | 1 |
-| PropertyId:0x018C | 1 |
 | PropertyId:0x018D | 1 |
 | PropertyId:0x018E | 1 |
 | PropertyId:0x018F | 1 |
@@ -1813,7 +1814,6 @@ Warnings: 0
 | PropertyId:0x0194 | 1 |
 | PropertyId:0x0195 | 1 |
 | PropertyId:0x0196 | 1 |
-| PropertyId:0x0197 | 1 |
 | PropertyId:0x0198 | 1 |
 | PropertyId:0x0199 | 1 |
 | PropertyId:0x019A | 1 |
@@ -2401,9 +2401,9 @@ Warnings: 0
 | PropertyId:0x0158 | 1 |
 | PropertyId:0x0185 | 1 |
 | PropertyId:0x01C3 | 1 |
-| PropertyId:0x0201 | 1 |
 | PropertyId:0x0203 | 1 |
 | ProtectionBooleanProperties | 7 |
+| shadowColor | 1 |
 | ShadowStyleBooleanProperties | 1 |
 | TextBooleanProperties | 9 |
 | wzName | 2 |

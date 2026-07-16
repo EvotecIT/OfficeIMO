@@ -25,7 +25,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? fieldInstruction = null,
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
             string? language = null,
-            string? eastAsiaLanguage = null)
+            string? eastAsiaLanguage = null,
+            LegacyDocPicture? picture = null,
+            LegacyDocRevision revision = default)
             : this(
                 text,
                 bold,
@@ -53,7 +55,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 specified,
                 characterSpacingTwips: null,
                 language: language,
-                eastAsiaLanguage: eastAsiaLanguage) {
+                eastAsiaLanguage: eastAsiaLanguage,
+                picture: picture,
+                revision: revision) {
         }
 
         internal LegacyDocTextRun(
@@ -83,7 +87,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
             int? characterSpacingTwips = null,
             string? language = null,
-            string? eastAsiaLanguage = null) {
+            string? eastAsiaLanguage = null,
+            LegacyDocPicture? picture = null,
+            LegacyDocRevision revision = default) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -107,6 +113,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             CharacterSpacingTwips = characterSpacingTwips;
             Language = language;
             EastAsiaLanguage = eastAsiaLanguage;
+            Picture = picture;
             CharacterPositions = characterPositions.Count == 0
                 ? Array.Empty<int>()
                 : characterPositions.ToArray();
@@ -115,6 +122,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FieldKind = fieldKind;
             FieldInstruction = string.IsNullOrWhiteSpace(fieldInstruction) ? null : fieldInstruction;
             Specified = specified;
+            Revision = revision;
         }
 
         internal string Text { get; }
@@ -159,6 +167,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal string? EastAsiaLanguage { get; }
 
+        internal LegacyDocPicture? Picture { get; }
+
         internal IReadOnlyList<int> CharacterPositions { get; }
 
         internal string? HyperlinkUri { get; }
@@ -170,6 +180,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? FieldInstruction { get; }
 
         internal LegacyDocCharacterFormatProperties Specified { get; }
+
+        internal LegacyDocRevision Revision { get; }
 
         internal bool IsPageNumber => FieldKind == LegacyDocFieldKind.Page;
 

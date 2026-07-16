@@ -12,6 +12,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             SdtRun sdtRun,
             MainDocumentPart mainPart,
+            LegacyDocWritablePictures pictures,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             LegacyDocWritableFormatting inheritedFormatting,
@@ -24,9 +25,24 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendSupportedComplexPageNumberField(children, ref index, text, runs, bookmarks, inheritedFormatting);
                         } else {
-                            AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting);
+                            AppendSupportedRunText(
+                                text,
+                                runs,
+                                run,
+                                footnotes,
+                                endnotes,
+                                inheritedFormatting,
+                                allowHyperlinkRunStyle: false,
+                                pictures,
+                                mainPart);
                         }
 
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendSupportedRevisionText(text, runs, insertedRun, LegacyDocRevisionKind.Inserted, footnotes, endnotes, inheritedFormatting, pictures, mainPart);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSupportedRevisionText(text, runs, deletedRun, LegacyDocRevisionKind.Deleted, footnotes, endnotes, inheritedFormatting, pictures, mainPart);
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes, inheritedFormatting);
@@ -41,7 +57,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationField(text, runs, mathParagraph, inheritedFormatting);
                         break;
                     case SdtRun nestedSdtRun:
-                        AppendSupportedInlineContentControlText(text, runs, bookmarks, nestedSdtRun, mainPart, footnotes, endnotes, inheritedFormatting, context);
+                        AppendSupportedInlineContentControlText(text, runs, bookmarks, nestedSdtRun, mainPart, pictures, footnotes, endnotes, inheritedFormatting, context);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);
@@ -65,7 +81,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder paragraphText,
             LegacyDocWritableBookmarksBuilder bookmarks,
             SdtRun sdtRun,
-            OpenXmlPartContainer relationshipOwner,
+            OpenXmlPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             string kind) {
             OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, $"{kind} inline content control");
             for (int index = 0; index < children.Length; index++) {
@@ -75,9 +92,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendFormattedHeaderFooterComplexPageNumberField(storyText, formattedRuns, paragraphText, bookmarks, children, ref index, kind);
                         } else {
-                            AppendFormattedHeaderFooterRun(storyText, formattedRuns, paragraphText, run, kind);
+                            AppendFormattedHeaderFooterRun(storyText, formattedRuns, paragraphText, run, relationshipOwner, pictures, kind);
                         }
 
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, paragraphText, insertedRun, LegacyDocRevisionKind.Inserted, relationshipOwner, pictures, kind);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, paragraphText, deletedRun, LegacyDocRevisionKind.Deleted, relationshipOwner, pictures, kind);
                         break;
                     case Hyperlink hyperlink:
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, paragraphText, bookmarks, hyperlink, relationshipOwner, kind);
@@ -92,7 +115,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, paragraphText, mathParagraph);
                         break;
                     case SdtRun nestedSdtRun:
-                        AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, paragraphText, bookmarks, nestedSdtRun, relationshipOwner, kind);
+                        AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, paragraphText, bookmarks, nestedSdtRun, relationshipOwner, pictures, kind);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyText.Length);
@@ -116,6 +139,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             SdtRun sdtRun,
             FootnotesPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             long id,
             int storyStart) {
             OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, $"footnote id '{id}' inline content control");
@@ -126,9 +150,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
-                            AppendSimpleFootnoteRun(builder, runs, run, id, storyStart);
+                            AppendSimpleFootnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures);
                         }
 
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendSimpleFootnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSimpleFootnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "footnote", storyStart);
@@ -143,7 +173,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
                         break;
                     case SdtRun nestedSdtRun:
-                        AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, id, storyStart);
+                        AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, pictures, id, storyStart);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
@@ -167,6 +197,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             SdtRun sdtRun,
             EndnotesPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             long id,
             int storyStart) {
             OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, $"endnote id '{id}' inline content control");
@@ -177,9 +208,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
-                            AppendSimpleEndnoteRun(builder, runs, run, id, storyStart);
+                            AppendSimpleEndnoteRun(builder, runs, run, id, storyStart, relationshipOwner, pictures);
                         }
 
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendSimpleEndnoteRevision(builder, runs, insertedRun, LegacyDocRevisionKind.Inserted, id, storyStart, relationshipOwner, pictures);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendSimpleEndnoteRevision(builder, runs, deletedRun, LegacyDocRevisionKind.Deleted, id, storyStart, relationshipOwner, pictures);
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "endnote", storyStart);
@@ -194,7 +231,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendMathEquationNoteField(builder, runs, bookmarks, mathParagraph, storyStart);
                         break;
                     case SdtRun nestedSdtRun:
-                        AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, id, storyStart);
+                        AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, pictures, id, storyStart);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);

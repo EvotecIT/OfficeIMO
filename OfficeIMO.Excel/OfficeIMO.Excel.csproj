@@ -39,6 +39,7 @@
 
     <ItemGroup>
         <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" Link="SharedSource\OpenXml\OfficeOpenXmlThemeColorResolver.cs" />
+        <Compile Include="..\OfficeIMO.SharedSource\OpenXml\OfficeOpenXmlPackagePayload.cs" Link="SharedSource\OpenXml\OfficeOpenXmlPackagePayload.cs" />
     </ItemGroup>
 
     <ItemGroup>

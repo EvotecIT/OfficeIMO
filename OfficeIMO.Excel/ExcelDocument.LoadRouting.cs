@@ -1,19 +1,42 @@
 using OfficeIMO.Drawing.Internal;
+using OfficeIMO.Excel.Xlsb.Package;
 
 namespace OfficeIMO.Excel {
     internal static class ExcelDocumentLoadRouting {
         private static readonly byte[] ZipSignature = { 0x50, 0x4B };
 
         internal static bool IsLegacyXls(byte[] bytes, string? filePath) {
+            return DetectFormat(bytes, filePath) == ExcelFileFormat.Xls;
+        }
+
+        internal static bool IsXlsb(byte[] bytes, string? filePath) {
+            return DetectFormat(bytes, filePath) == ExcelFileFormat.Xlsb;
+        }
+
+        internal static ExcelFileFormat DetectFormat(byte[] bytes, string? filePath) {
+            if (bytes == null) {
+                throw new ArgumentNullException(nameof(bytes));
+            }
+
             if (OfficeCompoundDocumentDetector.HasCompoundSignature(bytes)) {
-                return RouteCompoundDocument(bytes, encryptedLoad: false, filePath);
+                return RouteCompoundDocument(bytes, encryptedLoad: false, filePath)
+                    ? ExcelFileFormat.Xls
+                    : ExcelFileFormat.Xlsx;
             }
 
             if (HasZipSignature(bytes)) {
-                return false;
+                return XlsbPackageDetector.TryFindWorkbookPart(bytes, out _)
+                    ? ExcelFileFormat.Xlsb
+                    : ExcelFileFormat.Xlsx;
             }
 
-            return HasLegacyXlsExtension(filePath);
+            if (HasLegacyXlsExtension(filePath)) {
+                return ExcelFileFormat.Xls;
+            }
+
+            return HasXlsbExtension(filePath)
+                ? ExcelFileFormat.Xlsb
+                : ExcelFileFormat.Xlsx;
         }
 
         /// <summary>
@@ -30,6 +53,11 @@ namespace OfficeIMO.Excel {
         internal static bool HasLegacyXlsExtension(string? filePath) {
             return !string.IsNullOrWhiteSpace(filePath)
                 && string.Equals(Path.GetExtension(filePath), ".xls", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static bool HasXlsbExtension(string? filePath) {
+            return !string.IsNullOrWhiteSpace(filePath)
+                && string.Equals(Path.GetExtension(filePath), ".xlsb", StringComparison.OrdinalIgnoreCase);
         }
 
         internal static bool HasLegacyBinaryExcelExtension(string? filePath) {
@@ -58,6 +86,8 @@ namespace OfficeIMO.Excel {
                     return true;
                 case OfficeCompoundDocumentDetector.DocumentKind.WordDocument:
                     throw new InvalidDataException("The input contains a legacy Word document, not an Excel workbook. Load it with OfficeIMO.Word.WordDocument.");
+                case OfficeCompoundDocumentDetector.DocumentKind.PowerPointPresentation:
+                    throw new InvalidDataException("The input contains a legacy PowerPoint presentation, not an Excel workbook. Load it with OfficeIMO.PowerPoint.PowerPointPresentation.");
                 case OfficeCompoundDocumentDetector.DocumentKind.EncryptedOpenXmlPackage:
                     if (encryptedLoad) {
                         return false;

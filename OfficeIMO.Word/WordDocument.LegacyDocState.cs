@@ -1,5 +1,6 @@
 using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
+using OfficeIMO.Drawing.Internal;
 
 namespace OfficeIMO.Word {
     public partial class WordDocument {
@@ -7,6 +8,7 @@ namespace OfficeIMO.Word {
         private LegacyDocUnsupportedFeature[] _legacyDocUnsupportedFeatures = Array.Empty<LegacyDocUnsupportedFeature>();
         private LegacyDocPreservedFeature[] _legacyDocPreservedFeatures = Array.Empty<LegacyDocPreservedFeature>();
         private LegacyDocCompoundFeature[] _legacyDocCompoundFeatures = Array.Empty<LegacyDocCompoundFeature>();
+        private OfficeCompoundFile? _legacyDocSourceCompoundFile;
         private string? _legacyDocSourcePath;
 
         /// <summary>
@@ -39,6 +41,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<LegacyDocCompoundFeature> LegacyDocCompoundFeatures => _legacyDocCompoundFeatures;
 
+        internal OfficeCompoundFile? LegacyDocSourceCompoundFile => _legacyDocSourceCompoundFile;
+
         internal void MarkLoadedFromLegacyDoc(string? sourcePath, LegacyDocDocument document, bool attachSourcePathForSave = false) {
             SourceFormat = WordFileFormat.Doc;
             _legacyDocSourcePath = sourcePath;
@@ -46,6 +50,7 @@ namespace OfficeIMO.Word {
             _legacyDocPreservedFeatures = document.PreservedFeatures.ToArray();
             _legacyDocCompoundFeatures = document.CompoundFeatures.ToArray();
             _legacyDocUnsupportedFeatures = document.UnsupportedFeatures.ToArray();
+            _legacyDocSourceCompoundFile = document.SourceCompoundFile;
             FilePath = attachSourcePathForSave && sourcePath != null
                 ? sourcePath
                 : null;

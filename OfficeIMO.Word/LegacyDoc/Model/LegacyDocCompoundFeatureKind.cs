@@ -26,6 +26,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>
         /// Binary payload stream was discovered in the OLE compound container.
         /// </summary>
-        BinaryData
+        BinaryData,
+
+        /// <summary>
+        /// Digital-signature storage or streams were discovered in the OLE compound container.
+        /// </summary>
+        DigitalSignature
     }
 }

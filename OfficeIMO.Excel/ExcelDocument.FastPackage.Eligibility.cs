@@ -10,8 +10,50 @@ using System.Xml;
 namespace OfficeIMO.Excel {
     public partial class ExcelDocument {
 
+        private static bool CanWriteSimplePackage(SpreadsheetDocument document, WorkbookPart workbookPart, out string? skipReason) {
+            var expectedPackageParts = new HashSet<OpenXmlPart> { workbookPart };
+            if (document.CoreFilePropertiesPart != null) {
+                expectedPackageParts.Add(document.CoreFilePropertiesPart);
+            }
+            if (document.ExtendedFilePropertiesPart != null) {
+                expectedPackageParts.Add(document.ExtendedFilePropertiesPart);
+            }
+            if (document.CustomFilePropertiesPart != null) {
+                expectedPackageParts.Add(document.CustomFilePropertiesPart);
+            }
+
+            if (!HasOnlyExpectedChildParts(document, expectedPackageParts, "Package", out skipReason)
+                || HasUnsupportedReferenceRelationships(document, allowHyperlinks: false, "Package", out skipReason)) {
+                return false;
+            }
+
+            foreach (OpenXmlPart propertiesPart in expectedPackageParts.Where(static part => part is not WorkbookPart)) {
+                if (!HasOnlyExpectedChildParts(propertiesPart, Array.Empty<OpenXmlPart>(), "Package part '" + propertiesPart.Uri + "'", out skipReason)
+                    || HasUnsupportedReferenceRelationships(propertiesPart, allowHyperlinks: false, "Package part '" + propertiesPart.Uri + "'", out skipReason)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
         private static bool CanWriteSimpleWorksheet(WorksheetPart worksheetPart, Worksheet worksheet, out string? skipReason, bool allowDrawings = false, bool allowPivotTables = false) {
             skipReason = null;
+
+            var expectedWorksheetParts = new HashSet<OpenXmlPart>(worksheetPart.TableDefinitionParts);
+            if (allowDrawings && worksheetPart.DrawingsPart != null) {
+                expectedWorksheetParts.Add(worksheetPart.DrawingsPart);
+            }
+            if (allowPivotTables) {
+                foreach (PivotTablePart pivotTablePart in worksheetPart.PivotTableParts) {
+                    expectedWorksheetParts.Add(pivotTablePart);
+                }
+            }
+
+            if (!HasOnlyExpectedChildParts(worksheetPart, expectedWorksheetParts, "Worksheet", out skipReason)
+                || HasUnsupportedReferenceRelationships(worksheetPart, allowHyperlinks: true, "Worksheet", out skipReason)) {
+                return false;
+            }
 
             if (worksheetPart.WorksheetCommentsPart != null) {
                 skipReason = "Worksheet contains comments.";
@@ -105,6 +147,11 @@ namespace OfficeIMO.Excel {
                         skipReason = "Worksheet contains unsupported table metadata.";
                         return false;
                     }
+
+                    if (!HasOnlyExpectedChildParts(tableDefinitionPart, Array.Empty<OpenXmlPart>(), "Worksheet table part '" + tableDefinitionPart.Uri + "'", out skipReason)
+                        || HasUnsupportedReferenceRelationships(tableDefinitionPart, allowHyperlinks: false, "Worksheet table part '" + tableDefinitionPart.Uri + "'", out skipReason)) {
+                        return false;
+                    }
                 }
             }
 
@@ -189,6 +236,52 @@ namespace OfficeIMO.Excel {
             }
 
             return true;
+        }
+
+        private static bool HasOnlyExpectedChildParts(
+            OpenXmlPartContainer container,
+            IEnumerable<OpenXmlPart> expectedParts,
+            string scope,
+            out string? skipReason) {
+            var expected = new HashSet<OpenXmlPart>(expectedParts);
+            foreach (IdPartPair child in container.Parts) {
+                if (!expected.Remove(child.OpenXmlPart)) {
+                    skipReason = scope + " contains an unsupported part '" + child.OpenXmlPart.Uri + "'.";
+                    return false;
+                }
+            }
+
+            if (expected.Count != 0) {
+                skipReason = scope + " has package relationships that cannot be reproduced by the simple package writer.";
+                return false;
+            }
+
+            skipReason = null;
+            return true;
+        }
+
+        private static bool HasUnsupportedReferenceRelationships(
+            OpenXmlPartContainer container,
+            bool allowHyperlinks,
+            string scope,
+            out string? skipReason) {
+            if (!allowHyperlinks && container.HyperlinkRelationships.Any()) {
+                skipReason = scope + " contains hyperlink relationships outside the simple package writer surface.";
+                return true;
+            }
+
+            if (container.ExternalRelationships.Any()) {
+                skipReason = scope + " contains external relationships outside the simple package writer surface.";
+                return true;
+            }
+
+            if (container.DataPartReferenceRelationships.Any()) {
+                skipReason = scope + " contains data-part relationships outside the simple package writer surface.";
+                return true;
+            }
+
+            skipReason = null;
+            return false;
         }
 
         private static bool IsSimpleRow(Row row) {

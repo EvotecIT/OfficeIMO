@@ -41,9 +41,16 @@ document.Save();
 - Writes native `.doc` files for the currently supported simple-document subset, with preflight checks that block unsupported content before saving.
 - Converts supported `.doc` and `.docx` files with `WordDocument.Convert(...)`, using the same import diagnostics and save preflight as normal load/save workflows.
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
+- Applies optional shared package-security policy before parsing Open XML or compound DOC files, and preflights read, edit, template, render, and save capabilities.
+- Inspects and manages VBA and embedded package/OLE/ActiveX payload bytes without executing active content.
+- Exports estimated document page ranges as dependency-free PNG or SVG previews through `ExportImages(...)`, `SaveAsImages(...)`, and `ToImages()`.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
 - Uses `OfficeIMO.Drawing` for shared color and image metadata support.
+
+For untrusted files, capability preflight, binary DOC/XLS/XLSB loss policies,
+macro and embedded-payload handling, and the executable compatibility corpus,
+see the [Word and Excel interoperability guide](../Docs/officeimo.word-excel-interoperability.md).
 
 ## Examples
 

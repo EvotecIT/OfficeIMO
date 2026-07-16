@@ -7,6 +7,10 @@ namespace OfficeIMO.Excel.Utilities {
         private const string ContentTypesEntry = "[Content_Types].xml";
         private const string WorkbookOverridePart = "/xl/workbook.xml";
         private const string WorkbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml";
+        private const string MacroEnabledWorkbookContentType = "application/vnd.ms-excel.sheet.macroEnabled.main+xml";
+        private const string TemplateWorkbookContentType = "application/vnd.openxmlformats-officedocument.spreadsheetml.template.main+xml";
+        private const string MacroEnabledTemplateWorkbookContentType = "application/vnd.ms-excel.template.macroEnabled.main+xml";
+        private const string AddInWorkbookContentType = "application/vnd.ms-excel.addin.macroEnabled.main+xml";
         private const string AppPropsOverridePart = "/docProps/app.xml";
         private const string AppPropsContentType = "application/vnd.openxmlformats-officedocument.extended-properties+xml";
         private const string CorePropsOverridePart = "/docProps/core.xml";
@@ -100,7 +104,15 @@ namespace OfficeIMO.Excel.Utilities {
                 return false;
             }
 
-            if (EnsureOverride(WorkbookOverridePart, WorkbookContentType)) changed = true;
+            string workbookContentType = root.Elements(ns + "Override")
+                .FirstOrDefault(e => string.Equals((string?)e.Attribute("PartName"), WorkbookOverridePart, StringComparison.OrdinalIgnoreCase))
+                ?.Attribute("ContentType")
+                ?.Value ?? WorkbookContentType;
+            if (!IsSupportedWorkbookContentType(workbookContentType)) {
+                workbookContentType = WorkbookContentType;
+            }
+
+            if (EnsureOverride(WorkbookOverridePart, workbookContentType)) changed = true;
             if (EnsureOverride(AppPropsOverridePart, AppPropsContentType)) changed = true;
             if (EnsureOverride(CorePropsOverridePart, CorePropsContentType)) changed = true;
 
@@ -178,7 +190,7 @@ namespace OfficeIMO.Excel.Utilities {
                     string? partName = (string?)element.Attribute("PartName");
                     string? contentType = (string?)element.Attribute("ContentType");
                     if (string.Equals(partName, WorkbookOverridePart, StringComparison.OrdinalIgnoreCase)) {
-                        workbookOverrideIsCorrect = string.Equals(contentType, WorkbookContentType, StringComparison.OrdinalIgnoreCase);
+                        workbookOverrideIsCorrect = IsSupportedWorkbookContentType(contentType);
                     } else if (string.Equals(partName, AppPropsOverridePart, StringComparison.OrdinalIgnoreCase)) {
                         appPropsOverrideIsCorrect = string.Equals(contentType, AppPropsContentType, StringComparison.OrdinalIgnoreCase);
                     } else if (string.Equals(partName, CorePropsOverridePart, StringComparison.OrdinalIgnoreCase)) {
@@ -194,6 +206,14 @@ namespace OfficeIMO.Excel.Utilities {
             } catch {
                 return true;
             }
+        }
+
+        private static bool IsSupportedWorkbookContentType(string? contentType) {
+            return string.Equals(contentType, WorkbookContentType, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(contentType, MacroEnabledWorkbookContentType, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(contentType, TemplateWorkbookContentType, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(contentType, MacroEnabledTemplateWorkbookContentType, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(contentType, AddInWorkbookContentType, StringComparison.OrdinalIgnoreCase);
         }
 
         internal static ContentTypesSummary GetContentTypesSummary(string packagePath) {

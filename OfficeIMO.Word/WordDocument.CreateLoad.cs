@@ -52,6 +52,25 @@ namespace OfficeIMO.Word {
             };
         }
 
+        private static byte[] ReadSourceBytes(Stream stream, OfficePackageSecurityOptions? securityOptions) =>
+            securityOptions == null
+                ? OfficeStreamReader.ReadAllBytes(stream)
+                : OfficePackageSecurityInspector.ReadBounded(stream, securityOptions);
+
+        private static async Task<byte[]> ReadSourceBytesAsync(Stream stream,
+            OfficePackageSecurityOptions? securityOptions, CancellationToken cancellationToken) =>
+            securityOptions == null
+                ? await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false)
+                : await OfficePackageSecurityInspector.ReadBoundedAsync(stream, securityOptions, cancellationToken)
+                    .ConfigureAwait(false);
+
+        private static void ValidateSourcePackage(byte[] sourceBytes,
+            OfficePackageSecurityOptions? securityOptions) {
+            if (securityOptions != null) {
+                OfficePackageSecurityInspector.Validate(sourceBytes, securityOptions);
+            }
+        }
+
         /// <summary>
         /// Create a new WordDocument
         /// </summary>
@@ -320,16 +339,16 @@ namespace OfficeIMO.Word {
 
             // Read the source file into memory with a shared read handle to avoid test collisions.
             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
-                var memoryStream = new MemoryStream();
-                fileStream.CopyTo(memoryStream);
-                memoryStream.Seek(0, SeekOrigin.Begin);
-                byte[] sourceBytes = memoryStream.ToArray();
+                byte[] sourceBytes = ReadSourceBytes(fileStream, resolved.PackageSecurity);
+                ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
                 if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
                     return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
                 }
 
-                memoryStream.Seek(0, SeekOrigin.Begin);
+                var memoryStream = new MemoryStream(sourceBytes.Length);
+                memoryStream.Write(sourceBytes, 0, sourceBytes.Length);
+                memoryStream.Position = 0;
 
                 var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
@@ -373,10 +392,9 @@ namespace OfficeIMO.Word {
 
             byte[] encryptedBytes;
             using (var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete)) {
-                using var buffer = new MemoryStream();
-                fileStream.CopyTo(buffer);
-                encryptedBytes = buffer.ToArray();
+                encryptedBytes = ReadSourceBytes(fileStream, resolved.PackageSecurity);
             }
+            ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
             byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
             return Load(decryptedSource, resolved);
@@ -396,12 +414,9 @@ namespace OfficeIMO.Word {
             WordLoadOptions resolved = options ?? new WordLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
 
-            using var buffer = new MemoryStream();
-            if (stream.CanSeek) {
-                stream.Seek(0, SeekOrigin.Begin);
-            }
-            stream.CopyTo(buffer);
-            byte[] packageBytes = OfficeEncryption.DecryptPackage(buffer.ToArray(), password);
+            byte[] encryptedBytes = ReadSourceBytes(stream, resolved.PackageSecurity);
+            ValidateSourcePackage(encryptedBytes, resolved.PackageSecurity);
+            byte[] packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             using var decryptedSource = new MemoryStream(packageBytes, writable: false);
             return Load(decryptedSource, resolved);
         }
@@ -428,16 +443,13 @@ namespace OfficeIMO.Word {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            // Mirror the synchronous Load path: we only need read access because the
-            // file is copied into memory before the package is opened.
-            using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous);
-            var memoryStream = new MemoryStream();
-            await fileStream.CopyToAsync(memoryStream, 81920, cancellationToken);
-            memoryStream.Seek(0, SeekOrigin.Begin);
-            byte[] sourceBytes = memoryStream.ToArray();
-
             WordLoadOptions resolved = options ?? new WordLoadOptions();
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "document");
+            using var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.Asynchronous);
+            byte[] sourceBytes = await ReadSourceBytesAsync(fileStream, resolved.PackageSecurity,
+                cancellationToken).ConfigureAwait(false);
+            ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
             bool readOnly = resolved.AccessMode == DocumentAccessMode.ReadOnly;
             bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
             var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
@@ -446,7 +458,9 @@ namespace OfficeIMO.Word {
                 return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, saveOnDispose, readOnly);
             }
 
-            memoryStream.Seek(0, SeekOrigin.Begin);
+            var memoryStream = new MemoryStream(sourceBytes.Length);
+            memoryStream.Write(sourceBytes, 0, sourceBytes.Length);
+            memoryStream.Position = 0;
 
             var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
@@ -489,10 +503,11 @@ namespace OfficeIMO.Word {
             bool copyBackToSource = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose && !readOnly;
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            if (stream.CanSeek) stream.Seek(0, SeekOrigin.Begin);
-            using var bufferedStream = new MemoryStream();
-            await stream.CopyToAsync(bufferedStream, 81920, cancellationToken).ConfigureAwait(false);
-            bufferedStream.Seek(0, SeekOrigin.Begin);
+            byte[] sourceBytes = await ReadSourceBytesAsync(stream, resolved.PackageSecurity,
+                cancellationToken).ConfigureAwait(false);
+            using var bufferedStream = new MemoryStream(sourceBytes.Length);
+            bufferedStream.Write(sourceBytes, 0, sourceBytes.Length);
+            bufferedStream.Position = 0;
             WordDocument document = Load(bufferedStream, resolved);
             if (document.SourceFormat != WordFileFormat.Doc) {
                 document.OriginalStream = OfficeDocumentLifecycle.ResolveAssociatedDestination(stream, resolved.AccessMode)!;
@@ -521,20 +536,8 @@ namespace OfficeIMO.Word {
             bool saveOnDispose = resolved.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
             var effectiveOpenSettings = CreateOpenSettings(resolved.OpenSettings);
-            long originalPosition = stream.CanSeek ? stream.Position : 0;
-            byte[] sourceBytes;
-            try {
-                if (stream.CanSeek) {
-                    stream.Seek(0, SeekOrigin.Begin);
-                }
-                using var sourceBuffer = new MemoryStream();
-                stream.CopyTo(sourceBuffer);
-                sourceBytes = sourceBuffer.ToArray();
-            } finally {
-                if (stream.CanSeek) {
-                    stream.Seek(originalPosition, SeekOrigin.Begin);
-                }
-            }
+            byte[] sourceBytes = ReadSourceBytes(stream, resolved.PackageSecurity);
+            ValidateSourcePackage(sourceBytes, resolved.PackageSecurity);
 
             if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
                 return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, saveOnDispose, readOnly);

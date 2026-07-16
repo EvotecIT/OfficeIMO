@@ -1,0 +1,240 @@
+{
+  "schemaVersion": 1,
+  "collections": [
+    {
+      "id": "legacy-xls-apache-poi",
+      "format": "xls",
+      "role": "compatibility",
+      "root": "LegacyXlsCorpus/apache-poi-testdata",
+      "producer": "Apache POI test-data",
+      "provenance": "SOURCE.md",
+      "artifacts": [
+        {
+          "file": "3dFormulas.xls",
+          "sha256": "97a6c32bb985d75ca5dfd77ba37d2f20a9c40b5b06723046a5acaedd08a3ce38",
+          "approvedReport": "3dFormulas.import-report.md",
+          "focus": ["3-D formulas", "formula token projection"]
+        },
+        {
+          "file": "IntersectionPtg.xls",
+          "sha256": "cca61aaab6777695ea0b599a042479c43446bf28986b1bcf83f2418592dfec48",
+          "approvedReport": "IntersectionPtg.import-report.md",
+          "focus": ["intersection formulas"]
+        },
+        {
+          "file": "RangePtg.xls",
+          "sha256": "7b948645e0467e8e4a59f3e58de7c0b32c2252a451378959fa817d0854ff306e",
+          "approvedReport": "RangePtg.import-report.md",
+          "focus": ["range formulas"]
+        },
+        {
+          "file": "SimpleWithComments.xls",
+          "sha256": "e3f2cc5b39c78c27fc6ab9dcc7a68ab61c5d63e1f2d2bb7fa5bd41e466e34639",
+          "approvedReport": "SimpleWithComments.import-report.md",
+          "focus": ["legacy comments"]
+        },
+        {
+          "file": "templateExcelWithAutofilter.xls",
+          "sha256": "82d3c9751cae9c94bd6536d6208f165b0e4768d9730282d60930cd192899d3ec",
+          "approvedReport": "templateExcelWithAutofilter.import-report.md",
+          "focus": ["auto filters"]
+        },
+        {
+          "file": "UnionPtg.xls",
+          "sha256": "f1761ddd31c93c1ab60e7a7f77d07a91abf18aff9343d596f42fd0b57afc1192",
+          "approvedReport": "UnionPtg.import-report.md",
+          "focus": ["union formulas"]
+        },
+        {
+          "file": "WithExtendedStyles.xls",
+          "sha256": "010a884f646e7a9dfcd0d5045a9385a47b0d8ccaa9b3831b70a779653ddcd5be",
+          "approvedReport": "WithExtendedStyles.import-report.md",
+          "focus": ["extended formats", "styles"]
+        },
+        {
+          "file": "WithTwoHyperLinks.xls",
+          "sha256": "139a3ace5945fd0a1e498dd6482365b4f7f2281c879b8dcd15e10b5fb0963aa9",
+          "approvedReport": "WithTwoHyperLinks.import-report.md",
+          "focus": ["hyperlinks"]
+        }
+      ]
+    },
+    {
+      "id": "legacy-xls-excel-com",
+      "format": "xls",
+      "role": "compatibility",
+      "root": "LegacyXlsCorpus/excel-com-generated",
+      "producer": "Microsoft Excel COM",
+      "provenance": "SOURCE.md",
+      "artifacts": [
+        {
+          "file": "analytics.xls",
+          "sha256": "079bceb62b59a15a5988518653d342e9cf04617452791c25ec607ac968260481",
+          "approvedReport": "analytics.import-report.md",
+          "focus": ["chart sheets", "analytics metadata"]
+        },
+        {
+          "file": "auto-filter-shapes.xls",
+          "sha256": "275dec8f3e5874fe91f2e2f9fea2a6bd5061cb5e219d6b224b83ee716df5566b",
+          "approvedReport": "auto-filter-shapes.import-report.md",
+          "focus": ["Excel-authored auto filters"]
+        },
+        {
+          "file": "conditional-format-shapes.xls",
+          "sha256": "0fd00e60023b28531281094d6a7b8f7ea880db268d546e63a6f07f864f1c4793",
+          "approvedReport": "conditional-format-shapes.import-report.md",
+          "focus": ["conditional formatting"]
+        },
+        {
+          "file": "data-validation-shapes.xls",
+          "sha256": "8d7405764494e31e1213f9f29307ffb03a58af2e1f862314969f746b37995ebb",
+          "approvedReport": "data-validation-shapes.import-report.md",
+          "focus": ["data validation"]
+        },
+        {
+          "file": "external-links.xls",
+          "sha256": "0556474a7b6cce4aa64a7bc0a42610009bfda7b71065f3043f1ed60397cae1f1",
+          "approvedReport": "external-links.import-report.md",
+          "focus": ["external formula links", "cached values"]
+        },
+        {
+          "file": "external-source.xls",
+          "sha256": "bcff4f12c3e3dc3c002acd736698ec310c08a9e8175cdea975f65c4ab9b2470b",
+          "approvedReport": "external-source.import-report.md",
+          "focus": ["external source metadata"]
+        },
+        {
+          "file": "features.xls",
+          "sha256": "14542a2eefe5013cb415f7a0f21932449c69eeabb5946a6c145823395167905d",
+          "approvedReport": "features.import-report.md",
+          "focus": ["mixed workbook features"]
+        },
+        {
+          "file": "formula-advanced.xls",
+          "sha256": "fef62a4027cf6bb93acc580c3a478c70904ef835eb2ac182c68a650232f71d96",
+          "approvedReport": "formula-advanced.import-report.md",
+          "focus": ["advanced formulas"]
+        },
+        {
+          "file": "formula-functions.xls",
+          "sha256": "95332f494274040fda7bcec4ae31c480427cef26a839d046b49244fcfcd0b4b8",
+          "approvedReport": "formula-functions.import-report.md",
+          "focus": ["built-in formula functions"]
+        },
+        {
+          "file": "formula-stress.xls",
+          "sha256": "8f38052971bc41e047fab90f96efb567c29d4151b78c2d2e602534ccea7cb4a3",
+          "approvedReport": "formula-stress.import-report.md",
+          "focus": ["formula token stress"]
+        },
+        {
+          "file": "objects.xls",
+          "sha256": "d452b376f7131331dc6e57da33882c0cba1f024c5148c5403e569f179988a1b3",
+          "approvedReport": "objects.import-report.md",
+          "focus": ["drawing objects", "object subrecords"]
+        },
+        {
+          "file": "protection.xls",
+          "sha256": "96fd8febb9c428de946abd40f532ea37e68eebc5435ac9acc873465d14f8d5d2",
+          "approvedReport": "protection.import-report.md",
+          "focus": ["sheet protection", "cell protection"]
+        }
+      ]
+    },
+    {
+      "id": "legacy-xls-openpreserve",
+      "format": "xls",
+      "role": "compatibility",
+      "root": "LegacyXlsCorpus/openpreserve-format-corpus",
+      "producer": "OpenPreserve format corpus",
+      "provenance": "SOURCE.md",
+      "artifacts": [
+        {
+          "file": "MonteCarlo.xls",
+          "sha256": "1fd97cc1c3548dd7f94149932dfe2e78ccdee7928a0325e223366cf35feebd5a",
+          "approvedReport": "MonteCarlo.import-report.md",
+          "focus": ["large real-world formulas", "workbook breadth"]
+        },
+        {
+          "file": "valid.xls",
+          "sha256": "4fe7b0d3552075601233a95e61782e7c7e90c1f948d70cc6afd706a6af8dd453",
+          "approvedReport": "valid.import-report.md",
+          "focus": ["VBA storage shape", "compound preservation"]
+        }
+      ]
+    },
+    {
+      "id": "legacy-xls-excel-com-diagnostics",
+      "format": "xls",
+      "role": "diagnostic",
+      "root": "LegacyXlsDiagnosticCorpus/excel-com-generated",
+      "producer": "Microsoft Excel COM",
+      "provenance": "SOURCE.md",
+      "artifacts": [
+        {
+          "file": "biff5-workbook.xls",
+          "sha256": "63743e8cce1c366f57f4c79fbcffde4850e0aac72da07f15748a72b2f7911b64",
+          "approvedReport": "biff5-workbook.import-report.md",
+          "focus": ["unsupported pre-BIFF8 diagnostics"]
+        },
+        {
+          "file": "encrypted-password.xls",
+          "sha256": "0ddce5118441dc43fd032a9af08d45e5e4bbd13e8c88349ee7e22a2810349f46",
+          "approvedReport": "encrypted-password.import-report.md",
+          "focus": ["password-to-open diagnostics"]
+        }
+      ]
+    },
+    {
+      "id": "xlsb-excel-generated",
+      "format": "xlsb",
+      "role": "compatibility",
+      "root": "XlsbCorpus",
+      "producer": "Microsoft Excel",
+      "provenance": "README.md",
+      "artifacts": [
+        {
+          "file": "excel-generated/basic-values-formula.xlsb",
+          "sha256": "258f705f38936e568df4ca6b8aa7808f134426fab4ebf028db32bdcd7a2afddd",
+          "focus": ["values", "shared strings", "basic formulas", "calculation settings"]
+        },
+        {
+          "file": "excel-generated/formulas-rich.xlsb",
+          "sha256": "77dc9912bba434fdac48eceb89f7bd823f7126d0d1ad8fa94858ae080f893d42",
+          "focus": ["rich formula tokens", "formula preservation"]
+        },
+        {
+          "file": "excel-generated/hyperlinks.xlsb",
+          "sha256": "f648cd7015206c11da32d8dec87bbcd733ed1bd7faf603b315b12280ea5bdf6e",
+          "focus": ["internal hyperlinks", "external hyperlinks", "relationship preservation"]
+        },
+        {
+          "file": "excel-generated/styles-dates-formulas.xlsb",
+          "sha256": "955be98c220a1ccb0ce8fc5ecb483c68b875253483d91eec2390d30ff0f45537",
+          "focus": ["styles", "date system", "formatted values", "formulas"]
+        },
+        {
+          "file": "excel-generated/worksheet-geometry.xlsb",
+          "sha256": "be9717e70ced6205a66298497f908534dca36ae5da9f0197b189b6da7ab49e92",
+          "focus": ["row geometry", "column geometry", "merged cells", "sheet views"]
+        }
+      ]
+    },
+    {
+      "id": "legacy-doc-word-com",
+      "format": "doc",
+      "role": "compatibility",
+      "root": "LegacyDocCorpus",
+      "producer": "Microsoft Word COM",
+      "provenance": "README.md",
+      "artifacts": [
+        {
+          "file": "ComSimpleParagraphs.doc",
+          "sha256": "8308e70b4ad26b55ddebb32cc6ce41d17e489b678e1839f68b246b6080adf425",
+          "approvedReport": "ComSimpleParagraphs.import-report.md",
+          "focus": ["Word-authored paragraphs", "FIB and piece table projection"]
+        }
+      ]
+    }
+  ]
+}

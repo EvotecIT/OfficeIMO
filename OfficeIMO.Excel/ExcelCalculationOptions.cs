@@ -23,6 +23,9 @@ namespace OfficeIMO.Excel {
     /// Controls how formula cells are treated before a workbook is saved.
     /// </summary>
     public sealed class ExcelCalculationOptions {
+        private readonly object _customFunctionLock = new object();
+        private readonly Dictionary<string, ExcelCustomFormulaFunction> _customFunctions = new(StringComparer.OrdinalIgnoreCase);
+
         /// <summary>
         /// When true, OfficeIMO evaluates supported formulas and writes cached values before saving.
         /// Unsupported formulas are left intact and can still be recalculated by Excel.
@@ -43,6 +46,99 @@ namespace OfficeIMO.Excel {
         /// When true, cached formula results are removed before saving. Ignored when <see cref="EvaluateFormulasBeforeSave"/> is true.
         /// </summary>
         public bool ClearCachedFormulaResultsBeforeSave { get; set; }
+
+        /// <summary>
+        /// Gets the registered custom function names in ordinal order.
+        /// </summary>
+        public IReadOnlyList<string> CustomFunctionNames {
+            get {
+                lock (_customFunctionLock) {
+                    return _customFunctions.Keys.OrderBy(name => name, StringComparer.OrdinalIgnoreCase).ToArray();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Registers or replaces a custom formula function for this workbook.
+        /// </summary>
+        /// <remarks>
+        /// Built-in OfficeIMO function names cannot be replaced. A custom function is an in-memory calculation callback and is not embedded in saved workbooks.
+        /// </remarks>
+        public void RegisterCustomFunction(string name, ExcelCustomFormulaFunction function) {
+            string normalizedName = NormalizeCustomFunctionName(name);
+            if (function == null) {
+                throw new ArgumentNullException(nameof(function));
+            }
+
+            if (ExcelFormulaCapabilities.IsBuiltInFunction(normalizedName)) {
+                throw new ArgumentException($"'{normalizedName}' is a built-in OfficeIMO formula function and cannot be replaced.", nameof(name));
+            }
+
+            lock (_customFunctionLock) {
+                _customFunctions[normalizedName] = function;
+            }
+        }
+
+        /// <summary>
+        /// Removes a registered custom formula function.
+        /// </summary>
+        public bool RemoveCustomFunction(string name) {
+            string normalizedName = NormalizeCustomFunctionName(name);
+            lock (_customFunctionLock) {
+                return _customFunctions.Remove(normalizedName);
+            }
+        }
+
+        /// <summary>
+        /// Removes all custom formula functions registered for this workbook.
+        /// </summary>
+        public void ClearCustomFunctions() {
+            lock (_customFunctionLock) {
+                _customFunctions.Clear();
+            }
+        }
+
+        internal bool TryGetCustomFunction(string normalizedName, out ExcelCustomFormulaFunction? function) {
+            lock (_customFunctionLock) {
+                return _customFunctions.TryGetValue(normalizedName, out function);
+            }
+        }
+
+        private static string NormalizeCustomFunctionName(string name) {
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new ArgumentNullException(nameof(name));
+            }
+
+            string normalized = name.Trim().ToUpperInvariant();
+            if (normalized.Length > 255) {
+                throw new ArgumentException("Custom formula function names cannot exceed 255 characters.", nameof(name));
+            }
+
+            if (!IsCustomFunctionNameStart(normalized[0])) {
+                throw new ArgumentException("Custom formula function names must start with a letter or underscore.", nameof(name));
+            }
+
+            for (int index = 1; index < normalized.Length; index++) {
+                char character = normalized[index];
+                if (!IsAsciiLetter(character) && !IsAsciiDigit(character) && character != '_' && character != '.') {
+                    throw new ArgumentException("Custom formula function names may contain only letters, digits, underscores, and periods.", nameof(name));
+                }
+            }
+
+            return normalized;
+        }
+
+        private static bool IsCustomFunctionNameStart(char character) {
+            return IsAsciiLetter(character) || character == '_';
+        }
+
+        private static bool IsAsciiLetter(char character) {
+            return character >= 'A' && character <= 'Z';
+        }
+
+        private static bool IsAsciiDigit(char character) {
+            return character >= '0' && character <= '9';
+        }
     }
 
     /// <summary>

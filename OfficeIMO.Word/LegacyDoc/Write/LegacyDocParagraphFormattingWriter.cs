@@ -1,7 +1,7 @@
 namespace OfficeIMO.Word.LegacyDoc.Write {
     using OfficeIMO.Word.LegacyDoc.Model;
 
-    internal static class LegacyDocParagraphFormattingWriter {
+    internal static partial class LegacyDocParagraphFormattingWriter {
         private const int PapxFkpBxLength = 13;
         private const ushort SprmPFKeep = 0x2405;
         private const ushort SprmPFKeepFollow = 0x2406;
@@ -63,14 +63,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal static void WritePapxFkp(byte[] stream, int pageOffset, int textOffset, int oleSectorSize, IReadOnlyList<LegacyDocWritableParagraphSegment> segments, int bytesPerCharacter) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
-                throw new NotSupportedException("Native DOC saving currently supports paragraph formatting only when it fits in one paragraph-format page.");
+                throw new NotSupportedException("Native DOC saving encountered a paragraph-format run that cannot fit in a paragraph-format page.");
             }
 
             int rgbxOffset = pageOffset + ((segments.Count + 1) * 4);
             int papxOffset = oleSectorSize - 1;
 
             if (rgbxOffset + (segments.Count * PapxFkpBxLength) > pageOffset + papxOffset) {
-                throw new NotSupportedException("Native DOC saving currently supports paragraph formatting only when it fits in one paragraph-format page.");
+                throw new NotSupportedException("Native DOC saving encountered a paragraph-format run that cannot fit in a paragraph-format page.");
             }
 
             for (int index = 0; index < segments.Count; index++) {
@@ -89,7 +89,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     papxOffset -= papx.Length;
                     papxOffset = papxOffset % 2 == 0 ? papxOffset : papxOffset - 1;
                     if (pageOffset + papxOffset <= (rgbxOffset + (segments.Count * PapxFkpBxLength)) || papxOffset / 2 > byte.MaxValue) {
-                        throw new NotSupportedException("Native DOC saving currently supports paragraph formatting only when it fits in one paragraph-format page.");
+                        throw new NotSupportedException("Native DOC saving encountered a paragraph-format run that cannot fit in a paragraph-format page.");
                     }
 
                     Buffer.BlockCopy(papx, 0, stream, pageOffset + papxOffset, papx.Length);
@@ -196,7 +196,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmPFTtp, 1);
             }
 
-            if (formatting.TableDepth > 1) {
+            if (formatting.TableDepth > 0) {
                 AddInt32Sprm(grpprl, SprmPItap, formatting.TableDepth);
             }
 
@@ -1023,7 +1023,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : null;
             IsInTable = isInTable;
             IsTableTerminatingParagraph = isTableTerminatingParagraph;
-            TableDepth = tableDepth > 1 ? tableDepth : 0;
+            TableDepth = tableDepth > 0 ? tableDepth : 0;
             HasInnerTableCellMarker = hasInnerTableCellMarker;
             HasInnerTableTerminatingParagraphMarker = hasInnerTableTerminatingParagraphMarker;
             TabStops = tabStops == null || tabStops.Count == 0
@@ -1227,7 +1227,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || OutlineLevel != null
             || IsInTable != null
             || IsTableTerminatingParagraph != null
-            || TableDepth > 1
+            || TableDepth > 0
             || HasInnerTableCellMarker
             || HasInnerTableTerminatingParagraphMarker
             || TabStops.Count > 0
@@ -1373,7 +1373,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 DefaultTableCellMargins ?? inherited.DefaultTableCellMargins,
                 DefaultTableCellSpacingTwips ?? inherited.DefaultTableCellSpacingTwips,
                 OutlineLevel ?? inherited.OutlineLevel,
-                TableDepth > 1 ? TableDepth : inherited.TableDepth,
+                TableDepth > 0 ? TableDepth : inherited.TableDepth,
                 HasInnerTableCellMarker || inherited.HasInnerTableCellMarker,
                 HasInnerTableTerminatingParagraphMarker || inherited.HasInnerTableTerminatingParagraphMarker);
         }
@@ -1454,7 +1454,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ParagraphBorders,
                 defaultTableCellMargins,
                 defaultTableCellSpacingTwips,
-                outlineLevel: OutlineLevel);
+                outlineLevel: OutlineLevel,
+                tableDepth: 1);
         }
 
         internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false) {

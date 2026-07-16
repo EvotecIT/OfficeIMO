@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const string HeaderFooterContinuationSeparatorStory = "\u0004\r\r";
         private const string HeaderFooterSeparatorTerminator = "\r";
 
-        private static LegacyDocWritableHeaderFooterStories BuildHeaderFooterStories(WordDocument document, MainDocumentPart mainPart, bool includeDefaultSeparators, IReadOnlyDictionary<string, ushort> styleIndexes) {
+        private static LegacyDocWritableHeaderFooterStories BuildHeaderFooterStories(WordDocument document, MainDocumentPart mainPart, LegacyDocWritablePictures pictures, bool includeDefaultSeparators, IReadOnlyDictionary<string, ushort> styleIndexes) {
             if (!includeDefaultSeparators && !mainPart.HeaderParts.Any() && !mainPart.FooterParts.Any()) {
                 return LegacyDocWritableHeaderFooterStories.Empty;
             }
@@ -44,12 +44,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             for (int sectionIndex = 0; sectionIndex < document.Sections.Count; sectionIndex++) {
                 SectionProperties sectionProperties = document.Sections[sectionIndex]._sectionProperties;
                 int sectionStoryOffset = HeaderFooterSeparatorStoryCount + (sectionIndex * HeaderFooterStoriesPerSection);
-                currentEvenHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Even, styleIndexes) ?? currentEvenHeader;
-                currentDefaultHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Default, styleIndexes) ?? currentDefaultHeader;
-                currentEvenFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Even, styleIndexes) ?? currentEvenFooter;
-                currentDefaultFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Default, styleIndexes) ?? currentDefaultFooter;
-                currentFirstHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.First, styleIndexes) ?? currentFirstHeader;
-                currentFirstFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.First, styleIndexes) ?? currentFirstFooter;
+                currentEvenHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Even, pictures, styleIndexes) ?? currentEvenHeader;
+                currentDefaultHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Default, pictures, styleIndexes) ?? currentDefaultHeader;
+                currentEvenFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Even, pictures, styleIndexes) ?? currentEvenFooter;
+                currentDefaultFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Default, pictures, styleIndexes) ?? currentDefaultFooter;
+                currentFirstHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.First, pictures, styleIndexes) ?? currentFirstHeader;
+                currentFirstFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.First, pictures, styleIndexes) ?? currentFirstFooter;
 
                 stories[sectionStoryOffset] = currentEvenHeader ?? LegacyDocWritableHeaderFooterStory.Empty;
                 stories[sectionStoryOffset + 1] = currentDefaultHeader ?? LegacyDocWritableHeaderFooterStory.Empty;
@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 characterPositions.Add(text.Length);
                 AddHeaderFooterSpecialCharacterPositions(text.Length, story.Text, markerPositions);
                 foreach (LegacyDocWritableRun run in story.FormattedRuns) {
-                    formattedRuns.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting));
+                    formattedRuns.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting, run.PictureDataOffset));
                 }
 
                 foreach (LegacyDocWritableParagraph paragraph in story.FormattedParagraphs) {
@@ -85,12 +85,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 text.Append(story.Text);
             }
 
-            if (includeDefaultSeparators) {
-                text.Append(HeaderFooterSeparatorTerminator);
-            }
-
-            characterPositions.Add(includeDefaultSeparators ? text.Length - HeaderFooterSeparatorTerminator.Length : text.Length);
-            characterPositions.Add(includeDefaultSeparators ? text.Length + 2 : text.Length);
+            text.Append(HeaderFooterSeparatorTerminator);
+            characterPositions.Add(text.Length - HeaderFooterSeparatorTerminator.Length);
+            characterPositions.Add(text.Length + 1);
             byte[] plcfHdd = new byte[characterPositions.Count * 4];
             for (int index = 0; index < characterPositions.Count; index++) {
                 WriteInt32(plcfHdd, index * 4, characterPositions[index]);
@@ -108,7 +105,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableHeaderFooterStory? ReadHeaderStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type, IReadOnlyDictionary<string, ushort> styleIndexes) {
+        private static LegacyDocWritableHeaderFooterStory? ReadHeaderStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes) {
             HeaderReference[] references = sectionProperties.Elements<HeaderReference>().ToArray();
             if (references.Length == 0) {
                 return null;
@@ -121,10 +118,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             HeaderPart headerPart = GetReferencedPart<HeaderPart>(mainPart, reference.Id?.Value, kind);
-            return ReadSimpleHeaderFooterStory(headerPart.Header, headerPart, kind, styleIndexes);
+            return ReadSimpleHeaderFooterStory(headerPart.Header, headerPart, pictures, kind, styleIndexes);
         }
 
-        private static LegacyDocWritableHeaderFooterStory? ReadFooterStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type, IReadOnlyDictionary<string, ushort> styleIndexes) {
+        private static LegacyDocWritableHeaderFooterStory? ReadFooterStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type, LegacyDocWritablePictures pictures, IReadOnlyDictionary<string, ushort> styleIndexes) {
             FooterReference[] references = sectionProperties.Elements<FooterReference>().ToArray();
             if (references.Length == 0) {
                 return null;
@@ -137,7 +134,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             FooterPart footerPart = GetReferencedPart<FooterPart>(mainPart, reference.Id?.Value, kind);
-            return ReadSimpleHeaderFooterStory(footerPart.Footer, footerPart, kind, styleIndexes);
+            return ReadSimpleHeaderFooterStory(footerPart.Footer, footerPart, pictures, kind, styleIndexes);
         }
 
         private static TPart GetReferencedPart<TPart>(MainDocumentPart mainPart, string? relationshipId, string kind)
@@ -209,7 +206,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return GetHeaderFooterDescription(type, kind);
         }
 
-        private static LegacyDocWritableHeaderFooterStory? ReadSimpleHeaderFooterStory(OpenXmlCompositeElement? container, OpenXmlPartContainer relationshipOwner, string kind, IReadOnlyDictionary<string, ushort> styleIndexes) {
+        private static LegacyDocWritableHeaderFooterStory? ReadSimpleHeaderFooterStory(OpenXmlCompositeElement? container, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind, IReadOnlyDictionary<string, ushort> styleIndexes) {
             if (container == null || !container.HasChildren) {
                 return LegacyDocWritableHeaderFooterStory.Empty;
             }
@@ -220,7 +217,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             foreach (OpenXmlElement child in container.ChildElements) {
-                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, kind, styleIndexes);
+                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, pictures, kind, styleIndexes);
             }
 
             bool hasVisibleText = paragraphs.Any(paragraph => paragraph.Length > 0);
@@ -239,15 +236,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             List<string> paragraphs,
             OpenXmlElement child,
-            OpenXmlPartContainer relationshipOwner,
+            OpenXmlPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             string kind,
             IReadOnlyDictionary<string, ushort> styleIndexes) {
             switch (child) {
                 case Paragraph paragraph:
-                    AppendSimpleHeaderFooterParagraph(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, paragraph, relationshipOwner, kind, styleIndexes);
+                    AppendSimpleHeaderFooterParagraph(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, paragraph, relationshipOwner, pictures, kind, styleIndexes);
                     break;
                 case SdtBlock sdtBlock:
-                    AppendSimpleHeaderFooterContentControl(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, sdtBlock, relationshipOwner, kind, styleIndexes);
+                    AppendSimpleHeaderFooterContentControl(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, sdtBlock, relationshipOwner, pictures, kind, styleIndexes);
                     break;
                 case BookmarkStart bookmarkStart:
                     bookmarks.AddStart(bookmarkStart, storyText.Length);
@@ -267,7 +265,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             List<string> paragraphs,
             SdtBlock sdtBlock,
-            OpenXmlPartContainer relationshipOwner,
+            OpenXmlPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             string kind,
             IReadOnlyDictionary<string, ushort> styleIndexes) {
             SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
@@ -276,7 +275,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             foreach (OpenXmlElement child in contentBlock.ChildElements) {
-                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, kind, styleIndexes);
+                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, pictures, kind, styleIndexes);
             }
         }
 
@@ -287,12 +286,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             List<string> paragraphs,
             Paragraph paragraph,
-            OpenXmlPartContainer relationshipOwner,
+            OpenXmlPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
             string kind,
             IReadOnlyDictionary<string, ushort> styleIndexes) {
             int paragraphStart = storyText.Length;
             LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, bookmarks, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, bookmarks, paragraph, relationshipOwner, pictures, kind, styleIndexes, out string paragraphText);
             paragraphs.Add(paragraphText);
             storyText.Append('\r');
             AddParagraphMarkRunFormatting(formattedRuns, storyText.Length - 1, paragraphMarkFormatting);
@@ -301,7 +301,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, OpenXmlPartContainer relationshipOwner, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
             var text = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedHeaderFooterParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             OpenXmlElement[] children = paragraph.ChildElements.ToArray();
@@ -314,9 +314,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         if (IsComplexFieldBeginRun(run)) {
                             AppendFormattedHeaderFooterComplexPageNumberField(storyText, formattedRuns, text, bookmarks, children, ref index, kind);
                         } else {
-                            AppendFormattedHeaderFooterRun(storyText, formattedRuns, text, run, kind);
+                            AppendFormattedHeaderFooterRun(storyText, formattedRuns, text, run, relationshipOwner, pictures, kind);
                         }
 
+                        break;
+                    case InsertedRun insertedRun:
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, text, insertedRun, LegacyDocRevisionKind.Inserted, relationshipOwner, pictures, kind);
+                        break;
+                    case DeletedRun deletedRun:
+                        AppendFormattedHeaderFooterRevision(storyText, formattedRuns, text, deletedRun, LegacyDocRevisionKind.Deleted, relationshipOwner, pictures, kind);
                         break;
                     case Hyperlink hyperlink:
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, bookmarks, hyperlink, relationshipOwner, kind);
@@ -331,7 +337,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendFormattedHeaderFooterMathEquation(storyText, formattedRuns, text, mathParagraph);
                         break;
                     case SdtRun sdtRun:
-                        AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, text, bookmarks, sdtRun, relationshipOwner, kind);
+                        AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, text, bookmarks, sdtRun, relationshipOwner, pictures, kind);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyText.Length);
@@ -414,8 +420,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendFormattedHeaderFooterRun(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Run run, string kind) {
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
+        private static void AppendFormattedHeaderFooterRevision(
+            StringBuilder storyText,
+            List<LegacyDocWritableRun> formattedRuns,
+            StringBuilder paragraphText,
+            OpenXmlCompositeElement revisionElement,
+            LegacyDocRevisionKind revisionKind,
+            OpenXmlPart relationshipOwner,
+            LegacyDocWritablePictures pictures,
+            string kind) {
+            LegacyDocRevision revision = ReadSupportedRevision(revisionElement, revisionKind);
+            foreach (OpenXmlElement child in revisionElement.ChildElements) {
+                if (child is Run run) {
+                    AppendFormattedHeaderFooterRun(storyText, formattedRuns, paragraphText, run, relationshipOwner, pictures, kind, revision);
+                    continue;
+                }
+
+                throw new NotSupportedException($"Native DOC saving supports tracked insertions and deletions in {kind}s only when they contain text runs. Unsupported revision element: {child.LocalName}.");
+            }
+        }
+
+        private static void AppendFormattedHeaderFooterRun(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Run run, OpenXmlPart relationshipOwner, LegacyDocWritablePictures pictures, string kind, LegacyDocRevision revision = default) {
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties).WithRevision(revision);
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
                     case RunProperties:
@@ -427,6 +453,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Text textNode:
                         AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, textNode.Text, formatting);
+                        break;
+                    case DeletedText deletedTextNode:
+                        AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, deletedTextNode.Text, formatting);
                         break;
                     case TabChar:
                         AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, "\t", formatting);
@@ -443,8 +472,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Break breakNode:
                         AppendFormattedHeaderFooterBreak(storyText, formattedRuns, paragraphText, breakNode, kind, formatting);
                         break;
+                    case DocumentFormat.OpenXml.Wordprocessing.Drawing drawing:
+                        int picturePosition = storyText.Length;
+                        int pictureDataOffset = pictures.AddInlinePicture(drawing, relationshipOwner);
+                        storyText.Append('\u0001');
+                        paragraphText.Append('\u0001');
+                        formattedRuns.Add(new LegacyDocWritableRun(
+                            picturePosition,
+                            1,
+                            LegacyDocWritableFormatting.SpecialCharacter.WithRevision(revision),
+                            pictureDataOffset));
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text, PAGE fields, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks in {kind}s. Unsupported {kind} run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text, embedded inline pictures, PAGE fields, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks in {kind}s. Unsupported {kind} run element: {child.LocalName}.");
                 }
             }
         }

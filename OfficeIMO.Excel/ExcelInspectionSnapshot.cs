@@ -229,7 +229,7 @@ namespace OfficeIMO.Excel {
         public IReadOnlyList<ExcelTableSnapshot> Tables => _tables;
 
         /// <summary>
-        /// Preserve-only threaded comments discovered on the worksheet.
+        /// Threaded comments discovered on the worksheet.
         /// </summary>
         public IReadOnlyList<ExcelThreadedCommentSnapshot> ThreadedComments => _threadedComments;
 
@@ -429,7 +429,7 @@ namespace OfficeIMO.Excel {
         public ExcelCommentSnapshot? Comment { get; internal set; }
 
         /// <summary>
-        /// Preserve-only threaded comment metadata attached to the cell, when present.
+        /// Threaded comment metadata attached to the cell, when present.
         /// </summary>
         public ExcelThreadedCommentSnapshot? ThreadedComment { get; internal set; }
 

@@ -148,7 +148,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 specified: format.Specified,
                 characterSpacingTwips: format.CharacterSpacingTwips,
                 language: format.Language,
-                eastAsiaLanguage: format.EastAsiaLanguage));
+                eastAsiaLanguage: format.EastAsiaLanguage,
+                revision: format.Revision));
             text.Clear();
             positions.Clear();
         }

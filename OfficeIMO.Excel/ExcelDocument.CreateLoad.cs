@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Excel.Xlsb;
+using OfficeIMO.Excel.Xlsb.Model;
+using OfficeIMO.Excel.Xlsb.Projection;
 using OfficeIMO.Excel.Utilities;
 using OfficeIMO.Drawing;
 using System.IO.Packaging;
@@ -28,7 +31,7 @@ namespace OfficeIMO.Excel {
             }
 
             var packageStream = new MemoryStream(StreamBufferSize);
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, autoSave: false);
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType, autoSave: false);
             return CreateNewDocument(
                 spreadSheetDocument,
                 filePath: null,
@@ -56,7 +59,8 @@ namespace OfficeIMO.Excel {
             Stream packageStream = saveOnDispose
                 ? new NonDisposingMemoryStream(StreamBufferSize)
                 : new MemoryStream(StreamBufferSize);
-            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, autoSave: false);
+            SpreadsheetDocumentType documentType = ResolveSpreadsheetDocumentType(filePath) ?? resolved.DocumentType;
+            SpreadsheetDocument spreadSheetDocument = SpreadsheetDocument.Create(packageStream, documentType, autoSave: false);
             return CreateNewDocument(
                 spreadSheetDocument,
                 filePath,
@@ -83,8 +87,43 @@ namespace OfficeIMO.Excel {
                 ? new NonDisposingMemoryStream(StreamBufferSize)
                 : new MemoryStream(StreamBufferSize);
 
-            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, SpreadsheetDocumentType.Workbook, false);
+            var spreadSheetDocument = SpreadsheetDocument.Create(packageStream, resolved.DocumentType, false);
             return CreateNewDocument(spreadSheetDocument, filePath: null, packageStream, stream, resolved.PersistenceMode, saveOnDispose, leaveSourceStreamOpen: true);
+        }
+
+        private static SpreadsheetDocumentType? ResolveSpreadsheetDocumentType(string? filePath) {
+            if (string.IsNullOrWhiteSpace(filePath)) {
+                return null;
+            }
+
+            return Path.GetExtension(filePath).ToLowerInvariant() switch {
+                ".xlsx" => SpreadsheetDocumentType.Workbook,
+                ".xlsm" => SpreadsheetDocumentType.MacroEnabledWorkbook,
+                ".xltx" => SpreadsheetDocumentType.Template,
+                ".xltm" => SpreadsheetDocumentType.MacroEnabledTemplate,
+                _ => null
+            };
+        }
+
+        private void AlignSpreadsheetDocumentTypeWithFilePath(string filePath) {
+            SpreadsheetDocumentType? target = ResolveSpreadsheetDocumentType(filePath);
+            if (!target.HasValue) {
+                return;
+            }
+
+            bool macroFreeTarget = target.Value == SpreadsheetDocumentType.Workbook
+                || target.Value == SpreadsheetDocumentType.Template;
+            bool currentlyMacroEnabled = _spreadSheetDocument.DocumentType == SpreadsheetDocumentType.MacroEnabledWorkbook
+                || _spreadSheetDocument.DocumentType == SpreadsheetDocumentType.MacroEnabledTemplate;
+            if (macroFreeTarget && HasMacros && currentlyMacroEnabled) {
+                throw new InvalidOperationException(
+                    "A workbook containing VBA cannot be saved to a macro-free .xlsx or .xltx destination. Use .xlsm/.xltm or remove the VBA project first.");
+            }
+
+            if (_spreadSheetDocument.DocumentType != target.Value) {
+                _spreadSheetDocument.ChangeDocumentType(target.Value);
+                MarkPackageDirty();
+            }
         }
 
         private static ExcelDocument CreateNewDocument(
@@ -195,6 +234,9 @@ namespace OfficeIMO.Excel {
             if (bytes == null) throw new ArgumentNullException(nameof(bytes));
             if (options == null) throw new ArgumentNullException(nameof(options));
             OfficeDocumentLifecycle.Validate(options.AccessMode, options.PersistenceMode, "workbook");
+            if (options.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(bytes, options.PackageSecurity);
+            }
 
             bool readOnly = options.AccessMode == DocumentAccessMode.ReadOnly;
             bool saveOnDispose = options.PersistenceMode == DocumentPersistenceMode.SaveOnDispose;
@@ -202,8 +244,13 @@ namespace OfficeIMO.Excel {
                 originalStream,
                 options.AccessMode);
 
-            if (ExcelDocumentLoadRouting.IsLegacyXls(bytes, filePath)) {
+            ExcelFileFormat detectedFormat = ExcelDocumentLoadRouting.DetectFormat(bytes, filePath);
+            if (detectedFormat == ExcelFileFormat.Xls) {
                 return LoadLegacyXlsFromNormalFlow(bytes, readOnly, saveOnDispose, filePath);
+            }
+
+            if (detectedFormat == ExcelFileFormat.Xlsb) {
+                return LoadXlsbFromNormalFlow(bytes, readOnly, saveOnDispose, filePath, options.XlsbImportOptions);
             }
 
             var effectiveOpenSettings = CreateOpenSettings(options.OpenSettings);
@@ -248,12 +295,18 @@ namespace OfficeIMO.Excel {
             }
         }
 
-        private static byte[] ReadAllBytes(Stream stream) {
-            return OfficeStreamReader.ReadAllBytes(stream);
+        private static byte[] ReadAllBytes(Stream stream, OfficePackageSecurityOptions? securityOptions = null) {
+            return securityOptions == null
+                ? OfficeStreamReader.ReadAllBytes(stream)
+                : OfficePackageSecurityInspector.ReadBounded(stream, securityOptions);
         }
 
-        private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken) {
-            return await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+        private static async Task<byte[]> ReadAllBytesAsync(Stream stream, CancellationToken cancellationToken,
+            OfficePackageSecurityOptions? securityOptions = null) {
+            return securityOptions == null
+                ? await OfficeStreamReader.ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false)
+                : await OfficePackageSecurityInspector.ReadBoundedAsync(stream, securityOptions, cancellationToken)
+                    .ConfigureAwait(false);
         }
 
         private static void DisposeStream(Stream? stream) {
@@ -286,7 +339,7 @@ namespace OfficeIMO.Excel {
                 throw new InvalidDataException("Legacy XLS import failed: " + FormatLegacyXlsDiagnostics(errors));
             }
 
-            return ProjectLoadedLegacyXlsWorkbook(workbook, filePath);
+            return ProjectLoadedLegacyXlsWorkbook(workbook, filePath, readOnly);
         }
 
         private static string FormatLegacyXlsDiagnostics(IEnumerable<LegacyXlsImportDiagnostic> diagnostics) {
@@ -298,6 +351,25 @@ namespace OfficeIMO.Excel {
             }
 
             return message;
+        }
+
+        private static ExcelDocument LoadXlsbFromNormalFlow(
+            byte[] bytes,
+            bool readOnly,
+            bool saveOnDispose,
+            string? filePath,
+            XlsbImportOptions? importOptions) {
+            if (!readOnly && saveOnDispose) {
+                throw new NotSupportedException("SaveOnDispose is not supported when loading XLSB workbooks. Save explicitly to an .xlsx path while native XLSB writing is unavailable.");
+            }
+
+            XlsbWorkbook workbook = XlsbWorkbookReader.Load(bytes, importOptions);
+            ExcelDocument document = XlsbWorkbookProjector.ToExcelDocument(workbook);
+            if (readOnly) {
+                document = ReopenProjectedWorkbookReadOnly(document);
+            }
+            document.MarkLoadedFromXlsb(filePath, workbook);
+            return document;
         }
 
         /// <summary>
@@ -316,7 +388,11 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
-            var bytes = File.ReadAllBytes(filePath);
+            byte[] bytes;
+            using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete)) {
+                bytes = ReadAllBytes(source, resolved.PackageSecurity);
+            }
             return LoadFromByteArray(bytes, resolved, filePath);
         }
 
@@ -336,9 +412,16 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            var encryptedBytes = File.ReadAllBytes(filePath);
+            byte[] encryptedBytes;
+            using (var source = new FileStream(filePath, FileMode.Open, FileAccess.Read,
+                FileShare.ReadWrite | FileShare.Delete)) {
+                encryptedBytes = ReadAllBytes(source, resolved.PackageSecurity);
+            }
+            if (resolved.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
+            }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
-                return LoadEncryptedLegacyXls(encryptedBytes, password);
+                return LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly);
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
@@ -359,7 +442,7 @@ namespace OfficeIMO.Excel {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "workbook");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            var bytes = ReadAllBytes(stream);
+            var bytes = ReadAllBytes(stream, resolved.PackageSecurity);
             return LoadFromByteArray(
                 bytes,
                 resolved,
@@ -382,9 +465,12 @@ namespace OfficeIMO.Excel {
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
 
-            var encryptedBytes = ReadAllBytes(stream);
+            var encryptedBytes = ReadAllBytes(stream, resolved.PackageSecurity);
+            if (resolved.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
+            }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
-                return LoadEncryptedLegacyXls(encryptedBytes, password);
+                return LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly);
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
@@ -441,7 +527,8 @@ namespace OfficeIMO.Excel {
             }
 
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
-            var bytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
+            var bytes = await ReadAllBytesCompatAsync(filePath, cancellationToken, resolved.PackageSecurity)
+                .ConfigureAwait(false);
             return LoadFromByteArray(bytes, resolved, filePath);
         }
 
@@ -462,9 +549,13 @@ namespace OfficeIMO.Excel {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
             }
 
-            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken).ConfigureAwait(false);
+            var encryptedBytes = await ReadAllBytesCompatAsync(filePath, cancellationToken, resolved.PackageSecurity)
+                .ConfigureAwait(false);
+            if (resolved.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
+            }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath)) {
-                return LoadEncryptedLegacyXls(encryptedBytes, password);
+                return LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly);
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
@@ -486,7 +577,8 @@ namespace OfficeIMO.Excel {
             OfficeDocumentLifecycle.Validate(resolved.AccessMode, resolved.PersistenceMode, "workbook");
             OfficeDocumentLifecycle.EnsureSaveOnDisposeDestination(stream, resolved.PersistenceMode, nameof(stream));
 
-            var bytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            var bytes = await ReadAllBytesAsync(stream, cancellationToken, resolved.PackageSecurity)
+                .ConfigureAwait(false);
             return LoadFromByteArray(
                 bytes,
                 resolved,
@@ -510,21 +602,25 @@ namespace OfficeIMO.Excel {
             ExcelLoadOptions resolved = options ?? new ExcelLoadOptions();
             EnsureEncryptedLoadUsesExplicitPersistence(resolved);
 
-            var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
+            var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken, resolved.PackageSecurity)
+                .ConfigureAwait(false);
+            if (resolved.PackageSecurity != null) {
+                OfficePackageSecurityInspector.Validate(encryptedBytes, resolved.PackageSecurity);
+            }
             if (ExcelDocumentLoadRouting.IsEncryptedLegacyXls(encryptedBytes, filePath: null)) {
-                return LoadEncryptedLegacyXls(encryptedBytes, password);
+                return LoadEncryptedLegacyXls(encryptedBytes, password, resolved.AccessMode == DocumentAccessMode.ReadOnly);
             }
 
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadFromByteArray(packageBytes, resolved, filePath: null);
         }
 
-        private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password) {
+        private static ExcelDocument LoadEncryptedLegacyXls(byte[] bytes, string password, bool readOnly) {
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(bytes, new LegacyXlsImportOptions {
                 Password = password,
                 ReportUnsupportedContent = true
             });
-            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null);
+            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null, readOnly);
         }
 
         private static void EnsureEncryptedLoadUsesExplicitPersistence(ExcelLoadOptions options) {

@@ -12,10 +12,29 @@ namespace OfficeIMO.Drawing.Internal {
         internal static bool TryContainsStreamPath(Stream stream, string expectedPath, long maxInputBytes,
             int maxDirectoryEntries, out bool contains, out string? error) {
             contains = false;
+            if (string.IsNullOrWhiteSpace(expectedPath)) {
+                throw new ArgumentException("A stream path is required.", nameof(expectedPath));
+            }
+
+            if (!TryInspectDirectory(stream, maxInputBytes, maxDirectoryEntries,
+                out IReadOnlyList<OfficeCompoundFileEntry> entries, out error)) {
+                return false;
+            }
+
+            contains = entries.Any(entry => entry.IsStream &&
+                string.Equals(entry.Path, expectedPath, StringComparison.OrdinalIgnoreCase));
+            return true;
+        }
+
+        /// <summary>
+        /// Inspects allocation tables and directory metadata without materializing payload streams.
+        /// </summary>
+        internal static bool TryInspectDirectory(Stream stream, long maxInputBytes,
+            int maxDirectoryEntries, out IReadOnlyList<OfficeCompoundFileEntry> entries, out string? error) {
+            entries = Array.Empty<OfficeCompoundFileEntry>();
             error = null;
             try {
                 if (stream == null) throw new ArgumentNullException(nameof(stream));
-                if (string.IsNullOrWhiteSpace(expectedPath)) throw new ArgumentException("A stream path is required.", nameof(expectedPath));
                 if (!stream.CanRead || !stream.CanSeek) {
                     error = "Compound directory inspection requires a readable seekable stream.";
                     return false;
@@ -68,16 +87,14 @@ namespace OfficeIMO.Drawing.Internal {
                     physicalSectorCount, firstDifat, difatSectorCount, fatSectorCount);
                 byte[] directoryBytes = ReadDirectoryStream(stream, basePosition, directoryStart, sectorSize,
                     physicalSectorCount, fatSectorIds, maxDirectoryEntries);
-                List<DirectoryEntry> entries = ReadDirectoryEntries(directoryBytes, majorVersion, maxDirectoryEntries);
-                IReadOnlyDictionary<int, string> paths = BuildCompoundEntryPaths(entries);
-                contains = entries.Any(entry => entry.ObjectType == 2 &&
-                    paths.TryGetValue(entry.Index, out string? path) &&
-                    string.Equals(path, expectedPath, StringComparison.OrdinalIgnoreCase));
+                List<DirectoryEntry> directoryEntries = ReadDirectoryEntries(directoryBytes, majorVersion,
+                    maxDirectoryEntries);
+                entries = BuildCompoundEntries(directoryEntries);
                 return true;
             } catch (Exception exception) when (exception is IOException || exception is ArgumentException ||
                 exception is InvalidDataException || exception is OverflowException ||
                 exception is IndexOutOfRangeException || exception is NotSupportedException) {
-                contains = false;
+                entries = Array.Empty<OfficeCompoundFileEntry>();
                 error = $"The OLE compound directory could not be inspected. {exception.Message}";
                 return false;
             }

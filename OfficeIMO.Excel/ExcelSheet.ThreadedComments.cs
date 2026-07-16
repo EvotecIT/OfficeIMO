@@ -74,23 +74,38 @@ namespace OfficeIMO.Excel {
             if (string.IsNullOrWhiteSpace(options.Address)) throw new ArgumentException("Threaded comment address is required.", nameof(options));
             if (string.IsNullOrWhiteSpace(options.Text)) throw new ArgumentException("Threaded comment text is required.", nameof(options));
 
-            var (row, column) = A1.ParseCellRef(options.Address);
-            if (row <= 0 || column <= 0 || row > A1.MaxRows || column > A1.MaxColumns) {
-                throw new ArgumentException($"Address '{options.Address}' is not a valid A1 reference.", nameof(options));
-            }
-
-            string cellReference = A1.CellReference(row, column);
+            string cellReference = NormalizeThreadedCommentAddress(options.Address, nameof(options));
             string author = string.IsNullOrWhiteSpace(options.Author) ? "OfficeIMO" : options.Author.Trim();
-            string id = NormalizeThreadedId(options.Id);
-            string? parentId = string.IsNullOrWhiteSpace(options.ParentId) ? null : options.ParentId!.Trim();
-            DateTime timestamp = options.Date ?? DateTime.UtcNow;
+            string id = NormalizeThreadedId(options.Id, nameof(options.Id), generateIfMissing: true);
+            string? parentId = string.IsNullOrWhiteSpace(options.ParentId)
+                ? null
+                : NormalizeThreadedId(options.ParentId, nameof(options.ParentId), generateIfMissing: false);
+            DateTime timestamp = NormalizeThreadedTimestamp(options.Date);
             string personId = string.Empty;
 
             WriteLock(() => {
+                if (TryFindWorkbookThreadedComment(id, out _, out _, out _)) {
+                    throw new InvalidOperationException($"A threaded comment with id '{id}' already exists in the workbook.");
+                }
+
+                if (parentId != null) {
+                    if (!TryFindWorkbookThreadedComment(parentId, out WorksheetPart? parentWorksheet, out _, out Threaded.ThreadedComment? parent)) {
+                        throw new ArgumentException($"Parent threaded comment '{parentId}' does not exist.", nameof(options));
+                    }
+
+                    if (!ReferenceEquals(parentWorksheet, _worksheetPart)
+                        || !string.Equals(parent!.Ref?.Value, cellReference, StringComparison.OrdinalIgnoreCase)) {
+                        throw new ArgumentException("A threaded reply must use the same worksheet and cell as its parent comment.", nameof(options));
+                    }
+
+                    if (!string.IsNullOrWhiteSpace(parent.ParentId?.Value)) {
+                        throw new ArgumentException("A threaded reply must reference the root comment rather than another reply.", nameof(options));
+                    }
+                }
+
                 personId = EnsureWorkbookPerson(author);
                 WorksheetThreadedCommentsPart commentsPart = GetOrCreateThreadedCommentsPart();
                 commentsPart.ThreadedComments ??= new Threaded.ThreadedComments();
-                RemoveThreadedCommentById(commentsPart.ThreadedComments, id);
 
                 var comment = new Threaded.ThreadedComment {
                     Ref = cellReference,
@@ -108,6 +123,7 @@ namespace OfficeIMO.Excel {
                 comment.Append(new Threaded.ThreadedCommentText(options.Text));
                 commentsPart.ThreadedComments.Append(comment);
                 commentsPart.ThreadedComments.Save();
+                _excelDocument.MarkPackageDirty();
             });
 
             return new ExcelThreadedCommentResult(Name, cellReference, id, personId, author, parentId != null, options.Done);
@@ -158,18 +174,70 @@ namespace OfficeIMO.Excel {
             return personId;
         }
 
-        private static string NormalizeThreadedId(string? id) {
-            return string.IsNullOrWhiteSpace(id) ? BracedGuid() : id!.Trim();
+        private static string NormalizeThreadedCommentAddress(string address, string parameterName) {
+            var (row, column) = A1.ParseCellRef(address);
+            if (row <= 0 || column <= 0 || row > A1.MaxRows || column > A1.MaxColumns) {
+                throw new ArgumentException($"Address '{address}' is not a valid A1 reference.", parameterName);
+            }
+
+            return A1.CellReference(row, column);
+        }
+
+        private static string NormalizeThreadedId(string? id, string parameterName, bool generateIfMissing) {
+            if (string.IsNullOrWhiteSpace(id)) {
+                if (generateIfMissing) {
+                    return BracedGuid();
+                }
+
+                throw new ArgumentNullException(parameterName);
+            }
+
+            if (!Guid.TryParse(id!.Trim(), out Guid guid)) {
+                throw new ArgumentException("Threaded comment ids must be GUID values.", parameterName);
+            }
+
+            return "{" + guid.ToString().ToUpperInvariant() + "}";
+        }
+
+        private static DateTime NormalizeThreadedTimestamp(DateTime? value) {
+            DateTime timestamp = value ?? DateTime.UtcNow;
+            if (timestamp.Kind == DateTimeKind.Local) {
+                return timestamp.ToUniversalTime();
+            }
+
+            return timestamp.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(timestamp, DateTimeKind.Utc)
+                : timestamp;
         }
 
         private static string BracedGuid() {
             return "{" + Guid.NewGuid().ToString().ToUpperInvariant() + "}";
         }
 
-        private static void RemoveThreadedCommentById(Threaded.ThreadedComments comments, string id) {
-            Threaded.ThreadedComment? existing = comments.Elements<Threaded.ThreadedComment>()
-                .FirstOrDefault(comment => string.Equals(comment.Id?.Value, id, StringComparison.OrdinalIgnoreCase));
-            existing?.Remove();
+        private bool TryFindWorkbookThreadedComment(
+            string id,
+            out WorksheetPart? worksheetPart,
+            out WorksheetThreadedCommentsPart? commentsPart,
+            out Threaded.ThreadedComment? comment) {
+            WorkbookPart workbookPart = _spreadSheetDocument.WorkbookPart ?? throw new InvalidOperationException("Workbook part is missing.");
+            foreach (WorksheetPart candidateWorksheet in workbookPart.WorksheetParts) {
+                foreach (WorksheetThreadedCommentsPart candidatePart in candidateWorksheet.WorksheetThreadedCommentsParts) {
+                    Threaded.ThreadedComment? candidate = candidatePart.ThreadedComments?
+                        .Elements<Threaded.ThreadedComment>()
+                        .FirstOrDefault(item => string.Equals(item.Id?.Value, id, StringComparison.OrdinalIgnoreCase));
+                    if (candidate != null) {
+                        worksheetPart = candidateWorksheet;
+                        commentsPart = candidatePart;
+                        comment = candidate;
+                        return true;
+                    }
+                }
+            }
+
+            worksheetPart = null;
+            commentsPart = null;
+            comment = null;
+            return false;
         }
     }
 }
