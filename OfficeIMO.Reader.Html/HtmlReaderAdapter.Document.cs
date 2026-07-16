@@ -186,7 +186,8 @@ internal static partial class HtmlReaderAdapter {
                 projection.Assets.Add(asset);
                 projection.Visuals.Add(MapHtmlVisual(node, asset.Location, asset.PayloadHash, asset.MediaType, asset.SourceObjectId));
             }
-        } else if (node.Kind == HtmlLogicalNodeKind.Media) {
+        } else if (node.Kind == HtmlLogicalNodeKind.Media &&
+            !string.Equals(node.Name, "source", StringComparison.OrdinalIgnoreCase)) {
             string anchor = "html-media-" + projection.Visuals.Count.ToString("D4", CultureInfo.InvariantCulture);
             projection.Visuals.Add(MapHtmlVisual(node, BuildHtmlLocation(path, null, "media", anchor), null, null));
         }
