@@ -5,6 +5,7 @@
     <TargetFrameworks Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(TargetFrameworks);net472</TargetFrameworks>
     <EnableOfficeIMOEmailPackageSmoke Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == ''">false</EnableOfficeIMOEmailPackageSmoke>
     <OfficeIMOEmailPackageVersion Condition="'$(OfficeIMOEmailPackageVersion)' == ''">0.1.0</OfficeIMOEmailPackageVersion>
+    <OfficeIMOEmailStorePackageVersion Condition="'$(OfficeIMOEmailStorePackageVersion)' == ''">0.1.0</OfficeIMOEmailStorePackageVersion>
     <IsPackable>false</IsPackable>
     <LangVersion>Latest</LangVersion>
     <Nullable>enable</Nullable>
@@ -13,10 +14,11 @@
 
   <ItemGroup Condition="'$(EnableOfficeIMOEmailPackageSmoke)' == 'true'">
     <PackageReference Include="OfficeIMO.Email" Version="[$(OfficeIMOEmailPackageVersion)]" />
+    <PackageReference Include="OfficeIMO.Email.Store" Version="[$(OfficeIMOEmailStorePackageVersion)]" />
   </ItemGroup>
 
   <Target Name="RequirePackageSmokeOptIn" BeforeTargets="CoreCompile"
           Condition="'$(EnableOfficeIMOEmailPackageSmoke)' != 'true'">
-    <Error Text="Set EnableOfficeIMOEmailPackageSmoke=true and restore from a feed containing the packed OfficeIMO.Email package." />
+    <Error Text="Set EnableOfficeIMOEmailPackageSmoke=true and restore from a feed containing the packed OfficeIMO.Email and OfficeIMO.Email.Store packages." />
   </Target>
 </Project>
