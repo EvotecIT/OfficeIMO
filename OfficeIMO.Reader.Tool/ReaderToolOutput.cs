@@ -94,14 +94,30 @@ internal static class ReaderToolOutput {
     }
 
     private static async Task WriteFileAsync(string path, string content, CancellationToken cancellationToken) {
+        string? temporaryPath = null;
         try {
-            string? directory = Path.GetDirectoryName(Path.GetFullPath(path));
+            string fullPath = Path.GetFullPath(path);
+            string? directory = Path.GetDirectoryName(fullPath);
             if (!string.IsNullOrEmpty(directory)) {
                 Directory.CreateDirectory(directory);
             }
-            await File.WriteAllTextAsync(path, content, Utf8WithoutBom, cancellationToken).ConfigureAwait(false);
+            string outputDirectory = string.IsNullOrEmpty(directory) ? Directory.GetCurrentDirectory() : directory!;
+            temporaryPath = Path.Combine(
+                outputDirectory,
+                "." + Path.GetFileName(fullPath) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+            await File.WriteAllTextAsync(temporaryPath, content, Utf8WithoutBom, cancellationToken).ConfigureAwait(false);
+            File.Move(temporaryPath, fullPath, overwrite: true);
+            temporaryPath = null;
         } catch (Exception exception) when (exception is IOException or UnauthorizedAccessException) {
             throw new ReaderToolOutputException("Could not write output file '" + path + "'.", exception);
+        } finally {
+            if (temporaryPath != null) {
+                try {
+                    File.Delete(temporaryPath);
+                } catch (IOException) {
+                } catch (UnauthorizedAccessException) {
+                }
+            }
         }
     }
 }

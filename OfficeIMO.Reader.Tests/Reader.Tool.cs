@@ -90,6 +90,78 @@ public sealed class ReaderToolTests {
     }
 
     [Fact]
+    public async Task FolderUsesABoundedPerFileDefaultAndSupportsAnExplicitLimit() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string inputRoot = Path.Combine(temporary.Path, "input");
+        string outputRoot = Path.Combine(temporary.Path, "output");
+        Directory.CreateDirectory(inputRoot);
+        await File.WriteAllTextAsync(Path.Combine(inputRoot, "large.txt"), "0123456789abcdefg");
+        ReaderToolArguments defaults = ReaderToolArguments.Parse(new[] {
+            "folder", inputRoot, "--output", outputRoot
+        });
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] {
+                "folder", inputRoot,
+                "--output", outputRoot,
+                "--max-input-bytes", "16"
+            },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal(ReaderToolArguments.DefaultMaxInputBytes, defaults.MaxInputBytes);
+        Assert.Equal((int)ReaderToolExitCode.ReadFailed, exitCode);
+        Assert.Contains("MaxInputBytes", error.ToString(), StringComparison.Ordinal);
+        Assert.False(Directory.Exists(outputRoot));
+    }
+
+    [Fact]
+    public async Task ReadRejectsAnOutputThatAliasesTheInput() {
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string inputPath = Path.Combine(temporary.Path, "input.md");
+        const string original = "# Original";
+        await File.WriteAllTextAsync(inputPath, original);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "read", inputPath, "--output", inputPath },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Contains("different from the input", error.ToString(), StringComparison.Ordinal);
+        Assert.Equal(original, await File.ReadAllTextAsync(inputPath));
+    }
+
+    [Fact]
+    public async Task ReadRejectsASymbolicOutputThatTargetsTheInput() {
+        if (OperatingSystem.IsWindows()) return;
+        using var temporary = new ReaderToolTemporaryDirectory();
+        string inputPath = Path.Combine(temporary.Path, "input.md");
+        string outputPath = Path.Combine(temporary.Path, "output.md");
+        const string original = "# Original";
+        await File.WriteAllTextAsync(inputPath, original);
+        File.CreateSymbolicLink(outputPath, inputPath);
+        using var output = new StringWriter();
+        using var error = new StringWriter();
+
+        int exitCode = await ReaderToolApp.RunAsync(
+            new[] { "read", inputPath, "--output", outputPath },
+            Stream.Null,
+            output,
+            error);
+
+        Assert.Equal((int)ReaderToolExitCode.OutputFailed, exitCode);
+        Assert.Contains("different from the input", error.ToString(), StringComparison.Ordinal);
+        Assert.Equal(original, await File.ReadAllTextAsync(inputPath));
+    }
+
+    [Fact]
     public async Task CapabilityListExcludesDependencyBackedProviders() {
         using var output = new StringWriter();
         using var error = new StringWriter();

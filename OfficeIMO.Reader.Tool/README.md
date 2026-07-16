@@ -27,10 +27,11 @@ officeimo-reader folder ./documents `
     --format json `
     --assets ./converted-assets `
     --concurrency 4 `
-    --max-files 500
+    --max-files 500 `
+    --max-input-bytes 67108864
 ```
 
-Folder output preserves relative source paths and adds `.md` or `.reader.json`. Discovery streams filesystem entries, stops at `--max-files`, skips reparse points, and sorts the selected paths before conversion; `--max-total-bytes` provides an optional aggregate input ceiling. Use `--no-recursive` for the top directory only. Output and asset paths are resolved through existing symbolic links or junctions and must remain outside the input tree.
+Folder output preserves relative source paths and adds `.md` or `.reader.json`. Each document has the same 64 MiB default input ceiling as `read`; use `--max-input-bytes` to override it. Discovery streams filesystem entries, stops at `--max-files`, skips reparse points, and sorts the selected paths before conversion; `--max-total-bytes` provides an optional aggregate input ceiling. Use `--no-recursive` for the top directory only. Output and asset paths are resolved through existing symbolic links or junctions and must remain outside the input tree.
 
 ## Inspect capabilities
 

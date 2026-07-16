@@ -1,6 +1,14 @@
 namespace OfficeIMO.Reader.Tool;
 
 internal static class ReaderToolPathSafety {
+    internal static void EnsureDistinctFile(string inputPath, string outputPath) {
+        string resolvedInput = ResolveExistingLinks(inputPath);
+        string resolvedOutput = ResolveExistingLinks(outputPath);
+        if (string.Equals(resolvedInput, resolvedOutput, PathComparison)) {
+            throw new ReaderToolOutputException("Output file must be different from the input file.");
+        }
+    }
+
     internal static void EnsureOutsideInput(string inputPath, params string?[] candidatePaths) {
         string resolvedInput = ResolveExistingLinks(inputPath);
         foreach (string? candidatePath in candidatePaths) {

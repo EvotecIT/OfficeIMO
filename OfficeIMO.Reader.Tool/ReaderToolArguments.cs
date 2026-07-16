@@ -31,7 +31,7 @@ internal sealed class ReaderToolArguments {
     internal bool Recurse { get; private set; } = true;
     private bool ConcurrencySpecified { get; set; }
     private bool FolderLimitSpecified { get; set; }
-    private bool ReadLimitSpecified { get; set; }
+    private bool InputLimitSpecified { get; set; }
     private bool RecursionSpecified { get; set; }
 
     internal static ReaderToolArguments Parse(string[] args) {
@@ -82,7 +82,7 @@ internal sealed class ReaderToolArguments {
                     break;
                 case "--max-input-bytes":
                     parsed.MaxInputBytes = ParsePositiveLong(NextValue(args, ref index, token), token);
-                    parsed.ReadLimitSpecified = true;
+                    parsed.InputLimitSpecified = true;
                     break;
                 case "--recursive":
                     parsed.Recurse = true;
@@ -111,7 +111,7 @@ internal sealed class ReaderToolArguments {
     private void Validate() {
         if (Command == ReaderToolCommand.Capabilities) {
             if (InputPath != null || SourceName != null || AssetsPath != null || OutputPath != null ||
-                ConcurrencySpecified || FolderLimitSpecified || ReadLimitSpecified || RecursionSpecified) {
+                ConcurrencySpecified || FolderLimitSpecified || InputLimitSpecified || RecursionSpecified) {
                 throw new ReaderToolUsageException("The capabilities command does not accept input or output paths.");
             }
             if (Format == ReaderToolOutputFormat.Markdown) {
@@ -147,9 +147,6 @@ internal sealed class ReaderToolArguments {
         }
         if (SourceName != null) {
             throw new ReaderToolUsageException("--name is only valid when reading standard input.");
-        }
-        if (ReadLimitSpecified) {
-            throw new ReaderToolUsageException("--max-input-bytes is only valid with the read command.");
         }
     }
 

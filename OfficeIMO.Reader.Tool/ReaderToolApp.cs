@@ -10,7 +10,7 @@ Usage:
   officeimo-reader read <path|-> [--name <source-name>] [--format markdown|json] [--output <file|->] [--assets <directory>]
                                 [--max-input-bytes <bytes>]
   officeimo-reader folder <path> --output <directory> [--format markdown|json] [--assets <directory>] [--concurrency <1-64>]
-                          [--max-files <count>] [--max-total-bytes <bytes>] [--no-recursive]
+                          [--max-files <count>] [--max-total-bytes <bytes>] [--max-input-bytes <bytes>] [--no-recursive]
   officeimo-reader capabilities [--format text|json]
 
 The dependency-bounded tool does not configure OCR or hosted providers.
@@ -96,6 +96,9 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             if (!File.Exists(inputPath)) {
                 throw new FileNotFoundException("Input file '" + inputPath + "' does not exist.", inputPath);
             }
+            if (!string.IsNullOrWhiteSpace(options.OutputPath) && options.OutputPath != "-") {
+                ReaderToolPathSafety.EnsureDistinctFile(inputPath, options.OutputPath!);
+            }
             document = await reader.ReadDocumentAsync(inputPath, readerOptions, cancellationToken)
                 .ConfigureAwait(false);
         }
@@ -136,6 +139,7 @@ The dependency-bounded tool does not configure OCR or hosted providers.
             cancellationToken);
         IReadOnlyList<OfficeDocumentReadResult> documents = await reader.ReadDocumentsAsync(
             paths,
+            options: new ReaderOptions { MaxInputBytes = options.MaxInputBytes },
             batchOptions: new ReaderBatchOptions {
                 MaxDegreeOfParallelism = options.Concurrency,
                 MaxDocuments = options.MaxFiles
