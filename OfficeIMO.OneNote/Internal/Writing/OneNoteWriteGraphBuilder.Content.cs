@@ -4,6 +4,9 @@ namespace OfficeIMO.OneNote;
 
 internal sealed partial class OneNoteWriteGraphBuilder {
     private OneNoteExtendedGuid BuildOutline(OneNoteWriteObjectSpace space, OneNoteOutline outline, uint lastModifiedTime) {
+        if (outline.IsOutlineElementWrapper) {
+            return BuildOutlineElementWrapper(space, outline, lastModifiedTime);
+        }
         EnsureTagTargetSupported(outline);
         var childIds = new List<OneNoteExtendedGuid>();
         foreach (OneNoteElement child in outline.Children) childIds.Add(BuildOutlineChild(space, child, lastModifiedTime));
@@ -12,6 +15,40 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         properties.Insert(0, Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime));
         if (childIds.Count > 0) properties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, childIds));
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidOutlineNode, properties));
+        return id;
+    }
+
+    private OneNoteExtendedGuid BuildOutlineElementWrapper(
+        OneNoteWriteObjectSpace space,
+        OneNoteOutline wrapper,
+        uint lastModifiedTime) {
+        if (wrapper.Children.Count == 0) {
+            throw new OneNoteFormatException("ONENOTE_WRITE_OUTLINE_ELEMENT_CONTENT", "A preserved outline-element wrapper must contain primary content.");
+        }
+
+        OneNoteExtendedGuid primaryId = BuildOutlineChild(space, wrapper.Children[0], lastModifiedTime);
+        var nestedIds = new List<OneNoteExtendedGuid>();
+        foreach (OneNoteElement child in wrapper.Children.Skip(1)) {
+            nestedIds.Add(BuildOutlineChild(space, child, lastModifiedTime));
+        }
+
+        var properties = LayoutProperties(wrapper.Layout);
+        properties.Insert(0, Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime));
+        properties.Add(ObjectReferences(OneNoteSchema.ContentChildNodes, primaryId));
+        if (nestedIds.Count > 0) properties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, nestedIds));
+        if (wrapper.WrapperList != null) {
+            properties.Add(ObjectReferences(OneNoteSchema.ListNodes, BuildList(space, wrapper.WrapperList, lastModifiedTime)));
+            properties.Add(Scalar(
+                OneNoteSchema.OutlineElementChildLevel,
+                (ulong)Math.Min(byte.MaxValue, Math.Max(1, wrapper.WrapperList.Level + 1))));
+        }
+        if (!string.IsNullOrWhiteSpace(wrapper.Author?.Name)) {
+            properties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(space, wrapper.Author!.Name!)));
+        }
+        AddTags(space, properties, wrapper.Tags);
+
+        OneNoteExtendedGuid id = IdOrNew(wrapper.Id);
+        space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidOutlineElementNode, properties));
         return id;
     }
 
@@ -234,8 +271,40 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             properties.Add(Data(OneNoteSchema.HyperlinkUrl, Unicode(run.Hyperlink!)));
         }
         OneNoteExtendedGuid id = IdOrNew(run.StyleObjectId);
+        OneNoteWriteObject? existing = space.Objects.FirstOrDefault(item => item.Id.Equals(id));
+        if (existing != null) {
+            if (existing.Jcid == OneNoteSchema.JcidTextStyle && TextStylePropertiesEqual(existing.Properties, properties)) {
+                return id;
+            }
+            id = _ids.New();
+        }
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidTextStyle, properties));
         return id;
+    }
+
+    private static bool TextStylePropertiesEqual(
+        IReadOnlyList<OneNoteWriteProperty> left,
+        IReadOnlyList<OneNoteWriteProperty> right) {
+        if (left.Count != right.Count) return false;
+        for (int index = 0; index < left.Count; index++) {
+            OneNoteWriteProperty first = left[index];
+            OneNoteWriteProperty second = right[index];
+            if (first.RawId != second.RawId ||
+                first.Scalar != second.Scalar ||
+                first.ReferenceKind != second.ReferenceKind ||
+                first.ChildPropertyId != second.ChildPropertyId ||
+                !BytesEqual(first.Data, second.Data) ||
+                !first.References.SequenceEqual(second.References) ||
+                first.ChildPropertySets.Count != second.ChildPropertySets.Count) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private static bool BytesEqual(byte[]? left, byte[]? right) {
+        if (ReferenceEquals(left, right)) return true;
+        return left != null && right != null && left.SequenceEqual(right);
     }
 
     private void AddTags(

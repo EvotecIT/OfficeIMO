@@ -79,6 +79,12 @@ public sealed class OneNoteOutline : OneNoteElement {
 
     /// <summary>Outline children in source order.</summary>
     public IList<OneNoteElement> Children { get; } = new List<OneNoteElement>();
+
+    /// <summary>Marks a semantic container that must be emitted as an MS-ONE outline-element wrapper.</summary>
+    internal bool IsOutlineElementWrapper { get; set; }
+
+    /// <summary>List metadata carried by a preserved nonparagraph outline-element wrapper.</summary>
+    internal OneNoteListInfo? WrapperList { get; set; }
 }
 
 /// <summary>

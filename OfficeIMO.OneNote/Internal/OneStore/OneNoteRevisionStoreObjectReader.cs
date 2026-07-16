@@ -266,37 +266,61 @@ internal static class OneNoteRevisionStoreObjectReader {
             byte[] nodeData = node.EncodedData.ToArray(128);
             int guidOffset = node.ChunkReference.EncodedLength;
             Guid referenceId = OneNoteBinary.ReadGuid(nodeData, guidOffset);
-            byte[] framed = ReadReferencedBytes(node.ChunkReference, "file-data store object");
-            OneNoteBinary.EnsureRange(framed, 0, 52);
-            if (OneNoteBinary.ReadGuid(framed, 0) != FileDataHeader || OneNoteBinary.ReadGuid(framed, framed.Length - 16) != FileDataFooter) {
-                throw new OneNoteFormatException("ONENOTE_FILE_DATA_FRAMING", "A FileDataStoreObject has invalid framing GUIDs.", ToOffset(node.ChunkReference.Offset));
+            if (node.ChunkReference.Length < 52) {
+                throw new OneNoteFormatException("ONENOTE_FILE_DATA_LENGTH", "A FileDataStoreObject is shorter than its required framing.", ToOffset(node.ChunkReference.Offset));
             }
-            ulong length = OneNoteBinary.ReadUInt64(framed, 16);
-            if (length > (ulong)(framed.Length - 52)) {
+
+            byte[] header = ReadReferencedRange(node.ChunkReference, 0, 36, "file-data store object header");
+            ulong length = OneNoteBinary.ReadUInt64(header, 16);
+            if (length > node.ChunkReference.Length - 52) {
                 throw new OneNoteFormatException("ONENOTE_FILE_DATA_LENGTH", "A FileDataStoreObject payload length exceeds its containing frame.", ToOffset(node.ChunkReference.Offset + 16));
             }
             if (length > (ulong)_options.MaxAssetBytes || _totalAssetBytes > _options.MaxTotalAssetBytes - (long)length) {
                 throw new OneNoteFormatException("ONENOTE_ASSET_LIMIT", "An embedded OneNote asset exceeds the configured materialization limits.", node.FileOffset);
             }
-            var payload = new byte[(int)length];
-            if (payload.Length > 0) Buffer.BlockCopy(framed, 36, payload, 0, payload.Length);
+            if (length > int.MaxValue) {
+                throw new OneNoteFormatException("ONENOTE_REFERENCED_DATA_SIZE", "A FileDataStoreObject payload is too large to materialize.", ToOffset(node.ChunkReference.Offset + 16));
+            }
+
+            byte[] footer = ReadReferencedRange(
+                node.ChunkReference,
+                node.ChunkReference.Length - 16,
+                16,
+                "file-data store object footer");
+            if (OneNoteBinary.ReadGuid(header, 0) != FileDataHeader || OneNoteBinary.ReadGuid(footer, 0) != FileDataFooter) {
+                throw new OneNoteFormatException("ONENOTE_FILE_DATA_FRAMING", "A FileDataStoreObject has invalid framing GUIDs.", ToOffset(node.ChunkReference.Offset));
+            }
+
+            byte[] payload = ReadReferencedRange(node.ChunkReference, 36, (int)length, "file-data store object payload");
             _totalAssetBytes += payload.Length;
             Result.FileDataObjects.Add(new OneNoteFileDataStoreObject(referenceId, OneNoteBinaryPayload.FromBytes(payload)));
         }
 
         private byte[] ReadReferencedBytes(OneNoteFileNodeChunkReference reference, string name) {
-            if (reference.Offset > _declaredFileLength || reference.Length > _declaredFileLength - reference.Offset) {
-                throw new OneNoteFormatException("ONENOTE_CHUNK_REFERENCE_BOUNDS", "The " + name + " lies outside the declared file length.", ToOffset(reference.Offset));
-            }
             if (reference.Length > int.MaxValue) {
                 throw new OneNoteFormatException("ONENOTE_REFERENCED_DATA_SIZE", "The " + name + " is too large to materialize.", ToOffset(reference.Offset));
             }
-            _stream.Position = ToOffset(reference.Offset);
-            var data = new byte[(int)reference.Length];
+            return ReadReferencedRange(reference, 0, (int)reference.Length, name);
+        }
+
+        private byte[] ReadReferencedRange(
+            OneNoteFileNodeChunkReference reference,
+            ulong relativeOffset,
+            int length,
+            string name) {
+            if (reference.Offset > _declaredFileLength || reference.Length > _declaredFileLength - reference.Offset) {
+                throw new OneNoteFormatException("ONENOTE_CHUNK_REFERENCE_BOUNDS", "The " + name + " lies outside the declared file length.", ToOffset(reference.Offset));
+            }
+            if (length < 0 || relativeOffset > reference.Length || (ulong)length > reference.Length - relativeOffset) {
+                throw new OneNoteFormatException("ONENOTE_CHUNK_REFERENCE_BOUNDS", "The " + name + " lies outside its containing chunk reference.", ToOffset(reference.Offset));
+            }
+            ulong absoluteOffset = checked(reference.Offset + relativeOffset);
+            _stream.Position = ToOffset(absoluteOffset);
+            var data = new byte[length];
             int total = 0;
             while (total < data.Length) {
                 int read = _stream.Read(data, total, data.Length - total);
-                if (read <= 0) throw new OneNoteFormatException("ONENOTE_TRUNCATED_STRUCTURE", "The file ended while reading " + name + ".", ToOffset(reference.Offset) + total);
+                if (read <= 0) throw new OneNoteFormatException("ONENOTE_TRUNCATED_STRUCTURE", "The file ended while reading " + name + ".", ToOffset(absoluteOffset) + total);
                 total += read;
             }
             return data;

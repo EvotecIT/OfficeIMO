@@ -180,7 +180,7 @@ internal static partial class OneNoteSemanticMapper {
 
             foreach (OneNoteExtendedGuid childId in GetReferences(pageNode, ElementChildNodes)) {
                 OneNoteElement? element = BuildElement(space, childId, materializer, options, 0, new HashSet<OneNoteExtendedGuid>());
-                if (element is OneNoteOutline outline) page.Outlines.Add(outline);
+                if (element is OneNoteOutline outline && !outline.IsOutlineElementWrapper) page.Outlines.Add(outline);
                 else if (element != null) page.DirectContent.Add(element);
             }
 
@@ -282,7 +282,20 @@ internal static partial class OneNoteSemanticMapper {
             foreach (OneNoteTag tag in paragraph.Tags) math.Tags.Add(tag);
             return math;
         }
-        return primary != null && !(primary is OneNoteParagraph) ? primary : paragraph;
+        if (primary != null && !(primary is OneNoteParagraph)) {
+            var wrapper = new OneNoteOutline {
+                Id = item.Id,
+                Layout = paragraph.Layout,
+                Author = paragraph.Author,
+                IsOutlineElementWrapper = true,
+                WrapperList = paragraph.List
+            };
+            wrapper.Children.Add(primary);
+            foreach (OneNoteElement child in paragraph.Children) wrapper.Children.Add(child);
+            ApplyTags(wrapper, item, space);
+            return wrapper;
+        }
+        return paragraph;
     }
 
     private static OneNoteParagraph BuildParagraph(OneNoteMaterializedObjectSpace space, OneNoteRevisionStoreObject item) {
