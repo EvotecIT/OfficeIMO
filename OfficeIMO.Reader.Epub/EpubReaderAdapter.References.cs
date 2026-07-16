@@ -64,6 +64,10 @@ internal static partial class EpubReaderAdapter {
                 resolvedVisuals.Add(visual);
                 continue;
             }
+            if (string.Equals(visual.SourceName, "data-uri", StringComparison.Ordinal)) {
+                resolvedVisuals.Add(visual);
+                continue;
+            }
             EpubReference reference = EpubReference.Resolve(chapter.Path, chapter.BaseHref, visual.SourceName!);
             AddEpubReferenceDiagnostic(sourcePath, chapter, reference, diagnostics);
             if (!reference.IsValid) continue;

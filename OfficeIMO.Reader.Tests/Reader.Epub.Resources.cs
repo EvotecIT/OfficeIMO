@@ -59,6 +59,9 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Contains(result.Visuals, visual =>
                 visual.Language == "video" &&
                 visual.SourceName == prefix + "EPUB/shared/video/clip.mp4#clip");
+            Assert.Contains(result.Visuals, visual =>
+                visual.Language == "img" &&
+                visual.SourceName == "data-uri");
             Assert.DoesNotContain(result.Visuals, visual => visual.SourceName == "../../../outside.png");
 
             Assert.Equal("stylesheet", Assert.Single(result.Assets, asset => asset.SourceObjectId == "styles").Kind);
@@ -88,6 +91,31 @@ public sealed partial class ReaderEpubModularTests {
             Assert.Contains(roundTrip.Assets, asset => asset.SourceObjectId == "audio" && asset.Kind == "audio");
             Assert.Contains(roundTrip.Links, link => link.Text == "same fragment" && link.Uri == prefix + "EPUB/text/second.xhtml#second");
             Assert.Contains(roundTrip.Diagnostics, item => item.Code == "epub.reference.unsafe");
+        } finally {
+            if (File.Exists(epubPath)) File.Delete(epubPath);
+        }
+    }
+
+    [Fact]
+    public void DocumentReaderEpub_PreservesWindowsVirtualReferencesInMarkdown() {
+        string epubPath = Path.Combine(Path.GetTempPath(), "officeimo-epub-resources-" + Guid.NewGuid().ToString("N") + ".epub");
+        try {
+            BuildEpubWithResolvedResources(epubPath);
+            using FileStream stream = File.OpenRead(epubPath);
+
+            OfficeDocumentReadResult result = EpubReaderAdapter.ReadDocument(
+                stream,
+                @"C:\books\novel.epub");
+
+            string markdown = Assert.IsType<string>(result.Markdown);
+            Assert.Contains("[base link](", markdown, StringComparison.Ordinal);
+            Assert.Contains(@"C:\books\novel.epub::", markdown, StringComparison.Ordinal);
+            Assert.Contains("::EPUB/text/chapter.xhtml?mode=print#local", markdown, StringComparison.Ordinal);
+            Assert.Contains("![Cover](", markdown, StringComparison.Ordinal);
+            Assert.Contains("::EPUB/shared/images/cover%20art.png?display=1#front", markdown, StringComparison.Ordinal);
+            Assert.Contains(result.Links, link =>
+                link.Text == "base link" &&
+                link.Uri == @"C:\books\novel.epub::EPUB/text/chapter.xhtml?mode=print#local");
         } finally {
             if (File.Exists(epubPath)) File.Delete(epubPath);
         }
