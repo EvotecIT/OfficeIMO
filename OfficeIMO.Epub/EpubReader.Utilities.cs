@@ -34,35 +34,6 @@ internal static partial class EpubReader {
         return false;
     }
 
-    private static string ResolveRelativePath(string basePath, string relativeOrAbsolute) {
-        var normalizedBase = NormalizePath(basePath);
-        string reference = RemoveFragmentAndQuery(relativeOrAbsolute);
-        if (reference.StartsWith("//", StringComparison.Ordinal) || Uri.TryCreate(reference, UriKind.Absolute, out _)) {
-            return string.Empty;
-        }
-        var normalizedRelative = NormalizePath(reference);
-        if (normalizedRelative.Length == 0) return string.Empty;
-
-        if (normalizedRelative.Length >= 2 && normalizedRelative[1] == ':') {
-            return normalizedRelative;
-        }
-
-        if (normalizedRelative.StartsWith("/", StringComparison.Ordinal)) {
-            return CollapsePathSegments(normalizedRelative.TrimStart('/'));
-        }
-
-        var baseDirectory = string.Empty;
-        var lastSlash = normalizedBase.LastIndexOf('/');
-        if (lastSlash >= 0) {
-            baseDirectory = normalizedBase.Substring(0, lastSlash);
-        }
-
-        var combined = baseDirectory.Length == 0
-            ? normalizedRelative
-            : baseDirectory + "/" + normalizedRelative;
-        return CollapsePathSegments(combined);
-    }
-
     private static string RemoveFragmentAndQuery(string value) {
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
 

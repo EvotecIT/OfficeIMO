@@ -14,27 +14,40 @@ public static class HtmlUrlPolicyEvaluator {
     /// Resolves a raw URL against an optional base URI and returns an empty string when policy rejects it.
     /// </summary>
     public static string ResolveUrl(string? rawUrl, Uri? baseUri, HtmlUrlPolicy? policy, bool allowEmptyFragment = true) {
-        var evaluation = Evaluate(rawUrl, policy, allowEmptyFragment);
+        var effectivePolicy = policy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
+        var evaluation = Evaluate(rawUrl, effectivePolicy, allowEmptyFragment);
         if (!evaluation.IsAllowed) {
             return string.Empty;
         }
 
         string candidate = evaluation.NormalizedUrl;
         if (candidate.StartsWith("//", StringComparison.Ordinal)) {
-            return ResolveProtocolRelativeUrl(candidate, baseUri, policy ?? HtmlUrlPolicy.CreateOfficeIMOProfile());
+            return ApplyResolvedUrlTransform(
+                ResolveProtocolRelativeUrl(candidate, baseUri, effectivePolicy),
+                effectivePolicy,
+                allowEmptyFragment);
         }
 
         if (!evaluation.AllowBaseUriResolution || baseUri == null) {
-            return candidate;
+            return ApplyResolvedUrlTransform(candidate, effectivePolicy, allowEmptyFragment);
         }
 
         if (!Uri.TryCreate(baseUri, candidate, out var resolved)) {
-            return candidate;
+            return ApplyResolvedUrlTransform(candidate, effectivePolicy, allowEmptyFragment);
         }
 
-        return IsAllowedResolvedUri(resolved, policy ?? HtmlUrlPolicy.CreateOfficeIMOProfile())
+        string resolvedValue = IsAllowedResolvedUri(resolved, effectivePolicy)
             ? resolved.AbsoluteUri
             : string.Empty;
+        return ApplyResolvedUrlTransform(resolvedValue, effectivePolicy, allowEmptyFragment);
+    }
+
+    private static string ApplyResolvedUrlTransform(string value, HtmlUrlPolicy policy, bool allowEmptyFragment) {
+        if (value.Length == 0 || policy.ResolvedUrlTransform == null) return value;
+        string? transformed = policy.ResolvedUrlTransform(value);
+        if (string.IsNullOrWhiteSpace(transformed)) return string.Empty;
+        HtmlUrlEvaluation evaluation = Evaluate(transformed, policy, allowEmptyFragment);
+        return evaluation.IsAllowed ? evaluation.NormalizedUrl : string.Empty;
     }
 
     private static string ResolveProtocolRelativeUrl(string candidate, Uri? baseUri, HtmlUrlPolicy policy) {

@@ -246,14 +246,26 @@ internal static partial class EpubReader {
             var href = GetAttribute(item, "href");
             if (string.IsNullOrWhiteSpace(id) || string.IsNullOrWhiteSpace(href)) continue;
 
-            bool isRemote = TryGetRemoteResourceUri(href, out string? remoteUri);
-            string fullPath = isRemote ? remoteUri! : ResolveRelativePath(opfPath, href);
+            EpubReference resolvedReference = EpubReference.Resolve(opfPath, href);
+            bool isRemote = resolvedReference.Kind == EpubReferenceKind.External;
+            string? remoteUri = isRemote ? resolvedReference.ResolvedValue : null;
+            string fullPath = isRemote
+                ? remoteUri ?? string.Empty
+                : resolvedReference.Kind == EpubReferenceKind.Container
+                    ? resolvedReference.ContainerPath ?? string.Empty
+                    : string.Empty;
             if (fullPath.Length == 0) {
                 diagnostics.Warning(
                     "epub.manifest.invalid-path",
                     $"Ignored manifest item '{id}' because href '{href}' does not resolve to a safe archive path.",
                     opfPath);
                 continue;
+            }
+            if (!resolvedReference.IsConforming) {
+                diagnostics.Warning(
+                    "epub.manifest.reference-non-conforming",
+                    $"Manifest item '{id}' uses non-conforming root-relative href '{href}'. The safe container target is retained.",
+                    fullPath);
             }
             var model = new ManifestItem {
                 Id = id,
@@ -322,7 +334,7 @@ internal static partial class EpubReader {
                     break;
                 }
                 string href = GetAttribute(reference, "href");
-                if (!TryResolveNavigationTarget(opfPath, href, out string? target, out string? fragment, out bool isRemote)) {
+                if (!TryResolveNavigationTarget(opfPath, null, href, out string? target, out string? fragment, out bool isRemote)) {
                     diagnostics.Warning(
                         "epub.guide.invalid-target",
                         $"Ignored EPUB 2 guide reference with invalid href '{href}'.",
@@ -395,18 +407,6 @@ internal static partial class EpubReader {
                 MediaType = NullIfWhiteSpace(GetAttribute(element, "media-type"))
             });
         }
-    }
-
-    private static bool TryGetRemoteResourceUri(string href, out string? remoteUri) {
-        remoteUri = null;
-        string candidate = href.Trim();
-        if (!Uri.TryCreate(candidate, UriKind.Absolute, out Uri? uri)) return false;
-        if (string.Equals(uri.Scheme, Uri.UriSchemeFile, StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(uri.Scheme, "data", StringComparison.OrdinalIgnoreCase)) {
-            return false;
-        }
-        remoteUri = candidate;
-        return true;
     }
 
 }

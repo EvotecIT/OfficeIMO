@@ -224,6 +224,9 @@ internal sealed partial class HtmlToMarkdownConverter {
                 return ConvertPictureElement(element, context);
             case "FIGURE":
                 return ConvertFigureElement(element, context);
+            case "AUDIO":
+            case "VIDEO":
+                return ConvertMediaElement(element, context);
             case "A":
                 if (TryCreateLinkedImageBlockFromAnchor(element, context, out var linkedImage)) {
                     return new IMarkdownBlock[] { linkedImage };
