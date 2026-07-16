@@ -42,6 +42,7 @@ public sealed class OneNoteNotebook {
 /// </summary>
 public sealed class OneNoteSectionGroup {
     internal OneNoteExtendedGuid? TableOfContentsRootObjectId { get; set; }
+    internal uint? TableOfContentsOrder { get; set; }
 
     /// <summary>Section-group identity when available. Serialization assigns and retains an identity for a new group.</summary>
     public Guid? Id { get; set; }
@@ -73,6 +74,7 @@ public sealed class OneNoteSectionGroup {
 /// </summary>
 public sealed class OneNoteSection {
     internal OneNoteSectionPreservationState? PreservationState { get; set; }
+    internal uint? TableOfContentsOrder { get; set; }
 
     /// <summary>Section identity when available. Serialization assigns and retains an identity for a new section.</summary>
     public Guid? Id { get; set; }

@@ -46,6 +46,7 @@ public static class OneNoteNotebookReader {
         };
         ApplyRootTocMetadata(notebook, store, toc);
 
+        uint tableOfContentsOrder = 0;
         foreach (OneNoteTocEntry entry in toc.Entries.OrderBy(item => item.Order).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)) {
             if (notebook.Sections.Count + notebook.SectionGroups.Count >= effective.MaxNotebookEntries) {
                 throw new OneNoteFormatException("ONENOTE_TOC_ENTRY_LIMIT", "The notebook TOC entry limit was exceeded.");
@@ -64,14 +65,16 @@ public static class OneNoteNotebookReader {
                     Id = entry.Id,
                     Name = Path.GetFileNameWithoutExtension(entry.Name),
                     ColorArgb = entry.ColorArgb,
-                    SourcePath = entry.Name
+                    SourcePath = entry.Name,
+                    TableOfContentsOrder = tableOfContentsOrder++
                 });
             } else if (effective.IncludeRecycleBin || !string.Equals(entry.Name, "OneNote_RecycleBin", StringComparison.OrdinalIgnoreCase)) {
                 notebook.SectionGroups.Add(new OneNoteSectionGroup {
                     Id = entry.Id,
                     Name = entry.Name,
                     RelativePath = entry.Name,
-                    IsRecycleBin = string.Equals(entry.Name, "OneNote_RecycleBin", StringComparison.OrdinalIgnoreCase)
+                    IsRecycleBin = string.Equals(entry.Name, "OneNote_RecycleBin", StringComparison.OrdinalIgnoreCase),
+                    TableOfContentsOrder = tableOfContentsOrder++
                 });
             }
         }
@@ -133,6 +136,7 @@ public static class OneNoteNotebookReader {
         }
 
         string directory = Path.GetDirectoryName(fullPath) ?? state.RootDirectory;
+        uint tableOfContentsOrder = 0;
         foreach (OneNoteTocEntry entry in toc.Entries.OrderBy(item => item.Order).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)) {
             state.EntryCount++;
             if (state.EntryCount > state.Options.MaxNotebookEntries) {
@@ -151,6 +155,7 @@ public static class OneNoteNotebookReader {
 
             if (entry.IsSection) {
                 OneNoteSection section = LoadSection(entry, childPath, state, notebook);
+                section.TableOfContentsOrder = tableOfContentsOrder++;
                 if (group == null) notebook.Sections.Add(section); else group.Sections.Add(section);
                 continue;
             }
@@ -161,7 +166,8 @@ public static class OneNoteNotebookReader {
                 Id = entry.Id,
                 Name = entry.Name,
                 RelativePath = MakeRelativePath(state.RootDirectory, childPath),
-                IsRecycleBin = recycleBin
+                IsRecycleBin = recycleBin,
+                TableOfContentsOrder = tableOfContentsOrder++
             };
             if (group == null) notebook.SectionGroups.Add(childGroup); else group.SectionGroups.Add(childGroup);
             if (!state.Options.RecurseSectionGroups || !Directory.Exists(childPath)) continue;

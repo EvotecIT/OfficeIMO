@@ -95,12 +95,14 @@ public static class OneNotePackageReader {
         PackageReadState state,
         int depth) {
         string directory = GetDirectory(tocPath);
+        uint tableOfContentsOrder = 0;
         foreach (OneNoteTocEntry entry in toc.Entries.OrderBy(item => item.Order).ThenBy(item => item.Name, StringComparer.OrdinalIgnoreCase)) {
             state.EntryCount++;
             if (state.EntryCount > state.Options.MaxNotebookEntries) throw new OneNoteFormatException("ONENOTE_TOC_ENTRY_LIMIT", "The notebook TOC entry limit was exceeded.");
             string childPath = CombineEntryPath(directory, entry.Name);
             if (entry.IsSection) {
                 OneNoteSection section = LoadSection(entry, childPath, notebook, state);
+                section.TableOfContentsOrder = tableOfContentsOrder++;
                 if (group == null) notebook.Sections.Add(section); else group.Sections.Add(section);
                 continue;
             }
@@ -111,7 +113,8 @@ public static class OneNotePackageReader {
                 Id = entry.Id,
                 Name = entry.Name,
                 RelativePath = childPath.Replace('/', Path.DirectorySeparatorChar),
-                IsRecycleBin = recycleBin
+                IsRecycleBin = recycleBin,
+                TableOfContentsOrder = tableOfContentsOrder++
             };
             if (group == null) notebook.SectionGroups.Add(childGroup); else group.SectionGroups.Add(childGroup);
             if (!state.Options.RecurseSectionGroups) continue;

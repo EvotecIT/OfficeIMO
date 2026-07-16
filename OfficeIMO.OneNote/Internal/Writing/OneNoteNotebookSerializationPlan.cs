@@ -63,30 +63,35 @@ internal sealed class OneNoteNotebookSerializationPlan {
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var tocEntries = new List<OneNoteTocWriteEntry>();
         uint order = 0;
-        foreach (OneNoteSection section in sections) {
-            string fileName = UniqueName(GetSectionFileName(section), usedNames);
-            Guid sectionId = EnsureIdentity(section.Id);
-            section.Id = sectionId;
-            OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(_options.MaxOutputBytes, _options.PreserveUnknownData).BuildSection(section, tocId, fileName, sectionId);
-            AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat));
-            tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
-        }
-        foreach (OneNoteSectionGroup group in groups) {
-            string directoryName = UniqueName(SanitizeName(group.Name, "Section Group"), usedNames);
-            Guid groupId = EnsureIdentity(group.Id);
-            group.Id = groupId;
-            tocEntries.Add(new OneNoteTocWriteEntry(groupId, directoryName, order++, null));
-            group.TableOfContentsRootObjectId = BuildScope(
-                Combine(prefix, directoryName),
-                groupId,
-                tocId,
-                group.Sections,
-                group.SectionGroups,
-                null,
-                historyEnabled,
-                group.TableOfContentsStorageFormat,
-                group.TableOfContentsRootObjectId,
-                group.UnknownObjects);
+        foreach (HierarchyItem item in OrderHierarchy(sections, groups)) {
+            if (item.Section != null) {
+                OneNoteSection section = item.Section;
+                string fileName = UniqueName(GetSectionFileName(section), usedNames);
+                Guid sectionId = EnsureIdentity(section.Id);
+                section.Id = sectionId;
+                section.TableOfContentsOrder = order;
+                OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(_options.MaxOutputBytes, _options.PreserveUnknownData).BuildSection(section, tocId, fileName, sectionId);
+                AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat));
+                tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
+            } else {
+                OneNoteSectionGroup group = item.Group!;
+                string directoryName = UniqueName(SanitizeName(group.Name, "Section Group"), usedNames);
+                Guid groupId = EnsureIdentity(group.Id);
+                group.Id = groupId;
+                group.TableOfContentsOrder = order;
+                tocEntries.Add(new OneNoteTocWriteEntry(groupId, directoryName, order++, null));
+                group.TableOfContentsRootObjectId = BuildScope(
+                    Combine(prefix, directoryName),
+                    groupId,
+                    tocId,
+                    group.Sections,
+                    group.SectionGroups,
+                    null,
+                    historyEnabled,
+                    group.TableOfContentsStorageFormat,
+                    group.TableOfContentsRootObjectId,
+                    group.UnknownObjects);
+            }
         }
         OneNoteWriteGraph tocGraph = new OneNoteWriteGraphBuilder(_options.MaxOutputBytes, _options.PreserveUnknownData).BuildTableOfContents(
             tocId,
@@ -133,19 +138,38 @@ internal sealed class OneNoteNotebookSerializationPlan {
         var usedNames = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var result = new List<OneNoteTocWriteEntry>();
         uint order = 0;
-        foreach (OneNoteSection section in sections) {
-            string name = UniqueName(GetSectionFileName(section), usedNames);
-            Guid sectionId = EnsureIdentity(section.Id);
-            section.Id = sectionId;
-            result.Add(new OneNoteTocWriteEntry(sectionId, name, order++, section.ColorArgb));
-        }
-        foreach (OneNoteSectionGroup group in groups) {
-            string name = UniqueName(SanitizeName(group.Name, "Section Group"), usedNames);
-            Guid groupId = EnsureIdentity(group.Id);
-            group.Id = groupId;
-            result.Add(new OneNoteTocWriteEntry(groupId, name, order++, null));
+        foreach (HierarchyItem item in OrderHierarchy(sections, groups)) {
+            if (item.Section != null) {
+                OneNoteSection section = item.Section;
+                string name = UniqueName(GetSectionFileName(section), usedNames);
+                Guid sectionId = EnsureIdentity(section.Id);
+                section.Id = sectionId;
+                section.TableOfContentsOrder = order;
+                result.Add(new OneNoteTocWriteEntry(sectionId, name, order++, section.ColorArgb));
+            } else {
+                OneNoteSectionGroup group = item.Group!;
+                string name = UniqueName(SanitizeName(group.Name, "Section Group"), usedNames);
+                Guid groupId = EnsureIdentity(group.Id);
+                group.Id = groupId;
+                group.TableOfContentsOrder = order;
+                result.Add(new OneNoteTocWriteEntry(groupId, name, order++, null));
+            }
         }
         return result.AsReadOnly();
+    }
+
+    private static IReadOnlyList<HierarchyItem> OrderHierarchy(
+        IList<OneNoteSection> sections,
+        IList<OneNoteSectionGroup> groups) {
+        var items = new List<HierarchyItem>(sections.Count + groups.Count);
+        int sequence = 0;
+        foreach (OneNoteSection section in sections) items.Add(new HierarchyItem(section, sequence++));
+        foreach (OneNoteSectionGroup group in groups) items.Add(new HierarchyItem(group, sequence++));
+        return items
+            .OrderBy(item => item.SourceOrder.HasValue ? 0 : 1)
+            .ThenBy(item => item.SourceOrder ?? uint.MaxValue)
+            .ThenBy(item => item.Sequence)
+            .ToArray();
     }
 
     private static string GetSectionFileName(OneNoteSection section) {
@@ -192,5 +216,24 @@ internal sealed class OneNoteNotebookSerializationPlan {
         if (options == null) throw new ArgumentNullException(nameof(options));
         if (options.MaxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxOutputBytes must be greater than zero.");
         if (options.MaxPackageEntries < 1 || options.MaxPackageEntries > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(options), "MaxPackageEntries must be between 1 and 65535.");
+    }
+
+    private sealed class HierarchyItem {
+        internal HierarchyItem(OneNoteSection section, int sequence) {
+            Section = section;
+            SourceOrder = section.TableOfContentsOrder;
+            Sequence = sequence;
+        }
+
+        internal HierarchyItem(OneNoteSectionGroup group, int sequence) {
+            Group = group;
+            SourceOrder = group.TableOfContentsOrder;
+            Sequence = sequence;
+        }
+
+        internal OneNoteSection? Section { get; }
+        internal OneNoteSectionGroup? Group { get; }
+        internal uint? SourceOrder { get; }
+        internal int Sequence { get; }
     }
 }

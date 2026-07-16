@@ -219,18 +219,41 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (element.Payload == null) throw new OneNoteFormatException("ONENOTE_WRITE_MISSING_PAYLOAD", element.Kind + " content has no binary payload.");
         byte[] payload = element.Payload.ToArray(_maxPayloadBytes);
         Guid dataId = element.PayloadFileDataId ?? Guid.NewGuid();
-        element.PayloadFileDataId = dataId;
         string extension = element.PayloadFileExtension ?? Path.GetExtension(element.FileName ?? string.Empty);
-        element.PayloadFileExtension = extension;
-        var properties = new[] {
+        OneNoteWriteProperty[] properties = {
             Data(OneNoteSchema.FileDataReference, dataId.ToByteArray()),
             Data(OneNoteSchema.FileDataExtension, Unicode(extension))
         };
         OneNoteExtendedGuid id = IdOrNew(element.PayloadObjectId);
+        uint jcid = picture ? OneNoteSchema.JcidPictureData : OneNoteSchema.JcidEmbeddedFileData;
+        OneNoteWriteObject? existingById = space.Objects.FirstOrDefault(item => item.Id.Equals(id));
+        OneNoteWriteObject? existingByFileData = space.Objects.FirstOrDefault(item => item.FileDataId == dataId);
+        OneNoteWriteObject? reusable = existingById ?? existingByFileData;
+        if (reusable != null &&
+            reusable.Jcid == jcid &&
+            PropertiesEqual(reusable.Properties, properties) &&
+            BytesEqual(reusable.Blob, payload) &&
+            reusable.FileDataId == dataId &&
+            string.Equals(reusable.FileExtension, extension, StringComparison.Ordinal)) {
+            element.PayloadObjectId = reusable.Id;
+            element.PayloadFileDataId = dataId;
+            element.PayloadFileExtension = extension;
+            return reusable.Id;
+        }
+        if (existingById != null || existingByFileData != null) {
+            id = _ids.New();
+            dataId = Guid.NewGuid();
+            properties = new[] {
+                Data(OneNoteSchema.FileDataReference, dataId.ToByteArray()),
+                Data(OneNoteSchema.FileDataExtension, Unicode(extension))
+            };
+        }
         element.PayloadObjectId = id;
+        element.PayloadFileDataId = dataId;
+        element.PayloadFileExtension = extension;
         space.Objects.Add(new OneNoteWriteObject(
             id,
-            picture ? OneNoteSchema.JcidPictureData : OneNoteSchema.JcidEmbeddedFileData,
+            jcid,
             properties,
             payload,
             dataId,
@@ -422,7 +445,6 @@ internal sealed partial class OneNoteWriteGraphBuilder {
 
     private OneNoteExtendedGuid BuildTagDefinition(OneNoteWriteObjectSpace space, OneNoteTag tag, uint actionItemType) {
         OneNoteExtendedGuid id = IdOrNew(tag.DefinitionId);
-        tag.DefinitionId = id;
         uint shape = tag.Shape ?? (tag.IsCheckable ? 3U : 13U);
         if (shape > 143) {
             throw new OneNoteFormatException("ONENOTE_WRITE_TAG_SHAPE", "A normal note-tag shape must be from 0 through 143.");
@@ -439,6 +461,15 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         AddString(properties, OneNoteSchema.NoteTagLabel, tag.Label ?? "Tag");
         if (tag.HighlightColorArgb.HasValue) properties.Add(Scalar(OneNoteSchema.NoteTagHighlightColor, tag.HighlightColorArgb.Value));
         if (tag.TextColorArgb.HasValue) properties.Add(Scalar(OneNoteSchema.NoteTagTextColor, tag.TextColorArgb.Value));
+        OneNoteWriteObject? existing = space.Objects.FirstOrDefault(item => item.Id.Equals(id));
+        if (existing != null) {
+            if (existing.Jcid == OneNoteSchema.JcidNoteTagSharedDefinition && PropertiesEqual(existing.Properties, properties)) {
+                tag.DefinitionId = id;
+                return id;
+            }
+            id = _ids.New();
+        }
+        tag.DefinitionId = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidNoteTagSharedDefinition, properties));
         return id;
     }
