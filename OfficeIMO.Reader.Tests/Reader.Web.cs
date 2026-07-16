@@ -205,6 +205,33 @@ public sealed class ReaderWebTests {
     }
 
     [Fact]
+    public async Task WebReader_RejectsTheIpv6DiscardOnlyPrefix() {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("not reached", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        await Assert.ThrowsAsync<ReaderWebPolicyException>(() =>
+            webReader.ReadDocumentAsync(new Uri("http://[100::1]/discard.txt")));
+
+        Assert.Equal(0, handler.CallCount);
+    }
+
+    [Fact]
+    public async Task WebReader_DoesNotOverblockOutsideTheIpv6DiscardOnlyPrefix() {
+        var handler = new DelegateHttpHandler((request, cancellationToken) =>
+            Task.FromResult(TextResponse("public fixture", "text/plain")));
+        using var httpClient = new HttpClient(handler);
+        OfficeDocumentWebReader webReader = OfficeDocumentReader.Default.CreateWebReader(httpClient);
+
+        OfficeDocumentReadResult result = await webReader.ReadDocumentAsync(
+            new Uri("http://[100:0:0:1::1]/public.txt"));
+
+        Assert.Contains("public fixture", result.Markdown, StringComparison.Ordinal);
+        Assert.Equal(1, handler.CallCount);
+    }
+
+    [Fact]
     public async Task WebReader_RejectsPrivateIpv4EmbeddedInA6To4Target() {
         var handler = new DelegateHttpHandler((request, cancellationToken) =>
             Task.FromResult(TextResponse("not reached", "text/plain")));

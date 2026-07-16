@@ -61,6 +61,7 @@ internal static class ReaderWebUriPolicy {
                 address.IsIPv6SiteLocal ||
                 address.IsIPv6Multicast ||
                 (bytes[0] & 0xFE) == 0xFC ||
+                IsDiscardOnlyIpv6(bytes) ||
                 IsLocalUseNat64(bytes) ||
                 IsWellKnownNat64WithPrivateIpv4(bytes) ||
                 IsIpv4TranslatedWithPrivateIpv4(bytes) ||
@@ -88,6 +89,14 @@ internal static class ReaderWebUriPolicy {
         if (first == 198 && (second == 18 || second == 19 || (second == 51 && third == 100))) return true;
         if (first == 203 && second == 0 && third == 113) return true;
         return false;
+    }
+
+    private static bool IsDiscardOnlyIpv6(byte[] bytes) {
+        if (bytes.Length != 16 || bytes[0] != 0x01) return false;
+        for (int index = 1; index < 8; index++) {
+            if (bytes[index] != 0x00) return false;
+        }
+        return true;
     }
 
     private static bool IsLocalUseNat64(byte[] bytes) {

@@ -5,6 +5,37 @@ namespace OfficeIMO.Tests;
 
 public sealed partial class ReaderRegistryTests {
     [Fact]
+    public void OfficeDocumentReader_HandlerDefaultLimit_IgnoresPathOnlyOverridesForStreamInput() {
+        long? builtInLimit = OfficeDocumentReader.Default.GetHandlerDefaultMaxInputBytes("message.eml");
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.path-only-email",
+                Kind = ReaderInputKind.Email,
+                Extensions = new[] { ".eml" },
+                DefaultMaxInputBytes = 16,
+                ReadPath = (path, options, cancellationToken) => Array.Empty<ReaderChunk>()
+            }, replaceExisting: true)
+            .Build();
+
+        Assert.NotNull(builtInLimit);
+        Assert.Equal(builtInLimit, reader.GetHandlerDefaultMaxInputBytes("message.eml"));
+    }
+
+    [Fact]
+    public void OfficeDocumentReader_HandlerDefaultLimit_HonorsNullableStreamOverride() {
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder()
+            .AddHandler(new ReaderHandlerRegistration {
+                Id = "officeimo.tests.unbounded-email-stream",
+                Kind = ReaderInputKind.Email,
+                Extensions = new[] { ".eml" },
+                ReadStream = (stream, sourceName, options, cancellationToken) => Array.Empty<ReaderChunk>()
+            }, replaceExisting: true)
+            .Build();
+
+        Assert.Null(reader.GetHandlerDefaultMaxInputBytes("message.eml"));
+    }
+
+    [Fact]
     public void OfficeDocumentReader_RichDocumentHandler_ProjectsChunksAndPreservesEnvelope() {
         const string handlerId = "officeimo.tests.custom.rich";
         const string extension = ".richix";
