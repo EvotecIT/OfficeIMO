@@ -271,6 +271,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
 
         private void ParseTextMasterStyles(LegacyPptRecord masterRecord, LegacyPptMaster master,
             LegacyPptColorScheme? colorScheme, LegacyPptImportOptions options) {
+            IReadOnlyDictionary<ushort, LegacyPptRecord> style9Records =
+                ReadMasterTextStyle9Records(masterRecord, options);
+            var consumedStyle9Types = new HashSet<ushort>();
             foreach (LegacyPptRecord record in masterRecord.Children.Where(child =>
                          child.Type == RecordTextMasterStyleAtom)) {
                 LegacyPptTextMasterStyle? style = LegacyPptTextMasterStyleReader.Read(record,
@@ -284,6 +287,12 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                     }
                     continue;
                 }
+                if (style9Records.TryGetValue(record.Instance,
+                        out LegacyPptRecord? style9)) {
+                    style = LegacyPptTextMasterStyleReader.ApplyStyle9(
+                        style, style9);
+                    consumedStyle9Types.Add(record.Instance);
+                }
                 master.AddTextMasterStyle(style);
                 if (style.IsTruncated) {
                     AddDiagnostic("PPT-TEXT-MASTER-STYLE-TRUNCATED",
@@ -296,6 +305,13 @@ namespace OfficeIMO.PowerPoint.LegacyPpt {
                         $"The {style.TextType} master text style contains legacy-only formatting that remains preserve-only.",
                         record.Offset);
                 }
+            }
+            foreach (ushort instance in style9Records.Keys.Where(instance =>
+                         !consumedStyle9Types.Contains(instance))) {
+                AddDiagnostic("PPT-TEXT-MASTER-STYLE9-ORPHAN",
+                    LegacyPptDiagnosticSeverity.Warning,
+                    $"TextMasterStyle9Atom instance {instance} has no base TextMasterStyleAtom and remains preserve-only.",
+                    style9Records[instance].Offset);
             }
         }
 

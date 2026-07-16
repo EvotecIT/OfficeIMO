@@ -3,6 +3,7 @@ using OfficeIMO.PowerPoint.LegacyPpt;
 using OfficeIMO.PowerPoint.LegacyPpt.Internal;
 using OfficeIMO.PowerPoint.LegacyPpt.Model;
 using OfficeIMO.PowerPoint.LegacyPpt.Write;
+using DocumentFormat.OpenXml.Packaging;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using P = DocumentFormat.OpenXml.Presentation;
@@ -607,8 +608,11 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ImportedMasterTextStyleEdit_RemainsLossBlocked() {
-            using PowerPointPresentation presentation = PowerPointPresentation.Load(RichTextFixturePath);
+        public void ImportedMasterTextStyleEdit_UsesIncrementalRewrite() {
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                RichTextFixturePath);
+            using PowerPointPresentation presentation =
+                PowerPointPresentation.Load(RichTextFixturePath);
             P.SlideMaster slideMaster = presentation.Slides[0].SlidePart.SlideLayoutPart!
                 .SlideMasterPart!.SlideMaster!;
             A.Level1ParagraphProperties title = Assert.IsType<A.Level1ParagraphProperties>(
@@ -617,9 +621,20 @@ namespace OfficeIMO.Tests {
 
             LegacyPptWritePreflightReport preflight = presentation.AnalyzeLegacyPptWrite();
 
-            Assert.False(preflight.CanWrite);
-            Assert.Contains(preflight.Findings,
-                finding => finding.Code == "PPT-WRITE-IMPORT-LOSS");
+            Assert.True(preflight.CanWrite,
+                string.Join(Environment.NewLine, preflight.Findings));
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                presentation.ToBytes(PowerPointFileFormat.Ppt));
+            LegacyPptTextMasterStyle savedTitle = Assert.Single(
+                Assert.Single(saved.Masters).TextMasterStyles,
+                style => style.TextType == LegacyPptTextType.Title);
+            Assert.Equal((short)45, Assert.Single(savedTitle.Levels)
+                .CharacterProperties.FontSizePoints);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
         }
 
         [Fact]
@@ -1002,6 +1017,130 @@ namespace OfficeIMO.Tests {
                 paragraphs[3].ParagraphProperties!
                     .GetFirstChild<A.AutoNumberedBullet>()!.Type!.Value);
             Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void NativeWriter_AuthorsPpt9MasterAutomaticNumbering() {
+            byte[] bytes;
+            using (PowerPointPresentation presentation =
+                       PowerPointPresentation.Create()) {
+                SlideMasterPart masterPart = presentation.OpenXmlDocument
+                    .PresentationPart!.SlideMasterParts.Single();
+                P.BodyStyle bodyStyle = masterPart.SlideMaster!.TextStyles!
+                    .BodyStyle!;
+                bodyStyle.Append(
+                    new A.Level1ParagraphProperties(
+                        new A.AutoNumberedBullet {
+                            Type = A.TextAutoNumberSchemeValues.ArabicPeriod,
+                            StartAt = 7
+                        }),
+                    new A.Level2ParagraphProperties(
+                        new A.AutoNumberedBullet {
+                            Type = A.TextAutoNumberSchemeValues
+                                .AlphaLowerCharacterParenR,
+                            StartAt = 3
+                        }));
+                presentation.AddSlide(P.SlideLayoutValues.Blank);
+
+                LegacyPptWritePreflightReport preflight = presentation
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                bytes = presentation.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation binary = LegacyPptPresentation.Load(bytes);
+            LegacyPptTextMasterStyle body = Assert.Single(
+                Assert.Single(binary.Masters).TextMasterStyles,
+                style => style.TextType == LegacyPptTextType.Body);
+            Assert.Collection(body.Levels,
+                level => AssertAutoNumber(level.ParagraphProperties,
+                    LegacyPptAutoNumberScheme.ArabicPeriod, 7),
+                level => AssertAutoNumber(level.ParagraphProperties,
+                    LegacyPptAutoNumberScheme.AlphaLowerParenRight, 3));
+            Assert.False(body.IsTruncated,
+                string.Join(Environment.NewLine, binary.Diagnostics));
+            Assert.False(body.HasUnprojectedFormatting);
+
+            using var input = new MemoryStream(bytes, writable: false);
+            using PowerPointPresentation reopened =
+                PowerPointPresentation.Load(input);
+            A.TextParagraphPropertiesType[] levels = reopened.OpenXmlDocument
+                .PresentationPart!.SlideMasterParts.Single().SlideMaster!
+                .TextStyles!.BodyStyle!.ChildElements
+                .Cast<A.TextParagraphPropertiesType>().ToArray();
+            Assert.Equal(7, levels[0]
+                .GetFirstChild<A.AutoNumberedBullet>()!.StartAt!.Value);
+            Assert.Equal(A.TextAutoNumberSchemeValues
+                    .AlphaLowerCharacterParenR,
+                levels[1].GetFirstChild<A.AutoNumberedBullet>()!.Type!.Value);
+            Assert.Empty(reopened.ValidateDocument());
+        }
+
+        [Fact]
+        public void ImportedMasterAutomaticNumbering_CanChangeAndRemoveEntries() {
+            byte[] sourceBytes;
+            using (PowerPointPresentation source =
+                       PowerPointPresentation.Create()) {
+                P.BodyStyle bodyStyle = source.OpenXmlDocument
+                    .PresentationPart!.SlideMasterParts.Single().SlideMaster!
+                    .TextStyles!.BodyStyle!;
+                bodyStyle.Append(
+                    new A.Level1ParagraphProperties(
+                        new A.AutoNumberedBullet {
+                            Type = A.TextAutoNumberSchemeValues.ArabicPeriod,
+                            StartAt = 2
+                        }),
+                    new A.Level2ParagraphProperties(
+                        new A.AutoNumberedBullet {
+                            Type = A.TextAutoNumberSchemeValues.ArabicPeriod,
+                            StartAt = 3
+                        }));
+                source.AddSlide(P.SlideLayoutValues.Blank);
+                sourceBytes = source.ToBytes(PowerPointFileFormat.Ppt);
+            }
+            LegacyPptPresentation original = LegacyPptPresentation.Load(
+                sourceBytes);
+
+            byte[] savedBytes;
+            using (var input = new MemoryStream(sourceBytes,
+                       writable: false))
+            using (PowerPointPresentation imported =
+                       PowerPointPresentation.Load(input)) {
+                A.TextParagraphPropertiesType[] levels = imported
+                    .OpenXmlDocument.PresentationPart!.SlideMasterParts
+                    .Single().SlideMaster!.TextStyles!.BodyStyle!
+                    .ChildElements.Cast<A.TextParagraphPropertiesType>()
+                    .ToArray();
+                A.AutoNumberedBullet first = levels[0]
+                    .GetFirstChild<A.AutoNumberedBullet>()!;
+                first.Type = A.TextAutoNumberSchemeValues
+                    .RomanUpperCharacterPeriod;
+                first.StartAt = 5;
+                levels[1].RemoveAllChildren<A.AutoNumberedBullet>();
+                levels[1].Append(new A.NoBullet());
+
+                LegacyPptWritePreflightReport preflight = imported
+                    .AnalyzeLegacyPptWrite();
+                Assert.True(preflight.CanWrite,
+                    string.Join(Environment.NewLine, preflight.Findings));
+                savedBytes = imported.ToBytes(PowerPointFileFormat.Ppt);
+            }
+
+            LegacyPptPresentation saved = LegacyPptPresentation.Load(
+                savedBytes);
+            LegacyPptTextMasterStyle body = Assert.Single(
+                Assert.Single(saved.Masters).TextMasterStyles,
+                style => style.TextType == LegacyPptTextType.Body);
+            AssertAutoNumber(body.Levels[0].ParagraphProperties,
+                LegacyPptAutoNumberScheme.RomanUpperPeriod, 5);
+            Assert.False(body.Levels[1].ParagraphProperties.HasBullet);
+            Assert.Null(body.Levels[1].ParagraphProperties.HasAutoNumber);
+            Assert.Equal(original.Package.UserEdits.Count + 1,
+                saved.Package.UserEdits.Count);
+            Assert.True(saved.Package.DocumentStream.AsSpan(0,
+                    original.Package.DocumentStream.Length)
+                .SequenceEqual(original.Package.DocumentStream));
         }
 
         [Fact]

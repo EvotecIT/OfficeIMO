@@ -46,7 +46,70 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
         }
 
-        private static bool TryMapTextType(ushort value, out LegacyPptTextType textType) {
+        internal static LegacyPptTextMasterStyle ApplyStyle9(
+            LegacyPptTextMasterStyle style, LegacyPptRecord record) {
+            if (style == null) throw new ArgumentNullException(nameof(style));
+            if (record == null) throw new ArgumentNullException(nameof(record));
+            try {
+                if (record.Version != 0 || record.Type != 0x0FAD
+                    || !TryMapTextType(record.Instance,
+                        out LegacyPptTextType textType)
+                    || textType != style.TextType) {
+                    throw new InvalidDataException(
+                        "The TextMasterStyle9Atom header does not match its base style.");
+                }
+                var cursor = new LegacyPptTextPropertyCursor(record,
+                    "TextMasterStyle9Atom");
+                ushort levelCount = cursor.ReadUInt16();
+                if (levelCount > 5) {
+                    throw new InvalidDataException(
+                        "TextMasterStyle9Atom contains more than five levels.");
+                }
+                var levels = style.Levels.ToDictionary(level => level.Level);
+                bool hasUnprojectedFormatting = style
+                    .HasUnprojectedFormatting;
+                for (ushort level = 0; level < levelCount; level++) {
+                    LegacyPptTextStyle9Reader.ParagraphProperties9 paragraph =
+                        LegacyPptTextStyle9Reader.ReadParagraphException(
+                            cursor);
+                    bool characterUnprojected = LegacyPptTextStyle9Reader
+                        .ReadCharacterException(cursor);
+                    hasUnprojectedFormatting |= paragraph
+                        .HasUnprojectedFormatting || characterUnprojected;
+                    if (!levels.TryGetValue(level,
+                            out LegacyPptTextMasterStyleLevel? baseLevel)) {
+                        hasUnprojectedFormatting = true;
+                        continue;
+                    }
+                    LegacyPptParagraphRun merged = baseLevel
+                        .ParagraphProperties.WithPpt9Formatting(
+                            paragraph.HasAutoNumber,
+                            paragraph.AutoNumberScheme,
+                            paragraph.AutoNumberStartAt,
+                            paragraph.BulletPictureReference,
+                            paragraph.HasUnprojectedFormatting
+                                || characterUnprojected);
+                    levels[level] = new LegacyPptTextMasterStyleLevel(level,
+                        merged, baseLevel.CharacterProperties);
+                }
+                if (!cursor.IsAtEnd) {
+                    throw new InvalidDataException(
+                        "TextMasterStyle9Atom contains trailing bytes.");
+                }
+                return new LegacyPptTextMasterStyle(style.TextType,
+                    levels.Values.OrderBy(level => level.Level).ToArray(),
+                    hasUnprojectedFormatting, style.IsTruncated);
+            } catch (Exception exception) when (exception
+                is InvalidDataException or OverflowException
+                    or ArgumentOutOfRangeException) {
+                return new LegacyPptTextMasterStyle(style.TextType,
+                    style.Levels, hasUnprojectedFormatting: true,
+                    isTruncated: true);
+            }
+        }
+
+        internal static bool TryMapTextType(ushort value,
+            out LegacyPptTextType textType) {
             if (value == 0 || value == 1 || value == 2 || value == 4
                 || value == 5 || value == 6 || value == 7 || value == 8) {
                 textType = (LegacyPptTextType)value;

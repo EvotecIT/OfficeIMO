@@ -22,6 +22,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 }
                 bool themeChanged = !projection.ThemeMatches(masterPart);
                 bool backgroundChanged = !projection.BackgroundMatches(masterPart);
+                bool textStylesChanged = !projection.TextStylesMatch(
+                    masterPart);
+                if (textStylesChanged && !projection.CanEditTextStyles) {
+                    return false;
+                }
                 LegacyPptWriter.LegacyPptWriterBackground? background = null;
                 if (backgroundChanged
                     && (!LegacyPptWriter.TryReadBackground(masterPart,
@@ -35,6 +40,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     return false;
                 }
                 if (!themeChanged && !backgroundChanged
+                    && !textStylesChanged
                     && shapeEdits.Count == 0) continue;
                 if (!package.PersistObjects.TryGetValue(projection.PersistId,
                         out LegacyPptPersistObject? persistObject)
@@ -83,6 +89,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         .BuildPreservedMasterThemeRecord(themedRecord,
                             masterPart,
                             projection.GetChangedClassicColorSlots(masterPart));
+                }
+                if (textStylesChanged) {
+                    LegacyPptRecord textStyleRecord = LegacyPptRecordReader
+                        .ReadSingle(masterBytes, 0,
+                            new LegacyPptImportOptions());
+                    if (!LegacyPptWriter.TryRewriteMasterTextStyleRecords(
+                            textStyleRecord,
+                            masterPart.SlideMaster?.TextStyles, fonts,
+                            out masterBytes, out _)) return false;
                 }
                 rewritten.Add(projection.PersistId, masterBytes);
             }

@@ -141,6 +141,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             NormalizeProjectedBackground(master.CommonSlideData);
             NormalizeProjectedShapes(root, projection.TryGetShape,
                 normalizeInteractions: false);
+            if (projection.CanEditTextStyles) {
+                master.TextStyles?.Remove();
+            }
         }
 
         private static void NormalizeProjectedMasterTheme(OpenXmlElement root) {

@@ -352,9 +352,28 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     LegacyPptMasterProjection.CreateClassicColorFingerprints(masterPart),
                     LegacyPptMasterProjection.CreateBackgroundFingerprint(masterPart),
                     followsMasterObjects: null,
-                    shapes));
+                    shapes,
+                    LegacyPptMasterProjection
+                        .CreateTextStylesFingerprint(masterPart),
+                    CanEditMasterTextStyles(sourceMasters[index])));
             }
             return result;
+        }
+
+        private static bool CanEditMasterTextStyles(
+            LegacyPptMaster source) {
+            LegacyPptTextType[] projectedTypes = {
+                LegacyPptTextType.Title,
+                LegacyPptTextType.Body,
+                LegacyPptTextType.Other
+            };
+            foreach (LegacyPptTextType type in projectedTypes) {
+                LegacyPptTextMasterStyle[] matches = source.TextMasterStyles
+                    .Where(style => style.TextType == type).ToArray();
+                if (matches.Length != 1 || matches[0].IsTruncated
+                    || matches[0].HasUnprojectedFormatting) return false;
+            }
+            return true;
         }
 
         private static IReadOnlyList<LegacyPptMasterProjection>
@@ -478,7 +497,9 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             uint persistId, string themeFingerprint,
             IReadOnlyList<string> classicColorFingerprints,
             string backgroundFingerprint, bool? followsMasterObjects,
-            IReadOnlyList<LegacyPptShapeProjection> shapes) {
+            IReadOnlyList<LegacyPptShapeProjection> shapes,
+            string? textStylesFingerprint = null,
+            bool canEditTextStyles = false) {
             MasterPartUri = masterPartUri ?? throw new ArgumentNullException(nameof(masterPartUri));
             ThemePartUri = themePartUri;
             PersistId = persistId;
@@ -486,6 +507,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             BackgroundFingerprint = backgroundFingerprint
                 ?? throw new ArgumentNullException(nameof(backgroundFingerprint));
             FollowsMasterObjects = followsMasterObjects;
+            TextStylesFingerprint = textStylesFingerprint;
+            CanEditTextStyles = canEditTextStyles;
             ClassicColorFingerprints = new ReadOnlyCollection<string>(
                 (classicColorFingerprints
                     ?? throw new ArgumentNullException(nameof(classicColorFingerprints)))
@@ -514,6 +537,10 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal string BackgroundFingerprint { get; }
 
         internal bool? FollowsMasterObjects { get; }
+
+        internal string? TextStylesFingerprint { get; }
+
+        internal bool CanEditTextStyles { get; }
 
         internal IReadOnlyList<LegacyPptShapeProjection> Shapes { get; }
 
@@ -548,6 +575,11 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
         internal bool BackgroundMatches(SlideLayoutPart masterPart) => string.Equals(
             BackgroundFingerprint, CreateBackgroundFingerprint(masterPart),
             StringComparison.Ordinal);
+
+        internal bool TextStylesMatch(SlideMasterPart masterPart) =>
+            TextStylesFingerprint == null || string.Equals(
+                TextStylesFingerprint, CreateTextStylesFingerprint(masterPart),
+                StringComparison.Ordinal);
 
         internal bool MasterObjectsMatch(SlideLayoutPart masterPart) =>
             !FollowsMasterObjects.HasValue
@@ -673,6 +705,15 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             SlideMasterPart masterPart) {
             if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
             return masterPart.SlideMaster?.CommonSlideData?.Background?.OuterXml
+                ?? string.Empty;
+        }
+
+        internal static string CreateTextStylesFingerprint(
+            SlideMasterPart masterPart) {
+            if (masterPart == null) {
+                throw new ArgumentNullException(nameof(masterPart));
+            }
+            return masterPart.SlideMaster?.TextStyles?.OuterXml
                 ?? string.Empty;
         }
 

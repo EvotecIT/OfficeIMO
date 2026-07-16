@@ -29,7 +29,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 }
                 var cursor = new LegacyPptTextPropertyCursor(styleRecord,
                     "StyleTextProp9Atom");
-                var entries = new List<Style9Entry>();
+                var entries = new List<ParagraphProperties9>();
                 while (!cursor.IsAtEnd) entries.Add(ReadEntry(cursor));
                 return ApplyEntries(textBody, entries,
                     malformedContainer);
@@ -42,7 +42,20 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             }
         }
 
-        private static Style9Entry ReadEntry(
+        private static ParagraphProperties9 ReadEntry(
+            LegacyPptTextPropertyCursor cursor) {
+            ParagraphProperties9 paragraph = ReadParagraphException(cursor);
+            bool hasCharacterFormatting = ReadCharacterException(cursor);
+            uint specialInfoMasks = cursor.ReadUInt32();
+            if (specialInfoMasks != 0) {
+                throw new InvalidDataException(
+                    "A StyleTextProp9 TextSIException contains forbidden fields.");
+            }
+            return paragraph.WithUnprojectedFormatting(
+                hasCharacterFormatting);
+        }
+
+        internal static ParagraphProperties9 ReadParagraphException(
             LegacyPptTextPropertyCursor cursor) {
             uint masks = cursor.ReadUInt32();
             if ((masks & ~AllowedParagraphMasks) != 0) {
@@ -81,32 +94,30 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                 scheme = LegacyPptAutoNumberScheme.ArabicPeriod;
                 startAt = 1;
             }
+            bool hasUnprojectedFormatting = pictureReference.HasValue
+                || hasAutoNumber == false && (scheme.HasValue
+                    || startAt.HasValue);
+            return new ParagraphProperties9(hasAutoNumber, scheme, startAt,
+                pictureReference, hasUnprojectedFormatting);
+        }
 
+        internal static bool ReadCharacterException(
+            LegacyPptTextPropertyCursor cursor) {
             uint characterMasks = cursor.ReadUInt32();
             if ((characterMasks & ~CharacterPpt10ExtensionMask) != 0) {
                 throw new InvalidDataException(
                     "A TextCFException9 contains fields forbidden by StyleTextProp9.");
             }
-            bool hasUnprojectedFormatting = pictureReference.HasValue
-                || characterMasks != 0;
+            bool hasUnprojectedFormatting = characterMasks != 0;
             if ((characterMasks & CharacterPpt10ExtensionMask) != 0) {
                 cursor.ReadUInt32();
             }
-            uint specialInfoMasks = cursor.ReadUInt32();
-            if (specialInfoMasks != 0) {
-                throw new InvalidDataException(
-                    "A StyleTextProp9 TextSIException contains forbidden fields.");
-            }
-            if (hasAutoNumber == false && (scheme.HasValue
-                    || startAt.HasValue)) {
-                hasUnprojectedFormatting = true;
-            }
-            return new Style9Entry(hasAutoNumber, scheme, startAt,
-                pictureReference, hasUnprojectedFormatting);
+            return hasUnprojectedFormatting;
         }
 
         private static LegacyPptTextBody ApplyEntries(
-            LegacyPptTextBody textBody, IReadOnlyList<Style9Entry> entries,
+            LegacyPptTextBody textBody,
+            IReadOnlyList<ParagraphProperties9> entries,
             bool malformedContainer) {
             if (entries.Count == 0) {
                 return textBody.WithPpt9Formatting(textBody.ParagraphRuns,
@@ -114,7 +125,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                         malformedContainer,
                     isStyle9Truncated: malformedContainer);
             }
-            var formattingByParagraph = new Dictionary<int, Style9Entry>();
+            var formattingByParagraph = new Dictionary<int,
+                ParagraphProperties9>();
             IReadOnlyList<CharacterGroup> groups = CreateCharacterGroups(
                 textBody);
             int entryIndex = 0;
@@ -128,7 +140,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
                     linkageFailed = true;
                     break;
                 }
-                Style9Entry entry = entries[entryIndex++];
+                ParagraphProperties9 entry = entries[entryIndex++];
                 foreach (LegacyPptParagraphRun paragraph
                          in textBody.ParagraphRuns) {
                     if (paragraph.Start >= group.Start
@@ -145,7 +157,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             foreach (LegacyPptParagraphRun paragraph
                      in textBody.ParagraphRuns) {
                 if (!formattingByParagraph.TryGetValue(paragraph.Start,
-                        out Style9Entry? entry)) {
+                        out ParagraphProperties9? entry)) {
                     paragraphs.Add(paragraph);
                     continue;
                 }
@@ -185,8 +197,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             return groups;
         }
 
-        private sealed class Style9Entry {
-            internal Style9Entry(bool? hasAutoNumber,
+        internal sealed class ParagraphProperties9 {
+            internal ParagraphProperties9(bool? hasAutoNumber,
                 LegacyPptAutoNumberScheme? autoNumberScheme,
                 short? autoNumberStartAt, ushort? bulletPictureReference,
                 bool hasUnprojectedFormatting) {
@@ -206,6 +218,14 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Internal {
             internal ushort? BulletPictureReference { get; }
 
             internal bool HasUnprojectedFormatting { get; }
+
+            internal ParagraphProperties9 WithUnprojectedFormatting(
+                bool value) => value
+                    ? new ParagraphProperties9(HasAutoNumber,
+                        AutoNumberScheme, AutoNumberStartAt,
+                        BulletPictureReference,
+                        hasUnprojectedFormatting: true)
+                    : this;
         }
 
         private readonly struct CharacterGroup {

@@ -20,30 +20,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 A.AutoNumberedBullet? numbering = paragraph
                     .ParagraphProperties?
                     .GetFirstChild<A.AutoNumberedBullet>();
-                if (numbering == null) {
-                    WriteUInt32(payload, 0);
-                } else {
-                    if (!HasOnlyAttributes(numbering, "type", "startAt")
-                        || numbering.ChildElements.Count != 0
-                        || numbering.Type?.HasValue != true) {
-                        reason = "An automatic-numbering bullet has unsupported metadata or no numbering scheme.";
-                        return false;
-                    }
-                    if (!TryMapAutoNumberScheme(numbering.Type.Value,
-                            out ushort scheme)) {
-                        reason = "An automatic-numbering scheme has no classic binary PowerPoint equivalent.";
-                        return false;
-                    }
-                    int rawStart = numbering.StartAt?.Value ?? 1;
-                    if (rawStart < 1 || rawStart > short.MaxValue) {
-                        reason = "An automatic-numbering start value lies outside the classic binary PowerPoint signed 16-bit range.";
-                        return false;
-                    }
-                    WriteUInt32(payload, (1U << 24) | (1U << 25));
-                    WriteInt16(payload, 1);
-                    WriteUInt16(payload, scheme);
-                    WriteInt16(payload, checked((short)rawStart));
-                }
+                if (!TryWriteAutomaticNumberingException9(payload,
+                        numbering, out reason)) return false;
                 // StyleTextProp9 character and special-information
                 // exceptions are empty for DrawingML automatic numbering.
                 WriteUInt32(payload, 0);
@@ -51,6 +29,37 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             }
             record = BuildRecord(version: 0, instance: 0,
                 RecordStyleTextProp9AtomForWrite, payload.ToArray());
+            return true;
+        }
+
+        private static bool TryWriteAutomaticNumberingException9(
+            Stream output, A.AutoNumberedBullet? numbering,
+            out string? reason) {
+            reason = null;
+            if (numbering == null) {
+                WriteUInt32(output, 0);
+                return true;
+            }
+            if (!HasOnlyAttributes(numbering, "type", "startAt")
+                || numbering.ChildElements.Count != 0
+                || numbering.Type?.HasValue != true) {
+                reason = "An automatic-numbering bullet has unsupported metadata or no numbering scheme.";
+                return false;
+            }
+            if (!TryMapAutoNumberScheme(numbering.Type.Value,
+                    out ushort scheme)) {
+                reason = "An automatic-numbering scheme has no classic binary PowerPoint equivalent.";
+                return false;
+            }
+            int rawStart = numbering.StartAt?.Value ?? 1;
+            if (rawStart < 1 || rawStart > short.MaxValue) {
+                reason = "An automatic-numbering start value lies outside the classic binary PowerPoint signed 16-bit range.";
+                return false;
+            }
+            WriteUInt32(output, (1U << 24) | (1U << 25));
+            WriteInt16(output, 1);
+            WriteUInt16(output, scheme);
+            WriteInt16(output, checked((short)rawStart));
             return true;
         }
 

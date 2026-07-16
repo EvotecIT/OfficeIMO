@@ -58,7 +58,8 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                         ReadColorScheme(source.ThemePart), background,
                         supportedShapes, drawingId,
                         LegacyPptWriterShapeContext.MainMaster,
-                        textStyles.Get(source), roundTripThemeRecords,
+                        textStyles.Get(source),
+                        textStyles.GetStyle9(source), roundTripThemeRecords,
                         fonts: textStyles.Fonts));
                     drawingShapeCounts.Add(drawingId,
                         CountDrawingShapes(supportedShapes));
@@ -157,6 +158,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             LegacyPptWriterShapeContext shapeContext =
                 LegacyPptWriterShapeContext.MainMaster,
             IReadOnlyList<byte[]>? textStyleRecords = null,
+            IReadOnlyList<byte[]>? textStyle9Records = null,
             IReadOnlyList<byte[]>? roundTripThemeRecords = null,
             bool rewriteColorScheme = true,
             IReadOnlyList<int>? colorSchemeSlotsToRewrite = null,
@@ -207,7 +209,18 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (roundTripThemeRecords != null) {
                 children.AddRange(roundTripThemeRecords);
             }
-            return BuildContainer(prototype.Type, prototype.Instance, children);
+            byte[] bytes = BuildContainer(prototype.Type, prototype.Instance,
+                children);
+            if (textStyle9Records == null) return bytes;
+            LegacyPptRecord rewritten = LegacyPptRecordReader.ReadSingle(bytes,
+                0, new LegacyPptImportOptions());
+            if (!TryRewriteMasterTextStyle9Records(rewritten,
+                    textStyle9Records, instancesToReplace: null,
+                    replaceAllExisting: true, out bytes)) {
+                throw new InvalidDataException(
+                    "The binary master prototype has malformed or duplicate PPT9 programmable tags.");
+            }
+            return bytes;
         }
 
         /// <summary>
