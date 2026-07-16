@@ -22,7 +22,7 @@ public static class IntelligenceXMarkdownRenderer {
     /// fences into the shared native visual AST.
     /// </summary>
     public static MarkdownRendererPlugin VisualsPlugin { get; } = new MarkdownRendererPlugin(
-        "IntelligenceX Visuals",
+        "IntelligenceX ChartForgeX Visuals",
         new[] { MarkdownRendererPlugins.IntelligenceXVisuals },
         fenceOptionSchemas: new[] { IntelligenceXVisualFenceSchemas.Visuals },
         applyReader: options => options.FencedBlockExtensions.Add(ChartForgeXVisualFenceExtension));

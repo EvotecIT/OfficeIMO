@@ -270,6 +270,21 @@ flowchart LR
         }
 
         [Fact]
+        public void IntelligenceXMarkdownRenderer_ApplyVisuals_After_CoreAdapter_Still_Projects_ChartForgeX_Fences() {
+            var options = MarkdownRendererPresets.CreateStrictMinimal();
+            MarkdownRendererIntelligenceXAdapter.Apply(options);
+
+            IntelligenceXMarkdownRenderer.ApplyVisuals(options);
+
+            var native = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseNativeDocument(
+                "```chartforgex flow v1\nvisual payload\n```",
+                options);
+            var visual = Assert.IsType<MarkdownNativeVisualBlock>(Assert.Single(native.Blocks));
+            Assert.Equal("chartforgex flow v1", visual.InfoString);
+            Assert.Equal("visual payload", visual.Content);
+        }
+
+        [Fact]
         public void MarkdownRendererPresets_CreateIntelligenceXTranscript_Reuses_Shared_Transcript_Reader_Contract() {
             var expected = MarkdownTranscriptPreparation.CreateIntelligenceXTranscriptReaderOptions(
                 preservesGroupedDefinitionLikeParagraphs: false,
