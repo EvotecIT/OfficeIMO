@@ -95,14 +95,19 @@ public sealed class EmailMimeReaderTests {
         Assert.Equal("Child body", attachment.EmbeddedDocument.Body.Text!.Trim());
     }
 
-    [Fact]
-    public void ReportsRecoverableMalformedContent() {
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ReportsUnrecoverableMalformedBase64AsAnError(bool includeAttachmentContent) {
         const string eml = "Subject: malformed\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
             "--x\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n%%%\r\n";
 
-        EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
+        EmailReadResult result = new EmailDocumentReader(new EmailReaderOptions(
+            includeAttachmentContent: includeAttachmentContent)).Read(Encoding.ASCII.GetBytes(eml));
 
-        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID");
+        Assert.True(result.HasErrors);
+        Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID" &&
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED");
         Assert.Single(result.Document.Attachments);
     }
@@ -336,7 +341,7 @@ public sealed class EmailMimeReaderTests {
     }
 
     [Fact]
-    public void RecoversBrokenMultipartAndBase64AsWarnings() {
+    public void ReportsBrokenMultipartAsWarningButInvalidBase64AsError() {
         const string eml = "Subject: recovery\r\nContent-Type: multipart/mixed; boundary=x\r\n\r\n" +
             "--x\r\nContent-Type: application/octet-stream\r\nContent-Transfer-Encoding: base64\r\n\r\n" +
             "not valid base64!\r\n";
@@ -344,10 +349,10 @@ public sealed class EmailMimeReaderTests {
         EmailReadResult result = new EmailDocumentReader().Read(Encoding.ASCII.GetBytes(eml));
 
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BASE64_INVALID" &&
-            diagnostic.Severity == EmailDiagnosticSeverity.Warning);
+            diagnostic.Severity == EmailDiagnosticSeverity.Error);
         Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "EMAIL_MIME_BOUNDARY_NOT_CLOSED" &&
             diagnostic.Severity == EmailDiagnosticSeverity.Warning);
-        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == EmailDiagnosticSeverity.Error);
+        Assert.True(result.HasErrors);
     }
 
     [Fact]

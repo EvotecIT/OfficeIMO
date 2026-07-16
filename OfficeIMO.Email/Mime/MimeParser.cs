@@ -204,6 +204,10 @@ internal static class MimeParser {
         if (attachment.IsProjectedSemanticContent && semanticCharsetFallback) {
             document.MimeSemanticProjectionIsIncomplete = true;
         }
+        if (attachment.IsProjectedSemanticContent && vcardContent &&
+            HasUnpreservedVCardContentType(contentType)) {
+            document.MimeSemanticProjectionIsIncomplete = true;
+        }
         if (attachment.IsProjectedSemanticContent && mimeDepth > 0 &&
             HasUnpreservedSemanticPartHeaders(headers)) {
             document.MimeSemanticProjectionIsIncomplete = true;
@@ -217,6 +221,11 @@ internal static class MimeParser {
         headers.Any(header =>
             !header.Name.Equals("Content-Type", StringComparison.OrdinalIgnoreCase) &&
             !header.Name.Equals("Content-Transfer-Encoding", StringComparison.OrdinalIgnoreCase));
+
+    private static bool HasUnpreservedVCardContentType(MimeValue contentType) =>
+        !contentType.Value.Equals("text/vcard", StringComparison.OrdinalIgnoreCase) ||
+        contentType.Parameters.Keys.Any(parameter =>
+            !parameter.Equals("charset", StringComparison.OrdinalIgnoreCase));
 
     private static EmailAttachment CreateAttachment(IReadOnlyList<EmailHeader> headers, MimeValue contentType,
         MimeValue disposition, string? fileName, bool inlineDisposition, bool attachmentDisposition,

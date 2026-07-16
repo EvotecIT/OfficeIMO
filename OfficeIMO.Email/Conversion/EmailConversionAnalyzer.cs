@@ -117,6 +117,14 @@ internal static class EmailConversionAnalyzer {
                 "semantic-content"));
         }
 
+        if (targetFormat == EmailFileFormat.OutlookMsg && TnefWriter.HasUnmanagedRawAttributes(document)) {
+            hasPotentialDataLoss = true;
+            diagnostics.Add(CreateLossDiagnostic(options.ConversionLossPolicy,
+                "EMAIL_TNEF_ATTRIBUTES_NOT_REPRESENTED_IN_MSG",
+                "Raw TNEF message or attachment attributes cannot be represented in an Outlook MSG artifact.",
+                "source-metadata/tnef"));
+        }
+
         if (targetFormat == EmailFileFormat.Eml && HasSourceSpecificMetadata(document)) {
             hasPotentialDataLoss = true;
             diagnostics.Add(new EmailDiagnostic("EMAIL_SOURCE_METADATA_NOT_REPRESENTED_IN_EML",

@@ -6,6 +6,49 @@ using Xunit;
 namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailTnefTests {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void BlocksUnmanagedRawTnefAttributesBeforeMsgConversion(bool attachmentAttribute) {
+        var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "raw attributes" };
+        source.Body.Text = "body";
+        if (attachmentAttribute) {
+            var attachment = new EmailAttachment {
+                FileName = "data.bin", Content = new byte[] { 1, 2, 3 }, Length = 3
+            };
+            attachment.TnefAttributes.Add(new TnefAttribute(
+                TnefAttributeLevel.Attachment, 0x0006F002, new byte[] { 4, 5 }));
+            source.Attachments.Add(attachment);
+        } else {
+            source.TnefAttributes.Add(new TnefAttribute(
+                TnefAttributeLevel.Message, 0x0006F001, new byte[] { 7, 8 }));
+        }
+        EmailDocument parsed = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef)).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            parsed, EmailFileFormat.OutlookMsg);
+
+        Assert.False(report.CanWrite);
+        Assert.Contains(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_TNEF_ATTRIBUTES_NOT_REPRESENTED_IN_MSG");
+    }
+
+    [Fact]
+    public void AllowsManagedTnefAttributesBeforeMsgConversion() {
+        var source = new EmailDocument { Format = EmailFileFormat.Tnef, Subject = "managed attributes" };
+        source.Body.Text = "body";
+        EmailDocument parsed = new EmailDocumentReader().Read(
+            new EmailDocumentWriter().ToBytes(source, EmailFileFormat.Tnef)).Document;
+
+        EmailConversionReport report = new EmailDocumentWriter().AnalyzeConversion(
+            parsed, EmailFileFormat.OutlookMsg);
+
+        Assert.True(report.CanWrite);
+        Assert.DoesNotContain(report.Diagnostics,
+            diagnostic => diagnostic.Code == "EMAIL_TNEF_ATTRIBUTES_NOT_REPRESENTED_IN_MSG");
+    }
+
     [Fact]
     public void RoundTripsMessageMapiRecipientsAndAttachmentKinds() {
         DateTimeOffset start = new DateTimeOffset(2026, 10, 3, 9, 0, 0, TimeSpan.Zero);

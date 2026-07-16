@@ -38,6 +38,7 @@ internal static partial class IcsCalendarCodec {
         IcsProperty[] versions = properties.Where(property => property.Name == "VERSION").ToArray();
         bool hasUnsupportedVersion = versions.Length != 1 ||
             !versions[0].Value.Trim().Equals("2.0", StringComparison.OrdinalIgnoreCase);
+        bool missingEventStart = isEvent && !activeProperties.Any(property => property.Name == "DTSTART");
         string? calendarSummary = Unescape(GetValue(activeProperties, "SUMMARY"));
         string? reminderDescription = string.IsNullOrWhiteSpace(calendarSummary)
             ? envelopeSubject
@@ -47,7 +48,7 @@ internal static partial class IcsCalendarCodec {
         bool wouldSynthesizeOrganizer = isEvent && !string.IsNullOrWhiteSpace(envelopeFrom?.Address) &&
             !activeProperties.Any(property => property.Name == "ORGANIZER");
         return calendarRoots != 1 || calendarItems > 1 || alarms > 1 || hasTimeZone || hasUnsupportedComponent ||
-            hasUnsupportedVersion || hasConflictingEnvelopeSubject || wouldSynthesizeOrganizer ||
+            hasUnsupportedVersion || missingEventStart || hasConflictingEnvelopeSubject || wouldSynthesizeOrganizer ||
             HasDuplicateAttendeeAddresses(activeProperties) ||
             HasDuplicateCalendarSingletons(activeProperties) ||
             activeProperties.Any(property => property.Name.IndexOf('.') >= 0) ||

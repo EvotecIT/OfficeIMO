@@ -19,6 +19,12 @@ internal static class TnefWriter {
         return WriteMessage(document, options, diagnostics, 0);
     }
 
+    /// <summary>Returns whether raw TNEF attributes exist that only the TNEF writer can reproduce.</summary>
+    internal static bool HasUnmanagedRawAttributes(EmailDocument document) =>
+        document.TnefAttributes.Any(attribute => !ManagedMessageAttributes.Contains(attribute.Tag)) ||
+        document.Attachments.Any(attachment => attachment.TnefAttributes.Any(attribute =>
+            !ManagedAttachmentAttributes.Contains(attribute.Tag)));
+
     private static byte[] WriteMessage(EmailDocument document, EmailWriterOptions options,
         IList<EmailDiagnostic> diagnostics, int depth) {
         if (depth > options.MaxNestedMessageDepth) throw new InvalidOperationException("The embedded-message write depth exceeds the configured maximum.");

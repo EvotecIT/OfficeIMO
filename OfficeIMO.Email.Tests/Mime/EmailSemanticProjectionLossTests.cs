@@ -5,6 +5,29 @@ namespace OfficeIMO.Email.Tests;
 
 public sealed class EmailSemanticProjectionLossTests {
     [Fact]
+    public void BlocksEventWithoutStartBeforeStoreConversion() {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\n" +
+            "VERSION:2.0\r\nBEGIN:VEVENT\r\nUID:undated@example.com\r\n" +
+            "SUMMARY:Undated\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Theory]
+    [InlineData("text/directory; profile=vcard")]
+    [InlineData("text/x-vcard")]
+    [InlineData("application/vcard")]
+    [InlineData("text/vcard; profile=vcard")]
+    public void BlocksUnpreservedVCardMediaTypesBeforeStoreConversion(string contentType) {
+        byte[] eml = Encoding.ASCII.GetBytes(
+            "Content-Type: " + contentType + "; charset=utf-8\r\n\r\nBEGIN:VCARD\r\n" +
+            "VERSION:3.0\r\nFN:Ada Lovelace\r\nEND:VCARD\r\n");
+
+        AssertStoreProjectionBlocked(eml);
+    }
+
+    [Fact]
     public void BlocksNonCanonicalCalendarProducerBeforeStoreConversion() {
         byte[] eml = Encoding.ASCII.GetBytes(
             "Content-Type: text/calendar; charset=utf-8\r\n\r\nBEGIN:VCALENDAR\r\n" +

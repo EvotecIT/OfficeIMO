@@ -121,7 +121,7 @@ internal static class MimeTextCodec {
                 if (diagnostics != null && !validBase64) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID",
                         "The invalid Base64 payload was preserved without decoding.",
-                        EmailDiagnosticSeverity.Warning, location));
+                        EmailDiagnosticSeverity.Error, location));
                 } else if (diagnostics != null && recoveredPadding) {
                     diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_PADDING_RECOVERED",
                         "Missing Base64 padding was recovered.", EmailDiagnosticSeverity.Warning, location));
@@ -224,7 +224,7 @@ internal static class MimeTextCodec {
                 return recovered;
             } catch (FormatException ex) {
                 diagnostics.Add(new EmailDiagnostic("EMAIL_MIME_BASE64_INVALID", ex.Message,
-                    EmailDiagnosticSeverity.Warning, location));
+                    EmailDiagnosticSeverity.Error, location));
                 return Encoding.ASCII.GetBytes(value);
             }
         }
