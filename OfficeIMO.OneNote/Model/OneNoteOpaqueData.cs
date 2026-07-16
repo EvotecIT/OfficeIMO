@@ -45,7 +45,7 @@ public sealed class OneNoteOpaqueProperty {
 public sealed class OneNoteOpaqueObject {
     private byte[] _rawData = Array.Empty<byte>();
 
-    /// <summary>Object identifier when available.</summary>
+    /// <summary>Object identifier when available. Serialization assigns and retains one for a new opaque object.</summary>
     public OneNoteExtendedGuid? Id { get; set; }
 
     /// <summary>JCID value that identifies the object type.</summary>

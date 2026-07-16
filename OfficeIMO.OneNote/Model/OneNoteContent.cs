@@ -28,7 +28,7 @@ public enum OneNoteElementKind {
 /// Base class for typed page elements.
 /// </summary>
 public abstract class OneNoteElement {
-    /// <summary>Object identifier within the source revision store.</summary>
+    /// <summary>Object identifier within the revision store. Serialization assigns and retains an identity for new content.</summary>
     public OneNoteExtendedGuid? Id { get; set; }
 
     /// <summary>Logical content kind.</summary>

@@ -6,10 +6,10 @@ namespace OfficeIMO.OneNote;
 public sealed class OneNotePage {
     internal OneNotePagePreservationIds PreservationIds { get; } = new OneNotePagePreservationIds();
 
-    /// <summary>Page object-space identity when available.</summary>
+    /// <summary>Page object-space identity when available. Serialization assigns and retains an identity for a new page.</summary>
     public OneNoteExtendedGuid? Id { get; set; }
 
-    /// <summary>Revision context identity for a historical page snapshot.</summary>
+    /// <summary>Revision context identity for a historical page snapshot. Serialization assigns it when needed.</summary>
     public OneNoteExtendedGuid? RevisionContextId { get; set; }
 
     /// <summary>Page title.</summary>
@@ -97,7 +97,7 @@ public sealed class OneNoteAuthor {
 /// A note tag or task marker associated with content.
 /// </summary>
 public sealed class OneNoteTag {
-    /// <summary>Tag definition identity.</summary>
+    /// <summary>Tag definition identity. Serialization assigns and retains it for a new non-task tag.</summary>
     public OneNoteExtendedGuid? DefinitionId { get; set; }
 
     /// <summary>MS-ONE action-item identity (0-99 for normal tags and 100-105 for task tags).</summary>

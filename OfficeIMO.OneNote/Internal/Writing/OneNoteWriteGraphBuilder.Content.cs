@@ -11,6 +11,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         var childIds = new List<OneNoteExtendedGuid>();
         foreach (OneNoteElement child in outline.Children) childIds.Add(BuildOutlineChild(space, child, lastModifiedTime));
         OneNoteExtendedGuid id = IdOrNew(outline.Id);
+        outline.Id = id;
         var properties = LayoutProperties(outline.Layout);
         properties.Insert(0, Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime));
         if (childIds.Count > 0) properties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, childIds));
@@ -48,6 +49,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         AddTags(space, properties, wrapper.Tags);
 
         OneNoteExtendedGuid id = IdOrNew(wrapper.Id);
+        wrapper.Id = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidOutlineElementNode, properties));
         return id;
     }
@@ -94,6 +96,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
             richTextProperties.Add(ObjectReferences(OneNoteSchema.TextRunFormatting, styleIds));
         }
         OneNoteExtendedGuid richTextId = IdOrNew(paragraph.ContentObjectId);
+        paragraph.ContentObjectId = richTextId;
         OneNoteExtendedGuid? paragraphStyleId = BuildParagraphStyle(space, paragraph.Style);
         if (paragraphStyleId != null) richTextProperties.Add(ObjectReferences(OneNoteSchema.ParagraphStyle, paragraphStyleId));
         AddTags(space, richTextProperties, paragraph.Tags);
@@ -102,6 +105,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         var nested = new List<OneNoteExtendedGuid>();
         foreach (OneNoteElement child in paragraph.Children) nested.Add(BuildOutlineChild(space, child, lastModifiedTime));
         OneNoteExtendedGuid elementId = IsCompact(paragraph.Id) && !paragraph.Id!.Equals(richTextId) ? paragraph.Id! : _ids.New();
+        paragraph.Id = elementId;
         var properties = LayoutProperties(paragraph.Layout);
         properties.Insert(0, Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime));
         properties.Add(ObjectReferences(OneNoteSchema.ContentChildNodes, richTextId));
@@ -129,10 +133,12 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 if (contentIds.Count > 0) cellProperties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, contentIds));
                 if (cell.ShadingColorArgb.HasValue) cellProperties.Add(Scalar(OneNoteSchema.CellShadingColor, cell.ShadingColorArgb.Value));
                 OneNoteExtendedGuid cellId = IdOrNew(cell.ObjectId);
+                cell.ObjectId = cellId;
                 space.Objects.Add(new OneNoteWriteObject(cellId, OneNoteSchema.JcidTableCellNode, cellProperties));
                 cellIds.Add(cellId);
             }
             OneNoteExtendedGuid rowId = IdOrNew(row.ObjectId);
+            row.ObjectId = rowId;
             var rowProperties = new List<OneNoteWriteProperty> { Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime) };
             if (cellIds.Count > 0) rowProperties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, cellIds));
             space.Objects.Add(new OneNoteWriteObject(rowId, OneNoteSchema.JcidTableRowNode, rowProperties));
@@ -145,6 +151,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (rowIds.Count > 0) properties.Add(ObjectReferences(OneNoteSchema.ElementChildNodes, rowIds));
         AddTags(space, properties, table.Tags);
         OneNoteExtendedGuid id = IdOrNew(table.Id);
+        table.Id = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidTableNode, properties));
         return id;
     }
@@ -162,6 +169,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (image.PixelHeight.HasValue) properties.Add(Scalar(OneNoteSchema.PictureHeight, ToUInt32(image.PixelHeight.Value)));
         AddTags(space, properties, image.Tags);
         OneNoteExtendedGuid id = IdOrNew(image.Id);
+        image.Id = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidImageNode, properties));
         return id;
     }
@@ -179,6 +187,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }
         AddTags(space, properties, element.Tags);
         OneNoteExtendedGuid id = IdOrNew(element.Id);
+        element.Id = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidEmbeddedFileNode, properties));
         return id;
     }
@@ -187,12 +196,15 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (element.Payload == null) throw new OneNoteFormatException("ONENOTE_WRITE_MISSING_PAYLOAD", element.Kind + " content has no binary payload.");
         byte[] payload = element.Payload.ToArray(_maxPayloadBytes);
         Guid dataId = element.PayloadFileDataId ?? Guid.NewGuid();
+        element.PayloadFileDataId = dataId;
         string extension = element.PayloadFileExtension ?? Path.GetExtension(element.FileName ?? string.Empty);
+        element.PayloadFileExtension = extension;
         var properties = new[] {
             Data(OneNoteSchema.FileDataReference, dataId.ToByteArray()),
             Data(OneNoteSchema.FileDataExtension, Unicode(extension))
         };
         OneNoteExtendedGuid id = IdOrNew(element.PayloadObjectId);
+        element.PayloadObjectId = id;
         space.Objects.Add(new OneNoteWriteObject(
             id,
             picture ? OneNoteSchema.JcidPictureData : OneNoteSchema.JcidEmbeddedFileData,
@@ -207,12 +219,14 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (math.RawPayload != null || !string.IsNullOrEmpty(math.MathMl) || !string.IsNullOrEmpty(math.Latex)) {
             throw new OneNoteFormatException("ONENOTE_WRITE_UNSUPPORTED_MATH", "Raw, MathML, and LaTeX mathematical payloads cannot yet be emitted losslessly.");
         }
-        var paragraph = new OneNoteParagraph { Layout = math.Layout, Author = math.Author };
+        var paragraph = new OneNoteParagraph { Id = math.Id, Layout = math.Layout, Author = math.Author };
         foreach (OneNoteTag tag in math.Tags) paragraph.Tags.Add(tag);
         var run = new OneNoteTextRun { Text = math.Text ?? string.Empty };
         run.Style.IsMath = true;
         paragraph.Runs.Add(run);
-        return BuildParagraph(space, paragraph, lastModifiedTime);
+        OneNoteExtendedGuid id = BuildParagraph(space, paragraph, lastModifiedTime);
+        math.Id = id;
+        return id;
     }
 
     private OneNoteExtendedGuid BuildList(OneNoteWriteObjectSpace space, OneNoteListInfo list, uint lastModifiedTime) {
@@ -225,6 +239,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         AddString(properties, OneNoteSchema.ListFont, list.FontFamily);
         if (list.Restart || list.DisplayIndex.HasValue) properties.Add(Scalar(OneNoteSchema.ListRestart, (uint)Math.Max(1, list.DisplayIndex ?? 1)));
         OneNoteExtendedGuid id = IdOrNew(list.ObjectId);
+        list.ObjectId = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidNumberListNode, properties));
         return id;
     }
@@ -238,6 +253,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         if (style.ExactLineSpacing.HasValue) properties.Add(Float(OneNoteSchema.ParagraphLineSpacingExact, style.ExactLineSpacing.Value));
         if (properties.Count == 0) return null;
         OneNoteExtendedGuid id = IdOrNew(style.ObjectId);
+        style.ObjectId = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidTextStyle, properties));
         return id;
     }
@@ -274,10 +290,12 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteWriteObject? existing = space.Objects.FirstOrDefault(item => item.Id.Equals(id));
         if (existing != null) {
             if (existing.Jcid == OneNoteSchema.JcidTextStyle && TextStylePropertiesEqual(existing.Properties, properties)) {
+                run.StyleObjectId = id;
                 return id;
             }
             id = _ids.New();
         }
+        run.StyleObjectId = id;
         space.Objects.Add(new OneNoteWriteObject(id, OneNoteSchema.JcidTextStyle, properties));
         return id;
     }
@@ -371,6 +389,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
 
     private OneNoteExtendedGuid BuildTagDefinition(OneNoteWriteObjectSpace space, OneNoteTag tag, uint actionItemType) {
         OneNoteExtendedGuid id = IdOrNew(tag.DefinitionId);
+        tag.DefinitionId = id;
         uint shape = tag.Shape ?? (tag.IsCheckable ? 3U : 13U);
         if (shape > 143) {
             throw new OneNoteFormatException("ONENOTE_WRITE_TAG_SHAPE", "A normal note-tag shape must be from 0 through 143.");

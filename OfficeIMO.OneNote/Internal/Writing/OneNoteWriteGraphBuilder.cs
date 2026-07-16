@@ -22,6 +22,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteSectionPreservationState? preservation = _preserveUnknownData ? section.PreservationState : null;
         OneNoteMaterializedObjectSpace? sourceSectionSpace = preservation?.SectionSpace;
         Guid fileId = fileIdOverride ?? (section.Id.HasValue && section.Id.Value != Guid.Empty ? section.Id.Value : Guid.NewGuid());
+        section.Id = fileId;
         OneNoteExtendedGuid sectionSpaceId = IdOrNew(sourceSectionSpace?.Revision.ObjectSpaceId);
         var graph = new OneNoteWriteGraph(fileId, OneNoteFileKind.Section, sectionSpaceId, ancestorId ?? Guid.Empty, OneNoteCrc32.ComputeFileName(fileName));
         var sectionSpace = new OneNoteWriteObjectSpace(sectionSpaceId, IdOrNew(sourceSectionSpace?.Revision.Id));
@@ -152,6 +153,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         IReadOnlyList<OneNoteExtendedGuid>? versionHistoryContextIds = null,
         bool forceConflict = false,
         OneNoteExtendedGuid? contextId = null) {
+        page.Id = spaceId;
         var space = new OneNoteWriteObjectSpace(spaceId, IdOrNew(sourceSpace?.Revision.Id), contextId);
         uint lastModifiedTime = Time32(page.LastModifiedUtc?.ToUniversalTime() ?? creationUtc);
         var pageContentIds = new List<OneNoteExtendedGuid>();
@@ -160,6 +162,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         OneNoteExtendedGuid titleId = BuildTitle(space, page, lastModifiedTime, Time32(creationUtc));
 
         OneNoteExtendedGuid pageNodeId = IdOrNew(page.PreservationIds.PageNodeId);
+        page.PreservationIds.PageNodeId = pageNodeId;
         var pageProperties = new List<OneNoteWriteProperty> {
             Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime),
             Data(OneNoteSchema.CachedTitleStringFromPage, Unicode(page.Title)),
@@ -172,6 +175,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         space.Objects.Add(new OneNoteWriteObject(pageNodeId, OneNoteSchema.JcidPageNode, pageProperties));
 
         OneNoteExtendedGuid manifestId = IdOrNew(page.PreservationIds.ManifestId);
+        page.PreservationIds.ManifestId = manifestId;
         var manifestProperties = new List<OneNoteWriteProperty> {
             ObjectReferences(OneNoteSchema.ContentChildNodes, pageNodeId)
         };
@@ -183,11 +187,13 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }
         space.Objects.Add(new OneNoteWriteObject(manifestId, OneNoteSchema.JcidPageManifestNode, manifestProperties));
         OneNoteExtendedGuid metadataId = IdOrNew(page.PreservationIds.MetadataId);
+        page.PreservationIds.MetadataId = metadataId;
         space.Objects.Add(new OneNoteWriteObject(
             metadataId,
             page.IsConflictPage || forceConflict ? OneNoteSchema.JcidConflictPageMetadata : OneNoteSchema.JcidPageMetadata,
             PageMetadataProperties(page, managementId, creationUtc)));
         OneNoteExtendedGuid revisionMetadataId = IdOrNew(page.PreservationIds.RevisionMetadataId);
+        page.PreservationIds.RevisionMetadataId = revisionMetadataId;
         var revisionProperties = new List<OneNoteWriteProperty> {
             Scalar(OneNoteSchema.LastModifiedTimestamp, FileTime(page.LastModifiedUtc?.ToUniversalTime() ?? creationUtc))
         };
@@ -242,6 +248,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         foreach (OneNotePage version in page.VersionHistory) {
             OneNoteExtendedGuid versionContextId = version.RevisionContextId ?? _ids.New();
             if (versionContextId.Equals(VersionHistoryContext)) versionContextId = _ids.New();
+            version.RevisionContextId = versionContextId;
             OneNoteMaterializedObjectSpace? sourceVersionSpace = preservation?.GetPageSpace(version);
             graph.ObjectSpaces.Add(BuildPageSpace(
                 version,
@@ -274,6 +281,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
                 properties.Add(ObjectReferences(OneNoteSchema.AuthorMostRecent, BuildAuthor(historySpace, version.MostRecentAuthor!)));
             }
             OneNoteExtendedGuid proxyId = IdOrNew(version.PreservationIds.VersionProxyId);
+            version.PreservationIds.VersionProxyId = proxyId;
             historySpace.Objects.Add(new OneNoteWriteObject(proxyId, OneNoteSchema.JcidVersionProxy, properties));
             proxyIds.Add(proxyId);
         }
@@ -315,9 +323,11 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         richTextProperties.Add(Boolean(OneNoteSchema.IsTitleText, true));
         richTextProperties.Add(Scalar(OneNoteSchema.RichEditTextLanguageId, 0x0409));
         OneNoteExtendedGuid richTextId = IdOrNew(page.PreservationIds.TitleTextId);
+        page.PreservationIds.TitleTextId = richTextId;
         space.Objects.Add(new OneNoteWriteObject(richTextId, OneNoteSchema.JcidRichTextNode, richTextProperties));
 
         OneNoteExtendedGuid elementId = IdOrNew(page.PreservationIds.TitleElementId);
+        page.PreservationIds.TitleElementId = elementId;
         space.Objects.Add(new OneNoteWriteObject(elementId, OneNoteSchema.JcidOutlineElementNode, new[] {
             Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime),
             ObjectReferences(OneNoteSchema.ContentChildNodes, richTextId),
@@ -328,6 +338,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }));
 
         OneNoteExtendedGuid outlineId = IdOrNew(page.PreservationIds.TitleOutlineId);
+        page.PreservationIds.TitleOutlineId = outlineId;
         space.Objects.Add(new OneNoteWriteObject(outlineId, OneNoteSchema.JcidOutlineNode, new[] {
             Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime),
             ObjectReferences(OneNoteSchema.ElementChildNodes, elementId),
@@ -346,6 +357,7 @@ internal sealed partial class OneNoteWriteGraphBuilder {
         }));
 
         OneNoteExtendedGuid titleId = IdOrNew(page.PreservationIds.TitleNodeId);
+        page.PreservationIds.TitleNodeId = titleId;
         space.Objects.Add(new OneNoteWriteObject(titleId, OneNoteSchema.JcidTitleNode, new[] {
             Scalar(OneNoteSchema.LastModifiedTime, lastModifiedTime),
             ObjectReferences(OneNoteSchema.ElementChildNodes, outlineId),

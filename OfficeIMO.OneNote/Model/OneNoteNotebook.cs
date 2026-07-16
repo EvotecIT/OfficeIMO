@@ -6,7 +6,7 @@ namespace OfficeIMO.OneNote;
 public sealed class OneNoteNotebook {
     internal OneNoteExtendedGuid? TableOfContentsRootObjectId { get; set; }
 
-    /// <summary>Notebook identity when available.</summary>
+    /// <summary>Notebook identity when available. Serialization assigns and retains an identity for a new notebook.</summary>
     public Guid? Id { get; set; }
 
     /// <summary>Notebook display name.</summary>
@@ -43,7 +43,7 @@ public sealed class OneNoteNotebook {
 public sealed class OneNoteSectionGroup {
     internal OneNoteExtendedGuid? TableOfContentsRootObjectId { get; set; }
 
-    /// <summary>Section-group identity when available.</summary>
+    /// <summary>Section-group identity when available. Serialization assigns and retains an identity for a new group.</summary>
     public Guid? Id { get; set; }
 
     /// <summary>Section-group display name.</summary>
@@ -74,7 +74,7 @@ public sealed class OneNoteSectionGroup {
 public sealed class OneNoteSection {
     internal OneNoteSectionPreservationState? PreservationState { get; set; }
 
-    /// <summary>Section identity when available.</summary>
+    /// <summary>Section identity when available. Serialization assigns and retains an identity for a new section.</summary>
     public Guid? Id { get; set; }
 
     /// <summary>Section display name.</summary>

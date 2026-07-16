@@ -85,6 +85,8 @@ The typed model covers:
 
 When a loaded section is edited, unsupported source structures are preserved unless the typed edit replaces or deletes their owning relationship. Known typed properties win over stale opaque values.
 
+New notebooks, groups, sections, pages, and content receive their native logical identities on first serialization. The assigned identities remain on the typed model and are reused by later saves; physical transaction and file-version identifiers still change for each artifact.
+
 ## Deliberate write boundaries
 
 - New plain-text math can be serialized. Creating or replacing raw MathML/LaTeX payloads currently fails with `ONENOTE_WRITE_UNSUPPORTED_MATH` instead of flattening them silently.

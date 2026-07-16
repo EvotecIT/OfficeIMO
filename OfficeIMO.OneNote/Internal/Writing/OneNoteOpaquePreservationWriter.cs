@@ -18,6 +18,7 @@ internal static class OneNoteOpaquePreservationWriter {
 
         foreach (OneNoteOpaqueObject source in preservedObjects.OrderBy(item => item.Ordinal)) {
             OneNoteExtendedGuid id = source.Id ?? new OneNoteExtendedGuid(Guid.NewGuid(), 1, 17);
+            source.Id = id;
             if (!emitted.Add(id)) continue;
             OneNoteWriteObject retained = ConvertObject(source, id, maxPayloadBytes);
             merged.Add(generatedById.TryGetValue(id, out OneNoteWriteObject? typed)
