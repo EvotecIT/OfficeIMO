@@ -21,6 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 EndnotePositionValues? endnotePosition,
                 bool trackRevisions,
                 bool lockRevisionTracking) {
+                ChpxPages = Array.Empty<IReadOnlyList<LegacyDocWritableSegment>>();
                 PapxPages = Array.Empty<IReadOnlyList<LegacyDocWritableParagraphSegment>>();
                 Text = text;
                 FormattedRuns = formattedRuns;
@@ -88,6 +89,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     .Select((author, index) => new { author, index })
                     .ToDictionary(item => item.author, item => item.index, StringComparer.Ordinal);
                 SttbfRMark = CreateRevisionAuthorTable(RevisionAuthors);
+                ChpxPages = CreateChpxFkpPages(CreateFormattingSegments(), FontFamilyIndexes, RevisionAuthorIndexes);
                 PapxPages = LegacyDocParagraphFormattingWriter.CreatePapxFkpPages(CreateParagraphSegments(), OleSectorSize);
             }
 
@@ -211,6 +213,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 || LockRevisionTracking;
 
             internal int DopLength => EndnotePosition != null ? DopBaseEndnotePlacementLength : DopBaseLength;
+
+            internal IReadOnlyList<IReadOnlyList<LegacyDocWritableSegment>> ChpxPages { get; }
+
+            internal int ChpxPageCount => ChpxPages.Count;
+
+            internal int ChpxPlcLength => sizeof(int) + (ChpxPageCount * sizeof(int) * 2);
 
             internal IReadOnlyList<IReadOnlyList<LegacyDocWritableParagraphSegment>> PapxPages { get; }
 

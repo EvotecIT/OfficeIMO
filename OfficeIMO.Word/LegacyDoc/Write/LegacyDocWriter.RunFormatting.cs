@@ -549,11 +549,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyDictionary<string, int> revisionAuthorIndexes,
             int bytesPerCharacter) {
             if (segments.Count == 0 || segments.Count > byte.MaxValue) {
-                throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
+                throw new NotSupportedException("Native DOC saving encountered a character-format run that cannot fit in a character-format page.");
             }
 
             int rgbOffset = pageOffset + ((segments.Count + 1) * 4);
             int chpxOffset = AlignToEven((segments.Count + 1) * 4 + segments.Count);
+            if (chpxOffset >= OleSectorSize - 1 || chpxOffset / 2 > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving encountered a character-format run that cannot fit in a character-format page.");
+            }
 
             for (int index = 0; index < segments.Count; index++) {
                 LegacyDocWritableSegment segment = segments[index];
@@ -562,7 +565,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     byte[] chpx = CreateChpx(segment.Formatting, fontFamilyIndexes, revisionAuthorIndexes, segment.PictureDataOffset);
                     chpxOffset = AlignToEven(chpxOffset);
                     if (chpxOffset + chpx.Length >= OleSectorSize - 1 || chpxOffset / 2 > byte.MaxValue) {
-                        throw new NotSupportedException("Native DOC saving currently supports run formatting only when it fits in one character-format page.");
+                        throw new NotSupportedException("Native DOC saving encountered a character-format run that cannot fit in a character-format page.");
                     }
 
                     Buffer.BlockCopy(chpx, 0, stream, pageOffset + chpxOffset, chpx.Length);
