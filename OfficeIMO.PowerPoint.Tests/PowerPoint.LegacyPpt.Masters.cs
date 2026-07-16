@@ -10,7 +10,7 @@ using P = DocumentFormat.OpenXml.Presentation;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    public class PowerPointLegacyPptMasterTests {
+    public partial class PowerPointLegacyPptMasterTests {
         private static string FixturePath => Path.Combine(AppContext.BaseDirectory,
             "Documents", "LegacyPptCorpus", "BasicPowerPoint.ppt");
 

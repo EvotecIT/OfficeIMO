@@ -10,11 +10,19 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
             if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
             return ReadMasterShapesForWrite(masterPart,
                 masterPart.SlideMaster?.CommonSlideData?.ShapeTree,
-                out unsupportedReason);
+                "slide master", out unsupportedReason);
+        }
+
+        internal static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
+            NotesMasterPart masterPart, out string? unsupportedReason) {
+            if (masterPart == null) throw new ArgumentNullException(nameof(masterPart));
+            return ReadMasterShapesForWrite(masterPart,
+                masterPart.NotesMaster?.CommonSlideData?.ShapeTree,
+                "notes master", out unsupportedReason);
         }
 
         private static IReadOnlyList<PowerPointShape> ReadMasterShapesForWrite(
-            OpenXmlPartContainer ownerPart, P.ShapeTree? tree,
+            OpenXmlPartContainer ownerPart, P.ShapeTree? tree, string ownerName,
             out string? unsupportedReason) {
             unsupportedReason = null;
             if (tree == null) return Array.Empty<PowerPointShape>();
@@ -25,7 +33,7 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                 PowerPointShape? shape = WrapInheritedShape(element, ownerPart);
                 if (shape == null) {
                     unsupportedReason ??=
-                        $"The slide master contains '{element.LocalName}' content that is not yet encoded by the native binary writer.";
+                        $"The {ownerName} contains '{element.LocalName}' content that is not yet encoded by the native binary writer.";
                     continue;
                 }
                 shapes.Add(shape);

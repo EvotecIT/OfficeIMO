@@ -68,9 +68,22 @@ namespace OfficeIMO.PowerPoint.LegacyPpt.Write {
                     out string? notesBackgroundReason)) {
                 throw new NotSupportedException(notesBackgroundReason);
             }
+            IReadOnlyList<PowerPointShape>? notesShapes = notesMasterPart == null
+                ? null
+                : ReadMasterShapesForWrite(notesMasterPart, out _)
+                    .Where(IsSupportedShape).ToArray();
+            uint? notesDrawingId = notesMasterPart == null
+                ? null
+                : ReadDrawingId(notesMasterPrototype);
             byte[] notesMaster = BuildMasterRecord(notesMasterPrototype,
                 ReadColorScheme(notesMasterPart?.ThemePart
-                    ?? masterParts[0].ThemePart), notesBackground);
+                    ?? masterParts[0].ThemePart), notesBackground,
+                notesShapes, notesDrawingId,
+                LegacyPptWriterShapeContext.NotesMaster);
+            if (notesDrawingId.HasValue && notesShapes != null) {
+                drawingShapeCounts.Add(notesDrawingId.Value,
+                    notesShapes.Count);
+            }
             return new LegacyPptWriterMasterCatalog(masterIds, persistObjects,
                 notesMaster, masterParts.Length, drawingShapeCounts,
                 textStyles.Fonts);
