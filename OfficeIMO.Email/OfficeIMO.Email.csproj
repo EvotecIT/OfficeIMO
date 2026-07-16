@@ -60,6 +60,7 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="OfficeIMO.Email.Tests" />
+    <InternalsVisibleTo Include="OfficeIMO.Email.Store" />
   </ItemGroup>
 
 </Project>

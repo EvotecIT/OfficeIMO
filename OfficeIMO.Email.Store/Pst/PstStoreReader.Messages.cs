@@ -69,7 +69,9 @@ internal sealed partial class PstStoreReader {
             .Where(item => item.Type == 0x12).OrderBy(item => item.Nid)) {
             string recipientLocation = string.Concat(location, "/recipients/", FormatId(recipientTable.Nid));
             try {
-                foreach (EmailRecipient recipient in ReadRecipients(recipientTable)) document.Recipients.Add(recipient);
+                foreach (EmailRecipient recipient in ReadRecipients(recipientTable, recipientLocation)) {
+                    document.Recipients.Add(recipient);
+                }
             } catch (EmailStoreLimitExceededException) {
                 throw;
             } catch (InvalidDataException exception) {
@@ -201,14 +203,15 @@ internal sealed partial class PstStoreReader {
         }
     }
 
-    private IReadOnlyList<EmailRecipient> ReadRecipients(PstSubnodeReference table) {
+    private IReadOnlyList<EmailRecipient> ReadRecipients(PstSubnodeReference table, string location) {
         PstDataTree data = Ndb.ReadDataTree(
             table.DataBid, _options.MaxDecodedPropertyBytesPerItem, _cancellationToken);
         IReadOnlyDictionary<uint, PstSubnodeReference> subnodes =
             Ndb.ReadSubnodes(table.SubnodeBid, _cancellationToken);
         var heap = new PstHeap(data, subnodes, Ndb, _options, _cancellationToken);
         IReadOnlyList<IReadOnlyList<MapiProperty>> rows = new PstTableContextReader(
-            heap, Ndb.IsUnicode, _options, _cancellationToken).ReadRows();
+            heap, Ndb.IsUnicode, _options, _cancellationToken,
+            message => AddTableCellDiagnostic(message, location)).ReadRows();
         var recipients = new List<EmailRecipient>(rows.Count);
         foreach (IReadOnlyList<MapiProperty> row in rows) {
             _namedProperties.Apply(row);

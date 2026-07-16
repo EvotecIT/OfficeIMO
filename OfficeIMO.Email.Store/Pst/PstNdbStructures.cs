@@ -80,8 +80,8 @@ internal sealed class PstDataTree {
         EnsureCursor();
         while (_cursorIndex < index && _cursor!.MoveNext()) {
             _cursorIndex++;
-            AddCached(_cursorIndex,
-                _cursor.Current ?? throw new InvalidDataException("A PST data-tree block was null."));
+            AddCached(_cursorIndex, _cursor.Current ??
+                throw new InvalidDataException("A PST data-tree block was null."));
         }
         if (_cache.TryGetValue(index, out cached)) return cached.Value.Bytes;
         throw new InvalidDataException("A PST data-tree block index is out of range.");
@@ -115,6 +115,9 @@ internal sealed class PstDataTree {
     }
 
     private void AddCached(int index, byte[] bytes) {
+        if (_cache.TryGetValue(index, out LinkedListNode<CachedBlock>? existing)) {
+            _lru.Remove(existing);
+        }
         var entry = new CachedBlock(index, bytes);
         LinkedListNode<CachedBlock> node = _lru.AddFirst(entry);
         _cache[index] = node;

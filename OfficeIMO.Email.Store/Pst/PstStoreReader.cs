@@ -348,12 +348,13 @@ internal sealed partial class PstStoreReader {
         IEnumerator<IReadOnlyList<MapiProperty>>? rows = null;
         try {
             PstDataTree data = Ndb.OpenDataTree(
-                dataBid, _options.MaxDecodedPropertyBytesPerItem, _cancellationToken);
+                dataBid, _options.MaxDecodedTableBytes, _cancellationToken);
             IReadOnlyDictionary<uint, PstSubnodeReference> subnodes =
                 Ndb.ReadSubnodes(subnodeBid, _cancellationToken);
             var heap = new PstHeap(data, subnodes, Ndb, _options, _cancellationToken);
             rows = new PstTableContextReader(
-                heap, Ndb.IsUnicode, _options, _cancellationToken).EnumerateRows().GetEnumerator();
+                heap, Ndb.IsUnicode, _options, _cancellationToken,
+                message => AddTableCellDiagnostic(message, location)).EnumerateRows().GetEnumerator();
         } catch (EmailStoreLimitExceededException) {
             throw;
         } catch (Exception exception) when (exception is InvalidDataException || exception is NotSupportedException) {
@@ -391,6 +392,14 @@ internal sealed partial class PstStoreReader {
             "EMAIL_STORE_PST_TABLE_CONTEXT",
             exception.Message,
             EmailStoreDiagnosticSeverity.Error,
+            location));
+    }
+
+    private void AddTableCellDiagnostic(string message, string location) {
+        _diagnostics.Add(new EmailStoreDiagnostic(
+            "EMAIL_STORE_PST_TABLE_CELL",
+            message,
+            EmailStoreDiagnosticSeverity.Warning,
             location));
     }
 

@@ -1,0 +1,192 @@
+using OfficeIMO.Email;
+
+namespace OfficeIMO.Email.Store;
+
+internal sealed partial class PstStoreWriterCore : IDisposable {
+    private const uint RootFolderNid = 0x122;
+    private const uint IpmSubtreeNid = 0x8022;
+    private const uint SearchRootNid = 0x8042;
+    private const uint DeletedItemsNid = 0x8062;
+    private const uint SpamSearchFolderNid = 0x2223;
+
+    private readonly string _destinationPath;
+    private readonly string _temporaryPath;
+    private readonly EmailStorePstWriterOptions _options;
+    private readonly PstWriterFile _file;
+    private readonly Guid _providerUid = Guid.NewGuid();
+    private readonly PstNamedPropertyWriter _namedProperties = new PstNamedPropertyWriter();
+    private readonly List<PstWriterNode> _nodes = new List<PstWriterNode>();
+    private readonly Dictionary<uint, FolderState> _folders = new Dictionary<uint, FolderState>();
+    private readonly List<EmailStoreDiagnostic> _diagnostics = new List<EmailStoreDiagnostic>();
+    private uint _nextFolderIndex = 0x10000;
+    private uint _nextMessageIndex = 0x200000;
+    private int _userFolderCount;
+    private int _itemCount;
+    private bool _completed;
+    private bool _disposed;
+
+    internal PstStoreWriterCore(string destinationPath, EmailStorePstWriterOptions options) {
+        _options = options ?? throw new ArgumentNullException(nameof(options));
+        _destinationPath = Path.GetFullPath(destinationPath);
+        string? directory = Path.GetDirectoryName(_destinationPath);
+        if (string.IsNullOrEmpty(directory)) directory = Directory.GetCurrentDirectory();
+        Directory.CreateDirectory(directory);
+        if (File.Exists(_destinationPath) && !options.OverwriteExisting) {
+            throw new IOException("The destination PST already exists. Enable overwrite to replace it.");
+        }
+        _temporaryPath = Path.Combine(directory,
+            string.Concat(".", Path.GetFileName(_destinationPath), ".",
+                Guid.NewGuid().ToString("N"), ".tmp"));
+        _file = new PstWriterFile(_temporaryPath);
+        AddSystemFolder(RootFolderNid, RootFolderNid, "Root - Mailbox", null, false);
+        AddSystemFolder(IpmSubtreeNid, RootFolderNid, "Top of Personal Folders", "IPF.Note", false);
+        AddSystemFolder(SearchRootNid, RootFolderNid, "Finder", null, false);
+        AddSystemFolder(DeletedItemsNid, IpmSubtreeNid, "Deleted Items", "IPF.Note", false);
+        AddSystemFolder(SpamSearchFolderNid, RootFolderNid, "SPAM Search Folder 2", "IPF.Note", true);
+    }
+
+    internal string RootFolderId => FormatId(IpmSubtreeNid);
+    internal string DeletedItemsFolderId => FormatId(DeletedItemsNid);
+    internal string SearchRootFolderId => FormatId(SearchRootNid);
+
+    internal string AddFolder(string name, string? parentFolderId, string? containerClass) {
+        ThrowIfUnavailable();
+        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("A folder name is required.", nameof(name));
+        if (_userFolderCount >= _options.MaxFolderCount) {
+            throw new InvalidOperationException("The configured PST folder limit has been reached.");
+        }
+        uint parentNid = parentFolderId == null ? IpmSubtreeNid : ParseFolderId(parentFolderId);
+        uint nid = AllocateNid(ref _nextFolderIndex, 0x02);
+        _folders.Add(nid, new FolderState(nid, parentNid, name.Trim(), containerClass, false));
+        _userFolderCount++;
+        return FormatId(nid);
+    }
+
+    internal string AddItem(string folderId, EmailDocument document, bool isAssociated,
+        CancellationToken cancellationToken) {
+        ThrowIfUnavailable();
+        cancellationToken.ThrowIfCancellationRequested();
+        if (_itemCount >= _options.MaxItemCount) {
+            throw new InvalidOperationException("The configured PST item limit has been reached.");
+        }
+        uint folderNid = ParseFolderId(folderId);
+        uint itemNid = AllocateNid(ref _nextMessageIndex, isAssociated ? 0x08U : 0x04U);
+        WrittenMessage message = WriteMessage(document, itemNid, depth: 0, cancellationToken);
+        _nodes.Add(new PstWriterNode(itemNid, folderNid, message.Context.DataBid,
+            message.Context.SubnodeBid));
+        _folders[folderNid].Items.Add(new ItemState(itemNid, isAssociated, message.TableProperties));
+        _itemCount++;
+        return FormatId(itemNid);
+    }
+
+    internal EmailStorePstWriteReport Complete(CancellationToken cancellationToken) {
+        ThrowIfUnavailable();
+        cancellationToken.ThrowIfCancellationRequested();
+        WriteStoreStructure(cancellationToken);
+        if (_options.FailOnDataLoss && _diagnostics.Any(item =>
+            item.Severity != EmailStoreDiagnosticSeverity.Information)) {
+            throw new InvalidOperationException(
+                "PST creation produced fidelity diagnostics and FailOnDataLoss is enabled.");
+        }
+        PstWriterTreeRoot nbt = _file.WriteNodeTree(_nodes);
+        PstWriterTreeRoot bbt = _file.WriteBlockTree();
+        _file.FinalizeFile(nbt, bbt, _nodes);
+        _file.Dispose();
+        CommitTemporaryFile();
+        _completed = true;
+        long bytes = new FileInfo(_destinationPath).Length;
+        return new EmailStorePstWriteReport(_destinationPath, _userFolderCount,
+            _itemCount, bytes, _diagnostics.ToArray());
+    }
+
+    public void Dispose() {
+        if (_disposed) return;
+        _disposed = true;
+        _file.Dispose();
+        if (!_completed) TryDelete(_temporaryPath);
+    }
+
+    private void AddSystemFolder(uint nid, uint parentNid, string name,
+        string? containerClass, bool search) =>
+        _folders.Add(nid, new FolderState(nid, parentNid, name, containerClass, search));
+
+    private uint ParseFolderId(string value) {
+        if (value == null || value.Length != 12 ||
+            !value.StartsWith("pst:", StringComparison.OrdinalIgnoreCase) ||
+            !uint.TryParse(value.Substring(4), NumberStyles.HexNumber,
+                CultureInfo.InvariantCulture, out uint nid) || !_folders.ContainsKey(nid)) {
+            throw new ArgumentException("The folder identifier does not belong to this PST writer.", nameof(value));
+        }
+        return nid;
+    }
+
+    private void CommitTemporaryFile() {
+        if (File.Exists(_destinationPath)) {
+            if (!_options.OverwriteExisting) throw new IOException("The destination PST already exists.");
+            File.Replace(_temporaryPath, _destinationPath, null);
+        } else {
+            File.Move(_temporaryPath, _destinationPath);
+        }
+    }
+
+    private void ThrowIfUnavailable() {
+        if (_disposed) throw new ObjectDisposedException(nameof(PstStoreWriterCore));
+        if (_completed) throw new InvalidOperationException("The PST writer has already completed.");
+    }
+
+    private void Report(EmailStoreDiagnostic diagnostic) => _diagnostics.Add(diagnostic);
+
+    private static uint AllocateNid(ref uint nextIndex, uint type) {
+        uint value = checked(nextIndex | type);
+        nextIndex = checked(nextIndex + 0x20);
+        return value;
+    }
+
+    private static string FormatId(uint nid) =>
+        string.Concat("pst:", nid.ToString("X8", CultureInfo.InvariantCulture));
+
+    private static void TryDelete(string path) {
+        try { if (File.Exists(path)) File.Delete(path); }
+        catch (IOException) { }
+        catch (UnauthorizedAccessException) { }
+    }
+
+    private sealed class FolderState {
+        internal FolderState(uint nid, uint parentNid, string name,
+            string? containerClass, bool isSearchFolder) {
+            Nid = nid;
+            ParentNid = parentNid;
+            Name = name;
+            ContainerClass = containerClass;
+            IsSearchFolder = isSearchFolder;
+        }
+        internal uint Nid { get; }
+        internal uint ParentNid { get; }
+        internal string Name { get; }
+        internal string? ContainerClass { get; }
+        internal bool IsSearchFolder { get; }
+        internal List<ItemState> Items { get; } = new List<ItemState>();
+    }
+
+    private sealed class ItemState {
+        internal ItemState(uint nid, bool isAssociated,
+            IReadOnlyList<MapiProperty> tableProperties) {
+            Nid = nid;
+            IsAssociated = isAssociated;
+            TableProperties = tableProperties;
+        }
+        internal uint Nid { get; }
+        internal bool IsAssociated { get; }
+        internal IReadOnlyList<MapiProperty> TableProperties { get; }
+    }
+
+    private readonly struct WrittenMessage {
+        internal WrittenMessage(PstWriterContextResult context,
+            IReadOnlyList<MapiProperty> tableProperties) {
+            Context = context;
+            TableProperties = tableProperties;
+        }
+        internal PstWriterContextResult Context { get; }
+        internal IReadOnlyList<MapiProperty> TableProperties { get; }
+    }
+}

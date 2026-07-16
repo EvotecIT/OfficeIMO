@@ -27,7 +27,8 @@ public sealed class EmailStoreReaderOptions {
         long maxXmlCharactersPerItem = 64L * 1024 * 1024,
         long maxMessageBytes = 256L * 1024 * 1024,
         int maxDirectoryDepth = 64,
-        int maxDirectoryFileCount = 1_000_000) {
+        int maxDirectoryFileCount = 1_000_000,
+        long maxDecodedTableBytes = 8L * 1024 * 1024 * 1024) {
         MaxInputBytes = Positive(maxInputBytes, nameof(maxInputBytes));
         MaxNodeCount = Positive(maxNodeCount, nameof(maxNodeCount));
         MaxBTreeDepth = Positive(maxBTreeDepth, nameof(maxBTreeDepth));
@@ -53,6 +54,7 @@ public sealed class EmailStoreReaderOptions {
         MaxMessageBytes = Positive(maxMessageBytes, nameof(maxMessageBytes));
         MaxDirectoryDepth = Positive(maxDirectoryDepth, nameof(maxDirectoryDepth));
         MaxDirectoryFileCount = Positive(maxDirectoryFileCount, nameof(maxDirectoryFileCount));
+        MaxDecodedTableBytes = Positive(maxDecodedTableBytes, nameof(maxDecodedTableBytes));
     }
 
     /// <summary>Default bounded options.</summary>
@@ -106,6 +108,8 @@ public sealed class EmailStoreReaderOptions {
     public int MaxDirectoryDepth { get; }
     /// <summary>Maximum EML, EMLX, and Maildir files indexed by one mailbox-directory session.</summary>
     public int MaxDirectoryFileCount { get; }
+    /// <summary>Maximum decoded bytes traversed from one PST/OST table data tree.</summary>
+    public long MaxDecodedTableBytes { get; }
 
     private static int Positive(int value, string name) {
         if (value <= 0) throw new ArgumentOutOfRangeException(name);

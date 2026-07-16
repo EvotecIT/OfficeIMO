@@ -24,6 +24,25 @@ internal static class PstBinary {
 
     internal static long Int64(byte[] bytes, int offset) => unchecked((long)UInt64(bytes, offset));
 
+    internal static void WriteUInt16(byte[] bytes, int offset, int value) {
+        EnsureWrite(bytes, offset, 2);
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+    }
+
+    internal static void WriteUInt32(byte[] bytes, int offset, uint value) {
+        EnsureWrite(bytes, offset, 4);
+        bytes[offset] = (byte)value;
+        bytes[offset + 1] = (byte)(value >> 8);
+        bytes[offset + 2] = (byte)(value >> 16);
+        bytes[offset + 3] = (byte)(value >> 24);
+    }
+
+    internal static void WriteUInt64(byte[] bytes, int offset, ulong value) {
+        WriteUInt32(bytes, offset, (uint)value);
+        WriteUInt32(bytes, offset + 4, (uint)(value >> 32));
+    }
+
     internal static byte[] ReadAt(Stream stream, long offset, int count) {
         if (offset < 0 || count < 0 || offset > stream.Length - count) {
             throw new InvalidDataException("A PST structure points outside the source stream.");
@@ -42,6 +61,13 @@ internal static class PstBinary {
     internal static void Ensure(byte[] bytes, int offset, int count) {
         if (offset < 0 || count < 0 || offset > bytes.Length - count) {
             throw new InvalidDataException("A PST structure is truncated.");
+        }
+    }
+
+    private static void EnsureWrite(byte[] bytes, int offset, int count) {
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        if (offset < 0 || count < 0 || offset > bytes.Length - count) {
+            throw new ArgumentOutOfRangeException(nameof(offset));
         }
     }
 
