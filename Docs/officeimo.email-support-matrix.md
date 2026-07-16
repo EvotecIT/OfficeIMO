@@ -21,9 +21,10 @@ This matrix describes the current public contract for persisted email and Outloo
 | OLM and EMLX stores | Read-only | Bounded Outlook for Mac ZIP/XML archives, individual Apple Mail EMLX items, partial-content metadata, Apple Mail trees, Maildir, and EML/MIME directory sessions | OLM opens into a bounded materialized model; mailbox directories remain lazy |
 | Store search and validation | Supported | Metadata queries, resumable semantic body/recipient/attachment-name search, snippets, progress, special-folder roles, content-availability reporting, and bounded PST/OST CRC/signature/layout validation | Search is an offline scan, not an Outlook or Exchange index query; structural validation does not repair the source |
 | Store export | Supported | Selected items to EML, MSG, OFT, or TNEF with a manifest, plus atomically committed streaming mbox | True OST-to-PST conversion requires a new PST writer and is not advertised |
+| Outlook OAB address books | Read-only, selective | Bounded component discovery; dynamic-schema v4 Full Details entries and distribution lists; shared address/contact/MAPI projections; raw property retention; resumable search; seeded CRC, framing, and full-decode validation | Display templates and v2/v3 components are inspection-only; compressed Exchange downloads, patches, directory synchronization, and mutation are outside the expanded-cache reader |
 | Protected Outlook messages | Handoff | Detects opaque and clear-signed S/MIME classes and exposes the original `.p7m`/`.p7s` payload attachment | Verification, trust, certificate/key lookup, and decryption belong to MimeKit or another host provider |
 | Lossless pass-through | Supported | Preserved raw source can be emitted unchanged when explicitly requested | Structured edits regenerate the artifact and cannot preserve an existing cryptographic signature |
-| OfficeIMO.Reader integration | Supported | Individual artifacts use `OfficeIMO.Reader`; `OfficeIMO.Reader.EmailStore` adds selective and item-at-a-time PST/OST/OLM/EMLX projection with semantic body and recognized-attachment extraction | Reader remains a thin consumer of `OfficeIMO.Email` and `OfficeIMO.Email.Store` |
+| OfficeIMO.Reader integration | Supported | Individual artifacts use `OfficeIMO.Reader`; `OfficeIMO.Reader.EmailStore` adds selective PST/OST/OLM/EMLX projection, and `OfficeIMO.Reader.EmailAddressBook` adds selective typed OAB entry chunks | Reader remains a thin consumer of `OfficeIMO.Email`, `OfficeIMO.Email.Store`, and `OfficeIMO.Email.AddressBook` |
 
 ## MsgKit, MsgReader, and OpenMcdf replacement map
 
@@ -52,13 +53,14 @@ This matrix describes the current public contract for persisted email and Outloo
 | Local packed-package consumer | A clean net8 consumer restored local `OfficeIMO.Email 0.1.0` and `OfficeIMO.Rtf 0.1.10`, wrote an MSG, and read it asynchronously |
 | Performance contracts | Release tests cover 1 MiB MIME, 1 MiB MSG attachment, and 500-message mbox workloads; see [performance evidence](officeimo.email-performance.md) |
 | Large-store contracts | A virtual 64 GiB PST contract covers selective reads, deferred attachment I/O, content search, and structural validation under fixed source-read ceilings; an aggregate-only 22.4 GB OST run exercises extraction, search, calendar items, Reader projection, and bounded structural checks |
+| Outlook OAB cache | Generated v4 fixtures cover every supported property encoding, corruption and limits; aggregate-only validation of 18 private cache components decoded and fully validated all 8,049 declared entries with no retained directory data |
 
 ## Explicit non-goals
 
 - SMTP, IMAP, POP3, Graph, authentication, and account synchronization
 - DKIM, ARC, PGP, certificate trust, S/MIME verification, and decryption
 - PST/OST writing, mutation, compaction, repair, or OST-to-PST conversion
-- OAB and Outlook profile/cache formats; these require separate directory/profile artifact owners
+- Outlook profile settings, autocomplete caches, search indexes, and other profile/cache formats outside the dedicated OAB owner
 - a public arbitrary-CFB editing or transaction package
 - Outlook UI automation or identical editors across platforms; Outlook for Mac uses its generic item viewer for non-mail MSG classes
 - pretending that every vendor-specific named property has a typed convenience field; retained MAPI values are the compatibility escape hatch

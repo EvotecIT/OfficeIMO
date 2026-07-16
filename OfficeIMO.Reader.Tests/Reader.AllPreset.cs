@@ -9,6 +9,7 @@ public sealed class ReaderAllPresetTests {
     private static readonly string[] ExpectedModularHandlerIds = {
         "officeimo.reader.asciidoc",
         "officeimo.reader.csv",
+        "officeimo.reader.email-address-book",
         "officeimo.reader.emailstore",
         "officeimo.reader.epub",
         "officeimo.reader.html",

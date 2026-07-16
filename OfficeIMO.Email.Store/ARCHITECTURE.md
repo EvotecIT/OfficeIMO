@@ -8,7 +8,9 @@ The finished package boundary is intentionally small:
 | --- | --- |
 | `OfficeIMO.Email` | `EmailDocument`, MIME/EML, MSG, OFT, TNEF, mbox, MAPI projection, and item writers. |
 | `OfficeIMO.Email.Store` | PST/OST/OLM/EMLX and mailbox-directory traversal, sessions, selection, validation, recovery discovery, and export orchestration. |
+| `OfficeIMO.Email.AddressBook` | OAB component discovery, v4 directory entries and distribution lists, bounded search, raw properties, and integrity validation. |
 | `OfficeIMO.Reader.EmailStore` | Optional Reader registration and bounded projection into Reader chunks, metadata, assets, and diagnostics. |
+| `OfficeIMO.Reader.EmailAddressBook` | Optional typed OAB entry projection into Reader chunks, metadata, and diagnostics. |
 
 OFT is an individual Outlook template, not a mailbox store. It stays in `OfficeIMO.Email`. The store package may
 export a selected store item as OFT, but it does not own the OFT format. MIME primitives also remain inside
@@ -16,12 +18,11 @@ export a selected store item as OFT, but it does not own the OFT format. MIME pr
 
 ## Outlook data beyond message stores
 
-OAB data is an offline directory snapshot, not a mailbox container. It should not be parsed by
-`OfficeIMO.Email.Store`, and an address-book entry should not be disguised as an `EmailDocument`. A future sibling
-package, provisionally `OfficeIMO.Outlook.AddressBook`, can own OAB file-set discovery, bounded entry and
-distribution-list enumeration, indexed search, raw property retention, and projection into shared OfficeIMO
-address/contact models where the semantics match. A Reader adapter would likewise be an address-book adapter, not
-an `OfficeIMO.Reader.EmailStore` format registration.
+OAB data is an offline directory snapshot, not a mailbox container. `OfficeIMO.Email.AddressBook` therefore owns
+OAB file-set discovery, bounded entry and distribution-list enumeration, search, raw property retention, integrity
+validation, and projection into shared OfficeIMO address/contact models. `OfficeIMO.Reader.EmailAddressBook` is the
+corresponding thin Reader adapter; OAB is not an `OfficeIMO.Reader.EmailStore` format registration and an address-book
+entry is not disguised as an `EmailDocument`.
 
 The same ownership test applies to other Outlook-local data:
 

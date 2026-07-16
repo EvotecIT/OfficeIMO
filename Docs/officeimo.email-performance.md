@@ -55,3 +55,20 @@ reported truncation because it stopped at the configured limits.
 
 Those numbers prove behavior against one large real file, not general throughput. The repeatable guarantees are
 the configured page, block, decoded-property, searchable-character, attachment, item, and source-read bounds.
+
+## Outlook OAB evidence
+
+`OfficeIMO.Email.AddressBook` keeps only metadata and the active record while enumerating. Synthetic v4 fixtures
+exercise dynamic property tables, every supported scalar and multi-valued encoding, raw-byte retention, exact-offset
+search resume, CRC/framing/full-decode validation, cancellation, and configured limits on every target framework.
+
+An aggregate-only run on 2026-07-16 inspected a private Outlook cache containing 18 OAB components and three v4
+Full Details address lists. All 8,049 declared entries decoded, the object-type totals reconciled to the declared
+count, all three seeded CRC values matched, and full framing/schema validation completed with zero skipped records
+or session diagnostics. The combined open, decode, and second full validation pass completed in 386 ms on the
+current Windows test machine. No names, addresses, identifiers, properties, record bytes, or hashes were printed,
+stored, or copied into the repository.
+
+This is compatibility evidence for one Outlook cache, not a throughput promise. The durable large-file contract is
+the bounded discovery/schema/record model, sequential one-record memory behavior, exact-offset checkpoints, optional
+raw-byte retention, and explicit checksum, record, string, binary, value-count, search, and Reader limits.

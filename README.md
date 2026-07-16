@@ -25,7 +25,7 @@ OfficeIMO keeps document engines first-party and optional integrations isolated.
 | Drawing, PDF, Markdown, RTF, OpenDocument, AsciiDoc, LaTeX, CSV, EPUB, ZIP | No third-party document engine | Parsing, object models, writing, rendering primitives, safety limits, and diagnostics |
 | Word, Excel, PowerPoint | [Open XML SDK](https://github.com/dotnet/Open-XML-SDK) | Fluent/editable object models, lifecycle, validation, conversions, managed image export, and first-party `.doc`/`.xls` support |
 | HTML and MHTML | [AngleSharp](https://github.com/AngleSharp/AngleSharp) and AngleSharp.Css | Resource policy, web-archive projection, media filtering, layout scene, Office/RTF mappings, and PDF/PNG/SVG output |
-| Email and email stores | No third-party email engine | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, MAPI projection, limits, and diagnostics |
+| Email, email stores, and address books | No third-party email engine | EML/MIME, MSG/OFT, TNEF, mbox, PST/OST, OLM, EMLX, Outlook OAB, MAPI projection, limits, and diagnostics |
 | Visio | `System.IO.Packaging` | VSDX model, diagram builders, editing, validation, topology, and SVG/PNG export |
 | Reader.Yaml | [YamlDotNet](https://github.com/aaubry/YamlDotNet) | Reader projection, chunking, limits, locations, and diagnostics |
 | MarkdownRenderer.Wpf | Microsoft WebView2 | Rendering shell, presets, plug-in model, and WPF host contract |
@@ -279,6 +279,16 @@ _Dependency footprint:_ `System.Text.Encoding.CodePages` plus first-party Office
 - [x] Configurable source, cache, tree, item, attachment, archive, XML, directory, and recursion limits with structured diagnostics
 
 _Dependency footprint:_ first-party `OfficeIMO.Email` and `OfficeIMO.Rtf`; no Outlook installation, native library, or third-party store parser.
+
+#### [OfficeIMO.Email.AddressBook](OfficeIMO.Email.AddressBook/README.md)
+
+- [x] Bounded Outlook OAB component discovery with v4, display-template, and legacy v2/v3 role inspection
+- [x] Lazy v4 Full Details entry and distribution-list enumeration with dynamic schemas and retained raw properties
+- [x] Exact-offset resumable search across names, addresses, organization, phones, postal fields, comments, and membership
+- [x] Seeded CRC, record-framing, and full-schema validation with progress, cancellation, and explicit limits
+- [x] Shared `EmailAddress`, `OutlookContact`, `MapiProperty`, and diagnostics models instead of duplicate directory primitives
+
+_Dependency footprint:_ only first-party `OfficeIMO.Email`; no Outlook installation, native library, or third-party OAB parser.
 
 #### [OfficeIMO.Epub](OfficeIMO.Epub/README.md)
 
@@ -545,6 +555,15 @@ _Dependency footprint:_ only OfficeIMO Reader and CSV.
 - [x] Reader input limits that can narrow but never widen the store parser limits
 
 _Dependency footprint:_ only OfficeIMO Reader and Email.Store; no parser is duplicated in the adapter.
+
+#### [OfficeIMO.Reader.EmailAddressBook](OfficeIMO.Reader.EmailAddressBook/README.md)
+
+- [x] `.oab` v4 Full Details registration backed by `OfficeIMO.Email.AddressBook`
+- [x] Item-at-a-time and selective-query ingestion with one deterministic typed chunk per entry
+- [x] Safe projections that omit arbitrary raw properties and keep distribution-list membership opt-in
+- [x] Reader limits, chunk hashes, opt-in complete-source hashing, and separate session/entry diagnostics
+
+_Dependency footprint:_ only OfficeIMO Reader and Email.AddressBook; no parser is duplicated in the adapter.
 
 #### [OfficeIMO.Reader.Epub](OfficeIMO.Reader.Epub/README.md)
 
