@@ -63,6 +63,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 .FirstOrDefault(element => element is not Sheets
                     && element is not WorkbookProperties
                     && element is not WorkbookProtection
+                    && element is not DefinedNames
                     && element is not CalculationProperties);
             if (unsupportedWorkbookChild != null) {
                 throw new NotSupportedException($"Native XLSB rewriting currently accepts cell-value edits only. Workbook metadata '{unsupportedWorkbookChild.LocalName}' was modified; save as .xlsx.");
@@ -70,6 +71,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             ValidateWorkbookProperties(document, sourceWorkbook);
             ValidateWorkbookProtection(document, sourceWorkbook);
+            ValidateDefinedNames(document, sourceWorkbook);
             ValidateCalculationProperties(document, sourceWorkbook);
             ValidateStylesheet(document, sourceWorkbook);
 
@@ -125,6 +127,13 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             WorkbookProtection? protection = document.WorkbookRoot.GetFirstChild<WorkbookProtection>();
             if (!XlsbWorkbookProtectionProjector.Matches(protection, sourceWorkbook.WorkbookProtection)) {
                 throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook protection. Save that change as .xlsx.");
+            }
+        }
+
+        private static void ValidateDefinedNames(ExcelDocument document, XlsbWorkbook sourceWorkbook) {
+            DefinedNames? definedNames = document.WorkbookRoot.GetFirstChild<DefinedNames>();
+            if (!XlsbDefinedNameProjector.Matches(definedNames, sourceWorkbook.DefinedNames)) {
+                throw new NotSupportedException("Native XLSB rewriting preserves but cannot modify workbook defined names. Save that change as .xlsx.");
             }
         }
 

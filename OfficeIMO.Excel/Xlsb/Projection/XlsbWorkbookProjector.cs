@@ -50,6 +50,8 @@ namespace OfficeIMO.Excel.Xlsb.Projection {
                 }
             }
 
+            XlsbDefinedNameProjector.Apply(document, workbook.DefinedNames);
+
             if (workbook.CalculationProperties != null) {
                 XlsbCalculationPropertiesProjector.Apply(document, workbook.CalculationProperties);
             }

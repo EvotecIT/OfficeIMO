@@ -1,5 +1,6 @@
 using OfficeIMO.Excel.LegacyXls.Biff;
 using OfficeIMO.Excel.Xlsb.Biff12;
+using OfficeIMO.Excel.Xlsb.NameRecords;
 using OfficeIMO.Excel.Xlsb.Model;
 using OfficeIMO.Excel.Xlsb.Package;
 using OfficeIMO.Excel.Xlsb.Styles;
@@ -20,6 +21,7 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtFmlaNum = 9;
         private const int BrtFmlaBool = 10;
         private const int BrtFmlaError = 11;
+        private const int BrtName = 39;
         private const int BrtCellRString = 62;
         private const int BrtColInfo = 60;
         private const int BrtBeginSheet = 129;
@@ -46,6 +48,13 @@ namespace OfficeIMO.Excel.Xlsb {
         private const int BrtWsFmtInfo = 485;
         private const int BrtHLink = 494;
         private const int BrtBookProtection = 534;
+        private const int BrtBeginExternals = 353;
+        private const int BrtEndExternals = 354;
+        private const int BrtSupBookSrc = 355;
+        private const int BrtSupSelf = 357;
+        private const int BrtSupSame = 358;
+        private const int BrtExternSheet = 362;
+        private const int BrtSupAddin = 667;
 
         private const string WorksheetRelationshipSuffix = "/worksheet";
         private const string SharedStringsRelationshipSuffix = "/sharedStrings";
@@ -132,6 +141,8 @@ namespace OfficeIMO.Excel.Xlsb {
                     case BrtEndBook:
                     case BrtBeginBundleShs:
                     case BrtEndBundleShs:
+                    case BrtBeginExternals:
+                    case BrtEndExternals:
                         break;
                     case BrtBundleSh:
                         var cursor = new XlsbBinaryCursor(record.Data);
@@ -166,9 +177,143 @@ namespace OfficeIMO.Excel.Xlsb {
                         }
                         workbook.WorkbookProtection = ParseWorkbookProtection(record);
                         break;
+                    case BrtName:
+                        workbook.AddDefinedName(ParseDefinedName(record, options));
+                        break;
+                    case BrtSupSelf:
+                        if (record.Data.Length != 0) {
+                            throw new InvalidDataException($"The BrtSupSelf record at offset {record.Offset} must have an empty payload.");
+                        }
+                        workbook.AddSupportingLink(true);
+                        break;
+                    case BrtSupBookSrc:
+                    case BrtSupSame:
+                    case BrtSupAddin:
+                        workbook.AddSupportingLink(false);
+                        PreserveRecord(options, workbook, partName, record);
+                        break;
+                    case BrtExternSheet:
+                        ParseExternalSheetReferences(record, workbook);
+                        break;
                     default:
                         PreserveRecord(options, workbook, partName, record);
                         break;
+                }
+            }
+
+            ResolveDefinedNames(options, workbook, partName);
+        }
+
+        private static XlsbDefinedName ParseDefinedName(XlsbRecord record, XlsbImportOptions options) {
+            var cursor = new XlsbBinaryCursor(record.Data);
+            uint flags = cursor.ReadUInt32();
+            if ((flags & 0xFFFC0000U) != 0) {
+                throw new InvalidDataException($"The BrtName record at offset {record.Offset} contains reserved flags.");
+            }
+
+            byte shortcutKey = cursor.ReadByte();
+            uint localSheetIndex = cursor.ReadUInt32();
+            string name = cursor.ReadWideString(Math.Min(options.MaxStringCharacters, 255));
+            if (string.IsNullOrWhiteSpace(name)) {
+                throw new InvalidDataException($"The BrtName record at offset {record.Offset} has an empty name.");
+            }
+
+            uint tokenCount = cursor.ReadUInt32();
+            if (tokenCount == 0 || tokenCount > 16_384 || tokenCount > cursor.Remaining) {
+                throw new InvalidDataException($"The BrtName record at offset {record.Offset} has invalid formula-token length {tokenCount}.");
+            }
+            byte[] formulaTokens = cursor.ReadBytes(checked((int)tokenCount));
+            uint extraCount = cursor.ReadUInt32();
+            if (extraCount > cursor.Remaining) {
+                throw new InvalidDataException($"The BrtName record at offset {record.Offset} has invalid formula-extra length {extraCount}.");
+            }
+            byte[] formulaExtraBytes = cursor.ReadBytes(checked((int)extraCount));
+            string? comment = ReadNullableWideString(cursor, Math.Min(options.MaxStringCharacters, 255));
+            if ((flags & 0x00000008U) != 0) {
+                ReadNullableWideString(cursor, options.MaxStringCharacters);
+                ReadNullableWideString(cursor, options.MaxStringCharacters);
+                ReadNullableWideString(cursor, options.MaxStringCharacters);
+                ReadNullableWideString(cursor, options.MaxStringCharacters);
+            }
+            if (cursor.Remaining != 0) {
+                throw new InvalidDataException($"The BrtName record at offset {record.Offset} has {cursor.Remaining} unexpected trailing payload bytes.");
+            }
+
+            return new XlsbDefinedName(
+                flags,
+                shortcutKey,
+                localSheetIndex,
+                name,
+                formulaTokens,
+                formulaExtraBytes,
+                comment,
+                record.Offset,
+                record.Size);
+        }
+
+        private static void ParseExternalSheetReferences(XlsbRecord record, XlsbWorkbook workbook) {
+            var cursor = new XlsbBinaryCursor(record.Data);
+            uint count = cursor.ReadUInt32();
+            if (count > 65_535 || count > cursor.Remaining / 12U) {
+                throw new InvalidDataException($"The BrtExternSheet record at offset {record.Offset} has invalid reference count {count}.");
+            }
+            for (uint index = 0; index < count; index++) {
+                workbook.AddExternalSheetReference(new XlsbExternalSheetReference(
+                    cursor.ReadUInt32(),
+                    cursor.ReadInt32(),
+                    cursor.ReadInt32()));
+            }
+            if (cursor.Remaining != 0) {
+                throw new InvalidDataException($"The BrtExternSheet record at offset {record.Offset} has {cursor.Remaining} unexpected trailing payload bytes.");
+            }
+        }
+
+        private static string? ReadNullableWideString(XlsbBinaryCursor cursor, int maxCharacters) {
+            uint count = cursor.ReadUInt32();
+            if (count == uint.MaxValue) return null;
+            if (count > maxCharacters) {
+                throw new InvalidDataException($"The BIFF12 nullable string declares {count} characters, exceeding the configured limit of {maxCharacters} characters.");
+            }
+            int byteCount;
+            try {
+                byteCount = checked((int)count * 2);
+            } catch (OverflowException exception) {
+                throw new InvalidDataException("The BIFF12 nullable string length is too large.", exception);
+            }
+            return Encoding.Unicode.GetString(cursor.ReadBytes(byteCount));
+        }
+
+        private static void ResolveDefinedNames(XlsbImportOptions options, XlsbWorkbook workbook, string partName) {
+            foreach (XlsbDefinedName definedName in workbook.DefinedNames) {
+                if (definedName.LocalSheetIndex != uint.MaxValue
+                    && definedName.LocalSheetIndex >= workbook.Worksheets.Count) {
+                    throw new InvalidDataException($"The XLSB defined name '{definedName.Name}' is scoped to missing sheet index {definedName.LocalSheetIndex}.");
+                }
+
+                if (XlsbDefinedNameFormulaCodec.TryDecode(
+                    definedName,
+                    workbook.ExternalSheetReferences,
+                    workbook.SelfSupportingLinks,
+                    workbook.Worksheets,
+                    out string? formulaText,
+                    out string? reason)) {
+                    definedName.FormulaText = formulaText;
+                    continue;
+                }
+
+                workbook.AddDiagnostic(new XlsbImportDiagnostic(
+                    "XLSB-DEFINED-NAME-PRESERVED",
+                    XlsbImportDiagnosticSeverity.Warning,
+                    $"Preserved defined name '{definedName.Name}' without projecting {reason ?? "its formula"}.",
+                    partName,
+                    BrtName,
+                    definedName.RecordOffset));
+                if (options.ReportPreservedRecords) {
+                    workbook.AddPreservedRecord(new XlsbPreservedRecordInfo(
+                        partName,
+                        BrtName,
+                        definedName.RecordOffset,
+                        definedName.PayloadLength));
                 }
             }
         }

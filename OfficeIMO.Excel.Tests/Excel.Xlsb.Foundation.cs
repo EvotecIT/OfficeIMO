@@ -1144,6 +1144,71 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Updated under protection", rewrittenValue);
         }
 
+        [Fact]
+        public void Xlsb_NewWorkbook_WritesAndProjectsDefinedNamesAndPrintRanges() {
+            using ExcelDocument document = ExcelDocument.Create();
+            ExcelSheet data = document.AddWorksheet("Data Sheet");
+            document.AddWorksheet("Summary");
+            document.SetNamedRange("RevenueData", "'Data Sheet'!A1:B3", save: false, hidden: true);
+            data.SetNamedRange("LocalCell", "C2", save: false);
+            document.SetPrintArea(data, "A1:C10", save: false);
+            document.SetPrintTitles(data, firstRow: 1, lastRow: 2, firstCol: 1, lastCol: 1, save: false);
+            DefinedName revenueName = Assert.Single(
+                document.WorkbookRoot.DefinedNames!.Elements<DefinedName>(),
+                name => name.Name?.Value == "RevenueData");
+            revenueName.Comment = "Projected from BIFF12";
+
+            byte[] package = document.ToBytes(ExcelFileFormat.Xlsb);
+            using (var archive = new ZipArchive(new MemoryStream(package, writable: false), ZipArchiveMode.Read)) {
+                using Stream workbookStream = Assert.IsType<ZipArchiveEntry>(archive.GetEntry("xl/workbook.bin")).Open();
+                IReadOnlyList<XlsbRecord> records = XlsbRecordReader.ReadAll(workbookStream);
+                Assert.Equal(4, records.Count(record => record.Type == 39));
+                Assert.Single(records, record => record.Type == 353);
+                Assert.Single(records, record => record.Type == 357);
+                XlsbRecord externSheet = Assert.Single(records, record => record.Type == 362);
+                Assert.Single(records, record => record.Type == 354);
+                Assert.True(
+                    records.ToList().FindIndex(record => record.Type == 353)
+                    < records.ToList().FindIndex(record => record.Type == 39));
+                Assert.Equal(4U, BitConverter.ToUInt32(externSheet.Data, 0));
+                Assert.Equal(-2, BitConverter.ToInt32(externSheet.Data, 8));
+                Assert.Equal(-2, BitConverter.ToInt32(externSheet.Data, 12));
+                Assert.Equal(-1, BitConverter.ToInt32(externSheet.Data, 20));
+                Assert.Equal(-1, BitConverter.ToInt32(externSheet.Data, 24));
+                Assert.Equal(0, BitConverter.ToInt32(externSheet.Data, 32));
+                Assert.Equal(0, BitConverter.ToInt32(externSheet.Data, 36));
+                Assert.Equal(1, BitConverter.ToInt32(externSheet.Data, 44));
+                Assert.Equal(1, BitConverter.ToInt32(externSheet.Data, 48));
+                XlsbRecord firstName = Assert.Single(records, record =>
+                    record.Type == 39 && BitConverter.ToUInt32(record.Data, 0) == 0x00000001U);
+                int formulaOffset = 17 + "RevenueData".Length * 2;
+                Assert.Equal((byte)0x3B, firstName.Data[formulaOffset]);
+                Assert.Equal((ushort)2, BitConverter.ToUInt16(firstName.Data, formulaOffset + 1));
+            }
+
+            using ExcelDocument reloaded = ExcelDocument.Load(new MemoryStream(package, writable: false));
+            ExcelSheet reloadedData = Assert.Single(reloaded.Sheets, sheet => sheet.Name == "Data Sheet");
+            Assert.Equal("'Data Sheet'!$A$1:$B$3", reloaded.GetNamedRange("RevenueData"));
+            Assert.Equal("$C$2", reloadedData.GetNamedRange("LocalCell"));
+            Assert.Equal("$A$1:$C$10", reloadedData.GetPrintArea());
+            ExcelPrintTitles titles = reloadedData.GetPrintTitles();
+            Assert.Equal(1, titles.FirstRow);
+            Assert.Equal(2, titles.LastRow);
+            Assert.Equal(1, titles.FirstColumn);
+            Assert.Equal(1, titles.LastColumn);
+            DefinedName projectedRevenueName = Assert.Single(
+                reloaded.WorkbookRoot.DefinedNames!.Elements<DefinedName>(),
+                name => name.Name?.Value == "RevenueData");
+            Assert.True(projectedRevenueName.Hidden?.Value);
+            Assert.Equal("Projected from BIFF12", projectedRevenueName.Comment?.Value);
+
+            reloadedData.CellValue(1, 1, "Edited with names preserved");
+            byte[] rewritten = reloaded.ToBytes(ExcelFileFormat.Xlsb);
+            using ExcelDocument rewrittenDocument = ExcelDocument.Load(new MemoryStream(rewritten, writable: false));
+            Assert.Equal("'Data Sheet'!$A$1:$B$3", rewrittenDocument.GetNamedRange("RevenueData"));
+            Assert.Equal("$A$1:$C$10", rewrittenDocument.Sheets[0].GetPrintArea());
+        }
+
         private static byte[] CreateMinimalXlsbPackage() {
             byte[] workbookRecords = {
                 0x83, 0x01, 0x00,

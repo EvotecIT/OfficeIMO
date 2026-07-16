@@ -46,6 +46,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                 document.DateSystem == ExcelDateSystem.NineteenFour,
                 document.WorkbookRoot.GetFirstChild<BookViews>(),
                 document.WorkbookRoot.GetFirstChild<WorkbookProtection>(),
+                document.WorkbookRoot.GetFirstChild<DefinedNames>(),
                 document.WorkbookRoot.GetFirstChild<CalculationProperties>()));
             WriteEntry(archive, "xl/_rels/workbook.bin.rels", CreateWorkbookRelationships(sheets.Length, stylesPart != null));
             for (int index = 0; index < worksheetParts.Length; index++) {
@@ -76,6 +77,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
             ThrowIfDuplicateWorkbookElement<WorkbookProtection>(document.WorkbookRoot, "workbook protection");
             ThrowIfDuplicateWorkbookElement<BookViews>(document.WorkbookRoot, "workbook views");
             ThrowIfDuplicateWorkbookElement<Sheets>(document.WorkbookRoot, "worksheet collections");
+            ThrowIfDuplicateWorkbookElement<DefinedNames>(document.WorkbookRoot, "defined-name collections");
             ThrowIfDuplicateWorkbookElement<CalculationProperties>(document.WorkbookRoot, "calculation properties");
 
             OpenXmlElement? unsupportedWorkbookChild = document.WorkbookRoot.ChildElements
@@ -83,6 +85,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
                     && element is not WorkbookProperties
                     && element is not WorkbookProtection
                     && element is not BookViews
+                    && element is not DefinedNames
                     && element is not CalculationProperties);
             if (unsupportedWorkbookChild != null) {
                 throw new NotSupportedException($"Native XLSB generation does not yet support workbook metadata '{unsupportedWorkbookChild.LocalName}'.");
@@ -90,6 +93,7 @@ namespace OfficeIMO.Excel.Xlsb.Write {
 
             XlsbWorkbookViewWriter.Validate(document.WorkbookRoot.GetFirstChild<BookViews>(), sheets.Count);
             XlsbWorkbookProtectionWriter.Validate(document.WorkbookRoot.GetFirstChild<WorkbookProtection>());
+            XlsbDefinedNameWriter.Validate(document.WorkbookRoot.GetFirstChild<DefinedNames>(), sheets);
             XlsbCalculationPropertiesWriter.Validate(document.WorkbookRoot.GetFirstChild<CalculationProperties>());
 
             WorkbookProperties? properties = document.WorkbookRoot.GetFirstChild<WorkbookProperties>();
