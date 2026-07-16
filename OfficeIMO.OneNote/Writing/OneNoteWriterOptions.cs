@@ -2,6 +2,12 @@ namespace OfficeIMO.OneNote;
 
 /// <summary>Controls native offline OneNote serialization.</summary>
 public sealed class OneNoteWriterOptions {
+    /// <summary>Hard maximum accepted for recursive writer traversal limits.</summary>
+    public const int MaximumTraversalDepth = 256;
+
+    /// <summary>Default maximum nesting depth for serializable content elements.</summary>
+    public const int DefaultMaxContentDepth = OneNoteReaderOptions.DefaultMaxPropertySetDepth;
+
     /// <summary>
     /// Physical encoding for generated <c>.one</c> and <c>.onetoc2</c> payloads.
     /// <see cref="OneNoteStorageFormat.Unknown"/> preserves a loaded artifact's source encoding
@@ -17,6 +23,18 @@ public sealed class OneNoteWriterOptions {
 
     /// <summary>Maximum number of files emitted into a notebook directory or <c>.onepkg</c> archive.</summary>
     public int MaxPackageEntries { get; set; } = 10000;
+
+    /// <summary>
+    /// Maximum nesting depth across conflict and version-history page relationships.
+    /// Values must be from 1 through <see cref="MaximumTraversalDepth"/>.
+    /// </summary>
+    public int MaxPageRelationshipDepth { get; set; } = OneNoteReaderOptions.DefaultMaxPageRelationshipDepth;
+
+    /// <summary>
+    /// Maximum recursive nesting depth for outlines, paragraphs, and table-cell content.
+    /// Values must be from 1 through <see cref="MaximumTraversalDepth"/>.
+    /// </summary>
+    public int MaxContentDepth { get; set; } = DefaultMaxContentDepth;
 
     /// <summary>
     /// Preserves source objects, properties, and relationships that are not replaced by typed edits.

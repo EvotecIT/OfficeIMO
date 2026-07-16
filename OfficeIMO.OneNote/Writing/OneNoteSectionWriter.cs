@@ -6,12 +6,16 @@ public static class OneNoteSectionWriter {
     public static byte[] Write(OneNoteSection section, OneNoteWriterOptions? options = null) {
         if (section == null) throw new ArgumentNullException(nameof(section));
         OneNoteWriterOptions effective = options ?? new OneNoteWriterOptions();
-        if (effective.MaxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxOutputBytes must be greater than zero.");
-        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(effective.MaxOutputBytes, effective.PreserveUnknownData).BuildSection(section);
+        OneNoteWriterValidation.ValidateSectionOptions(effective);
+        OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(
+            effective.MaxOutputBytes,
+            effective.PreserveUnknownData,
+            effective.MaxPageRelationshipDepth,
+            effective.MaxContentDepth).BuildSection(section);
         byte[] data = OneNoteGraphSerializer.Write(graph, effective, section.StorageFormat);
         if (effective.ValidateRoundTrip) {
             using (var stream = new MemoryStream(data, false)) {
-                OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(effective.MaxOutputBytes));
+                OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(effective, effective.MaxOutputBytes));
             }
         }
         return data;

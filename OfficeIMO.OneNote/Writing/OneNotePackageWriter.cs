@@ -15,7 +15,7 @@ public static class OneNotePackageWriter {
                     MaxPackageEntries = effective.MaxPackageEntries,
                     MaxPackageExpandedBytes = effective.MaxOutputBytes,
                     MaxPackageEntryBytes = effective.MaxOutputBytes,
-                    OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(effective.MaxOutputBytes)
+                    OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(effective, effective.MaxOutputBytes)
                 });
             }
         }

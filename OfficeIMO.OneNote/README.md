@@ -54,7 +54,7 @@ var options = new OneNoteWriterOptions {
 OneNoteSectionWriter.Write(section, "Planning.one", options);
 ```
 
-`OneNoteWriterOptions.StorageFormat` applies to native `.one` and `.onetoc2` payloads. Use `OneNotePackageWriter` for the Cabinet-based `.onepkg` container. The same options also provide tighter output and package-entry limits when needed.
+`OneNoteWriterOptions.StorageFormat` applies to native `.one` and `.onetoc2` payloads. Use `OneNotePackageWriter` for the Cabinet-based `.onepkg` container. The same options also provide tighter output, package-entry, related-page-depth, and content-depth limits when needed.
 
 ## Notebooks and packages
 
@@ -105,6 +105,8 @@ These fail-closed boundaries distinguish preservation from authoring support.
 `OneNoteReaderOptions` bounds input bytes, file-node and transaction counts, objects, properties, property nesting, distinct page-graph nodes, related-page depth, assets, and FSSHTTP stream objects. Notebook/package options additionally bound section-group depth, entry count, per-entry bytes, and total expanded bytes. Lazy binary payloads are materialized only when requested and still require a caller-provided byte limit.
 
 Conflict and version-history object spaces are traversed once per section. Repeated or cyclic references in malformed page graphs are pruned to a bounded spanning tree so the loaded model remains safe to convert and rewrite.
+
+Before writing, caller-created conflict/version relationships and nested content are checked for cycles and excessive depth. `MaxPageRelationshipDepth` and `MaxContentDepth` default to 128 and accept values up to the hard safety ceiling of 256. Native list levels are limited to 0 through `OneNoteListInfo.MaxLevel` (254); the shared Markdown projection clamps out-of-range caller values to that representable range so Markdown, HTML, PDF, and Reader conversion cannot allocate arbitrary indentation.
 
 Caller-owned streams stay open. Seekable read streams are restored to their original position. Async probe and Reader entry points support cancellation.
 

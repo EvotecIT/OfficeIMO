@@ -13,7 +13,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
 
     internal static OneNoteNotebookSerializationPlan Create(OneNoteNotebook notebook, OneNoteWriterOptions options) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        ValidateOptions(options);
+        OneNoteWriterValidation.ValidateNotebookOptions(options);
         var plan = new OneNoteNotebookSerializationPlan(options);
         Guid rootId = EnsureIdentity(notebook.Id);
         notebook.Id = rootId;
@@ -33,7 +33,7 @@ internal sealed class OneNoteNotebookSerializationPlan {
 
     internal static byte[] CreateRootTableOfContents(OneNoteNotebook notebook, OneNoteWriterOptions options) {
         if (notebook == null) throw new ArgumentNullException(nameof(notebook));
-        ValidateOptions(options);
+        OneNoteWriterValidation.ValidateNotebookOptions(options);
         Guid rootId = EnsureIdentity(notebook.Id);
         notebook.Id = rootId;
         IReadOnlyList<OneNoteTocWriteEntry> entries = CreateTocEntries(notebook.Sections, notebook.SectionGroups);
@@ -73,7 +73,11 @@ internal sealed class OneNoteNotebookSerializationPlan {
                 section.Id = sectionId;
                 section.TableOfContentsOrder = order;
                 long entryLimit = RemainingOutputBytes();
-                OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(entryLimit, _options.PreserveUnknownData).BuildSection(section, tocId, fileName, sectionId);
+                OneNoteWriteGraph graph = new OneNoteWriteGraphBuilder(
+                    entryLimit,
+                    _options.PreserveUnknownData,
+                    _options.MaxPageRelationshipDepth,
+                    _options.MaxContentDepth).BuildSection(section, tocId, fileName, sectionId);
                 AddEntry(Combine(prefix, fileName), SerializeGraph(graph, _options, false, section.StorageFormat, entryLimit));
                 tocEntries.Add(new OneNoteTocWriteEntry(sectionId, fileName, order++, section.ColorArgb));
             } else {
@@ -144,10 +148,10 @@ internal sealed class OneNoteNotebookSerializationPlan {
                 if (toc) {
                     OneNoteNotebookReader.Read(stream, TocFileName, new OneNoteNotebookReaderOptions {
                         LoadSectionContent = false,
-                        OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(maxOutputBytes)
+                        OneNoteOptions = OneNoteWriterValidation.CreateReaderOptions(options, maxOutputBytes)
                     });
                 } else {
-                    OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(maxOutputBytes));
+                    OneNoteSectionReader.Read(stream, OneNoteWriterValidation.CreateReaderOptions(options, maxOutputBytes));
                 }
             }
         }
@@ -220,11 +224,5 @@ internal sealed class OneNoteNotebookSerializationPlan {
 
     private static Guid EnsureIdentity(Guid? identity) =>
         identity.HasValue && identity.Value != Guid.Empty ? identity.Value : Guid.NewGuid();
-
-    private static void ValidateOptions(OneNoteWriterOptions options) {
-        if (options == null) throw new ArgumentNullException(nameof(options));
-        if (options.MaxOutputBytes < 1) throw new ArgumentOutOfRangeException(nameof(options), "MaxOutputBytes must be greater than zero.");
-        if (options.MaxPackageEntries < 1 || options.MaxPackageEntries > ushort.MaxValue) throw new ArgumentOutOfRangeException(nameof(options), "MaxPackageEntries must be between 1 and 65535.");
-    }
 
 }

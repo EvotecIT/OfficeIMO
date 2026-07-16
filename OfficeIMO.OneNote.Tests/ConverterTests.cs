@@ -155,6 +155,27 @@ public sealed class ConverterTests {
     }
 
     [Fact]
+    public void SharedProjectionBoundsCallerSuppliedListIndentationAcrossConverters() {
+        var section = new OneNoteSection { Name = "Lists" };
+        var page = new OneNotePage { Title = "Extreme list" };
+        var paragraph = new OneNoteParagraph {
+            List = new OneNoteListInfo { Level = int.MaxValue }
+        };
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Bounded item" });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        string markdown = section.ToMarkdown();
+        string html = section.ToHtmlDocument(htmlOptions: new HtmlOptions { AssetMode = AssetMode.Offline });
+        byte[] pdf = section.ToPdf();
+        string expectedPrefix = new string(' ', OneNoteListInfo.MaxLevel * 2) + "- Bounded item";
+
+        Assert.Contains(expectedPrefix, markdown, StringComparison.Ordinal);
+        Assert.Contains("Bounded item", html, StringComparison.Ordinal);
+        Assert.Equal("%PDF", Encoding.ASCII.GetString(pdf, 0, 4));
+    }
+
+    [Fact]
     public void MarkdownProjectionKeepsLiteralLineStartsInsideTheirSourceBlocks() {
         var section = new OneNoteSection { Name = "Projection" };
         var page = new OneNotePage { Title = "Title\n# literal heading" };

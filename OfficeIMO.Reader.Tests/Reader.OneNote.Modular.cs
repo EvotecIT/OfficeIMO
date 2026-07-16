@@ -143,6 +143,24 @@ public sealed class ReaderOneNoteModularTests {
     }
 
     [Fact]
+    public void OneNoteAdapter_BoundsCallerSuppliedListIndentation() {
+        var section = new OneNoteSection { Name = "Lists" };
+        var page = new OneNotePage { Title = "Extreme list" };
+        var paragraph = new OneNoteParagraph {
+            List = new OneNoteListInfo { Level = int.MaxValue }
+        };
+        paragraph.Runs.Add(new OneNoteTextRun { Text = "Bounded item" });
+        page.DirectContent.Add(paragraph);
+        section.Pages.Add(page);
+
+        ReaderChunk chunk = Assert.Single(OneNoteReaderAdapter.ReadDocument(section).Chunks);
+        string expectedPrefix = new string(' ', OneNoteListInfo.MaxLevel * 2) + "- Bounded item";
+
+        Assert.Contains(expectedPrefix, chunk.Markdown!, StringComparison.Ordinal);
+        Assert.Contains("Bounded item", chunk.Text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void OneNoteAdapter_ReadDocument_ProjectsPageTextAndMetadata() {
         OfficeDocumentReadResult result = OneNoteReaderAdapter.ReadDocument(FixturePath("testOneNote2016.one"));
 

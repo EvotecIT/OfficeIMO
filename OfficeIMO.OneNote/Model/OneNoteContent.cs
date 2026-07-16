@@ -212,6 +212,9 @@ public enum OneNoteParagraphAlignment {
 /// List marker metadata for a paragraph.
 /// </summary>
 public sealed class OneNoteListInfo {
+    /// <summary>Largest zero-based list level representable by the native one-byte child-level property.</summary>
+    public const int MaxLevel = byte.MaxValue - 1;
+
     internal OneNoteExtendedGuid? ObjectId { get; set; }
 
     /// <summary>Whether the list is ordered.</summary>
@@ -220,7 +223,7 @@ public sealed class OneNoteListInfo {
     /// <summary>MS-ONE number-list format value.</summary>
     public uint? Format { get; set; }
 
-    /// <summary>Zero-based nesting level.</summary>
+    /// <summary>Zero-based nesting level. Native writing accepts values from 0 through <see cref="MaxLevel"/>.</summary>
     public int Level { get; set; }
 
     /// <summary>Whether numbering restarts at this item.</summary>

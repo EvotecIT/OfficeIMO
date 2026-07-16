@@ -75,12 +75,18 @@ public sealed class CorruptionSafetyTests {
     [Fact]
     public void WriterRoundTripValidationAllowsAssetsWithinTheOutputBound() {
         long outputLimit = OneNoteReaderOptions.DefaultMaxAssetBytes + 1;
+        var writerOptions = new OneNoteWriterOptions {
+            MaxPageRelationshipDepth = 192,
+            MaxContentDepth = 160
+        };
 
-        OneNoteReaderOptions options = OneNoteWriterValidation.CreateReaderOptions(outputLimit);
+        OneNoteReaderOptions options = OneNoteWriterValidation.CreateReaderOptions(writerOptions, outputLimit);
 
         Assert.Equal(outputLimit, options.MaxInputBytes);
         Assert.Equal(outputLimit, options.MaxAssetBytes);
         Assert.Equal(outputLimit, options.MaxTotalAssetBytes);
+        Assert.Equal(writerOptions.MaxPageRelationshipDepth, options.MaxPageRelationshipDepth);
+        Assert.Equal(writerOptions.MaxContentDepth, options.MaxPropertySetDepth);
     }
 
     [Fact]

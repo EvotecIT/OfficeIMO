@@ -171,7 +171,8 @@ public static class OneNoteMarkdownProjection {
             string content = string.Concat(paragraph.Runs.Select(FormatRun));
             if (!string.IsNullOrWhiteSpace(content)) {
                 if (paragraph.List != null) {
-                    builder.Append(new string(' ', Math.Max(0, paragraph.List.Level) * 2));
+                    int level = Math.Min(OneNoteListInfo.MaxLevel, Math.Max(0, paragraph.List.Level));
+                    builder.Append(new string(' ', level * 2));
                     builder.Append(paragraph.List.Ordered ? "1. " : "- ");
                 }
                 builder.AppendLine(content);
