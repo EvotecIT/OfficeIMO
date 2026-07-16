@@ -106,6 +106,22 @@ public sealed class ReaderMediaAdapterTests {
         Assert.Equal(3, asset.Height);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ImageAdapter_IdentifiesContentVerifiedUtf32SvgWithoutBom(bool bigEndian) {
+        const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"6\" height=\"5\"/>";
+        var encoding = new UTF32Encoding(bigEndian, byteOrderMark: false, throwOnInvalidCharacters: true);
+        OfficeDocumentReader reader = new OfficeDocumentReaderBuilder().AddImageHandler().Build();
+
+        OfficeDocumentReadResult result = reader.ReadDocument(encoding.GetBytes(svg), "image.svg");
+
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        Assert.Equal("image/svg+xml", asset.MediaType);
+        Assert.Equal(6, asset.Width);
+        Assert.Equal(5, asset.Height);
+    }
+
     [Fact]
     public void ImageAdapter_IdentifiesSvgFromTheRootHeaderWithoutReadingTheTrailingTree() {
         const string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"5\" height=\"4\"><unclosed";

@@ -512,7 +512,9 @@ public static partial class OfficeImageReader {
         string prefix;
         try {
             Encoding encoding = ResolveXmlPrefixEncoding(data, out int byteOffset);
-            int maximumPrefixBytes = encoding is UnicodeEncoding ? 8192 : 4096;
+            int maximumPrefixBytes = encoding is UTF32Encoding
+                ? 16384
+                : encoding is UnicodeEncoding ? 8192 : 4096;
             prefix = encoding.GetString(data, byteOffset, Math.Min(data.Length - byteOffset, maximumPrefixBytes));
         } catch (ArgumentException) {
             return false;
@@ -547,6 +549,12 @@ public static partial class OfficeImageReader {
             if (data[0] == 0xFF && data[1] == 0xFE && data[2] == 0x00 && data[3] == 0x00) {
                 offset = 4;
                 return new UTF32Encoding(bigEndian: false, byteOrderMark: true, throwOnInvalidCharacters: true);
+            }
+            if (data[0] == 0x00 && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x3C) {
+                return new UTF32Encoding(bigEndian: true, byteOrderMark: false, throwOnInvalidCharacters: true);
+            }
+            if (data[0] == 0x3C && data[1] == 0x00 && data[2] == 0x00 && data[3] == 0x00) {
+                return new UTF32Encoding(bigEndian: false, byteOrderMark: false, throwOnInvalidCharacters: true);
             }
             if (data[0] == 0x3C && data[1] == 0x00 && data[2] != 0x00 && data[3] == 0x00) {
                 return Encoding.Unicode;
